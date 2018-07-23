@@ -29,7 +29,7 @@ def test_default():
     assert y == pytest.approx(131.698906123)
 
     assert out.FoundBeamCenterX == pytest.approx(90.6773456526)
-    assert out.FoundBeamCenterX == pytest.approx(131.698906123)
+    assert out.FoundBeamCenterY == pytest.approx(131.698906123)
 
 
 # todo

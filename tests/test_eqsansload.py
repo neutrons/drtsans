@@ -1,28 +1,53 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+
 '''
 Run as simple test
 
-PYTHONPATH=. pytest tests/test_eqsansload.py
+PYTHONPATH=. pytest -v -s tests/test_eqsansload.py
+
+-s : Shows the std out
 
 '''
+import sys
 
-from configparser import RawConfigParser
-from itertools import chain
+def test_get_config_file():
+    from ornl.sans.sns.eqsans.parameters import _get_config_file
+    assert _get_config_file(71820) == '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
+    assert _get_config_file(71821) == '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
+    assert _get_config_file(72001) == '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
 
-from ornl.settings import MultiOrderedDict
+
+def test_get_parameters():
+    from ornl.sans.sns.eqsans.parameters import get_parameters
+    params = get_parameters(68200)
+    assert params['detector pixel sizes'] == '5.5, 5.5'
+    assert params['rectangular mask'].split('\n')[0] == '0 0;7 255'
 
 
-def test_read_configuration():
-    conf_file = "/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.92474"
-
-    parser = RawConfigParser(
-        dict_type=MultiOrderedDict,
-        strict=False,
-        inline_comment_prefixes="#")
-    with open(conf_file, 'r') as f:
-        f = chain(("[DEFAULT]",), f)  # This line does the trick.
-        parser.read_file(f)
+def test_EQSANSLoad():
+    '''
+    EQSANSLoad workflow algorithm as called by Mantid
+    '''
     
-    assert parser['DEFAULT']['rectangular mask'].split("\n")[0] == "0 0;0 255"
+    sys.path.append("/opt/mantidnightly/bin/")
+    from mantid.simpleapi import EQSANSLoad
+    from mantid.kernel import PropertyManagerDataService, PropertyManager
+
+    pm = PropertyManager()
+    PropertyManagerDataService.addOrReplace("test_pm", pm)
+    out = EQSANSLoad(
+        Filename='68200',
+        # UseDirectBeamMethod=True,
+        # BeamRadius=3,
+        ReductionProperties='test_pm',
+    )
+
+    x = float(pm.getPropertyValue('LatestBeamCenterX'))
+    y = float(pm.getPropertyValue('LatestBeamCenterY'))
+
+    assert x == 95.5
+    assert y == 127.5
+
+    print(out.OutputMessage)

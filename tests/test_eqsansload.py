@@ -16,11 +16,15 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+
 def test_get_config_file():
     from ornl.sans.sns.eqsans.parameters import _get_config_file
-    assert _get_config_file(71820) == '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
-    assert _get_config_file(71821) == '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
-    assert _get_config_file(72001) == '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
+    assert _get_config_file(71820) == \
+        '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
+    assert _get_config_file(71821) == \
+        '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
+    assert _get_config_file(72001) == \
+        '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
 
 
 def test_get_parameters():
@@ -42,7 +46,8 @@ def test_EQSANSLoad():
     pm = PropertyManager()
     PropertyManagerDataService.addOrReplace("test_pm", pm)
     out = EQSANSLoad(
-        Filename=os.path.join(os.getenv('DATA_DIRECTORY'), 'eqsans', 'EQSANS_68200_event.nxs'),
+        Filename=os.path.join(os.getenv('DATA_DIRECTORY'), 'eqsans',
+                              'EQSANS_68200_event.nxs'),
         # UseDirectBeamMethod=True,
         # BeamRadius=3,
         ReductionProperties='test_pm',

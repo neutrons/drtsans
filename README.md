@@ -41,6 +41,32 @@ pytest -s -v
 
 ```
 
+# How to use the PropertyManager
+
+This might be useful to debug old algorithms
+
+```python
+from __future__ import print_function
+
+from mantid.kernel import PropertyManagerDataService, PropertyManager
+
+# Create it
+pm = PropertyManager()
+pmds = PropertyManagerDataService.add("pm_name", pm)
+
+# Add properties
+pm.declareProperty("p1", "v1")
+pm.declareProperty("p2", "v2")
+
+# print all the properties
+for k, v in zip(pm.keys(), pm.values()):
+    print("{} -> ".format(k), end="")
+    try:
+        print(v.value)
+    except:
+        print(v)
+```
+
 # List to split
 
 **Python Algorithms**

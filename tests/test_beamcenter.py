@@ -10,6 +10,7 @@ import pytest
 from dotenv import load_dotenv
 load_dotenv()
 
+
 def test_SANSBeamFinder():
     '''
     This is just a test for the algorithm as it runs in mantid
@@ -23,7 +24,8 @@ def test_SANSBeamFinder():
     PropertyManagerDataService.addOrReplace("test_pm", pm)
 
     out = SANSBeamFinder(
-        Filename=os.path.join(os.getenv('DATA_DIRECTORY'), 'eqsans', 'EQSANS_68183_event.nxs'),
+        Filename=os.path.join(os.getenv('DATA_DIRECTORY'),
+                              'eqsans', 'EQSANS_68183_event.nxs'),
         # UseDirectBeamMethod=True,
         # BeamRadius=3,
         ReductionProperties='test_pm',

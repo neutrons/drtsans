@@ -11,6 +11,11 @@ load_dotenv()
 CONFIG_DIRECTORY = os.getenv('EQSANS_CONFIG_DIRECTORY')
 CONFIG_FILE_PREFIX = os.getenv('EQSANS_CONFIG_FILE_PREFIX')
 
+'''
+This module parses the EQSANS configuration file and transforms it
+into a dictionary
+'''
+
 
 def _get_config_file(run_number):
     '''

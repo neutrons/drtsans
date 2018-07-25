@@ -43,6 +43,7 @@ pytest -s -v
 
 # List to split
 
+**Python Algorithms**
 
 ```sh
 Framework/PythonInterface/plugins/algorithms/WorkflowAlgorithms/EQSANSAzimuthalAverage1D.py
@@ -64,15 +65,17 @@ Framework/PythonInterface/plugins/algorithms/WorkflowAlgorithms/TransmissionUtil
 ```
 
 
+**C++ Algorihtms**
+
 ```sh
 Framework/WorkflowAlgorithms/src/EQSANSDarkCurrentSubtraction.cpp
-Framework/WorkflowAlgorithms/src/EQSANSLoad.cpp
+(issue #2) Framework/WorkflowAlgorithms/src/EQSANSLoad.cpp
 Framework/WorkflowAlgorithms/src/EQSANSMonitorTOF.cpp
 Framework/WorkflowAlgorithms/src/EQSANSQ2D.cpp
 Framework/WorkflowAlgorithms/src/HFIRDarkCurrentSubtraction.cpp
 Framework/WorkflowAlgorithms/src/HFIRLoad.cpp
 Framework/WorkflowAlgorithms/src/HFIRSANSNormalise.cpp
-Framework/WorkflowAlgorithms/src/SANSBeamFinder.cpp
+(issue #1) Framework/WorkflowAlgorithms/src/SANSBeamFinder.cpp
 Framework/WorkflowAlgorithms/src/SANSBeamFluxCorrection.cpp
 Framework/WorkflowAlgorithms/src/SANSSensitivityCorrection.cpp
 Framework/WorkflowAlgorithms/src/SANSSolidAngleCorrection.cpp

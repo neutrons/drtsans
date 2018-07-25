@@ -3,16 +3,19 @@
 from __future__ import print_function
 
 import sys
+import os
 
 import pytest
 
+from dotenv import load_dotenv
+load_dotenv()
 
 def test_SANSBeamFinder():
     '''
     This is just a test for the algorithm as it runs in mantid
     '''
 
-    sys.path.append("/opt/mantidnightly/bin/")
+    sys.path.append(os.getenv("MANTID_PATH"))
     from mantid.simpleapi import SANSBeamFinder
     from mantid.kernel import PropertyManagerDataService, PropertyManager
 
@@ -20,7 +23,7 @@ def test_SANSBeamFinder():
     PropertyManagerDataService.addOrReplace("test_pm", pm)
 
     out = SANSBeamFinder(
-        Filename='68183',
+        Filename=os.path.join(os.getenv('DATA_DIRECTORY'), 'eqsans', 'EQSANS_68183_event.nxs'),
         # UseDirectBeamMethod=True,
         # BeamRadius=3,
         ReductionProperties='test_pm',

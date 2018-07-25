@@ -1,14 +1,15 @@
 import os
-
 from configparser import RawConfigParser
 from itertools import chain
 from glob import glob
 
 from ornl.settings import MultiOrderedDict
 
+from dotenv import load_dotenv
+load_dotenv()
 
-CONFIG_DIRECTORY = "/SNS/EQSANS/shared/instrument_configuration"
-CONFIG_FILE_PREFIX = "eqsans_configuration."
+CONFIG_DIRECTORY = os.getenv('EQSANS_CONFIG_DIRECTORY')
+CONFIG_FILE_PREFIX = os.getenv('EQSANS_CONFIG_FILE_PREFIX')
 
 
 def _get_config_file(run_number):
@@ -47,4 +48,4 @@ def get_parameters(run_number):
     with open(conf_file, 'r') as f:
         f = chain(("[DEFAULT]",), f)  # This line does the trick.
         parser.read_file(f)
-    return {i[0]: i[1].encode("ascii") for i in parser['DEFAULT'].items()}
+    return {i[0]: i[1] for i in parser['DEFAULT'].items()}

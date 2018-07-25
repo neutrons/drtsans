@@ -11,6 +11,10 @@ PYTHONPATH=. pytest -v -s tests/test_eqsansload.py
 
 '''
 import sys
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
 
 def test_get_config_file():
     from ornl.sans.sns.eqsans.parameters import _get_config_file
@@ -31,14 +35,14 @@ def test_EQSANSLoad():
     EQSANSLoad workflow algorithm as called by Mantid
     '''
     
-    sys.path.append("/opt/mantidnightly/bin/")
+    sys.path.append(os.getenv("MANTID_PATH"))
     from mantid.simpleapi import EQSANSLoad
     from mantid.kernel import PropertyManagerDataService, PropertyManager
 
     pm = PropertyManager()
     PropertyManagerDataService.addOrReplace("test_pm", pm)
     out = EQSANSLoad(
-        Filename='68200',
+        Filename=os.path.join(os.getenv('DATA_DIRECTORY'), 'eqsans', 'EQSANS_68200_event.nxs'),
         # UseDirectBeamMethod=True,
         # BeamRadius=3,
         ReductionProperties='test_pm',

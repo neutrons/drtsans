@@ -1,0 +1,14 @@
+# For python 2 / 3 compatibility
+six==1.11.0
+
+# 
+python-dotenv==0.8.2
+configparser==3.5.0
+
+# For Mantid
+numpy==1.15.0
+matplotlib==2.2.2
+
+# For testing
+pytest==3.6.3
+

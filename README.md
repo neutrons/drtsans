@@ -95,13 +95,19 @@ Framework/PythonInterface/plugins/algorithms/WorkflowAlgorithms/TransmissionUtil
 
 ```sh
 Framework/WorkflowAlgorithms/src/EQSANSDarkCurrentSubtraction.cpp
-(issue #2) Framework/WorkflowAlgorithms/src/EQSANSLoad.cpp
+
+# issue #2
+Framework/WorkflowAlgorithms/src/EQSANSLoad.cpp
+
 Framework/WorkflowAlgorithms/src/EQSANSMonitorTOF.cpp
 Framework/WorkflowAlgorithms/src/EQSANSQ2D.cpp
 Framework/WorkflowAlgorithms/src/HFIRDarkCurrentSubtraction.cpp
 Framework/WorkflowAlgorithms/src/HFIRLoad.cpp
 Framework/WorkflowAlgorithms/src/HFIRSANSNormalise.cpp
-(issue #1) Framework/WorkflowAlgorithms/src/SANSBeamFinder.cpp
+
+# issue #1
+Framework/WorkflowAlgorithms/src/SANSBeamFinder.cpp
+
 Framework/WorkflowAlgorithms/src/SANSBeamFluxCorrection.cpp
 Framework/WorkflowAlgorithms/src/SANSSensitivityCorrection.cpp
 Framework/WorkflowAlgorithms/src/SANSSolidAngleCorrection.cpp

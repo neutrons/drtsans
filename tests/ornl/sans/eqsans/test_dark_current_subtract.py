@@ -22,6 +22,13 @@ def test_duration_ratio(eqsans_w):
     assert_almost_equal(dcs.duration_ratio(r1, r2, 'non_existent_log'), 1, 2)
 
 
+def test_subtract_scaled_dark(eqsans_w):
+    data = eqsans_w['data']
+    a = 0.1  # some number in between 0 and 1
+    w = dcs.subtract_scaled_dark(data, a * data)
+    assert_almost_equal(w.readY(23426)[0], (1 - a) * data.readY(23426)[0], 2)
+
+
 def test_init():
     alg = dcs.EQSANSDarkCurrentSubtract()
     alg.initialize()
@@ -30,11 +37,12 @@ def test_init():
 def test_PyExec(eqsans_w):
     alg = dcs.EQSANSDarkCurrentSubtract()
     alg.initialize()
-    alg.setProperties(dict(Data=eqsans_w['data'],
-                           DarkCurrent=eqsans_w['darkcurrent']))
+    data = eqsans_w['data']
+    a = 0.1  # some number in between 0 and 1
+    alg.setProperties(dict(Data=data, DarkCurrent=a*data))
     alg.PyExec()
     w = alg.getProperty('OutputWorkspace').value
-    assert_almost_equal(w.readY(23426)[0], 32.44, 2)
+    assert_almost_equal(w.readY(23426)[0], (1 - a) * data.readY(23426)[0], 2)
 
 
 if __name__ == '__main__':

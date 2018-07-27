@@ -6,13 +6,13 @@ from mantid.kernel import Direction, logger
 
 
 def compute_log_ratio(run1, run2, l):
-    '''Compute ratio of data to dark for one log entry
+    """Compute ratio of data to dark for one log entry
     :param run1: first run object containing logs
     :param run2: second run object containing logs
     :param l: entry log
     :return: ratio
     :except: RuntimeError when log is not present
-    '''
+    """
     dt = run1.getProperty(l)
     dk = run2.getProperty(l)
     try:
@@ -25,9 +25,7 @@ def compute_log_ratio(run1, run2, l):
 
 
 def duration_ratio(data, dark, logname=None):
-    """
-    Compute the ratio of data to dark-current durations
-
+    """Compute the ratio of data to dark-current durations
     :param data: run object for data
     :param darkcurrent: run object for dark current
     :param logname: entry log containing the duration. If None, duration will
@@ -35,9 +33,6 @@ def duration_ratio(data, dark, logname=None):
     and 'timer.
     :return: duration ratio, or 1.0 if ratio cannot be computed
     """
-    def valid_logname(l):
-        return data.hasProperty(l) and dark.hasProperty(l)
-
     not_found = 'Logs could not be found, duration ratio set to 1.0'
     if logname is not None:
         try:
@@ -68,9 +63,9 @@ def subtract_scaled_dark(data, dark, logname=None):
     :param data: events workspace for data
     :param dark: events workspace for dark current
     :param logname: Log entry to calculate for duration. If None, duration will
-    be tried looking sequentially into log entries duration', 'proton_charge',
-    and 'timer.
-    :return: Matrix workspace
+    be tried looking sequentially into log entries 'duration', 'proton_charge',
+    and 'timer'.
+    :return: events workspace
     """
     ratio = duration_ratio(data.run(), dark.run(), logname=logname)
     return data - ratio * dark

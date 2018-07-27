@@ -26,7 +26,8 @@ def test_subtract_scaled_dark(eqsans_w):
     data = eqsans_w['data']
     a = 0.1  # some number in between 0 and 1
     w = dcs.subtract_scaled_dark(data, a * data)
-    assert_almost_equal(w.readY(23426)[0], (1 - a) * data.readY(23426)[0], 2)
+    id = int(data.extractY().argmax())  # detector with max number of counts
+    assert_almost_equal(w.readY(id)[0], (1 - a) * data.readY(id)[0], 2)
 
 
 def test_init():
@@ -42,7 +43,8 @@ def test_PyExec(eqsans_w):
     alg.setProperties(dict(Data=data, DarkCurrent=a*data))
     alg.PyExec()
     w = alg.getProperty('OutputWorkspace').value
-    assert_almost_equal(w.readY(23426)[0], (1 - a) * data.readY(23426)[0], 2)
+    id = int(data.extractY().argmax())  # detector with max number of counts
+    assert_almost_equal(w.readY(id)[0], (1 - a) * data.readY(id)[0], 2)
 
 
 if __name__ == '__main__':

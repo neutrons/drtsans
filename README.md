@@ -30,13 +30,13 @@ pip install -r requirements.txt
 
 ```sh
 
-# One test
-pytest -s -v  tests/test_eqsansload.py::test_get_config_file
+# Run one single test
+pytest -s -v  tests/legacy/test_eqsansload.py::test_get_config_file
 
-# One file
-pytest -s -v  tests/test_eqsansload.py
+# Run all tests within the same file
+pytest -s -v  tests/legacy/test_eqsansload.py
 
-# All
+# Run all tests in the folder tests
 pytest -s -v
 
 ```

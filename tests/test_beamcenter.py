@@ -13,7 +13,7 @@ load_dotenv()
 
 def test_SANSBeamFinder():
     '''
-    This is just a test for the algorithm as it runs in mantid
+    This is just a test for the legacy algorithm as it runs in mantid
     '''
 
     sys.path.append(os.getenv("MANTID_PATH"))

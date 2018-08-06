@@ -3,3 +3,4 @@ job1:
     - /bin/date >> /tmp/gitlab-ci.log
     - module load mantid/ORNL_SANS
     - which MantidPlot >> /tmp/gitlab-ci.log
+    - pwd >> /tmp/gitlab-ci.log

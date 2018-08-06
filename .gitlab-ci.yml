@@ -3,6 +3,8 @@ job1:
     - module load mantid/ORNL_SANS
     - which MantidPlot
     - virtualenv -p $(which python2) testenv &> /tmp/gitlab-ci.log
-    - source testenv/bin/activate >> /tmp/gitlab-ci.log
-    - pwd >> /tmp/gitlab-ci.log
+    - source testenv/bin/activate >> /tmp/gitlab-ci.log 2>&1
+    - pip install -r requirements.txt 2>&1
+    - pip install -r requirements_dev.txt 2>&1
+    - pwd >> /tmp/gitlab-ci.log 2>&1
 

@@ -1,6 +1,6 @@
 job1:
   script:
-    - /bin/date >> /tmp/gitlab-ci.log
     - module load mantid/ORNL_SANS
-    - which MantidPlot >> /tmp/gitlab-ci.log
+    - which MantidPlot
+    - virtualenv -p $(which python2) testenv &> /tmp/gitlab-ci.log
     - pwd >> /tmp/gitlab-ci.log

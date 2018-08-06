@@ -7,4 +7,4 @@ job1:
     - pip install -r requirements.txt >> /tmp/gitlab-ci.log 2>&1
     - pip install -r requirements_dev.txt >> /tmp/gitlab-ci.log 2>&1
     - pwd >> /tmp/gitlab-ci.log 2>&1
-
+    - echo ${CI_COMMIT_SHA} >> /tmp/gitlab-ci.log 2>&1

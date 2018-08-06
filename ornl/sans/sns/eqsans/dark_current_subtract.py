@@ -1,8 +1,12 @@
 from __future__ import (absolute_import, division, print_function)
 
 from mantid.api import (PythonAlgorithm, AlgorithmFactory, WorkspaceProperty)
-from mantid.simpleapi import Scale
-from mantid.kernel import Direction, logger
+from mantid.simpleapi import (SumSpectra, CloneWorkspace, AppendSpectra,
+                              ExtractSpectra, DeleteWorkspace,
+                              ConjoinWorkspaces)
+from mantid.kernel import Direction, logger, StringListValidator
+
+from ornl.sans.mask_utils import masked_indexes
 
 
 def compute_log_ratio(run1, run2, l):
@@ -24,19 +28,19 @@ def compute_log_ratio(run1, run2, l):
     return dt / dk
 
 
-def duration_ratio(data, dark, logname=None):
+def duration_ratio(data, dark, log_name=None):
     """Compute the ratio of data to dark-current durations
     :param data: run object for data
     :param darkcurrent: run object for dark current
-    :param logname: entry log containing the duration. If None, duration will
+    :param log_name: entry log containing the duration. If None, duration will
     be tried looking sequentially into log entries duration', 'proton_charge',
     and 'timer.
     :return: duration ratio, or 1.0 if ratio cannot be computed
     """
     not_found = 'Logs could not be found, duration ratio set to 1.0'
-    if logname is not None:
+    if log_name is not None:
         try:
-            return compute_log_ratio(data, dark, logname)
+            return compute_log_ratio(data, dark, log_name)
         except RuntimeError:
             logger.error(not_found)
     else:
@@ -48,7 +52,7 @@ def duration_ratio(data, dark, logname=None):
     return 1.0
 
 
-def subtract_scaled_dark(data, dark, logname=None):
+def subtract_pixelcount_dark(data, dark, log_name=None):
     """Rescale dark current and then subtract from data.
 
     Events from the dark current are included in as weighted neutron events.
@@ -62,13 +66,57 @@ def subtract_scaled_dark(data, dark, logname=None):
 
     :param data: events workspace for data
     :param dark: events workspace for dark current
-    :param logname: Log entry to calculate for duration. If None, duration will
+    :param log_name: Log entry to calculate for duration. If None, duration will
     be tried looking sequentially into log entries 'duration', 'proton_charge',
-    and 'timer'.
+    and 'timer'
     :return: events workspace
     """
-    ratio = duration_ratio(data.run(), dark.run(), logname=logname)
+    ratio = duration_ratio(data.run(), dark.run(), log_name=log_name)
     return data - ratio * dark
+
+
+def subtract_isotropic_dark(data, dark, log_name=None):
+    """Integrate dark counts, rescale, and subtract from data
+
+    All dark events in unmasked pixels are summed up, rescaled by the
+    duration_ration, then equally distributed among the data pixels.
+    Events in data are rescaled with an appropriate weight
+
+    The scaling factor should account for the TOF cuts on each side of a frame
+    The EQSANSLoad algorithm cuts the beginning and end of the TOF distribution
+    so we don't need to correct the scaling factor here. When using
+    LoadEventNexus, we have to scale by (t_frame-t_low_cut-t_high_cut)/t_frame.
+
+    :param data: events workspace for data
+    :param dark: events workspace for dark current
+    :param log_name: Log entry to calculate for duration. If None, duration will
+    be tried looking sequentially into log entries 'duration', 'proton_charge',
+    and 'timer'
+    :return: events workspace
+    """
+    # Collect all dark events listed in the unmasked pixels into a single
+    # event list
+    unmasked_indexes = masked_indexes(dark, invert=True).tolist()
+    dark_summed = SumSpectra(dark, ListOfWorkspaceIndices=unmasked_indexes)
+    # Rescale each dark event
+    ratio = duration_ratio(data.run(), dark.run(), log_name=log_name)
+    dark_summed *= ratio / len(unmasked_indexes)
+    # Replicate the list of dark events a number of times equal to the number
+    # of data histograms so that data and dark_replicated workspace have the
+    # same number of histograms
+
+    dark_replicated = CloneWorkspace(dark_summed)
+    dark_replicated.getSpectrum(0).clearDetectorIDs()
+    dark_replicated_prev = CloneWorkspace(dark_replicated)
+    n_histograms = data.getNumberHistograms()
+    while dark_replicated.getNumberHistograms() < n_histograms:
+        dark_replicated = AppendSpectra(dark_replicated, dark_summed,
+                                        ValidateInputs=False)
+        ConjoinWorkspaces(dark_replicated, dark_replicated_prev)
+        DeleteWorkspace(dark_replicated_prev)
+        dark_replicated_prev = CloneWorkspace(dark_replicated)
+
+    return data - dark_replicated
 
 
 class EQSANSDarkCurrentSubtract(PythonAlgorithm):
@@ -94,6 +142,7 @@ class EQSANSDarkCurrentSubtract(PythonAlgorithm):
                      LogName='Log entry to retrieve the duration. ' +
                      'If empty, the algorithm will do a sequential search ' +
                      'for entries "duration", "proton_charge", and "timer".',
+                     Method='Subtraction algorithm',
                      OutputWorkspace='Subtracted events Workspace')
 
         def mwp(key, direction=Direction.Input):
@@ -101,6 +150,10 @@ class EQSANSDarkCurrentSubtract(PythonAlgorithm):
         mwp('Data')
         mwp('DarkCurrent')
         self.declareProperty('LogName', '', helpd['LogName'])
+        method_validator = StringListValidator(['PixelCount', 'Isotropic'])
+        self.declareProperty('Method', defaultValue='PixelCount',
+                             validator=method_validator,
+                             direction=Direction.Input, doc=helpd['Method'])
         mwp('OutputWorkspace', direction=Direction.Output)
 
     def PyExec(self):
@@ -115,7 +168,11 @@ class EQSANSDarkCurrentSubtract(PythonAlgorithm):
         if logname == '':
             logname = None
 
-        subtracted = subtract_scaled_dark(data, dark, logname=logname)
+        method = self.getProperty('Method').value
+        method_func = dict(PixelCount=subtract_pixelcount_dark,
+                           Isotropic=subtract_isotropic_dark)
+        subtracted = method_func[method](data, dark, logname=logname)
+
         self.setProperty("OutputWorkspace", subtracted)
 
 # Register algorithm with Mantid.

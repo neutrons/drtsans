@@ -22,11 +22,19 @@ def test_duration_ratio(eqsans_w):
     assert_almost_equal(dcs.duration_ratio(r1, r2, 'non_existent_log'), 1, 2)
 
 
-def test_subtract_scaled_dark(eqsans_w):
+def test_subtract_pixelcount_dark(eqsans_w):
     data = eqsans_w['data']
     a = 0.1  # some number in between 0 and 1
-    w = dcs.subtract_scaled_dark(data, a * data)
+    w = dcs.subtract_pixelcount_dark(data, a * data)
     id = int(data.extractY().argmax())  # detector with max number of counts
+    assert_almost_equal(w.readY(id)[0], (1 - a) * data.readY(id)[0], 2)
+
+
+def test_subtract_isotropic_dark(eqsans_w):
+    data = eqsans_w['data']
+    a = 0.1  # some number in between 0 and 1
+    w = dcs.subtract_isotropic_dark(data, a * data)
+    id = int(data.extractY().argmax())
     assert_almost_equal(w.readY(id)[0], (1 - a) * data.readY(id)[0], 2)
 
 

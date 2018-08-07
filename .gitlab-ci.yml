@@ -1,4 +1,6 @@
-job1:
+test:
+  variables:
+    CI_DEBUG_TRACE: "true"
   script:
     - module load mantid/ORNL_SANS
     - which MantidPlot

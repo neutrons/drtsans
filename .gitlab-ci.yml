@@ -4,10 +4,12 @@ test:
   script:
     - module load mantid/ORNL_SANS
     - which MantidPlot
-    - virtualenv -p $(which python2) testenv &> /tmp/gitlab-ci.log
+    - virtualenv -p $(which python3) testenv &> /tmp/gitlab-ci.log
     - source testenv/bin/activate >> /tmp/gitlab-ci.log 2>&1
-    - pip install -r requirements.txt >> /tmp/gitlab-ci.log 2>&1
-    - pip install -r requirements_dev.txt >> /tmp/gitlab-ci.log 2>&1
+#    - pip install -r requirements.txt >> /tmp/gitlab-ci.log 2>&1
+#    - pip install -r requirements_dev.txt >> /tmp/gitlab-ci.log 2>&1
+    - pip install -r requirements_test.txt >> /tmp/gitlab-ci.log 2>&1
     - pwd >> /tmp/gitlab-ci.log 2>&1
     - echo ${CI_COMMIT_SHA} >> /tmp/gitlab-ci.log 2>&1
-    - pytest -s -v tests
+#    - pytest -s -v tests
+    - pytest -s -v

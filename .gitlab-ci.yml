@@ -3,7 +3,7 @@ test:
     CI_DEBUG_TRACE: "true"
   script:
     - module load mantid/ORNL_SANS
-    - virtualenv -p $(which python2) testenv
+    - virtualenv -p $(which python3) testenv
     - source testenv/bin/activate
     - pip install -r requirements_test.txt
     - pytest -s -v tests

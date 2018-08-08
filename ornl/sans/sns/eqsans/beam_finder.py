@@ -1,10 +1,10 @@
 
 from mantid.simpleapi import (
-    Load, SANSMaskDTP, Integration, FindCenterOfMassPosition)
+    LoadEventNexus, SANSMaskDTP, Integration, FindCenterOfMassPosition)
 
 
 def direct_beam_center(filename, tubes_to_mask):
-    ws = Load(filename)
+    ws = LoadEventNexus(filename)
     SANSMaskDTP(InputWorkspace=ws, Tube=tubes_to_mask)
     # Flatten TOF
     ws_flattened = Integration(InputWorkspace=ws)

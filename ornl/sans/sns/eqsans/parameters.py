@@ -8,8 +8,8 @@ from ornl.settings import MultiOrderedDict
 from dotenv import load_dotenv
 load_dotenv()
 
-CONFIG_DIRECTORY = os.getenv('EQSANS_CONFIG_DIRECTORY')
-CONFIG_FILE_PREFIX = os.getenv('EQSANS_CONFIG_FILE_PREFIX')
+CONFIG_DIRECTORY = "/SNS/EQSANS/shared/instrument_configuration"
+CONFIG_FILE_PREFIX = "eqsans_configuration."
 
 '''
 This module parses the EQSANS configuration file and transforms it

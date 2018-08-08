@@ -14,8 +14,8 @@ import mantid.simpleapi as mtds
 
 @pytest.fixture(scope='session')
 def eqsans_f():
-    return dict(data=pjoin(data_dir, 'eqsans', 'EQSANS_68183_event.nxs'),
-                beamcenter=pjoin(data_dir, 'eqsans', 'EQSANS_68200_event.nxs'),
+    return dict(data=pjoin(data_dir, 'eqsans', 'EQSANS_68168_event.nxs'),
+                beamcenter=pjoin(data_dir, 'eqsans', 'EQSANS_68183_event.nxs'),
                 darkcurrent=pjoin(data_dir, 'eqsans', 'EQSANS_68200_event.nxs')
                 )
 
@@ -24,3 +24,10 @@ def eqsans_w(eqsans_f):
     """Load EQSANS files into workspaces"""
     return {k: mtds.LoadEventNexus(v, OutputWorkspace=k)
             for (k, v) in eqsans_f.items()}
+
+@pytest.fixture(scope='session')
+def eqsans_p():
+    """ Default parameters. Usually this comes from the parameters file """
+    return dict(
+        tubes_to_mask="1,48,53,54,85,123,130,137",
+    )

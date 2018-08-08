@@ -1,9 +1,10 @@
-test:
+python3.6:
   variables:
     CI_DEBUG_TRACE: "true"
   script:
-    - module load mantid/ORNL_SANS
+    - module load mantid/ORNL_SANS_py3.6
     - virtualenv -p $(which python3) testenv
     - source testenv/bin/activate
     - pip install -r requirements_test.txt
     - pytest -v
+

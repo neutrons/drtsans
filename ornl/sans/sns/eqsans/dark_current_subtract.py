@@ -1,9 +1,8 @@
 from __future__ import (absolute_import, division, print_function)
 
 from mantid.api import (PythonAlgorithm, AlgorithmFactory, WorkspaceProperty)
-from mantid.simpleapi import (SumSpectra, CloneWorkspace, AppendSpectra,
-                              ExtractSpectra, DeleteWorkspace,
-                              ConjoinWorkspaces, CompressEvents)
+from mantid.simpleapi import (SumSpectra, AppendSpectra, ExtractSpectra,
+                              CompressEvents)
 from mantid.kernel import Direction, logger, StringListValidator
 
 from ornl.sans.mask_utils import masked_indexes
@@ -79,8 +78,8 @@ def subtract_isotropic_dark(data, dark, log_name=None):
     """Integrate dark counts, rescale, and subtract from data
 
     All dark events in unmasked pixels are summed up, rescaled by the
-    duration_ration, then equally distributed among the data pixels.
-    Events in data are rescaled with an appropriate weight
+    duration_ration and the number of unmasked pixels. This provides an
+    effective dark event list that can be applied to each data pixel.
 
     The scaling factor should account for the TOF cuts on each side of a frame
     The EQSANSLoad algorithm cuts the beginning and end of the TOF distribution
@@ -95,18 +94,18 @@ def subtract_isotropic_dark(data, dark, log_name=None):
     :return: events workspace
     """
     # Collect all dark events listed in the unmasked pixels into a single
-    # event list, then rescale by number of unmasked pixels to yield a
-    # list of events per pixel
+    # event list, then rescale by number of unmasked pixels to yield an
+    # effective list of dark events that can be applied to a single pixel
     dark_unmasked_indexes = masked_indexes(dark, invert=True).tolist()
     dark_summed = SumSpectra(dark,
                              ListOfWorkspaceIndices=dark_unmasked_indexes)
     dark_summed /= len(dark_unmasked_indexes)
     # Rescale list of dark events
     dark_summed *= duration_ratio(data.run(), dark.run(), log_name=log_name)
-    # Compress, to avoid too many dark events
+    # Compress, to avoid an unmanageable number of dark events
     dark_events_per_pixel = 1000  # we aim to this many dark events per pixel
     #   Add entries for other units, like wavelength, if needed
-    initial_tolerances = {'Time-of-flight': 1.0, # TOF in microseconds
+    initial_tolerances = {'Time-of-flight': 1.0,  # TOF in microseconds
                           }
     units = dark_summed.getAxis(0).getUnit().name()
     tolerance = initial_tolerances[units]

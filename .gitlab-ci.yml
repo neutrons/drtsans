@@ -6,4 +6,4 @@ test:
     - virtualenv -p $(which python3) testenv
     - source testenv/bin/activate
     - pip install -r requirements_test.txt
-    - pytest -s -v tests
+    - pytest -v

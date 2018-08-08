@@ -32,10 +32,9 @@ def test_subtract_pixelcount_dark(eqsans_w):
 
 def test_subtract_isotropic_dark(eqsans_w):
     data = eqsans_w['data']
-    a = 0.1  # some number in between 0 and 1
-    w = dcs.subtract_isotropic_dark(data, a * data)
+    w = dcs.subtract_isotropic_dark(data, data)
     id = int(data.extractY().argmax())
-    assert_almost_equal(w.readY(id)[0], (1 - a) * data.readY(id)[0], 2)
+    assert_almost_equal(sum(w.getSpectrum(id).getWeights()), 60442-26.75842, 4)
 
 
 def test_init():

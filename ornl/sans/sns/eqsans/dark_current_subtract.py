@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 from mantid.api import (PythonAlgorithm, AlgorithmFactory, WorkspaceProperty)
 from mantid.simpleapi import (SumSpectra, CloneWorkspace, AppendSpectra,
                               ExtractSpectra, DeleteWorkspace,
-                              ConjoinWorkspaces)
+                              ConjoinWorkspaces, CompressEvents)
 from mantid.kernel import Direction, logger, StringListValidator
 
 from ornl.sans.mask_utils import masked_indexes
@@ -95,27 +95,32 @@ def subtract_isotropic_dark(data, dark, log_name=None):
     :return: events workspace
     """
     # Collect all dark events listed in the unmasked pixels into a single
-    # event list
-    unmasked_indexes = masked_indexes(dark, invert=True).tolist()
-    dark_summed = SumSpectra(dark, ListOfWorkspaceIndices=unmasked_indexes)
-    # Rescale each dark event
-    ratio = duration_ratio(data.run(), dark.run(), log_name=log_name)
-    dark_summed *= ratio / len(unmasked_indexes)
-    # Replicate the list of dark events a number of times equal to the number
-    # of data histograms so that data and dark_replicated workspace have the
-    # same number of histograms
-
-    dark_replicated = CloneWorkspace(dark_summed)
-    dark_replicated.getSpectrum(0).clearDetectorIDs()
-    dark_replicated_prev = CloneWorkspace(dark_replicated)
-    n_histograms = data.getNumberHistograms()
-    while dark_replicated.getNumberHistograms() < n_histograms:
-        dark_replicated = AppendSpectra(dark_replicated, dark_summed,
-                                        ValidateInputs=False)
-        ConjoinWorkspaces(dark_replicated, dark_replicated_prev)
-        DeleteWorkspace(dark_replicated_prev)
-        dark_replicated_prev = CloneWorkspace(dark_replicated)
-
+    # event list, then rescale by number of unmasked pixels to yield a
+    # list of events per pixel
+    dark_unmasked_indexes = masked_indexes(dark, invert=True).tolist()
+    dark_summed = SumSpectra(dark,
+                             ListOfWorkspaceIndices=dark_unmasked_indexes)
+    dark_summed /= len(dark_unmasked_indexes)
+    # Rescale list of dark events
+    dark_summed *= duration_ratio(data.run(), dark.run(), log_name=log_name)
+    # Compress, to avoid too many dark events
+    dark_events_per_pixel = 1000  # we aim to this many dark events per pixel
+    #   Add entries for other units, like wavelength, if needed
+    initial_tolerances = {'Time-of-flight': 1.0, # TOF in microseconds
+                          }
+    units = dark_summed.getAxis(0).getUnit().name()
+    tolerance = initial_tolerances[units]
+    while dark_summed.getNumberEvents() > dark_events_per_pixel:
+        dark_summed = CompressEvents(dark_summed, Tolerance=tolerance)
+        tolerance *= 2.0
+    # Repeat the dark event lists for every histogram in data workspace
+    dark_summed.getSpectrum(0).clearDetectorIDs()
+    n_data_histograms = data.getNumberHistograms()
+    while dark_summed.getNumberHistograms() < n_data_histograms:
+        dark_summed = AppendSpectra(dark_summed, dark_summed,
+                                    ValidateInputs=False, MergeLogs=False)
+    dark_replicated = ExtractSpectra(dark_summed,
+                                     EndWorkspaceIndex=n_data_histograms-1)
     return data - dark_replicated
 
 

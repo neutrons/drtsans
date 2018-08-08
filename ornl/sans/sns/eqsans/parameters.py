@@ -5,9 +5,6 @@ from glob import glob
 
 from ornl.settings import MultiOrderedDict
 
-from dotenv import load_dotenv
-load_dotenv()
-
 CONFIG_DIRECTORY = "/SNS/EQSANS/shared/instrument_configuration"
 CONFIG_FILE_PREFIX = "eqsans_configuration."
 

@@ -1,3 +1,7 @@
+before_script:
+  variables:
+    CI_DEBUG_TRACE: "true"
+
 # Run sequentially and stop if anyone stage fails
 stages:
   - python2.7
@@ -6,8 +10,6 @@ stages:
 
 python2.7:
   stage: python2.7
-  variables:
-    CI_DEBUG_TRACE: "true"
   script:
     - module load mantid/ORNL_SANS_py2.7
     - virtualenv -p $(which python2) testenv2.7
@@ -17,8 +19,6 @@ python2.7:
 
 python3.6:
   stage: python3.6
-  variables:
-    CI_DEBUG_TRACE: "true"
   script:
     - module load mantid/ORNL_SANS_py3.6
     - virtualenv -p $(which python3) testenv3.6
@@ -28,7 +28,5 @@ python3.6:
 
 flake8:
   stage: flake8
-  variables:
-    CI_DEBUG_TRACE: "true"
   script:
     - flake8

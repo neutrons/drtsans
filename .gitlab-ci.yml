@@ -9,14 +9,14 @@ python2.7:
     CI_DEBUG_TRACE: "true"
   stage: python2.7
   script:
-    - source test_job 2.7
+    - source test_job.sh 2.7
 
 python3.6:
   variables:
     CI_DEBUG_TRACE: "true"
   stage: python3.6
   script:
-    - source test_job 3.6
+    - source test_job.sh 3.6
 
 flake8:
   variables:

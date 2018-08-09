@@ -89,6 +89,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+testenv3.6
+testenv2.7
+
 
 # Spyder project settings
 .spyderproject
@@ -102,3 +105,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# PyCharm
+.idea

@@ -8,13 +8,11 @@ def test_eqsans_w(eqsans_w):
     pass
 
 
-@pytest.mark.skip(reason="only for debugging")
+#@pytest.mark.skip(reason="only for debugging")
 def test_porasil_slice1m(porasil_slice1m):
-    assert porasil_slice1m()['w'] == dict()
-    assert set(porasil_slice1m('dc')['w'].keys()) == set(('dc',))
-    assert set(porasil_slice1m(('dc', 's'))['w'].keys()) == set(('dc', 's'))
-    info_dict = porasil_slice1m('all')
-    assert set(info_dict['w'].keys()) == set(info_dict['f'].keys())
+    for k in porasil_slice1m.w.keys():
+        assert w._w[k].name() == '_'+k
+        assert w[k].name() == k
 
 
 if __name__ == '__main__':

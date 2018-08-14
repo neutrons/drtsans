@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 from mantid.api import (PythonAlgorithm, AlgorithmFactory, WorkspaceProperty)
 from mantid.simpleapi import (SumSpectra, AppendSpectra, ExtractSpectra,
-                              CompressEvents)
+                              CompressEvents, ConvertUnits, Rebin)
 from mantid.kernel import Direction, logger, StringListValidator
 
 from ornl.sans.mask_utils import masked_indexes
@@ -81,6 +81,10 @@ def subtract_isotropic_dark(data, dark, log_name=None):
     duration_ration and the number of unmasked pixels. This provides an
     effective dark event list that can be applied to each data pixel.
 
+    It is required to work with TOF units, thus conversion to TOF is made. It's
+    physically acceptable because the flight path of each dark neutron is
+    unknown.
+
     The scaling factor should account for the TOF cuts on each side of a frame
     The EQSANSLoad algorithm cuts the beginning and end of the TOF distribution
     so we don't need to correct the scaling factor here. When using
@@ -97,21 +101,23 @@ def subtract_isotropic_dark(data, dark, log_name=None):
     # event list, then rescale by number of unmasked pixels to yield an
     # effective list of dark events that can be applied to a single pixel
     dark_unmasked_indexes = masked_indexes(dark, invert=True).tolist()
+    units = dark.getAxis(0).getUnit().name()
+    if units != 'TOF':
+        dark = ConvertUnits(dark, target='TOF', Emode='Elastic')
+        xv = dark.extractX()
+        dark = Rebin(dark, Params=[xv.min(), xv.max() - xv.min(), xv.max()],
+                     PreserveEvents=True)
     dark_summed = SumSpectra(dark,
                              ListOfWorkspaceIndices=dark_unmasked_indexes)
-    dark_summed /= len(dark_unmasked_indexes)
-    # Rescale list of dark events
-    dark_summed *= duration_ratio(data.run(), dark.run(), log_name=log_name)
     # Compress, to avoid an unmanageable number of dark events
     dark_events_per_pixel = 1000  # we aim to this many dark events per pixel
-    #   Add entries for other units, like wavelength, if needed
-    initial_tolerances = {'Time-of-flight': 1.0,  # TOF in microseconds
-                          }
-    units = dark_summed.getAxis(0).getUnit().name()
-    tolerance = initial_tolerances[units]
+    tolerance = 1.0  # microseconds
     while dark_summed.getNumberEvents() > dark_events_per_pixel:
         dark_summed = CompressEvents(dark_summed, Tolerance=tolerance)
         tolerance *= 2.0
+    dark_summed /= len(dark_unmasked_indexes)
+    # Rescale list of dark events
+    dark_summed *= duration_ratio(data.run(), dark.run(), log_name=log_name)
     # Repeat the dark event lists for every histogram in data workspace
     dark_summed.getSpectrum(0).clearDetectorIDs()
     n_data_histograms = data.getNumberHistograms()
@@ -120,6 +126,7 @@ def subtract_isotropic_dark(data, dark, log_name=None):
                                     ValidateInputs=False, MergeLogs=False)
     dark_replicated = ExtractSpectra(dark_summed,
                                      EndWorkspaceIndex=n_data_histograms-1)
+    # dark_replicated will conform to units and binning of data
     return data - dark_replicated
 
 
@@ -168,14 +175,14 @@ class EQSANSDarkCurrentSubtract(PythonAlgorithm):
             raise AttributeError('Input workspace must be Event Workspaces')
 
         # Process input log entry name
-        logname = self.getProperty('LogName').value
-        if logname == '':
-            logname = None
+        log_name = self.getProperty('LogName').value
+        if log_name == '':
+            log_name = None
 
         method = self.getProperty('Method').value
         method_func = dict(PixelCount=subtract_pixelcount_dark,
                            Isotropic=subtract_isotropic_dark)
-        subtracted = method_func[method](data, dark, logname=logname)
+        subtracted = method_func[method](data, dark, log_name=log_name)
 
         self.setProperty("OutputWorkspace", subtracted)
 

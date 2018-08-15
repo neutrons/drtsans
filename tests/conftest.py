@@ -115,7 +115,8 @@ def porasil_slice1m():
             for k, v in f.items():
                 for other_k, other_v in processed.items():
                     if v == other_v:
-                        self._w[k] = self._w[other_k]  # file already loaded
+                        self._w[k] = mtds.CloneWorkspace(self._w[other_k],
+                                                         OutputWorkspace='_'+k)
                 if k not in self._w:
                     self._w[k] = mtds.Load(v, OutputWorkspace='_'+k)
                     processed[k] = v

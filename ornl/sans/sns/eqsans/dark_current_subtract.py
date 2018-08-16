@@ -65,9 +65,9 @@ def subtract_pixelcount_dark(data, dark, log_name=None):
 
     :param data: events workspace for data
     :param dark: events workspace for dark current
-    :param log_name: Log entry to calculate for duration. If None, duration will
-    be tried looking sequentially into log entries 'duration', 'proton_charge',
-    and 'timer'
+    :param log_name: Log entry to calculate for duration. If None, duration
+    will be tried looking sequentially into log entries 'duration',
+    'proton_charge', and 'timer'
     :return: events workspace
     """
     ratio = duration_ratio(data.run(), dark.run(), log_name=log_name)
@@ -92,9 +92,9 @@ def subtract_isotropic_dark(data, dark, log_name=None):
 
     :param data: events workspace for data
     :param dark: events workspace for dark current
-    :param log_name: Log entry to calculate for duration. If None, duration will
-    be tried looking sequentially into log entries 'duration', 'proton_charge',
-    and 'timer'
+    :param log_name: Log entry to calculate for duration. If None, duration
+    will be tried looking sequentially into log entries 'duration',
+    'proton_charge', and 'timer'
     :return: events workspace
     """
     # Collect all dark events listed in the unmasked pixels into a single
@@ -185,6 +185,7 @@ class EQSANSDarkCurrentSubtract(PythonAlgorithm):
         subtracted = method_func[method](data, dark, log_name=log_name)
 
         self.setProperty("OutputWorkspace", subtracted)
+
 
 # Register algorithm with Mantid.
 AlgorithmFactory.subscribe(EQSANSDarkCurrentSubtract)

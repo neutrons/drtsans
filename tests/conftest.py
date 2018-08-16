@@ -24,6 +24,7 @@ def timeit(a_function):
         return result
     return timed
 
+
 @pytest.fixture(scope='session')
 def eqsans_f():
     return dict(data=pjoin(data_dir, 'eqsans', 'EQSANS_68168_event.nxs'),
@@ -94,7 +95,7 @@ def porasil_slice1m():
     f = dict(s=fr('92164'),  # sample
              m=pjoin(shared, '2017B_mp/beamstop60_mask_4m.nxs'),  # mask
              dc=pjoin(shared, '2017B_mp/EQSANS_89157.nxs.h5'),  # dark current
-             se=pjoin(shared, '2017B_mp/Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # sensitivity
+             se=pjoin(shared, '2017B_mp/Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
              dbc=fr('92160'),  # direct_beam_center
              dbts=fr('92161'),  # direct beam transmission sample
              dbte=fr('92160'),  # direct beam transmission empty

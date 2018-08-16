@@ -11,17 +11,13 @@ PYTHONPATH=. pytest -v -s tests/test_eqsansload.py
 
 '''
 
-import os
-
 
 def test_get_config_file():
     from ornl.sans.sns.eqsans.parameters import _get_config_file
-    assert _get_config_file(71820) == \
-        '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
-    assert _get_config_file(71821) == \
-        '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
-    assert _get_config_file(72001) == \
-        '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.71820'
+    fn = '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.{}'
+    assert _get_config_file(71820) == fn.format(71820)
+    assert _get_config_file(71821) == fn.format(71820)
+    assert _get_config_file(72001) == fn.format(71820)
 
 
 def test_get_parameters():
@@ -32,10 +28,10 @@ def test_get_parameters():
 
 
 def test_EQSANSLoad(eqsans_f):
-    '''
+    """
     EQSANSLoad workflow algorithm as called by Mantid
-    '''
-    
+    """
+
     from mantid.simpleapi import EQSANSLoad
     from mantid.kernel import PropertyManagerDataService, PropertyManager
 

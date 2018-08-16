@@ -1,5 +1,5 @@
-
 from collections import OrderedDict
+
 
 class MultiOrderedDict(OrderedDict):
     def __setitem__(self, key, value):

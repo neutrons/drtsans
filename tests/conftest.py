@@ -14,15 +14,58 @@ parent_dir = pjoin(os.path.dirname(this_module_path), os.pardir)
 data_dir = pjoin(parent_dir, 'data')
 
 
-def timeit(a_function):
-    """Calculate execution time"""
-    def timed(*args, **kw):
-        ts = time.time()
-        result = a_function(*args, **kw)
-        te = time.time()
-        print('%r  %2.2f ms' % (a_function.__name__, (te - ts) * 1000))
-        return result
-    return timed
+def fr(ipts_number, run_number):
+    """Nexus file path from run number"""
+    return pjoin(ipts_number, 'nexus', 'EQSANS_{}.nxs.h5'.format(run_number))
+
+
+ret_val = namedtuple('ret_val', 'ipts shared help r f w')
+
+
+class GetWS(object):
+    """Serves workspaces by cloning them. Prevents overwritting
+
+    Parameters
+    ----------
+    f: dict
+        Filenames to load
+    p: str
+        Prefix for workspace names. Prevents name overwriting of workspaces if
+        this class is used in different fixtures
+    loaders: dict
+        Names of the Mantid algorithms used to load each file
+    """
+
+    def __init__(self, f, p, loaders=None):
+        processed = dict()
+        self._w = dict()
+        for k, v in f.items():
+            name = '_{}_{}'.format(p, k)  # workspace name. Begins with '_'
+            for other_k, other_v in processed.items():
+                if v == other_v:
+                    self._w[k] = mtds.CloneWorkspace(self._w[other_k],
+                                                     OutputWorkspace=name)
+            if k not in self._w:
+                loader_algm = mtds.Load
+                if loaders is not None:
+                    loader_algm = getattr(mtds, loaders[k])
+                self._w[k] = loader_algm(v, OutputWorkspace=name)
+                processed[k] = v
+
+    def __len__(self):
+        return len(self._w)
+
+    def keys(self):
+        return self._w.keys()
+
+    def __getitem__(self, item):
+        name = self._w[item].name()[1:]  # drop the intial '_'
+        return mtds.CloneWorkspace(self._w[item],
+                                   OutputWorkspace=name)
+
+    def __setitem__(self, key, value):
+        msg = "'GetWS' object does not support item assignment"
+        raise TypeError(msg)
 
 
 @pytest.fixture(scope='session')
@@ -96,6 +139,36 @@ def gpsans_f():
 
 
 @pytest.fixture(scope='session')
+def frame_skipper():
+    """Data and monitor with frame skipping
+        """
+
+    _help = """s: sample
+    """
+
+    ipts = '/SNS/EQSANS/IPTS-19150'
+    shared = '/SNS/EQSANS/IPTS-19150/shared'
+
+    # run numbers
+    r = dict(s='92353',  # sample
+             mo='92353',  # monitors
+             )
+
+    # Absolute path to benchmark files
+    f = dict(s=fr(ipts, '92353'),  # sample
+             mo=fr(ipts, '92353'),  # monitors
+            )
+
+    # Loader algorithms for the benchmark files
+    l = dict(s='Load',
+             mo='LoadNexusMonitors',
+             )
+
+    return ret_val(ipts=ipts, shared=shared, r=r, f=f,
+                   w=GetWS(f, 'frame_skipper', loaders=l), help=_help)
+
+
+@pytest.fixture(scope='session')
 def porasil_slice1m():
     """EQSANS reduction benchmark. See porasil_slice1m.help
 
@@ -123,10 +196,6 @@ def porasil_slice1m():
     ipts = '/SNS/EQSANS/IPTS-20196'
     shared = '/SNS/EQSANS/shared/NeXusFiles/EQSANS'
 
-    def fr(run_number):
-        """Nexus file path from run number"""
-        return pjoin(ipts, 'nexus', 'EQSANS_{}.nxs.h5'.format(run_number))
-
     # run numbers
     r = dict(s='92164',  # sample
              dc='89157',  # dark current
@@ -139,49 +208,29 @@ def porasil_slice1m():
              )
 
     # Absolute path to benchmark files
-    f = dict(s=fr('92164'),  # sample
+    f = dict(s=fr(ipts, '92164'),  # sample
              m=pjoin(shared, '2017B_mp/beamstop60_mask_4m.nxs'),  # mask
              dc=pjoin(shared, '2017B_mp/EQSANS_89157.nxs.h5'),  # dark current
              se=pjoin(shared, '2017B_mp/Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
-             dbc=fr('92160'),  # direct_beam_center
-             dbts=fr('92161'),  # direct beam transmission sample
-             dbte=fr('92160'),  # direct beam transmission empty
-             b=fr('92163'),  # background
-             bdbts=fr('92161'),  # background direct beam transmission sample
-             bdbte=fr('92160')  # background_direct_beam_transmission_empty
+             dbc=fr(ipts, '92160'),  # direct_beam_center
+             dbts=fr(ipts, '92161'),  # direct beam transmission sample
+             dbte=fr(ipts, '92160'),  # direct beam transmission empty
+             b=fr(ipts, '92163'),  # background
+             bdbts=fr(ipts, '92161'),  # background direct beam transmission sample
+             bdbte=fr(ipts, '92160')  # background_direct_beam_transmission_empty
              )
 
-    class GetWS(object):
-        """Serves workspaces by cloning them. Prevents overwritting
+    lds = dict(s='Load',  # sample
+             m='Load',  # mask
+             dc='Load',  # dark current
+             se='Load',  # sensitivity
+             dbc='Load',  # direct_beam_center
+             dbts='Load',  # direct beam transmission sample
+             dbte='Load',  # direct beam transmission empty
+             b='Load',  # background
+             bdbts='Load',  # background direct beam transmission sample
+             bdbte='Load'  # background_direct_beam_transmission_empty
+             )
 
-        :param f: dictionary of filenames to load
-        """
-
-        def __init__(self, f):
-            processed = dict()
-            self._w = dict()
-            for k, v in f.items():
-                for other_k, other_v in processed.items():
-                    if v == other_v:
-                        self._w[k] = mtds.CloneWorkspace(self._w[other_k],
-                                                         OutputWorkspace='_'+k)
-                if k not in self._w:
-                    self._w[k] = mtds.Load(v, OutputWorkspace='_'+k)
-                    processed[k] = v
-
-        def __len__(self):
-            return len(self._w)
-
-        def keys(self):
-            return self._w.keys()
-
-        def __getitem__(self, item):
-            return mtds.CloneWorkspace(self._w[item],
-                                       OutputWorkspace=item)
-
-        def __setitem__(self, key, value):
-            msg = "'GetWS' object does not support item assignment"
-            raise TypeError(msg)
-
-    ret_val = namedtuple('ret_val', 'ipts shared help r f w')
-    return ret_val(ipts=ipts, shared=shared, r=r, f=f, w=GetWS(f), help=_help)
+    return ret_val(ipts=ipts, shared=shared, r=r, f=f,
+                   w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)

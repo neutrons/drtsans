@@ -216,7 +216,7 @@ def porasil_slice1m():
              dbte=fr(ipts, '92160'),  # direct beam transmission empty
              b=fr(ipts, '92163'),  # background
              bdbts=fr(ipts, '92161'),  # noqa: E501 background direct beam transmission sample
-             bdbte=fr(ipts, '92160')  # background_direct_beam_transmission_empty noqa: E501
+             bdbte=fr(ipts, '92160')  # noqa: E501 background_direct_beam_transmission_empty
              )
 
     lds = dict(s='Load',  # sample

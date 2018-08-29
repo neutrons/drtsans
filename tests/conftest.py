@@ -5,7 +5,6 @@ import os
 import pytest
 from os.path import join as pjoin
 from collections import namedtuple
-import time
 import mantid.simpleapi as mtds
 
 # Resolve the path to the "external data"
@@ -157,15 +156,15 @@ def frame_skipper():
     # Absolute path to benchmark files
     f = dict(s=fr(ipts, '92353'),  # sample
              mo=fr(ipts, '92353'),  # monitors
-            )
-
-    # Loader algorithms for the benchmark files
-    l = dict(s='Load',
-             mo='LoadNexusMonitors',
              )
 
+    # Loader algorithms for the benchmark files
+    lds = dict(s='Load',
+               mo='LoadNexusMonitors',
+               )
+
     return ret_val(ipts=ipts, shared=shared, r=r, f=f,
-                   w=GetWS(f, 'frame_skipper', loaders=l), help=_help)
+                   w=GetWS(f, 'frame_skipper', loaders=lds), help=_help)
 
 
 @pytest.fixture(scope='session')
@@ -216,21 +215,21 @@ def porasil_slice1m():
              dbts=fr(ipts, '92161'),  # direct beam transmission sample
              dbte=fr(ipts, '92160'),  # direct beam transmission empty
              b=fr(ipts, '92163'),  # background
-             bdbts=fr(ipts, '92161'),  # background direct beam transmission sample
-             bdbte=fr(ipts, '92160')  # background_direct_beam_transmission_empty
+             bdbts=fr(ipts, '92161'),  # noqa: E501 background direct beam transmission sample
+             bdbte=fr(ipts, '92160')  # background_direct_beam_transmission_empty noqa: E501
              )
 
     lds = dict(s='Load',  # sample
-             m='Load',  # mask
-             dc='Load',  # dark current
-             se='Load',  # sensitivity
-             dbc='Load',  # direct_beam_center
-             dbts='Load',  # direct beam transmission sample
-             dbte='Load',  # direct beam transmission empty
-             b='Load',  # background
-             bdbts='Load',  # background direct beam transmission sample
-             bdbte='Load'  # background_direct_beam_transmission_empty
-             )
+               m='Load',  # mask
+               dc='Load',  # dark current
+               se='Load',  # sensitivity
+               dbc='Load',  # direct_beam_center
+               dbts='Load',  # direct beam transmission sample
+               dbte='Load',  # direct beam transmission empty
+               b='Load',  # background
+               bdbts='Load',  # background direct beam transmission sample
+               bdbte='Load'  # background_direct_beam_transmission_empty
+               )
 
     return ret_val(ipts=ipts, shared=shared, r=r, f=f,
                    w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)

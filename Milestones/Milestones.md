@@ -12,8 +12,8 @@
 1. Load and Prepare scattering data 2018-12-07
      1. Load and Apply Sensitivity Correction: 2018-11-29
      1. Load and Calculate Solid Angle correction: 2018-12-07
-     1. Load Files and apply Static Mask: Done
-     1. Load and apply geometry correction<p>: Done
+     1. Load Files and apply Static Mask: 2018-10-31
+     1. Load and apply geometry correction<p>: 2018-10-31
 
 1. Take prepared scattering data and apply transmission correction 2018-12-21
     1. Prepare transmission correction<p>: 2018-12-14

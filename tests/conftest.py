@@ -77,7 +77,8 @@ def eqsans_p():
 @pytest.fixture(scope='session')
 def biosans_f():
     return dict(
-        beamcenter=pjoin(data_dir, 'biosans', 'BioSANS_exp402_scan0006_0001.xml'),
+        beamcenter=pjoin(data_dir, 'biosans',
+                         'BioSANS_exp402_scan0006_0001.xml'),
     )
 
 

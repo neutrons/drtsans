@@ -1,13 +1,12 @@
-
 from mantid.simpleapi import (
-    LoadSpice2D, SANSMaskDTP, Integration, FindCenterOfMassPosition)
+    LoadSpice2D, SANSMaskDTP, FindCenterOfMassPosition)
 from mantid.kernel import logger
 
 
 def _beam_center_gravitational_drop(ws, beam_center_y, sdd=1.13):
     '''
     This method is used for correcting for gravitational drop
-    ws - it's a workspace where the 
+    ws - it's a workspace where the
     sdd - sample detector distance to apply the beam center
     '''
     def calculate_neutron_drop(path_length, wavelength):

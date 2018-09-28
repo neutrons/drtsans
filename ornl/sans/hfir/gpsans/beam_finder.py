@@ -1,4 +1,3 @@
-
 from mantid.simpleapi import (
     LoadSpice2D, SANSMaskDTP, FindCenterOfMassPosition)
 
@@ -15,4 +14,3 @@ def direct_beam_center(filename, tubes_to_mask=None):
     center_x, center_y = center
 
     return center_x, center_y
-

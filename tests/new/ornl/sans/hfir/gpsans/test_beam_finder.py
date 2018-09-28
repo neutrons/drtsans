@@ -14,7 +14,7 @@ def test_beam_finder(gpsans_f):
     from mantid.simpleapi import (
         MoveInstrumentComponent, FindCenterOfMassPosition)
 
-    x, y= beam_finder.direct_beam_center(gpsans_f['beamcenter'])
+    x, y = beam_finder.direct_beam_center(gpsans_f['beamcenter'])
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
     assert x == pytest.approx(-0.021851, abs=1e-3)
     assert y == pytest.approx(-0.020307, abs=1e-3)

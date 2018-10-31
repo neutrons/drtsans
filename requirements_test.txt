@@ -2,4 +2,4 @@
 
 # For testing
 pytest==3.6.3
-
+pytest-xdist==1.23.0

@@ -8,6 +8,4 @@ configparser==3.5.0
 numpy==1.15.0
 matplotlib==2.2.2
 
-# For testing
-pytest==3.6.3
 

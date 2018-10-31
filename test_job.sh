@@ -1,9 +1,12 @@
 #!/bin/bash
 
-v=$1  # python version
-test_scope=$2  # 'unit' or 'integration'
-module load mantid/ORNL_SANS_py${v}
-virtualenv -p python${v} testenv${v}
-source testenv${v}/bin/activate
+PYTHON_VERSION=$1  # python version
+TEST_SCOPE=$2  # 'unit' or 'integration'
+
+N_SUB=8  # number of python subprocesses
+
+module load mantid/ORNL_SANS_py${PYTHON_VERSION}
+virtualenv -p python${PYTHON_VERSION} testenv${PYTHON_VERSION}
+source testenv${PYTHON_VERSION}/bin/activate
 pip install -r requirements_test.txt
-pytest -v tests/${test_scope}
+pytest -v -d --tx ${N_SUB}*popen//python=python${PYTHON_VERSION} tests/${TEST_SCOPE}

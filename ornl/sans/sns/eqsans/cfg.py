@@ -7,7 +7,6 @@ from __future__ import (absolute_import, division, print_function)
 import os
 import re
 import numpy as np
-from collections import namedtuple
 from contextlib import contextmanager
 
 cfg_dir = '/SNS/EQSANS/shared/instrument_configuration'
@@ -144,7 +143,8 @@ class Cfg(object):
                     if description is not '':
                         cfg[key].help = description
                 else:
-                    item = CfgItemValue(data=val, off=commented, note=description)
+                    item = CfgItemValue(data=val, off=commented,
+                                        note=description)
                     cfg[key] = item
         return cfg
 
@@ -162,7 +162,8 @@ class Cfg(object):
         return {k: v.data for (k, v) in self._cfg.items()}
 
     def __repr__(self):
-        return '\n'.join('"{}" : {}'.format(k, v) for (k, v) in self._cfg.items())
+        fmt = '"{}" : {}'
+        return '\n'.join(fmt.format(k, v) for (k, v) in self._cfg.items())
 
     def logit(self, key, workspace, name=None, replace=False):
         """

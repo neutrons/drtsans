@@ -20,6 +20,7 @@ output_dir = '/tmp/sans_rewrite/tests/integration/' \
 if not os.path.isdir(output_dir):
     os.mkdir(output_dir)
 
+
 def test_reduction():
     # Set instrument
     config = ConfigService.Instance()
@@ -82,7 +83,7 @@ def test_reduction():
         main_cli.AppendDataFile([work_space_filename])
         """
         #
-        # Original ordering
+        # Ordering in William's script
         #
         sns_cli.EQSANS()
         hfir_cli.SolidAngle(detector_tubes=True)

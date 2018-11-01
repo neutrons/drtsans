@@ -16,7 +16,7 @@ import reduction_workflow.command_interface as main_cli
 shared_dir = '/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp'
 ipts_dir = '/SNS/EQSANS/IPTS-20196/nexus'
 output_dir = '/tmp/sans_rewrite/tests/integration/' \
-             'legacy/ornl/sans/eqsans/test_reduction'
+             'legacy/ornl/sans/sns/eqsans/test_reduction'
 if not os.path.isdir(output_dir):
     os.mkdir(output_dir)
 

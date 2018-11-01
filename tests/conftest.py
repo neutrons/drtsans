@@ -42,12 +42,13 @@ def refd():
     legt = namedtuple('legt', 'biosans gpsans eqsans')
     newt = namedtuple('newt', 'biosans gpsans eqsans')
     return rett(data_dir,
-                legt(pjoin(d_leg,'hfir', 'biosans'),
-                     pjoin(d_leg,'hfir', 'gpsans'),
+                legt(pjoin(d_leg, 'hfir', 'biosans'),
+                     pjoin(d_leg, 'hfir', 'gpsans'),
                      pjoin(d_leg, 'sns', 'eqsans')),
-                newt(pjoin(d_new,'hfir', 'biosans'),
-                     pjoin(d_new,'hfir', 'gpsans'),
+                newt(pjoin(d_new, 'hfir', 'biosans'),
+                     pjoin(d_new, 'hfir', 'gpsans'),
                      pjoin(d_new, 'sns', 'eqsans')))
+
 
 @pytest.fixture(scope='session')
 def eqsans_f():

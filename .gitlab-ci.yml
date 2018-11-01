@@ -1,3 +1,6 @@
+variables:
+  TEST_SCOPE: "unit"
+
 # Run sequentially and stop if anyone stage fails
 stages:
   - python2.7
@@ -9,14 +12,14 @@ python2.7:
     CI_DEBUG_TRACE: "true"
   stage: python2.7
   script:
-    - source test_job.sh 2.7 unit
+    - source test_job.sh 2.7 ${TEST_SCOPE}
 
 python3.6:
   variables:
     CI_DEBUG_TRACE: "true"
   stage: python3.6
   script:
-    - source test_job.sh 3.6 unit
+    - source test_job.sh 3.6 ${TEST_SCOPE}
 
 flake8:
   variables:

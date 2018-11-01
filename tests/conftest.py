@@ -27,9 +27,10 @@ def timeit(a_function):
 
 @pytest.fixture(scope='session')
 def eqsans_f():
-    return dict(data=pjoin(data_dir, 'eqsans', 'EQSANS_68168_event.nxs'),
-                beamcenter=pjoin(data_dir, 'eqsans', 'EQSANS_68183_event.nxs'),
-                darkcurrent=pjoin(data_dir, 'eqsans', 'EQSANS_68200_event.nxs')
+    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'sns', 'eqsans')
+    return dict(data=pjoin(dd, 'EQSANS_68168_event.nxs'),
+                beamcenter=pjoin(dd, 'EQSANS_68183_event.nxs'),
+                darkcurrent=pjoin(dd, 'EQSANS_68200_event.nxs')
                 )
 
 

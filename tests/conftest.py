@@ -26,10 +26,36 @@ def timeit(a_function):
 
 
 @pytest.fixture(scope='session')
+def refd():
+    """Directory locations for reference data
+
+    Returns
+    -------
+    namedtuple
+        refd.data, refd.legacy, refd.new,
+        refd.legacy.biosans, refd.legacy.gpsans, refd.legacy.eqsans
+        refd.new.biosans, refd.new.gpsans, refd.new.eqsans
+        """
+    d_leg = pjoin(data_dir, 'legacy', 'ornl', 'sans')
+    d_new = pjoin(data_dir, 'new', 'ornl', 'sans')
+    rett = namedtuple('rett', 'data legacy new')
+    legt = namedtuple('legt', 'biosans gpsans eqsans')
+    newt = namedtuple('newt', 'biosans gpsans eqsans')
+    return rett(data_dir,
+                legt(pjoin(d_leg, 'hfir', 'biosans'),
+                     pjoin(d_leg, 'hfir', 'gpsans'),
+                     pjoin(d_leg, 'sns', 'eqsans')),
+                newt(pjoin(d_new, 'hfir', 'biosans'),
+                     pjoin(d_new, 'hfir', 'gpsans'),
+                     pjoin(d_new, 'sns', 'eqsans')))
+
+
+@pytest.fixture(scope='session')
 def eqsans_f():
-    return dict(data=pjoin(data_dir, 'eqsans', 'EQSANS_68168_event.nxs'),
-                beamcenter=pjoin(data_dir, 'eqsans', 'EQSANS_68183_event.nxs'),
-                darkcurrent=pjoin(data_dir, 'eqsans', 'EQSANS_68200_event.nxs')
+    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'sns', 'eqsans')
+    return dict(data=pjoin(dd, 'EQSANS_68168_event.nxs'),
+                beamcenter=pjoin(dd, 'EQSANS_68183_event.nxs'),
+                darkcurrent=pjoin(dd, 'EQSANS_68200_event.nxs')
                 )
 
 

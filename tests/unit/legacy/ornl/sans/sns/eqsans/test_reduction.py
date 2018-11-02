@@ -26,10 +26,14 @@ if not os.path.isdir(output_dir):
 
 def test_reduction(refd):
 
-    # Set instrument
+    # Set specific configuration
     config = ConfigService.Instance()
     previous_instrument = config['instrumentName']
     config['instrumentName'] = 'EQSANS'
+    previous_archive = config['datasearch.searcharchive']
+    config['datasearch.searcharchive'] = 'on'
+
+    # Let's rock and roll!
     try:
         # This is the 1.3m mask
         mask60_ws1m = Load(Filename=pjn(shared_dir, 'beamstop60_mask_4m.nxs'))
@@ -87,6 +91,7 @@ def test_reduction(refd):
         main_cli.AppendDataFile([work_space_filename])
 
         main_cli.Reduce()
+
         # Check reduction agrees with reference data
         ref_data_dir = pjn(refd.legacy.eqsans, 'test_reduction')
         for file in ('92164_0600_Iq.txt',
@@ -98,8 +103,10 @@ def test_reduction(refd):
             cmp, mesg = CompareWorkspaces(outw, refw, Tolerance=1e-04)
             assert cmp is True
     finally:
+        # clean up your mess, baby
         shutil.rmtree(output_dir)
         config['instrumentName'] = previous_instrument
+        config['datasearch.searcharchive'] = previous_archive
 
 
 if __name__ == '__main__':

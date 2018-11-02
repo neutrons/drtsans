@@ -5,6 +5,7 @@ from __future__ import (absolute_import, division, print_function)
 import pytest
 import os
 from os.path import join as pjn
+import shutil
 
 from mantid.kernel import ConfigService
 from mantid.simpleapi import (Load, ExtractMask, LoadEventNexus,
@@ -97,6 +98,7 @@ def test_reduction(refd):
             cmp, mesg = CompareWorkspaces(outw, refw, Tolerance=1e-04)
             assert cmp is True
     finally:
+        shutil.rmtree(output_dir)
         config['instrumentName'] = previous_instrument
 
 

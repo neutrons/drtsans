@@ -46,3 +46,6 @@ class Wband(object):
         if a >= b:
             return None
         return Wband(a, b)
+
+    def __eq__(self, other):
+        return self._min == other._min and self._max == other._max

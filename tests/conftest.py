@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import sys
 import os
+
 import pytest
 from os.path import join as pjoin
 from collections import namedtuple
@@ -81,13 +82,15 @@ def refd():
     d_leg = pjoin(data_dir, 'legacy', 'ornl', 'sans')
     d_new = pjoin(data_dir, 'new', 'ornl', 'sans')
     rett = namedtuple('rett', 'data legacy new')
-    legt = namedtuple('legt', 'biosans gpsans eqsans')
-    newt = namedtuple('newt', 'biosans gpsans eqsans')
+    legt = namedtuple('legt', 'sans biosans gpsans eqsans')
+    newt = namedtuple('newt', 'sans biosans gpsans eqsans')
     return rett(data_dir,
-                legt(pjoin(d_leg, 'hfir', 'biosans'),
+                legt(d_leg,
+                     pjoin(d_leg, 'hfir', 'biosans'),
                      pjoin(d_leg, 'hfir', 'gpsans'),
                      pjoin(d_leg, 'sns', 'eqsans')),
-                newt(pjoin(d_new, 'hfir', 'biosans'),
+                newt(d_new,
+                     pjoin(d_new, 'hfir', 'biosans'),
                      pjoin(d_new, 'hfir', 'gpsans'),
                      pjoin(d_new, 'sns', 'eqsans')))
 

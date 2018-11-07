@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 from sortedcontainers import SortedList
-from functools import singledispatch, update_wrapper
 
 
 class Wband(object):

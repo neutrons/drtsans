@@ -43,14 +43,20 @@ class Wband(object):
             None if no common band or if common band is only a point
             as in the common band between Wband(0, 1) and Wband(1, 2)
         """
-        if isinstance(other, Wband):
-            a = self._min if self._min > other._min else other._min
-            b = self._max if self._max < other._max else other._max
+        def mul_band(band):
+            a = self._min if self._min > band._min else band._min
+            b = self._max if self._max < band._max else band._max
             if a >= b:
                 return None
             return Wband(a, b)
-        elif isinstance(other, Wbands):
-            return other * self
+
+        def mul_bands(bands):
+            return bands * self
+
+        dispatcher = {Wband: mul_band, Wbands: mul_bands}
+        mul = [v for k, v in dispatcher.items() if isinstance(other, k)][0]
+
+        return mul(other)
 
     def __eq__(self, other):
         return self._min == other._min and self._max == other._max
@@ -134,17 +140,33 @@ class Wbands(object):
         return self
 
     def __mul__(self, other):
-        r = Wbands()
-        if isinstance(other, Wband):
+        r"""
+        Find the intersection with one or more bands
+
+        Parameters
+        ----------
+        other: Wband or Wbands
+            Intersecting band
+        """
+        def mul_band(other_band):
+            ib = Wbands()
             for band in self._bands:
-                i = band * other
+                i = band * other_band
                 if i is not None:
-                    r += i  # add a Wband object
-        elif isinstance(other, Wbands):
+                    ib += i  # add a Wband object
+            return ib
+
+        def mul_bands(other_bands):
+            ib = Wbands()
             for band in other._bands:
                 i = self * band
                 if i is not None:
-                    r += i  # add from a Wbands object
+                    ib += i  # add from a Wbands object
+            return ib
+
+        dispatcher = {Wband: mul_band, Wbands: mul_bands}
+        mul = [v for k, v in dispatcher.items() if isinstance(other, k)][0]
+        r = mul(other)
         if len(r) == 0:
             return None
         return r

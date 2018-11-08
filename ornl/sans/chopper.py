@@ -8,13 +8,13 @@ class DiskChopper(object):
     _pulse_width = 20  # micro-sec/Angstrom
     _cutoff_wl = 35  # maximum wavelength of incoming neutrons, in Angstroms
 
-    def __init__(self, location, aperture, speed, sensor_phase, offset=0):
+    def __init__(self, to_source, aperture, speed, sensor_phase, offset=0):
         r"""
 
         Parameters
         ----------
-        location: float
-            Distance to the moderator in meters
+        to_source: float
+            Distance to the neutron source (moderator) in meters
         aperture: float
             Opening window, in degrees
         speed: float
@@ -25,7 +25,7 @@ class DiskChopper(object):
             phase between the installed sensor and the middle of the
             opening transmission window
         """
-        self.location = location
+        self.to_source = to_source
         self.aperture = aperture
         self.speed = speed
         self.sensor_phase = sensor_phase
@@ -143,7 +143,7 @@ class DiskChopper(object):
 
         """
         sigma = 3.9560346e-03  # plank constant divided by neutron mass
-        loc = self.location
+        loc = self.to_source
         if pulsed is True:
             loc += sigma * self._pulse_width
         wl = sigma * (tof + delay) / loc

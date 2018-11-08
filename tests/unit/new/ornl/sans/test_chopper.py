@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 
 from ornl.sans.chopper import DiskChopper
@@ -58,7 +57,6 @@ class TestDiskChopper(object):
         wb = ch.transmission_bands()
         assert len(wb) == 3
         assert_almost_equal((wb[0].min, wb[0].max), (0, 0.687), decimal=2)
-
 
 
 if __name__ == '__main__':

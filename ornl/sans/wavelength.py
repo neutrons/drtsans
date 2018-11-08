@@ -26,6 +26,14 @@ class Wband(object):
         self._max = w_max
 
     @property
+    def min(self):
+        return self._min
+
+    @property
+    def max(self):
+        return self._max
+
+    @property
     def width(self):
         return self._max - self._min
 
@@ -64,6 +72,8 @@ class Wband(object):
     def __lt__(self, other):
         return self._min < other._min
 
+    def __str__(self):
+        return 'Wband({:.3f}, {:.3f})'.format(self._min, self._max)
 
 class Wbands(object):
     r"""
@@ -170,3 +180,6 @@ class Wbands(object):
         if len(r) == 0:
             return None
         return r
+
+    def __str__(self):
+        return '(' + ', '.join([str(band) for band in self]) + ')'

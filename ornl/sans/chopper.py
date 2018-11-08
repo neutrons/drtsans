@@ -8,13 +8,15 @@ class DiskChopper(object):
     _pulse_width = 20  # micro-sec/Angstrom
     _cutoff_wl = 35  # maximum wavelength of incoming neutrons, in Angstroms
 
-    def __init__(self, location, speed, sensor_phase, offset=0):
+    def __init__(self, location, aperture, speed, sensor_phase, offset=0):
         r"""
 
         Parameters
         ----------
         location: float
             Distance to the moderator in meters
+        aperture: float
+            Opening window, in degrees
         speed: float
             rotational frequency, in Hz
         nominal_phase: float
@@ -24,6 +26,7 @@ class DiskChopper(object):
             opening transmission window
         """
         self.location = location
+        self.aperture = aperture
         self.speed = speed
         self.sensor_phase = sensor_phase
         self.offset = offset
@@ -38,11 +41,12 @@ class DiskChopper(object):
         return self._pulse_width
 
     @pulse_width.setter
-    def pulse_with(self, value):
+    def pulse_width(self, value):
         r"""
         Override default pulse width, defined at the DiskChopper class level
         """
         self._pulse_width = value
+
 
     @property
     def cutoff_wl(self):
@@ -99,6 +103,7 @@ class DiskChopper(object):
         """
         return self.phase + 0.5 * self.transmission_duration
 
+    @property
     def rewind(self):
         r"""
         Rewind the chopper to obtain the minimum positive time
@@ -112,15 +117,9 @@ class DiskChopper(object):
             Can return a negative value
         """
         t_closing = self.closing_phase
-        if t_closing < 0:
-            while t_closing < 0:
-                t_closing += self.period
-            t_opening = t_closing - self.transmission_duration
-        else:
-            while t_closing > 0:
-                t_closing -= self.period
-            t_opening = t_closing + self.period - self.transmission_duration
-        return t_opening
+        while t_closing < 0:
+            t_closing += self.period
+        return t_closing - self.transmission_duration
 
     def wavelength(self, tof, delay=0, pulsed=False):
         r"""
@@ -171,9 +170,9 @@ class DiskChopper(object):
             Set of transmitted wavelength bands
         """
         if cutoff_wl is None:
-            cutoff_wl = self._cutoff_wl
+            cutoff_wl = self.cutoff_wl
         wb = Wbands()
-        t_opening = self.rewind()
+        t_opening = self.rewind
         # shortest wavelength, obtained with pulsed correction if needed
         opening_wl = self.wavelength(t_opening, delay, pulsed)
         while opening_wl < cutoff_wl:

@@ -44,13 +44,16 @@ class Wband(object):
         Parameters
         ----------
         band: Wband
-
+            Intersecting band
         Returns
         -------
         Wband or None
             None if no common band or if common band is only a point
             as in the common band between Wband(0, 1) and Wband(1, 2)
         """
+        # Corner case when we multiply by the null band
+        if self is None or other is None:
+            return None
         def mul_band(band):
             a = self._min if self._min > band._min else band._min
             b = self._max if self._max < band._max else band._max
@@ -65,6 +68,24 @@ class Wband(object):
         mul = [v for k, v in dispatcher.items() if isinstance(other, k)][0]
 
         return mul(other)
+
+    def __imul__(self, other):
+        r"""
+        In-place multiplication
+
+        Parameters
+        ----------
+        band: Wband
+            Intersecting band
+        Returns
+        -------
+        Wband or None
+            None if no common band or if common band is only a point
+            as in the common band between Wband(0, 1) and Wband(1, 2)
+        """
+        b = self * other
+        self = b
+        return self
 
     def __eq__(self, other):
         return self._min == other._min and self._max == other._max
@@ -157,7 +178,16 @@ class Wbands(object):
         ----------
         other: Wband or Wbands
             Intersecting band
+
+        Returns
+        -------
+        Wbands or None
+            None if no common bands or if common band is only a point
+            as in the common band between Wband(0, 1) and Wband(1, 2)
         """
+        # Corner case when we multiply by the null bands object
+        if self is None or other is None:
+            return None
         def mul_band(other_band):
             ib = Wbands()
             for band in self._bands:
@@ -180,6 +210,24 @@ class Wbands(object):
         if len(r) == 0:
             return None
         return r
+
+    def __imul__(self, other):
+        r"""
+
+        Parameters
+        ----------
+        other: Wband or Wbands
+            Intersecting band
+
+        Returns
+        -------
+        Wbands or None
+            None if no common bands or if common band is only a point
+            as in the common band between Wband(0, 1) and Wband(1, 2)
+        """
+        wb = self * other
+        self = wb
+        return self
 
     def __str__(self):
         return '(' + ', '.join([str(band) for band in self]) + ')'

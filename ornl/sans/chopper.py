@@ -123,7 +123,7 @@ class DiskChopper(object):
 
     def wavelength(self, tof, delay=0, pulsed=False):
         r"""
-        Convert time of flight to neutron's wavelength
+        Convert time of flight of the arriving neutron wavelength
 
         Parameters
         ----------
@@ -150,6 +150,31 @@ class DiskChopper(object):
         if wl < 0:
             wl = 0
         return wl
+
+    def tof(self, wavelength, delay=0, pulsed=False):
+        r"""
+        Convert wavelength of arriving neutron to time of flight
+
+        Parameters
+        ----------
+        wavelength: float
+            wavelength of the arriving neutron, in microseconds
+        delay: float
+            Additional time-of-flight to include in the calculations
+        pulsed: bool
+            Include the correction due to delayed emission of neutrons
+            from the moderator
+
+        Returns
+        -------
+        float
+            time of flight (in Angstroms)
+        """
+        sigma = 3.9560346e-03  # plank constant divided by neutron mass
+        loc = self.to_source
+        if pulsed is True:
+            loc += sigma * self._pulse_width
+        return wavelength * loc / sigma - delay
 
     def transmission_bands(self, cutoff_wl=None, delay=0, pulsed=False):
         r"""

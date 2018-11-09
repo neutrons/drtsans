@@ -49,6 +49,11 @@ class TestDiskChopper(object):
         assert_almost_equal(self.ch.wavelength(1200, pulsed=True),
                             4.3, decimal=1)
 
+    def test_tof(self):
+        assert_almost_equal(self.ch.tof(4.747), 1200, decimal=0)
+        assert_almost_equal(self.ch.tof(4.399, pulsed=True),
+                            1200, decimal=0)
+
     def test_transmission_bands(self):
         wb = self.ch.transmission_bands()
         assert len(wb) == 1

@@ -83,9 +83,9 @@ def test_apply_transmission_with_ws(gpsans_f):
     apply_transmission(ws_sample, ws_sample_corrected_name, trans_ws=trans_ws)
     ws_sample_corrected = mtd[ws_sample_corrected_name]
 
-    assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-4)
+    assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-3)
     assert ws_sample_corrected.readY(
-        9100)[0] == pytest.approx(5.8557131, abs=1e-4)
+        9100)[0] == pytest.approx(5.8557131, abs=1e-3)
 
 
 def test_apply_transmission_with_values(gpsans_f):
@@ -109,6 +109,6 @@ def test_apply_transmission_with_values(gpsans_f):
                        trans_value=trans_value, trans_error=trans_error)
     ws_sample_corrected = mtd[ws_sample_corrected_name]
 
-    assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-4)
+    assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-3)
     assert ws_sample_corrected.readY(
-        9100)[0] == pytest.approx(5.8557131, abs=1e-4)
+        9100)[0] == pytest.approx(5.8557131, abs=1e-3)

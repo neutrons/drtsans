@@ -48,7 +48,7 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
 
 def _calculate_radius_from_input_ws(input_ws):
     '''
-    Calculate the radius according to
+    Calculate the radius according to:
     R_beam = R_sampleAp + SDD * (R_sampleAp + R_sourceAp) / SSD
     '''
 

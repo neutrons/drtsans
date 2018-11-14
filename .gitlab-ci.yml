@@ -3,9 +3,16 @@ variables:
 
 # Run sequentially and stop if anyone stage fails
 stages:
+  - flake8
   - python2.7
   - python3.6
-  - flake8
+
+flake8:
+  variables:
+    CI_DEBUG_TRACE: "true"
+  stage: flake8
+  script:
+    - flake8
 
 python2.7:
   variables:
@@ -20,10 +27,3 @@ python3.6:
   stage: python3.6
   script:
     - source test_job.sh 3.6 ${TEST_SCOPE}
-
-flake8:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: flake8
-  script:
-    - flake8

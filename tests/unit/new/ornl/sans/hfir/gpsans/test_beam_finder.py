@@ -13,7 +13,7 @@ def test_beam_finder(gpsans_f):
     from mantid import mtd
     from mantid.simpleapi import (
         MoveInstrumentComponent, FindCenterOfMassPosition, LoadSpice2D)
-    
+
     ws_name = "__beamcenter"
     LoadSpice2D(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws_name)
     ws = mtd[ws_name]

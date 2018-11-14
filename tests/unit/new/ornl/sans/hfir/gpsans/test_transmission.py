@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-from mantid.api import mtd
 import pytest
 
 
@@ -31,6 +30,7 @@ def test_calculate_transmission(gpsans_f):
     '''
     from ornl.sans.transmission import calculate_transmission
     from mantid.simpleapi import LoadSpice2D
+    from mantid import mtd
 
     input_sample_ws_mame = 'input_sample_ws_name'
     LoadSpice2D(Filename=gpsans_f['sample_scattering'],
@@ -56,9 +56,59 @@ def test_calculate_transmission(gpsans_f):
         0)[0] == pytest.approx(0.0141, abs=1e-4)
 
 
-def test_apply_transmission(gpsans_f):
+def test_apply_transmission_with_ws(gpsans_f):
     '''
     '''
 
-    # TODO
-    pass
+    from ornl.sans.transmission import apply_transmission
+    from mantid.simpleapi import LoadSpice2D, CreateWorkspace
+    from mantid import mtd
+
+    trans_ws_name = "_transmission"
+    CreateWorkspace(
+        OutputWorkspace=trans_ws_name,
+        DataX=[3.8, 4.2],
+        DataY=[0.5191],
+        DataE=[0.0141],
+        UnitX="Wavelength"
+    )
+    trans_ws = mtd[trans_ws_name]
+
+    ws_sample_name = 'ws_sample'
+    LoadSpice2D(Filename=gpsans_f['sample_scattering'],
+                OutputWorkspace=ws_sample_name)
+    ws_sample = mtd[ws_sample_name]
+
+    ws_sample_corrected_name = 'ws_sample_corrected_name'
+    apply_transmission(ws_sample, ws_sample_corrected_name, trans_ws=trans_ws)
+    ws_sample_corrected = mtd[ws_sample_corrected_name]
+
+    assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-4)
+    assert ws_sample_corrected.readY(
+        9100)[0] == pytest.approx(5.8557131, abs=1e-4)
+
+
+def test_apply_transmission_with_values(gpsans_f):
+    '''
+    '''
+
+    from ornl.sans.transmission import apply_transmission
+    from mantid.simpleapi import LoadSpice2D
+    from mantid import mtd
+
+    trans_value = 0.5191
+    trans_error = 0.0141
+
+    ws_sample_name = 'ws_sample'
+    LoadSpice2D(Filename=gpsans_f['sample_scattering'],
+                OutputWorkspace=ws_sample_name)
+    ws_sample = mtd[ws_sample_name]
+
+    ws_sample_corrected_name = 'ws_sample_corrected_name'
+    apply_transmission(ws_sample, ws_sample_corrected_name,
+                       trans_value=trans_value, trans_error=trans_error)
+    ws_sample_corrected = mtd[ws_sample_corrected_name]
+
+    assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-4)
+    assert ws_sample_corrected.readY(
+        9100)[0] == pytest.approx(5.8557131, abs=1e-4)

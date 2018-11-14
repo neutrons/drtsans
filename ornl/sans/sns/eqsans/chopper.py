@@ -2,15 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 from ornl.sans.chopper import DiskChopper
 from ornl.sans.samplelogs import SampleLogs
-from enum import Enum
-
-
-class FrameMode(Enum):
-    r"""
-    Selects if instrument operating in frame-skipping mode
-    """
-    not_skip = 0
-    skip = 1
+from ornl.sans.frame_mode import FrameMode
 
 
 class EQSANSDiskChopperSet(object):
@@ -85,3 +77,10 @@ class EQSANSDiskChopperSet(object):
         for ch in self._choppers[1:]:
             wb *= ch.transmission_bands(cutoff_wl, delay, pulsed)
         return wb
+
+    def __getitem__(self, item):
+        return self._choppers[item]
+
+    @property
+    def pulse_width(self):
+        return self._pulse_width

@@ -24,6 +24,10 @@ class SampleLogs(object):
         if item in _run.keys():
             return _run.getProperty(item)
 
+    @property
+    def mantid_logs(self):
+        return self._run
+
     def find_run(self, other):
         r"""
         Retrieve the Run object

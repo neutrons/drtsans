@@ -9,7 +9,6 @@ def test_beam_finder(gpsans_f):
     Test with the new beam finder
     '''
 
-    import sys
     from ornl.sans.hfir.gpsans import beam_finder
     from mantid import mtd
     from mantid.simpleapi import (

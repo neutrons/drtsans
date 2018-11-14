@@ -39,12 +39,7 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
     else:
         logger.error("Input not valid: Use trans_value + trans_value"
                      " or trans_ws.")
-                    
 
-
-#
-#
-#
 
 def _calculate_radius_from_input_ws(input_ws):
     '''

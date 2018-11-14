@@ -86,6 +86,8 @@ def biosans_f():
 def gpsans_f():
     return dict(
         beamcenter=pjoin(data_dir, 'gpsans', 'CG2_exp325_scan0020_0001.xml'),
+        beamcenter_off_setted=pjoin(
+            data_dir, 'gpsans', 'CG2_exp245_scan0007_0001.xml'),
         sample_transmission=pjoin(
             data_dir, 'gpsans', 'CG2_exp245_scan0009_0001.xml'),
         sample_scattering=pjoin(

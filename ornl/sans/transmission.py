@@ -2,7 +2,6 @@ from mantid.simpleapi import (
     ApplyTransmissionCorrection, FindDetectorsInShape, GroupDetectors, Divide,
     DeleteWorkspaces)
 from mantid.kernel import logger
-from mantid.api import mtd
 
 
 def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
@@ -52,7 +51,7 @@ def _calculate_radius_from_input_ws(input_ws):
     𝑅𝑏𝑒𝑎𝑚 = 𝑅𝑠𝑎𝑚_𝑎𝑝 + 𝑆𝐷𝐷(𝑅𝑠𝑎𝑚_𝑎𝑝+𝑅𝑠𝑟𝑐_𝑎𝑝) / 𝑆𝑆𝐷
     '''
 
-    r = mtd[input_ws].getRun()
+    r = input_ws.getRun()
 
     try:
         radius_sample_aperture = r.getProperty(
@@ -105,22 +104,19 @@ def calculate_transmission(input_sample_ws, input_reference_ws, output_ws,
 
     detector_ids = _get_detector_ids_from_radius(input_reference_ws, radius)
 
-    input_sample_ws_grouped = "__" + input_sample_ws + "_grouped"
-    input_reference_ws_grouped = "__" + input_reference_ws + "_grouped"
-
     # by default it sums all the grouped detectors
-    GroupDetectors(InputWorkspace=input_sample_ws,
-                   OutputWorkspace=input_sample_ws_grouped,
-                   DetectorList=detector_ids)
+    input_sample_ws_grouped = GroupDetectors(InputWorkspace=input_sample_ws,
+                                             DetectorList=detector_ids)
 
-    GroupDetectors(InputWorkspace=input_sample_ws,
-                   OutputWorkspace=input_sample_ws_grouped,
-                   DetectorList=detector_ids)
+    input_reference_ws_grouped = GroupDetectors(
+        InputWorkspace=input_reference_ws,
+        DetectorList=detector_ids)
 
-    Divide(LHSWorkspace=input_sample_ws_grouped,
-           RHSWorkspace=input_reference_ws_grouped, OutputWorkspace=output_ws)
+    output_ws = Divide(LHSWorkspace=input_sample_ws_grouped,
+                       RHSWorkspace=input_reference_ws_grouped)
 
     if delete_temp_wss:
         DeleteWorkspaces(
             WorkspaceList=[input_sample_ws_grouped,
                            input_reference_ws_grouped])
+    return output_ws

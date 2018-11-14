@@ -12,17 +12,19 @@ def test_beam_finder(eqsans_f, eqsans_p):
     from ornl.sans.sns.eqsans import beam_finder
     from mantid import mtd
     from mantid.simpleapi import (
-        MoveInstrumentComponent, FindCenterOfMassPosition)
+        MoveInstrumentComponent, FindCenterOfMassPosition, LoadEventNexus)
 
-    x, y = beam_finder.direct_beam_center(
-        eqsans_f['beamcenter'], eqsans_p['tubes_to_mask'])
+    ws_name = "__beamcenter"
+    LoadEventNexus(Filename=eqsans_f['beamcenter'], OutputWorkspace=ws_name)
+    ws = mtd[ws_name]
+
+    x, y = beam_finder.direct_beam_center(ws, eqsans_p['tubes_to_mask'])
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
     assert x == pytest.approx(0.02652545)
     assert y == pytest.approx(0.01804158)
 
     # Let's center the instrument and get the new center: It should be 0 after
     # the re-centring
-    ws = mtd['ws_flattened']  # This comes from direct_beam_center function
     MoveInstrumentComponent(
         Workspace=ws, ComponentName='detector1', X=-x, Y=-y)
     center = FindCenterOfMassPosition(InputWorkspace=ws)

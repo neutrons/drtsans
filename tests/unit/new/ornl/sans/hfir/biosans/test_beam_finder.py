@@ -12,9 +12,13 @@ def test_beam_finder(biosans_f):
     from ornl.sans.hfir.biosans import beam_finder
     from mantid import mtd
     from mantid.simpleapi import (
-        MoveInstrumentComponent, FindCenterOfMassPosition)
+        MoveInstrumentComponent, FindCenterOfMassPosition, LoadSpice2D)
 
-    x, y, y_gravity = beam_finder.direct_beam_center(biosans_f['beamcenter'])
+    ws_name = "__beamcenter"
+    LoadSpice2D(Filename=biosans_f['beamcenter'], OutputWorkspace=ws_name)
+    ws = mtd[ws_name]
+
+    x, y, y_gravity = beam_finder.direct_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
     assert x == pytest.approx(-0.0035, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
@@ -22,7 +26,6 @@ def test_beam_finder(biosans_f):
 
     # Let's center the instrument and get the new center: It should be 0 after
     # the re-centring
-    ws = mtd['ws']  # This comes from direct_beam_center function
     MoveInstrumentComponent(
         Workspace=ws, ComponentName='detector1', X=-x, Y=-y)
     center = FindCenterOfMassPosition(InputWorkspace=ws)

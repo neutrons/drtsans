@@ -1,5 +1,5 @@
 from mantid.simpleapi import (
-    LoadSpice2D, SANSMaskDTP, FindCenterOfMassPosition)
+    SANSMaskDTP, FindCenterOfMassPosition)
 from mantid.kernel import logger
 
 
@@ -44,18 +44,18 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd=1.13):
     return new_beam_center_y
 
 
-def direct_beam_center(filename, tubes_to_mask=None, sdd_wing_detector=1.13):
+def direct_beam_center(input_ws, tubes_to_mask=None, sdd_wing_detector=1.13):
     '''
     Return beam center x, y in meters
     '''
-    ws = LoadSpice2D(filename)
-    if tubes_to_mask is not None:
-        SANSMaskDTP(InputWorkspace=ws.OutputWorkspace, Tube=tubes_to_mask)
 
-    center = FindCenterOfMassPosition(InputWorkspace=ws.OutputWorkspace)
+    if tubes_to_mask is not None:
+        SANSMaskDTP(InputWorkspace=input_ws, Tube=tubes_to_mask)
+
+    center = FindCenterOfMassPosition(InputWorkspace=input_ws)
     center_x, center_y = center
 
     center_y_gravity = _beam_center_gravitational_drop(
-        ws.OutputWorkspace, center_y, sdd_wing_detector)
+        input_ws, center_y, sdd_wing_detector)
 
     return center_x, center_y, center_y_gravity

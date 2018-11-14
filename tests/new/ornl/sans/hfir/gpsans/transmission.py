@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import pytest
-
 
 def _instrument_geometry(gpsans_f):
     '''

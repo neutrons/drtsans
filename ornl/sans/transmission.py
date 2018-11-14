@@ -4,6 +4,7 @@ from mantid.simpleapi import (
 from mantid.kernel import logger
 from mantid.api import mtd
 
+
 def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
                        trans_ws=None, theta_dependent=True):
     '''
@@ -16,7 +17,7 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
     trans_ws - Workspace containing the transmission values [optional]
     trans_value - Transmission value to apply to all wavelengths. If specified.
     trans_error - The error on the transmission value (default 0.0)
-    theta_dependent - If true, a theta-dependent transmission correction will 
+    theta_dependent - If true, a theta-dependent transmission correction will
                       be applied.
 
     '''
@@ -48,9 +49,10 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
 def _calculate_radius_from_input_ws(input_ws):
     '''
     Calculate the radius according to
-    𝑅𝑏𝑒𝑎𝑚 = 𝑅𝑠𝑎𝑚_𝑎𝑝 + 𝑆𝐷𝐷(𝑅𝑠𝑎𝑚_𝑎𝑝+𝑅𝑠𝑟𝑐_𝑎𝑝) / 𝑆𝑆𝐷 
+    𝑅𝑏𝑒𝑎𝑚 = 𝑅𝑠𝑎𝑚_𝑎𝑝 + 𝑆𝐷𝐷(𝑅𝑠𝑎𝑚_𝑎𝑝+𝑅𝑠𝑟𝑐_𝑎𝑝) / 𝑆𝑆𝐷
     '''
-    r = input_ws.getRun(mtd[input_ws])
+
+    r = mtd[input_ws].getRun()
 
     try:
         radius_sample_aperture = r.getProperty(
@@ -92,7 +94,7 @@ def _get_detector_ids_from_radius(input_ws, radius):
 def calculate_transmission(input_sample_ws, input_reference_ws, output_ws,
                            radius=None, delete_temp_wss=True):
     '''
-    If the radius is none calculates it according to 
+    If the radius is none calculates it according to
     _calculate_radius_from_input_ws.
 
     Creates a transmission Workspace: output_ws
@@ -120,4 +122,5 @@ def calculate_transmission(input_sample_ws, input_reference_ws, output_ws,
 
     if delete_temp_wss:
         DeleteWorkspaces(
-            WorkspaceList=[input_sample_ws_grouped, input_reference_ws_grouped])
+            WorkspaceList=[input_sample_ws_grouped,
+                           input_reference_ws_grouped])

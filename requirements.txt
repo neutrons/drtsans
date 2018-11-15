@@ -4,8 +4,6 @@ six==1.11.0
 # For config parser to work in python 2
 configparser==3.5.0
 
-# For Mantid
 numpy==1.15.0
 matplotlib==2.2.2
-
-
+sortedcontainers==1.5.7

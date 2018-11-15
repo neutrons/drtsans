@@ -13,12 +13,6 @@ class MultiOrderedDict(OrderedDict):
             # super().__setitem__(key, value) # in Python 3
 
 
-class Nonlocals(object):
-    """ Helper class to implement nonlocal names in Python 2.x """
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-
 def namedtuplefy(func, name=None):
     r"""
     Decorator to transform the return dictionary of a function into
@@ -45,5 +39,5 @@ def namedtuplefy(func, name=None):
                 raise ValueError('Cannot namedtuplefy a non-dict')
                 namedtuplefy.nt = \
                     namedtuple(name or (func.__name__ + '_nt'), res.keys())
-        return nt(**res)
+        return namedtuplefy.nt(**res)
     return wrapper

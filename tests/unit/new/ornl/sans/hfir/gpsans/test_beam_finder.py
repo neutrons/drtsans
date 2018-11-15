@@ -4,24 +4,25 @@ from __future__ import print_function
 import pytest
 
 
-def test_beam_finder(eqsans_f, eqsans_p):
+def test_beam_finder(gpsans_f):
     '''
     Test with the new beam finder
     '''
 
-    from ornl.sans.sns.eqsans import beam_finder
+    from ornl.sans.hfir.gpsans import beam_finder
     from mantid import mtd
     from mantid.simpleapi import (
-        MoveInstrumentComponent, FindCenterOfMassPosition, LoadEventNexus)
+        MoveInstrumentComponent, FindCenterOfMassPosition, LoadSpice2D)
 
     ws_name = "__beamcenter"
-    LoadEventNexus(Filename=eqsans_f['beamcenter'], OutputWorkspace=ws_name)
+    LoadSpice2D(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws_name)
     ws = mtd[ws_name]
 
-    x, y = beam_finder.direct_beam_center(ws, eqsans_p['tubes_to_mask'])
+    x, y = beam_finder.direct_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
-    assert x == pytest.approx(0.02652545)
-    assert y == pytest.approx(0.01804158)
+
+    assert x == pytest.approx(-0.02185, abs=1e-3)
+    assert y == pytest.approx(-0.020307, abs=1e-3)
 
     # Let's center the instrument and get the new center: It should be 0 after
     # the re-centring

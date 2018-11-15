@@ -75,6 +75,27 @@ def eqsans_p():
 
 
 @pytest.fixture(scope='session')
+def biosans_f():
+    return dict(
+        beamcenter=pjoin(data_dir, 'biosans',
+                         'BioSANS_exp402_scan0006_0001.xml'),
+    )
+
+
+@pytest.fixture(scope='session')
+def gpsans_f():
+    return dict(
+        beamcenter=pjoin(data_dir, 'gpsans', 'CG2_exp325_scan0020_0001.xml'),
+        beamcenter_off_setted=pjoin(
+            data_dir, 'gpsans', 'CG2_exp245_scan0007_0001.xml'),
+        sample_transmission=pjoin(
+            data_dir, 'gpsans', 'CG2_exp245_scan0009_0001.xml'),
+        sample_scattering=pjoin(
+            data_dir, 'gpsans', 'CG2_exp245_scan0010_0001.xml'),
+    )
+
+
+@pytest.fixture(scope='session')
 def porasil_slice1m():
     """EQSANS reduction benchmark. See porasil_slice1m.help
 

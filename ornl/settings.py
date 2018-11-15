@@ -37,7 +37,7 @@ def namedtuplefy(func, name=None):
         if namedtuplefy.nt is None:
             if isinstance(res, Mapping) is False:
                 raise ValueError('Cannot namedtuplefy a non-dict')
-                namedtuplefy.nt = \
-                    namedtuple(name or (func.__name__ + '_nt'), res.keys())
+            namedtuplefy.nt = \
+                namedtuple(name or (func.__name__ + '_nt'), res.keys())
         return namedtuplefy.nt(**res)
     return wrapper

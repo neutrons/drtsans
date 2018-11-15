@@ -47,7 +47,6 @@ class DiskChopper(object):
         """
         self._pulse_width = value
 
-
     @property
     def cutoff_wl(self):
         r"""

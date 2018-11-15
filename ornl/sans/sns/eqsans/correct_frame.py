@@ -6,7 +6,7 @@ from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
 from ornl.sans.frame_mode import FrameMode
 from ornl.sans import wavelength as wlg
-from ornl.sans.core_utils import namedtuplefy
+from ornl.settings import namedtuplefy
 
 
 def replace_tofs(ws):

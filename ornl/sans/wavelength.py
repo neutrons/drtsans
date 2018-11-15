@@ -79,6 +79,7 @@ class Wband(object):
         # Corner case when we multiply by the null band
         if self is None or other is None:
             return None
+
         def mul_band(band):
             a = self._min if self._min > band._min else band._min
             b = self._max if self._max < band._max else band._max
@@ -120,6 +121,7 @@ class Wband(object):
 
     def __str__(self):
         return 'Wband({:.3f}, {:.3f})'.format(self._min, self._max)
+
 
 class Wbands(object):
     r"""
@@ -213,6 +215,7 @@ class Wbands(object):
         # Corner case when we multiply by the null bands object
         if self is None or other is None:
             return None
+
         def mul_band(other_band):
             ib = Wbands()
             for band in self._bands:

@@ -1,0 +1,2 @@
+# For python 2.x backwards compatibility
+enum==0.4.6

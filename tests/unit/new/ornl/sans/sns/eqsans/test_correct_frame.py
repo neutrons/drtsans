@@ -13,7 +13,7 @@ from mantid.api import AnalysisDataService
 from ornl.sans.sns.eqsans.correct_frame import correct_frame
 
 
-def compare_to_eqsans_load(alg_out, wo, dl, s2d, ltc, htc, run_number):
+def compare_to_eqsans_load(alg_out, wo, dl, s2d, ltc, htc):
     eq_out = EQSANSLoad(InputWorkspace=wo.name(),
                         OutputWorkspace='from_EQSANSLoad',
                         NoBeamCenter=False,
@@ -65,14 +65,14 @@ def test_correct_frame():
     config['datasearch.searcharchive'] = 'on'
 
     trials = dict(  # configurations with no frame skipped
-                  skip_1m=('86217', 200, 1000, 0.02, 1.3),
-                  skip_2m=('80204', 200, 1500, 0.02, 1.3),
-                  skip_4m=('92353', 200, 200, 0.02, 4.0),
-                  skip_5m=('85550', 200, 1500, 0.02, 5.0),
+                  skip_1m=('EQSANS_86217', 200, 1000, 0.02, 1.3),
+                  skip_2m=('EQSANS_80204', 200, 1500, 0.02, 1.3),
+                  skip_4m=('EQSANS_92353', 200, 200, 0.02, 4.0),
+                  skip_5m=('EQSANS_85550', 200, 1500, 0.02, 5.0),
                   # configurations with no frame skipped
-                  porasil_1m=('92164', 200, 1000, 0.02, 1.3),
-                  porasil_4m=('92149', 200, 1000, 0.02, 4.0),
-                  porasil_8m=('92144', 200, 1500, 0.02, 8.0))
+                  porasil_1m=('EQSANS_92164', 200, 1000, 0.02, 1.3),
+                  porasil_4m=('EQSANS_92149', 200, 1000, 0.02, 4.0),
+                  porasil_8m=('EQSANS_92144', 200, 1500, 0.02, 8.0))
     try:
         for run_number, low_tof_cut, high_tof_cut, wavelength_bin,\
                 source_to_detector_distance in trials.values():
@@ -83,8 +83,7 @@ def test_correct_frame():
             alg_out = correct_frame(ws, low_tof_cut, high_tof_cut)
             compare_to_eqsans_load(alg_out, wo, wavelength_bin,
                                    source_to_detector_distance,
-                                   low_tof_cut, high_tof_cut,
-                                   run_number)
+                                   low_tof_cut, high_tof_cut)
             AnalysisDataService.remove(alg_out.ws.name())
             AnalysisDataService.remove(wo.name())
     finally:

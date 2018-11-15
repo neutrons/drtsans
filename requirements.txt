@@ -7,4 +7,4 @@ configparser==3.5.0
 numpy==1.15.0
 matplotlib==2.2.2
 sortedcontainers==1.5.7
-enum==1.1.6
+enum==0.4.6

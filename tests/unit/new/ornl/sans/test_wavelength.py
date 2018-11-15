@@ -54,7 +54,7 @@ class TestWbands(object):
         assert ws * Wband(0, 4) == Wbands(Wband(1, 2), Wband(3, 4))
         assert Wband(0, 4) * ws == Wbands(Wband(1, 2), Wband(3, 4))
         assert ws * Wband(1.5, 3.5) == Wbands(Wband(1.5, 2), Wband(3, 3.5))
-        assert Wband(1.5, 3.5) *ws  == Wbands(Wband(1.5, 2), Wband(3, 3.5))
+        assert Wband(1.5, 3.5) * ws == Wbands(Wband(1.5, 2), Wband(3, 3.5))
         # Product of two Wbands
         vs = Wbands(Wband(0, 1.5), Wband(1.7, 4))
         assert ws * vs == Wbands(Wband(1.7, 2), Wband(3, 4), Wband(1, 1.5))
@@ -62,8 +62,8 @@ class TestWbands(object):
         # Product of two Wband and one Wbands
         assert Wband(2, 3.5) * ws * Wband(0, 4) == Wbands(Wband(3, 3.5))
         # Product of three Wbands
-        assert Wbands(Wband(0, 1.5), Wband(2, 3.5)) * ws * vs ==\
-               Wbands(Wband(1, 1.5), Wband(3, 3.5))
+        intersection = Wbands(Wband(0, 1.5), Wband(2, 3.5)) * ws * vs
+        assert intersection == Wbands(Wband(1, 1.5), Wband(3, 3.5))
 
     def test_getitem(self):
         ws = Wbands(Wband(1, 1.5), Wband(3, 4), Wband(1.7, 2))

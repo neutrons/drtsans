@@ -47,6 +47,7 @@ def compare_to_eqsans_load(alg_out, wo, dl, s2d, ltc, htc):
         ws_l = ConvertUnits(alg_out.ws, Target='Wavelength', Emode='Elastic')
         ws_l = RebinToWorkspace(ws_l, sm, PreserveEvents=False)
         ws_l = SumSpectra(ws_l)
+
         non_zero = np.where(sm.dataY(0) > 0.0)
         a = sm.dataY(0)[non_zero]
         b = ws_l.dataY(0)[non_zero]
@@ -64,15 +65,14 @@ def test_correct_frame():
     previous_archive = config['datasearch.searcharchive']
     config['datasearch.searcharchive'] = 'on'
 
-    trials = dict(  # configurations with no frame skipped
+    trials = dict(  # configurations with frame skipped
                   skip_1m=('EQSANS_86217', 200, 1000, 0.02, 1.3),
-                  skip_2m=('EQSANS_80204', 200, 1500, 0.02, 1.3),
                   skip_4m=('EQSANS_92353', 200, 200, 0.02, 4.0),
                   skip_5m=('EQSANS_85550', 200, 1500, 0.02, 5.0),
                   # configurations with no frame skipped
-                  porasil_1m=('EQSANS_92164', 200, 1000, 0.02, 1.3),
-                  porasil_4m=('EQSANS_92149', 200, 1000, 0.02, 4.0),
-                  porasil_8m=('EQSANS_92144', 200, 1500, 0.02, 8.0))
+                  nonskip_1m=('EQSANS_101595', 200, 1000, 0.02, 1.3),
+                  nonskip_4m=('EQSANS_88565', 200, 1000, 0.02, 4.0),
+                  nonskip_8m=('EQSANS_88901', 200, 1500, 0.02, 8.0))
     try:
         for run_number, low_tof_cut, high_tof_cut, wavelength_bin,\
                 source_to_detector_distance in trials.values():

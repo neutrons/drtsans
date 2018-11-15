@@ -81,7 +81,8 @@ def correct_frame(ws, ltc=0, htc=0, ltc2=None, htc2=None):
     # detector bank. This time must be added to the stored TOF values
     tof_min = wlg.tof(lead_band.min, s2d, ch.pulse_width)
     tof_max = wlg.tof(lead_band.max, s2d)
-    frames_offset_time = frame_width * int((tof_min + tof_max) / (2 * frame_width))
+    frames_offset_time = frame_width * int((tof_min + tof_max)
+                                           / (2 * frame_width))
 
     # Correct the TOF for each event
     for i in range(ws.getNumberHistograms()):

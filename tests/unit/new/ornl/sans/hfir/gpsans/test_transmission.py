@@ -28,7 +28,7 @@ def test_calculate_transmission(gpsans_f):
     '''
 
     '''
-    from ornl.sans.transmission import calculate_transmission
+    from ornl.sans.transmission import zero_angle_transmission
     from mantid.simpleapi import LoadSpice2D
     from mantid import mtd
 
@@ -46,7 +46,7 @@ def test_calculate_transmission(gpsans_f):
 
     output_ws_name = "__test_out"
 
-    calculated_transmission = calculate_transmission(
+    calculated_transmission = zero_angle_transmission(
         input_sample_ws, input_reference_ws, output_ws_name,
         radius=None, delete_temp_wss=True)
 

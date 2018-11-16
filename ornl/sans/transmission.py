@@ -6,20 +6,25 @@ from mantid.kernel import logger
 
 def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
                        trans_ws=None, theta_dependent=True):
-    '''
-    Apply a transmission correction to 2D SANS data.
+    """
+    Correct intensities with a transmission coefficient.
 
-    Either use trans_value and trans_error or trans_ws
-
-    input_ws - Workspace to apply the transmission correction to
-    output_ws - Workspace to store the corrected data in
-    trans_ws - Workspace containing the transmission values [optional]
-    trans_value - Transmission value to apply to all wavelengths. If specified.
-    trans_error - The error on the transmission value (default 0.0)
-    theta_dependent - If true, a theta-dependent transmission correction will
-                      be applied.
-
-    '''
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Workspace to apply the transmission correction to
+    output_ws: str
+        Name of the workspace to store the corrected data in
+    trans_value: float
+        Zero-angle transmission value to apply to all wavelengths.
+    trans_error: float
+        The error on the zero-angle transmission value (default 0.0)
+    trans_ws: MatrixWorkspace
+        Workspace containing the fitted or raw zero-angle transmission
+        values [optional]
+    theta_dependent: bool
+        if True, a theta-dependent transmission correction will be applied.
+    """
 
     if trans_value is not None and trans_error is not None:
         ApplyTransmissionCorrection(
@@ -42,11 +47,20 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
 
 
 def _calculate_radius_from_input_ws(input_ws):
-    '''
+    """
     Calculate the radius according to:
     R_beam = R_sampleAp + SDD * (R_sampleAp + R_sourceAp) / SSD
-    '''
 
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Input workspace
+
+    Returns
+    -------
+    float
+        Radius
+    """
     r = input_ws.getRun()
 
     try:
@@ -69,9 +83,23 @@ def _calculate_radius_from_input_ws(input_ws):
 
 
 def _get_detector_ids_from_radius(input_ws, radius):
-    '''
-    Radius is in mm
-    '''
+    """
+    Find the detectors within a circle of the beam center
+
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Workspace containing the detector already beam-centered
+    radius: float
+        Radius of the circle encompassing the detectors of interest. Units
+        in mili meters
+
+    Returns
+    -------
+    numpy.ndarray
+        Detector ID's
+    """
+
     radius_in_meters = radius * 1e-3
     cylinder = """
     <infinite-cylinder id=\"shape\">
@@ -86,15 +114,31 @@ def _get_detector_ids_from_radius(input_ws, radius):
     return detector_ids
 
 
-def calculate_transmission(input_sample_ws, input_reference_ws, output_ws,
-                           radius=None, delete_temp_wss=True):
-    '''
-    If the radius is none calculates it according to
-    _calculate_radius_from_input_ws.
+def zero_angle_transmission(input_sample_ws, input_reference_ws,
+                            output_ws, radius=None, delete_temp_wss=True):
+    """
+    Calculate the transmission coefficients at zero scattering angle
 
-    Creates a transmission Workspace: output_ws
-    '''
+    Parameters
+    ----------
+    input_sample_ws: MatrixWorkspace
+        Sample workspace (possibly obtained with an attenuated beam)
+    input_reference_ws: MatrixWorkspace
+    output_ws: str
+        Name of the output workspace containing the transmission values.
+    radius: float
+        Radius around the bean center for pixel integration. If None,
+        the beam radius is used, calculated using the sample
+        and source apertures
+    delete_temp_wss: bool
+        Delete the grouping detector workspaces
 
+    Returns
+    -------
+    MatrixWorkspace
+        Workspace containing the raw transmission values (its name is
+        given by `output_ws`)
+    """
     if radius is None:
         radius = _calculate_radius_from_input_ws(input_reference_ws)
 
@@ -108,11 +152,13 @@ def calculate_transmission(input_sample_ws, input_reference_ws, output_ws,
         InputWorkspace=input_reference_ws,
         DetectorList=detector_ids)
 
-    output_ws = Divide(LHSWorkspace=input_sample_ws_grouped,
-                       RHSWorkspace=input_reference_ws_grouped)
+    # Raw transmission values
+    ws = Divide(LHSWorkspace=input_sample_ws_grouped,
+                RHSWorkspace=input_reference_ws_grouped,
+                OutputWorkspace=output_ws)
 
     if delete_temp_wss:
         DeleteWorkspaces(
             WorkspaceList=[input_sample_ws_grouped,
                            input_reference_ws_grouped])
-    return output_ws
+    return ws

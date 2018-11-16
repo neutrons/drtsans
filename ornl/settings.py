@@ -13,7 +13,7 @@ class MultiOrderedDict(OrderedDict):
             # super().__setitem__(key, value) # in Python 3
 
 
-def namedtuplefy(func, name=None):
+def namedtuplefy(func):
     r"""
     Decorator to transform the return dictionary of a function into
     a namedtuple
@@ -29,15 +29,14 @@ def namedtuplefy(func, name=None):
     -------
     Function
     """
-    namedtuplefy.nt = None
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         res = func(*args, **kwargs)
-        if namedtuplefy.nt is None:
+        if wrapper.nt is None:
             if isinstance(res, Mapping) is False:
                 raise ValueError('Cannot namedtuplefy a non-dict')
-            namedtuplefy.nt = \
-                namedtuple(name or (func.__name__ + '_nt'), res.keys())
-        return namedtuplefy.nt(**res)
+            wrapper.nt = namedtuple(func.__name__ + '_nt', res.keys())
+        return wrapper.nt(**res)
+    wrapper.nt = None
     return wrapper

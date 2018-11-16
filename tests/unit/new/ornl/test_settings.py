@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 import pytest
 from ornl.settings import namedtuplefy
 
+
 def test_namedtuplefy():
 
     @namedtuplefy
@@ -25,5 +26,4 @@ def test_namedtuplefy():
 
 
 if __name__ == '__main__':
-    test_namedtuplefy()
-    #pytest.main()
+    pytest.main()

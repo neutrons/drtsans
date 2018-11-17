@@ -21,6 +21,37 @@ def replace_tofs(ws):
 
 
 @namedtuplefy
+def transmitted_bands(ws):
+    r"""
+    Wavelength bands of the lead and skipped pulses transmitted by
+    the choppers
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        Input Workspace containing all necessary info
+
+    Returns
+    -------
+    namedtuple
+        Fields of the namedtuple:
+        - lead, WBand object for the wavelength band of the lead pulse
+        - skipped, Wband for the skipped pulse. None if not operating in
+            the skipped frame mode
+    """
+    sl = SampleLogs(ws)
+    pulse_period = 1.e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
+    ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
+    # Wavelength band of neutrons from the leading pulse transmitted
+    # by the chopper system
+    lead_band = ch.transmission_bands(pulsed=True)[0]
+    # Wavelength from the previous, skipped pulse.
+    skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0]\
+        if ch.frame_mode == FrameMode.skip else None
+    return dict(lead=lead_band, skip=skip_band)
+
+
+@namedtuplefy
 def correct_frame(ws, ltc=0, htc=0, ltc2=None, htc2=None):
     r"""
     Assign the correct TOF to each event.

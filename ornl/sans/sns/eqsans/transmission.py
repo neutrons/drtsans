@@ -66,7 +66,7 @@ def insert_fitted_errors(mfit, fitted, low_b, up_b):
         f[p_n] += p_e
     e = np.sqrt(e)
 
-    #Insert errors
+    # Insert errors
     ins = np.zeros(len(fitted.dataE(0)))
     idx = list(range(low_b, up_b))
     ins[idx] = e

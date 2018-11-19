@@ -5,7 +5,6 @@ import numpy as np
 from numpy.testing import assert_allclose
 import re
 
-from mantid.kernel import ConfigService
 from mantid.simpleapi import (Load, EQSANSLoad, SumSpectra, RebinToWorkspace,
                               MoveInstrumentComponent, ConvertUnits,
                               CloneWorkspace)

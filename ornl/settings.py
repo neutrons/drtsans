@@ -1,7 +1,10 @@
-from collections import OrderedDict
+from __future__ import (absolute_import, division, print_function)
 
+from collections import OrderedDict
 import functools
 from collections import namedtuple, Mapping
+from contextlib import contextmanager
+from mantid.kernel import ConfigService
 
 
 class MultiOrderedDict(OrderedDict):
@@ -40,3 +43,26 @@ def namedtuplefy(func):
         return wrapper.nt(**res)
     wrapper.nt = None
     return wrapper
+
+
+@contextmanager
+def amend_config(new_config):
+    r"""
+    Context manager to safely modify Mantid Configuration Service while
+    the function is executed.
+
+    Parameters
+    ----------
+    new_config: dict
+        (key, value) pairs to modify the configuration service
+    """
+    backup = dict()
+    config = ConfigService.Instance()
+    for key, val in new_config.items():
+        backup[key] = config[key]
+        config[key] = val  # config does not have an 'update' method
+    try:
+        yield
+    finally:
+        for key in new_config:
+            config[key] = backup[key]

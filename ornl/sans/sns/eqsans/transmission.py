@@ -1,9 +1,32 @@
 from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
+from mantid.simpleapi import (Fit, CloneWorkspace, RenameWorkspace)
+
 from ornl.settings import namedtuplefy
 from ornl.sans.sns.eqsans.correct_frame import transmitted_bands
-from mantid.simpleapi import (Fit, CloneWorkspace, RenameWorkspace)
+from ornl.sans.transmission import calculate_radius_from_input_ws
+
+
+def beam_radius(ws):
+    r"""
+    Calculate the beam radius impinging on the detector bank.
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        Input workspace, contains all necessary info in the logs
+
+    Returns
+    -------
+    float
+        Estimated beam radius
+    """
+    logs = dict(sample_ad='sample_aperture-diameter',
+                source_ad='source_aperture-diameter',
+                sdd_log='sample-detector-distance',
+                sasd_log='source_aperture-sample-distance')
+    return calculate_radius_from_input_ws(ws, **logs)
 
 
 def insert_fitted_values(mfit, fitted, low_b, up_b):
@@ -30,7 +53,7 @@ def insert_fitted_values(mfit, fitted, low_b, up_b):
 
 def insert_fitted_errors(mfit, fitted, low_b, up_b):
     r"""
-    Substituted raw with fitted error transmission values
+    Substitute raw errors with errors derived from the model transmission.
 
     Errors are calculated using the errors in the fitting parameters of the
     transmission model. For instance, the errors in the slope and intercept
@@ -129,7 +152,8 @@ def fit_band(raw, band, func, suffix=None):
 def fit_raw(raw, fitted, func='name=UserFunction,Formula=a*x+b'):
     r"""
     Fit the wavelength dependence of the raw zero-angle transmission
-    values with a function.
+    values with a model.
+
     If working in frame skipping mode, apply the fit separately to the
     wavelength bands of the lead and skipped pulses.
 
@@ -164,17 +188,17 @@ def fit_raw(raw, fitted, func='name=UserFunction,Formula=a*x+b'):
     # Fit only over the range of the transmitted wavelength band(s)
     bands = transmitted_bands(raw)
     fit_lead = fit_band(raw, bands.lead, func, 'lead')  # band from lead pulse
-    r = dict(lead_fit=fit_lead.fitted, lead_mfit=fit_lead.mfit)  # return dict
     fitted_ws = fit_lead.fitted
-
     if bands.skip is not None:
         fit_skip = fit_band(raw, bands.skip, func, 'skip')  # skipped pulse
         fitted_ws += fit_skip.fitted
+    fitted_ws = RenameWorkspace(fitted_ws, OutputWorkspace=fitted,
+                                RenameMonitors=False)
+    # dictionary to return
+    r = dict(transmission=fitted_ws,
+             lead_fit=fit_lead.fitted, lead_mfit=fit_lead.mfit)
+    if bands.skip is not None:
         r.update(dict(skip_fit=fit_skip.fitted, skip_mfit=fit_skip.mfit))
     else:
         r.update(dict(skip_fit=None, skip_mfit=None))
-    fitted_ws = RenameWorkspace(fitted_ws, OutputWorkspace=fitted,
-                                RenameMonitors=False)
-    r['fit'] = fitted_ws
-
     return r

@@ -1,9 +1,8 @@
 from __future__ import (absolute_import, division, print_function)
 
+import os
 from mantid.api import Run, MatrixWorkspace
 from mantid.simpleapi import Load
-
-import os
 
 
 class SampleLogs(object):
@@ -19,10 +18,17 @@ class SampleLogs(object):
         if item in self._run.keys():
             return self._run[item]
 
+    def __setitem__(self, key, value):
+        _run = self.__dict__['_run']
+        _run.addProperty(key, value, True)
+
     def __getattr__(self, item):
         _run = self.__dict__['_run']
-        if item in _run.keys():
-            return _run.getProperty(item)
+        try:
+            return getattr(_run, item)
+        except AttributeError:
+            if item in _run.keys():
+                return _run.getProperty(item)
 
     @property
     def mantid_logs(self):

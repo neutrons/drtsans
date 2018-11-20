@@ -21,7 +21,7 @@ def test_fit_raw(refd):
     raw = Load(pjn(refd.new.eqsans, 'test_transmission',
                    'raw_transmission.nxs'))
     fitted = fit_raw(raw, 'fitted_transmission')
-    ws = fitted.fit
+    ws = fitted.transmission
     assert ws.name() == 'fitted_transmission'
     assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 32, decimal=0)
     assert_almost_equal(fitted.skip_mfit.OutputChi2overDoF, 16, decimal=0)

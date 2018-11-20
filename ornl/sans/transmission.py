@@ -153,8 +153,8 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws, radius,
     -------
     namedtuple
         Fields of the namedtuple
-        - transmission: MatrixWorkspace, Workspace containing the raw transmission
-            values (its name is given by `output_ws`)
+        - transmission: MatrixWorkspace, Workspace containing the raw
+            transmission values (its name is given by `output_ws`)
         - radius: float, integration radius, in pixel units
         - detids: list, list of detector ID's used for integration
         - sample: MatrixWorkspace, sample workspace after integration.

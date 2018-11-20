@@ -2,6 +2,8 @@ from mantid.simpleapi import (
     ApplyTransmissionCorrection, FindDetectorsInShape, GroupDetectors, Divide,
     DeleteWorkspaces)
 from mantid.kernel import logger
+from ornl.settings import namedtuplefy
+from ornl.sans.samplelogs import SampleLogs
 
 
 def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
@@ -24,29 +26,36 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
         values [optional]
     theta_dependent: bool
         if True, a theta-dependent transmission correction will be applied.
+
+    Returns
+    -------
+    namedtuple or None
+        Return value of Mantid's algorithm ApplyTransmissionCorrection. None
+        if input is invalid
     """
 
     if trans_value is not None and trans_error is not None:
-        ApplyTransmissionCorrection(
-            InputWorkspace=input_ws,
-            OutputWorkspace=output_ws,
-            TransmissionValue=trans_value,
-            TransmissionError=trans_error,
-            ThetaDependent=theta_dependent,
-        )
+        return ApplyTransmissionCorrection(InputWorkspace=input_ws,
+                                           OutputWorkspace=output_ws,
+                                           TransmissionValue=trans_value,
+                                           TransmissionError=trans_error,
+                                           ThetaDependent=theta_dependent)
     elif trans_ws is not None:
-        ApplyTransmissionCorrection(
-            InputWorkspace=input_ws,
-            OutputWorkspace=output_ws,
-            TransmissionWorkspace=trans_ws,
-            ThetaDependent=theta_dependent
-        )
+        return ApplyTransmissionCorrection(InputWorkspace=input_ws,
+                                           OutputWorkspace=output_ws,
+                                           TransmissionWorkspace=trans_ws,
+                                           ThetaDependent=theta_dependent)
     else:
         logger.error("Input not valid: Use trans_value + trans_value"
                      " or trans_ws.")
+        return None
 
 
-def _calculate_radius_from_input_ws(input_ws):
+def calculate_radius_from_input_ws(input_ws,
+                                   sample_ad='sample_aperture-diameter',
+                                   source_ad='source_aperture-diameter',
+                                   sdd_log='sample-detector-distance',
+                                   sasd_log='source-sample-distance'):
     """
     Calculate the radius according to:
     R_beam = R_sampleAp + SDD * (R_sampleAp + R_sourceAp) / SSD
@@ -55,30 +64,37 @@ def _calculate_radius_from_input_ws(input_ws):
     ----------
     input_ws: MatrixWorkspace
         Input workspace
+    sample_ad: str
+        Log entry for the sample-aperture diameter
+    source_ad: str
+        Log entry for the source-aperture diameter
+    sdd_log: str
+        Log entry for the sample to detector distance
+    sasd_log: str
+        Log entry for the source-aperture to sample distance
 
     Returns
     -------
     float
-        Radius
+        Radius, in mili-meters
     """
-    r = input_ws.getRun()
-
     try:
-        radius_sample_aperture = r.getProperty(
-            "sample-aperture-diameter").value
-        radius_source_aperture = r.getProperty(
-            "source-aperture-diameter").value
-        ssd = r.getProperty("source-sample-distance").value
-        sdd = r.getProperty("sample-detector-distance").value
-
+        # Apertures
+        sl = SampleLogs(input_ws)
+        radius_sample_aperture = sl[sample_ad].value / 2.
+        radius_source_aperture = sl[source_ad].value / 2.
+        # Distances
+        sasd = sl[sasd_log].value
+        sdd = sl[sdd_log].value
+        # Calculate beam radius
         radius = radius_sample_aperture + sdd * \
-            (radius_sample_aperture + radius_source_aperture) / ssd
+            (radius_sample_aperture + radius_source_aperture) / sasd
     except ValueError as error:
         logger.error(
             "Some of the properties are likely to not exist in the WS")
         logger.error(error)
         raise
-    logger.notice("Radis calculated from the WS = {}".format(radius))
+    logger.notice("Radius calculated from the WS = {}".format(radius))
     return radius
 
 
@@ -114,33 +130,38 @@ def _get_detector_ids_from_radius(input_ws, radius):
     return detector_ids
 
 
-def zero_angle_transmission(input_sample_ws, input_reference_ws,
-                            output_ws, radius=None, delete_temp_wss=True):
+@namedtuplefy
+def zero_angle_transmission(input_sample_ws, input_reference_ws, radius,
+                            output_ws, delete_temp_wss=True):
     """
-    Calculate the transmission coefficients at zero scattering angle
+    Calculate the raw transmission coefficients at zero scattering angle
 
     Parameters
     ----------
     input_sample_ws: MatrixWorkspace
         Sample workspace (possibly obtained with an attenuated beam)
     input_reference_ws: MatrixWorkspace
+        Direct beam workspace (possibly obtained with an attenuated beam)
+    radius: float
+        Radius around the bean center for pixel integration, in mili-meters
     output_ws: str
         Name of the output workspace containing the transmission values.
-    radius: float
-        Radius around the bean center for pixel integration. If None,
-        the beam radius is used, calculated using the sample
-        and source apertures
     delete_temp_wss: bool
         Delete the grouping detector workspaces
 
     Returns
     -------
-    MatrixWorkspace
-        Workspace containing the raw transmission values (its name is
-        given by `output_ws`)
+    namedtuple
+        Fields of the namedtuple
+        - transmission: MatrixWorkspace, Workspace containing the raw transmission
+            values (its name is given by `output_ws`)
+        - radius: float, integration radius, in pixel units
+        - detids: list, list of detector ID's used for integration
+        - sample: MatrixWorkspace, sample workspace after integration.
+            `None` if `delete_temp_wss` is True
+        - reference: MatrixWorkspace, reference workspace after integration.
+            `None` if `delete_temp_wss` is True
     """
-    if radius is None:
-        radius = _calculate_radius_from_input_ws(input_reference_ws)
 
     detector_ids = _get_detector_ids_from_radius(input_reference_ws, radius)
 
@@ -161,4 +182,10 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws,
         DeleteWorkspaces(
             WorkspaceList=[input_sample_ws_grouped,
                            input_reference_ws_grouped])
-    return ws
+        input_sample_ws_grouped = None
+        input_reference_ws_grouped = None
+
+    return dict(transmission=ws,
+                detids=list(detector_ids),
+                sample=input_sample_ws_grouped,
+                reference=input_reference_ws_grouped)

@@ -48,7 +48,7 @@ def test_calculate_transmission(gpsans_f):
 
     calculated_transmission = zero_angle_transmission(
         input_sample_ws, input_reference_ws, output_ws_name,
-        radius=None, delete_temp_wss=True)
+        radius=None, delete_temp_wss=True).transmission
 
     assert calculated_transmission.readY(
         0)[0] == pytest.approx(0.5191, abs=1e-4)

@@ -1,7 +1,8 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-from ornl.settings import namedtuplefy
+from ornl.settings import namedtuplefy, amend_config
+from mantid.kernel import ConfigService
 
 
 def test_namedtuplefy():
@@ -23,6 +24,14 @@ def test_namedtuplefy():
     assert type(z1) == type(z2)
     assert type(y1) != type(z1)
     assert type(y2) != type(z2)
+
+
+def test_amend_config():
+    config = ConfigService.Instance()
+    old_instrument = config['instrumentName']
+    with amend_config({'instrumentName': '42'}):
+        assert config['instrumentName'] == '42'
+    assert config['instrumentName'] == old_instrument
 
 
 if __name__ == '__main__':

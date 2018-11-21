@@ -28,7 +28,8 @@ def test_calculate_transmission(gpsans_f):
     '''
 
     '''
-    from ornl.sans.transmission import calculate_transmission
+    from ornl.sans.transmission import (zero_angle_transmission,
+                                        calculate_radius_from_input_ws)
     from mantid.simpleapi import LoadSpice2D
     from mantid import mtd
 
@@ -37,23 +38,21 @@ def test_calculate_transmission(gpsans_f):
                 OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
     _instrument_geometry(gpsans_f, input_sample_ws)
-
     input_reference_ws_name = 'input_reference_ws_name'
     LoadSpice2D(Filename=gpsans_f['sample_transmission'],
                 OutputWorkspace=input_reference_ws_name)
     input_reference_ws = mtd[input_reference_ws_name]
     _instrument_geometry(gpsans_f, input_reference_ws)
-
     output_ws_name = "__test_out"
 
-    calculated_transmission = calculate_transmission(
-        input_sample_ws, input_reference_ws, output_ws_name,
-        radius=None, delete_temp_wss=True)
-
+    radius = calculate_radius_from_input_ws(input_sample_ws)
+    calculated_transmission = zero_angle_transmission(
+        input_sample_ws, input_reference_ws, radius,
+        output_ws_name, delete_temp_wss=True).transmission
     assert calculated_transmission.readY(
-        0)[0] == pytest.approx(0.5191, abs=1e-4)
+        0)[0] == pytest.approx(0.0014, abs=1e-4)
     assert calculated_transmission.readE(
-        0)[0] == pytest.approx(0.0141, abs=1e-4)
+        0)[0] == pytest.approx(0.0035, abs=1e-4)
 
 
 def test_apply_transmission_with_ws(gpsans_f):
@@ -112,3 +111,7 @@ def test_apply_transmission_with_values(gpsans_f):
     assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-3)
     assert ws_sample_corrected.readY(
         9100)[0] == pytest.approx(5.8557131, abs=1e-3)
+
+
+if __name__ == '__main__':
+    pytest.main()

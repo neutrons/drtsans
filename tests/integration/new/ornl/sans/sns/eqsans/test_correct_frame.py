@@ -5,11 +5,11 @@ import numpy as np
 from numpy.testing import assert_allclose
 import re
 
-from mantid.kernel import ConfigService
 from mantid.simpleapi import (Load, EQSANSLoad, SumSpectra, RebinToWorkspace,
                               MoveInstrumentComponent, ConvertUnits,
                               CloneWorkspace)
 from mantid.api import AnalysisDataService
+from ornl.settings import amend_config
 from ornl.sans.sns.eqsans.correct_frame import correct_frame
 
 
@@ -59,12 +59,6 @@ def compare_to_eqsans_load(alg_out, wo, dl, s2d, ltc, htc):
 
 
 def test_correct_frame():
-    config = ConfigService.Instance()
-    previous_instrument = config['instrumentName']
-    config['instrumentName'] = 'EQSANS'
-    previous_archive = config['datasearch.searcharchive']
-    config['datasearch.searcharchive'] = 'on'
-
     trials = dict(  # configurations with frame skipped
                   skip_1m=('EQSANS_86217', 200, 1000, 0.02, 1.3),
                   skip_4m=('EQSANS_92353', 200, 200, 0.02, 4.0),
@@ -73,7 +67,9 @@ def test_correct_frame():
                   nonskip_1m=('EQSANS_101595', 200, 1000, 0.02, 1.3),
                   nonskip_4m=('EQSANS_88565', 200, 1000, 0.02, 4.0),
                   nonskip_8m=('EQSANS_88901', 200, 1500, 0.02, 8.0))
-    try:
+
+    with amend_config({'instrumentName': 'EQSANS',
+                       'datasearch.searcharchive': 'on'}):
         for run_number, low_tof_cut, high_tof_cut, wavelength_bin,\
                 source_to_detector_distance in trials.values():
             wo = Load(Filename=run_number, OutputWorkspace='original')
@@ -86,9 +82,6 @@ def test_correct_frame():
                                    low_tof_cut, high_tof_cut)
             AnalysisDataService.remove(alg_out.ws.name())
             AnalysisDataService.remove(wo.name())
-    finally:
-        config['instrumentName'] = previous_instrument
-        config['datasearch.searcharchive'] = previous_archive
 
 
 if __name__ == '__main__':

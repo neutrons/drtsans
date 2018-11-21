@@ -52,8 +52,8 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
 
 
 def calculate_radius_from_input_ws(input_ws,
-                                   sample_ad='sample_aperture-diameter',
-                                   source_ad='source_aperture-diameter',
+                                   sample_ad='sample-aperture-diameter',
+                                   source_ad='source-aperture-diameter',
                                    sdd_log='sample-detector-distance',
                                    sasd_log='source-sample-distance'):
     """

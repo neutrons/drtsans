@@ -25,7 +25,7 @@ def monitor(input_ws):
     """
 
     run = input_ws.getRun()
-    monitor = run.getProperty("monitor").value  # seconds
+    monitor = run.getProperty("monitor").value  # counts
 
     res = input_ws / monitor
     return res

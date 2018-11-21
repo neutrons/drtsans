@@ -29,15 +29,12 @@ def time(ws_dark_current, t_frame, t_low_cut, t_high_cut, bin_width,
     '''Time normalization. It is only used for dark current.
     It does not make sense to use it for other files
 
-
     Parameters
     ----------
     ws_input : Workspace
         The dark current ws
     t_frame : float
-
     t_low_cut : [type]
-
     t_high_cut : [type]
         [description]
     bin_width : [type]
@@ -46,7 +43,6 @@ def time(ws_dark_current, t_frame, t_low_cut, t_high_cut, bin_width,
         [description]
     wavelength_max : [type]
         [description]
-
     '''
 
     # Not done!!!

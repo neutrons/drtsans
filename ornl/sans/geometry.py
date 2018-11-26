@@ -69,6 +69,11 @@ def sample_source_distance(other, units='mm'):
     return abs(sample.getDistance(instrument.getSource())) * scaling[units]
 
 
+def source_sample_distance(other, units='mm'):
+    r"""Syntactic sugar of function `sample_source_distance`"""
+    return sample_source_distance(other, units=units)
+
+
 def sample_detector_distance(ws, log_key='sample-detector-distance',
                              units='mm'):
     r"""
@@ -123,5 +128,5 @@ def source_detector_distance(ws, units='mm'):
     float
 
     """
-    return sample_source_distance(ws, units=units) +\
+    return source_sample_distance(ws, units=units) +\
         sample_detector_distance(ws, units=units)

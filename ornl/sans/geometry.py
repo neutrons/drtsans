@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
-import numpy as np
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.simpleapi import Load

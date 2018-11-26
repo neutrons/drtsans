@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
-from mantid.dataobjects import EventWorkspace, Workspace2D
 
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet

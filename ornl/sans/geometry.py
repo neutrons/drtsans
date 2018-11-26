@@ -4,6 +4,7 @@ import os
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.simpleapi import Load
+from ornl.sans.samplelogs import SampleLogs
 
 
 def get_instrument(other):
@@ -66,3 +67,53 @@ def sample_source_distance(other, units='mm'):
     instrument = get_instrument(other)
     sample = instrument.getSample()
     return abs(sample.getDistance(instrument.getSource())) * scaling[units]
+
+
+def sample_detector_distance(ws, log_key='sample-detector-distance'):
+    r"""
+    Return the distance from the sample to the detector bank, in mili meters
+
+    The function checks the logs for the distance, otherwise returns the
+    minimum distance between the sample and any of the detector pixels.
+
+    Parameters
+    ----------
+    ws: Matrixworkspace
+        Workspace containing logs and a full instrument
+    log_key: str
+        Log entry containing the distance
+
+    Returns
+    -------
+    float
+    """
+    sl = SampleLogs(ws)
+    if log_key in sl.keys():
+        assert sl[log_key].units == 'mm'
+        return float(sl[log_key].value.mean())
+    else:
+        instrument = ws.getInstrument()
+        sample = instrument.getSample()
+        sdd_i = [instrument.getDetector(i).getDistance(sample)
+                 for i in range(ws.getNumberHistograms())]
+        return 1e03 * min(sdd_i)
+
+
+def source_detector_distance(ws):
+    r"""
+    Calculate distance between source and detector bank, in mili meters
+
+    This functions is just the sum of functions `sample_source_distance`
+    and `sample_detector_distance`
+
+    Parameters
+    ----------
+    ws Matrixworkspace
+        Workspace containing logs and a full instrument
+
+    Returns
+    -------
+    float
+
+    """
+    return sample_source_distance(ws) + sample_detector_distance(ws)

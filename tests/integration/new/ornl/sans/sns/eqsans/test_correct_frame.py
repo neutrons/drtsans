@@ -7,7 +7,7 @@ import re
 
 from mantid.simpleapi import (Load, EQSANSLoad, SumSpectra, RebinToWorkspace,
                               MoveInstrumentComponent, ConvertUnits,
-                              CloneWorkspace, LoadNexusMonitors)
+                              CloneWorkspace)
 from mantid.api import AnalysisDataService
 from ornl.settings import amend_config
 from ornl.sans.sns.eqsans.correct_frame import correct_frame

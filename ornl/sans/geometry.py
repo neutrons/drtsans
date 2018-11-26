@@ -69,7 +69,8 @@ def sample_source_distance(other, units='mm'):
     return abs(sample.getDistance(instrument.getSource())) * scaling[units]
 
 
-def sample_detector_distance(ws, log_key='sample-detector-distance'):
+def sample_detector_distance(ws, log_key='sample-detector-distance',
+                             units='mm'):
     r"""
     Return the distance from the sample to the detector bank, in mili meters
 
@@ -82,24 +83,28 @@ def sample_detector_distance(ws, log_key='sample-detector-distance'):
         Workspace containing logs and a full instrument
     log_key: str
         Log entry containing the distance
+    units: str
+        'mm' (mili-meters), 'm' (meters)
 
     Returns
     -------
     float
     """
+    m2units = dict(mm=1e3, m=1.0)
+    mm2units = dict(mm=1.0, m=1e-3)
     sl = SampleLogs(ws)
     if log_key in sl.keys():
         assert sl[log_key].units == 'mm'
-        return float(sl[log_key].value.mean())
+        return float(sl[log_key].value.mean()) * mm2units[units]
     else:
         instrument = ws.getInstrument()
         sample = instrument.getSample()
         sdd_i = [instrument.getDetector(i).getDistance(sample)
                  for i in range(ws.getNumberHistograms())]
-        return 1e03 * min(sdd_i)
+        return min(sdd_i) * m2units[units]
 
 
-def source_detector_distance(ws):
+def source_detector_distance(ws, units='mm'):
     r"""
     Calculate distance between source and detector bank, in mili meters
 
@@ -110,10 +115,13 @@ def source_detector_distance(ws):
     ----------
     ws Matrixworkspace
         Workspace containing logs and a full instrument
+    units: str
+        'mm' (mili-meters), 'm' (meters)
 
     Returns
     -------
     float
 
     """
-    return sample_source_distance(ws) + sample_detector_distance(ws)
+    return sample_source_distance(ws, units=units) +\
+        sample_detector_distance(ws, units=units)

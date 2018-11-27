@@ -2,6 +2,8 @@ from __future__ import (absolute_import, division, print_function)
 
 from sortedcontainers import SortedList
 
+sigma = 3.9560346e-03  # plank constant divided by neutron mass
+
 
 def tof(wavelength, distance, pulse_width=0.0):
     r"""
@@ -22,10 +24,33 @@ def tof(wavelength, distance, pulse_width=0.0):
     Returns
     -------
     float
-        time of flight (in Angstroms)
+        time of flight (in micro seconds)
     """
-    sigma = 3.9560346e-03  # plank constant divided by neutron mass
     return wavelength * (distance + sigma * pulse_width) / sigma
+
+
+def from_tof(tof, distance, pulse_width=0.0):
+    r"""
+    Convert time of flight of arriving neutron to wavelength
+
+    Parameters
+    ----------
+    tof: float
+        time of flight of the travelling neutron, in Angstroms
+    distance: float
+        Distance travelled by the neutron
+    pulse_width: float
+        Neutrons emitted from the moderator with a certain wavelength
+        :math:`\lambda` have a distribution of delayed emission times
+        with :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
+        Units are microseconds/Angstroms.
+
+    Returns
+    -------
+    float
+        wavelength (in Angstroms)
+    """
+    return tof * sigma / (distance + sigma * pulse_width)
 
 
 class Wband(object):

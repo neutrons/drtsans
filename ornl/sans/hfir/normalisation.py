@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 
 def time(input_ws):
     """Normalise by time
+    Used to normalise dark current
 
     Parameters
     ----------

@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from mantid.simpleapi import (
     LoadAscii, ConvertToHistogram, RebinToWorkspace, NormaliseToUnity, Divide,
@@ -23,19 +24,20 @@ def load_beam_flux_file(file_path, ws_reference=None):
     return ws
 
 
-def time(ws_input, t_frame, t_low_cut, t_high_cut, bin_width, wavelength_min, wavelength_max):
+def time(ws_dark_current, t_frame, t_low_cut, t_high_cut, bin_width,
+         wavelength_min, wavelength_max):
     '''Time normalization. It is only used for dark current.
     It does not make sense to use it for other files
-    
-    
+
+
     Parameters
     ----------
     ws_input : Workspace
         The dark current ws
     t_frame : float
-        
+
     t_low_cut : [type]
-        
+
     t_high_cut : [type]
         [description]
     bin_width : [type]
@@ -44,28 +46,26 @@ def time(ws_input, t_frame, t_low_cut, t_high_cut, bin_width, wavelength_min, wa
         [description]
     wavelength_max : [type]
         [description]
-    
+
     '''
 
     # Not done!!!
-    
-
 
     # First remove the time component
     # If it's already in this format the ingration does nothing
+
     ws_dark_current = Integration(InputWorkspace=ws_dark_current)
 
-    #TODO
-    # We think that uses information from a sample (or other dataset used to 
-    # subtract the DC later) 
+    # TODO
+    # We think that uses information from a sample (or other dataset used to
+    # subtract the DC later)
 
-
-
+    return ws_dark_current
 
 
 def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
     '''Monitor normalisation
-    
+
     Parameters
     ----------
     ws_input : Workspace
@@ -74,7 +74,7 @@ def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
         The workspace with the monitor count
     ws_flux_to_monitor_ratio : Workspace
         Pre-mesured flux-to-monitor ratio spectrum
-    
+
     Returns
     -------
     Workspace

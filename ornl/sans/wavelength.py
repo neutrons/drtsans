@@ -14,7 +14,7 @@ def tof(wavelength, distance, pulse_width=0.0):
     wavelength: float
         wavelength of the travelling neutron, in microseconds
     distance: float
-        Distance travelled by the neutron
+        Distance travelled by the neutron, in meters
     pulse_width: float
         Neutrons emitted from the moderator with a certain wavelength
         :math:`\lambda` have a distribution of delayed emission times
@@ -38,7 +38,7 @@ def from_tof(tof, distance, pulse_width=0.0):
     tof: float
         time of flight of the travelling neutron, in Angstroms
     distance: float
-        Distance travelled by the neutron
+        Distance travelled by the neutron, in meters
     pulse_width: float
         Neutrons emitted from the moderator with a certain wavelength
         :math:`\lambda` have a distribution of delayed emission times

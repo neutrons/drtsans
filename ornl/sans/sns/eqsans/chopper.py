@@ -46,7 +46,6 @@ class EQSANSDiskChopperSet(object):
 
         # Determine period and if frame skipping mode from the first chopper
         ch = self._choppers[0]
-        self.period = ch.period
         condition = abs(ch.speed - sl.frequency.value.mean()) / 2 > 1
         self.frame_mode = FrameMode.skip if condition else FrameMode.not_skip
 
@@ -77,6 +76,10 @@ class EQSANSDiskChopperSet(object):
         for ch in self._choppers[1:]:
             wb *= ch.transmission_bands(cutoff_wl, delay, pulsed)
         return wb
+
+    @property
+    def period(self):
+        return self._choppers[0].period
 
     def __getitem__(self, item):
         return self._choppers[item]

@@ -26,10 +26,10 @@ class DiskChopper(object):
             opening transmission window
         """
         self.to_source = to_source
-        self.aperture = aperture
-        self.speed = speed
-        self.sensor_phase = sensor_phase
-        self.offset = offset
+        self.aperture = float(aperture)
+        self.speed = float(speed)
+        self.sensor_phase = float(sensor_phase)
+        self.offset = float(offset)
 
     @property
     def pulse_width(self):

@@ -1,8 +1,31 @@
 from __future__ import (absolute_import, division, print_function)
 
+from mantid.simpleapi import MoveInstrumentComponent
+
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import sample_source_distance
+
+
+def translate_detector_z(ws, z=None):
+    r"""
+    Adjust Z-coordinate of detector bank in instrument file.
+
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied, in units of meters. If `None`, log_key
+        'detectorZ' is used
+    """
+    if z is None:
+        sl = SampleLogs(ws)
+        z = 1e-3 * sl.single_value('detectorZ')  # assumed in mili-meters
+
+    kwargs = dict(ComponentName='detector1', RelativePosition=True)
+    MoveInstrumentComponent(ws, Z=z, **kwargs)
 
 
 def sample_aperture_diameter(other):

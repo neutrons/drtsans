@@ -91,5 +91,6 @@ def uwn(n=5):
 
     ws_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))
     while ws_name in AnalysisDataService.getObjectNames():
-        ws_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))
+        characters = [random.choice(string.ascii_lowercase) for _ in range(n)]
+        ws_name = ''.join(characters)
     return ws_name

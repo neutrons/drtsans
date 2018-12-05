@@ -1,110 +1,50 @@
 from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
-from mantid.kernel import logger
-from mantid.simpleapi import (CloneWorkspace, Minus, Integration, Transpose,
-                              RebinToWorkspace)
+from mantid.simpleapi import (Integration, Transpose, RebinToWorkspace,
+                              ConvertUnits, RenameWorkspace)
 
-
-from ornl.settings import namedtuplefy
+from ornl.settings import uwn, namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import bank_detector_ids
-from ornl.sans.sns.eqsans.correct_frame import frame_width, tof_clippings
+from ornl.sans.sns.eqsans import correct_frame as cf
 
 
-def compute_log_ratio(data, dark, log_key):
-    """
-    Compute ratio of data to dark duration for one log entry
-
-    Parametes
-    ---------
-    data: MatrixWorkspace
-        Scattering data workspace
-    dark: MatrixWorkspace
-        Dark current workspace
-    log_key: str
-        Name of the log containing the duration
-
-    Returns
-    -------
-    float
-
-    Raises
-    ------
-    NoneType
-        Log entry is not present
-    """
-    dt = SampleLogs(data)[log_key]
-    dk = SampleLogs(dark)[log_key]
-    try:
-        dt = dt.getStatistics().duration
-        dk = dk.getStatistics().duration
-    except AttributeError:
-        dt = dt.value
-        dk = dk.value
-    return dt / dk
-
-
-def duration_ratio(data, dark, log_key=None):
-    """
-    Compute the ratio of data to dark-current duration. Return 1.0 if the
-    duration ration cannot be computed
-
-    Parameters
-    ----------
-    data: MatrixWorkspace
-        Scattering data workspace
-    dark: MatrixWorkspace
-        Dark current workspace
-    log_key: None or str
-        Name of the log containing the duration. If `None`, duration will
-        be tried looking sequentially into log entries 'duration',
-        'proton_charge', and 'timer
-
-    Returns
-    -------
-    float
-    """
-    not_found = 'Logs could not be found, duration ratio set to 1.0'
-    if log_key is not None:
-        try:
-            return compute_log_ratio(data, dark, log_key)
-        except AttributeError:
-            logger.error(not_found)
-    else:
-        for l in ('duration', 'proton_charge', 'timer'):
-            try:
-                return compute_log_ratio(data, dark, l)
-            except AttributeError:
-                continue
-    return 1.0
-
-
+@namedtuplefy
 def duration(dark, log_key=None):
     """
-    Compute the dark-current duration. Return 1.0 if the
-    duration ratio cannot be computed
+    Compute the duration of the workspace by iteratively searching the logs for
+    keys 'duration', 'proton_charge', and 'timer'.
 
     Parameters
     ----------
     dark: MatrixWorkspace
-        Dark current workspace
-    log_key: None or str
-        Name of the log containing the duration. If `None`, duration will
-        be tried looking sequentially into log entries 'duration',
-        'proton_charge', and 'timer
+        Workspace, usually the dark current workspace
+    log_key: str
+        If a log entry is passed, only the contents under this log entry are
+        searched. No iterative search over the default values is performed.
 
     Returns
     -------
-    float
+    namedtuple
+        Fields of the namedtuple:
+        - value: float, contents under the log
+        - log_key: str, log used to return the duration
+
     """
-    pass
+    sl = SampleLogs(dark)
+    log_keys = ('duration', 'proton_charge', 'timer') if log_key is None\
+        else (log_key, )
+    for lk in log_keys:
+        try:
+            return dict(value=sl.single_value(lk), log_key=lk)
+        except AttributeError:
+            continue
+    raise AttributeError("Could not determine the duration of the run")
 
 
 def counts_in_detector(dark):
     r"""
-    Create a workspace with the total number of neutron counts in each detector
-
+    Fin the total number of neutron counts in each detector pixel.
     By definition, error=1 when zero counts in the detector.
 
     Parameters
@@ -120,46 +60,31 @@ def counts_in_detector(dark):
             count per detector
         - n: numpy.ndarrary, list of counts
     """
-    _wnc = Integration(dark)
-    _wnc = Transpose(_wnc)
-    y = _wnc.dataY(0)  # counts
-    e = _wnc.dataE(0)  # errors
-    e[y == 0] = 1.0  # convention of error=1 if no counts present
-
-    _wnc.setE(0, e)
-    _wnc = Transpose(_wnc)
-    return _wnc, y
+    _wnc = Integration(dark, OutputWorkspace=uwn())
+    _wnc = Transpose(_wnc, OutputWorkspace=_wnc.name())
+    y = np.copy(_wnc.dataY(0))  # counts
+    e = np.copy(_wnc.dataE(0))  # errors
+    _wnc.delete()
+    e[y < 1] = 1.0  # convention of error=1 if no counts present
+    return y, e
 
 
-def distribute_counts(dark, data):
-    r"""
-    Distribute the neutron counts over the wavelength channels of `data`
-
-    Parameters
-    ----------
-    dark: Workspace2D
-        Single bin histograms, containing the total neutron count per detector
-    data: Workspace2D
-        Data workspace, rebinned in wavelength
-    """
-    _dark = RebinToWorkspace(dark, data, OuptutWorkspace=dark.name())
-
-
-def normalise_to_workspace(dark, data, out_ws, log_key=None):
+def normalise_to_workspace(dark, data, out_ws):
     r"""
     Scale and rebin in wavelength a `dark` current workspace with information
     from a `data` workspace.
 
-    First, normalize by the duration of the dark current run. Also
-    rescale and rebin to the `data` workspace according to:
-    $\frac{1}{dark_duration} \frac{frame_width-(low_tof_cut + high_tof_cut)}{frame_width} \frac{\Delta \lambda_j}{\lambda_{max} - \lamdba_{min}} I_{dc}(x, y)$
+    Rescale and rebin to the `data` workspace according to:
+        frame_width_clipped / (frame_width * n_bins * duration) * I_dc(x, y)
+    Entry 'normalizing_duration' is added to the logs of the output workspace
+    to annotate what log entry was used to find the duration
 
     Parameters
     ----------
     dark: EventsWorkspace
-        Dark current workspace
+        Dark current workspace with units in time-of-flight
     data: MatrixWorkspace
-        Sample scattering
+        Sample scattering with intensities versus wavelength
     out_ws: str
         Name of the normalized output workspace
     log_key: str
@@ -171,54 +96,58 @@ def normalise_to_workspace(dark, data, out_ws, log_key=None):
     -------
     MatrixWorkspace
         Output workspace, dark current rebinned to wavelength and rescaled
-    """  # noqa
-    _darkn, nc = counts_in_detector(dark)
-    distribute_counts(_darkn, data)
+    """
+    sl = SampleLogs(data)
+    fwr = sl.tof_frame_width_clipped.value / sl.tof_frame_width.value
+    nc, ec = counts_in_detector(dark)  # counts and error per detector
+    _dark = ConvertUnits(dark, Target='Wavelength', Emode='Elastic',
+                         OutputWorkspace=out_ws)
+    _dark = RebinToWorkspace(_dark, data, PreserveEvents=False)
+    bands = cf.clipped_bands_from_logs(data)  # lead and pulse bands
+    gap_indexes = cf.band_gap_indexes(data, bands)
+    n_gap_bins = len(gap_indexes)
+    n_bins = len(_dark.dataY(0))
+    n_significant_bins = n_bins - n_gap_bins
+    d = duration(dark)
+    factor = fwr / (d.value * n_significant_bins)
+    for i in range(_dark.getNumberHistograms()):
+        _dark.dataY(i)[:] = np.ones(n_bins) * factor * nc[i]
+        _dark.dataE(i)[:] = np.ones(n_bins) * factor * ec[i]
+    if n_gap_bins > 0:
+        for i in range(_dark.getNumberHistograms()):
+            _dark.dataY(i)[gap_indexes] = 0.0
+            _dark.dataE(i)[gap_indexes] = 0.0
+    SampleLogs(_dark).normalizing_duration = d.log_key  # append to the logs
+    return _dark
 
-        RebinToWorkspace(cid.ws, data)  # conform to wavelength binning
 
-    ws = CloneWorkspace(data, OutputWorkspace=out_ws)
-    x = ws.dataX(0)
-    dx = x[1:] - x[:-1]  # \Delta \lambda_j
-    fr = frame_width(data)
-    ltc, htc = tof_clippings(data)
-    dr = duration(dark, log_key=log_key)
-    cid = counts_in_detector(dark)  # total neutron counts in each detector
-
-    y = (1.0 / dr) * ((fr - (ltc + htc)) / fr) * dx / (x[-1] - x[0])
-    e = y / np.sqrt(n)
-    for i in bank_detector_ids(ws, masked=False):
-        ws.dataY(i)[:] = y
-    return ws
-
-
-@namedtuplefy
-def subtract_dark_current(data, dark, out_ws, out_darkn='darkn',
-                           log_key=None):
+def subtract_normalized_dark(data, dark, out_ws):
     r"""
+    Subtract normalized dark from data, taking into account the duration
+    of both `data` and `dark` runs.
+
+    Entry 'normalizing_duration' is added to the logs of the output workspace
+    to annotate what log entry was used to find the duration of both
+    `data` and `dark` runs.
 
     Parameters
     ----------
-    dark: EventsWorkspace
-        Dark current workspace
     data: MatrixWorkspace
-        Sample scattering
+        Sample scattering with intensities versus wavelength
+    dark: MatrixWorkspace
+        Normalized dark current after being normalized with
+        `normalise_to_workspace`
     out_ws: str
-        Name of the output workspace containing scattering minus dark current
-    out_darkn: str
-        Name of the output workspace containing the normalized dark current
-    log_key: str
-        Log key to search for duration of the runs. if `None`, the function
-        does a sequential search for entries 'duration', 'proton_charge',
-        and 'timer'
+        Name of the subtracted output workspace
 
     Returns
     -------
-    nametuple
-        Fields of the name tuple:
-        - data: workspace containing scattering minus dark current
-        - dark: workspace containing the normalized dark current
+    MatrixWorkspace
+        `data` minus `dark` current
     """
-    darkn = normalise_to_workspace(dark, data, out_ws=out_darkn, log_key=None)
-    ws = Minus(data, darkn, OutputWorkspace=out_ws)
-    return dict(data=ws, dark=darkn)
+    duration_log_key = SampleLogs(dark).normalizing_duration.value
+    d = duration(data, log_key=duration_log_key).value
+    difference = data - d * dark
+    RenameWorkspace(difference, out_ws)
+    SampleLogs(difference).normalizing_duration = duration_log_key
+    return difference

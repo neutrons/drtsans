@@ -1,6 +1,8 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
+import numpy as np
+
 from mantid.api import Run, MatrixWorkspace
 from mantid.simpleapi import Load
 
@@ -30,9 +32,19 @@ class SampleLogs(object):
             if item in _run.keys():
                 return _run.getProperty(item)
 
+    def __setattr__(self, key, value):
+        _run = self.__dict__['_run']
+        if key == '_run':
+            _run = value
+        _run.addProperty(key, value, True)
+
     @property
     def mantid_logs(self):
         return self._run
+
+    def single_value(self, log_key, operation=np.mean):
+        _run = self.__dict__['_run']
+        return float(operation(_run[log_key].value))
 
     def find_run(self, other):
         r"""

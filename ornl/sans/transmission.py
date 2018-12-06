@@ -1,3 +1,5 @@
+from __future__ import (absolute_import, division, print_function)
+
 from mantid.simpleapi import (
     ApplyTransmissionCorrection, FindDetectorsInShape, GroupDetectors, Divide,
     DeleteWorkspaces)

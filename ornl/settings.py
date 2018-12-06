@@ -1,9 +1,13 @@
 from __future__ import (absolute_import, division, print_function)
 
+import random
+import string
 from collections import OrderedDict
 import functools
 from collections import namedtuple, Mapping
 from contextlib import contextmanager
+
+from mantid.api import AnalysisDataService
 from mantid.kernel import ConfigService
 
 
@@ -66,3 +70,27 @@ def amend_config(new_config):
     finally:
         for key in new_config:
             config[key] = backup[key]
+
+
+def unique_workspace_name(n=5):
+    r"""
+    Create a random sequence of `n` lowercase characters that is guaranteed
+    not to collide with the name of any existing Mantid workspace
+
+    uws stands for Unique Workspace Name
+
+    Parameters
+    ----------
+    n: int
+        Size of the sequence
+
+    Returns
+    -------
+    string
+    """
+
+    ws_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))
+    while ws_name in AnalysisDataService.getObjectNames():
+        characters = [random.choice(string.ascii_lowercase) for _ in range(n)]
+        ws_name = ''.join(characters)
+    return ws_name

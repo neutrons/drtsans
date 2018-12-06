@@ -16,7 +16,7 @@ from ornl.sans.geometry import source_detector_distance
 def transmitted_bands(ws):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by
-    the choppers
+    the choppers of the workspace.
 
     Parameters
     ----------
@@ -32,7 +32,7 @@ def transmitted_bands(ws):
             the skipped frame mode
     """
     sl = SampleLogs(ws)
-    pulse_period = 1.e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
+    pulse_period = 1.e6 / sl.single_value('frequency')  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     # Wavelength band of neutrons from the leading pulse transmitted
     # by the chopper system
@@ -41,6 +41,36 @@ def transmitted_bands(ws):
     skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0]\
         if ch.frame_mode == FrameMode.skip else None
     return dict(lead=lead_band, skip=skip_band)
+
+
+@namedtuplefy
+def clipped_bands_from_logs(ws):
+    r"""
+    Retrieve the wavelength bands over which we expect non-zero intensity. We
+    inspect the log.
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        Input Workspace containing all necessary info
+
+    Returns
+    -------
+    namedtuple
+        Fields of the namedtuple:
+        - lead, WBand object for the wavelength band of the lead pulse
+        - skipped, Wband for the skipped pulse. None if not operating in
+            the skipped frame mode
+    """
+    sl = SampleLogs(ws)
+    lead = wlg.Wband(sl.wavelength_lead_min.value,
+                     sl.wavelength_lead_max.value)
+    if bool(sl.is_frame_skipping.value) is True:
+        skip = wlg.Wband(sl.wavelength_skip_min.value,
+                         sl.wavelength_skip_max.value)
+    else:
+        skip = None
+    return dict(lead=lead, skip=skip)
 
 
 @namedtuplefy
@@ -75,7 +105,8 @@ def limiting_tofs(ws, sdd):
 
 
 @namedtuplefy
-def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
+def transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip,
+                              interior_clip=False):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by
     the choppers taking into account the TOF clippings for neutrons
@@ -85,12 +116,12 @@ def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
     ----------
     ws: EventsWorkspace
         Data workspace
-    ltc: float
-        trim neutrons of the leading pulse with a TOF smaller than the
-        minimal TOF plus this value. Units in micro-seconds
     sdd: float
         Distance from source to detector, in meters
-    htc: float
+    low_tof_clip: float
+        trim neutrons of the leading pulse with a TOF smaller than the
+        minimal TOF plus this value. Units in micro-seconds
+    high_tof_clip: float
         trim neutrons of the leading pulse with TOF bigger than the maximal
         TOF minus this value.  Units in micro-seconds
     interior_clip: False
@@ -105,8 +136,8 @@ def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
             the skipped frame mode
     """
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
-    lwc = wlg.from_tof(ltc, sdd, ch.pulse_width)  # low wavelength clip
-    hwc = wlg.from_tof(htc, sdd)  # high wavelength clip
+    lwc = wlg.from_tof(low_tof_clip, sdd, ch.pulse_width)  # low wavel. clip
+    hwc = wlg.from_tof(high_tof_clip, sdd)  # high wavelength clip
     bands = transmitted_bands(ws)
     if ch.frame_mode == FrameMode.not_skip:
         lead = wlg.Wband(bands.lead.min + lwc, bands.lead.max - hwc)
@@ -119,7 +150,38 @@ def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
     return dict(lead=lead, skip=skip)
 
 
-def correct_frame(ws, s2c):
+def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
+    r"""
+    Append to the logs relevant information about the time of flight
+    frame and structure
+
+    Insert clipping times
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        InputWorkspace
+    sdd: float
+        Distance from source to detector, in meters
+    low_tof_clip: float
+        trim neutrons of the leading pulse with a TOF smaller than the
+        minimal TOF plus this value. Units in micro-seconds
+    high_tof_clip: float
+        trim neutrons of the leading pulse with TOF bigger than the maximal
+        TOF minus this value.  Units in micro-seconds
+    interior_clip: False
+        If True, also trim slow neutrons from the lead pulse (using `htc`) and
+        fast neutrons from the skip pulse (using `ltc`)
+    """
+    sl = SampleLogs(ws)
+    ch = EQSANSDiskChopperSet(ws)
+    sl.tof_frame_width = ch.period
+    clip_times = 1 if interior_clip is False else 2
+    sl.tof_frame_width_clipped = ch.period -\
+        clip_times * (low_tof_clip + high_tof_clip)
+
+
+def correct_frame(ws, source_to_component_distance):
     r"""
     Assign the correct TOF to each event.
 
@@ -130,7 +192,7 @@ def correct_frame(ws, s2c):
     ----------
     ws: EventsWorkspace
         Data workspace
-    s2c: float
+    source_to_component_distance: float
         Distance from source to detecting component (detector1, monitor) in
         meters
     ltc: float
@@ -159,7 +221,7 @@ def correct_frame(ws, s2c):
     # Find how many frame widths elapsed from the time the neutrons of the
     # lead pulse were emitted and the time the neutrons arrived to the
     # detector bank. This time must be added to the stored TOF values
-    tof_min, tof_max = limiting_tofs(ws, s2c).lead
+    tof_min, tof_max = limiting_tofs(ws, source_to_component_distance).lead
     frames_offset_time = frame_width * int(tof_min / frame_width)
     for i in range(ws.getNumberHistograms()):
         sp = ws.getSpectrum(i)
@@ -178,11 +240,39 @@ def correct_frame(ws, s2c):
         for tof, pt in zip(tofs, pulse_times):
             sp.addEventQuickly(tof, pt)
     # Amend the logs
-    sl.is_frame_skipping = True if ch.frame_mode == FrameMode.skip else False
+    sl.is_frame_skipping = 1 if ch.frame_mode == FrameMode.skip else 0
 
 
 def correct_detector_frame(ws):
     correct_frame(ws, source_detector_distance(ws, units='m'))
+
+
+def band_gap_indexes(ws, bands):
+    r"""
+    Convention to define the indexes of the gap band.
+
+    For runs in skipped frame mode, there is a wavelength band in between
+    the bands of the lead and skipped pulse. This range has zero neutron
+    counts. This function returns the indexes of `ws.dataY(0)` array
+    corresponding to the band gap.
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        Input workspace with units of Wavelength on the X-axis
+    bands: namedtuple
+        Output of running `transmitted_bands_clipped` on the workspace
+    Returns
+    -------
+    list
+        Indexes of array `ws.dataY(i)` where intensity is zero. Empty list if
+        working frame mode is not skipped-mode
+    """
+    if bands.skip is None:
+        return list()
+    else:
+        return (np.where((ws.dataX(0) > bands.lead.max) &
+                         (ws.dataX(0) < bands.skip.min))[0]).tolist()
 
 
 def convert_to_wavelength(ws, bands, bin_width, out_ws, events=False):
@@ -217,19 +307,17 @@ def convert_to_wavelength(ws, bands, bin_width, out_ws, events=False):
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
     if fm is True:
-        to_zero = np.where((_ws.dataX(0) > bands.lead.max) &
-                           (_ws.dataX(0) < bands.skip.min))[0]
+        to_zero = band_gap_indexes(_ws, bands)
         for i in range(_ws.getNumberHistograms()):
             _ws.dataY(i)[to_zero] = 0.0
-            _ws.dataE(i)[to_zero] = 0.0
+            _ws.dataE(i)[to_zero] = 1.0
 
     # Insert bands information in the logs
     sl = SampleLogs(_ws)
     sl.wavelength_min, sl.wavelength_max = w_min, w_max
+    sl.wavelength_lead_min = bands.lead.min
+    sl.wavelength_lead_max = bands.lead.max
     if fm is True:
-        sl.wavelength_lead_min = bands.lead.min
-        sl.wavelength_lead_max = bands.lead.max
         sl.wavelength_skip_min = bands.skip.min
         sl.wavelength_skip_max = bands.skip.max
-
     return _ws

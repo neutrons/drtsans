@@ -7,23 +7,33 @@ from mantid.simpleapi import Load
 from ornl.sans.samplelogs import SampleLogs
 
 
-def bank_ids(ws):
+def bank_detector_ids(ws, masked=None):
     r"""
     Return the ID's for the detectors in detector banks (excludes monitors)
 
     Parameters
     ----------
     ws: MatrixWorkspace
+        Input workspace to find the detectors
+    masked: None or Bool
+        `None` yields all detector ID's; `True` yields all masked
+        detector ID's; `False` yields all unmasked detector ID's
 
     Returns
     -------
     list
     """
     ids = ws.detectorInfo().detectorIDs()
-    return ids[ids >= 0].tolist()  # by convention, monitors have ID < 0
+    all = ids[ids >= 0].tolist()
+    if masked is None:
+        return all  # by convention, monitors have ID < 0
+    else:
+        instrument = ws.getInstrument()
+        return [det_id for det_id in all if
+                masked == instrument.getDetector(det_id).isMasked()]
 
 
-def bank_detectors(ws):
+def bank_detectors(ws, masked=None):
     r"""
     Generator function to yield the detectors in the banks of the instrument.
     Excludes monitors
@@ -31,14 +41,20 @@ def bank_detectors(ws):
     Parameters
     ----------
     ws: MatrixWorkspace
-
+        Input workspace to find the detectors
+    masked: None or Bool
+        `None` yields all detectors; `True` yields all masked detectors;
+        `False` yields all unmasked detectectors
     Yields
     ------
     mantid.geometry.Detector
     """
     instrument = ws.getInstrument()
-    for det_id in bank_ids(ws):
+    for det_id in bank_detector_ids(ws, masked=masked):
         yield instrument.getDetector(det_id)
+        det = instrument.getDetector(det_id)
+        if masked is None or masked == det.isMasked():
+            yield instrument.getDetector(det_id)
 
 
 def get_instrument(other):

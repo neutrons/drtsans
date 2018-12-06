@@ -15,8 +15,10 @@ def wss(refd):
     with amend_config({'instrumentName': 'EQSANS',
                        'datasearch.searcharchive': 'on'}):
         name = pjn(refd.new.eqsans, 'test_dark_current', 'data.nxs')
-        data = Load(name, OutputWorkspace=unique_workspace_name())  # Matrix2DWorkspace in wavel
-        dark = Load('EQSANS_89157', OutputWorkspace=unique_workspace_name())  # Events workspace
+        # data is a Workspace2D in wavelength
+        data = Load(name, OutputWorkspace=unique_workspace_name())
+        # dark is an EventsWorkspace in time-of-flight
+        dark = Load('EQSANS_89157', OutputWorkspace=unique_workspace_name())
         return dict(data=data, dark=dark)
 
 

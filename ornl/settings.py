@@ -72,7 +72,7 @@ def amend_config(new_config):
             config[key] = backup[key]
 
 
-def uwn(n=5):
+def unique_workspace_name(n=5):
     r"""
     Create a random sequence of `n` lowercase characters that is guaranteed
     not to collide with the name of any existing Mantid workspace

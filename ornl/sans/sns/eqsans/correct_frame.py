@@ -105,7 +105,8 @@ def limiting_tofs(ws, sdd):
 
 
 @namedtuplefy
-def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
+def transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip,
+                              interior_clip=False):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by
     the choppers taking into account the TOF clippings for neutrons
@@ -117,10 +118,10 @@ def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
         Data workspace
     sdd: float
         Distance from source to detector, in meters
-    ltc: float
+    low_tof_clip: float
         trim neutrons of the leading pulse with a TOF smaller than the
         minimal TOF plus this value. Units in micro-seconds
-    htc: float
+    high_tof_clip: float
         trim neutrons of the leading pulse with TOF bigger than the maximal
         TOF minus this value.  Units in micro-seconds
     interior_clip: False
@@ -135,8 +136,8 @@ def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
             the skipped frame mode
     """
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
-    lwc = wlg.from_tof(ltc, sdd, ch.pulse_width)  # low wavelength clip
-    hwc = wlg.from_tof(htc, sdd)  # high wavelength clip
+    lwc = wlg.from_tof(low_tof_clip, sdd, ch.pulse_width)  # low wavel. clip
+    hwc = wlg.from_tof(high_tof_clip, sdd)  # high wavelength clip
     bands = transmitted_bands(ws)
     if ch.frame_mode == FrameMode.not_skip:
         lead = wlg.Wband(bands.lead.min + lwc, bands.lead.max - hwc)
@@ -149,7 +150,7 @@ def transmitted_bands_clipped(ws, sdd, ltc, htc, interior_clip=False):
     return dict(lead=lead, skip=skip)
 
 
-def log_tof_structure(ws, ltc, htc, interior_clip=False):
+def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
     r"""
     Append to the logs relevant information about the time of flight
     frame and structure
@@ -162,10 +163,10 @@ def log_tof_structure(ws, ltc, htc, interior_clip=False):
         InputWorkspace
     sdd: float
         Distance from source to detector, in meters
-    ltc: float
+    low_tof_clip: float
         trim neutrons of the leading pulse with a TOF smaller than the
         minimal TOF plus this value. Units in micro-seconds
-    htc: float
+    high_tof_clip: float
         trim neutrons of the leading pulse with TOF bigger than the maximal
         TOF minus this value.  Units in micro-seconds
     interior_clip: False
@@ -176,10 +177,11 @@ def log_tof_structure(ws, ltc, htc, interior_clip=False):
     ch = EQSANSDiskChopperSet(ws)
     sl.tof_frame_width = ch.period
     clip_times = 1 if interior_clip is False else 2
-    sl.tof_frame_width_clipped = ch.period - clip_times * (ltc + htc)
+    sl.tof_frame_width_clipped = ch.period -\
+        clip_times * (low_tof_clip + high_tof_clip)
 
 
-def correct_frame(ws, s2c):
+def correct_frame(ws, source_to_component_distance):
     r"""
     Assign the correct TOF to each event.
 
@@ -190,7 +192,7 @@ def correct_frame(ws, s2c):
     ----------
     ws: EventsWorkspace
         Data workspace
-    s2c: float
+    source_to_component_distance: float
         Distance from source to detecting component (detector1, monitor) in
         meters
     ltc: float
@@ -219,7 +221,7 @@ def correct_frame(ws, s2c):
     # Find how many frame widths elapsed from the time the neutrons of the
     # lead pulse were emitted and the time the neutrons arrived to the
     # detector bank. This time must be added to the stored TOF values
-    tof_min, tof_max = limiting_tofs(ws, s2c).lead
+    tof_min, tof_max = limiting_tofs(ws, source_to_component_distance).lead
     frames_offset_time = frame_width * int(tof_min / frame_width)
     for i in range(ws.getNumberHistograms()):
         sp = ws.getSpectrum(i)

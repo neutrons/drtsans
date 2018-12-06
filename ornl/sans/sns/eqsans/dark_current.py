@@ -4,7 +4,7 @@ import numpy as np
 from mantid.simpleapi import (Integration, Transpose, RebinToWorkspace,
                               ConvertUnits, RenameWorkspace)
 
-from ornl.settings import uwn, namedtuplefy
+from ornl.settings import unique_workspace_name, namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import correct_frame as cf
 
@@ -60,7 +60,7 @@ def counts_in_detector(dark):
             count per detector
         - n: numpy.ndarrary, list of counts
     """
-    _wnc = Integration(dark, OutputWorkspace=uwn())
+    _wnc = Integration(dark, OutputWorkspace=unique_workspace_name())
     _wnc = Transpose(_wnc, OutputWorkspace=_wnc.name())
     y = np.copy(_wnc.dataY(0))  # counts
     e = np.copy(_wnc.dataE(0))  # errors

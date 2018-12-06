@@ -7,7 +7,7 @@ from numpy.testing import assert_almost_equal
 from mantid.simpleapi import Load
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import correct_frame as cf
-from ornl.settings import amend_config, uwn
+from ornl.settings import amend_config, unique_workspace_name
 from ornl.sans.geometry import source_detector_distance
 
 
@@ -55,7 +55,7 @@ def test_log_tof_structure(refd):
     file_name = pjoin(refd.new.eqsans, 'test_correct_frame',
                       'EQSANS_92353_no_events.nxs')
     for ny, refv in ((False, 30833), (True, 28333)):
-        ws = Load(file_name, OutputWorkspace=uwn())
+        ws = Load(file_name, OutputWorkspace=unique_workspace_name())
         cf.log_tof_structure(ws, 500, 2000, interior_clip=ny)
         sl = SampleLogs(ws)
         assert sl.tof_frame_width.value == approx(33333, abs=1.0)

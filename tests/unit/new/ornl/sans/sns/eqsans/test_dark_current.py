@@ -10,8 +10,8 @@ from ornl.sans.samplelogs import SampleLogs
 import ornl.sans.sns.eqsans.dark_current as dkc
 
 
-@pytest.fixture(scope='module')
 @namedtuplefy
+@pytest.fixture(scope='module')
 def wss(refd):
     with amend_config({'instrumentName': 'EQSANS',
                        'datasearch.searcharchive': 'on'}):

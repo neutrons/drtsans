@@ -3,64 +3,38 @@ from __future__ import print_function
 from mantid.simpleapi import (
     LoadAscii, ConvertToHistogram, RebinToWorkspace, NormaliseToUnity, Divide,
     NormaliseByCurrent, Multiply, DeleteWorkspace, Integration)
+from ornl.settings import unique_workspace_name
+from ornl.sans.sns.eqsans import dark_current as dkc
 
 
-def load_beam_flux_file(file_path, ws_reference=None):
-    '''Loads the ascii beam flux file
-
-    Parameters
-    ----------
-    ws_reference : Workspace
-        The reference workspace to rebin the flux to. If none, does not
-        rebin the data.
-    '''
-
-    ws = LoadAscii(Filename=file_path, Separator="Tab", Unit="Wavelength")
-    ws = ConvertToHistogram(InputWorkspace=ws)
-    if ws_reference is not None:
-        ws = RebinToWorkspace(WorkspaceToRebin=ws,
-                              WorkspaceToMatch=ws_reference)
-    ws = NormaliseToUnity(InputWorkspace=ws)
-    return ws
-
-
-def time(ws_dark_current, t_frame, t_low_cut, t_high_cut, bin_width,
-         wavelength_min, wavelength_max):
-    '''Time normalization. It is only used for dark current.
+def time(ws_input, ws_dark_current, out_ws):
+    r"""
+    Time normalization. It is only used for dark current.
     It does not make sense to use it for other files
 
     Parameters
     ----------
     ws_input : Workspace
-        The dark current ws
-    t_frame : float
-    t_low_cut : [type]
-    t_high_cut : [type]
-        [description]
-    bin_width : [type]
-        [description]
-    wavelength_min : [type]
-        [description]
-    wavelength_max : [type]
-        [description]
-    '''
+        The workspace to be normalised
+    ws_dark_current: EventsWorkspace
+        Dark current workspace with units in time-of-flight
+    out_ws: str
+        Name of the normalized output workspace
 
-    # Not done!!!
-
-    # First remove the time component
-    # If it's already in this format the ingration does nothing
-
-    ws_dark_current = Integration(InputWorkspace=ws_dark_current)
-
-    # TODO
-    # We think that uses information from a sample (or other dataset used to
-    # subtract the DC later)
-
-    return ws_dark_current
+    Returns
+    -------
+    MatrixWorkspace
+        `ws_input` minus `ws_dark_current`
+    """
+    dark_normal = dkc.normalise_to_workspace(ws_dark_current, ws_input,
+                                             unique_workspace_name())
+    difference = dkc.subtract_normalized_dark(ws_input, dark_normal, out_ws)
+    DeleteWorkspace(dark_normal)  # a bit of cleanup doesn't hurt
+    return difference
 
 
 def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
-    '''Monitor normalisation
+    r"""Monitor normalisation
 
     Parameters
     ----------
@@ -75,7 +49,7 @@ def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
     -------
     Workspace
         [description]
-    '''
+    """
 
     ws_tmp = Multiply(LHSWorkspace=ws_monitor,
                       RHSWorkspace=ws_flux_to_monitor_ratio)
@@ -84,8 +58,31 @@ def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
     return ws
 
 
-def proton_charge_and_flux(ws_input, ws_beam_flux):
-    """Normalises ws to proton and measured flux
+def load_beam_flux_file(file_path, ws_reference=None, out_ws):
+    r"""Loads the ascii beam flux file
+
+    Parameters
+    ----------
+    ws_reference : Workspace
+        The reference workspace to rebin the flux to. If none, does not
+        rebin the data.
+    out_ws: str
+        Name of the output workspace
+    """
+
+    ws = LoadAscii(Filename=file_path, Separator="Tab", Unit="Wavelength",
+                   OutputWorkspace=out_ws)
+    ws = ConvertToHistogram(InputWorkspace=ws, OutputWorkspace=out_ws)
+    if ws_reference is not None:
+        ws = RebinToWorkspace(WorkspaceToRebin=ws,
+                              WorkspaceToMatch=ws_reference,
+                              OutputWorkspace=out_ws)
+    ws = NormaliseToUnity(ws, OutputWorkspace=out_ws)
+    return ws
+
+
+def proton_charge_and_flux(ws_input, ws_beam_flux, out_ws):
+    r"""Normalises ws to proton and measured flux
 
     Parameters
     ----------
@@ -94,10 +91,12 @@ def proton_charge_and_flux(ws_input, ws_beam_flux):
 
     ws_beam_flux : Workspace
         The measured beam flux file ws
-
+    out_ws: str
+        Name of the output workspace
     """
     # Normalise by the flux
-    ws = Divide(LHSWorkspace=ws_input, RHSWorkspace=ws_beam_flux)
-    # Proton charge
-    ws = NormaliseByCurrent(InputWorkspace=ws)
+    ws = Divide(LHSWorkspace=ws_input, RHSWorkspace=ws_beam_flux,
+                OutputWorkspace=out_ws)
+    # Normalize by Proton charge
+    NormaliseByCurrent(ws, OutputWorkspace=out_ws)
     return ws

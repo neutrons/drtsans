@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from mantid.simpleapi import (
     LoadAscii, ConvertToHistogram, RebinToWorkspace, NormaliseToUnity, Divide,
-    NormaliseByCurrent, Multiply, DeleteWorkspace, Integration)
+    NormaliseByCurrent, Multiply, DeleteWorkspace)
 from ornl.settings import unique_workspace_name
 from ornl.sans.sns.eqsans import dark_current as dkc
 
@@ -58,7 +58,7 @@ def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
     return ws
 
 
-def load_beam_flux_file(file_path, ws_reference=None, out_ws):
+def load_beam_flux_file(file_path, out_ws, ws_reference=None):
     r"""Loads the ascii beam flux file
 
     Parameters

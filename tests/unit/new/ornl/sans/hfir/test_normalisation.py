@@ -8,11 +8,11 @@ def test_normalisation_monitor(gpsans_f):
 
     from ornl.sans.hfir.normalisation import monitor
     from ornl.sans.samplelogs import SampleLogs
-    from mantid.simpleapi import LoadSpice2D
+    from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
     input_sample_ws_mame = 'input_sample_ws_name'
-    LoadSpice2D(Filename=gpsans_f['sample_scattering'],
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
                 OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
 
@@ -29,11 +29,11 @@ def test_normalisation_time(gpsans_f):
 
     from ornl.sans.hfir.normalisation import time
     from ornl.sans.samplelogs import SampleLogs
-    from mantid.simpleapi import LoadSpice2D
+    from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
     input_sample_ws_mame = 'input_sample_ws_name'
-    LoadSpice2D(Filename=gpsans_f['sample_scattering'],
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
                 OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
 

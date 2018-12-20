@@ -12,10 +12,10 @@ def test_beam_finder(biosans_f):
     from ornl.sans.hfir.biosans import beam_finder
     from mantid import mtd
     from mantid.simpleapi import (
-        MoveInstrumentComponent, FindCenterOfMassPosition, LoadSpice2D)
+        MoveInstrumentComponent, FindCenterOfMassPosition, LoadHFIRSANS)
 
     ws_name = "__beamcenter"
-    LoadSpice2D(Filename=biosans_f['beamcenter'], OutputWorkspace=ws_name)
+    LoadHFIRSANS(Filename=biosans_f['beamcenter'], OutputWorkspace=ws_name)
     ws = mtd[ws_name]
 
     x, y, y_gravity = beam_finder.direct_beam_center(ws)

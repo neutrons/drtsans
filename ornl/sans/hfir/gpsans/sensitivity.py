@@ -2,7 +2,7 @@
 # flake8: noqa
 
 from mantid.simpleapi import (
-    LoadSpice2D, SANSMaskDTP, FindCenterOfMassPosition)
+    LoadHFIRSANS, SANSMaskDTP, FindCenterOfMassPosition)
 
 
 def sensitibity_file(files):

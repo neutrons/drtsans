@@ -16,7 +16,7 @@ def _instrument_geometry(gpsans_f, workspace_to_center):
 
     ws_name = "__beamcenter"
     LoadHFIRSANS(Filename=gpsans_f['beamcenter_off_setted'],
-                OutputWorkspace=ws_name)
+                 OutputWorkspace=ws_name)
     ws = mtd[ws_name]
     x, y = beam_finder.direct_beam_center(ws)
 
@@ -35,12 +35,12 @@ def test_calculate_transmission(gpsans_f):
 
     input_sample_ws_mame = 'input_sample_ws_name'
     LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=input_sample_ws_mame)
+                 OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
     _instrument_geometry(gpsans_f, input_sample_ws)
     input_reference_ws_name = 'input_reference_ws_name'
     LoadHFIRSANS(Filename=gpsans_f['sample_transmission'],
-                OutputWorkspace=input_reference_ws_name)
+                 OutputWorkspace=input_reference_ws_name)
     input_reference_ws = mtd[input_reference_ws_name]
     _instrument_geometry(gpsans_f, input_reference_ws)
     output_ws_name = "__test_out"
@@ -76,7 +76,7 @@ def test_apply_transmission_with_ws(gpsans_f):
 
     ws_sample_name = 'ws_sample'
     LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=ws_sample_name)
+                 OutputWorkspace=ws_sample_name)
     ws_sample = mtd[ws_sample_name]
 
     ws_sample_corrected_name = 'ws_sample_corrected_name'
@@ -102,7 +102,7 @@ def test_apply_transmission_with_values(gpsans_f):
 
     ws_sample_name = 'ws_sample'
     LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=ws_sample_name)
+                 OutputWorkspace=ws_sample_name)
     ws_sample = mtd[ws_sample_name]
 
     ws_sample_corrected_name = 'ws_sample_corrected_name'

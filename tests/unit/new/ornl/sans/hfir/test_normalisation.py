@@ -13,7 +13,7 @@ def test_normalisation_monitor(gpsans_f):
 
     input_sample_ws_mame = 'input_sample_ws_name'
     LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=input_sample_ws_mame)
+                 OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
 
     output_sample_ws = monitor(input_sample_ws)
@@ -34,7 +34,7 @@ def test_normalisation_time(gpsans_f):
 
     input_sample_ws_mame = 'input_sample_ws_name'
     LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=input_sample_ws_mame)
+                 OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
 
     output_sample_ws = time(input_sample_ws)

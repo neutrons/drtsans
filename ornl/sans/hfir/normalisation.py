@@ -1,4 +1,5 @@
 from __future__ import print_function
+from ornl.sans.samplelogs import SampleLogs
 
 
 def time(input_ws):
@@ -10,10 +11,7 @@ def time(input_ws):
     input_ws : [Mantid Workspace]
 
     """
-
-    run = input_ws.getRun()
-    timer = run.getProperty("timer").value  # seconds
-
+    timer = SampleLogs(input_ws).timer.value  # seconds
     res = input_ws / timer
     return res
 
@@ -26,9 +24,6 @@ def monitor(input_ws):
     input_ws : [Mantid Workspace]
 
     """
-
-    run = input_ws.getRun()
-    monitor = run.getProperty("monitor").value  # counts
-
+    monitor = SampleLogs(input_ws).monitor.value  # seconds  # counts
     res = input_ws / monitor
     return res

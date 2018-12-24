@@ -23,7 +23,10 @@ def wss(refd):
 
 
 def test_duration(wss):
-    assert dkc.duration(wss['dark']).value == approx(7200.0, abs=1.0)
+    for lk in ('start_time', 'proton_charge'):
+        assert dkc.duration(wss['dark'], lk).value == approx(7200.0, abs=1.0)
+    with pytest.raises(AttributeError):
+        dkc.duration(wss['dark'], log_key='timer')
 
 
 def test_counts_in_detector(wss):

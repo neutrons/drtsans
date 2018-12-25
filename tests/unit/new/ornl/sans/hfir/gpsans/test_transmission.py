@@ -64,10 +64,11 @@ def test_apply_transmission_with_ws(gpsans_f):
     from mantid import mtd
 
     trans_ws_name = "_transmission"
+    trans_value = 0.5191
     CreateWorkspace(
         OutputWorkspace=trans_ws_name,
         DataX=[3.8, 4.2],
-        DataY=[0.5191],
+        DataY=[trans_value],
         DataE=[0.0141],
         UnitX="Wavelength"
     )
@@ -79,12 +80,13 @@ def test_apply_transmission_with_ws(gpsans_f):
     ws_sample = mtd[ws_sample_name]
 
     ws_sample_corrected_name = 'ws_sample_corrected_name'
-    apply_transmission(ws_sample, ws_sample_corrected_name, trans_ws=trans_ws)
+    apply_transmission(ws_sample, ws_sample_corrected_name, trans_ws=trans_ws,
+                       theta_dependent=False)
     ws_sample_corrected = mtd[ws_sample_corrected_name]
 
     assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-3)
     assert ws_sample_corrected.readY(
-        9100)[0] == pytest.approx(5.8557131, abs=1e-3)
+        9100)[0] == pytest.approx(3.0 / trans_value, abs=1e-3)
 
 
 def test_apply_transmission_with_values(gpsans_f):
@@ -105,12 +107,13 @@ def test_apply_transmission_with_values(gpsans_f):
 
     ws_sample_corrected_name = 'ws_sample_corrected_name'
     apply_transmission(ws_sample, ws_sample_corrected_name,
-                       trans_value=trans_value, trans_error=trans_error)
+                       trans_value=trans_value, trans_error=trans_error,
+                       theta_dependent=False)
     ws_sample_corrected = mtd[ws_sample_corrected_name]
 
     assert ws_sample.readY(9100)[0] == pytest.approx(3.0, abs=1e-3)
     assert ws_sample_corrected.readY(
-        9100)[0] == pytest.approx(5.8557131, abs=1e-3)
+        9100)[0] == pytest.approx(3.0 / trans_value, abs=1e-3)
 
 
 if __name__ == '__main__':

@@ -39,7 +39,6 @@ def test_normalise_to_workspace(wss, refd):
     _w0 = dkc.normalise_to_workspace(wss['dark'], wss['data'],
                                      unique_workspace_name())
     _w1 = SumSpectra(_w0, OutputWorkspace=unique_workspace_name())
-    assert SampleLogs(_w1).normalizing_duration.value == 'duration'
     name = pjn(refd.new.eqsans, 'test_dark_current', 'dark_norm_sum.nxs')
     _w2 = LoadNexus(name, OutputWorkspace=unique_workspace_name())
     assert CompareWorkspaces(_w1, _w2)

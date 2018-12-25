@@ -12,11 +12,11 @@ def _instrument_geometry(gpsans_f, workspace_to_center):
     from ornl.sans.hfir.gpsans import beam_finder
     from mantid import mtd
     from mantid.simpleapi import (
-        MoveInstrumentComponent, LoadSpice2D)
+        MoveInstrumentComponent, LoadHFIRSANS)
 
     ws_name = "__beamcenter"
-    LoadSpice2D(Filename=gpsans_f['beamcenter_off_setted'],
-                OutputWorkspace=ws_name)
+    LoadHFIRSANS(Filename=gpsans_f['beamcenter_off_setted'],
+                 OutputWorkspace=ws_name)
     ws = mtd[ws_name]
     x, y = beam_finder.direct_beam_center(ws)
 
@@ -30,17 +30,17 @@ def test_calculate_transmission(gpsans_f):
     '''
     from ornl.sans.transmission import (zero_angle_transmission,
                                         calculate_radius_from_input_ws)
-    from mantid.simpleapi import LoadSpice2D
+    from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
     input_sample_ws_mame = 'input_sample_ws_name'
-    LoadSpice2D(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=input_sample_ws_mame)
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
+                 OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
     _instrument_geometry(gpsans_f, input_sample_ws)
     input_reference_ws_name = 'input_reference_ws_name'
-    LoadSpice2D(Filename=gpsans_f['sample_transmission'],
-                OutputWorkspace=input_reference_ws_name)
+    LoadHFIRSANS(Filename=gpsans_f['sample_transmission'],
+                 OutputWorkspace=input_reference_ws_name)
     input_reference_ws = mtd[input_reference_ws_name]
     _instrument_geometry(gpsans_f, input_reference_ws)
     output_ws_name = "__test_out"
@@ -60,7 +60,7 @@ def test_apply_transmission_with_ws(gpsans_f):
     '''
 
     from ornl.sans.transmission import apply_transmission
-    from mantid.simpleapi import LoadSpice2D, CreateWorkspace
+    from mantid.simpleapi import LoadHFIRSANS, CreateWorkspace
     from mantid import mtd
 
     trans_ws_name = "_transmission"
@@ -75,8 +75,8 @@ def test_apply_transmission_with_ws(gpsans_f):
     trans_ws = mtd[trans_ws_name]
 
     ws_sample_name = 'ws_sample'
-    LoadSpice2D(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=ws_sample_name)
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
+                 OutputWorkspace=ws_sample_name)
     ws_sample = mtd[ws_sample_name]
 
     ws_sample_corrected_name = 'ws_sample_corrected_name'
@@ -94,15 +94,15 @@ def test_apply_transmission_with_values(gpsans_f):
     '''
 
     from ornl.sans.transmission import apply_transmission
-    from mantid.simpleapi import LoadSpice2D
+    from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
     trans_value = 0.5191
     trans_error = 0.0141
 
     ws_sample_name = 'ws_sample'
-    LoadSpice2D(Filename=gpsans_f['sample_scattering'],
-                OutputWorkspace=ws_sample_name)
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
+                 OutputWorkspace=ws_sample_name)
     ws_sample = mtd[ws_sample_name]
 
     ws_sample_corrected_name = 'ws_sample_corrected_name'

@@ -137,6 +137,8 @@ def gpsans_f():
             data_dir, 'gpsans', 'CG2_exp245_scan0009_0001.xml'),
         sample_scattering=pjoin(
             data_dir, 'gpsans', 'CG2_exp245_scan0010_0001.xml'),
+        dark_current=pjoin(
+            data_dir, 'gpsans', 'CG2_exp244_scan0001_0001.xml'),
     )
 
 

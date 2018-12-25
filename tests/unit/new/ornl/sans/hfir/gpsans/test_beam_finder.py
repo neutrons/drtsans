@@ -12,10 +12,10 @@ def test_beam_finder(gpsans_f):
     from ornl.sans.hfir.gpsans import beam_finder
     from mantid import mtd
     from mantid.simpleapi import (
-        MoveInstrumentComponent, FindCenterOfMassPosition, LoadSpice2D)
+        MoveInstrumentComponent, FindCenterOfMassPosition, LoadHFIRSANS)
 
     ws_name = "__beamcenter"
-    LoadSpice2D(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws_name)
+    LoadHFIRSANS(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws_name)
     ws = mtd[ws_name]
 
     x, y = beam_finder.direct_beam_center(ws)

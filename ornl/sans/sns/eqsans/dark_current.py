@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
+from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (Integration, Transpose, RebinToWorkspace,
                               ConvertUnits, RenameWorkspace)
@@ -13,7 +14,7 @@ from ornl.sans.sns.eqsans import correct_frame as cf
 def duration(dark, log_key=None):
     """
     Compute the duration of the workspace by iteratively searching the logs for
-    keys 'duration', 'proton_charge', and 'timer'.
+    keys 'duration', 'start_time/end_time', 'proton_charge', and 'timer'.
 
     Parameters
     ----------
@@ -31,13 +32,24 @@ def duration(dark, log_key=None):
         - log_key: str, log used to return the duration
 
     """
+    log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if \
+        log_key is None else (log_key, )
     sl = SampleLogs(dark)
-    log_keys = ('duration', 'proton_charge', 'timer') if log_key is None\
-        else (log_key, )
+
+    def from_start_time(lk):
+        st = parse_date(sl[lk].value)
+        et = parse_date(sl['end_time'].value)
+        return (et - st).total_seconds()
+
+    def from_proton_charge(lk):
+        return sl[lk].getStatistics().duration
+
+    calc = dict(start_time=from_start_time, proton_charge=from_proton_charge)
+
     for lk in log_keys:
         try:
-            return dict(value=sl.single_value(lk), log_key=lk)
-        except AttributeError:
+            return dict(value=calc.get(lk, sl.single_value)(lk), log_key=lk)
+        except RuntimeError:
             continue
     raise AttributeError("Could not determine the duration of the run")
 

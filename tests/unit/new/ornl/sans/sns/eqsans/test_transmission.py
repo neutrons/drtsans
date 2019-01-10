@@ -9,6 +9,7 @@ from ornl.sans.sns.eqsans.transmission import fit_band, fit_raw, beam_radius
 from ornl.sans.sns.eqsans.geometry import insert_aperture_logs
 
 
+@pytest.mark.offline
 def test_fit_band(refd):
     raw = Load(pjn(refd.new.eqsans, 'test_transmission',
                    'raw_transmission.nxs'))
@@ -17,6 +18,7 @@ def test_fit_band(refd):
     assert_almost_equal(fb.mfit.OutputChi2overDoF, 32, decimal=0)
 
 
+@pytest.mark.offline
 def test_fit_raw(refd):
     raw = Load(pjn(refd.new.eqsans, 'test_transmission',
                    'raw_transmission.nxs'))
@@ -27,6 +29,7 @@ def test_fit_raw(refd):
     assert_almost_equal(fitted.skip_mfit.OutputChi2overDoF, 16, decimal=0)
 
 
+@pytest.mark.offline
 def test_beam_radius(refd):
     data_dir = pjn(refd.new.eqsans, 'test_transmission')
     sample = Load(pjn(data_dir, 'sample.nxs'))

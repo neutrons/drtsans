@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import pytest
 
-
+@pytest.mark.offline
 def test_SANSBeamFinder(eqsans_f):
     '''
     This is just a test for the legacy algorithm as it runs in mantid

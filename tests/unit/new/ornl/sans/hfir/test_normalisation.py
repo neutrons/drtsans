@@ -4,6 +4,7 @@ from __future__ import print_function
 import pytest
 
 
+@pytest.mark.offline
 def test_normalisation_monitor(gpsans_f):
 
     from ornl.sans.hfir.normalisation import monitor
@@ -25,6 +26,7 @@ def test_normalisation_monitor(gpsans_f):
         pytest.approx(input_sample_ws.readY(0)[0] / monitor_counts)
 
 
+@pytest.mark.offline
 def test_normalisation_time(gpsans_f):
 
     from ornl.sans.hfir.normalisation import time

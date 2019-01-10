@@ -6,6 +6,7 @@ from numpy.testing import assert_raises
 from ornl.sans.wavelength import Wband, Wbands
 
 
+@pytest.mark.offline
 class TestWband(object):
 
     def test_init(self):
@@ -27,6 +28,7 @@ class TestWband(object):
         assert b * Wband(2.5, 3) is None
 
 
+@pytest.mark.offline
 class TestWbands(object):
 
     def test_init(self):

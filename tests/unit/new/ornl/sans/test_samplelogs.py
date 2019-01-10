@@ -9,6 +9,7 @@ from mantid.api import Run
 from ornl.sans.samplelogs import SampleLogs
 
 
+@pytest.mark.offline
 class TestSampleLogs(object):
 
     def test_init(self, refd):

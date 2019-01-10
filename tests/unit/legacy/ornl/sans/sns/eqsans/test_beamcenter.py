@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import pytest
 
+
 @pytest.mark.offline
 def test_SANSBeamFinder(eqsans_f):
     '''

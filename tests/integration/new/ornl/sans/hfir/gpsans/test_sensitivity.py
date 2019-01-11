@@ -1,7 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
-import pytest
 import tempfile
+
+import pytest
 
 from mantid import mtd
 from mantid.simpleapi import (CalculateSensitivity, ClearMaskFlag,
@@ -29,6 +30,7 @@ Join (average) all the sensitivities in one single file
 Save file as nexus
 
 '''
+
 
 @pytest.mark.offline
 def test_sensitivity_procedural(gpsans_sensitivity_dataset):

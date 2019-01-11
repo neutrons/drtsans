@@ -4,6 +4,7 @@ from __future__ import print_function
 import pytest
 
 
+@pytest.mark.offline
 def test_beam_finder(gpsans_f):
     '''
     Test with the new beam finder

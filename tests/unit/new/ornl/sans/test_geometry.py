@@ -24,6 +24,7 @@ def wss():
                 gpsans=None)
 
 
+@pytest.mark.offline
 def test_sample_source_distance(wss):
     for v in wss.values():
         if v is not None:
@@ -31,6 +32,7 @@ def test_sample_source_distance(wss):
                    pytest.approx(v['ssd'], rel=0.01)
 
 
+@pytest.mark.offline
 def test_sample_detector_distance(wss):
     for v in wss.values():
         if v is not None:
@@ -38,6 +40,7 @@ def test_sample_detector_distance(wss):
                    pytest.approx(v['sdd'], rel=0.01)
 
 
+@pytest.mark.offline
 def test_source_detector_distance(wss):
     for v in wss.values():
         if v is not None:

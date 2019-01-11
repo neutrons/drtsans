@@ -51,6 +51,7 @@ def test_transmitted_bands_clipped():
         assert (b1, b2) == approx((b1_0 + lwc, b2_0 - hwc), 0.01)
 
 
+@pytest.mark.offline
 def test_log_tof_structure(refd):
     file_name = pjoin(refd.new.eqsans, 'test_correct_frame',
                       'EQSANS_92353_no_events.nxs')

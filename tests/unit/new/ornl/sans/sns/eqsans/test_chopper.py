@@ -7,6 +7,7 @@ from numpy.testing import assert_almost_equal
 from ornl.sans.sns.eqsans.chopper import FrameMode, EQSANSDiskChopperSet
 
 
+@pytest.mark.offline
 class TestEQSANSDiskChopperSet(object):
 
     def test_transmitted_bands(self, refd):

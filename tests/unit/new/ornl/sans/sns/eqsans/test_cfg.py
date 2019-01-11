@@ -5,6 +5,7 @@ import os
 from ornl.sans.sns.eqsans import cfg
 
 
+@pytest.mark.offline
 def test_setitem():
     c = cfg.Cfg()
     value = cfg.CfgItemValue(data=42, off=False, note='meaning of universe')

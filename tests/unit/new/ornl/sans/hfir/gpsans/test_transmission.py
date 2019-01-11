@@ -4,6 +4,7 @@ from __future__ import print_function
 import pytest
 
 
+@pytest.mark.offline
 def _instrument_geometry(gpsans_f, workspace_to_center):
     '''
     Finds the beamcenter and places the instrument in the right position.
@@ -24,6 +25,7 @@ def _instrument_geometry(gpsans_f, workspace_to_center):
         Workspace=workspace_to_center, ComponentName='detector1', X=-x, Y=-y)
 
 
+@pytest.mark.offline
 def test_calculate_transmission(gpsans_f):
     '''
 
@@ -55,6 +57,7 @@ def test_calculate_transmission(gpsans_f):
         0)[0] == pytest.approx(0.0035, abs=1e-4)
 
 
+@pytest.mark.offline
 def test_apply_transmission_with_ws(gpsans_f):
     '''
     '''

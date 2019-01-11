@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import pytest
 
 
+@pytest.mark.offline
 def test_dark_current(gpsans_f):
     from ornl.sans.hfir.normalisation import time
     from ornl.sans.hfir.dark_current import subtract_normalized_dark

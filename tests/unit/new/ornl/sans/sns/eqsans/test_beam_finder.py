@@ -2,7 +2,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-from mantid.simpleapi import (Load, SANSMaskDTP)
+from mantid.simpleapi import Load
 
 from ornl.settings import amend_config, unique_workspace_name
 from ornl.sans.sns.eqsans.beam_finder import direct_beam_center
@@ -18,4 +18,3 @@ def test_direct_beam_center():
 
 if __name__ == '__main__':
     pytest.main()
-

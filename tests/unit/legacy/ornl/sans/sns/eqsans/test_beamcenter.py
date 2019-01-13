@@ -3,26 +3,23 @@
 from __future__ import print_function
 
 import pytest
+from ornl.settings import amend_config
+from mantid.simpleapi import SANSBeamFinder
+from mantid.kernel import PropertyManagerDataService, PropertyManager
 
 
-@pytest.mark.offline
 def test_SANSBeamFinder(eqsans_f):
-    '''
-    This is just a test for the legacy algorithm as it runs in mantid
-    '''
-
-    from mantid.simpleapi import SANSBeamFinder
-    from mantid.kernel import PropertyManagerDataService, PropertyManager
+    r"""This is just a test for the legacy algorithm as it runs in mantid"""
 
     pm = PropertyManager()
     PropertyManagerDataService.addOrReplace("test_pm", pm)
 
-    out = SANSBeamFinder(
-        Filename=eqsans_f['beamcenter'],
-        # UseDirectBeamMethod=True,
-        # BeamRadius=3,
-        ReductionProperties='test_pm',
-    )
+    with amend_config({'instrumentName': 'EQSANS',
+                       'datasearch.searcharchive': 'on'}):
+        out = SANSBeamFinder(Filename=eqsans_f['beamcenter'],
+                             # UseDirectBeamMethod=True,
+                             # BeamRadius=3,
+                             ReductionProperties='test_pm')
 
     x = float(pm.getPropertyValue('LatestBeamCenterX'))
     y = float(pm.getPropertyValue('LatestBeamCenterY'))

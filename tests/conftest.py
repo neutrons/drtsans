@@ -7,6 +7,7 @@ import pytest
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
+from ornl.settings import amend_config
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
@@ -97,18 +98,18 @@ def refd():
 
 @pytest.fixture(scope='session')
 def eqsans_f():
-    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'sns', 'eqsans')
-    return dict(data=pjoin(dd, 'EQSANS_68168_event.nxs'),
-                beamcenter=pjoin(dd, 'EQSANS_68183_event.nxs'),
-                darkcurrent=pjoin(dd, 'EQSANS_68200_event.nxs')
-                )
+    return dict(data='EQSANS_68168',
+                beamcenter='EQSANS_68183',
+                darkcurrent='EQSANS_68200')
 
 
 @pytest.fixture(scope='session')
 def eqsans_w(eqsans_f):
-    """Load EQSANS files into workspaces"""
-    return {k: mtds.LoadEventNexus(v, OutputWorkspace=k)
-            for (k, v) in eqsans_f.items()}
+    r"""Load EQSANS files into workspaces"""
+    with amend_config({'instrumentName': 'EQSANS',
+                       'datasearch.searcharchive': 'on'}):
+        return {k: mtds.LoadEventNexus(v, OutputWorkspace=k)
+                for (k, v) in eqsans_f.items()}
 
 
 @pytest.fixture(scope='session')

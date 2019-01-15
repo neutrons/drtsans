@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 
-
 def prepare_beam_center():
     r"""Recipe for the beam center file prior to finding the center coords."""
     pass

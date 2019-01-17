@@ -21,8 +21,8 @@ def _interpolate_tube(x, y, e, pixelsMasked, polynomial_degree):
     return y_new, e_new
 
 
-def patch_mask(data_ws, mask_ws, polynomial_degree=1,
-               component_name='detector1', min_pixels_per_tube=90):
+def interpolate_mask(data_ws, mask_ws, polynomial_degree=1,
+                     component_name='detector1', min_pixels_per_tube=90):
     '''Interpolates over the mask (usually the beamstop and the tube ends)
     Assumptions:
     - Monitors are in the beginning of the workspace
@@ -43,7 +43,7 @@ def patch_mask(data_ws, mask_ws, polynomial_degree=1,
     min_pixels_per_tube : int, optional
         Minimum pixels existing in the tube to fit (the default is 50)
 
-
+    TODO: Average when polynomial_degree == 2
     '''
 
     # In case there are masks (e.g. bad tubes) in the data, copy them to

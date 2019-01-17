@@ -44,15 +44,45 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd=1.13):
     return new_beam_center_y
 
 
-def direct_beam_center(input_ws, tubes_to_mask=None, sdd_wing_detector=1.13):
-    '''
-    Return beam center x, y in meters
+def direct_beam_center(input_ws, tubes_to_mask=None, center_x=0, center_y=0,
+                       tolerance=0.00125, direct_beam=True, beam_radius=0.0155,
+                       sdd_wing_detector=1.13):
+    '''Find the beam center
+
+    Parameters
+    ----------
+    input_ws : [type]
+        [description]
+    tubes_to_mask : list, optional
+        input of SANSMaskDTP (the default is None, which is none)
+    center_x : int, optional
+        [description] (the default is 0, which [default_description])
+    center_y : int, optional
+        [description] (the default is 0, which [default_description])
+    tolerance : float, optional
+        [description] (the default is 0.00125, which [default_description])
+    direct_beam : bool, optional
+        [description] (the default is True, which [default_description])
+    beam_radius : float, optional
+        [description] (the default is 0.0155, which [default_description])
+    sdd_wing_detector : float, optional
+        sdd of wing detector (the default is 1.13, which is the right sdd
+        on 2019/01/01)
+
+    Returns
+    -------
+    tuple
+        Returns beam center x, y and y corrected for gravity in meters
     '''
 
     if tubes_to_mask is not None:
         SANSMaskDTP(InputWorkspace=input_ws, Tube=tubes_to_mask)
 
-    center = FindCenterOfMassPosition(InputWorkspace=input_ws)
+    center = FindCenterOfMassPosition(
+        InputWorkspace=input_ws, CenterX=0, CenterY=0,
+        Tolerance=0.00125, DirectBeam=True,
+        BeamRadius=0.0155
+    )
     center_x, center_y = center
 
     center_y_gravity = _beam_center_gravitational_drop(

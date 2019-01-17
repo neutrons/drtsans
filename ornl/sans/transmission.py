@@ -1,17 +1,17 @@
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
 
-from mantid.simpleapi import (
-    ApplyTransmissionCorrection, FindDetectorsInShape, GroupDetectors, Divide,
-    DeleteWorkspaces)
+from mantid import mtd
 from mantid.kernel import logger
-from ornl.settings import namedtuplefy
+from mantid.simpleapi import (ApplyTransmissionCorrection, GroupDetectors,
+                              FindDetectorsInShape, ReplaceSpecialValues)
 from ornl.sans.samplelogs import SampleLogs
 
 
-def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
-                       trans_ws=None, theta_dependent=True):
+def apply_transmission_mantid(input_ws, trans_value=None, trans_error=None,
+                              trans_ws=None, theta_dependent=True):
     """
     Correct intensities with a transmission coefficient.
+    This justs calls the Mantid algorithm
 
     Parameters
     ----------
@@ -36,28 +36,29 @@ def apply_transmission(input_ws, output_ws, trans_value=None, trans_error=None,
         if input is invalid
     """
 
+    # I don't know why we still have to specify the OutputWorkspace...
+    trans_corrected_ws_name = "__trans_corrected_ws"
     if trans_value is not None and trans_error is not None:
-        return ApplyTransmissionCorrection(InputWorkspace=input_ws,
-                                           OutputWorkspace=output_ws,
-                                           TransmissionValue=trans_value,
-                                           TransmissionError=trans_error,
-                                           ThetaDependent=theta_dependent)
+        ApplyTransmissionCorrection(
+            InputWorkspace=input_ws, OutputWorkspace=trans_corrected_ws_name,
+            TransmissionValue=trans_value, TransmissionError=trans_error,
+            ThetaDependent=theta_dependent)
+        return mtd[trans_corrected_ws_name]
     elif trans_ws is not None:
-        return ApplyTransmissionCorrection(InputWorkspace=input_ws,
-                                           OutputWorkspace=output_ws,
-                                           TransmissionWorkspace=trans_ws,
-                                           ThetaDependent=theta_dependent)
+        ApplyTransmissionCorrection(
+            InputWorkspace=input_ws, OutputWorkspace=trans_corrected_ws_name,
+            TransmissionWorkspace=trans_ws, ThetaDependent=theta_dependent)
+        return mtd[trans_corrected_ws_name]
     else:
         logger.error("Input not valid: Use trans_value + trans_value"
                      " or trans_ws.")
         return None
 
 
-def calculate_radius_from_input_ws(input_ws,
-                                   sample_ad='sample-aperture-diameter',
-                                   source_ad='source-aperture-diameter',
-                                   sdd_log='sample-detector-distance',
-                                   sasd_log='source-sample-distance'):
+def calculate_radius_from_input_ws(
+        input_ws, sample_aperture_diameter_log='sample-aperture-diameter',
+        source_aperture_diameter_log='source-aperture-diameter',
+        sdd_log='sample-detector-distance', ssd_log='source-sample-distance'):
     """
     Calculate the radius according to:
     R_beam = R_sampleAp + SDD * (R_sampleAp + R_sourceAp) / SSD
@@ -66,31 +67,33 @@ def calculate_radius_from_input_ws(input_ws,
     ----------
     input_ws: MatrixWorkspace
         Input workspace
-    sample_ad: str
+    sample_aperture_diameter_log: str
         Log entry for the sample-aperture diameter
-    source_ad: str
+    source_aperture_diameter_log: str
         Log entry for the source-aperture diameter
     sdd_log: str
         Log entry for the sample to detector distance
-    sasd_log: str
+    ssd_log: str
         Log entry for the source-aperture to sample distance
 
     Returns
     -------
     float
-        Radius, in mili-meters
+        Radius, in millimeters
     """
     try:
         # Apertures
-        sl = SampleLogs(input_ws)
-        radius_sample_aperture = sl[sample_ad].value / 2.
-        radius_source_aperture = sl[source_ad].value / 2.
+        sample_logs = SampleLogs(input_ws)
+        radius_sample_aperture = sample_logs[
+            sample_aperture_diameter_log].value / 2.
+        radius_source_aperture = sample_logs[
+            source_aperture_diameter_log].value / 2.
         # Distances
-        sasd = sl[sasd_log].value
-        sdd = sl[sdd_log].value
+        ssd = sample_logs[ssd_log].value
+        sdd = sample_logs[sdd_log].value
         # Calculate beam radius
         radius = radius_sample_aperture + sdd * \
-            (radius_sample_aperture + radius_source_aperture) / sasd
+            (radius_sample_aperture + radius_source_aperture) / ssd
     except ValueError as error:
         logger.error(
             "Some of the properties are likely to not exist in the WS")
@@ -132,9 +135,7 @@ def _get_detector_ids_from_radius(input_ws, radius):
     return detector_ids
 
 
-@namedtuplefy
-def zero_angle_transmission(input_sample_ws, input_reference_ws, radius,
-                            output_ws, delete_temp_wss=True):
+def zero_angle_transmission(input_sample_ws, input_reference_ws, radius):
     """
     Calculate the raw transmission coefficients at zero scattering angle
 
@@ -145,7 +146,7 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws, radius,
     input_reference_ws: MatrixWorkspace
         Direct beam workspace (possibly obtained with an attenuated beam)
     radius: float
-        Radius around the bean center for pixel integration, in mili-meters
+        Radius around the bean center for pixel integration, in millimeters
     output_ws: str
         Name of the output workspace containing the transmission values.
     delete_temp_wss: bool
@@ -153,41 +154,55 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws, radius,
 
     Returns
     -------
-    namedtuple
-        Fields of the namedtuple
-        - transmission: MatrixWorkspace, Workspace containing the raw
-            transmission values (its name is given by `output_ws`)
-        - radius: float, integration radius, in pixel units
-        - detids: list, list of detector ID's used for integration
-        - sample: MatrixWorkspace, sample workspace after integration.
-            `None` if `delete_temp_wss` is True
-        - reference: MatrixWorkspace, reference workspace after integration.
-            `None` if `delete_temp_wss` is True
+    MatrixWorkspace
+        Workspace containing the raw transmission values
     """
 
     detector_ids = _get_detector_ids_from_radius(input_reference_ws, radius)
 
     # by default it sums all the grouped detectors
-    input_sample_ws_grouped = GroupDetectors(InputWorkspace=input_sample_ws,
-                                             DetectorList=detector_ids)
+    __input_sample_ws_grouped = GroupDetectors(InputWorkspace=input_sample_ws,
+                                               DetectorList=detector_ids)
 
-    input_reference_ws_grouped = GroupDetectors(
-        InputWorkspace=input_reference_ws,
-        DetectorList=detector_ids)
+    __input_reference_ws_grouped = GroupDetectors(
+        InputWorkspace=input_reference_ws, DetectorList=detector_ids)
 
-    # Raw transmission values
-    ws = Divide(LHSWorkspace=input_sample_ws_grouped,
-                RHSWorkspace=input_reference_ws_grouped,
-                OutputWorkspace=output_ws)
+    __zero_angle_transmission_ws = __input_sample_ws_grouped / \
+        __input_reference_ws_grouped
+    return __zero_angle_transmission_ws
 
-    if delete_temp_wss:
-        DeleteWorkspaces(
-            WorkspaceList=[input_sample_ws_grouped,
-                           input_reference_ws_grouped])
-        input_sample_ws_grouped = None
-        input_reference_ws_grouped = None
 
-    return dict(transmission=ws,
-                detids=list(detector_ids),
-                sample=input_sample_ws_grouped,
-                reference=input_reference_ws_grouped)
+def apply_transmission_correction(input_sample_ws, input_reference_ws,
+                                  theta_dependent=False):
+    '''This is the main method used to correct for transmission
+
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Workspace to apply the transmission correction to
+    input_reference_ws: MatrixWorkspace
+        Direct beam workspace (possibly obtained with an attenuated beam)
+    theta_dependent: bool
+        if True, a theta-dependent transmission correction will be applied.
+
+    Returns
+    -------
+    MatrixWorkspace
+        The data corrected for transmission.
+    '''
+
+    radius = calculate_radius_from_input_ws(input_reference_ws)
+
+    # This returns a WS with the sensitivity value + error
+    __calculated_transmission_ws = zero_angle_transmission(
+        input_sample_ws, input_reference_ws, radius)
+
+    __input_sample_trans_corrected = apply_transmission_mantid(
+        input_sample_ws, trans_ws=__calculated_transmission_ws,
+        theta_dependent=theta_dependent)
+
+    __input_sample_trans_corrected_no_nans = ReplaceSpecialValues(
+        InputWorkspace=__input_sample_trans_corrected, NaNValue=0,
+        InfinityValue=0)
+
+    return __input_sample_trans_corrected_no_nans

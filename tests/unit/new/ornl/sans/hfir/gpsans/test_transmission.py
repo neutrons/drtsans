@@ -68,7 +68,8 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws):
 
 
 @pytest.mark.offline
-def test_apply_transmission_with_ws(gpsans_full_dataset, sample_scattering_sum_ws):
+def test_apply_transmission_with_ws(gpsans_full_dataset,
+                                    sample_scattering_sum_ws):
     '''
     '''
 
@@ -94,7 +95,8 @@ def test_apply_transmission_with_ws(gpsans_full_dataset, sample_scattering_sum_w
 
 
 @pytest.mark.offline
-def test_apply_transmission_with_values(gpsans_full_dataset, sample_scattering_sum_ws):
+def test_apply_transmission_with_values(gpsans_full_dataset,
+                                        sample_scattering_sum_ws):
     '''
     '''
 
@@ -115,7 +117,8 @@ def test_apply_transmission_with_values(gpsans_full_dataset, sample_scattering_s
 
 
 @pytest.mark.offline
-def test_apply_transmission_correction(gpsans_full_dataset, sample_scattering_sum_ws):
+def test_apply_transmission_correction(gpsans_full_dataset,
+                                       sample_scattering_sum_ws):
     '''
     This is the function that users / scientists use 90% of the time
     '''

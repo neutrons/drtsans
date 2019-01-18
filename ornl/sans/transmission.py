@@ -99,7 +99,7 @@ def calculate_radius_from_input_ws(
             "Some of the properties are likely to not exist in the WS")
         logger.error(error)
         raise
-    logger.notice("Radius calculated from the WS = {}".format(radius))
+    logger.notice("Radius calculated from the WS = {:.2} mm".format(radius))
     return radius
 
 
@@ -161,14 +161,19 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws, radius):
     detector_ids = _get_detector_ids_from_radius(input_reference_ws, radius)
 
     # by default it sums all the grouped detectors
-    __input_sample_ws_grouped = GroupDetectors(InputWorkspace=input_sample_ws,
-                                               DetectorList=detector_ids)
+    __input_sample_ws_grouped = GroupDetectors(
+        InputWorkspace=input_sample_ws, DetectorList=detector_ids)
 
     __input_reference_ws_grouped = GroupDetectors(
         InputWorkspace=input_reference_ws, DetectorList=detector_ids)
 
     __zero_angle_transmission_ws = __input_sample_ws_grouped / \
         __input_reference_ws_grouped
+
+    logger.notice("Zero Angle Tranmission = {:.3} +/-{:.3}".format(
+        __zero_angle_transmission_ws.readY(0)[0],
+        __zero_angle_transmission_ws.readE(0)[0]))
+
     return __zero_angle_transmission_ws
 
 
@@ -199,6 +204,38 @@ def apply_transmission_correction(input_sample_ws, input_reference_ws,
 
     __input_sample_trans_corrected = apply_transmission_mantid(
         input_sample_ws, trans_ws=__calculated_transmission_ws,
+        theta_dependent=theta_dependent)
+
+    __input_sample_trans_corrected_no_nans = ReplaceSpecialValues(
+        InputWorkspace=__input_sample_trans_corrected, NaNValue=0,
+        InfinityValue=0)
+
+    return __input_sample_trans_corrected_no_nans
+
+
+def apply_transmission_correction_value(input_sample_ws, trans_value,
+                                        trans_error, theta_dependent=False):
+    '''This is the main method used to correct for transmission
+
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Workspace to apply the transmission correction to
+    trans_value: float
+        Zero-angle transmission value to apply to all wavelengths.
+    trans_error: float
+        The error on the zero-angle transmission value
+    theta_dependent: bool
+        if True, a theta-dependent transmission correction will be applied.
+
+    Returns
+    -------
+    MatrixWorkspace
+        The data corrected for transmission.
+    '''
+
+    __input_sample_trans_corrected = apply_transmission_mantid(
+        input_sample_ws,  trans_value=trans_value, trans_error=trans_error,
         theta_dependent=theta_dependent)
 
     __input_sample_trans_corrected_no_nans = ReplaceSpecialValues(

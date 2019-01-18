@@ -24,43 +24,46 @@ def sample_scattering_sum_ws(gpsans_full_dataset):
     return __acc
 
 
-def _instrument_geometry(gpsans_full_dataset, workspace_to_center):
+@pytest.fixture(scope='module')
+def dataset_center(gpsans_full_dataset):
     '''
     Finds the beamcenter and places the instrument in the right position.
     '''
-
     from ornl.sans.hfir.gpsans import beam_finder
-    from mantid.simpleapi import MoveInstrumentComponent, LoadHFIRSANS
-
+    from mantid.simpleapi import LoadHFIRSANS
+    
     __beamcenter = LoadHFIRSANS(
         Filename=gpsans_full_dataset['beamcenter'])
     x, y = beam_finder.direct_beam_center(__beamcenter)
-
-    MoveInstrumentComponent(
-        Workspace=workspace_to_center, ComponentName='detector1', X=-x, Y=-y)
+    return x, y
 
 
 @pytest.mark.offline
-def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws):
+def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
+                                dataset_center):
     '''
 
     '''
     from ornl.sans.transmission import (zero_angle_transmission,
                                         calculate_radius_from_input_ws)
-    from mantid.simpleapi import LoadHFIRSANS
+    from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent
 
+    x, y = dataset_center[0], dataset_center[1]
     input_sample_ws = sample_scattering_sum_ws
-
-    _instrument_geometry(gpsans_full_dataset, input_sample_ws)
+    MoveInstrumentComponent(
+        Workspace=input_sample_ws, ComponentName='detector1', X=-x, Y=-y)
 
     input_reference_ws = LoadHFIRSANS(
         Filename=gpsans_full_dataset['sample_transmission'])
 
-    _instrument_geometry(gpsans_full_dataset, input_reference_ws)
+    MoveInstrumentComponent(
+        Workspace=input_reference_ws, ComponentName='detector1', X=-x, Y=-y)
+
     radius = calculate_radius_from_input_ws(input_sample_ws)
 
     calculated_transmission = zero_angle_transmission(
         input_sample_ws, input_reference_ws, radius)
+        
     assert calculated_transmission.readY(
         0)[0] == pytest.approx(0.0087, abs=1e-4)
     assert calculated_transmission.readE(
@@ -69,7 +72,7 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws):
 
 @pytest.mark.offline
 def test_apply_transmission_with_ws(gpsans_full_dataset,
-                                    sample_scattering_sum_ws):
+                                    sample_scattering_sum_ws, dataset_center):
     '''
     '''
 
@@ -85,6 +88,7 @@ def test_apply_transmission_with_ws(gpsans_full_dataset,
     )
 
     ws_sample = sample_scattering_sum_ws
+    x, y = dataset_center[0], dataset_center[1]
 
     ws_sample_corrected = apply_transmission_mantid(
         ws_sample, trans_ws=trans_ws, theta_dependent=False)
@@ -132,6 +136,28 @@ def test_apply_transmission_correction(gpsans_full_dataset,
 
     input_sample_corrected_ws = apply_transmission_correction(
         input_sample_ws, input_reference_ws, theta_dependent=False)
+
+    # I'm not sure if this is correct!
+    assert input_sample_corrected_ws.readY(9100)[0] == \
+        pytest.approx(14.86, abs=1e-2)
+
+
+@pytest.mark.offline
+def test_apply_transmission_correction_value(gpsans_full_dataset,
+                                             sample_scattering_sum_ws):
+    '''
+    This is the function that users / scientists use 90% of the time
+    '''
+    from ornl.sans.transmission import apply_transmission_correction_value
+
+    input_sample_ws = sample_scattering_sum_ws
+
+    trans_value = 0.00871
+    trans_error = 0.0113
+
+    input_sample_corrected_ws = apply_transmission_correction_value(
+        input_sample_ws, trans_value=trans_value, trans_error=trans_error,
+        theta_dependent=False)
 
     # I'm not sure if this is correct!
     assert input_sample_corrected_ws.readY(9100)[0] == \

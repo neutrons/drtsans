@@ -166,6 +166,7 @@ def gpsans_full_dataset():
 
 
 @pytest.fixture(scope='session')
+<<<<<<< HEAD
 def biosans_sensitivity_dataset():
     dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'biosans')
     return dict(
@@ -178,10 +179,13 @@ def biosans_sensitivity_dataset():
 
 
 @pytest.fixture(scope='session')
+=======
+>>>>>>> 1775da7... Added GPSANS sensitivity dataset
 def gpsans_sensitivity_dataset():
     dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
     return dict(
         dark_current=pjoin(dd, 'CG2_exp206_scan0038_0001.xml'),
+<<<<<<< HEAD
         flood_trans=pjoin(dd, 'CG2_exp206_scan0017_0001.xml'),
         flood_trans_0_beamcenter=pjoin(dd, 'CG2_exp206_scan0016_0001.xml'),
         flood_trans_0_mask=pjoin(
@@ -194,6 +198,17 @@ def gpsans_sensitivity_dataset():
         flood_trans_400_beamcenter=pjoin(dd, 'CG2_exp206_scan0020_0001.xml'),
         flood_trans_400_mask=pjoin(
             dd, 'CG2_exp206_scan0021_0001_mask_beamstop.xml'),
+=======
+        flood_trans_0=pjoin(dd, 'CG2_exp206_scan0017_0001.xml'),
+        flood_trans_0_beamcenter=pjoin(dd, 'CG2_exp206_scan0016_0001.xml'),
+        flood_trans_0_mask=pjoin(dd, 'CG2_exp206_scan0017_0001_mask.xml'),
+        flood_trans_200=pjoin(dd, 'CG2_exp206_scan0019_0001.xml'),
+        flood_trans_200_beamcenter=pjoin(dd, 'CG2_exp206_scan0018_0001.xml'),
+        flood_trans_200_mask=pjoin(dd, 'CG2_exp206_scan0019_0001_mask.xml'),
+        flood_trans_400=pjoin(dd, 'CG2_exp206_scan0021_0001.xml'),
+        flood_trans_400_beamcenter=pjoin(dd, 'CG2_exp206_scan0020_0001.xml'),
+        flood_trans_400_mask=pjoin(dd, 'CG2_exp206_scan0021_0.xml'),
+>>>>>>> 1775da7... Added GPSANS sensitivity dataset
     )
 
 

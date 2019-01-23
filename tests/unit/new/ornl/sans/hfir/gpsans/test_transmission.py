@@ -148,7 +148,6 @@ def test_apply_transmission_correction(gpsans_full_dataset, dataset_center,
     input_sample_corrected_ws = apply_transmission_correction(
         input_sample_ws, input_reference_ws, theta_dependent=False)
 
-    # I'm not sure if this is correct!
     assert input_sample_corrected_ws.readY(9100)[0] == \
         pytest.approx(243.178, abs=1e-2)
     assert input_sample_corrected_ws.readE(9100)[0] == \
@@ -165,21 +164,19 @@ def test_apply_transmission_correction_value(gpsans_full_dataset,
 
     input_sample_ws = sample_scattering_sum_ws
 
-    # Zero angle transmission values
-    trans_value = 0.0822
-    trans_error = 0.0127
+    # Zero angle transmission values as the input_reference_ws above
+    trans_value = 0.08224400871459694
+    trans_error = 0.012671053121947698
 
     input_sample_corrected_ws = apply_transmission_correction_value(
         input_sample_ws, trans_value=trans_value, trans_error=trans_error,
         theta_dependent=False)
 
-    # The values below are very close to the ones above but not equal!!
-    # Is it normal?
-    # I'm not sure if this is correct!
+    # Note the corrected values are the same as above
     assert input_sample_corrected_ws.readY(9100)[0] == \
-        pytest.approx(243.309, abs=1e-2)
+        pytest.approx(243.178, abs=1e-2)
     assert input_sample_corrected_ws.readE(9100)[0] == \
-        pytest.approx(58.343, abs=1e-2)
+        pytest.approx(58.312, abs=1e-2)
 
 
 if __name__ == '__main__':

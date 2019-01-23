@@ -170,7 +170,7 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws, radius):
     __zero_angle_transmission_ws = __input_sample_ws_grouped / \
         __input_reference_ws_grouped
 
-    logger.notice("Zero Angle Tranmission = {:.3} +/-{:.3}".format(
+    logger.notice("Zero Angle Tranmission = {} +/-{}".format(
         __zero_angle_transmission_ws.readY(0)[0],
         __zero_angle_transmission_ws.readE(0)[0]))
 

@@ -9,6 +9,7 @@ from contextlib import contextmanager
 
 from mantid.api import AnalysisDataService
 from mantid.kernel import ConfigService
+from mantid.simpleapi import Load
 
 
 class MultiOrderedDict(OrderedDict):
@@ -94,3 +95,33 @@ def unique_workspace_name(n=5):
         characters = [random.choice(string.ascii_lowercase) for _ in range(n)]
         ws_name = ''.join(characters)
     return ws_name
+
+
+def load_run(run_number, instrument, name=None, load_kwargs=None):
+    r"""
+    Load a run number for a given instrument, using the archive and
+    temporarily setting Mantid's default instrument.
+
+    This function calls Mantid's `Load` algorithm.
+
+    Parameters
+    ----------
+    run_number: str, int
+        Run number (e.g 98234, BIOSANS_98234)
+    instrument: str
+        Name of the instrument (e.g BIOSANS, GPSANS, EQSANS)
+    name: str
+        Name of the output workspace. If `None`, a random name is produced
+    load_kwargs: dict
+        Aditional optional arguments to Mantid's Load algorithm.
+
+    Returns
+    -------
+    EventsWorkspace
+        Workspace loaded from the run
+    """
+    if name is None:
+        name = unique_workspace_name()
+    with amend_config({'instrumentName': instrument,
+                       'datasearch.searcharchive': 'on'}):
+        return Load(Filename=run_number, OutputWorkspace=name)

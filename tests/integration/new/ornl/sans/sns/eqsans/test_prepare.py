@@ -1,6 +1,5 @@
 from __future__ import (absolute_import, division, print_function)
 import pytest
-from ornl.sans.sns.eqsans.cfg import Cfg
 from ornl.sans.sns.eqsans.prepare import prepare_direct_beam_center
 
 

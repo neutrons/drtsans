@@ -7,7 +7,8 @@ from mantid.simpleapi import (SANSMaskDTP, FindCenterOfMassPosition)
 
 
 def prepare_direct_beam_center(direct_beam, mask=None,
-                               finder=FindCenterOfMassPosition, finder_kwargs={}):
+                               finder=FindCenterOfMassPosition,
+                               finder_kwargs=None):
     r"""Recipe to find the beam center coordinates from a  direct beam run
 
     Current limitation: `mask` has to be a list of tube indexes
@@ -23,7 +24,8 @@ def prepare_direct_beam_center(direct_beam, mask=None,
     finder_kwargs: dict
         Additional options for the finder method
     """
-
+    if finder_kwargs is None:
+        finder_kwargs = {}
     w = load_run(direct_beam, 'EQSANS')
     if mask is not None:
         SANSMaskDTP(InputWorkspace=w, Tube=mask)

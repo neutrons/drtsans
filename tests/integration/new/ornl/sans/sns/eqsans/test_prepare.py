@@ -6,7 +6,8 @@ from ornl.sans.sns.eqsans.prepare import prepare_direct_beam_center
 def test_prepare_direct_beam_center(eqsans_f, eqsans_p):
     x, y = prepare_direct_beam_center(eqsans_f['beamcenter'],
                                       eqsans_p['tubes_to_mask'],
-                                      finder_kwargs=dict(CenterX=0.01, CenterY=0.02))
+                                      finder_kwargs=dict(CenterX=0.01,
+                                                         CenterY=0.02))
     assert (x, y) == pytest.approx((0.0265, 0.0180), abs=1e-04)
 
 

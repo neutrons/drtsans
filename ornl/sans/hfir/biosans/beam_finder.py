@@ -80,12 +80,13 @@ def direct_beam_center(input_ws, tubes_to_mask=None, center_x=0, center_y=0,
 
     center = FindCenterOfMassPosition(
         InputWorkspace=input_ws, CenterX=0, CenterY=0,
-        Tolerance=0.00125, DirectBeam=True,
-        BeamRadius=0.0155
-    )
+        Tolerance=tolerance, DirectBeam=True, BeamRadius=beam_radius)
+
     center_x, center_y = center
 
     center_y_gravity = _beam_center_gravitational_drop(
         input_ws, center_y, sdd_wing_detector)
 
+    logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}".format(
+        center_x, center_y, center_y_gravity))
     return center_x, center_y, center_y_gravity

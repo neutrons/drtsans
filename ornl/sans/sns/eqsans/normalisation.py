@@ -28,7 +28,7 @@ def time(ws_input, ws_dark_current, out_ws):
     """
     dark_normal = dkc.normalise_to_workspace(ws_dark_current, ws_input,
                                              unique_workspace_name())
-    difference = dkc.subtract_normalized_dark(ws_input, dark_normal, out_ws)
+    difference = dkc.subtract_normalised_dark(ws_input, dark_normal, out_ws)
     DeleteWorkspace(dark_normal)  # a bit of cleanup doesn't hurt
     return difference
 

@@ -182,7 +182,7 @@ def gpsans_sensitivity_dataset():
     dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
     return dict(
         dark_current=pjoin(dd, 'CG2_exp206_scan0038_0001.xml'),
-        flood_trans=pjoin(dd, 'CG2_exp206_scan0017_0001.xml'),
+        flood_trans_0=pjoin(dd, 'CG2_exp206_scan0017_0001.xml'),
         flood_trans_0_beamcenter=pjoin(dd, 'CG2_exp206_scan0016_0001.xml'),
         flood_trans_0_mask=pjoin(
             dd, 'CG2_exp206_scan0017_0001_mask_beamstop.xml'),

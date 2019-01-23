@@ -44,6 +44,11 @@ def interpolate_mask(data_ws, mask_ws, polynomial_degree=1,
         Minimum pixels existing in the tube to fit (the default is 50)
 
     TODO: Average when polynomial_degree == 2
+
+    Returns
+    -------
+    MatrixWorkspace
+        The interpolated workspace
     '''
 
     # In case there are masks (e.g. bad tubes) in the data, copy them to
@@ -78,12 +83,14 @@ def interpolate_mask(data_ws, mask_ws, polynomial_degree=1,
 
     number_of_tubes = component.nelements()
 
-    output_ws = CloneWorkspace(data_ws)
+    __interpolated_ws = CloneWorkspace(data_ws)
 
     # Iterate through tubes: from 0 to number_of_tubes
     num_pixels_in_tube = 0
     x = []  # this is going to be the tube Y coordinates
     for tube_idx in range(number_of_tubes):
+        logger.debug("Tube index beeing analised: {}".format(tube_idx))
+
         if component[0].nelements() <= 1:
             # Handles EQSANS
             tube = component[tube_idx][0]
@@ -105,6 +112,7 @@ def interpolate_mask(data_ws, mask_ws, polynomial_degree=1,
             [detectorInfo.isMasked(int(id)) for id in tubeIDs])
 
         num_of_pixels_masked = np.count_nonzero(pixelsMasked)
+        logger.debug("num_of_pixels_masked = {}".format(num_of_pixels_masked))
         if num_of_pixels_masked > 0 and \
                 num_of_pixels_masked <= min_pixels_per_tube:
 
@@ -119,8 +127,10 @@ def interpolate_mask(data_ws, mask_ws, polynomial_degree=1,
                     tubeIDs[~pixelsMasked], y_new[~pixelsMasked],
                     y_new[~pixelsMasked]):
 
-                output_ws.setY(detectorID-first_detector_index, [y_new_value])
-                output_ws.setE(detectorID-first_detector_index, [e_new_value])
+                __interpolated_ws.setY(
+                    detectorID-first_detector_index, [y_new_value])
+                __interpolated_ws.setE(
+                    detectorID-first_detector_index, [e_new_value])
 
         elif num_of_pixels_masked > min_pixels_per_tube:
             logger.error("Skipping tube {}. Too many masked pixels.".format(
@@ -128,4 +138,4 @@ def interpolate_mask(data_ws, mask_ws, polynomial_degree=1,
 
         ws_index += num_pixels_in_tube
 
-    return output_ws
+    return __interpolated_ws

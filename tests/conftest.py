@@ -122,24 +122,78 @@ def eqsans_p():
 
 @pytest.fixture(scope='session')
 def biosans_f():
+    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'biosans')
     return dict(
-        beamcenter=pjoin(data_dir, 'biosans',
-                         'BioSANS_exp402_scan0006_0001.xml'),
+        beamcenter=pjoin(dd, 'BioSANS_exp402_scan0006_0001.xml'),
     )
 
 
 @pytest.fixture(scope='session')
 def gpsans_f():
+    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
     return dict(
-        beamcenter=pjoin(data_dir, 'gpsans', 'CG2_exp325_scan0020_0001.xml'),
-        beamcenter_off_setted=pjoin(
-            data_dir, 'gpsans', 'CG2_exp245_scan0007_0001.xml'),
-        sample_transmission=pjoin(
-            data_dir, 'gpsans', 'CG2_exp245_scan0009_0001.xml'),
-        sample_scattering=pjoin(
-            data_dir, 'gpsans', 'CG2_exp245_scan0010_0001.xml'),
-        dark_current=pjoin(
-            data_dir, 'gpsans', 'CG2_exp244_scan0001_0001.xml'),
+        beamcenter=pjoin(dd, 'CG2_exp325_scan0020_0001.xml'),
+        beamcenter_off_setted=pjoin(dd, 'CG2_exp245_scan0007_0001.xml'),
+        sample_transmission=pjoin(dd, 'CG2_exp245_scan0009_0001.xml'),
+        sample_scattering=pjoin(dd, 'CG2_exp245_scan0010_0001.xml'),
+        dark_current=pjoin(dd, 'CG2_exp244_scan0001_0001.xml'),
+    )
+
+
+@pytest.fixture(scope='session')
+def gpsans_full_dataset():
+    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
+    return dict(
+        sample_scattering_list=[
+            pjoin(dd, 'CG2_exp245_scan0010_0001.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0002.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0003.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0004.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0005.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0006.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0007.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0008.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0009.xml'),
+            pjoin(dd, 'CG2_exp245_scan0010_0010.xml'),
+        ],
+        background_scattering=pjoin(dd, 'CG2_exp245_scan0005_0001.xml'),
+        sample_transmission=pjoin(dd, 'CG2_exp245_scan0009_0001.xml'),
+        background_transmission=pjoin(dd, 'CG2_exp245_scan0004_0001.xml'),
+        empty_transmission=pjoin(dd, 'CG2_exp245_scan0004_0001.xml'),
+        beamcenter=pjoin(dd, 'CG2_exp245_scan0007_0001.xml'),
+        dark_current=pjoin(dd, 'CG2_exp244_scan0001_0001.xml'),
+    )
+
+
+@pytest.fixture(scope='session')
+def biosans_sensitivity_dataset():
+    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'biosans')
+    return dict(
+        dark_current=pjoin(dd, 'BioSANS_exp327_scan0014_0001.xml'),
+        flood=pjoin(dd, 'BioSANS_exp327_scan0066_0001.xml'),
+        flood_beamcenter=pjoin(dd, 'BioSANS_exp327_scan0028_0001.xml'),
+        empty_transmission=pjoin(dd, 'BioSANS_exp327_scan0028_0001.xml'),
+        flood_mask=pjoin(dd, 'BioSANS_exp327_scan0066_0001_mask.xml'),
+    )
+
+
+@pytest.fixture(scope='session')
+def gpsans_sensitivity_dataset():
+    dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
+    return dict(
+        dark_current=pjoin(dd, 'CG2_exp206_scan0038_0001.xml'),
+        flood_trans=pjoin(dd, 'CG2_exp206_scan0017_0001.xml'),
+        flood_trans_0_beamcenter=pjoin(dd, 'CG2_exp206_scan0016_0001.xml'),
+        flood_trans_0_mask=pjoin(
+            dd, 'CG2_exp206_scan0017_0001_mask_beamstop.xml'),
+        flood_trans_200=pjoin(dd, 'CG2_exp206_scan0019_0001.xml'),
+        flood_trans_200_beamcenter=pjoin(dd, 'CG2_exp206_scan0018_0001.xml'),
+        flood_trans_200_mask=pjoin(
+            dd, 'CG2_exp206_scan0019_0001_mask_beamstop.xml'),
+        flood_trans_400=pjoin(dd, 'CG2_exp206_scan0021_0001.xml'),
+        flood_trans_400_beamcenter=pjoin(dd, 'CG2_exp206_scan0020_0001.xml'),
+        flood_trans_400_mask=pjoin(
+            dd, 'CG2_exp206_scan0021_0001_mask_beamstop.xml'),
     )
 
 

@@ -22,10 +22,10 @@ def beam_radius(ws):
     float
         Estimated beam radius
     """
-    logs = dict(sample_ad='sample_aperture-diameter',
-                source_ad='source_aperture-diameter',
+    logs = dict(sample_aperture_diameter_log='sample_aperture-diameter',
+                source_aperture_diameter_log='source_aperture-diameter',
                 sdd_log='sample-detector-distance',
-                sasd_log='source_aperture-sample-distance')
+                ssd_log='source_aperture-sample-distance')
     return calculate_radius_from_input_ws(ws, **logs)
 
 

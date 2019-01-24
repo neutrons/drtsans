@@ -147,10 +147,6 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws, radius):
         Direct beam workspace (possibly obtained with an attenuated beam)
     radius: float
         Radius around the bean center for pixel integration, in millimeters
-    output_ws: str
-        Name of the output workspace containing the transmission values.
-    delete_temp_wss: bool
-        Delete the grouping detector workspaces
 
     Returns
     -------

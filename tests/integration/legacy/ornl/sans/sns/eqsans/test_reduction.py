@@ -1,27 +1,25 @@
 """EQSANS reduction script
 """
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
+import os
+import shutil
+import tempfile
+from os.path import join as pjn
 
 import pytest
-import os
-from os.path import join as pjn
-import shutil
 
-from mantid.kernel import ConfigService
-from mantid.simpleapi import (Load, ExtractMask, LoadEventNexus,
-                              CompareWorkspaces)
-
-import reduction_workflow.instruments.sans.sns_command_interface as sns_cli
-import reduction_workflow.instruments.sans.hfir_command_interface as hfir_cli
 import reduction_workflow.command_interface as main_cli
+import reduction_workflow.instruments.sans.hfir_command_interface as hfir_cli
+import reduction_workflow.instruments.sans.sns_command_interface as sns_cli
+from mantid.kernel import ConfigService
+from mantid.simpleapi import (CompareWorkspaces, ExtractMask, Load,
+                              LoadEventNexus)
 
 shared_dir = '/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp'
 ipts_dir = '/SNS/EQSANS/IPTS-20196/nexus'
 
-output_dir = '/tmp/sans-rewrite/tests/integration/' \
-             'legacy/ornl/sans/sns/eqsans/test_reduction'
-if not os.path.isdir(output_dir):
-    os.makedirs(output_dir)
+output_dir = tempfile.mkdtemp()
 
 
 def test_reduction(refd):

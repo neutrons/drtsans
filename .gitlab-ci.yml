@@ -6,6 +6,7 @@ stages:
   - flake8
   - python2.7
   - python3.6
+  - integration
 
 flake8:
   variables:
@@ -27,3 +28,10 @@ python3.6:
   stage: python3.6
   script:
     - source test_job.sh 3.6 ${TEST_SCOPE}
+
+integration:
+  variables:
+    CI_DEBUG_TRACE: "true"
+  stage: integration
+  script:
+    - source test_job.sh 3.6 integration

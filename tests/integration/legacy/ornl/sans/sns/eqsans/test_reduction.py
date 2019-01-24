@@ -2,7 +2,6 @@
 """
 from __future__ import absolute_import, division, print_function
 
-import os
 import shutil
 import tempfile
 from os.path import join as pjn
@@ -22,6 +21,7 @@ ipts_dir = '/SNS/EQSANS/IPTS-20196/nexus'
 output_dir = tempfile.mkdtemp()
 
 
+@pytest.mark.skip(reason="Mantid master is failing for EQSANS reduction.")
 def test_reduction(refd):
 
     # Set specific configuration

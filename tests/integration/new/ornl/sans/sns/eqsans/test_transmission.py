@@ -5,7 +5,8 @@ from numpy.testing import assert_almost_equal
 from os.path import join as pjn
 from mantid.simpleapi import Load, CompareWorkspaces
 from ornl.settings import amend_config
-from ornl.sans.transmission import zero_angle_transmission, apply_transmission
+from ornl.sans.transmission import (zero_angle_transmission,
+                                    apply_transmission_mantid)
 from ornl.sans.sns.eqsans.transmission import beam_radius, fit_raw
 from ornl.sans.sns.eqsans.geometry import insert_aperture_logs
 
@@ -42,9 +43,8 @@ def test_transmission(refd):
         assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 1.1, decimal=1)
 
         # Apply the fitted transmission
-        corr = apply_transmission(sample, 'sample_corr',
-                                  trans_ws=fitted.transmission,
-                                  theta_dependent=True)
+        corr = apply_transmission_mantid(sample, trans_ws=fitted.transmission,
+                                         theta_dependent=True)
         quick_compare(corr.OutputWorkspace, 'sample_corrected.nxs')
         quick_compare(corr.TransmissionWorkspace, 'theta_transmission.nxs')
 

@@ -116,7 +116,7 @@ def eqsans_w(eqsans_f):
 def eqsans_p():
     """ Default parameters. Usually this comes from the parameters file """
     return dict(
-        tubes_to_mask='1,48,53,54,85,123,130,137',
+        tubes_to_mask="1,48,53,54,85,123,130,137",
     )
 
 

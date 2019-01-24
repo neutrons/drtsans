@@ -110,7 +110,7 @@ class Cfg(object):
 
         Parameters
         ----------
-        source: str
+        file: str
             One of the following: (1) absolute path or just filename to a
             configuration file; (2) run-number
 

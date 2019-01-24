@@ -1,35 +1,9 @@
 from __future__ import (absolute_import, division, print_function)
 
 
-from ornl.settings import load_run
-from ornl.sans.sns.eqsans.beam_finder import direct_beam_center
-from mantid.simpleapi import (SANSMaskDTP, FindCenterOfMassPosition)
-
-
-def prepare_direct_beam_center(direct_beam, mask=None,
-                               finder=FindCenterOfMassPosition,
-                               finder_kwargs=None):
-    r"""Recipe to find the beam center coordinates from a  direct beam run
-
-    Current limitation: `mask` has to be a list of tube indexes
-
-    Parameters
-    ----------
-    direct_beam: str
-        Run number for the direct beam run
-    mask: str,
-        list of tubes (separated by comma) to mask.
-    finder: function
-        Method to find the beam center
-    finder_kwargs: dict
-        Additional options for the finder method
-    """
-    if finder_kwargs is None:
-        finder_kwargs = {}
-    w = load_run(direct_beam, 'EQSANS')
-    if mask is not None:
-        SANSMaskDTP(InputWorkspace=w, Tube=mask)
-    return direct_beam_center(w, finder, finder_kwargs)
+def prepare_beam_center():
+    r"""Recipe for the beam center file prior to finding the center coords."""
+    pass
 
 
 def prepare_dark_current():

@@ -5,13 +5,13 @@ import tempfile
 import pytest
 
 from mantid.simpleapi import (CalculateSensitivity, SANSMaskDTP,
-                              LoadHFIRSANS, LoadMask,
+                              LoadHFIRSANS, LoadMask, ReplaceSpecialValues,
                               MaskDetectors, MoveInstrumentComponent,
                               SANSSolidAngle, SaveNexus)
 from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
 from ornl.sans.hfir.dark_current import subtract_normalised_dark
 from ornl.sans.hfir.normalisation import time
-from ornl.sans.transmission import apply_transmission_correction
+from ornl.sans.transmission import calculate_transmission
 from ornl.sans.sensitivity import interpolate_mask
 
 '''
@@ -98,19 +98,23 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # Probably we don't need it for transmission.
     empty_transmission_time_sa_corrected_ws =\
         empty_transmission_dc_time_corrected_ws / solid_angle_ws
+    
+    empty_transmission_time_sa_corrected_ws = ReplaceSpecialValues(
+        InputWorkspace=empty_transmission_time_sa_corrected_ws,
+        NaNValue=0, InfinityValue=0)
 
     ############################################################################
-    # Transmission correction
-
-    flood_trans_ws = apply_transmission_correction(
-        flood_dc_time_sa_corrected_ws, empty_transmission_time_sa_corrected_ws,
-        theta_dependent=False)
+    # This is only to get transmission from the flat measurement
+    # The value will be used in the wing detector
+    calculated_transmission_value,  calculated_transmission_error = \
+        calculate_transmission(flood_dc_time_sa_corrected_ws,
+                               empty_transmission_time_sa_corrected_ws)
 
     ############################################################################
     # Sensitivity calculation
-    sensitivity_ws = CalculateSensitivity(InputWorkspace=flood_trans_ws,
-                                          MinSensitivity=0.1,
-                                          MaxSensitivity=1.7)
+    sensitivity_ws = CalculateSensitivity(
+        InputWorkspace=flood_dc_time_sa_corrected_ws, MinSensitivity=0.1,
+        MaxSensitivity=2.0)
 
     ############################################################################
     # Load and mask sensitivity according to the beamstop
@@ -119,7 +123,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     ############################################################################
     # Let's interpolate the masks
     sensitivity_interpolated_ws = interpolate_mask(
-        sensitivity_ws, flood_mask_ws, polynomial_degree=2)
+        sensitivity_ws, polynomial_degree=2)
 
     ############################################################################
     # Save

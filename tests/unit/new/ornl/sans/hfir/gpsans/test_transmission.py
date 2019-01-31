@@ -44,8 +44,7 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
     '''
 
     '''
-    from ornl.sans.transmission import (zero_angle_transmission,
-                                        calculate_radius_from_input_ws)
+    from ornl.sans.transmission import calculate_transmission
     from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent
 
     x, y = dataset_center[0], dataset_center[1]
@@ -59,15 +58,11 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
     MoveInstrumentComponent(
         Workspace=input_reference_ws, ComponentName='detector1', X=-x, Y=-y)
 
-    radius = calculate_radius_from_input_ws(input_sample_ws)
+    calculated_transmission = calculate_transmission(input_sample_ws,
+                                                     input_reference_ws)
 
-    calculated_transmission = zero_angle_transmission(
-        input_sample_ws, input_reference_ws, radius)
-
-    assert calculated_transmission.readY(
-        0)[0] == pytest.approx(0.0087, abs=1e-4)
-    assert calculated_transmission.readE(
-        0)[0] == pytest.approx(0.0113, abs=1e-4)
+    assert calculated_transmission[0] == pytest.approx(0.08224, abs=1e-4)
+    assert calculated_transmission[1] == pytest.approx(0.01267, abs=1e-4)
 
 
 @pytest.mark.offline

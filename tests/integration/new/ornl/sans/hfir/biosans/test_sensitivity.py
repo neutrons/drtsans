@@ -7,8 +7,7 @@ import pytest
 from mantid.simpleapi import (CalculateSensitivity, SANSMaskDTP,
                               LoadHFIRSANS, LoadMask, ReplaceSpecialValues,
                               MaskDetectors, MoveInstrumentComponent,
-                              SANSSolidAngle, SaveNexus, RenameWorkspace,
-                              ClearMaskFlag)
+                              SANSSolidAngle, SaveNexus, RenameWorkspace)
 from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
 from ornl.sans.hfir.dark_current import subtract_normalised_dark
 from ornl.sans.hfir.normalisation import time
@@ -64,15 +63,21 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # DC Subtraction
     flood_dc_corrected_ws = subtract_normalised_dark(
         flood_ws, dark_current_norm_ws)
-    flood_dc_corrected_ws = RenameWorkspace(InputWorkspace=flood_dc_corrected_ws, OutputWorkspace="flood_dc_corrected_ws")
+    flood_dc_corrected_ws = RenameWorkspace(
+        InputWorkspace=flood_dc_corrected_ws,
+        OutputWorkspace="flood_dc_corrected_ws")
 
     empty_transmission_dc_corrected_ws = subtract_normalised_dark(
         empty_transmission_ws, dark_current_norm_ws)
-    empty_transmission_dc_corrected_ws = RenameWorkspace(InputWorkspace=empty_transmission_dc_corrected_ws, OutputWorkspace="empty_transmission_dc_corrected_ws")
+    empty_transmission_dc_corrected_ws = RenameWorkspace(
+        InputWorkspace=empty_transmission_dc_corrected_ws,
+        OutputWorkspace="empty_transmission_dc_corrected_ws")
 
     flood_beamcenter_dc_corrected_ws = subtract_normalised_dark(
         flood_beamcenter_ws, dark_current_norm_ws)
-    flood_beamcenter_dc_corrected_ws = RenameWorkspace(InputWorkspace=flood_beamcenter_dc_corrected_ws, OutputWorkspace="flood_beamcenter_dc_corrected_ws")
+    flood_beamcenter_dc_corrected_ws = RenameWorkspace(
+        InputWorkspace=flood_beamcenter_dc_corrected_ws,
+        OutputWorkspace="flood_beamcenter_dc_corrected_ws")
 
     ###########################################################################
     # Find the beam center
@@ -87,21 +92,27 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     MoveInstrumentComponent(
         Workspace=flood_dc_corrected_ws, ComponentName='detector1', X=-x, Y=-y)
     MoveInstrumentComponent(
-        Workspace=empty_transmission_dc_corrected_ws, ComponentName='detector1', X=-x, Y=-y)
+        Workspace=empty_transmission_dc_corrected_ws,
+        ComponentName='detector1', X=-x, Y=-y)
 
-    # ###########################################################################
-    # # Normalization (In the original script they use time normalization)
+    ###########################################################################
+    # Normalization (In the original script they use time normalization)
     flood_dc_time_corrected_ws = time(flood_dc_corrected_ws)
-    flood_dc_time_corrected_ws = RenameWorkspace(InputWorkspace=flood_dc_time_corrected_ws, OutputWorkspace="flood_dc_time_corrected_ws")
-    
-    empty_transmission_dc_time_corrected_ws = time(empty_transmission_dc_corrected_ws)
-    empty_transmission_dc_time_corrected_ws = RenameWorkspace(InputWorkspace=empty_transmission_dc_time_corrected_ws, OutputWorkspace="empty_transmission_dc_time_corrected_ws")
+    flood_dc_time_corrected_ws = RenameWorkspace(
+        InputWorkspace=flood_dc_time_corrected_ws,
+        OutputWorkspace="flood_dc_time_corrected_ws")
 
-    # ###########################################################################
-    # # Solid Angle correction
+    empty_transmission_dc_time_corrected_ws = time(
+        empty_transmission_dc_corrected_ws)
+    empty_transmission_dc_time_corrected_ws = RenameWorkspace(
+        InputWorkspace=empty_transmission_dc_time_corrected_ws,
+        OutputWorkspace="empty_transmission_dc_time_corrected_ws")
+
+    ###########################################################################
+    # Solid Angle correction
     solid_angle_ws = SANSSolidAngle(
         InputWorkspace=flood_dc_time_corrected_ws, Type='Tube')
-    
+
     flood_dc_time_sa_corrected_ws = flood_dc_time_corrected_ws / solid_angle_ws
 
     flood_dc_time_sa_corrected_ws = ReplaceSpecialValues(
@@ -112,7 +123,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # Probably we don't need it for transmission.
     empty_transmission_time_sa_corrected_ws =\
         empty_transmission_dc_time_corrected_ws / solid_angle_ws
-    
+
     empty_transmission_time_sa_corrected_ws = ReplaceSpecialValues(
         InputWorkspace=empty_transmission_time_sa_corrected_ws,
         NaNValue=0, InfinityValue=0)
@@ -124,32 +135,31 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         calculate_transmission(flood_dc_time_sa_corrected_ws,
                                empty_transmission_time_sa_corrected_ws)
 
-    # ###########################################################################
-    # # Sensitivity calculation
+    ###########################################################################
+    # Sensitivity calculation
     sensitivity_ws = CalculateSensitivity(
         InputWorkspace=flood_dc_time_sa_corrected_ws, MinSensitivity=0.3,
         MaxSensitivity=1.7)
 
-    # ###########################################################################
-    # # Load and mask sensitivity according to the beamstop
+    ###########################################################################
+    # Load and mask sensitivity according to the beamstop
     MaskDetectors(Workspace=sensitivity_ws, MaskedWorkspace=flood_mask_ws)
 
-    # ###########################################################################
-    # # Let's interpolate the masks
+    ###########################################################################
+    # Let's interpolate the masks
     sensitivity_interpolated_ws = interpolate_mask(
         sensitivity_ws, polynomial_degree=2)
-    sensitivity_interpolated_ws = RenameWorkspace(InputWorkspace=sensitivity_interpolated_ws, OutputWorkspace="sensitivity_interpolated_ws")
+    sensitivity_interpolated_ws = RenameWorkspace(
+        InputWorkspace=sensitivity_interpolated_ws,
+        OutputWorkspace="sensitivity_interpolated_ws")
 
-    # ClearMaskFlag(Workspace=sensitivity_interpolated_ws, ComponentName='detector1')
+    ###########################################################################
+    # Save
 
-
-    # ###########################################################################
-    # # Save
-
-    # with tempfile.NamedTemporaryFile(
-    #         delete=False, prefix="sensitivivity_biosans_",
-    #         suffix=".nxs") as temp_file:
-    #     SaveNexus(InputWorkspace=sensitivity_interpolated_ws,
-    #               Filename=temp_file.name,
-    #               Title='CG2 exp206 sensitivivity')
-    #     print("Saved NeXus sensitivity file to: {}".format(temp_file.name))
+    with tempfile.NamedTemporaryFile(
+            delete=False, prefix="sensitivivity_biosans_main_detector",
+            suffix=".nxs") as temp_file:
+        SaveNexus(InputWorkspace=sensitivity_interpolated_ws,
+                  Filename=temp_file.name,
+                  Title='CG2 exp206 sensitivivity')
+        print("Saved NeXus sensitivity file to: {}".format(temp_file.name))

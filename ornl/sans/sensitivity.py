@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 
 from mantid.kernel import logger
-from mantid.simpleapi import CloneWorkspace, MaskDetectors
+from mantid.simpleapi import CloneWorkspace
 
 
 def _interpolate_tube(x, y, e, detectors_masked, polynomial_degree):
@@ -21,7 +21,7 @@ def _interpolate_tube(x, y, e, detectors_masked, polynomial_degree):
     return y_new, e_new
 
 
-def interpolate_mask(flood_ws, polynomial_degree=1,
+def interpolate_mask(flood_ws, polynomial_degree=2,
                      component_name='detector1', min_detectors_per_tube=50):
     '''Interpolates over the mask (usually the beamstop and the tube ends)
     Assumptions:
@@ -39,7 +39,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         Component name to  (the default is 'detector1', which is the main
         detector)
     min_detectors_per_tube : int, optional
-        Minimum detectors with a value existing in the tube to fit 
+        Minimum detectors with a value existing in the tube to fit
         (the default is 50)
 
     TODO: Average when polynomial_degree == 2
@@ -50,6 +50,8 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         The interpolated workspace
     '''
 
+    assert flood_ws.getNumberBins() == 1, "This only supports integrated WS"
+
     # Get the main detector: the masks are in the mask workspace!!!
     instrument = flood_ws.getInstrument()
     component = instrument.getComponentByName(component_name)
@@ -58,7 +60,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         return
 
     # find out in which WS index starts the monitor
-    # Try this: There is a method in `MatrixWorkspace`, 
+    # Try this: There is a method in `MatrixWorkspace`,
     # `getDetectorIDToWorkspaceIndexMap` or something like that.
     # Not exposed to python :(
     spectrum_info = flood_ws.spectrumInfo()
@@ -66,9 +68,8 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     while spectrum_info.isMonitor(ws_index):
         logger.notice("No monitor: ws_index:  {}".format(ws_index))
         ws_index += 1
-    
+
     first_detector_index = ws_index
-    logger.notice("First detector index: ws_index:  {}".format(first_detector_index))
 
     # Put the data in numpy arrays
     data_y = flood_ws.extractY()
@@ -78,13 +79,16 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     detector_info = flood_ws.detectorInfo()
     detector_ids = detector_info.detectorIDs()
 
+    detector_id_to_index = {id: index for (id, index) in
+                            zip(detector_ids, range(first_detector_index,
+                                flood_ws.getNumberHistograms()))}
+
     number_of_tubes = component.nelements()
     # Lets get the output workspace
     __output_ws = CloneWorkspace(flood_ws)
+    detector_info_output_ws = __output_ws.detectorInfo()
 
     for tube_idx in range(number_of_tubes):
-        logger.notice("Tube index beeing analised = {}. WS index={}.".format(
-            tube_idx, ws_index))
 
         if component[0].nelements() <= 1:
             # Handles EQSANS
@@ -100,20 +104,23 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
             x = np.array([tube[i].getPos()[1] for i in range(
                 num_detectors_in_tube)])
 
-        tube_detector_ids = detector_ids[tube_idx*num_detectors_in_tube: num_detectors_in_tube + tube_idx*num_detectors_in_tube]
-        print("********** tube_detector_ids **************\n", tube_detector_ids)
+        tube_detector_ids = detector_ids[tube_idx *
+                                         num_detectors_in_tube:
+                                         num_detectors_in_tube +
+                                         tube_idx*num_detectors_in_tube]
 
-            # ws_index-first_detector_index:ws_index-first_detector_index+num_detectors_in_tube]
         # check how many detectors are masked in the tube
         # same size as the tube, True where masked
         detectors_masked = np.array(
-            [detector_info.isMasked(int(id)) for id in tube_detector_ids])
+            [detector_info.isMasked(detector_id_to_index[id])
+             for id in tube_detector_ids])
+
         # Count the detectors masked (True)
         num_of_detectors_masked = np.count_nonzero(detectors_masked)
         if num_of_detectors_masked > 0 and \
                 (len(tube_detector_ids) - num_of_detectors_masked) > \
-                    min_detectors_per_tube:  # number of detectors with values > min_detectors_per_tube
-            
+                min_detectors_per_tube:  # number of detectors with values
+                                            # > min_detectors_per_tube
             # Let's fit
             y = data_y[ws_index:ws_index+num_detectors_in_tube].flatten()
             e = data_e[ws_index:ws_index+num_detectors_in_tube].flatten()
@@ -122,18 +129,14 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
                                              polynomial_degree)
 
             for detector_id, y_new_value, e_new_value in zip(
-                    tube_detector_ids[detectors_masked], y_new[detectors_masked],
-                    e_new[detectors_masked]):
-                # int because we are iterating numpy array and mantid set needs
-                # type int
-                ws_index_to_edit = int(detector_id - first_detector_index)
-                # logger.notice("{} setY({},{})  setE({},{})".format(
-                #     __output_ws.name(), ws_index_to_edit, y_new_value,
-                #     ws_index_to_edit, e_new_value))
+                    tube_detector_ids[detectors_masked],
+                    y_new[detectors_masked], e_new[detectors_masked]):
+
+                ws_index_to_edit = detector_id_to_index[detector_id]
 
                 __output_ws.setY(ws_index_to_edit, np.array([y_new_value]))
                 __output_ws.setE(ws_index_to_edit, np.array([e_new_value]))
-                detector_info.setMasked(int(detector_id), True)
+                detector_info_output_ws.setMasked(ws_index_to_edit, False)
 
         elif num_of_detectors_masked > min_detectors_per_tube:
             logger.error("Skipping tube {}. Too many masked detectors.".format(

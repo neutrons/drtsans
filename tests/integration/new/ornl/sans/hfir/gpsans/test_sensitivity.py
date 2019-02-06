@@ -82,9 +82,10 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         #
         # Sensitivity
         sensitivity_ws_name = "sensitivity_{}".format(trans)
-        CalculateSensitivity(InputWorkspace=flood_dc_sa_mon_corrected_ws.name(),
-                             OutputWorkspace=sensitivity_ws_name,
-                             MinThreshold=0.3, MaxThreshold=1.7)
+        CalculateSensitivity(
+            InputWorkspace=flood_dc_sa_mon_corrected_ws.name(),
+            OutputWorkspace=sensitivity_ws_name,
+            MinThreshold=0.3, MaxThreshold=1.7)
         #
         # transform inf values into masked pixels
         inf_value_to_mask(mtd[sensitivity_ws_name])

@@ -5,13 +5,13 @@ import tempfile
 import pytest
 
 from mantid import mtd
-from mantid.simpleapi import (CalculateSensitivity, ClearMaskFlag,
+from mantid.simpleapi import (CalculateSensitivity, ClearMaskFlag, SANSMaskDTP,
                               LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
                               ReplaceSpecialValues, SANSSolidAngle, SaveNexus)
 from ornl.sans.hfir.gpsans.beam_finder import direct_beam_center
 from ornl.sans.hfir.normalisation import monitor
-
+from ornl.sans.sensitivity import inf_value_to_mask
 
 '''
 For every flood:
@@ -51,6 +51,11 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         flood_mask_ws = LoadMask(Instrument='CG2', InputFile=flood_mask_file,
                                  RefWorkspace=flood_ws)
         #
+        # Mask the detector tube ends
+        SANSMaskDTP(InputWorkspace=flood_ws, Pixel="1-10,247-256")
+        SANSMaskDTP(InputWorkspace=flood_beamcenter_ws, Pixel="1-10,247-256")
+
+        #
         # Find the beam center
         x, y = direct_beam_center(flood_beamcenter_ws)
         print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
@@ -77,9 +82,12 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         #
         # Sensitivity
         sensitivity_ws_name = "sensitivity_{}".format(trans)
-        CalculateSensitivity(InputWorkspace=flood_dc_sa_mon_corrected_ws,
+        CalculateSensitivity(InputWorkspace=flood_dc_sa_mon_corrected_ws.name(),
                              OutputWorkspace=sensitivity_ws_name,
-                             MinSensitivity=0.3, MaxSensitivity=1.7)
+                             MinThreshold=0.3, MaxThreshold=1.7)
+        #
+        # transform inf values into masked pixels
+        inf_value_to_mask(mtd[sensitivity_ws_name])
         #
         # Load and mask sensitivity according to the beamstop
         MaskDetectors(

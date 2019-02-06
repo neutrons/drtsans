@@ -138,8 +138,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     ###########################################################################
     # Sensitivity calculation
     sensitivity_ws = CalculateSensitivity(
-        InputWorkspace=flood_dc_time_sa_corrected_ws, MinSensitivity=0.3,
-        MaxSensitivity=1.7)
+        InputWorkspace=flood_dc_time_sa_corrected_ws, MinThreshold=0.5,
+        MaxThreshold=1.5)
 
     ###########################################################################
     # Load and mask sensitivity according to the beamstop
@@ -157,9 +157,9 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # Save
 
     with tempfile.NamedTemporaryFile(
-            delete=False, prefix="sensitivivity_biosans_main_detector",
+            delete=True, prefix="sensitivivity_cg3_main_",
             suffix=".nxs") as temp_file:
         SaveNexus(InputWorkspace=sensitivity_interpolated_ws,
                   Filename=temp_file.name,
-                  Title='CG2 exp206 sensitivivity')
+                  Title='CG3 sensitivivity')
         print("Saved NeXus sensitivity file to: {}".format(temp_file.name))

@@ -9,6 +9,7 @@ from mantid.simpleapi import (CalculateSensitivity, ClearMaskFlag, SANSMaskDTP,
                               LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
                               ReplaceSpecialValues, SANSSolidAngle, SaveNexus)
+from mantid.kernel import Property
 from ornl.sans.hfir.gpsans.beam_finder import direct_beam_center
 from ornl.sans.hfir.normalisation import monitor
 from ornl.sans.sensitivity import inf_value_to_mask
@@ -49,11 +50,11 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         flood_ws = LoadHFIRSANS(Filename=flood_file)
         flood_beamcenter_ws = LoadHFIRSANS(Filename=flood_beamcenter_file)
         flood_mask_ws = LoadMask(Instrument='CG2', InputFile=flood_mask_file,
-                                 RefWorkspace=flood_ws)
+                                 RefWorkspace=flood_ws.name())
         #
         # Mask the detector tube ends
-        SANSMaskDTP(InputWorkspace=flood_ws, Pixel="1-10,247-256")
-        SANSMaskDTP(InputWorkspace=flood_beamcenter_ws, Pixel="1-10,247-256")
+        #SANSMaskDTP(InputWorkspace=flood_ws, Pixel="1-10,247-256")
+        #SANSMaskDTP(InputWorkspace=flood_beamcenter_ws, Pixel="1-10,247-256")
 
         #
         # Find the beam center
@@ -66,15 +67,15 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         assert y == pytest.approx(-0.03, abs=1e-2)
         #
         # Get the right geometry
-        MoveInstrumentComponent(Workspace=flood_ws, ComponentName='detector1',
-                                X=-x, Y=-y)
+        MoveInstrumentComponent(Workspace=flood_ws.name(),
+                                ComponentName='detector1', X=-x, Y=-y)
         #
         # DC Subtraction
         flood_dc_corrected_ws = flood_ws - dark_current_ws
         #
         # Solid Angle correction
         solid_angle_ws = SANSSolidAngle(
-            InputWorkspace=flood_dc_corrected_ws, Type='Tube')
+            InputWorkspace=flood_dc_corrected_ws.name(), Type='Tube')
         flood_dc_sa_corrected_ws = flood_dc_corrected_ws / solid_angle_ws
         #
         # Monitor Normalization
@@ -85,10 +86,7 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         CalculateSensitivity(
             InputWorkspace=flood_dc_sa_mon_corrected_ws.name(),
             OutputWorkspace=sensitivity_ws_name,
-            MinThreshold=0.3, MaxThreshold=1.7)
-        #
-        # transform inf values into masked pixels
-        inf_value_to_mask(mtd[sensitivity_ws_name])
+            MinThreshold=0.5, MaxThreshold=1.5)
         #
         # Load and mask sensitivity according to the beamstop
         MaskDetectors(
@@ -102,20 +100,29 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
             Workspace=zero_ws_name, MaskedWorkspace=sensitivity_ws_name)
         ClearMaskFlag(Workspace=zero_ws_name, ComponentName='detector1')
         ClearMaskFlag(Workspace=sensitivity_ws_name, ComponentName='detector1')
+        assert mtd[sensitivity_ws_name].readY(31874)[0] == Property.EMPTY_DBL
+
+        inf_value_to_mask(mtd[sensitivity_ws_name])
+        assert mtd[sensitivity_ws_name].readY(31874)[0] == 1
+        assert mtd[sensitivity_ws_name].readE(31874)[0] == 0
+        assert mtd[sensitivity_ws_name].detectorInfo().isMasked(31874)
 
     # Sum the zeros ws: Max = 3, Min = 2
-    zero_ws = mtd['zero_0'] + mtd['zero_200'] + mtd['zero_400']
-    sensitivity_ws = mtd['sensitivity_0'] + \
+    zeros_summed_ws = mtd['zero_0'] + mtd['zero_200'] + mtd['zero_400']
+    sensitivities_summed_ws = mtd['sensitivity_0'] + \
         mtd['sensitivity_200'] + mtd['sensitivity_400']
 
     # Divide
-    sensitivity_final = sensitivity_ws / zero_ws
-    sensitivity_final = ReplaceSpecialValues(InputWorkspace=sensitivity_final,
-                                             NaNValue=0, InfinityValue=0)
+    sensitivity_final_ws = sensitivities_summed_ws / zeros_summed_ws
+    sensitivity_final_ws = ReplaceSpecialValues(
+        InputWorkspace=sensitivity_final_ws, NaNValue=0, InfinityValue=0)
+
+    # this is a bad pixel!
+    assert sensitivity_final_ws.detectorInfo().isMasked(31874)
 
     with tempfile.NamedTemporaryFile(delete=True, prefix="sensitivivity_cg2_",
                                      suffix=".nxs") as temp_file:
-        SaveNexus(InputWorkspace=sensitivity_final,
+        SaveNexus(InputWorkspace=sensitivity_final_ws,
                   Filename=temp_file.name,
                   Title='CG2 exp206 sensitivivity')
         print("Saved NeXus sensitivity file to: {}".format(temp_file.name))

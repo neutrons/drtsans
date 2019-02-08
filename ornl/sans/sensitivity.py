@@ -163,7 +163,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
 
 def inf_value_to_mask(ws):
     """In case the input workspace has infinite values (EMPTY_DBL)
-    Mask these values
+    Mask these pixels and set Value to 1 and Error to 0
 
     Parameters
     ----------

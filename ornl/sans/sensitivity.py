@@ -8,16 +8,41 @@ from mantid.simpleapi import CloneWorkspace
 
 def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
                       polynomial_degree):
+    '''Interpolates a tube.
+    Calculates the fitting for non masked pixels and non dead pixels
 
+    Parameters
+    ----------
+    x : np.array
+        linear position of the pixel
+    y : np.array
+        values of pixels
+    e : np.array
+        Error on the value of a pixel
+    detectors_masked : np.array
+        Same size as x,y,z, True where pixel is masked
+    detectors_inf : np.array
+        Same size as x,y,z, True where pixel is dead
+
+    Returns
+    -------
+    Tuple (y,error)
+    '''
+
+    # Get the values to calculate the fit
     xx = x[~detectors_masked & ~detectors_inf]
     yy = y[~detectors_masked & ~detectors_inf]
     ee = e[~detectors_masked & ~detectors_inf]
 
-    polynomial_coeffs_y = np.polyfit(xx, yy, polynomial_degree)
-    polynomial_coeffs_e = np.polyfit(xx, ee, polynomial_degree)
-
-    y_new = np.polyval(polynomial_coeffs_y, x)
-    e_new = np.polyval(polynomial_coeffs_e, x)
+    polynomial_coeffs, cov_matrix = np.polyfit(
+        xx, yy, polynomial_degree, w=1/ee, cov=True)
+    y_new = np.polyval(polynomial_coeffs, x)
+    # Errors in the least squares is the sqrt of the covariance matrix
+    # (correlation between the coefficients)
+    e_coeffs = np.sqrt(np.diag(cov_matrix))
+    # errors of the polynomial
+    e_new = np.sqrt([np.add.reduce(
+        [(e_coeff*n**i)**2 for i, e_coeff in enumerate(e_coeffs)]) for n in x])
 
     return y_new, e_new
 
@@ -40,8 +65,8 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         Component name to  (the default is 'detector1', which is the main
         detector)
     min_detectors_per_tube : int, optional
-        Minimum detectors with a value existing in the tube to fit
-        (the default is 50)
+        Minimum detectors with a value existing in the tube to fit. Only fits
+        tubes with at least `min_detectors_per_tube` (the default is 50).
 
     TODO: Average when polynomial_degree == 0
 
@@ -163,13 +188,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
 
 def inf_value_to_mask(ws):
     """In case the input workspace has infinite values (EMPTY_DBL)
-    Mask these pixels and set Value to 1 and Error to 0
-
-    Parameters
-    ----------
-    ws : [type]
-        [description]
-
+    Mask these pixels and set Value to 1 and Error to 0.
     """
 
     assert ws.getNumberBins() == 1, "This only supports integrated WS"

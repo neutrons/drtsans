@@ -5,14 +5,15 @@ import tempfile
 import pytest
 
 from mantid import mtd
-from mantid.simpleapi import (CalculateSensitivity, ClearMaskFlag, SANSMaskDTP,
+from mantid.kernel import Property
+from mantid.simpleapi import (CalculateSensitivity, ClearMaskFlag,
                               LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
                               ReplaceSpecialValues, SANSSolidAngle, SaveNexus)
-from mantid.kernel import Property
 from ornl.sans.hfir.gpsans.beam_finder import direct_beam_center
 from ornl.sans.hfir.normalisation import monitor
 from ornl.sans.sensitivity import inf_value_to_mask
+
 
 '''
 For every flood:
@@ -51,11 +52,6 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         flood_beamcenter_ws = LoadHFIRSANS(Filename=flood_beamcenter_file)
         flood_mask_ws = LoadMask(Instrument='CG2', InputFile=flood_mask_file,
                                  RefWorkspace=flood_ws.name())
-        #
-        # Mask the detector tube ends
-        #SANSMaskDTP(InputWorkspace=flood_ws, Pixel="1-10,247-256")
-        #SANSMaskDTP(InputWorkspace=flood_beamcenter_ws, Pixel="1-10,247-256")
-
         #
         # Find the beam center
         x, y = direct_beam_center(flood_beamcenter_ws)

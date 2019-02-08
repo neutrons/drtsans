@@ -4,15 +4,16 @@ import tempfile
 
 import pytest
 
-from mantid.simpleapi import (CalculateSensitivity, SANSMaskDTP,
-                              LoadHFIRSANS, LoadMask, ReplaceSpecialValues,
+from mantid.simpleapi import (CalculateSensitivity, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
-                              SANSSolidAngle, SaveNexus, RenameWorkspace)
+                              RenameWorkspace, ReplaceSpecialValues,
+                              SANSMaskDTP, SANSSolidAngle, SaveNexus)
 from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
 from ornl.sans.hfir.dark_current import subtract_normalised_dark
 from ornl.sans.hfir.normalisation import time
-from ornl.sans.transmission import calculate_transmission
 from ornl.sans.sensitivity import interpolate_mask
+from ornl.sans.transmission import calculate_transmission
+
 
 '''
 For every flood:
@@ -120,7 +121,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         NaNValue=0, InfinityValue=0)
 
     # No need to recalculate solid angle.
-    # Probably we don't need it for transmission.
+    # Probably we don't need it for the transmission.
     empty_transmission_time_sa_corrected_ws =\
         empty_transmission_dc_time_corrected_ws / solid_angle_ws
 
@@ -148,10 +149,17 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     ###########################################################################
     # Let's interpolate the masks
     sensitivity_interpolated_ws = interpolate_mask(
-        sensitivity_ws, polynomial_degree=2)
+        sensitivity_ws, polynomial_degree=1)
     sensitivity_interpolated_ws = RenameWorkspace(
         InputWorkspace=sensitivity_interpolated_ws,
         OutputWorkspace="sensitivity_interpolated_ws")
+
+    # assert sensitivity_interpolated_ws.readY(21640)[0] == Property.EMPTY_DBL
+    # inf_value_to_mask(sensitivity_interpolated_ws)
+
+    assert sensitivity_interpolated_ws.readY(21640)[0] == 1
+    assert sensitivity_interpolated_ws.readE(21640)[0] == 0
+    assert sensitivity_interpolated_ws.detectorInfo().isMasked(21640)
 
     ###########################################################################
     # Save

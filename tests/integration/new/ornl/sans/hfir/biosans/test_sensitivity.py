@@ -7,12 +7,13 @@ import pytest
 from mantid.simpleapi import (CalculateSensitivity, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
                               RenameWorkspace, ReplaceSpecialValues,
-                              SANSMaskDTP, SANSSolidAngle, SaveNexus)
+                              SANSMaskDTP, SANSSolidAngle, SaveNexus,)
 from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
 from ornl.sans.hfir.dark_current import subtract_normalised_dark
 from ornl.sans.hfir.normalisation import time
-from ornl.sans.sensitivity import interpolate_mask
-from ornl.sans.transmission import calculate_transmission
+from ornl.sans.sensitivity import interpolate_mask, inf_value_to_mask
+from ornl.sans.transmission import (calculate_transmission,
+                                    apply_transmission_correction_value)
 
 
 '''
@@ -157,8 +158,10 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # assert sensitivity_interpolated_ws.readY(21640)[0] == Property.EMPTY_DBL
     # inf_value_to_mask(sensitivity_interpolated_ws)
 
-    assert sensitivity_interpolated_ws.readY(21640)[0] == 1
-    assert sensitivity_interpolated_ws.readE(21640)[0] == 0
+    assert sensitivity_interpolated_ws.readY(
+        21640)[0] == pytest.approx(1.0, abs=1e-03)
+    assert sensitivity_interpolated_ws.readE(
+        21640)[0] == pytest.approx(0.0, abs=1e-03)
     assert sensitivity_interpolated_ws.detectorInfo().isMasked(21640)
 
     ###########################################################################
@@ -171,3 +174,59 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
                   Filename=temp_file.name,
                   Title='CG3 sensitivivity')
         print("Saved NeXus sensitivity file to: {}".format(temp_file.name))
+
+###############################################################################
+# Let's do the wing now!
+###############################################################################
+    # Because we used Masks the wing detector is Zeroed. Load again!
+
+    # Load the files into WS
+    dark_current_ws = LoadHFIRSANS(
+        Filename=biosans_sensitivity_dataset['dark_current'])
+    flood_ws = LoadHFIRSANS(
+        Filename=biosans_sensitivity_dataset['flood'])
+
+    # Let's mask the main detector
+    SANSMaskDTP(InputWorkspace=dark_current_ws, Detector="1")
+    SANSMaskDTP(InputWorkspace=flood_ws, Detector="1")
+
+    # DC normalisation
+    dark_current_norm_ws = time(dark_current_ws)
+    # DC Subtraction
+    flood_dc_corrected_ws = subtract_normalised_dark(
+        flood_ws, dark_current_norm_ws)
+    flood_dc_corrected_ws = RenameWorkspace(
+        InputWorkspace=flood_dc_corrected_ws,
+        OutputWorkspace="flood_dc_corrected_ws")
+    
+    # Geometry with gravity correction
+    MoveInstrumentComponent(
+        Workspace=flood_dc_corrected_ws,
+        ComponentName='detector1', X=-x, Y=-y_gravity)
+
+
+    # Normalization (In the original script they use time normalization)
+    flood_dc_time_corrected_ws = time(flood_dc_corrected_ws)
+    flood_dc_time_corrected_ws = RenameWorkspace(
+        InputWorkspace=flood_dc_time_corrected_ws,
+        OutputWorkspace="flood_dc_time_corrected_ws")
+    
+    # No solid angle correction
+
+    # Apply Transmission Correction
+    flood_dc_time_trans_corrected_wing_ws = apply_transmission_correction_value(
+        flood_dc_time_corrected_ws, calculated_transmission_value,
+        calculated_transmission_error, theta_dependent=False)
+    flood_dc_time_trans_corrected_wing_ws = RenameWorkspace(
+        InputWorkspace=flood_dc_time_trans_corrected_wing_ws,
+        OutputWorkspace="flood_dc_time_trans_corrected_wing_ws")
+
+    # Sensitivity calculation
+    sensitivity_ws = CalculateSensitivity(
+        InputWorkspace=flood_dc_time_trans_corrected_wing_ws, MinThreshold=0.5,
+        MaxThreshold=1.5)
+
+    inf_value_to_mask(sensitivity_ws)
+    assert sensitivity_ws.readY(52867)[0] == 1
+    assert sensitivity_ws.readE(52867)[0] == 0
+    assert sensitivity_ws.detectorInfo().isMasked(52867)

@@ -2,8 +2,33 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
-from mantid.kernel import logger, Property
+from mantid.kernel import Property, logger
 from mantid.simpleapi import CloneWorkspace
+
+
+def _get_tube(component, tube_idx):
+    """Gets a given tube component
+
+    Parameters
+    ----------
+    component : Mantid Component
+        Component where the tube is situated.
+    tube_idx : int
+        The tube index in the detector usually from 0 to 191
+
+    Returns
+    -------
+    Mantid Component
+        Tube component
+    """
+
+    if component[0].nelements() <= 1:
+        # Handles EQSANS
+        tube = component[tube_idx][0]
+    else:
+        # Handles BioSANS/GPSANS
+        tube = component[tube_idx]
+    return tube
 
 
 def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
@@ -68,7 +93,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         Minimum detectors with a value existing in the tube to fit. Only fits
         tubes with at least `min_detectors_per_tube` (the default is 50).
 
-    TODO: Average when polynomial_degree == 0
+    TODO: Refactor this crap?
 
     Returns
     -------
@@ -76,6 +101,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         The interpolated workspace
     '''
 
+    # Sanity check
     assert flood_ws.getNumberBins() == 1, "This only supports integrated WS"
 
     # Get the main detector: the masks are in the mask workspace!!!
@@ -86,13 +112,11 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         return
 
     # find out in which WS index starts the monitor
-    # Try this: There is a method in `MatrixWorkspace`,
-    # `getDetectorIDToWorkspaceIndexMap` or something like that.
-    # Not exposed to python :(
+    # there is a `MatrixWorkspace.getDetectorIDToWorkspaceIndexMap` but it's
+    # not exposed to python :(
     spectrum_info = flood_ws.spectrumInfo()
     ws_index = 0
     while spectrum_info.isMonitor(ws_index):
-        logger.notice("No monitor: ws_index:  {}".format(ws_index))
         ws_index += 1
 
     first_detector_index = ws_index
@@ -102,13 +126,14 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     data_e = flood_ws.extractE()
 
     # numpy arrays with all the detector IDs
-    detector_info = flood_ws.detectorInfo()
-    detector_ids = detector_info.detectorIDs()
+    detector_info_input_ws = flood_ws.detectorInfo()
+    detector_ids = detector_info_input_ws.detectorIDs()
 
-    detector_id_to_index = {id: index for (id, index) in
-                            zip(detector_ids,
-                                range(first_detector_index,
-                                      flood_ws.getNumberHistograms()))}
+    # dict of detector_id -> ws index
+    detector_id_to_index = {
+        id: index for (id, index) in zip(
+            detector_ids, range(first_detector_index,
+                                flood_ws.getNumberHistograms()))}
 
     number_of_tubes = component.nelements()
     # Lets get the output workspace
@@ -116,13 +141,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     detector_info_output_ws = __output_ws.detectorInfo()
 
     for tube_idx in range(number_of_tubes):
-
-        if component[0].nelements() <= 1:
-            # Handles EQSANS
-            tube = component[tube_idx][0]
-        else:
-            # Handles Biosans/GPSANS
-            tube = component[tube_idx]
+        tube = _get_tube(component, tube_idx)
 
         # first tube operations
         if tube_idx == 0:
@@ -131,15 +150,14 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
             x = np.array([tube[i].getPos()[1] for i in range(
                 num_detectors_in_tube)])
 
-        tube_detector_ids = detector_ids[tube_idx *
-                                         num_detectors_in_tube:
-                                         num_detectors_in_tube +
-                                         tube_idx*num_detectors_in_tube]
+        tube_detector_ids = detector_ids[
+            tube_idx * num_detectors_in_tube:
+                num_detectors_in_tube + tube_idx*num_detectors_in_tube]
 
         # check how many detectors are masked in the tube
         # same size as the tube, True where masked
         detectors_masked = np.array(
-            [detector_info.isMasked(detector_id_to_index[id])
+            [detector_info_input_ws.isMasked(detector_id_to_index[id])
              for id in tube_detector_ids])
         # Those are the detectors marked "inf" (EMPTY_DBL)
         detectors_inf = np.array([flood_ws.readY(
@@ -178,11 +196,10 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
                 __output_ws.setE(ws_index_to_edit, np.array([0]))
 
         elif num_of_detectors_masked > min_detectors_per_tube:
-            logger.error("Skipping tube {}. Too many masked detectors.".format(
-                tube_idx))
-
+            logger.error("Skipping tube {}. Too many masked or dead pixels."
+                         "".format(tube_idx))
+        # Another iteration
         ws_index += num_detectors_in_tube
-
     return __output_ws
 
 
@@ -193,9 +210,9 @@ def inf_value_to_mask(ws):
 
     assert ws.getNumberBins() == 1, "This only supports integrated WS"
 
-    detector_info = ws.detectorInfo()
+    detector_info_input_ws = ws.detectorInfo()
     for i in range(ws.getNumberHistograms()):
         if ws.readY(i)[0] == Property.EMPTY_DBL:
-            detector_info.setMasked(i, True)
+            detector_info_input_ws.setMasked(i, True)
             ws.setY(i, np.array([1]))
             ws.setE(i, np.array([0]))

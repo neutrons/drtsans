@@ -7,13 +7,13 @@ import pytest
 from mantid.simpleapi import (CalculateSensitivity, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
                               RenameWorkspace, ReplaceSpecialValues,
-                              SANSMaskDTP, SANSSolidAngle, SaveNexus,)
+                              SANSMaskDTP, SANSSolidAngle, SaveNexus)
 from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
 from ornl.sans.hfir.dark_current import subtract_normalised_dark
 from ornl.sans.hfir.normalisation import time
-from ornl.sans.sensitivity import interpolate_mask, inf_value_to_mask
-from ornl.sans.transmission import (calculate_transmission,
-                                    apply_transmission_correction_value)
+from ornl.sans.sensitivity import inf_value_to_mask, interpolate_mask
+from ornl.sans.transmission import (apply_transmission_correction_value,
+                                    calculate_transmission)
 
 
 '''
@@ -198,25 +198,25 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     flood_dc_corrected_ws = RenameWorkspace(
         InputWorkspace=flood_dc_corrected_ws,
         OutputWorkspace="flood_dc_corrected_ws")
-    
+
     # Geometry with gravity correction
     MoveInstrumentComponent(
         Workspace=flood_dc_corrected_ws,
         ComponentName='detector1', X=-x, Y=-y_gravity)
-
 
     # Normalization (In the original script they use time normalization)
     flood_dc_time_corrected_ws = time(flood_dc_corrected_ws)
     flood_dc_time_corrected_ws = RenameWorkspace(
         InputWorkspace=flood_dc_time_corrected_ws,
         OutputWorkspace="flood_dc_time_corrected_ws")
-    
+
     # No solid angle correction
 
     # Apply Transmission Correction
-    flood_dc_time_trans_corrected_wing_ws = apply_transmission_correction_value(
-        flood_dc_time_corrected_ws, calculated_transmission_value,
-        calculated_transmission_error, theta_dependent=False)
+    flood_dc_time_trans_corrected_wing_ws = \
+        apply_transmission_correction_value(
+            flood_dc_time_corrected_ws, calculated_transmission_value,
+            calculated_transmission_error, theta_dependent=False)
     flood_dc_time_trans_corrected_wing_ws = RenameWorkspace(
         InputWorkspace=flood_dc_time_trans_corrected_wing_ws,
         OutputWorkspace="flood_dc_time_trans_corrected_wing_ws")

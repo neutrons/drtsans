@@ -4,6 +4,7 @@ import numpy as np
 
 from mantid.kernel import Property, logger
 from mantid.simpleapi import CloneWorkspace
+from ornl.settings import unique_workspace_dundername
 
 
 def _get_tube(component, tube_idx):
@@ -55,9 +56,7 @@ def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
     '''
 
     # Get the values to calculate the fit
-    xx = x[~detectors_masked & ~detectors_inf]
-    yy = y[~detectors_masked & ~detectors_inf]
-    ee = e[~detectors_masked & ~detectors_inf]
+    xx, yy, ee = [arr[~detectors_masked & ~detectors_inf] for arr in (x, y, e)]
 
     polynomial_coeffs, cov_matrix = np.polyfit(
         xx, yy, polynomial_degree, w=1/ee, cov=True)
@@ -118,16 +117,16 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     ws_index = 0
     while spectrum_info.isMonitor(ws_index):
         ws_index += 1
-
     first_detector_index = ws_index
 
     # Put the data in numpy arrays
     data_y = flood_ws.extractY()
     data_e = flood_ws.extractE()
 
-    # numpy arrays with all the detector IDs
-    detector_info_input_ws = flood_ws.detectorInfo()
-    detector_ids = detector_info_input_ws.detectorIDs()
+    # numpy array with all the detector IDs
+    detector_ids = np.array(
+        [flood_ws.getSpectrum(index).getDetectorIDs()[0] for index in range(
+            first_detector_index, flood_ws.getNumberHistograms())])
 
     # dict of detector_id -> ws index
     detector_id_to_index = {
@@ -137,8 +136,12 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
 
     number_of_tubes = component.nelements()
     # Lets get the output workspace
-    __output_ws = CloneWorkspace(flood_ws)
-    detector_info_output_ws = __output_ws.detectorInfo()
+    output_ws = CloneWorkspace(
+        flood_ws, OutputWorkspace=unique_workspace_dundername(
+            prefix="__sensitivity_"))
+
+    detector_info_input_ws = flood_ws.detectorInfo()
+    detector_info_output_ws = output_ws.detectorInfo()
 
     for tube_idx in range(number_of_tubes):
         tube = _get_tube(component, tube_idx)
@@ -184,23 +187,23 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
 
                 ws_index_to_edit = detector_id_to_index[detector_id]
 
-                __output_ws.setY(ws_index_to_edit, np.array([y_new_value]))
-                __output_ws.setE(ws_index_to_edit, np.array([e_new_value]))
+                output_ws.setY(ws_index_to_edit, np.array([y_new_value]))
+                output_ws.setE(ws_index_to_edit, np.array([e_new_value]))
                 detector_info_output_ws.setMasked(ws_index_to_edit, False)
 
             # mask pixels in WS Out where detectors_inf
             for detector_id in tube_detector_ids[detectors_inf]:
                 ws_index_to_edit = detector_id_to_index[detector_id]
                 detector_info_output_ws.setMasked(ws_index_to_edit, True)
-                __output_ws.setY(ws_index_to_edit, np.array([1]))
-                __output_ws.setE(ws_index_to_edit, np.array([0]))
+                output_ws.setY(ws_index_to_edit, np.array([1]))
+                output_ws.setE(ws_index_to_edit, np.array([0]))
 
         elif num_of_detectors_masked > min_detectors_per_tube:
             logger.error("Skipping tube {}. Too many masked or dead pixels."
                          "".format(tube_idx))
         # Another iteration
         ws_index += num_detectors_in_tube
-    return __output_ws
+    return output_ws
 
 
 def inf_value_to_mask(ws):

@@ -72,7 +72,7 @@ def amend_config(new_config):
             config[key] = backup[key]
 
 
-def unique_workspace_name(n=5):
+def unique_workspace_name(n=5, prefix='', suffix=''):
     r"""
     Create a random sequence of `n` lowercase characters that is guaranteed
     not to collide with the name of any existing Mantid workspace
@@ -83,6 +83,10 @@ def unique_workspace_name(n=5):
     ----------
     n: int
         Size of the sequence
+    prefix: str
+        String to prefix the randon sequence
+    suffix: str
+        String to suffix the randon sequence
 
     Returns
     -------
@@ -90,7 +94,13 @@ def unique_workspace_name(n=5):
     """
 
     ws_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))
+    ws_name = '{}{}{}'.format(str(prefix), ws_name, str(suffix))
     while ws_name in AnalysisDataService.getObjectNames():
         characters = [random.choice(string.ascii_lowercase) for _ in range(n)]
         ws_name = ''.join(characters)
+        ws_name = '{}{}{}'.format(str(prefix), ws_name, str(suffix))
     return ws_name
+
+
+def unique_workspace_dundername():
+    return unique_workspace_name(n=5, prefix='__')

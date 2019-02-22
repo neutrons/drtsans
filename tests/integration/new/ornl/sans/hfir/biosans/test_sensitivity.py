@@ -4,17 +4,6 @@ import tempfile
 
 import pytest
 
-from mantid.simpleapi import (CalculateSensitivity, LoadHFIRSANS, LoadMask,
-                              MaskDetectors, MoveInstrumentComponent,
-                              RenameWorkspace, ReplaceSpecialValues,
-                              SANSMaskDTP, SANSSolidAngle, SaveNexus)
-from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
-from ornl.sans.hfir.dark_current import subtract_normalised_dark
-from ornl.sans.hfir.normalisation import time
-from ornl.sans.sensitivity import inf_value_to_mask, interpolate_mask
-from ornl.sans.transmission import (apply_transmission_correction_value,
-                                    calculate_transmission)
-
 
 '''
 For every flood:
@@ -39,6 +28,16 @@ Save file as nexus
 @pytest.mark.offline
 def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
+    from mantid.simpleapi import (CalculateSensitivity, LoadHFIRSANS, LoadMask,
+                                  MaskDetectors, MoveInstrumentComponent,
+                                  RenameWorkspace, ReplaceSpecialValues,
+                                  SANSMaskDTP, SANSSolidAngle, SaveNexus)
+    from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
+    from ornl.sans.hfir.dark_current import subtract_normalised_dark
+    from ornl.sans.hfir.normalisation import time
+    from ornl.sans.sensitivity import inf_value_to_mask, interpolate_mask
+    from ornl.sans.transmission import (apply_transmission_correction_value,
+                                        calculate_transmission)
     # Load the files into WS
     dark_current_ws = LoadHFIRSANS(
         Filename=biosans_sensitivity_dataset['dark_current'])
@@ -230,3 +229,40 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     assert sensitivity_ws.readY(52867)[0] == 1
     assert sensitivity_ws.readE(52867)[0] == 0
     assert sensitivity_ws.detectorInfo().isMasked(52867)
+
+
+@pytest.mark.offline
+def test_sensitivity_detector(biosans_sensitivity_dataset):
+
+    from ornl.sans.sensitivity import Detector
+    from mantid.simpleapi import LoadHFIRSANS
+    import numpy as np
+
+    # Load the files into WS
+    dark_current_ws = LoadHFIRSANS(
+        Filename=biosans_sensitivity_dataset['dark_current'])
+
+    d = Detector(dark_current_ws, "detector1")
+    assert d.first_det_id == 3
+    assert d.last_det_id == (
+        d.n_pixels_per_tube*d.n_tubes + d.first_det_id - 1)
+    assert d.detector_id_to_ws_index[d.first_det_id] == 2
+    
+    # Get WS indices for the first tube
+    start_ws_index, stop_ws_index = next(d.tube_ws_indices)
+    assert start_ws_index == d.detector_id_to_ws_index[d.first_det_id]
+    assert stop_ws_index == d.detector_id_to_ws_index[
+        d.first_det_id+d.n_pixels_per_tube]
+
+    #
+    y, e = d.ws_values(start_ws_index, stop_ws_index)
+    assert len(y) == d.n_pixels_per_tube
+    assert len(e) == d.n_pixels_per_tube
+
+    start_ws_index, stop_ws_index = next(d.tube_ws_indices)
+    assert start_ws_index == d.detector_id_to_ws_index[
+        d.first_det_id+d.n_pixels_per_tube]
+    y2, _ = d.ws_values(start_ws_index, stop_ws_index)
+    assert np.array_equal(y, y)
+    assert not np.array_equal(y, y2)
+    

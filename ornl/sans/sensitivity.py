@@ -12,28 +12,79 @@ class Detector(object):
 
     def __init__(self, workspace, component_name):
         self._workspace = workspace
-        self._component_name = component_name
-        
-    
-    def _detector_details(self):
+        self.n_tubes = None
+        self.n_pixels_per_tube = None
+        self.first_det_id = None
+        self.last_det_id = None
+        self.data_y = None
+        self.data_e = None
+        self.tube_ws_indices = None
+
+        self._detector_details(workspace, component_name)
+        self._detector_id_to_ws_index(workspace)
+        self._extract_data(workspace)
+        self._tube_ws_indices()
+
+    def _detector_details(self, workspace, component_name):
         i = workspace.getInstrument()
-        d = i.getComponentByName(component_name)
-        n_tubes = d.nelements()
-        
-        if d[0].nelements() == 1:
+        component = i.getComponentByName(component_name)
+        self.n_tubes = component.nelements()
+
+        if component[0].nelements() == 1:
             # Handles EQSANS
-            n_pixels = component[0][0].nelements()
-            first_det_id = component[0][0][0].getID()
-            last_det_id = component[n_tubes-1][0][n_pixels-1].getID()
+            self.n_pixels_per_tube = component[0][0].nelements()
+            self.first_det_id = component[0][0][0].getID()
+            self.last_det_id = component[
+                self.n_tubes - 1][0][self.n_pixels_per_tube-1].getID()
         else:
             # Handles BioSANS/GPSANS
-            n_pixels = component[0].nelements()
-            first_det_id = component[0][0].getID()
-            last_det_id = component[n_tubes-1][n_pixels-1].getID()
-        
-        
+            self.n_pixels_per_tube = component[0].nelements()
+            self.first_det_id = component[0][0].getID()
+            self.last_det_id = component[
+                self.n_tubes - 1][self.n_pixels_per_tube-1].getID()
 
+    def _detector_id_to_ws_index(self, workspace):
+        spectrum_info = workspace.spectrumInfo()
+        detector_id_to_index = OrderedDict(
+            (workspace.getSpectrum(ws_index).getDetectorIDs()[0], ws_index)
+            for ws_index in range(workspace.getNumberHistograms())
+            if not spectrum_info.isMonitor(ws_index))
+        self.detector_id_to_ws_index = detector_id_to_index
 
+    def _extract_data(self, workspace):
+
+        self.data_y = workspace.extractY()
+        self.data_e = workspace.extractE()
+
+    def _tube_ws_indices(self):
+        tube_ws_indices = []
+        for tube_idx in range(self.n_tubes):
+            first_det_id = self.first_det_id + tube_idx*self.n_pixels_per_tube
+            last_det_id = first_det_id + self.n_pixels_per_tube
+
+            first_ws_index = self.detector_id_to_ws_index[first_det_id]
+            last_ws_index = self.detector_id_to_ws_index[last_det_id]
+            
+            tube_ws_indices.append((first_ws_index, last_ws_index))
+        self.tube_ws_indices = iter(tube_ws_indices)
+
+    def ws_values(self, start_ws_index, stop_ws_index):
+        return (self.data_y[start_ws_index:stop_ws_index].flatten(),
+                self.data_e[start_ws_index:stop_ws_index].flatten())
+    
+    def ws_is_masked(self, start_ws_index, stop_ws_index):
+        #TODO: return array of booleans if pixels are masked
+        pass
+
+#    # check how many detectors are masked in the tube
+#         # same size as the tube, True where masked
+#         detectors_masked = np.array(
+#             [detector_info_input_ws.isMasked(detector_id_to_index[id])
+#              for id in tube_detector_ids])
+#         # Those are the detectors marked "inf" (EMPTY_DBL)
+#         detectors_inf = np.array([flood_ws.readY(
+#             detector_id_to_index[id])[0] == Property.EMPTY_DBL
+#             for id in tube_detector_ids])
 
 
 def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
@@ -107,10 +158,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     # Get the main detector: the masks are in the mask workspace!!!
     instrument = flood_ws.getInstrument()
     component = instrument.getComponentByName(component_name)
-    if not component:
-        logger.error("Component not valid! {}".format(component_name))
-        return
-    
+
     detector_id_to_index = _get_detector_id_to_ws_index(flood_ws)
     detector_ids = list(detector_id_to_index.keys())
     ws_indices = list(detector_id_to_index.values())
@@ -190,6 +238,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         # Another iteration
         ws_index += num_detectors_in_tube
     return output_ws
+
 
 def _get_detector_id_to_ws_index(flood_ws):
     spectrum_info = flood_ws.spectrumInfo()

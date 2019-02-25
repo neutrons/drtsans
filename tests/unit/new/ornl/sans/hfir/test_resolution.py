@@ -35,6 +35,7 @@ def _create_reduced_ws():
     ws_iqxy = mtd['CG2_exp245_scan0010_0001_Iqxy']
     return ws_iq, ws_iqxy
 
+
 class HFIRResolution(unittest.TestCase):
     def test_1d(self):
         """
@@ -48,7 +49,7 @@ class HFIRResolution(unittest.TestCase):
         summed = dq.sum()
         summed_ref = dq_ref.sum()
         self.assertTrue(np.fabs(np.log10(summed)-np.log10(summed_ref)) < 1.0)
-        
+
     def test_2d(self):
         """
         Test the Q resolution for a 2D distribution
@@ -56,6 +57,7 @@ class HFIRResolution(unittest.TestCase):
         _, ws_iqxy = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution(ws_iqxy)
         print(dqy)
+
 
 if __name__ == '__main__':
     unittest.main()

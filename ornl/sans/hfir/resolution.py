@@ -20,9 +20,9 @@ def q_resolution(ws):
     """
     sl = SampleLogs(ws)
 
-    #TODO: the following two lines don't work for HFIR
-    #source_sample = geometry.source_sample_distance(ws, units='m')
-    #sample_detector = geometry.sample_detector_distance(ws, units='m')
+    # TODO: the following two lines don't work for HFIR
+    # source_sample = geometry.source_sample_distance(ws, units='m')
+    # sample_detector = geometry.sample_detector_distance(ws, units='m')
 
     L1 = 1. / 1000. * sl.find_log_with_units('source-sample-distance', 'mm')
     L2 = 1. / 1000. * sl.find_log_with_units('sample-detector-distance', 'mm')
@@ -41,7 +41,7 @@ def q_resolution(ws):
         return dq
     else:
         # We have a 2D I(qx, qy)
-        #TODO: make sure that the correct axis is Y
+        # TODO: make sure that the correct axis is Y
         dqx = np.zeros_like(r)
         dqy = np.zeros_like(r)
         _qx_values = np.asarray(ws.getAxis(0).extractValues())
@@ -54,6 +54,7 @@ def q_resolution(ws):
             dqx[i] = np.sqrt(dqx2_hfir(qx_mid, L1, L2, R1, R2, wl, dwl, theta))
             dqy[i] = np.sqrt(dqy2_hfir(qy_mid[i], L1, L2, R1, R2, wl, dwl, theta))
         return dqx, dqy
+
 
 def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
     r"""
@@ -84,6 +85,7 @@ def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
     """
     dq2 = 0.25 * (L2 / L1 * R1)**2 + 0.25 * ((L1 + L2) / L1 * R2)**2 + pixel_size**2 / 12.0
     return dq2 * (2.0 * np.pi * np.cos(theta) * np.cos(2.0 * theta)**2 / wl / L2)**2
+
 
 def dq2_gravity(L1, L2, wl, dwl, theta):
     r"""
@@ -116,6 +118,7 @@ def dq2_gravity(L1, L2, wl, dwl, theta):
     dq2 *= (2.0 * np.pi * np.cos(theta) * np.cos(2.0 * theta)**2 / wl / L2)**2
     # Converting from A^2 / m^4 to 1 / A^2
     return dq2 * 1.0e-40 
+
 
 def dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
     r"""
@@ -152,6 +155,7 @@ def dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
         theta = 2.0 * np.arcsin(wl * qx / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     return dq2_geo + qx * (dwl / wl)**2 / 6.0
+
 
 def dqy2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
     r"""

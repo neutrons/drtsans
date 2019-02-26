@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
-from ornl.sans import geometry
 from ornl.sans.samplelogs import SampleLogs
 
 
@@ -152,9 +151,9 @@ def dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
     # If theta is not supplied, compute it from qx
     # This simplifies the calculation for I(Q) in 1D.
     if theta is None:
-        theta = 2.0 * np.arcsin(wl * qx / 4.0 / np.pi)
+        theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    return dq2_geo + qx * (dwl / wl)**2 / 6.0
+    return dq2_geo + np.fabs(qx) * (dwl / wl)**2 / 6.0
 
 
 def dqy2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
@@ -189,7 +188,7 @@ def dqy2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
     # If theta is not supplied, compute it from qx
     # This simplifies the calculation for I(Q) in 1D.
     if theta is None:
-        theta = 2.0 * np.arcsin(wl * qy / 4.0 / np.pi)
+        theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
-    return dq2_geo + dq2_grav + qy * (dwl / wl)**2 / 6.0
+    return dq2_geo + dq2_grav + np.fabs(qy) * (dwl / wl)**2 / 6.0

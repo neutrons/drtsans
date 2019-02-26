@@ -56,7 +56,6 @@ class HFIRResolution(unittest.TestCase):
         """
         _, ws_iqxy = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution(ws_iqxy)
-        print(dqy)
 
 
 if __name__ == '__main__':

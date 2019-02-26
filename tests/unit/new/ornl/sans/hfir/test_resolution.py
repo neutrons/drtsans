@@ -6,7 +6,6 @@ from mantid import simpleapi as api
 from reduction_workflow.instruments.sans import hfir_command_interface as hfir
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 
-sys.path.append(os.path.join(os.path.expanduser('~'), 'git', 'sans-rewrite'))
 from ornl.sans.hfir import resolution
 
 def gpsans_files():
@@ -24,7 +23,7 @@ def _create_reduced_ws():
     data_files = gpsans_files()
 
     configI = api.ConfigService.Instance()
-    configI["facilityName"]='HFIR'
+    configI["facilityName"] = 'HFIR'
     hfir.BIOSANS()
     hfir.DirectBeamCenter(data_files['beamcenter'])
     AppendDataFile(data_files['sample_scattering'])
@@ -55,8 +54,9 @@ class HFIRResolution(unittest.TestCase):
         """
         _, ws_iqxy = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution(ws_iqxy)
-        self.assertTrue(np.average(dqx)<0.15)
-        self.assertTrue(np.average(dqy)<0.15)
+        self.assertTrue(np.average(dqx) < 0.15)
+        self.assertTrue(np.average(dqy) < 0.15)
+
 
 if __name__ == '__main__':
     unittest.main()

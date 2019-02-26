@@ -102,7 +102,8 @@ class SampleLogs(object):
         """
         if log_key in self.keys():
             if units is not None and not self[log_key].units == units:
-                raise RuntimeError("Found %s with wrong units [%s]" % (log_key,
-                                                                       self[log_key].units))
+                error_msg = "Found %s with wrong units" % log_key
+                error_msg += " [%s]" % self[log_key].units
+                raise RuntimeError(error_msg)
             return float(self[log_key].value)
         raise RuntimeError("Could not find %s in logs" % log_key)

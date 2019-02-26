@@ -4,6 +4,7 @@ import numpy as np
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.resolution import dq2_geometry, dq2_gravity
 
+
 def q_resolution(ws):
     r"""
     Compute q resolution for the given reduced workspace.

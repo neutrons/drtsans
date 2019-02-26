@@ -1,4 +1,3 @@
-import sys
 import os
 import unittest
 import numpy as np
@@ -8,8 +7,10 @@ from reduction_workflow.command_interface import AppendDataFile, Reduce
 
 from ornl.sans.hfir import resolution
 
+
 def gpsans_files():
-    data_dir = os.path.join(os.path.expanduser('~'), 'git', 'sans-rewrite', 'data')
+    data_dir = os.path.join(os.path.expanduser('~'), 'git',
+                            'sans-rewrite', 'data')
     dd = os.path.join(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
     return dict(
         beamcenter=os.path.join(dd, 'CG2_exp325_scan0020_0001.xml'),
@@ -18,6 +19,7 @@ def gpsans_files():
         sample_scattering=os.path.join(dd, 'CG2_exp245_scan0010_0001.xml'),
         dark_current=os.path.join(dd, 'CG2_exp244_scan0001_0001.xml'),
     )
+
 
 def _create_reduced_ws():
     data_files = gpsans_files()

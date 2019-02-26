@@ -32,7 +32,6 @@ def q_resolution(ws):
 
     q = ws.extractX()
     r = ws.extractY()
-    print(q.shape, r.shape)
     if len(q)==1:
         # We have a 1D I(q)
         q_mid = (q[0][1:] + q[0][:-1]) / 2.0

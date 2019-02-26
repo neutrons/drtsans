@@ -1,13 +1,12 @@
-import os
 import sys
-sys.path.append(os.path.join(os.path.expanduser('~'), 'git', 'sans-rewrite'))
+import os
 import unittest
 import numpy as np
-
-from mantid.simpleapi import *
-from reduction_workflow.instruments.sans.hfir_command_interface import *
+from mantid import simpleapi as api
+from reduction_workflow.instruments.sans import hfir_command_interface as hfir
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 
+sys.path.append(os.path.join(os.path.expanduser('~'), 'git', 'sans-rewrite'))
 from ornl.sans.hfir import resolution
 
 def gpsans_files():
@@ -24,15 +23,15 @@ def gpsans_files():
 def _create_reduced_ws():
     data_files = gpsans_files()
 
-    configI = ConfigService.Instance()
+    configI = api.ConfigService.Instance()
     configI["facilityName"]='HFIR'
-    BIOSANS()
-    DirectBeamCenter(data_files['beamcenter'])
+    hfir.BIOSANS()
+    hfir.DirectBeamCenter(data_files['beamcenter'])
     AppendDataFile(data_files['sample_scattering'])
-    AzimuthalAverage(binning="0.01,-0.02,0.11")
+    hfir.AzimuthalAverage(binning="0.01,-0.02,0.11")
     Reduce()
-    ws_iq = mtd['CG2_exp245_scan0010_0001_Iq']
-    ws_iqxy = mtd['CG2_exp245_scan0010_0001_Iqxy']
+    ws_iq = api.mtd['CG2_exp245_scan0010_0001_Iq']
+    ws_iqxy = api.mtd['CG2_exp245_scan0010_0001_Iqxy']
     return ws_iq, ws_iqxy
 
 
@@ -56,7 +55,8 @@ class HFIRResolution(unittest.TestCase):
         """
         _, ws_iqxy = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution(ws_iqxy)
-
+        self.assertTrue(np.average(dqx)<0.15)
+        self.assertTrue(np.average(dqy)<0.15)
 
 if __name__ == '__main__':
     unittest.main()

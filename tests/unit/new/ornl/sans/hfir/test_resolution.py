@@ -41,6 +41,7 @@ def azimuthal_average(ws):
 
     return dq
 
+
 def gpsans_files():
     _dir, _ = os.path.split(os.path.abspath(__file__))
     data_dir = os.path.join(_dir, '..', '..', '..', '..', '..', '..', 'data')
@@ -110,6 +111,7 @@ class HFIRResolution(unittest.TestCase):
         dq = resolution.q_resolution(ws_iq)
         dq_test = azimuthal_average(ws)
         self.assertTrue(np.fabs(np.average(dq) - np.average(dq_test)) < 0.002)
+
 
 if __name__ == '__main__':
     unittest.main()

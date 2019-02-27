@@ -9,7 +9,8 @@ def q_resolution_per_pixel(ws):
     r"""
     Compute q resolution for each pixel, in each wavelength bin.
 
-    The resolution can be computed by giving a binned workspace to this function:
+    The resolution can be computed by giving a binned
+    workspace to this function:
 
     dqx, dqy = q_resolution_per_pixel(ws_2d)
 

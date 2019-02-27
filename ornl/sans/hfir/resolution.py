@@ -5,6 +5,58 @@ from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.resolution import dq2_geometry, dq2_gravity
 
 
+def q_resolution_per_pixel(ws):
+    r"""
+    Compute q resolution for each pixel, in each wavelength bin.
+
+    The resolution can be computed by giving a binned workspace to this function:
+
+    dqx, dqy = q_resolution_per_pixel(ws_2d)
+
+    The returned numpy arrays are of the same dimensions
+    as the input array.
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        Input workspace
+
+    Returns
+    ------
+    numpy array of the same dimension as the data
+    """
+    sl = SampleLogs(ws)
+
+    # TODO: the following two lines don't work for HFIR
+    # source_sample = geometry.source_sample_distance(ws, units='m')
+    # sample_detector = geometry.sample_detector_distance(ws, units='m')
+
+    L1 = 1. / 1000. * sl.find_log_with_units('source-sample-distance', 'mm')
+    L2 = 1. / 1000. * sl.find_log_with_units('sample-detector-distance', 'mm')
+    R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
+    R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
+    wl = sl.find_log_with_units('wavelength', 'Angstrom')
+    dwl = sl.find_log_with_units('wavelength-spread', 'Angstrom')
+
+    spec_info = ws.spectrumInfo()
+
+    theta = np.zeros(spec_info.size())
+    qx = np.zeros(spec_info.size())
+    qy = np.zeros(spec_info.size())
+    for i in range(spec_info.size()):
+        if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
+            theta[i] = spec_info.twoTheta(i)
+            _x, _y, _z = spec_info.position(i)
+            phi = np.arctan2(_y, _x)
+            _q = 4.0 * np.pi * np.sin(spec_info.twoTheta(i) / 2.0) / wl
+            qx[i] = np.cos(phi) * _q
+            qy[i] = np.sin(phi) * _q
+
+    dqx = np.sqrt(dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta))
+    dqy = np.sqrt(dqx2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta))
+    return dqx, dqy
+
+
 def q_resolution(ws):
     r"""
     Compute q resolution for the given reduced workspace.
@@ -45,7 +97,7 @@ def q_resolution(ws):
     if len(q) == 1:
         # We have a 1D I(q)
         q_mid = (q[0][1:] + q[0][:-1]) / 2.0
-        dq = np.sqrt(dqy2_hfir(q_mid, L1, L2, R1, R2, wl, dwl))
+        dq = np.sqrt(dqx2_hfir(q_mid, L1, L2, R1, R2, wl, dwl))
         return dq
     else:
         # We have a 2D I(qx, qy)

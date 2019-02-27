@@ -170,6 +170,6 @@ def dqy2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.007):
     dtof = moderator_time_error(wl)
     dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
-    dq2 =  dq2_geo + dq2_grav
+    dq2 = dq2_geo + dq2_grav
     dq2 += np.fabs(qy) * (dq_tof_term + (dwl / wl)**2) / 12.0
     return dq2

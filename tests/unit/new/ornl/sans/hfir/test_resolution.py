@@ -1,8 +1,8 @@
 """
     Test EQSANS resolution. Requires Mantid nightly
 """
-# import sys
-# sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
+import sys
+sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
 import os
 import unittest
 import numpy as np

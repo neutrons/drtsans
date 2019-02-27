@@ -66,9 +66,11 @@ def q_resolution_per_pixel(ws):
     dqy = np.sqrt(dqx2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta))
     return dqx, dqy
 
+
 def moderator_time_error(wl):
     r"""
-    Relative Q uncertainty due to emission time jitter in the neutron moderator.
+    Relative Q uncertainty due to emission time jitter
+    in the neutron moderator.
 
     Parameters
     ----------

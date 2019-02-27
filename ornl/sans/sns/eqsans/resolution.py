@@ -11,7 +11,8 @@ def q_resolution_per_pixel(ws):
     r"""
     Compute q resolution for each pixel, in each wavelength bin.
 
-    The resolution can be computed by giving a binned workspace to this function:
+    The resolution can be computed by giving a binned
+    workspace to this function:
 
     dqx, dqy = q_resolution_per_pixel(ws_2d)
 
@@ -47,23 +48,25 @@ def q_resolution_per_pixel(ws):
 
     # Sanity check
     if not spec_info.size() == wl.shape[0]:
-        raise RuntimeError("X size mismatch: %s %s" % \
+        raise RuntimeError("X size mismatch: %s %s" %
                            (spec_info.size(), wl.shape[0]))
 
     theta = np.zeros_like(wl)
     qx = np.zeros_like(wl)
     qy = np.zeros_like(wl)
+    s2p = np.zeros_like(wl)
     for i in range(spec_info.size()):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
             theta[i] = spec_info.twoTheta(i) * np.ones(wl.shape[1])
+            s2p[i] = spec_info.l2(i) * np.ones(wl.shape[1])
             _x, _y, _z = spec_info.position(i)
             phi = np.arctan2(_y, _x)
             _q = 4.0 * np.pi * np.sin(spec_info.twoTheta(i) / 2.0) / wl[i]
             qx[i] = np.cos(phi) * _q
             qy[i] = np.sin(phi) * _q
 
-    dqx = np.sqrt(dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta))
-    dqy = np.sqrt(dqx2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta))
+    dqx = np.sqrt(dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta, s2p))
+    dqy = np.sqrt(dqx2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta, s2p))
     return dqx, dqy
 
 
@@ -87,7 +90,7 @@ def moderator_time_error(wl):
             - 17872 * wl**3 + 16509 * wl**2 - 7448.4 * wl + 1280.5
 
 
-def dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
+def dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.011):
     r"""
     Q resolution in the horizontal direction.
 
@@ -109,6 +112,8 @@ def dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
         wavelength-spread (Angstrom)
     theta: float
         scattering angle (rad)
+    s2p: float
+        sample-to-pixel (m)
     pixel_size: float
         dimension of the pixel (m)
 
@@ -121,10 +126,12 @@ def dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
     if theta is None:
         theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    return dq2_geo + np.fabs(qx) * (dwl / wl)**2 / 12.0
+    dtof = moderator_time_error(wl)
+    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
+    return dq2_geo + np.fabs(qx) * (dq_tof_term + (dwl / wl)**2) / 12.0
 
 
-def dqy2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
+def dqy2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.007):
     r"""
     Q resolution in vertical direction.
 
@@ -146,6 +153,8 @@ def dqy2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
         wavelength-spread (Angstrom)
     theta: float
         scattering angle (rad)
+    s2p: float
+        sample-to-pixel (m)
     pixel_size: float
         dimension of the pixel (m)
 
@@ -158,5 +167,9 @@ def dqy2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
     if theta is None:
         theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
+    dtof = moderator_time_error(wl)
+    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
-    return dq2_geo + dq2_grav + np.fabs(qy) * (dwl / wl)**2 / 12.0
+    dq2 =  dq2_geo + dq2_grav
+    dq2 += np.fabs(qy) * (dq_tof_term + (dwl / wl)**2) / 12.0
+    return dq2

@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-from mantid.simpleapi import ConvertUnits, Rebin
+from mantid.simpleapi import ConvertUnits, Rebin, EQSANSCorrectFrame
 
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
@@ -218,10 +218,10 @@ def correct_frame(ws, source_to_component_distance):
     # which is also the choppers' rotational period.
     frame_width = ch.period  # either 10^6/60 or 10^6/30 micro-seconds
 
-    # Find how many frame widths elapsed from the time the neutrons of the
-    # lead pulse were emitted and the time the neutrons arrived to the
-    # detector bank. This time must be added to the stored TOF values
     tof_min, tof_max = limiting_tofs(ws, source_to_component_distance).lead
+    EQSANSCorrectFrame(ws, pulse_period, tof_min, frame_width,
+                       bool(FrameMode.skip))
+    """
     frames_offset_time = frame_width * int(tof_min / frame_width)
     for i in range(ws.getNumberHistograms()):
         sp = ws.getSpectrum(i)
@@ -239,6 +239,7 @@ def correct_frame(ws, source_to_component_distance):
         sp.clear(False)
         for tof, pt in zip(tofs, pulse_times):
             sp.addEventQuickly(tof, pt)
+    """
     # Amend the logs
     sl.is_frame_skipping = 1 if ch.frame_mode == FrameMode.skip else 0
 

@@ -19,14 +19,28 @@ class Detector(object):
         self.data_y = None
         self.data_e = None
         self.tube_ws_indices = None
+        self._current_start_ws_index = None 
+        self._current_stop_ws_index = None
 
-        self._detector_details(workspace, component_name)
-        self._detector_id_to_ws_index(workspace)
-        self._extract_data(workspace)
-        self._tube_ws_indices()
+        self._detector_details(component_name)
+        self._detector_id_to_ws_index()
+        self._extract_data()
+        self._set_tube_ws_indices()
 
-    def _detector_details(self, workspace, component_name):
-        i = workspace.getInstrument()
+    def _detector_details(self, component_name):
+        '''Sets the details of the detector:
+        n_tubes
+        n_pixels_per_tube
+        first_det_id
+        last_det_id
+
+        Parameters
+        ----------
+        component_name : string
+        
+        '''
+
+        i = self._workspace.getInstrument()
         component = i.getComponentByName(component_name)
         self.n_tubes = component.nelements()
 
@@ -43,20 +57,33 @@ class Detector(object):
             self.last_det_id = component[
                 self.n_tubes - 1][self.n_pixels_per_tube-1].getID()
 
-    def _detector_id_to_ws_index(self, workspace):
-        spectrum_info = workspace.spectrumInfo()
+    def _detector_id_to_ws_index(self):
+        ''' Converts the detector ID of every pixel in workspace indices.
+        Sets `detector_id_to_ws_index`.
+        '''
+
+        spectrum_info = self._workspace.spectrumInfo()
         detector_id_to_index = OrderedDict(
-            (workspace.getSpectrum(ws_index).getDetectorIDs()[0], ws_index)
-            for ws_index in range(workspace.getNumberHistograms())
+            (self._workspace.getSpectrum(
+                ws_index).getDetectorIDs()[0], ws_index)
+            for ws_index in range(self._workspace.getNumberHistograms())
             if not spectrum_info.isMonitor(ws_index))
         self.detector_id_to_ws_index = detector_id_to_index
 
-    def _extract_data(self, workspace):
+    def _extract_data(self):
+        '''Sets:
+        data_y
+        data_e
+        '''
 
-        self.data_y = workspace.extractY()
-        self.data_e = workspace.extractE()
+        self.data_y = self._workspace.extractY()
+        self.data_e = self._workspace.extractE()
 
-    def _tube_ws_indices(self):
+    def _set_tube_ws_indices(self):
+        '''Seta `tube_ws_indices` as an iterator for the next round of tube
+        indices beeing callled
+        '''
+
         tube_ws_indices = []
         for tube_idx in range(self.n_tubes):
             first_det_id = self.first_det_id + tube_idx*self.n_pixels_per_tube
@@ -64,27 +91,57 @@ class Detector(object):
 
             first_ws_index = self.detector_id_to_ws_index[first_det_id]
             last_ws_index = self.detector_id_to_ws_index[last_det_id]
-            
-            tube_ws_indices.append((first_ws_index, last_ws_index))
-        self.tube_ws_indices = iter(tube_ws_indices)
 
-    def ws_values(self, start_ws_index, stop_ws_index):
+            tube_ws_indices.append((first_ws_index, last_ws_index))
+        self._tube_ws_indices = iter(tube_ws_indices)
+    
+    def next_tube(self):
+        '''Calls the next iteration of the iterator `self._tube_ws_indices`
+        and sets the member variables:
+        _current_start_ws_index 
+        _current_stop_ws_index 
+        '''
+
+        self._current_start_ws_index, self._current_stop_ws_index = next(
+            self._tube_ws_indices)
+    
+    def get_current_ws_indices(self):
+        return (self._current_start_ws_index, self._current_stop_ws_index)
+
+    def ws_data(self):
+        '''Returns the current tube data and error
+        
+        Returns
+        -------
+        Tuple of arrays
+            Y and Error
+        '''
+
+        start_ws_index = self._current_start_ws_index
+        stop_ws_index = self._current_stop_ws_index
         return (self.data_y[start_ws_index:stop_ws_index].flatten(),
                 self.data_e[start_ws_index:stop_ws_index].flatten())
-    
-    def ws_is_masked(self, start_ws_index, stop_ws_index):
-        #TODO: return array of booleans if pixels are masked
-        pass
 
-#    # check how many detectors are masked in the tube
-#         # same size as the tube, True where masked
-#         detectors_masked = np.array(
-#             [detector_info_input_ws.isMasked(detector_id_to_index[id])
-#              for id in tube_detector_ids])
-#         # Those are the detectors marked "inf" (EMPTY_DBL)
-#         detectors_inf = np.array([flood_ws.readY(
-#             detector_id_to_index[id])[0] == Property.EMPTY_DBL
-#             for id in tube_detector_ids])
+    def pixels_masked(self):
+        '''Returns an array of booleans for this tube
+        where the detector is masked
+        '''
+        start_ws_index = self._current_start_ws_index
+        stop_ws_index = self._current_stop_ws_index
+        detector_info = self._workspace.detectorInfo()
+        return np.array([detector_info.isMasked(idx) for idx in range(
+            start_ws_index, stop_ws_index)])
+    
+    def pixels_infinite(self):
+        '''Returns an array of booleans for this tube
+        where the pixel count is EMPTY_DBL
+        '''
+        start_ws_index = self._current_start_ws_index
+        stop_ws_index = self._current_stop_ws_index
+
+        return np.array([self._workspace.readY(idx)[0] == Property.EMPTY_DBL
+                         for idx in range(start_ws_index, stop_ws_index)])
+        
 
 
 def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,

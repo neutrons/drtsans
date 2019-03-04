@@ -235,7 +235,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 def test_sensitivity_detector(biosans_sensitivity_dataset):
 
     from ornl.sans.sensitivity import Detector
-    from mantid.simpleapi import LoadHFIRSANS
+    from mantid.simpleapi import LoadHFIRSANS, SANSMaskDTP
+    from mantid.kernel import Property
     import numpy as np
 
     # Load the files into WS
@@ -249,20 +250,50 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
     assert d.detector_id_to_ws_index[d.first_det_id] == 2
     
     # Get WS indices for the first tube
-    start_ws_index, stop_ws_index = next(d.tube_ws_indices)
+    d.next_tube()
+    start_ws_index, stop_ws_index = d.get_current_ws_indices()
     assert start_ws_index == d.detector_id_to_ws_index[d.first_det_id]
     assert stop_ws_index == d.detector_id_to_ws_index[
         d.first_det_id+d.n_pixels_per_tube]
-
-    #
-    y, e = d.ws_values(start_ws_index, stop_ws_index)
+    # Now the data for the same tube
+    y, e = d.ws_data()
     assert len(y) == d.n_pixels_per_tube
     assert len(e) == d.n_pixels_per_tube
 
-    start_ws_index, stop_ws_index = next(d.tube_ws_indices)
+    # move to the 2d tube
+    d.next_tube()
+    start_ws_index, stop_ws_index = d.get_current_ws_indices()
+
     assert start_ws_index == d.detector_id_to_ws_index[
         d.first_det_id+d.n_pixels_per_tube]
-    y2, _ = d.ws_values(start_ws_index, stop_ws_index)
+    y2, _ = d.ws_data()
     assert np.array_equal(y, y)
     assert not np.array_equal(y, y2)
     
+    # move to the 3rd tube
+    d.next_tube()
+    # Mask 3rd tube
+    SANSMaskDTP(InputWorkspace=dark_current_ws, Tube="3")
+    pixels_masked = d.pixels_masked()
+    # All pixels should be masked
+    assert np.count_nonzero(pixels_masked) == 256
+
+    # move to the 4th tube
+    d.next_tube()
+    pixels_masked = d.pixels_masked()
+    # None of pixels should be masked
+    assert np.count_nonzero(pixels_masked) == 0
+
+    # Get the infinite pixels now
+    pixels_infinite = d.pixels_infinite()
+    # None of pixels should be infinite
+    assert np.count_nonzero(pixels_infinite) == 0
+    # Let's mock infinite pixels. Set a tube to infinite
+    start_ws_index, stop_ws_index = d.get_current_ws_indices()
+    for ws_idx in range(start_ws_index, stop_ws_index):
+        dark_current_ws.setY(ws_idx, np.array([Property.EMPTY_DBL]))
+        dark_current_ws.setE(ws_idx, np.array([1]))
+    # Get the infinite pixels now
+    pixels_infinite = d.pixels_infinite()
+    # All of pixels should be infinite
+    assert np.count_nonzero(pixels_infinite) == 256

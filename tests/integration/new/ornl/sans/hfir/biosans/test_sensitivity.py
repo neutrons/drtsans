@@ -233,6 +233,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
 @pytest.mark.offline
 def test_sensitivity_detector(biosans_sensitivity_dataset):
+    '''This tests the ornl.sans.sensitivity.Detector with data from BioSANS
+    '''
 
     from ornl.sans.sensitivity import Detector
     from mantid.simpleapi import LoadHFIRSANS, SANSMaskDTP
@@ -248,15 +250,20 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
     assert d.last_det_id == (
         d.n_pixels_per_tube*d.n_tubes + d.first_det_id - 1)
     assert d.detector_id_to_ws_index[d.first_det_id] == 2
-    
+
     # Get WS indices for the first tube
     d.next_tube()
     start_ws_index, stop_ws_index = d.get_current_ws_indices()
     assert start_ws_index == d.detector_id_to_ws_index[d.first_det_id]
     assert stop_ws_index == d.detector_id_to_ws_index[
         d.first_det_id+d.n_pixels_per_tube]
+    ws_indices_range = d.get_current_ws_indices_range()
+    assert len(ws_indices_range) == d.n_pixels_per_tube
+    assert start_ws_index == ws_indices_range[0]
+    assert stop_ws_index-1 == ws_indices_range[-1]
+
     # Now the data for the same tube
-    y, e = d.ws_data()
+    y, e = d.get_ws_data()
     assert len(y) == d.n_pixels_per_tube
     assert len(e) == d.n_pixels_per_tube
 
@@ -266,26 +273,26 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
 
     assert start_ws_index == d.detector_id_to_ws_index[
         d.first_det_id+d.n_pixels_per_tube]
-    y2, _ = d.ws_data()
+    y2, _ = d.get_ws_data()
     assert np.array_equal(y, y)
     assert not np.array_equal(y, y2)
-    
+
     # move to the 3rd tube
     d.next_tube()
     # Mask 3rd tube
     SANSMaskDTP(InputWorkspace=dark_current_ws, Tube="3")
-    pixels_masked = d.pixels_masked()
+    pixels_masked = d.get_pixels_masked()
     # All pixels should be masked
     assert np.count_nonzero(pixels_masked) == 256
 
     # move to the 4th tube
     d.next_tube()
-    pixels_masked = d.pixels_masked()
+    pixels_masked = d.get_pixels_masked()
     # None of pixels should be masked
     assert np.count_nonzero(pixels_masked) == 0
 
     # Get the infinite pixels now
-    pixels_infinite = d.pixels_infinite()
+    pixels_infinite = d.get_pixels_infinite()
     # None of pixels should be infinite
     assert np.count_nonzero(pixels_infinite) == 0
     # Let's mock infinite pixels. Set a tube to infinite
@@ -294,6 +301,15 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
         dark_current_ws.setY(ws_idx, np.array([Property.EMPTY_DBL]))
         dark_current_ws.setE(ws_idx, np.array([1]))
     # Get the infinite pixels now
-    pixels_infinite = d.pixels_infinite()
+    pixels_infinite = d.get_pixels_infinite()
     # All of pixels should be infinite
     assert np.count_nonzero(pixels_infinite) == 256
+    # Get the coordinates Y of this tube:
+    y_coordinates = d.get_y_coordinates()
+    assert len(y_coordinates) == d.n_pixels_per_tube
+
+    # # move to the 5th tube
+    d.next_tube()
+    y_coordinates_2 = d.get_y_coordinates()
+    # Arrays must be equal
+    assert np.array_equal(y_coordinates, y_coordinates_2)

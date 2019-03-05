@@ -1,17 +1,27 @@
 from __future__ import absolute_import, division, print_function
 
+from collections import OrderedDict
+
 import numpy as np
 
-from collections import OrderedDict
 from mantid.kernel import Property, logger
 from mantid.simpleapi import CloneWorkspace
 from ornl.settings import unique_workspace_name
 
 
 class Detector(object):
+    '''
+    Auxiliary class that has all the information about a detector
+    It allows to read tube by tube.
+    '''
 
     def __init__(self, workspace, component_name):
         self._workspace = workspace
+        self._current_start_ws_index = None
+        self._current_stop_ws_index = None
+        self._tube_y_coordinates = None
+
+        # Public variables
         self.n_tubes = None
         self.n_pixels_per_tube = None
         self.first_det_id = None
@@ -19,8 +29,6 @@ class Detector(object):
         self.data_y = None
         self.data_e = None
         self.tube_ws_indices = None
-        self._current_start_ws_index = None 
-        self._current_stop_ws_index = None
 
         self._detector_details(component_name)
         self._detector_id_to_ws_index()
@@ -37,7 +45,7 @@ class Detector(object):
         Parameters
         ----------
         component_name : string
-        
+
         '''
 
         i = self._workspace.getInstrument()
@@ -80,7 +88,7 @@ class Detector(object):
         self.data_e = self._workspace.extractE()
 
     def _set_tube_ws_indices(self):
-        '''Seta `tube_ws_indices` as an iterator for the next round of tube
+        '''Sets `tube_ws_indices` as an iterator for the next round of tube
         indices beeing callled
         '''
 
@@ -94,54 +102,91 @@ class Detector(object):
 
             tube_ws_indices.append((first_ws_index, last_ws_index))
         self._tube_ws_indices = iter(tube_ws_indices)
-    
+
     def next_tube(self):
         '''Calls the next iteration of the iterator `self._tube_ws_indices`
         and sets the member variables:
-        _current_start_ws_index 
-        _current_stop_ws_index 
+        _current_start_ws_index
+        _current_stop_ws_index
         '''
 
         self._current_start_ws_index, self._current_stop_ws_index = next(
             self._tube_ws_indices)
-    
+
     def get_current_ws_indices(self):
+        '''For the current tube returns the first and last workspace indices
+
+        Returns
+        -------
+        tuple
+        '''
         return (self._current_start_ws_index, self._current_stop_ws_index)
 
-    def ws_data(self):
+    def get_current_ws_indices_range(self):
+        '''For the current tube returns the range delimited by the first and
+        last workspace indices.
+
+        Returns
+        -------
+        numpy.array
+        '''
+
+        return np.array(range(self._current_start_ws_index,
+                              self._current_stop_ws_index))
+
+    def get_ws_data(self):
         '''Returns the current tube data and error
-        
+
         Returns
         -------
         Tuple of arrays
             Y and Error
         '''
+        return (self.data_y[self._current_start_ws_index:
+                            self._current_stop_ws_index].flatten(),
+                self.data_e[self._current_start_ws_index:
+                            self._current_stop_ws_index].flatten())
 
-        start_ws_index = self._current_start_ws_index
-        stop_ws_index = self._current_stop_ws_index
-        return (self.data_y[start_ws_index:stop_ws_index].flatten(),
-                self.data_e[start_ws_index:stop_ws_index].flatten())
-
-    def pixels_masked(self):
+    def get_pixels_masked(self):
         '''Returns an array of booleans for this tube
         where the detector is masked
+
+        Returns
+        -------
+        np.array
         '''
-        start_ws_index = self._current_start_ws_index
-        stop_ws_index = self._current_stop_ws_index
         detector_info = self._workspace.detectorInfo()
         return np.array([detector_info.isMasked(idx) for idx in range(
-            start_ws_index, stop_ws_index)])
-    
-    def pixels_infinite(self):
+            self._current_start_ws_index, self._current_stop_ws_index)])
+
+    def get_pixels_infinite(self):
         '''Returns an array of booleans for this tube
         where the pixel count is EMPTY_DBL
-        '''
-        start_ws_index = self._current_start_ws_index
-        stop_ws_index = self._current_stop_ws_index
 
+        Returns
+        -------
+        np.array
+        '''
         return np.array([self._workspace.readY(idx)[0] == Property.EMPTY_DBL
-                         for idx in range(start_ws_index, stop_ws_index)])
-        
+                         for idx in range(self._current_start_ws_index,
+                                          self._current_stop_ws_index)])
+
+    def get_y_coordinates(self):
+        '''Return a numpy array of the current tube Y coordinates
+        The Y coordinates are allways the same no matter the position of the
+        tube, so cache it `self._tube_y_coordinates`
+
+        Returns
+        -------
+        np.array
+        '''
+        if self._tube_y_coordinates is None:
+            detector_info = self._workspace.detectorInfo()
+            self._tube_y_coordinates = np.array([
+                detector_info.position(idx)[1] for idx in range(
+                    self._current_start_ws_index, self._current_stop_ws_index)
+            ])
+        return self._tube_y_coordinates
 
 
 def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
@@ -210,100 +255,57 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     '''
 
     # Sanity check
-    assert flood_ws.getNumberBins() == 1, "This only supports integrated WS"
+    assert flood_ws.blocksize() == 1, "This only supports integrated WS"
 
-    # Get the main detector: the masks are in the mask workspace!!!
-    instrument = flood_ws.getInstrument()
-    component = instrument.getComponentByName(component_name)
-
-    detector_id_to_index = _get_detector_id_to_ws_index(flood_ws)
-    detector_ids = list(detector_id_to_index.keys())
-    ws_indices = list(detector_id_to_index.values())
-    ws_index = ws_indices[0]
-
-    # Put the data in numpy arrays
-    data_y = flood_ws.extractY()
-    data_e = flood_ws.extractE()
-
-    number_of_tubes = component.nelements()
+    d = Detector(flood_ws, component_name)
     # Lets get the output workspace
     output_ws = CloneWorkspace(
         flood_ws, OutputWorkspace=unique_workspace_name(
             prefix="__sensitivity_"))
-
-    detector_info_input_ws = flood_ws.detectorInfo()
     detector_info_output_ws = output_ws.detectorInfo()
 
-    for tube_idx in range(number_of_tubes):
-        tube = _get_tube(component, tube_idx)
+    while True:
+        try:
+            d.next_tube()
+        except StopIteration:
+            break  # Iterator exhausted: stop the loop
 
-        # first tube operations
-        if tube_idx == 0:
-            num_detectors_in_tube = tube.nelements()
-            # x is the Y coordinates of every detector in the tube
-            x = np.array([tube[i].getPos()[1] for i in range(
-                num_detectors_in_tube)])
-
-        tube_detector_ids = detector_ids[
-            tube_idx * num_detectors_in_tube:
-                num_detectors_in_tube + tube_idx*num_detectors_in_tube]
-
-        # check how many detectors are masked in the tube
-        # same size as the tube, True where masked
-        detectors_masked = np.array(
-            [detector_info_input_ws.isMasked(detector_id_to_index[id])
-             for id in tube_detector_ids])
-        # Those are the detectors marked "inf" (EMPTY_DBL)
-        detectors_inf = np.array([flood_ws.readY(
-            detector_id_to_index[id])[0] == Property.EMPTY_DBL
-            for id in tube_detector_ids])
-
-        # Count the detectors masked (True)
+        x = d.get_y_coordinates()
+        detectors_masked = d.get_pixels_masked()
+        detectors_inf = d.get_pixels_infinite()
+        # Count the detectors masked or infinite (True)
         num_of_detectors_masked = np.count_nonzero(detectors_masked)
         num_of_detectors_inf = np.count_nonzero(detectors_inf)
+
         if num_of_detectors_masked > 0 and \
-                (len(tube_detector_ids) - num_of_detectors_masked -
-                 num_of_detectors_inf) > min_detectors_per_tube:
+            (d.n_pixels_per_tube - num_of_detectors_masked -
+                num_of_detectors_inf) > min_detectors_per_tube:
                 # number of detectors with values > min_detectors_per_tube
             # Let's fit
-            y = data_y[ws_index:ws_index+num_detectors_in_tube].flatten()
-            e = data_e[ws_index:ws_index+num_detectors_in_tube].flatten()
+            y, e = d.get_ws_data()
+            y_new, e_new = _interpolate_tube(
+                x, y, e, detectors_masked, detectors_inf, polynomial_degree)
 
-            y_new, e_new = _interpolate_tube(x, y, e, detectors_masked,
-                                             detectors_inf, polynomial_degree)
             # Set output workspace with interpolated values
-            for detector_id, y_new_value, e_new_value in zip(
-                    tube_detector_ids[detectors_masked],
+            for ws_index, y_new_value, e_new_value in zip(
+                    d.get_current_ws_indices_range()[detectors_masked],
                     y_new[detectors_masked], e_new[detectors_masked]):
 
-                ws_index_to_edit = detector_id_to_index[detector_id]
-
-                output_ws.setY(ws_index_to_edit, np.array([y_new_value]))
-                output_ws.setE(ws_index_to_edit, np.array([e_new_value]))
-                detector_info_output_ws.setMasked(ws_index_to_edit, False)
+                output_ws.setY(int(ws_index), np.array([y_new_value]))
+                output_ws.setE(int(ws_index), np.array([e_new_value]))
+                detector_info_output_ws.setMasked(int(ws_index), False)
 
             # mask pixels in WS Out where detectors_inf
-            for detector_id in tube_detector_ids[detectors_inf]:
-                ws_index_to_edit = detector_id_to_index[detector_id]
-                detector_info_output_ws.setMasked(ws_index_to_edit, True)
-                output_ws.setY(ws_index_to_edit, np.array([1]))
-                output_ws.setE(ws_index_to_edit, np.array([0]))
+            for ws_index in d.get_current_ws_indices_range()[detectors_inf]:
+                detector_info_output_ws.setMasked(int(ws_index), True)
+                output_ws.setY(int(ws_index), np.array([1]))
+                output_ws.setE(int(ws_index), np.array([0]))
 
         elif num_of_detectors_masked > min_detectors_per_tube:
-            logger.error("Skipping tube {}. Too many masked or dead pixels."
-                         "".format(tube_idx))
-        # Another iteration
-        ws_index += num_detectors_in_tube
+            logger.error("Skipping tube with indices {}. Too many "
+                         "masked or dead pixels.".format(
+                             d.get_current_ws_indices()))
     return output_ws
-
-
-def _get_detector_id_to_ws_index(flood_ws):
-    spectrum_info = flood_ws.spectrumInfo()
-    detector_id_to_index = OrderedDict(
-        (flood_ws.getSpectrum(ws_index).getDetectorIDs()[0], ws_index)
-        for ws_index in range(flood_ws.getNumberHistograms())
-        if not spectrum_info.isMonitor(ws_index))
-    return detector_id_to_index
 
 
 def inf_value_to_mask(ws):
@@ -311,7 +313,7 @@ def inf_value_to_mask(ws):
     Mask these pixels and set Value to 1 and Error to 0.
     """
 
-    assert ws.getNumberBins() == 1, "This only supports integrated WS"
+    assert ws.blocksize() == 1, "This only supports integrated WS"
 
     detector_info_input_ws = ws.detectorInfo()
     for i in range(ws.getNumberHistograms()):

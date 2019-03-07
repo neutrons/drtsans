@@ -219,6 +219,7 @@ def correct_frame(ws, source_to_component_distance):
     frame_width = ch.period  # either 10^6/60 or 10^6/30 micro-seconds
 
     tof_min, tof_max = limiting_tofs(ws, source_to_component_distance).lead
+    """
     EQSANSCorrectFrame(ws, pulse_period, tof_min, frame_width,
                        bool(FrameMode.skip))
     """
@@ -239,7 +240,7 @@ def correct_frame(ws, source_to_component_distance):
         sp.clear(False)
         for tof, pt in zip(tofs, pulse_times):
             sp.addEventQuickly(tof, pt)
-    """
+
     # Amend the logs
     sl.is_frame_skipping = 1 if ch.frame_mode == FrameMode.skip else 0
 

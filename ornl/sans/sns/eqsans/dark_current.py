@@ -133,7 +133,7 @@ def normalise_to_workspace(dark, data, out_ws):
     return _dark
 
 
-def subtract_normalized_dark(data, dark, out_ws):
+def subtract_normalised_dark(data, dark, out_ws):
     r"""
     Subtract normalized dark from data, taking into account the duration
     of both `data` and `dark` runs.

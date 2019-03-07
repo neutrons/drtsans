@@ -12,8 +12,8 @@ def time(input_ws):
 
     """
     timer = SampleLogs(input_ws).timer.value  # seconds
-    res = input_ws / timer
-    return res
+    __time_normalisation = input_ws / timer
+    return __time_normalisation
 
 
 def monitor(input_ws):
@@ -25,5 +25,5 @@ def monitor(input_ws):
 
     """
     monitor = SampleLogs(input_ws).monitor.value  # seconds  # counts
-    res = input_ws / monitor
-    return res
+    __monitor_normalisation = input_ws / monitor
+    return __monitor_normalisation

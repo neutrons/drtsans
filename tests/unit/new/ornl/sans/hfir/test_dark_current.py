@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.offline
 def test_dark_current(gpsans_f):
     from ornl.sans.hfir.normalisation import time
-    from ornl.sans.hfir.dark_current import subtract_normalized_dark
+    from ornl.sans.hfir.dark_current import subtract_normalised_dark
     from ornl.sans.samplelogs import SampleLogs
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
@@ -25,7 +25,7 @@ def test_dark_current(gpsans_f):
     normalised_dc_ws = time(input_dc_ws)
 
     # third let's a DC subraction
-    sample_subtracted = subtract_normalized_dark(
+    sample_subtracted = subtract_normalised_dark(
         sample_ws, normalised_dc_ws
     )
 

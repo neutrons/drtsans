@@ -239,3 +239,29 @@ def apply_transmission_correction_value(input_sample_ws, trans_value,
         InfinityValue=0)
 
     return __input_sample_trans_corrected_no_nans
+
+
+def calculate_transmission(input_sample_ws, input_reference_ws):
+    '''Only calculates the transmission
+
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Workspace to apply the transmission correction to
+    input_reference_ws: MatrixWorkspace
+        Direct beam workspace (possibly obtained with an attenuated beam)
+
+    Returns
+    -------
+    Tuple
+        Tuple with transmission value and error: (T, sigma(T))
+    '''
+
+    radius = calculate_radius_from_input_ws(input_reference_ws)
+
+    # This returns a WS with the sensitivity value + error
+    __calculated_transmission_ws = zero_angle_transmission(
+        input_sample_ws, input_reference_ws, radius)
+
+    return (__calculated_transmission_ws.readY(0)[0],
+            __calculated_transmission_ws.readE(0)[0])

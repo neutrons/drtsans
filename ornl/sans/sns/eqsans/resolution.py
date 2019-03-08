@@ -83,11 +83,17 @@ def moderator_time_error(wl):
     Returns
     float
     """
-    if wl > 2.0:
-        return 0.0148 * wl**3 - 0.5233 * wl**2 + 6.4797 * wl + 231.99
-    else:
-        return 392.31 * wl**6 - 3169.3 * wl**5 + 10445 * wl**4 \
-            - 17872 * wl**3 + 16509 * wl**2 - 7448.4 * wl + 1280.5
+    time_error = np.zeros_like(wl)
+    time_error[wl>2.0] = 0.0148 * wl[wl>2.0]**3 \
+                         - 0.5233 * wl[wl>2.0]**2 \
+                         + 6.4797 * wl[wl>2.0] + 231.99
+    time_error[wl<=2.0] = 392.31 * wl[wl<=2.0]**6 \
+                          - 3169.3 * wl[wl<=2.0]**5 \
+                          + 10445 * wl[wl<=2.0]**4 \
+                          - 17872 * wl[wl<=2.0]**3 \
+                          + 16509 * wl[wl<=2.0]**2 \
+                          - 7448.4 * wl[wl<=2.0] + 1280.5
+    return time_error
 
 
 def dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.011):

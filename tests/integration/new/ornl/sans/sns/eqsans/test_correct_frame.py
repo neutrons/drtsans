@@ -20,7 +20,8 @@ trials = dict(  # configurations with frame skipped
     # configurations with no frame skipped
     nonskip_1m=('EQSANS_101595', 0.02, 1.3),
     nonskip_4m=('EQSANS_88565', 0.02, 4.0),
-    nonskip_8m=('EQSANS_88901', 0.02, 8.0))
+    nonskip_8m=('EQSANS_88901', 0.02, 8.0)
+    )
 
 
 def compare_to_eqsans_load2(ws, wo, dl, s2d, ltc, htc):

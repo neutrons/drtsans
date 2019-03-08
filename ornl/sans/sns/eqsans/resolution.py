@@ -84,15 +84,15 @@ def moderator_time_error(wl):
     float
     """
     time_error = np.zeros_like(wl)
-    time_error[wl>2.0] = 0.0148 * wl[wl>2.0]**3 \
-                         - 0.5233 * wl[wl>2.0]**2 \
-                         + 6.4797 * wl[wl>2.0] + 231.99
-    time_error[wl<=2.0] = 392.31 * wl[wl<=2.0]**6 \
-                          - 3169.3 * wl[wl<=2.0]**5 \
-                          + 10445 * wl[wl<=2.0]**4 \
-                          - 17872 * wl[wl<=2.0]**3 \
-                          + 16509 * wl[wl<=2.0]**2 \
-                          - 7448.4 * wl[wl<=2.0] + 1280.5
+    time_error[wl > 2.0] = 0.0148 * wl[wl > 2.0]**3 \
+        - 0.5233 * wl[wl>2.0]**2 \
+        + 6.4797 * wl[wl>2.0] + 231.99
+    time_error[wl <= 2.0] = 392.31 * wl[wl <= 2.0]**6 \
+        - 3169.3 * wl[wl <= 2.0]**5 \
+        + 10445 * wl[wl <= 2.0]**4 \
+        - 17872 * wl[wl <= 2.0]**3 \
+        + 16509 * wl[wl <= 2.0]**2 \
+        - 7448.4 * wl[wl <= 2.0] + 1280.5
     return time_error
 
 

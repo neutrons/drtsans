@@ -84,3 +84,26 @@ class SampleLogs(object):
                     str: from_string}
         finder = [v for k, v in dispatch.items() if isinstance(other, k)][0]
         return finder(other)
+
+    def find_log_with_units(self, log_key, units=None):
+        r"""
+        Find a log entry in the logs, and ensure it has the right units
+
+        Parameters
+        ----------
+        log_key: string
+                 key of the log to find
+        units: None or string
+               units string to enforce
+
+        Returns
+        -------
+            log value
+        """
+        if log_key in self.keys():
+            if units is not None and not self[log_key].units == units:
+                error_msg = "Found %s with wrong units" % log_key
+                error_msg += " [%s]" % self[log_key].units
+                raise RuntimeError(error_msg)
+            return float(self[log_key].value)
+        raise RuntimeError("Could not find %s in logs" % log_key)

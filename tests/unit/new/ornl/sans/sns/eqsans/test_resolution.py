@@ -4,13 +4,15 @@
 # import sys
 # sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
 import os
+import tempfile
 import unittest
-import numpy as np
-from mantid import simpleapi as api
-from reduction_workflow.instruments.sans import sns_command_interface as eqsans
-from reduction_workflow.command_interface import AppendDataFile, Reduce
 
+import numpy as np
+
+from mantid import simpleapi as api
 from ornl.sans.sns.eqsans import resolution
+from reduction_workflow.command_interface import AppendDataFile, Reduce
+from reduction_workflow.instruments.sans import sns_command_interface as eqsans
 
 
 def eqsans_files():
@@ -38,6 +40,7 @@ def _create_reduced_ws():
     eqsans.UseConfigMask(False)
     eqsans.SetBeamCenter(96.29, 126.15)
     eqsans.SetTransmission(1.0, 0.0)
+    eqsans.OutputPath(tempfile.gettempdir())
     Reduce()
 
     return api.mtd['EQSANS_92164.nxs']

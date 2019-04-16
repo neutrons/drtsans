@@ -4,15 +4,16 @@
 # import sys
 # sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
 import os
+import tempfile
 import unittest
+
 import numpy as np
+
 from mantid import simpleapi as api
-
-from ornl.sans.samplelogs import SampleLogs
-from reduction_workflow.instruments.sans import hfir_command_interface as hfir
-from reduction_workflow.command_interface import AppendDataFile, Reduce
-
 from ornl.sans.hfir import resolution
+from ornl.sans.samplelogs import SampleLogs
+from reduction_workflow.command_interface import AppendDataFile, Reduce
+from reduction_workflow.instruments.sans import hfir_command_interface as hfir
 
 
 def azimuthal_average(ws):
@@ -67,6 +68,7 @@ def _create_reduced_ws():
     hfir.DirectBeamCenter(data_files['beamcenter'])
     AppendDataFile(data_files['sample_scattering'])
     hfir.AzimuthalAverage(binning="0.01,0.001,0.11")
+    hfir.OutputPath(tempfile.gettempdir())
     Reduce()
     ws = api.mtd['CG2_exp245_scan0010_0001']
     ws_iq = api.mtd['CG2_exp245_scan0010_0001_Iq']

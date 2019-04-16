@@ -51,8 +51,8 @@ def q_resolution_per_pixel(ws):
             qx[i] = np.cos(phi) * _q
             qy[i] = np.sin(phi) * _q
 
-    dqx = np.sqrt(dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta))
-    dqy = np.sqrt(dqx2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta))
+    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta))
+    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta))
     return dqx, dqy
 
 
@@ -92,7 +92,7 @@ def q_resolution(ws):
     if len(q) == 1:
         # We have a 1D I(q)
         q_mid = (q[0][1:] + q[0][:-1]) / 2.0
-        dq = np.sqrt(dqx2_hfir(q_mid, L1, L2, R1, R2, wl, dwl))
+        dq = np.sqrt(_dqx2(q_mid, L1, L2, R1, R2, wl, dwl))
         return dq
     else:
         # We have a 2D I(qx, qy)
@@ -106,14 +106,14 @@ def q_resolution(ws):
         for i in range(len(q)):
             q_length = np.sqrt(qy_mid[i]**2 + qx_mid**2)
             theta = 2.0 * np.arcsin(wl * q_length / 4.0 / np.pi)
-            dqx[i] = np.sqrt(dqx2_hfir(qx_mid, L1, L2, R1,
+            dqx[i] = np.sqrt(_dqx2(qx_mid, L1, L2, R1,
                                        R2, wl, dwl, theta))
-            dqy[i] = np.sqrt(dqy2_hfir(qy_mid[i], L1, L2,
+            dqy[i] = np.sqrt(_dqy2(qy_mid[i], L1, L2,
                                        R1, R2, wl, dwl, theta))
         return dqx, dqy
 
 
-def dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
+def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
     r"""
     Q resolution in the horizontal direction.
 
@@ -150,7 +150,7 @@ def dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
     return dq2_geo + np.fabs(qx) * (dwl / wl)**2 / 6.0
 
 
-def dqy2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
+def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
     r"""
     Q resolution in vertical direction.
 

@@ -59,12 +59,12 @@ def q_resolution_per_pixel(ws):
             qx[i] = np.cos(phi) * _q
             qy[i] = np.sin(phi) * _q
 
-    dqx = np.sqrt(dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta, s2p))
-    dqy = np.sqrt(dqx2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta, s2p))
+    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p))
+    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p))
     return dqx, dqy
 
 
-def moderator_time_error(wl):
+def _moderator_time_error(wl):
     r"""
     Relative Q uncertainty due to emission time jitter
     in the neutron moderator.
@@ -90,7 +90,7 @@ def moderator_time_error(wl):
     return time_error
 
 
-def dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.011):
+def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055):
     r"""
     Q resolution in the horizontal direction.
 
@@ -126,12 +126,12 @@ def dqx2_eqsans(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.011):
     if theta is None:
         theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dtof = moderator_time_error(wl)
+    dtof = _moderator_time_error(wl)
     dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
     return dq2_geo + np.fabs(qx) * (dq_tof_term + (dwl / wl)**2) / 12.0
 
 
-def dqy2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.007):
+def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043):
     r"""
     Q resolution in vertical direction.
 
@@ -167,7 +167,7 @@ def dqy2_eqsans(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.007):
     if theta is None:
         theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dtof = moderator_time_error(wl)
+    dtof = _moderator_time_error(wl)
     dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
     dq2 = dq2_geo + dq2_grav

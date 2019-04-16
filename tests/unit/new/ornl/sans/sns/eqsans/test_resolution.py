@@ -55,8 +55,9 @@ class EQSANSResolution(unittest.TestCase):
         """
         ws = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution_per_pixel(ws)
-        self.assertTrue(np.average(dqx) < 0.006)
-        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.0001)
+        self.assertTrue(np.average(dqx) < 0.005)
+        self.assertTrue(np.average(dqy) < 0.005)
+        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.00002)
 
 
 if __name__ == '__main__':

@@ -112,6 +112,8 @@ class HFIRResolution(unittest.TestCase):
         """
             Test whether the averaged dq is similar to the reference.
         """
+        # To ignore warning: "invalid value encountered in true_divide"
+        np.seterr(divide='ignore', invalid='ignore')
         ws, ws_iq, _ = _create_reduced_ws()
         dq = resolution.q_resolution(ws_iq)
         dq_test = azimuthal_average(ws)

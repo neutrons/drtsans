@@ -33,7 +33,7 @@ def azimuthal_average(ws):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
             q[i] = 4.0 * np.pi * np.sin(spec_info.twoTheta(i) / 2.0) / wl
 
-    _dqx, _dqy = resolution.q_resolution_per_pixel(ws)
+    _, _, _dqx, _dqy = resolution.q_resolution_per_pixel(ws)
     bins = np.arange(0.01, 0.111, 0.001)
     iq, _ = np.histogram(q, bins=bins)
     dqx, _ = np.histogram(q, bins=bins, weights=_dqx)
@@ -99,17 +99,22 @@ class HFIRResolution(unittest.TestCase):
         """
         _, _, ws_iqxy = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution(ws_iqxy)
-        self.assertTrue(np.average(dqx) < 0.15)
-        self.assertTrue(np.average(dqy) < 0.15)
+        self.assertTrue(np.average(dqx) < 0.03)
+        self.assertTrue(np.average(dqy) < 0.03)
 
     def test_pixels(self):
         """
         Test the Q resolution for a 2D distribution
         """
         ws, _, _ = _create_reduced_ws()
-        dqx, dqy = resolution.q_resolution_per_pixel(ws)
-        self.assertTrue(np.average(dqx) < 0.15)
-        self.assertTrue(np.average(dqy) < 0.15)
+        qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
+
+        self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape)
+        self.assertTrue(np.min(np.abs(qx)) < np.max(np.abs(qx)))
+        self.assertTrue(np.min(np.abs(qy)) < np.max(np.abs(qy)))
+
+        self.assertTrue(np.average(dqx) < 0.03)
+        self.assertTrue(np.average(dqy) < 0.03)
 
     def test_compare_Iq(self):
         """

@@ -7,13 +7,13 @@ from ornl.sans.sns.eqsans import geometry as eqsans_geometry
 
 
 def q_resolution_per_pixel(ws):
-    r"""
+    """
     Compute q resolution for each pixel, in each wavelength bin.
 
     The resolution can be computed by giving a binned
     workspace to this function:
 
-    dqx, dqy = q_resolution_per_pixel(ws_2d)
+    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
 
     The returned numpy arrays are of the same dimensions
     as the input array.
@@ -61,11 +61,11 @@ def q_resolution_per_pixel(ws):
 
     dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p))
     dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p))
-    return dqx, dqy
+    return qx, qy, dqx, dqy
 
 
 def _moderator_time_error(wl):
-    r"""
+    """
     Relative Q uncertainty due to emission time jitter
     in the neutron moderator.
 
@@ -91,7 +91,7 @@ def _moderator_time_error(wl):
 
 
 def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055):
-    r"""
+    """
     Q resolution in the horizontal direction.
 
     Parameters
@@ -132,7 +132,7 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055):
 
 
 def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043):
-    r"""
+    """
     Q resolution in vertical direction.
 
     Parameters

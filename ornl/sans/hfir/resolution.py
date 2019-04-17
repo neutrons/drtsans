@@ -13,7 +13,7 @@ def q_resolution_per_pixel(ws):
     The resolution can be computed by giving a binned
     workspace to this function:
 
-    dqx, dqy = q_resolution_per_pixel(ws_2d)
+    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
 
     The returned numpy arrays are of the same dimensions
     as the input array.
@@ -53,7 +53,7 @@ def q_resolution_per_pixel(ws):
 
     dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta))
     dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta))
-    return dqx, dqy
+    return qx, qy, dqx, dqy
 
 
 def q_resolution(ws):
@@ -107,13 +107,13 @@ def q_resolution(ws):
             q_length = np.sqrt(qy_mid[i]**2 + qx_mid**2)
             theta = 2.0 * np.arcsin(wl * q_length / 4.0 / np.pi)
             dqx[i] = np.sqrt(_dqx2(qx_mid, L1, L2, R1,
-                                       R2, wl, dwl, theta))
+                                   R2, wl, dwl, theta))
             dqy[i] = np.sqrt(_dqy2(qy_mid[i], L1, L2,
-                                       R1, R2, wl, dwl, theta))
+                                   R1, R2, wl, dwl, theta))
         return dqx, dqy
 
 
-def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
+def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0055):
     r"""
     Q resolution in the horizontal direction.
 
@@ -150,7 +150,7 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
     return dq2_geo + np.fabs(qx) * (dwl / wl)**2 / 6.0
 
 
-def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
+def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0043):
     r"""
     Q resolution in vertical direction.
 

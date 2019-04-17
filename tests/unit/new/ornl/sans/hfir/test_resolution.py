@@ -87,6 +87,7 @@ class HFIRResolution(unittest.TestCase):
         _, ws_iq, _ = _create_reduced_ws()
         dq = resolution.q_resolution(ws_iq)
         dq_ref = ws_iq.readDx(0)
+        self.assertTrue(dq.shape == dq_ref.shape == (100,))
         # Check that the results are the same order of magnitude
         # Note: they do differ...
         summed = dq.sum()
@@ -99,6 +100,7 @@ class HFIRResolution(unittest.TestCase):
         """
         _, _, ws_iqxy = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution(ws_iqxy)
+        self.assertTrue(dqx.shape == dqy.shape == (200, 200))
         self.assertTrue(np.average(dqx) < 0.03)
         self.assertTrue(np.average(dqy) < 0.03)
 
@@ -109,7 +111,8 @@ class HFIRResolution(unittest.TestCase):
         ws, _, _ = _create_reduced_ws()
         qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
 
-        self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape)
+        self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape ==
+                        (192*256+2,))
         self.assertTrue(np.min(np.abs(qx)) < np.max(np.abs(qx)))
         self.assertTrue(np.min(np.abs(qy)) < np.max(np.abs(qy)))
 

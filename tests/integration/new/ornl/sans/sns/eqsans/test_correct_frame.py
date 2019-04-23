@@ -7,7 +7,7 @@ from mantid.simpleapi import (Load, EQSANSLoad, SumSpectra, RebinToWorkspace,
                               MoveInstrumentComponent, ConvertUnits,
                               CloneWorkspace)
 from mantid.api import AnalysisDataService
-from ornl.settings import amend_config
+from ornl.settings import amend_config, unique_workspace_name as uwn
 from ornl.sans.sns.eqsans.correct_frame import correct_detector_frame
 from ornl.sans.sns.eqsans import correct_frame as cf
 from ornl.sans.geometry import source_detector_distance
@@ -20,48 +20,22 @@ trials = dict(  # configurations with frame skipped
     # configurations with no frame skipped
     nonskip_1m=('EQSANS_101595', 0.02, 1.3),
     nonskip_4m=('EQSANS_88565', 0.02, 4.0),
-    nonskip_8m=('EQSANS_88901', 0.02, 8.0))
+    nonskip_8m=('EQSANS_88901', 0.02, 8.0)
+    )
 
 
-def compare_to_eqsans_load2(ws, wo, dl, s2d, ltc, htc):
+def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
+    r"""Compare wavelength-dependent intensities  after
+    TOF correction with EQSANSCorrectFrame and EQSANSLoad.
+    For comparison, sum intensites over all detectors.
+    """
     eq_out = EQSANSLoad(InputWorkspace=wo.name(),
-                        OutputWorkspace='from_EQSANSLoad',
+                        OutputWorkspace=uwn(),
                         NoBeamCenter=False,
                         UseConfigBeam=False,
                         UseConfigTOFCuts=False,
                         LowTOFCut=ltc,
                         highTOFCut=htc,
-                        SkipTOFCorrection=False,
-                        WavelengthStep=dl,
-                        UseConfigMask=False,
-                        UseConfig=False,
-                        CorrectForFlightPath=False,
-                        PreserveEvents=False,
-                        SampleDetectorDistance=s2d * 1e3,
-                        SampleDetectorDistanceOffset=0.0,
-                        SampleOffset=0.0,
-                        DetectorOffset=0.0,
-                        LoadMonitors=False)
-    sm = SumSpectra(eq_out.OutputWorkspace)
-    ws_l = SumSpectra(ws)
-    ws_l = RebinToWorkspace(ws_l, sm)
-    non_zero = np.where((sm.dataY(0) > 0) & (ws_l.dataY(0) > 0))[0]
-    a = sm.dataY(0)[non_zero]
-    b = ws_l.dataY(0)[non_zero]
-    assert abs(1.0 - np.mean(b / a)) < 0.1
-    AnalysisDataService.remove(sm.name())
-    AnalysisDataService.remove(ws_l.name())
-    AnalysisDataService.remove(eq_out.OutputWorkspace.name())
-
-
-def compare_to_eqsans_load(ws, wo, dl, s2d):
-    eq_out = EQSANSLoad(InputWorkspace=wo.name(),
-                        OutputWorkspace='from_EQSANSLoad',
-                        NoBeamCenter=False,
-                        UseConfigBeam=False,
-                        UseConfigTOFCuts=False,
-                        LowTOFCut=500,
-                        highTOFCut=2000,
                         SkipTOFCorrection=False,
                         WavelengthStep=dl,
                         UseConfigMask=False,
@@ -86,20 +60,20 @@ def compare_to_eqsans_load(ws, wo, dl, s2d):
         b = ws_l.dataY(0)[non_zero]
         assert abs(1.0 - np.mean(b / a)) < 0.1
     finally:
-        AnalysisDataService.remove(sm.name())
-        AnalysisDataService.remove(ws_l.name())
-        AnalysisDataService.remove(eq_out.OutputWorkspace.name())
+        for w in (eq_out.OutputWorkspace, ws_l, sm):
+            if AnalysisDataService.doesExist(w.name()):
+                AnalysisDataService.remove(w.name())
 
 
 def test_correct_detector_frame():
     with amend_config({'instrumentName': 'EQSANS',
                        'datasearch.searcharchive': 'on'}):
         for run_number, wavelength_bin, sdd in trials.values():
-            wo = Load(Filename=run_number, OutputWorkspace='original')
-            ws = CloneWorkspace(wo, OutputWorkspace='copy')
+            wo = Load(Filename=run_number, OutputWorkspace=uwn())
+            ws = CloneWorkspace(wo, OutputWorkspace=uwn())
             MoveInstrumentComponent(ws, ComponentName='detector1', Z=sdd)
             correct_detector_frame(ws)
-            compare_to_eqsans_load(ws, wo, wavelength_bin, sdd)
+            compare_to_eqsans_load(ws, wo, wavelength_bin, sdd, 500, 2000)
             AnalysisDataService.remove(ws.name())
             AnalysisDataService.remove(wo.name())
 
@@ -108,15 +82,15 @@ def test_convert_to_wavelength():
     with amend_config({'instrumentName': 'EQSANS',
                        'datasearch.searcharchive': 'on'}):
         for run_number, wavelength_bin, sadd in trials.values():
-            wo = Load(Filename=run_number, OutputWorkspace='original')
-            ws = CloneWorkspace(wo, OutputWorkspace='copy')
+            wo = Load(Filename=run_number, OutputWorkspace=uwn())
+            ws = CloneWorkspace(wo, OutputWorkspace=uwn())
             MoveInstrumentComponent(ws, ComponentName='detector1', Z=sadd)
             cf.correct_detector_frame(ws)
             sodd = source_detector_distance(ws, units='m')
             bands = cf.transmitted_bands_clipped(ws, sodd, 500, 2000,
                                                  interior_clip=True)
-            ws = cf.convert_to_wavelength(ws, bands, wavelength_bin, 'copy')
-            compare_to_eqsans_load2(ws, wo, wavelength_bin, sadd, 500, 2000)
+            ws = cf.convert_to_wavelength(ws, bands, wavelength_bin, ws.name())
+            compare_to_eqsans_load(ws, wo, wavelength_bin, sadd, 500, 2000)
 
 
 if __name__ == '__main__':

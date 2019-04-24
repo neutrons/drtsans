@@ -79,7 +79,7 @@ def _create_reduced_ws():
 
 
 class HFIRResolution(unittest.TestCase):
-    '''
+
     def test_1d(self):
         """
         Test the Q resolution for a 1D distribution
@@ -101,7 +101,7 @@ class HFIRResolution(unittest.TestCase):
         dqx, dqy = resolution.q_resolution(ws_iqxy)
         self.assertTrue(np.average(dqx) < 0.15)
         self.assertTrue(np.average(dqy) < 0.15)
-    '''
+
     def test_pixels(self):
         """
         Test the Q resolution for a 2D distribution
@@ -111,7 +111,6 @@ class HFIRResolution(unittest.TestCase):
         self.assertTrue(np.average(dqx) < 0.15)
         self.assertTrue(np.average(dqy) < 0.15)
 
-    '''
     def test_compare_Iq(self):
         """
             Test whether the averaged dq is similar to the reference.
@@ -122,7 +121,7 @@ class HFIRResolution(unittest.TestCase):
         dq = resolution.q_resolution(ws_iq)
         dq_test = azimuthal_average(ws)
         self.assertTrue(np.fabs(np.average(dq) - np.average(dq_test)) < 0.002)
-    '''
+
 
 if __name__ == '__main__':
     unittest.main()

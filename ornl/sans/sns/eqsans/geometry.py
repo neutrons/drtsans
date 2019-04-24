@@ -28,25 +28,29 @@ def translate_detector_z(ws, z=None):
     MoveInstrumentComponent(ws, Z=z, **kwargs)
 
 
-def sample_aperture_diameter(other):
+def sample_aperture_diameter(other, unit='mm'):
     r"""
     Find the sample aperture diameter
 
     Parameters
     ----------
     other: Run, MatrixWorkspace, file name, run number
-
+    unit: str
+        Length unit, either 'm' or 'mm'
     Returns
     -------
     float
-        Sample aperture diameter, in mili-meters
+        Sample aperture diameter, in requested units
     """
     sl = SampleLogs(other)
-    return float(sl.beamslit4.value.mean())
+    sad = sl.single_value('beamslit4')
+    if unit == 'm':
+        sad /= 1000.0
+    return sad
 
 
 @namedtuplefy
-def source_aperture(other):
+def source_aperture(other, unit='mm'):
     r"""
     Find the source aperture diameter and position
 
@@ -64,13 +68,14 @@ def source_aperture(other):
     Parameters
     ----------
     other: Run, MatrixWorkspace, file name, run number
-
+    unit: str
+        Length unit, either 'm' or 'mm'
     Returns
     -------
     namedtuple
         Fields of the name tuple
-        - float: diameter, in mili-meters
-        - float: distance to sample, in mili-meters
+        - float: diameter, in requested units
+        - float: distance to sample, in requested units
     """
     n_wheels = 3
     index_to_diameter = [[5.0, 10.0, 10.0, 15.0, 20.0, 20.0, 25.0, 40.0],
@@ -91,10 +96,13 @@ def source_aperture(other):
             if asd < 0 or x / y < diameter / asd:
                 diameter = x
                 asd = y
-    return dict(diameter=diameter, distance_to_sample=asd)
+    if unit == 'm':
+        diameter /= 1000.0
+        asd /= 1000.0
+    return dict(diameter=diameter, distance_to_sample=asd, unit=unit)
 
 
-def source_aperture_diameter(other):
+def source_aperture_diameter(other, unit='mm'):
     r"""
     Find the source aperture diameter
 
@@ -112,18 +120,20 @@ def source_aperture_diameter(other):
     Parameters
     ----------
     other: Run, MatrixWorkspace, file name, run number
-
+    unit: str
+        Length unit, either 'm' or 'mm'
     Returns
     -------
     float
-        Source aperture diameter, in mili-meters
+        Source aperture diameter, in requested units
     """
-    return source_aperture(other).diameter
+    return source_aperture(other, unit=unit).diameter
 
 
 def insert_aperture_logs(ws):
     r"""
     Insert source and sample aperture diameters in the logs.
+    Units are in mm
 
     Parameters
     ----------

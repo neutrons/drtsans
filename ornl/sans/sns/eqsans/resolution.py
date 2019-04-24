@@ -1,10 +1,9 @@
 from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
-from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.resolution import dq2_geometry, dq2_gravity
+from ornl.sans import geometry as sans_geometry
 from ornl.sans.sns.eqsans import geometry as eqsans_geometry
-from ornl.sans import geometry
 
 
 def q_resolution_per_pixel(ws):
@@ -28,17 +27,10 @@ def q_resolution_per_pixel(ws):
     ------
     numpy array of the same dimension as the data
     """
-    L1 = geometry.sample_source_distance(ws, units='m')
-
-    # TODO: the following would be ideal but the geometry implementation
-    # needs logic to distinguish between time series and simple floats.
-    # L2 = geometry.sample_detector_distance(ws,
-    #                                        log_key='sample_detector_distance',
-    #                                        units='m')
-    sl = SampleLogs(ws)
-    L2 = 1. / 1000. * sl.find_log_with_units('sample_detector_distance', 'mm')
-    R1 = 1. / 2000. * eqsans_geometry.source_aperture(ws).diameter
-    R2 = 1. / 2000. * eqsans_geometry.sample_aperture_diameter(ws)
+    L1 = sans_geometry.sample_source_distance(ws, units='m')
+    L2 = sans_geometry.sample_detector_distance(ws, units='m')
+    R1 = 0.5 * eqsans_geometry.source_aperture_diameter(ws, unit='m')
+    R2 = 0.5 * eqsans_geometry.sample_aperture_diameter(ws, unit='m')
 
     wl_bounds = ws.extractX()
     wl = (wl_bounds[:, 1:] + wl_bounds[:, :-1]) / 2.0

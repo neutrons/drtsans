@@ -3,7 +3,7 @@ import numpy as np
 
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.resolution import dq2_geometry, dq2_gravity
-
+from ornl.sans import geometry as sans_geometry
 
 def q_resolution_per_pixel(ws):
     r"""
@@ -27,13 +27,8 @@ def q_resolution_per_pixel(ws):
     numpy array of the same dimension as the data
     """
     sl = SampleLogs(ws)
-
-    # TODO: the following two lines don't work for HFIR
-    # source_sample = geometry.source_sample_distance(ws, units='m')
-    # sample_detector = geometry.sample_detector_distance(ws, units='m')
-
-    L1 = 1. / 1000. * sl.find_log_with_units('source-sample-distance', 'mm')
-    L2 = 1. / 1000. * sl.find_log_with_units('sample-detector-distance', 'mm')
+    L1 = sans_geometry.source_sample_distance(ws, 'm')
+    L2 = sans_geometry.sample_detector_distance(ws, 'm')
     R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
     R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
     wl = sl.find_log_with_units('wavelength', 'Angstrom')
@@ -82,12 +77,8 @@ def q_resolution(ws):
     """
     sl = SampleLogs(ws)
 
-    # TODO: the following two lines don't work for HFIR
-    # source_sample = geometry.source_sample_distance(ws, units='m')
-    # sample_detector = geometry.sample_detector_distance(ws, units='m')
-
-    L1 = 1. / 1000. * sl.find_log_with_units('source-sample-distance', 'mm')
-    L2 = 1. / 1000. * sl.find_log_with_units('sample-detector-distance', 'mm')
+    L1 = sans_geometry.source_sample_distance(ws, 'm')
+    L2 = sans_geometry.sample_detector_distance(ws, 'm')
     R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
     R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
     wl = sl.find_log_with_units('wavelength', 'Angstrom')

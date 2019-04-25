@@ -223,7 +223,7 @@ def correct_frame(ws, source_to_component_distance):
                        PulsePeriod=pulse_period,
                        MinTOF=tof_min,
                        FrameWidth=frame_width,
-                       FrameSkipping=bool(ch.frame_mode.value))
+                       FrameSkipping=(ch.frame_mode is FrameMode.skip))
     # Amend the logs
     sl.is_frame_skipping = 1 if ch.frame_mode == FrameMode.skip else 0
 

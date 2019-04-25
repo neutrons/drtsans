@@ -5,6 +5,7 @@ from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.resolution import dq2_geometry, dq2_gravity
 from ornl.sans import geometry as sans_geometry
 
+
 def q_resolution_per_pixel(ws):
     r"""
     Compute q resolution for each pixel, in each wavelength bin.

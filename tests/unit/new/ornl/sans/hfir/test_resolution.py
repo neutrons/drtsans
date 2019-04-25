@@ -3,6 +3,8 @@
 """
 # import sys
 # sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
+from __future__ import (absolute_import, division, print_function)
+
 import os
 import tempfile
 import unittest
@@ -77,6 +79,7 @@ def _create_reduced_ws():
 
 
 class HFIRResolution(unittest.TestCase):
+
     def test_1d(self):
         """
         Test the Q resolution for a 1D distribution

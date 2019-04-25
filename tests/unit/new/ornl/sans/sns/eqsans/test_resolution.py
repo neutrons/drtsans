@@ -3,6 +3,8 @@
 """
 # import sys
 # sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
+from __future__ import (absolute_import, division, print_function)
+
 import os
 import tempfile
 import unittest
@@ -54,7 +56,7 @@ class EQSANSResolution(unittest.TestCase):
         ws = _create_reduced_ws()
         dqx, dqy = resolution.q_resolution_per_pixel(ws)
         self.assertTrue(np.average(dqx) < 0.006)
-        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy) < 0.00005))
+        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.0001)
 
 
 if __name__ == '__main__':

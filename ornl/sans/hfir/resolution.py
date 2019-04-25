@@ -28,8 +28,10 @@ def q_resolution_per_pixel(ws):
     numpy array of the same dimension as the data
     """
     sl = SampleLogs(ws)
-    L1 = sans_geometry.source_sample_distance(ws, 'm')
-    L2 = sans_geometry.sample_detector_distance(ws, 'm')
+    L1 = sans_geometry.source_sample_distance(ws, units='m',
+                                              log_key='source-sample-distance')
+    L2 = sans_geometry.sample_detector_distance(ws, units='m',
+                                                log_key='sample-detector-distance')
     R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
     R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
     wl = sl.find_log_with_units('wavelength', 'Angstrom')

@@ -141,7 +141,7 @@ def insert_aperture_logs(ws):
         Insert metadata in this workspace's logs
     """
     sl = SampleLogs(ws)
-    sl['sample_aperture-diameter'] = sample_aperture_diameter(ws)
+    sl['sample-aperture-diameter'] = sample_aperture_diameter(ws)
     sa = source_aperture(ws)
-    sl['source_aperture-diameter'] = sa.diameter
-    sl['source_aperture-sample-distance'] = sa.distance_to_sample
+    sl['source-aperture-diameter'] = sa.diameter
+    sl['source-aperture-sample-distance'] = sa.distance_to_sample

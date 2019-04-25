@@ -97,9 +97,9 @@ def get_instrument(other):
     return finder(other)
 
 
-def sample_source_distance(other, units='mm', log_key=None, search_logs=True):
+def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
     r"""
-    Report the distance (always positive!) between sample and source.
+    Report the distance (always positive!) between source and sample.
 
     If logs are not used or distance fails to be found in the logs, then
     calculate the distance using the instrument configuration file.
@@ -145,10 +145,9 @@ def sample_source_distance(other, units='mm', log_key=None, search_logs=True):
     return abs(sample.getDistance(instrument.getSource())) * m2units[units]
 
 
-def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
-    r"""Syntactic sugar of function `sample_source_distance`"""
-    return sample_source_distance(other, units=units,
-                                  log_key=log_key, search_logs=search_logs)
+def sample_source_distance(*args, **kwargs):
+    r"""Syntactic sugar of function `source_sample_distance`"""
+    return source_sample_distance(*args, **kwargs)
 
 
 def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):

@@ -3,6 +3,19 @@ from ornl.sans.hfir import resolution
 from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
 import numpy as np
 
+'''
+LoadHFIRSANS(Filename='/home/rhf/git/sans-rewrite/data/new/ornl/sans/hfir/"
+"gpsans/CG2_exp206_scan0017_0001.xml', OutputWorkspace='flood')
+import os
+os.chdir("/home/rhf/git/sans-rewrite")
+ws = mtd['flood']
+from ornl.sans.hfir.momentum_transfer import bin_into_q2d
+bin_into_q2d(ws)
+out_ws_prefix="ws"
+import numpy as np
+from ornl.sans.hfir import resolution
+'''
+
 
 def bin_into_q2d(ws, out_ws_prefix="ws"):
 
@@ -25,19 +38,12 @@ def bin_into_q2d(ws, out_ws_prefix="ws"):
     # get rid of the original bins, transform in 1D
     i, i_sigma = i[:, 0], i_sigma[:, 0]
 
-    # qx_bin_centers = np.linspace(np.abs(qx).min(), np.abs(qx).max(), X_SIZE_DET)
-    # qy_bin_centers = np.linspace(np.abs(qy).min(), np.abs(qy).max(), Y_SIZE_DET)
-
-    # qx_bin_dist = abs(qx_bin_centers[1]-qx_bin_centers[0])
-    # qx_bin_edges = qx_bin_centers - qx_bin_dist/2
-    # qx_bin_edges = np.append(qx_bin_edges, qx_bin_centers[-1] + qx_bin_dist/2)
-
     # Number of bins is the number of pixels in each diraction
-    counts, qx_bin_edges, qy_bin_edges = np.histogram2d(
+    counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
         qx, qy, bins=[X_SIZE_DET, Y_SIZE_DET], weights=i
     )
-    counts, dqx_bin_edges, dqy_bin_edges = np.histogram2d(
-        dqx, dqy, bins=[X_SIZE_DET, Y_SIZE_DET], weights=i
+    counts_dqx_dqy, dqx_bin_edges, dqy_bin_edges = np.histogram2d(
+        dqx, dqy, bins=[X_SIZE_DET, Y_SIZE_DET], weights=i_sigma
     )
 
     qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
@@ -46,8 +52,8 @@ def bin_into_q2d(ws, out_ws_prefix="ws"):
     # Grids for I, dqx, dqy
     qx_bin_edges_grid, qy_bin_centers_grid = np.meshgrid(
         qx_bin_edges, qy_bin_centers)
-    i_grid = i.reshape((X_SIZE_DET, Y_SIZE_DET))
-    i_sigma_grid = i_sigma.reshape((X_SIZE_DET, Y_SIZE_DET))
+    i_grid = i.reshape(X_SIZE_DET, Y_SIZE_DET)
+    i_sigma_grid = i_sigma.reshape(X_SIZE_DET, Y_SIZE_DET)
 
     dqx_bin_centers_grid = np.tile(dqx_bin_edges, (len(dqy_bin_centers), 1))
     dqy_bin_centers_grid = np.tile(np.array([dqy_bin_centers]).transpose(),
@@ -55,8 +61,8 @@ def bin_into_q2d(ws, out_ws_prefix="ws"):
     # Q WS
     iqxqy_ws = CreateWorkspace(
         DataX=qx_bin_edges_grid,  # 2D
-        DataY=i_grid,  # 2D
-        DataE=i_sigma_grid,  # 2D
+        DataY=i_grid.T,  # 2D
+        DataE=i_sigma_grid.T,  # 2D
         NSpec=256,
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',

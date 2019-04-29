@@ -2,10 +2,10 @@ from __future__ import print_function
 from ornl.sans.hfir import resolution
 from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
 import numpy as np
+from scipy import stats
 
 '''
-LoadHFIRSANS(Filename='/home/rhf/git/sans-rewrite/data/new/ornl/sans/hfir/"
-"gpsans/CG2_exp206_scan0017_0001.xml', OutputWorkspace='flood')
+LoadHFIRSANS(Filename='/home/rhf/git/sans-rewrite/data/new/ornl/sans/hfir/gpsans/CG2_exp206_scan0017_0001.xml', OutputWorkspace='flood')
 import os
 os.chdir("/home/rhf/git/sans-rewrite")
 ws = mtd['flood']
@@ -99,5 +99,49 @@ def bin_into_q2d(ws, out_ws_prefix="ws"):
     return qxqy_wss_grouped
 
 
-def bin_into_q1d(ws):
-    pass
+def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean'):
+    '''
+    Calulates:
+    I(Q) and Dq
+
+    bins : int or sequence of scalars, optional
+    statistic : string or callable, optional: sum, mean, median
+    '''
+
+    #
+    # Calculate Q
+    qx_bin_edges_grid = ws_iqxqy.extractX()
+    qy_bin_centers = ws_iqxqy.getAxis(1).extractValues()
+    # qy_bin_centers.shape == (256,)
+
+    # Qx
+    # Assuming all bins to be the same
+    qx_bin_centers = (qx_bin_edges_grid[0][1:] + qx_bin_edges_grid[0][:-1]) / 2.0
+    qx_bin_centers_grid = np.tile(qx_bin_centers,(qx_bin_edges_grid.shape[0],1))
+    # qx_bin_centers_grid.shape == (256, 192)
+    
+    # Qy
+    qy_bin_centers_t = np.transpose([qy_bin_centers])
+    qy_bin_centers_t_grid = np.tile(qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
+    # qy_bin_centers_t_grid.shape == (256, 192)
+
+    q_bin_centers_grid = np.sqrt(np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
+
+    #
+    # Calculate I
+    i = ws_iqxqy.extractY()
+    sigma_i = ws_iqxqy.extractE()
+    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape) # sanity check
+
+    q_bin_centers, q_bin_edges, q_binnumber = stats.binned_statistic(
+        q_bin_centers_grid.ravel(), i.ravel(), statistic=statistic, bins=bins)
+
+    # plt.figure()
+    # q_bin_centers = (q_bin_edges[1:] + q_bin_edges[:-1]) / 2.0
+    # plt.plot(q_bin_centers, q_bin_centers)
+    # plt.show()
+
+    #
+    # Calculate error I
+
+

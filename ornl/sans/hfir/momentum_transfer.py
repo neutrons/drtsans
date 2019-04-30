@@ -115,9 +115,7 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_pr
     # qy_bin_centers.shape == (256,)
 
     # Qx
-    # Assuming all bins to be the same
-    qx_bin_centers = (qx_bin_edges_grid[0][1:] + qx_bin_edges_grid[0][:-1]) / 2.0
-    qx_bin_centers_grid = np.tile(qx_bin_centers,(qx_bin_edges_grid.shape[0],1))
+    qx_bin_centers_grid = (qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
     # qx_bin_centers_grid.shape == (256, 192)
     
     # Qy
@@ -144,7 +142,6 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_pr
     
     #
     # Calculate dq from dqx dqy
-    # dqx
     dqx_bin_centers_grid = ws_dqx.extractY()
     dqy_bin_centers_grid = ws_dqy.extractY()
 
@@ -165,7 +162,10 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_pr
         Dx=dq_bin_centers,  # bin centers!!
         NSpec=1,
         UnitX='MomentumTransfer',
+        YUnitLabel='Counts',
         OutputWorkspace=out_ws_prefix+"_iq"
     )
+
+    return iq
 
 

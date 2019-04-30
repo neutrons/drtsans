@@ -99,7 +99,7 @@ def bin_into_q2d(ws, out_ws_prefix="ws"):
     return qxqy_wss_grouped
 
 
-def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean'):
+def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_prefix="ws"):
     '''
     Calulates:
     I(Q) and Dq
@@ -128,20 +128,44 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean'):
     q_bin_centers_grid = np.sqrt(np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
 
     #
-    # Calculate I
+    # Calculate I(Q) and error(I(Q))
     i = ws_iqxqy.extractY()
     sigma_i = ws_iqxqy.extractE()
-    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape) # sanity check
+    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)  # sanity check
 
-    q_bin_centers, q_bin_edges, q_binnumber = stats.binned_statistic(
+    intensity_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
         q_bin_centers_grid.ravel(), i.ravel(), statistic=statistic, bins=bins)
 
-    # plt.figure()
-    # q_bin_centers = (q_bin_edges[1:] + q_bin_edges[:-1]) / 2.0
-    # plt.plot(q_bin_centers, q_bin_centers)
-    # plt.show()
-
+    sigma_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
+        q_bin_centers_grid.ravel(), sigma_i.ravel(),
+        statistic=lambda array_1d: np.sqrt(
+            np.sum(np.square(array_1d))) / len(array_1d),
+        bins=bins)
+    
     #
-    # Calculate error I
+    # Calculate dq from dqx dqy
+    # dqx
+    dqx_bin_centers_grid = ws_dqx.extractY()
+    dqy_bin_centers_grid = ws_dqy.extractY()
+
+    # Bin centres in y edges in x
+    dq_bin_centers_grid = np.sqrt(np.square(dqx_bin_centers_grid) + np.square(dqy_bin_centers_grid))
+    # get all to centres
+    dq_bin_centers_grid_all = (dq_bin_centers_grid[:,1:] + dq_bin_centers_grid[:,:-1]) / 2.0
+
+    dq_intensity_statistic, dq_bin_edges, dq_binnumber = stats.binned_statistic(
+        dq_bin_centers_grid_all.ravel(), i.ravel(), statistic=statistic, bins=bins)
+
+    dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
+
+    iq = CreateWorkspace(
+        DataX=np.array([q_bin_edges]),
+        DataY=np.array([intensity_statistic]),
+        DataE=np.array([sigma_statistic]),
+        Dx=dq_bin_centers,  # bin centers!!
+        NSpec=1,
+        UnitX='MomentumTransfer',
+        OutputWorkspace=out_ws_prefix+"_iq"
+    )
 
 

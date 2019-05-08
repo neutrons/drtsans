@@ -1,28 +1,58 @@
 from __future__ import print_function
-from ornl.sans.hfir import resolution
-from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
+
 import numpy as np
 from scipy import stats
 
+from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
+from ornl.sans.hfir import resolution
+from ornl.sans.detector import Detector
+
 '''
+LoadHFIRSANS(Filename='/home/rhf/git/sans-rewrite/data/new/ornl/sans/hfir/biosans/BioSANS_exp327_scan0014_0001.xml', OutputWorkspace='biosans')
 LoadHFIRSANS(Filename='/home/rhf/git/sans-rewrite/data/new/ornl/sans/hfir/gpsans/CG2_exp206_scan0017_0001.xml', OutputWorkspace='flood')
 import os
 os.chdir("/home/rhf/git/sans-rewrite")
 ws = mtd['flood']
-from ornl.sans.hfir.momentum_transfer import bin_into_q2d
+from ornl.sans.hfir.momentum_transfer import bin_into_q2d, bin_into_q1d
 bin_into_q2d(ws)
+bin_into_q1d(mtd['ws_iqxqy'], mtd['ws_dqx'], mtd['ws_dqy'])
 out_ws_prefix="ws"
 import numpy as np
 from ornl.sans.hfir import resolution
 '''
 
+'''
 
-def bin_into_q2d(ws, out_ws_prefix="ws"):
+# Run in //
 
-    # TODO: get this somewhere
-    X_SIZE_DET = 192
-    Y_SIZE_DET = 256
-    N_MONITORS = 2
+from multiprocessing import Pool, cpu_count
+from mantid.simpleapi import CreateWorkspace, AnalysisDataService
+
+def f(_):
+    dataX = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+    dataY = [1,2,3,4,5,6,7,8,9,10,11,12]
+    dataE = [1,2,3,4,5,6,7,8,9,10,11,12]
+    dX = [1,2,3,4,5,6,7,8,9,10,11,12]
+    ws = CreateWorkspace(
+        DataX=dataX, DataY=dataY, DataE=dataE, NSpec=4, UnitX="Wavelength",
+        Dx=dX)
+    return ws
+
+p = Pool(cpu_count())
+wss_names = ["ws_{}".format(suffix) for suffix in range(10)]
+wss = p.map(f, wss_names)
+[AnalysisDataService.add(name, ws) for name, ws in zip(wss_names, wss)]
+
+
+
+'''
+
+
+def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
+
+    det = Detector(ws)
+    X_SIZE_DET, Y_SIZE_DET = det.get_detector_dimensions(component_name)
+    N_MONITORS = det.get_number_of_monitors()
 
     # Get WS data
     i = ws.extractY()
@@ -167,5 +197,3 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_pr
     )
 
     return iq
-
-

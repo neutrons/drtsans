@@ -130,7 +130,8 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         InputWorkspaces=[iqxqy_ws, dqx_ws, dqy_ws],
         OutputWorkspace=out_ws_prefix+"_qxqy")
 
-    return qxqy_wss_grouped
+    return [(ws.name(), ws) for ws in qxqy_wss_grouped]
+
 
 
 def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_prefix="ws"):
@@ -200,4 +201,4 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_pr
         OutputWorkspace=out_ws_prefix+"_iq"
     )
 
-    return iq
+    return iq.name(), iq

@@ -36,11 +36,16 @@ def test_momentum_tranfer(biosans_sensitivity_dataset):
 
 
 
-def parallel_f(parameters):
+def bin_into_q2d_parallel(parameters):
     ws_name, component_name, out_ws_prefix = parameters
     ws = mtd[ws_name]
-    qxqy_wss_grouped = bin_into_q2d(ws, component_name, out_ws_prefix)
-    return [(ws.name, ws) for ws in qxqy_wss_grouped]
+    workspaces = bin_into_q2d(ws, component_name, out_ws_prefix)
+    return workspaces
+
+def bin_into_q1d_parallel(parameters):
+    ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix = parameters
+    iq_ws = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix=out_ws_prefix)
+    return iq_ws
 
 def test_momentum_tranfer_parallel(biosans_sensitivity_dataset):
 
@@ -60,9 +65,26 @@ def test_momentum_tranfer_parallel(biosans_sensitivity_dataset):
         zip(ws_names, components, prefixes)
     ]
     with multiprocessing.Pool(processes=2) as pool:
-        results = pool.map(parallel_f, parameters)
+        results = pool.map(bin_into_q2d_parallel, parameters)
+    
+    list_of_names_and_wss = [ws for ws_components in results
+                             for ws in ws_components]
+    # Put the wss results in the AnalysisDataService
+    [AnalysisDataService.add(ws[0], ws[1]) for ws in list_of_names_and_wss]
+    # see if those wss are a sublist in AnalysisDataService
+    assert all(elem in AnalysisDataService.getObjectNames() for elem in [
+        ws[0] for ws in list_of_names_and_wss])
 
-    [AnalysisDataService.add(name, ws) for name, ws in zip([
-        ('main_iqxqy', 'main_dqx', 'main_dqy'),
-        ('wing_iqxqy', 'wing_dqx', 'wing_dqy')], results)]
+    #ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix
+    parameters = [[ws[1] for ws in ws_components] + [out_ws_prefix]
+                  for ws_components, out_ws_prefix
+                  in zip(results, ['main', 'wing'])]
+    
+    with multiprocessing.Pool(processes=2) as pool:
+        results = pool.map(bin_into_q1d_parallel, parameters)
+    print([[ws, type(ws)] for ws in results])
+    print(80*'-')
 
+    [AnalysisDataService.add(ws[0], ws[1]) for ws in results]
+    assert all(elem in AnalysisDataService.getObjectNames() for elem in [
+        ws[0] for ws in results])

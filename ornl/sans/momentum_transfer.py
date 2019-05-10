@@ -5,15 +5,18 @@ from scipy import stats
 
 from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
 from ornl.sans.hfir import resolution
-from ornl.sans.detector import Detector
+from ornl.sans.detector import Component
 
 '''
-LoadHFIRSANS(Filename='/home/rhf/git/sans-rewrite/data/new/ornl/sans/hfir/biosans/BioSANS_exp327_scan0014_0001.xml', OutputWorkspace='biosans')
-LoadHFIRSANS(Filename='/home/rhf/git/sans-rewrite/data/new/ornl/sans/hfir/gpsans/CG2_exp206_scan0017_0001.xml', OutputWorkspace='flood')
 import os
-os.chdir("/home/rhf/git/sans-rewrite")
+home = os.environ['HOME']
+os.chdir(os.path.join(home, "git/sans-rewrite"))
+LoadHFIRSANS(Filename='data/new/ornl/sans/hfir/biosans/BioSANS_exp327_scan0014_0001.xml', OutputWorkspace='biosans')
+LoadHFIRSANS(Filename='data/new/ornl/sans/hfir/gpsans/CG2_exp206_scan0017_0001.xml', OutputWorkspace='flood')
+
+
 ws = mtd['flood']
-from ornl.sans.hfir.momentum_transfer import bin_into_q2d, bin_into_q1d
+from ornl.sans.momentum_transfer import bin_into_q2d, bin_into_q1d
 bin_into_q2d(ws)
 bin_into_q1d(mtd['ws_iqxqy'], mtd['ws_dqx'], mtd['ws_dqy'])
 out_ws_prefix="ws"
@@ -50,10 +53,8 @@ wss = p.map(f, wss_names)
 
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
 
-    det = Detector(ws)
-    X_SIZE_DET, Y_SIZE_DET = det.get_detector_dimensions(component_name)
-    N_MONITORS = det.get_number_of_monitors()
-
+    det = Component(ws, component_name)
+    
     # Get WS data
     i = ws.extractY()
     i_sigma = ws.extractE()
@@ -62,18 +63,21 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
 
     # Get rid of the monitors
-    qx, qy, dqx, dqy = qx[N_MONITORS:], qy[N_MONITORS:], dqx[N_MONITORS:], \
-        dqy[N_MONITORS:]
-    i, i_sigma = i[N_MONITORS:], i_sigma[N_MONITORS:]
+    qx, qy, dqx, dqy = qx[det.first_index:det.first_index + det.dims],\
+        qy[det.first_index:det.first_index + det.dims], \
+        dqx[det.first_index:det.first_index + det.dims], \
+        dqy[det.first_index:det.first_index + det.dims]
+    i, i_sigma = i[det.first_index:det.first_index + det.dims], \
+        i_sigma[det.first_index:det.first_index + det.dims]
     # get rid of the original bins, transform in 1D
     i, i_sigma = i[:, 0], i_sigma[:, 0]
 
     # Number of bins is the number of pixels in each diraction
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
-        qx, qy, bins=[X_SIZE_DET, Y_SIZE_DET], weights=i
+        qx, qy, bins=[det.dim_x, det.dim_y], weights=i
     )
     counts_dqx_dqy, dqx_bin_edges, dqy_bin_edges = np.histogram2d(
-        dqx, dqy, bins=[X_SIZE_DET, Y_SIZE_DET], weights=i_sigma
+        dqx, dqy, bins=[det.dim_x, det.dim_y], weights=i_sigma
     )
 
     qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
@@ -82,8 +86,8 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     # Grids for I, dqx, dqy
     qx_bin_edges_grid, qy_bin_centers_grid = np.meshgrid(
         qx_bin_edges, qy_bin_centers)
-    i_grid = i.reshape(X_SIZE_DET, Y_SIZE_DET)
-    i_sigma_grid = i_sigma.reshape(X_SIZE_DET, Y_SIZE_DET)
+    i_grid = i.reshape(det.dim_x, det.dim_y)
+    i_sigma_grid = i_sigma.reshape(det.dim_x, det.dim_y)
 
     dqx_bin_centers_grid = np.tile(dqx_bin_edges, (len(dqy_bin_centers), 1))
     dqy_bin_centers_grid = np.tile(np.array([dqy_bin_centers]).transpose(),

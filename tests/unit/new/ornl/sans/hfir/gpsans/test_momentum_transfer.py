@@ -12,13 +12,13 @@ def test_momentum_tranfer(gpsans_f):
         Filename=gpsans_f['sample_transmission'],
         OutputWorkspace=unique_workspace_name())
 
-    qxqy_wss_grouped = bin_into_q2d(ws)
-    assert len(qxqy_wss_grouped) == 3
+    wss_name_ws = bin_into_q2d(ws)
+    assert len(wss_name_ws) == 3
 
-    ws_iqxqy, ws_dqx, ws_dqy = qxqy_wss_grouped
+    ws_iqxqy, ws_dqx, ws_dqy = [ws[1] for ws in wss_name_ws]
     assert ws_iqxqy.extractY().shape == (256, 192)
     assert ws_iqxqy.extractX().shape == (256, 193)
 
-    ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
+    _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
     assert ws_iq.extractY().shape == (1, 100)
     assert ws_iq.extractX().shape == (1, 101)

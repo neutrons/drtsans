@@ -12,40 +12,41 @@ def test_momentum_tranfer(biosans_sensitivity_dataset):
         Filename=biosans_sensitivity_dataset['flood'],
         OutputWorkspace=unique_workspace_name())
 
-    qxqy_wss_grouped = bin_into_q2d(ws, "detector1", out_ws_prefix="main")
-    assert len(qxqy_wss_grouped) == 3
+    wss_name_ws = bin_into_q2d(ws, "detector1", out_ws_prefix="main")
+    assert len(wss_name_ws) == 3
 
-    ws_iqxqy, ws_dqx, ws_dqy = qxqy_wss_grouped
+    ws_iqxqy, ws_dqx, ws_dqy = [ws[1] for ws in wss_name_ws]
     assert ws_iqxqy.extractY().shape == (256, 192)
     assert ws_iqxqy.extractX().shape == (256, 193)
 
-    ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
+    _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
     assert ws_iq.extractY().shape == (1, 100)
     assert ws_iq.extractX().shape == (1, 101)
 
-    qxqy_wss_grouped = bin_into_q2d(ws, "wing_detector", out_ws_prefix="wing")
-    assert len(qxqy_wss_grouped) == 3
+    wss_name_ws = bin_into_q2d(ws, "wing_detector", out_ws_prefix="wing")
+    assert len(wss_name_ws) == 3
 
-    ws_iqxqy, ws_dqx, ws_dqy = qxqy_wss_grouped
+    ws_iqxqy, ws_dqx, ws_dqy = [ws[1] for ws in wss_name_ws]
     assert ws_iqxqy.extractY().shape == (256, 160)
     assert ws_iqxqy.extractX().shape == (256, 161)
 
-    ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
+    _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
     assert ws_iq.extractY().shape == (1, 100)
     assert ws_iq.extractX().shape == (1, 101)
-
 
 
 def bin_into_q2d_parallel(parameters):
     ws_name, component_name, out_ws_prefix = parameters
-    ws = mtd[ws_name]
+    ws = mtd[ws_name] # need to pass the name. ws is shared between 2 processes?
     workspaces = bin_into_q2d(ws, component_name, out_ws_prefix)
     return workspaces
+
 
 def bin_into_q1d_parallel(parameters):
     ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix = parameters
     iq_ws = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix=out_ws_prefix)
     return iq_ws
+
 
 def test_momentum_tranfer_parallel(biosans_sensitivity_dataset):
 
@@ -56,7 +57,7 @@ def test_momentum_tranfer_parallel(biosans_sensitivity_dataset):
     LoadHFIRSANS(
         Filename=biosans_sensitivity_dataset['flood'],
         OutputWorkspace=input_ws_name)
-    
+
     ws_names = [input_ws_name, input_ws_name]
     components = ['detector1', 'wing_detector']
     prefixes = ['main', 'wing']
@@ -66,7 +67,7 @@ def test_momentum_tranfer_parallel(biosans_sensitivity_dataset):
     ]
     with multiprocessing.Pool(processes=2) as pool:
         results = pool.map(bin_into_q2d_parallel, parameters)
-    
+
     list_of_names_and_wss = [ws for ws_components in results
                              for ws in ws_components]
     # Put the wss results in the AnalysisDataService
@@ -75,15 +76,13 @@ def test_momentum_tranfer_parallel(biosans_sensitivity_dataset):
     assert all(elem in AnalysisDataService.getObjectNames() for elem in [
         ws[0] for ws in list_of_names_and_wss])
 
-    #ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix
+    # list with (ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix)
     parameters = [[ws[1] for ws in ws_components] + [out_ws_prefix]
                   for ws_components, out_ws_prefix
                   in zip(results, ['main', 'wing'])]
-    
+
     with multiprocessing.Pool(processes=2) as pool:
         results = pool.map(bin_into_q1d_parallel, parameters)
-    print([[ws, type(ws)] for ws in results])
-    print(80*'-')
 
     [AnalysisDataService.add(ws[0], ws[1]) for ws in results]
     assert all(elem in AnalysisDataService.getObjectNames() for elem in [

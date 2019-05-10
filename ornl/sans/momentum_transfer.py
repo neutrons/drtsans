@@ -54,7 +54,7 @@ wss = p.map(f, wss_names)
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
 
     det = Component(ws, component_name)
-    
+
     # Get WS data
     i = ws.extractY()
     i_sigma = ws.extractE()
@@ -133,8 +133,8 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     return [(ws.name(), ws) for ws in qxqy_wss_grouped]
 
 
-
-def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_prefix="ws"):
+def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
+                 bins=100, statistic='mean', out_ws_prefix="ws"):
     '''
     Calulates:
     I(Q) and Dq
@@ -150,15 +150,18 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_pr
     # qy_bin_centers.shape == (256,)
 
     # Qx
-    qx_bin_centers_grid = (qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
+    qx_bin_centers_grid = (
+        qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
     # qx_bin_centers_grid.shape == (256, 192)
-    
+
     # Qy
     qy_bin_centers_t = np.transpose([qy_bin_centers])
-    qy_bin_centers_t_grid = np.tile(qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
+    qy_bin_centers_t_grid = np.tile(
+        qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
     # qy_bin_centers_t_grid.shape == (256, 192)
 
-    q_bin_centers_grid = np.sqrt(np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
+    q_bin_centers_grid = np.sqrt(
+        np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
 
     #
     # Calculate I(Q) and error(I(Q))
@@ -174,16 +177,18 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean', out_ws_pr
         statistic=lambda array_1d: np.sqrt(
             np.sum(np.square(array_1d))) / len(array_1d),
         bins=bins)
-    
+
     #
     # Calculate dq from dqx dqy
     dqx_bin_centers_grid = ws_dqx.extractY()
     dqy_bin_centers_grid = ws_dqy.extractY()
 
     # Bin centres in y edges in x
-    dq_bin_centers_grid = np.sqrt(np.square(dqx_bin_centers_grid) + np.square(dqy_bin_centers_grid))
+    dq_bin_centers_grid = np.sqrt(
+        np.square(dqx_bin_centers_grid) + np.square(dqy_bin_centers_grid))
     # get all to centres
-    dq_bin_centers_grid_all = (dq_bin_centers_grid[:,1:] + dq_bin_centers_grid[:,:-1]) / 2.0
+    dq_bin_centers_grid_all = (
+        dq_bin_centers_grid[:, 1:] + dq_bin_centers_grid[:, :-1]) / 2.0
 
     dq_intensity_statistic, dq_bin_edges, dq_binnumber = stats.binned_statistic(
         dq_bin_centers_grid_all.ravel(), i.ravel(), statistic=statistic, bins=bins)

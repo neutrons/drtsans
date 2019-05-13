@@ -4,51 +4,8 @@ import numpy as np
 from scipy import stats
 
 from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
-from ornl.sans.hfir import resolution
 from ornl.sans.detector import Component
-
-'''
-import os
-home = os.environ['HOME']
-os.chdir(os.path.join(home, "git/sans-rewrite"))
-LoadHFIRSANS(Filename='data/new/ornl/sans/hfir/biosans/BioSANS_exp327_scan0014_0001.xml', OutputWorkspace='biosans')
-LoadHFIRSANS(Filename='data/new/ornl/sans/hfir/gpsans/CG2_exp206_scan0017_0001.xml', OutputWorkspace='flood')
-
-
-ws = mtd['flood']
-from ornl.sans.momentum_transfer import bin_into_q2d, bin_into_q1d
-bin_into_q2d(ws)
-bin_into_q1d(mtd['ws_iqxqy'], mtd['ws_dqx'], mtd['ws_dqy'])
-out_ws_prefix="ws"
-import numpy as np
 from ornl.sans.hfir import resolution
-'''
-
-'''
-
-# Run in //
-
-from multiprocessing import Pool, cpu_count
-from mantid.simpleapi import CreateWorkspace, AnalysisDataService
-
-def f(_):
-    dataX = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
-    dataY = [1,2,3,4,5,6,7,8,9,10,11,12]
-    dataE = [1,2,3,4,5,6,7,8,9,10,11,12]
-    dX = [1,2,3,4,5,6,7,8,9,10,11,12]
-    ws = CreateWorkspace(
-        DataX=dataX, DataY=dataY, DataE=dataE, NSpec=4, UnitX="Wavelength",
-        Dx=dX)
-    return ws
-
-p = Pool(cpu_count())
-wss_names = ["ws_{}".format(suffix) for suffix in range(10)]
-wss = p.map(f, wss_names)
-[AnalysisDataService.add(name, ws) for name, ws in zip(wss_names, wss)]
-
-
-
-'''
 
 
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
@@ -190,8 +147,9 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
     dq_bin_centers_grid_all = (
         dq_bin_centers_grid[:, 1:] + dq_bin_centers_grid[:, :-1]) / 2.0
 
-    dq_intensity_statistic, dq_bin_edges, dq_binnumber = stats.binned_statistic(
-        dq_bin_centers_grid_all.ravel(), i.ravel(), statistic=statistic, bins=bins)
+    dq_intensity_statistic, dq_bin_edges, dq_binnumber = \
+        stats.binned_statistic(dq_bin_centers_grid_all.ravel(), i.ravel(),
+                               statistic=statistic, bins=bins)
 
     dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
 

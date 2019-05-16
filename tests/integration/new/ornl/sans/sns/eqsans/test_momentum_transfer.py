@@ -50,11 +50,11 @@ def test_momentum_tranfer_parallel():
     
     bins = np.arange(2.6, 5.6, 0.2)
 
-    for bin_start in bins:
+    for index, bin_start in enumerate(bins):
         ws_extract = ExtractSpectra(
             InputWorkspace=ws, 
-            OutputWorkspace=unique_workspace_name(suffix="_{:1f}".format(bin_start)),
-            XMin=bin, XMax=bin+0.2)
+            OutputWorkspace=unique_workspace_name(suffix="_{:}".format(index)),
+            XMin=bin_start, XMax=bin_start+0.2)
         
 
 

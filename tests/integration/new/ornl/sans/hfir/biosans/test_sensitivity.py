@@ -37,7 +37,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     from ornl.sans.hfir.normalisation import time
     from ornl.sans.sensitivity import inf_value_to_mask, interpolate_mask
     from ornl.sans.transmission import (apply_transmission_correction_value,
-                                        calculate_transmission)
+                                        calculate_transmission_value)
     # Load the files into WS
     dark_current_ws = LoadHFIRSANS(
         Filename=biosans_sensitivity_dataset['dark_current'])
@@ -133,8 +133,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # This is only to get transmission from the flat measurement
     # The value will be used in the wing detector
     calculated_transmission_value,  calculated_transmission_error = \
-        calculate_transmission(flood_dc_time_sa_corrected_ws,
-                               empty_transmission_time_sa_corrected_ws)
+        calculate_transmission_value(flood_dc_time_sa_corrected_ws,
+                                     empty_transmission_time_sa_corrected_ws)
 
     ###########################################################################
     # Sensitivity calculation

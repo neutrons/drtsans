@@ -5,7 +5,7 @@ from mantid.simpleapi import (Fit, CloneWorkspace, RenameWorkspace)
 
 from ornl.settings import namedtuplefy
 from ornl.sans.sns.eqsans.correct_frame import transmitted_bands
-from ornl.sans.transmission import calculate_radius_from_input_ws
+from ornl.sans.transmission import _calculate_radius_from_input_ws
 
 
 def beam_radius(ws):
@@ -26,7 +26,7 @@ def beam_radius(ws):
                 source_aperture_diameter_log='source-aperture-diameter',
                 sdd_log='sample-detector-distance',
                 ssd_log='source-aperture-sample-distance')
-    return calculate_radius_from_input_ws(ws, **logs)
+    return _calculate_radius_from_input_ws(ws, **logs)
 
 
 def insert_fitted_values(mfit, fitted, low_b, up_b):

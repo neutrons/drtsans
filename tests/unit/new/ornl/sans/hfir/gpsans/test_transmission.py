@@ -44,7 +44,8 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
     '''
 
     '''
-    from ornl.sans.transmission import calculate_transmission
+    from ornl.sans.transmission import (
+        calculate_transmission_value, calculate_transmission_ws)
     from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent
 
     x, y = dataset_center[0], dataset_center[1]
@@ -58,11 +59,19 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
     MoveInstrumentComponent(
         Workspace=input_reference_ws, ComponentName='detector1', X=-x, Y=-y)
 
-    calculated_transmission = calculate_transmission(input_sample_ws,
-                                                     input_reference_ws)
+    calculated_transmission_ws = calculate_transmission_ws(
+        input_sample_ws, input_reference_ws)
 
-    assert calculated_transmission[0] == pytest.approx(0.08224, abs=1e-4)
-    assert calculated_transmission[1] == pytest.approx(0.01267, abs=1e-4)
+    calculated_transmission_value = calculate_transmission_value(
+        input_sample_ws, input_reference_ws)
+
+    assert calculated_transmission_value[0] == pytest.approx(0.08224, abs=1e-4)
+    assert calculated_transmission_value[1] == pytest.approx(0.01267, abs=1e-4)
+
+    assert calculated_transmission_ws.readY(0)[0] == \
+        pytest.approx(0.08224, abs=1e-4)
+    assert calculated_transmission_ws.readE(0)[0] == \
+        pytest.approx(0.01267, abs=1e-4)
 
 
 @pytest.mark.offline
@@ -71,7 +80,7 @@ def test_apply_transmission_with_ws(gpsans_full_dataset,
     '''
     '''
 
-    from ornl.sans.transmission import apply_transmission_mantid
+    from ornl.sans.transmission import _apply_transmission_mantid
     from mantid.simpleapi import CreateWorkspace, MoveInstrumentComponent
 
     trans_value = 0.5191
@@ -87,7 +96,7 @@ def test_apply_transmission_with_ws(gpsans_full_dataset,
     MoveInstrumentComponent(
         Workspace=ws_sample, ComponentName='detector1', X=-x, Y=-y)
 
-    ws_sample_corrected = apply_transmission_mantid(
+    ws_sample_corrected = _apply_transmission_mantid(
         ws_sample, trans_ws=trans_ws, theta_dependent=False)
 
     assert ws_sample.readY(9100)[0] == pytest.approx(20.0, abs=1e-3)
@@ -101,7 +110,7 @@ def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center,
     '''
     '''
 
-    from ornl.sans.transmission import apply_transmission_mantid
+    from ornl.sans.transmission import _apply_transmission_mantid
     from mantid.simpleapi import MoveInstrumentComponent
 
     trans_value = 0.5191
@@ -112,7 +121,7 @@ def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center,
     MoveInstrumentComponent(
         Workspace=ws_sample, ComponentName='detector1', X=-x, Y=-y)
 
-    ws_sample_corrected = apply_transmission_mantid(
+    ws_sample_corrected = _apply_transmission_mantid(
         ws_sample, trans_value=trans_value, trans_error=trans_error,
         theta_dependent=False)
 
@@ -122,26 +131,25 @@ def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center,
 
 
 @pytest.mark.offline
-def test_apply_transmission_correction(gpsans_full_dataset, dataset_center,
-                                       sample_scattering_sum_ws):
+def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center,
+                                          sample_scattering_sum_ws):
     '''
     This is the function that users / scientists use 90% of the time
     '''
-    from ornl.sans.transmission import apply_transmission_correction
-    from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent
+    from ornl.sans.transmission import apply_transmission_correction_ws
+    from mantid.simpleapi import MoveInstrumentComponent, CreateWorkspace
 
     input_sample_ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
     MoveInstrumentComponent(
         Workspace=input_sample_ws, ComponentName='detector1', X=-x, Y=-y)
 
-    input_reference_ws = LoadHFIRSANS(
-        Filename=gpsans_full_dataset['sample_transmission'])
-    MoveInstrumentComponent(
-        Workspace=input_reference_ws, ComponentName='detector1', X=-x, Y=-y)
+    transmission_ws = CreateWorkspace(
+        DataX=[0, 1], DataY=[0.08224400871459694], DataE=[0.012671053121947698]
+    )
 
-    input_sample_corrected_ws = apply_transmission_correction(
-        input_sample_ws, input_reference_ws, theta_dependent=False)
+    input_sample_corrected_ws = apply_transmission_correction_ws(
+        input_sample_ws, transmission_ws, theta_dependent=False)
 
     assert input_sample_corrected_ws.readY(9100)[0] == \
         pytest.approx(243.178, abs=1e-2)

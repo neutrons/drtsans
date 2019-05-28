@@ -2,13 +2,14 @@ from __future__ import absolute_import, division, print_function
 
 from mantid import mtd
 from mantid.kernel import logger
-from mantid.simpleapi import (ApplyTransmissionCorrection, GroupDetectors,
-                              FindDetectorsInShape, ReplaceSpecialValues)
+from mantid.simpleapi import (ApplyTransmissionCorrection,
+                              FindDetectorsInShape, GroupDetectors,
+                              ReplaceSpecialValues)
 from ornl.sans.samplelogs import SampleLogs
 
 
-def apply_transmission_mantid(input_ws, trans_value=None, trans_error=None,
-                              trans_ws=None, theta_dependent=True):
+def _apply_transmission_mantid(input_ws, trans_value=None, trans_error=None,
+                               trans_ws=None, theta_dependent=True):
     """
     Correct intensities with a transmission coefficient.
     This justs calls the Mantid algorithm
@@ -55,12 +56,12 @@ def apply_transmission_mantid(input_ws, trans_value=None, trans_error=None,
         return None
 
 
-def calculate_radius_from_input_ws(
+def _calculate_radius_from_input_ws(
         input_ws, sample_aperture_diameter_log='sample-aperture-diameter',
         source_aperture_diameter_log='source-aperture-diameter',
         sdd_log='sample-detector-distance', ssd_log='source-sample-distance'):
     """
-    Calculate the radius according to:
+    Calculate the radius in mm according to:
     R_beam = R_sampleAp + SDD * (R_sampleAp + R_sourceAp) / SSD
 
     Parameters
@@ -113,7 +114,7 @@ def _get_detector_ids_from_radius(input_ws, radius):
         Workspace containing the detector already beam-centered
     radius: float
         Radius of the circle encompassing the detectors of interest. Units
-        in mili meters
+        in milimeters
 
     Returns
     -------
@@ -135,7 +136,7 @@ def _get_detector_ids_from_radius(input_ws, radius):
     return detector_ids
 
 
-def zero_angle_transmission(input_sample_ws, input_reference_ws, radius):
+def _zero_angle_transmission(input_sample_ws, input_reference_ws, radius):
     """
     Calculate the raw transmission coefficients at zero scattering angle
 
@@ -173,9 +174,10 @@ def zero_angle_transmission(input_sample_ws, input_reference_ws, radius):
     return __zero_angle_transmission_ws
 
 
-def apply_transmission_correction(input_sample_ws, input_reference_ws,
-                                  theta_dependent=False):
-    '''This is the main method used to correct for transmission
+def calculate_transmission_ws(input_sample_ws, input_reference_ws, radius=None,
+                              theta_dependent=False):
+    '''Only calculates the transmission using a radius and the zero angle
+    transmission algorithm
 
     Parameters
     ----------
@@ -183,6 +185,69 @@ def apply_transmission_correction(input_sample_ws, input_reference_ws,
         Workspace to apply the transmission correction to
     input_reference_ws: MatrixWorkspace
         Direct beam workspace (possibly obtained with an attenuated beam)
+    radius: float
+        radius of the beam in mm. Eg. 50 mm. If None calculates it from the
+        reference workspace
+    theta_dependent: bool
+        if True, a theta-dependent transmission correction will be applied.
+
+    Returns
+    -------
+    MatrixWorkspace
+        Returns a Mantid tranmission workspace
+    '''
+    if not radius:
+        radius = _calculate_radius_from_input_ws(input_reference_ws)
+
+    # This returns a WS with the sensitivity value + error
+    __calculated_transmission_ws = _zero_angle_transmission(
+        input_sample_ws, input_reference_ws, radius)
+
+    return __calculated_transmission_ws
+
+
+def calculate_transmission_value(input_sample_ws, input_reference_ws,
+                                 radius=None, theta_dependent=False):
+    '''Only calculates the transmission using a radius and the zero angle
+    transmission algorithm
+
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Workspace to apply the transmission correction to
+    input_reference_ws: MatrixWorkspace
+        Direct beam workspace (possibly obtained with an attenuated beam)
+    radius: float
+        radius of the beam in mm. Eg. 50 mm. If None calculates it from the
+        reference workspace
+    theta_dependent: bool
+        if True, a theta-dependent transmission correction will be applied.
+
+    Returns
+    -------
+    Tuple
+        Tuple with transmission value and error: (T, sigma(T))
+    '''
+    # This returns a WS with the sensitivity value + error
+    __calculated_transmission_ws = calculate_transmission_ws(
+        input_sample_ws, input_reference_ws, radius, theta_dependent)
+
+    return (__calculated_transmission_ws.readY(0)[0],
+            __calculated_transmission_ws.readE(0)[0])
+
+
+def apply_transmission_correction_ws(input_sample_ws, transmission_ws,
+                                     theta_dependent=False):
+    '''
+    This is the main method used to correct for transmission
+
+    Parameters
+    ----------
+    input_ws: MatrixWorkspace
+        Workspace to apply the transmission correction to
+    transmission_ws: MatrixWorkspace
+        The Workspace calculated by Mantid with the transmission value / Error.
+        Note that for EQSANS those are spectra not values!
     theta_dependent: bool
         if True, a theta-dependent transmission correction will be applied.
 
@@ -192,14 +257,8 @@ def apply_transmission_correction(input_sample_ws, input_reference_ws,
         The data corrected for transmission.
     '''
 
-    radius = calculate_radius_from_input_ws(input_reference_ws)
-
-    # This returns a WS with the sensitivity value + error
-    __calculated_transmission_ws = zero_angle_transmission(
-        input_sample_ws, input_reference_ws, radius)
-
-    __input_sample_trans_corrected = apply_transmission_mantid(
-        input_sample_ws, trans_ws=__calculated_transmission_ws,
+    __input_sample_trans_corrected = _apply_transmission_mantid(
+        input_sample_ws, trans_ws=transmission_ws,
         theta_dependent=theta_dependent)
 
     __input_sample_trans_corrected_no_nans = ReplaceSpecialValues(
@@ -230,7 +289,7 @@ def apply_transmission_correction_value(input_sample_ws, trans_value,
         The data corrected for transmission.
     '''
 
-    __input_sample_trans_corrected = apply_transmission_mantid(
+    __input_sample_trans_corrected = _apply_transmission_mantid(
         input_sample_ws,  trans_value=trans_value, trans_error=trans_error,
         theta_dependent=theta_dependent)
 
@@ -239,29 +298,3 @@ def apply_transmission_correction_value(input_sample_ws, trans_value,
         InfinityValue=0)
 
     return __input_sample_trans_corrected_no_nans
-
-
-def calculate_transmission(input_sample_ws, input_reference_ws):
-    '''Only calculates the transmission
-
-    Parameters
-    ----------
-    input_ws: MatrixWorkspace
-        Workspace to apply the transmission correction to
-    input_reference_ws: MatrixWorkspace
-        Direct beam workspace (possibly obtained with an attenuated beam)
-
-    Returns
-    -------
-    Tuple
-        Tuple with transmission value and error: (T, sigma(T))
-    '''
-
-    radius = calculate_radius_from_input_ws(input_reference_ws)
-
-    # This returns a WS with the sensitivity value + error
-    __calculated_transmission_ws = zero_angle_transmission(
-        input_sample_ws, input_reference_ws, radius)
-
-    return (__calculated_transmission_ws.readY(0)[0],
-            __calculated_transmission_ws.readE(0)[0])

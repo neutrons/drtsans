@@ -4,10 +4,11 @@
 from __future__ import absolute_import, division, print_function
 from setuptools import setup, find_packages
 import ornl
-
+import versioneer
 
 setup(name="ornl",
-      version=ornl.__version__,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description="ORNL SANS reduction",
       url="https://http://www.mantidproject.org",
       long_description="""ORNL SANS reduction""",

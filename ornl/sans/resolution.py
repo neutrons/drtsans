@@ -34,8 +34,8 @@ def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
     """
     dq2 = 0.25 * (L2 / L1 * R1)**2 + 0.25 * ((L1 + L2) / L1 * R2)**2 \
         + pixel_size**2 / 12.0
-    return dq2 * (2.0 * np.pi * np.cos(theta)
-                  * np.cos(2.0 * theta)**2 / wl / L2)**2
+    return dq2 * (2.0 * np.pi * np.cos(theta) *
+                  np.cos(2.0 * theta)**2 / wl / L2)**2
 
 
 def dq2_gravity(L1, L2, wl, dwl, theta):

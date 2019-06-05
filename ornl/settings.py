@@ -3,7 +3,6 @@ from __future__ import (absolute_import, division, print_function)
 import random
 import string
 import inspect
-import importlib
 from collections import OrderedDict
 import functools
 from collections import namedtuple, Mapping
@@ -169,7 +168,7 @@ def optional_output_workspace(func):
         # a keyword of func and has a default value different than None
         #
         if output_workspace_parameter is not None and \
-        output_workspace_parameter.default is not None:
+           output_workspace_parameter.default is not None:
             return func(*args, **kwargs)
         #
         # decorator does not change func if output_workspace is

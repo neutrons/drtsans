@@ -4,6 +4,8 @@ import numpy as np
 
 from mantid.simpleapi import ConvertUnits, Rebin, EQSANSCorrectFrame
 
+from ornl.settings import (optional_output_workspace,
+                           unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
 from ornl.sans.frame_mode import FrameMode
@@ -260,7 +262,8 @@ def band_gap_indexes(ws, bands):
                          (ws.dataX(0) < bands.skip.min))[0]).tolist()
 
 
-def convert_to_wavelength(ws, bands, bin_width, out_ws, events=False):
+@optional_output_workspace
+def convert_to_wavelength(ws, bands, bin_width, events=False):
     r"""
     Convert a time-of-fligth events workspace to a wavelength workpsace
 
@@ -272,8 +275,6 @@ def convert_to_wavelength(ws, bands, bin_width, out_ws, events=False):
         Output of running `transmitted_bands_clipped` on the workspace
     bin_width: float
         Bin width in Angstroms
-    out_ws: str
-        Name of the output workspace
     events: bool
         Do we preserve events?
     Returns
@@ -284,11 +285,12 @@ def convert_to_wavelength(ws, bands, bin_width, out_ws, events=False):
     fm = (EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip)  # frame skip?
 
     # Convert to Wavelength and rebin
-    _ws = ConvertUnits(ws, Target='Wavelength', Emode='Elastic')
+    _ws = ConvertUnits(ws, Target='Wavelength', Emode='Elastic',
+                       OutputWorkspace=uwd())
     w_min = bands.lead.min
     w_max = bands.lead.max if fm is False else bands.skip.max
     _ws = Rebin(_ws, Params=[w_min, bin_width, w_max],
-                PreserveEvents=events, OutputWorkspace=out_ws)
+                PreserveEvents=events, OutputWorkspace=_ws.name())
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
     if fm is True:

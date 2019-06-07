@@ -89,7 +89,7 @@ def test_convert_to_wavelength():
             sodd = source_detector_distance(ws, units='m')
             bands = cf.transmitted_bands_clipped(ws, sodd, 500, 2000,
                                                  interior_clip=True)
-            ws = cf.convert_to_wavelength(ws, bands, wavelength_bin, ws.name())
+            ws = cf.convert_to_wavelength(ws, bands, wavelength_bin)
             compare_to_eqsans_load(ws, wo, wavelength_bin, sadd, 500, 2000)
 
 

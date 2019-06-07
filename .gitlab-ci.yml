@@ -15,7 +15,7 @@ flake8:
   script:
     - flake8
 
-python2.7:
+.python2.7:
   variables:
     CI_DEBUG_TRACE: "true"
   stage: python2.7

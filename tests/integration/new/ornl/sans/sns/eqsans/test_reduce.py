@@ -5,15 +5,15 @@ from os.path import join as pj
 from mantid.simpleapi import LoadNexus, SumSpectra, CompareWorkspaces
 
 from ornl.sans.sns.eqsans import reduce
-from ornl.settings import unique_workspace_name
+from ornl.settings import unique_workspace_dundername as uwd
 
 
 def test_load_w(refd):
-    _w0 = reduce.load_w('EQSANS_92353', unique_workspace_name(),
+    _w0 = reduce.load_w('EQSANS_92353', output_workspace=uwd(),
                         low_tof_clip=500, high_tof_clip=2000, dw=0.1)
-    _w1 = SumSpectra(_w0)
+    _w1 = SumSpectra(_w0, OutputWorkspace=_w0.name())
     fn = pj(refd.new.eqsans, 'test_reduce', 'compare', 'ref_load_w.nxs')
-    _w2 = LoadNexus(fn, OutputWorkspace=unique_workspace_name())
+    _w2 = LoadNexus(fn, OutputWorkspace=uwd())
     assert CompareWorkspaces(_w1, _w2)
 
 

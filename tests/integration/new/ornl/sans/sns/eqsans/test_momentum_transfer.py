@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import pytest
-
 from mantid import mtd
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
 from ornl.settings import unique_workspace_name
@@ -12,8 +10,10 @@ import pytest
 import os
 os.chdir("/home/rhf/git/sans-rewrite")
 
-pytest.main(["-vs", "/home/rhf/git/sans-rewrite/tests/integration/new/ornl/sans/sns/eqsans/test_momentum_transfer.py"])
+pytest.main(["-vs", "/home/rhf/git/sans-rewrite/tests/integration/new/ornl/\
+sans/sns/eqsans/test_momentum_transfer.py"])
 '''
+
 
 def bin_into_q2d_parallel(parameters):
     ws_name, component_name, out_ws_prefix = parameters
@@ -35,6 +35,8 @@ def test_momentum_tranfer_parallel():
     It runs as a single test though:
     pytest tests/unit/new/ornl/sans/hfir/biosans/test_momentum_transfer.py::\
         test_momentum_tranfer_parallel
+
+    TODO!
     '''
 
     import multiprocessing
@@ -47,16 +49,11 @@ def test_momentum_tranfer_parallel():
         InputWorkspace=ws,
         OutputWorkspace=unique_workspace_name(suffix="_rebin"),
         Params='2.6,0.2,5.6')
-    
+
     bins = np.arange(2.6, 5.6, 0.2)
 
     for index, bin_start in enumerate(bins):
         ws_extract = ExtractSpectra(
-            InputWorkspace=ws, 
+            InputWorkspace=ws,
             OutputWorkspace=unique_workspace_name(suffix="_{:}".format(index)),
             XMin=bin_start, XMax=bin_start+0.2)
-        
-
-
-
-

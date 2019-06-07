@@ -9,6 +9,29 @@ from ornl.sans.hfir import resolution
 
 
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
+    """Bin the data into Q 2D
+
+    Parameters
+    ----------
+    ws : MatrixWorkspace
+        This must be single bin.
+        In the case of EQSANS with multiple bins this must be called in a
+        `for` loop. Using multiprocessing.map` is another solution.
+
+    component_name : str, optional
+        The detector name. Either 'detector1' or `wing_detector`,
+        by default "detector1"
+    out_ws_prefix : str, optional
+        The output workspace is prefix by this, by default "ws".
+
+    Returns
+    -------
+    WorkSpaceGroup
+        A WorkSpaceGroup containing tuples (ws name, ws) of 3 workspaces.
+        To date Mantid has no option to add uncertainties to the axis.
+        The resolution dx,dy is set in separated workspaces suffixed by
+        `_dqx` and `_dqy`.
+    """
 
     det = Component(ws, component_name)
 
@@ -90,17 +113,61 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     return [(ws.name(), ws) for ws in qxqy_wss_grouped]
 
 
-def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
-                 bins=100, statistic='mean', out_ws_prefix="ws"):
-    '''
-    Calulates:
-    I(Q) and Dq
+def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
+                 out_ws_prefix="ws"):
+    """ Calculates: I(Q) and Dq
+    The ws_* input parameters are the output workspaces from bin_into_q2d
 
+    Parameters
+    ----------
+    ws_iqxqy : Workspace2D
+        I(qx, qy)
+    ws_dqx : Workspace2D
+        dqx(qx, qy)
+    ws_dqy : Workspace2D
+        dqy(qx, qy)
     bins : int or sequence of scalars, optional
-    statistic : string or callable, optional: sum, mean, median
-    '''
+        See `scipy.stats.binned_statistic`.
+        If `bins` is an int, it defines the number of equal-width bins in the
+        given range (10 by default).  If `bins` is a sequence, it defines the
+        bin edges, including the rightmost edge, allowing for non-uniform bin
+        widths.  Values in `x` that are smaller than lowest bin edge are
+        assigned to bin number 0, values beyond the highest bin are assigned to
+        ``bins[-1]``.  If the bin edges are specified, the number of bins will
+        be, (nx = len(bins)-1).
+    statistic : str, optional
+        See `scipy.stats.binned_statistic`.
+        The statistic to compute, by default 'mean'
+        The following statistics are available:
+          * 'mean' : compute the mean of values for points within each bin.
+            Empty bins will be represented by NaN.
+          * 'std' : compute the standard deviation within each bin. This
+            is implicitly calculated with ddof=0.
+          * 'median' : compute the median of values for points within each
+            bin. Empty bins will be represented by NaN.
+          * 'count' : compute the count of points within each bin.  This is
+            identical to an unweighted histogram.  `values` array is not
+            referenced.
+          * 'sum' : compute the sum of values for points within each bin.
+            This is identical to a weighted histogram.
+          * 'min' : compute the minimum of values for points within each bin.
+            Empty bins will be represented by NaN.
+          * 'max' : compute the maximum of values for point within each bin.
+            Empty bins will be represented by NaN.
+          * function : a user-defined function which takes a 1D array of
+            values, and outputs a single numerical statistic. This function
+            will be called on the values in each bin.  Empty bins will be
+            represented by function([]), or NaN if this returns an error.
+    out_ws_prefix : str, optional
+        [description], by default "ws"
 
-    #
+    Returns
+    -------
+    tuple
+         tuple (workspace name, workspace)
+
+    """
+
     # Calculate Q
     qx_bin_edges_grid = ws_iqxqy.extractX()
     qy_bin_centers = ws_iqxqy.getAxis(1).extractValues()
@@ -120,7 +187,6 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
     q_bin_centers_grid = np.sqrt(
         np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
 
-    #
     # Calculate I(Q) and error(I(Q))
     i = ws_iqxqy.extractY()
     sigma_i = ws_iqxqy.extractE()
@@ -132,10 +198,8 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
     sigma_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
         q_bin_centers_grid.ravel(), sigma_i.ravel(),
         statistic=lambda array_1d: np.sqrt(
-            np.sum(np.square(array_1d))) / len(array_1d),
-        bins=bins)
+            np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
 
-    #
     # Calculate dq from dqx dqy
     dqx_bin_centers_grid = ws_dqx.extractY()
     dqy_bin_centers_grid = ws_dqy.extractY()
@@ -165,3 +229,25 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
     )
 
     return iq.name(), iq
+
+
+def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_apperture=30,
+                       bins=100, statistic='mean', out_ws_prefix="ws"):
+    '''
+    TODO!!
+    '''
+
+    # Extract Qx and Qy
+    qx_bin_edges_grid = ws_iqxqy.extractX()
+    qy_bin_centers = ws_iqxqy.getAxis(1).extractValues()
+    # qy_bin_centers.shape == (256,)
+
+    # Qx :: qx_bin_centers_grid.shape == (256, 192)
+    qx_bin_centers_grid = (
+        qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
+    # Qy :: qy_bin_centers_t_grid.shape == (256, 192)
+    qy_bin_centers_t = np.transpose([qy_bin_centers])
+    qy_bin_centers_t_grid = np.tile(
+        qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
+
+    # Calculate I(Q) and error(I(Q))

@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
 from mantid.simpleapi import SANSSolidAngle, ReplaceSpecialValues
 
 
-def solid_angle_correction(input_workspace, detector_type)
+def solid_angle_correction(input_workspace, detector_type):
     solid_angle_ws = SANSSolidAngle(InputWorkspace=input_workspace,
                                     Type=detector_type)
     output_workpace = input_workspace / solid_angle_ws

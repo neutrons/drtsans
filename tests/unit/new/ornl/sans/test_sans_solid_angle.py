@@ -3,7 +3,9 @@ from __future__ import (absolute_import, division, print_function,
 
 from os.path import join
 import pytest
-from mantid.simpleapi import CompareWorkspaces, Load, LoadEmptyInstrument, MoveInstrumentComponent
+from mantid.simpleapi import (CompareWorkspaces, Load,
+                              LoadEmptyInstrument,
+                              MoveInstrumentComponent)
 from ornl.sans import solid_angle_correction as sac
 
 
@@ -21,6 +23,7 @@ def test_sans_solid_angle(refd):
     assert wsOutput.getNumberHistograms(), 49153
     reference_workspace = Load(Filename=join(refd.new.eqsans, 'test_sans_solid_angle.nxs'))
     assert CompareWorkspaces(wsOutput, reference_workspace)
+
 
 if __name__ == '__main__':
     pytest.main()

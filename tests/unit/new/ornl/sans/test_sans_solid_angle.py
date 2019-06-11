@@ -6,6 +6,7 @@ import pytest
 from mantid.simpleapi import CompareWorkspaces, Load, LoadEmptyInstrument, MoveInstrumentComponent
 from ornl.sans import solid_angle_correction as sac
 
+
 def test_sans_solid_angle(refd):
     #Load empty instrument
     wsInput = LoadEmptyInstrument(InstrumentName='eqsans')

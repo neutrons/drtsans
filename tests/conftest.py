@@ -106,8 +106,7 @@ def eqsans_f():
 @pytest.fixture(scope='session')
 def eqsans_w(eqsans_f):
     r"""Load EQSANS files into workspaces"""
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         return {k: mtds.LoadEventNexus(v, OutputWorkspace=k)
                 for (k, v) in eqsans_f.items()}
 

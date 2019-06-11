@@ -29,7 +29,7 @@ def test_reduction(refd):
     previous_instrument = config['instrumentName']
     config['instrumentName'] = 'EQSANS'
     previous_archive = config['datasearch.searcharchive']
-    config['datasearch.searcharchive'] = 'on'
+    config['datasearch.searcharchive'] = 'hfir,sns'
 
     # Let's rock and roll!
     try:

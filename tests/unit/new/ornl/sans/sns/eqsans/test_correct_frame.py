@@ -12,8 +12,7 @@ from ornl.sans.geometry import source_detector_distance
 
 
 def test_transmitted_bands():
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         ws = Load(Filename='EQSANS_86217')
         bands = cf.transmitted_bands(ws)
         assert_almost_equal((bands.lead.min, bands.lead.max),
@@ -23,8 +22,7 @@ def test_transmitted_bands():
 
 
 def test_transmitted_bands_clipped():
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         ws = Load(Filename='EQSANS_86217')
         sdd = source_detector_distance(ws, units='m')
         bands_0 = cf.transmitted_bands_clipped(ws, sdd, 0.0, 0.0)

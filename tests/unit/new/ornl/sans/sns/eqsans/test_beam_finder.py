@@ -9,8 +9,7 @@ from ornl.sans.sns.eqsans.beam_finder import direct_beam_center
 
 
 def test_direct_beam_center():
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         w = Load(Filename='EQSANS_92160',
                  OutputWorkspace=unique_workspace_name())
     assert direct_beam_center(w) == pytest.approx((0.025, 0.013), abs=1e-3)

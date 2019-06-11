@@ -14,7 +14,7 @@ def test_eqsanstofstructure(refd):
     previous_instrument = config['instrumentName']
     config['instrumentName'] = 'EQSANS'
     previous_archive = config['datasearch.searcharchive']
-    config['datasearch.searcharchive'] = 'on'
+    config['datasearch.searcharchive'] = 'hfir,sns'
 
     try:
         ddir = pjn(refd.legacy.eqsans, 'test_eqsanstofstructure')

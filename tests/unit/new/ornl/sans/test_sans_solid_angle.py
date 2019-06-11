@@ -22,7 +22,8 @@ def test_sans_solid_angle(refd):
 
     # Let's do some validation
     assert wsOutput.getNumberHistograms(), 49153
-    reference_workspace = Load(Filename=join(refd.new.eqsans, 'test_sans_solid_angle.nxs'))
+    reference_workspace = Load(Filename=join(refd.new.eqsans,
+                                             'test_sans_solid_angle.nxs'))
     assert CompareWorkspaces(wsOutput, reference_workspace)
 
 

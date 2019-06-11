@@ -66,7 +66,7 @@ def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
 
 
 def test_correct_detector_frame():
-    with amend_config('datasearch.searcharchive': 'hfir,sns'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         for run_number, wavelength_bin, sdd in trials.values():
             wo = Load(Filename=run_number, OutputWorkspace=uwn())
             ws = CloneWorkspace(wo, OutputWorkspace=uwn())

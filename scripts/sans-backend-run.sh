@@ -1,7 +1,9 @@
 #! /bin/sh
 
-if [ $(docker 2>/dev/null) ]; then
-  if [ $(docker login code.ornl.gov:4567) ]; then
+docker -v 1>/dev/null 2>/dev/null
+if [ $? -eq 0 ]; then
+  docker login code.ornl.gov:4567 2>/dev/null
+  if [ $? -eq 0  ]; then
     docker run -it CONTAINER_URL pytest tests/unit/new/ornl/sans/hfir/  
   else
     echo "Login failed. Do you have access to this repository?"

@@ -10,7 +10,7 @@ dockerbuild:
     - docker build -t $CONTAINER_URL .
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker push $CONTAINER_URL
-    - sed -i "s/CONTAINER_URL/$CONTAINER_URL/" scripts/sans-backend-run.sh
+    - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
   tags:
     - scse-mantid-builder
   artifacts:

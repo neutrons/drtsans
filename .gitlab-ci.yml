@@ -6,6 +6,9 @@ stages:
 
 dockerbuild:
   stage: dockerbuild
+  before_script:
+    - docker system prune
+    - docker image prune -a
   script:
     - docker build -t $CONTAINER_URL .
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY

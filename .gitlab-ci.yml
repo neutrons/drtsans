@@ -7,6 +7,7 @@ stages:
   - python2.7
   - python3.6
   - integration
+  - dockerbuild
 
 flake8:
   variables:
@@ -35,3 +36,14 @@ integration:
   stage: integration
   script:
     - source test_job.sh 3.6 integration
+
+dockerbuild:
+  stage: dockerbuild
+  script:
+    - docker build -t code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME:latest .
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME:latest
+  tags:
+    - scse-mantid-builder
+  only:
+    - c1u-dockerfile

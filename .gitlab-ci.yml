@@ -1,41 +1,5 @@
-variables:
-  TEST_SCOPE: "unit"
-
-# Run sequentially and stop if anyone stage fails
 stages:
-  - flake8
-  - python2.7
-  - python3.6
-  - integration
   - dockerbuild
-
-flake8:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: flake8
-  script:
-    - flake8
-
-.python2.7:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: python2.7
-  script:
-    - source test_job.sh 2.7 ${TEST_SCOPE}
-
-python3.6:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: python3.6
-  script:
-    - source test_job.sh 3.6 ${TEST_SCOPE}
-
-integration:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: integration
-  script:
-    - source test_job.sh 3.6 integration
 
 dockerbuild:
   stage: dockerbuild

@@ -1,13 +1,20 @@
+variables:
+  - CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME"
+
 stages:
   - dockerbuild
 
 dockerbuild:
   stage: dockerbuild
   script:
-    - docker build -t code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME:latest .
+    - docker build -t $CONTAINER_URL .
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker push code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME:latest
+    - docker push $CONTAINER_URL
+    - sed -i "s/CONTAINER_URL/$CONTAINER_URL/" sans-backend-run.sh
   tags:
     - scse-mantid-builder
+  artifacts:
+    paths:
+    - scripts/sans-backend-run.sh
   only:
     - c1u-dockerfile

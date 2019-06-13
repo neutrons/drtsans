@@ -5,11 +5,19 @@ from mantid.simpleapi import LoadHFIRSANS
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
 from ornl.settings import unique_workspace_name
 
+'''
+import pytest
+import os
+os.chdir("/home/rhf/git/sans-rewrite")
+
+pytest.main(["-vs", "/home/rhf/git/sans-rewrite/tests/unit/new/ornl/\
+sans/hfir/gpsans/test_momentum_transfer.py"])
+'''
 
 def test_momentum_tranfer(gpsans_f):
 
     ws = LoadHFIRSANS(
-        Filename=gpsans_f['sample_transmission'],
+        Filename=gpsans_f['sample_scattering'],
         OutputWorkspace=unique_workspace_name())
 
     wss_name_ws = bin_into_q2d(ws)

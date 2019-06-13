@@ -70,7 +70,7 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     i_sigma_grid = i_sigma.reshape(det.dim_x, det.dim_y)
 
     dqx_bin_centers_grid = np.tile(dqx_bin_edges, (len(dqy_bin_centers), 1))
-    dqy_bin_centers_grid = np.tile(np.array([dqy_bin_centers]).transpose(),
+    dqy_bin_centers_grid = np.tile(np.rot90(np.array([dqy_bin_centers])),
                                    (1, len(dqx_bin_edges)))
     # Q WS
     iqxqy_ws = CreateWorkspace(
@@ -168,21 +168,18 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
 
     """
 
-    # Calculate Q
+    # Calculate Q: qy_bin_centers.shape == (256,)
     qx_bin_edges_grid = ws_iqxqy.extractX()
     qy_bin_centers = ws_iqxqy.getAxis(1).extractValues()
-    # qy_bin_centers.shape == (256,)
 
-    # Qx
+    # Qx: qx_bin_centers_grid.shape == (256, 192)
     qx_bin_centers_grid = (
         qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
-    # qx_bin_centers_grid.shape == (256, 192)
 
-    # Qy
-    qy_bin_centers_t = np.transpose([qy_bin_centers])
+    # Qy: qy_bin_centers_t_grid.shape == (256, 192)
+    qy_bin_centers_t = np.rot90([qy_bin_centers])
     qy_bin_centers_t_grid = np.tile(
         qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
-    # qy_bin_centers_t_grid.shape == (256, 192)
 
     q_bin_centers_grid = np.sqrt(
         np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
@@ -231,23 +228,71 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
     return iq.name(), iq
 
 
-def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_apperture=30,
+def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
                        bins=100, statistic='mean', out_ws_prefix="ws"):
     '''
+    Wedge calculation and integration
     TODO!!
+    The code is almost copy paste bin_into_q1d :(
+    Ideally one would call inside this function bin_into_q1d but mantid
+    does not allowing masking without going through a for cycle and mask
+    by workspace index!
     '''
 
-    # Extract Qx and Qy
+    # Calculate Q: qy_bin_centers.shape == (256,)
     qx_bin_edges_grid = ws_iqxqy.extractX()
     qy_bin_centers = ws_iqxqy.getAxis(1).extractValues()
-    # qy_bin_centers.shape == (256,)
 
-    # Qx :: qx_bin_centers_grid.shape == (256, 192)
+    # Qx: qx_bin_centers_grid.shape == (256, 192)
     qx_bin_centers_grid = (
         qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
-    # Qy :: qy_bin_centers_t_grid.shape == (256, 192)
-    qy_bin_centers_t = np.transpose([qy_bin_centers])
+
+    # Qy: qy_bin_centers_t_grid.shape == (256, 192)
+    qy_bin_centers_t = np.rot90([qy_bin_centers])
     qy_bin_centers_t_grid = np.tile(
         qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
 
-    # Calculate I(Q) and error(I(Q))
+    # Q
+    q_bin_centers_grid = np.sqrt(
+        np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
+    
+    # Angle
+    angle_grid = np.arctan2(qx_bin_centers_grid, qy_bin_centers_t_grid)
+
+    # This is just to show the angle
+    CreateWorkspace(
+        DataX=qx_bin_edges_grid,
+        DataY=angle_grid,
+        DataE=np.sqrt(angle_grid),
+        NSpec=256,
+        UnitX='MomentumTransfer',
+        VerticalAxisUnit='MomentumTransfer',
+        VerticalAxisValues=qy_bin_centers,
+        OutputWorkspace=out_ws_prefix+"_angle",
+    )
+
+    # Let's work in radians
+    phi_0 = np.deg2rad(phi_0)
+    phi_aperture = np.deg2rad(phi_aperture)
+
+    phi_aperture_min = phi_0 - phi_aperture/2
+    phi_aperture_max = phi_0 + phi_aperture/2
+    # opposite 180 degrees apart
+    phi_aperture_min_pi = phi_aperture_min + np.pi
+    phi_aperture_max_pi = phi_aperture_max + np.pi
+
+    condition1 = (angle_grid > phi_aperture_min) & \
+        (angle_grid < phi_aperture_max)
+    # make angle > np.pi varying between np.pi and 2*np.pi, rather than the
+    # initial -np.pi to np.pi 
+    angle_grid[angle_grid < 0] = 2*np.pi + angle_grid[angle_grid < 0]
+    condition2 = (angle_grid > phi_aperture_min_pi) & \
+        (angle_grid < phi_aperture_max_pi)
+    # 2D Array: True where the wedge is, otherwise false
+    condition = condition1 | condition2
+
+    
+
+    qx_bin_centers_grid
+    qy_bin_centers_t_grid
+    q_bin_centers_grid

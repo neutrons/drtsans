@@ -58,7 +58,7 @@ func_main() {
       else
         docker run -v "${VAR_TMP_DIR}":/tmp/input -t CONTAINER_URL bash -c 'find /tmp/input -iname "*.py" -execdir python {} +'
       fi
-      if "${VAR_TMP_DIR}"/*; do
+      if "${VAR_TMP_DIR}"/*; then
         cp -r "${VAR_TMP_DIR}"/* . 2>/dev/null
       fi
     else

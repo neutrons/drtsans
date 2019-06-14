@@ -40,9 +40,6 @@ code-unit-test:
   stage: code-test
   dependencies: 
     - dockerbuild
-  before_script:
-    - docker system prune -f
-    - docker image prune -af
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
@@ -56,9 +53,6 @@ code-integration-test:
   stage: code-test
   dependencies: 
     - dockerbuild
-  before_script:
-    - docker system prune -f
-    - docker image prune -af
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
@@ -72,9 +66,6 @@ docker-update-test:
   stage: docker-test
   dependencies: 
     - dockerbuild
-  before_script:
-    - docker system prune -f
-    - docker image prune -af
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
@@ -88,9 +79,6 @@ docker-no-update-test:
   stage: docker-test
   dependencies: 
     - dockerbuild
-  before_script:
-    - docker system prune -f
-    - docker image prune -af
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL

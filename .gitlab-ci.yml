@@ -11,7 +11,7 @@ stages:
 flake8:
   stage: flake8
   script:
-    - docker run --rm -v $(pwd):/apps alpine/flake8
+    - docker run --rm -v $(pwd):/apps alpine/flake8 *
   tags:
     - scse-mantid-builder
   only:

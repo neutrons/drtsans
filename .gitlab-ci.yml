@@ -3,8 +3,7 @@ variables:
 
 stages:
   - dockerbuild
-  - docker-update-test
-  - docker-no-update-test
+  - docker-test
 
 dockerbuild:
   stage: dockerbuild
@@ -25,7 +24,7 @@ dockerbuild:
     - c1u-dockerfile
 
 docker-update-test:
-  stage: docker-update-test
+  stage: docker-test
   dependencies: 
     - dockerbuild
   script:
@@ -37,7 +36,7 @@ docker-update-test:
     - c1u-dockerfile
 
 docker-no-update-test:
-  stage: docker-update-test
+  stage: docker-test
   dependencies: 
     - dockerbuild
   script:

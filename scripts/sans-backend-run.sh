@@ -2,6 +2,8 @@
 
 set -o errexit -o noclobber -o nounset
 VAR_APP_NAME="${0}"
+VAR_INTERACT='false'
+VAR_UPDATE='false'
 
 func_help_message() {
   printf "  %s is a wrapper for the ORNL Small Angle Neutron Scattering mantid module.

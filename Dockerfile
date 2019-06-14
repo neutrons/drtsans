@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3
+FROM code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
 
 RUN apt update
 RUN apt install -y freeglut3-dev libglu1-mesa

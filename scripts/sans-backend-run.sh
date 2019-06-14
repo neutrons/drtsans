@@ -45,7 +45,7 @@ func_main() {
   docker -v 1>/dev/null 2>/dev/null
   if docker -v 1>/dev/null 2>/dev/null; then
     if ${VAR_UPDATE}; then
-      docker -rmi CONTAINER_URL
+      docker rmi CONTAINER_URL
     fi
     if docker login code.ornl.gov:4567 2>/dev/null; then
       VAR_TMP_DIR="/tmp/${VAR_APP_NAME}_work_$(date +%s)"

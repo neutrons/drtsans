@@ -3,6 +3,8 @@ variables:
 
 stages:
   - dockerbuild
+  - docker-update-test
+  - docker-no-update-test
 
 dockerbuild:
   stage: dockerbuild
@@ -19,5 +21,29 @@ dockerbuild:
   artifacts:
     paths:
     - scripts/sans-backend-run.sh
+  only:
+    - c1u-dockerfile
+
+docker-update-test:
+  stage: docker-update-test
+  dependencies: 
+    - dockerbuild
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - sh scripts/sans-backend-run.sh -u -- test.py
+  tags:
+    - scse-mantid-builder
+  only:
+    - c1u-dockerfile
+
+docker-no-update-test:
+  stage: docker-update-test
+  dependencies: 
+    - dockerbuild
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - sh scripts/sans-backend-run.sh -- test.py
+  tags:
+    - scse-mantid-builder
   only:
     - c1u-dockerfile

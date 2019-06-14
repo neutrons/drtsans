@@ -32,6 +32,7 @@ docker-update-test:
     - docker image prune -af
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
     - sh scripts/sans-backend-run.sh -u -- test.py
   tags:
     - scse-mantid-builder
@@ -47,6 +48,7 @@ docker-no-update-test:
     - docker image prune -af
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
     - sh scripts/sans-backend-run.sh -- test.py
   tags:
     - scse-mantid-builder

@@ -1,9 +1,17 @@
 variables:
   CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME"
+  TEST_SCOPE: "unit"
 
 stages:
+  - flake8
   - dockerbuild
+  - code-test
   - docker-test
+
+flake8:
+  stage: flake8
+  script:
+    - flake8
 
 dockerbuild:
   stage: dockerbuild
@@ -20,6 +28,38 @@ dockerbuild:
   artifacts:
     paths:
     - scripts/sans-backend-run.sh
+  only:
+    - c1u-dockerfile
+
+code-unit-test:
+  stage: code-test
+  dependencies: 
+    - dockerbuild
+  before_script:
+    - docker system prune -f
+    - docker image prune -af
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -t $CONTAINER_URL bash -c "source test_job.sh 3.6 ${TEST_SCOPE}"
+  tags:
+    - scse-mantid-builder
+  only:
+    - c1u-dockerfile
+
+code-integration-test:
+  stage: code-test
+  dependencies: 
+    - dockerbuild
+  before_script:
+    - docker system prune -f
+    - docker image prune -af
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -t $CONTAINER_URL bash -c "source test_job.sh 3.6 integration"
+  tags:
+    - scse-mantid-builder
   only:
     - c1u-dockerfile
 

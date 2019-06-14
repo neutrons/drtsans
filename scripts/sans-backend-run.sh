@@ -56,7 +56,7 @@ func_main() {
       if ${VAR_INTERACT}; then
         docker run -v "${VAR_TMP_DIR}":/tmp/input -it CONTAINER_URL bash
       else
-        docker run -v "${VAR_TMP_DIR}":/tmp/input -it CONTAINER_URL bash -c 'find /tmp/input -iname "*.py" -execdir python {} +'
+        docker run -v "${VAR_TMP_DIR}":/tmp/input -t CONTAINER_URL bash -c 'find /tmp/input -iname "*.py" -execdir python {} +'
       fi
       cp -r "${VAR_TMP_DIR}"/* .
     else

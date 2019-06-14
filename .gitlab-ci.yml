@@ -11,7 +11,7 @@ stages:
 flake8:
   stage: flake8
   script:
-    - flake8
+    - docker run --rm -v $(pwd):/apps alpine/flake8
 
 dockerbuild:
   stage: dockerbuild

@@ -51,7 +51,7 @@ func_main() {
       if ${VAR_INTERACT}; then
         docker run -v "$PWD":/tmp/input -it CONTAINER_URL bash
       else
-        docker run -v "$PWD":/tmp/input -t CONTAINER_URL bash -c "scripts/run-inputs.sh ${@}"
+        docker run -v "$PWD":/tmp/input -t CONTAINER_URL bash -c "bash scripts/run-inputs.sh ${@}"
       fi
     else
       echo "Login failed. Do you have access to this repository?"

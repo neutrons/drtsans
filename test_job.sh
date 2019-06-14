@@ -1,7 +1,6 @@
 #!/bin/bash
 
-PYTHON_VERSION=$1  # python version
-TEST_SCOPE=$2  # 'unit' or 'integration'
+TEST_SCOPE=$1  # 'unit' or 'integration'
 
 N_SUB=8  # number of python subprocesses
 

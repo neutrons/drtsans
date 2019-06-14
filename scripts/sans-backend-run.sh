@@ -48,15 +48,17 @@ func_main() {
       docker -rmi CONTAINER_URL
     fi
     if docker login code.ornl.gov:4567 2>/dev/null; then
-      if ${VAR_INTERACT}; then
-        docker run -it CONTAINER_URL bash -c "python"
-      else
-        VAR_TMP_DIR="/tmp/${VAR_APP_NAME}_work_$(date +%s)"
-        mkdir -p "${VAR_TMP_DIR}"
+      VAR_TMP_DIR="/tmp/${VAR_APP_NAME}_work_$(date +%s)"
+      mkdir -p "${VAR_TMP_DIR}"
+      if "${@}"; then
         cp -r $@ "${VAR_TMP_DIR}"/
-        docker run -v "${VAR_TMP_DIR}":/tmp/input -it CONTAINER_URL bash -c 'find /tmp/input -iname "*.py" -execdir python {} +'
-        cp -r "${VAR_TMP_DIR}"/* .
       fi
+      if ${VAR_INTERACT}; then
+        docker run -v "${VAR_TMP_DIR}":/tmp/input -it CONTAINER_URL bash -c "python"
+      else
+        docker run -v "${VAR_TMP_DIR}":/tmp/input -it CONTAINER_URL bash -c 'find /tmp/input -iname "*.py" -execdir python {} +'
+      fi
+      cp -r "${VAR_TMP_DIR}"/* .
     else
       echo "Login failed. Do you have access to this repository?"
       exit 1

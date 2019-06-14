@@ -33,26 +33,28 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         `_dqx` and `_dqy`.
     """
 
+    assert ws.getNumberBins() == 1  # sanity check
+
     det = Component(ws, component_name)
 
     # Get WS data
-    i = ws.extractY()
+    i = ws.extractY()  # i.shape == (49154, 1)
     i_sigma = ws.extractE()
 
-    # All returned arrays have the same shape. They are a list of spectrum = 1D
+    # All returned arrays have the same shape == (49154,)
     qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
 
-    # Get rid of the monitors
+    # Get rid of the monitors; from 49154 to 49152 spectra
     qx, qy, dqx, dqy = qx[det.first_index:det.first_index + det.dims],\
         qy[det.first_index:det.first_index + det.dims], \
         dqx[det.first_index:det.first_index + det.dims], \
         dqy[det.first_index:det.first_index + det.dims]
     i, i_sigma = i[det.first_index:det.first_index + det.dims], \
         i_sigma[det.first_index:det.first_index + det.dims]
-    # get rid of the original bins, transform in 1D
+    # get rid of the original bins: from shape == (49152, 1) to (49152,)
     i, i_sigma = i[:, 0], i_sigma[:, 0]
 
-    # Number of bins is the number of pixels in each diraction
+    # Number of bins is the number of pixels in X and Y
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
         qx, qy, bins=[det.dim_x, det.dim_y], weights=i
     )
@@ -77,7 +79,7 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         DataX=qx_bin_edges_grid,  # 2D
         DataY=i_grid.T,  # 2D
         DataE=i_sigma_grid.T,  # 2D
-        NSpec=256,
+        NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
         VerticalAxisValues=qy_bin_centers,  # 1D
@@ -88,7 +90,7 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         DataX=qx_bin_edges_grid,  # 2D
         DataY=dqx_bin_centers_grid,  # 2D
         DataE=None,  # 2D
-        NSpec=256,
+        NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
         VerticalAxisValues=qy_bin_centers,  # 1D
@@ -99,7 +101,7 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         DataX=qx_bin_edges_grid,  # 2D
         DataY=dqy_bin_centers_grid,  # 2D
         DataE=None,  # 2D
-        NSpec=256,
+        NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
         VerticalAxisValues=qy_bin_centers,  # 1D
@@ -229,7 +231,7 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
 
 
 def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
-                       bins=100, statistic='mean', out_ws_prefix="ws"):
+                       bins=100, statistic='mean', out_ws_prefix="ws_wedge"):
     '''
     Wedge calculation and integration
     TODO!!
@@ -257,7 +259,7 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
         np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
     
     # Angle
-    angle_grid = np.arctan2(qx_bin_centers_grid, qy_bin_centers_t_grid)
+    angle_grid = np.arctan2(qy_bin_centers_t_grid, qx_bin_centers_grid)
 
     # This is just to show the angle
     CreateWorkspace(
@@ -291,8 +293,72 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
     # 2D Array: True where the wedge is, otherwise false
     condition = condition1 | condition2
 
-    
+    # This is just to show the condition
+    CreateWorkspace(
+        DataX=qx_bin_edges_grid,
+        DataY=condition,
+        DataE=np.sqrt(angle_grid),
+        NSpec=256,
+        UnitX='MomentumTransfer',
+        VerticalAxisUnit='MomentumTransfer',
+        VerticalAxisValues=qy_bin_centers,
+        OutputWorkspace=out_ws_prefix+"_condition",
+    )
 
-    qx_bin_centers_grid
-    qy_bin_centers_t_grid
-    q_bin_centers_grid
+    # TODO: This changes the shape!!!
+    # This transforms a 
+    qx_bin_centers_grid = qx_bin_centers_grid[condition]
+    qy_bin_centers_t_grid = qy_bin_centers_t_grid[condition]
+    q_bin_centers_grid = q_bin_centers_grid[condition]
+
+    #
+    #
+    # Calculate I(Q) and error(I(Q))
+    i = ws_iqxqy.extractY()
+    sigma_i = ws_iqxqy.extractE()
+
+    i = i[condition]
+    sigma_i = sigma_i[condition]
+
+    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)  # sanity check
+
+    intensity_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
+        q_bin_centers_grid, i, statistic=statistic, bins=bins)
+
+    sigma_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
+        q_bin_centers_grid, sigma_i,
+        statistic=lambda array_1d: np.sqrt(
+            np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
+
+    # Calculate dq from dqx dqy
+    dqx_bin_centers_grid = ws_dqx.extractY()
+    dqy_bin_centers_grid = ws_dqy.extractY()
+
+    # Bin centres in y edges in x
+    dq_bin_centers_grid = np.sqrt(
+        np.square(dqx_bin_centers_grid) + np.square(dqy_bin_centers_grid))
+    # get all to centres
+    dq_bin_centers_grid_all = (
+        dq_bin_centers_grid[:, 1:] + dq_bin_centers_grid[:, :-1]) / 2.0
+    
+    dq_bin_centers_grid_all = dq_bin_centers_grid_all[condition]
+
+
+    dq_intensity_statistic, dq_bin_edges, dq_binnumber = \
+        stats.binned_statistic(dq_bin_centers_grid_all, i,
+                               statistic=statistic, bins=bins)
+
+    dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
+
+    iq = CreateWorkspace(
+        DataX=np.array([q_bin_edges]),
+        DataY=np.array([intensity_statistic]),
+        DataE=np.array([sigma_statistic]),
+        Dx=dq_bin_centers,  # bin centers!!
+        NSpec=1,
+        UnitX='MomentumTransfer',
+        YUnitLabel='Counts',
+        OutputWorkspace=out_ws_prefix+"_iq"
+    )
+
+

@@ -5,8 +5,8 @@ variables:
 stages:
   - flake8
   - dockerbuild
-  - code-test
   - docker-test
+  - code-test
 
 flake8:
   stage: flake8

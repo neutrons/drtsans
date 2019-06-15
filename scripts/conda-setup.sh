@@ -2,7 +2,7 @@
 
 set -x
 
-conda install -q six==1.11.0 matplotlib==2.2.2 \
+conda install -q six==1.11.0 matplotlib==2.2.2 sortedcontainers==1.5.7
 #                 configparser==3.5.0
 #                 numpy==1.15.0 \
 #                 matplotlib==2.2.2 \

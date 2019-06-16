@@ -107,6 +107,7 @@ script-host:
     - /usr/local/bin/docker-compose down 
     - /usr/local/bin/docker-compose up --build --force-recreate -d
     - sudo cp -f scripts/sans-backend-run.sh /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME/
+    - sudo chmod -R 755 /opt/mantid/sans-backend/
   tags:
     - scse-mantid-demo
   only:

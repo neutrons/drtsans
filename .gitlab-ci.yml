@@ -109,6 +109,7 @@ script-host:
     - sudo cp -f scripts/sans-backend-run.sh /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME/
     - sudo chmod -R 755 /opt/mantid/sans-backend/
     - sudo ls -la /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME/
+    - curl http://localhost/$CI_COMMIT_REF_NAME/sans-backend-run.sh
   tags:
     - scse-mantid-demo
   only:

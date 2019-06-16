@@ -101,11 +101,11 @@ script-host:
     - sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     - sudo chmod +x /usr/local/bin/docker-compose
   script:
+    - mkdir -p /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME
     - docker network create nginx || true
     - /usr/local/bin/docker-compose config
     - /usr/local/bin/docker-compose down 
     - /usr/local/bin/docker-compose up --build --force-recreate -d
-    - mkdir -p /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME
     - cp -f scripts/sans-backend-run.sh /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME/
   tags:
     - scse-mantid-demo

@@ -12,8 +12,7 @@ import ornl.sans.sns.eqsans.dark_current as dkc
 
 @pytest.fixture(scope='module')
 def wss(refd):
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         name = pjn(refd.new.eqsans, 'test_dark_current', 'data.nxs')
         # data is a Workspace2D in wavelength
         data = Load(name, OutputWorkspace=unique_workspace_name())

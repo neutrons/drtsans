@@ -15,8 +15,7 @@ def test_direct_beam_center(eqsans_f, eqsans_p):
     1. Apply mask
     2. Find the beam center
     """
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         ws = LoadEventNexus(Filename=eqsans_f['beamcenter'],
                             OutputWorkspace=unique_workspace_name())
     SANSMaskDTP(InputWorkspace=ws, tube=eqsans_p['tubes_to_mask'])

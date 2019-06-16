@@ -14,8 +14,7 @@ def test_SANSBeamFinder(eqsans_f):
     pm = PropertyManager()
     PropertyManagerDataService.addOrReplace("test_pm", pm)
 
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         out = SANSBeamFinder(Filename=eqsans_f['beamcenter'],
                              # UseDirectBeamMethod=True,
                              # BeamRadius=3,

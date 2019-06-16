@@ -3,7 +3,7 @@
 TEST_SCOPE=$1  # 'unit' or 'integration'
 
 N_SUB=8  # number of python subprocesses
-
-module load mantid/ORNL_SANS_py3.6
-
+#source /etc/profiles.d/modules.sh
+#module load mantid/ORNL_SANS_py3.6
+conda activate mantid
 pytest -v ${N_SUB} tests/${TEST_SCOPE}

@@ -1,0 +1,17 @@
+version: "3.7"
+services:
+  nginx:
+    container_name: nginx
+    image: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+     - nginx
+    volumes:
+    - type: bind
+      source: /opt/mantid/sans-backend
+      target: /usr/share/nginx/html
+networks:
+ nginx:
+  external: true

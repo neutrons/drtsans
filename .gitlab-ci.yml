@@ -99,6 +99,7 @@ script-host:
     - dockerbuild
   before_script:
     - sudo yum install -y httpd
+    - sudo rm -f /etc/httpd/conf.d/welcome.conf
     - sudo systemctl restart httpd
   script:
     - sudo mkdir -p /var/www/html/sans-backend/$CI_COMMIT_REF_NAME

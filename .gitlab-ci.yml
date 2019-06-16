@@ -101,10 +101,10 @@ script-host:
     - sudo yum install -y httpd
     - sudo systemctl restart httpd
   script:
-    - sudo mkdir -p /var/www/html/$CI_COMMIT_REF_NAME
-    - sudo cp -f scripts/sans-backend-run.sh /var/www/html/$CI_COMMIT_REF_NAME/
+    - sudo mkdir -p /var/www/html/sans-backend/$CI_COMMIT_REF_NAME
+    - sudo cp -f scripts/sans-backend-run.sh /var/www/html/sans-backend/$CI_COMMIT_REF_NAME/
     - sudo chmod -R 755 /var/www/html/
-    - curl http://localhost/$CI_COMMIT_REF_NAME/sans-backend-run.sh
+    - curl http://localhost/sans-backend/$CI_COMMIT_REF_NAME/sans-backend-run.sh
   tags:
     - scse-mantid-demo
   only:

@@ -1,17 +1,16 @@
 version: "3.7"
 services:
-  nginx:
-    container_name: nginx
-    image: nginx
+  httpd:
+    container_name: httpd
+    image: httpd
     ports:
       - "80:80"
-      - "443:443"
     networks:
      - nginx
     volumes:
     - type: bind
       source: /opt/mantid/sans-backend
-      target: /usr/share/nginx/html
+      target: /usr/local/apache2/htdocs
 networks:
  nginx:
   external: true

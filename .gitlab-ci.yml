@@ -102,7 +102,7 @@ script-host:
     - sudo chmod +x /usr/local/bin/docker-compose
   script:
     - sudo mkdir -p /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME
-    - docker network create nginx || true
+    - docker network create httpd || true
     - /usr/local/bin/docker-compose config
     - /usr/local/bin/docker-compose down 
     - /usr/local/bin/docker-compose up --build --force-recreate -d

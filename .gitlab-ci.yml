@@ -102,6 +102,7 @@ script-host:
     - sudo systemctl restart httpd
   script:
     - sudo mkdir -p /var/www/html/sans-backend/$CI_COMMIT_REF_NAME
+    - sudo ls -la /var/www/html/
     - sudo cp -f scripts/sans-backend-run.sh /var/www/html/sans-backend/$CI_COMMIT_REF_NAME/
     - sudo chmod -R 755 /var/www/html/
     - curl http://localhost/sans-backend/$CI_COMMIT_REF_NAME/sans-backend-run.sh

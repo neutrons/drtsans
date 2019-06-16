@@ -98,17 +98,12 @@ script-host:
   dependencies: 
     - dockerbuild
   before_script:
-    - sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    - sudo chmod +x /usr/local/bin/docker-compose
+    - sudo yum install -y httpd
+    - sudo systemctl restart httpd
   script:
-    - sudo mkdir -p /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME
-    - docker network create httpd || true
-    - /usr/local/bin/docker-compose config
-    - /usr/local/bin/docker-compose down 
-    - /usr/local/bin/docker-compose up --build --force-recreate -d
-    - sudo cp -f scripts/sans-backend-run.sh /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME/
-    - sudo chmod -R 755 /opt/mantid/sans-backend/
-    - sudo ls -la /opt/mantid/sans-backend/$CI_COMMIT_REF_NAME/
+    - sudo mkdir -p /var/www/html/$CI_COMMIT_REF_NAME
+    - sudo cp -f scripts/sans-backend-run.sh /var/www/html/$CI_COMMIT_REF_NAME/
+    - sudo chmod -R 755 /var/www/html/
     - curl http://localhost/$CI_COMMIT_REF_NAME/sans-backend-run.sh
   tags:
     - scse-mantid-demo

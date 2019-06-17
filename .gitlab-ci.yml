@@ -66,7 +66,7 @@ docker-update-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh -u scripts/test.py
+    - sh -x scripts/sans-backend-run.sh -u scripts/docker-test.py
   tags:
     - scse-mantid-builder
 
@@ -77,7 +77,7 @@ docker-no-update-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh scripts/test.py
+    - sh -x scripts/sans-backend-run.sh scripts/docker-test.py
   tags:
     - scse-mantid-builder
 

@@ -98,6 +98,7 @@ script-host:
     - sudo ls -la /var/www/html/
     - sudo cp -f scripts/sans-backend-run.sh /var/www/html/sans-backend/$CI_COMMIT_REF_NAME/
     - sudo chmod -R 755 /var/www/html/
+    - sudo bash web-cleaner.sh "${CI_DEPLOY_USER}" "${CI_DEPLOY_PASSWORD}"
     - curl http://localhost/sans-backend/$CI_COMMIT_REF_NAME/sans-backend-run.sh
   tags:
     - scse-mantid-demo

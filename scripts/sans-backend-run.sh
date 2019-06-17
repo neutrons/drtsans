@@ -14,6 +14,15 @@ func_help_message() {
       -h/--help)        prints this message.\n" "${VAR_APP_NAME}" "${VAR_APP_NAME}"
 }
 
+func_chk_perms() {
+  if [ ! "$(id -nG | grep -o docker)" ]; then
+    if [ "$(id -u)" -ne 0 ]; then
+      printf "Error: You must either be in the docker group or run as root (sudo)."
+      exit 1
+    fi
+  fi
+}
+
 func_main() {
   params="$(getopt -o iuh -l iteractive,update,help --name "$0" -- "$@")"
   eval set -- "$params"
@@ -37,7 +46,7 @@ func_main() {
             ;;
         *)
             func_help_message
-            printf "Not implemented: %s" "${1}" >&2
+            printf "Error: Not implemented: %s" "${1}" >&2
             exit 1
             ;;
     esac
@@ -51,16 +60,17 @@ func_main() {
       if ${VAR_INTERACT}; then
         docker run -v "$PWD":/tmp/input -it CONTAINER_URL bash
       else
-        docker run -v "$PWD":/tmp/input -t CONTAINER_URL bash -c "bash scripts/run-inputs.sh ${@}"
+        docker run -v "$PWD":/tmp/input -t CONTAINER_URL bash -c "bash scripts/run-inputs.sh ${*}"
       fi
     else
-      echo "Login failed. Do you have access to this repository?"
+      echo "Error: Login failed. Do you have access to this repository?"
       exit 1
     fi
   else
-    echo "Docker doesn't seem to be working. Is it installed?"
+    echo "Error: Docker doesn't seem to be working. Is it installed?"
     exit 1
   fi
 }
 
+func_chk_perms
 func_main ${@}

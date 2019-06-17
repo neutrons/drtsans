@@ -41,6 +41,7 @@ func_main() {
             printf "Error: Not implemented: %s" "${1}" >&2
             exit 1;;
     esac
+    shift
   done
   docker -v 1>/dev/null 2>/dev/null
   if docker -v 1>/dev/null 2>/dev/null; then

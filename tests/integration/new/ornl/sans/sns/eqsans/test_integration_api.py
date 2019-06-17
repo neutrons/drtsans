@@ -7,7 +7,7 @@ from ornl.settings import unique_workspace_name as uwn
 
 
 #               run        num-events max-tof #SDD
-run_sets = (('EQSANS_92353', 262291, 33332.5, 4000.0),)  # old IDF, no translation
+run_sets = (('EQSANS_92353', 262291, 33332.5, 4000.0),)  # old IDF,
 """To-Do after PR new IDF accepted in mantid master
 run_sets = (('EQSANS_92353', 262291, 33332.5, 0.0),  # old IDF, no translation
             ('EQSANS_102616', 0.0, 0.0, 0.0))  # new IDF, translation

@@ -1,4 +1,4 @@
-from mantid.simpleapi import (LoadEventNexus, MoveInstrumentComponent)
+from mantid.simpleapi import LoadEventNexus
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
 from ornl.sans.sns.eqsans.geometry import translate_detector_z

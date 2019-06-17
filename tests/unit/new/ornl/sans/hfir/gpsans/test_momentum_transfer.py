@@ -2,17 +2,10 @@
 from __future__ import print_function
 
 from mantid.simpleapi import LoadHFIRSANS
-from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
+from ornl.sans.momentum_transfer import (
+    bin_into_q1d, bin_into_q2d, bin_wedge_into_q1d)
 from ornl.settings import unique_workspace_name
 
-'''
-import pytest
-import os
-os.chdir("/home/rhf/git/sans-rewrite")
-
-pytest.main(["-vs", "/home/rhf/git/sans-rewrite/tests/unit/new/ornl/\
-sans/hfir/gpsans/test_momentum_transfer.py"])
-'''
 
 def test_momentum_tranfer(gpsans_f):
 
@@ -28,5 +21,9 @@ def test_momentum_tranfer(gpsans_f):
     assert ws_iqxqy.extractX().shape == (256, 193)
 
     _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
+    assert ws_iq.extractY().shape == (1, 100)
+    assert ws_iq.extractX().shape == (1, 101)
+
+    _, ws_iq = bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy)
     assert ws_iq.extractY().shape == (1, 100)
     assert ws_iq.extractX().shape == (1, 101)

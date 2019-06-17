@@ -257,7 +257,7 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
     # Q
     q_bin_centers_grid = np.sqrt(
         np.square(qx_bin_centers_grid) + np.square(qy_bin_centers_t_grid))
-    
+
     # Angle
     angle_grid = np.arctan2(qy_bin_centers_t_grid, qx_bin_centers_grid)
 
@@ -286,7 +286,7 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
     condition1 = (angle_grid > phi_aperture_min) & \
         (angle_grid < phi_aperture_max)
     # make angle > np.pi varying between np.pi and 2*np.pi, rather than the
-    # initial -np.pi to np.pi 
+    # initial -np.pi to np.pi
     angle_grid[angle_grid < 0] = 2*np.pi + angle_grid[angle_grid < 0]
     condition2 = (angle_grid > phi_aperture_min_pi) & \
         (angle_grid < phi_aperture_max_pi)
@@ -306,7 +306,7 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
     )
 
     # TODO: This changes the shape!!!
-    # This transforms a 
+    # This transforms a
     qx_bin_centers_grid = qx_bin_centers_grid[condition]
     qy_bin_centers_t_grid = qy_bin_centers_t_grid[condition]
     q_bin_centers_grid = q_bin_centers_grid[condition]
@@ -340,9 +340,8 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
     # get all to centres
     dq_bin_centers_grid_all = (
         dq_bin_centers_grid[:, 1:] + dq_bin_centers_grid[:, :-1]) / 2.0
-    
-    dq_bin_centers_grid_all = dq_bin_centers_grid_all[condition]
 
+    dq_bin_centers_grid_all = dq_bin_centers_grid_all[condition]
 
     dq_intensity_statistic, dq_bin_edges, dq_binnumber = \
         stats.binned_statistic(dq_bin_centers_grid_all, i,
@@ -360,5 +359,4 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
         YUnitLabel='Counts',
         OutputWorkspace=out_ws_prefix+"_iq"
     )
-
-
+    return iq.name(), iq

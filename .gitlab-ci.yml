@@ -44,7 +44,7 @@ code-unit-test:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "conda init bash && bash test_job.sh ${TEST_SCOPE}"
-    - sudo chown -r gitlab-rubber .
+    - sudo chown -R gitlab-rubber .
   tags:
     - scse-mantid-builder
 
@@ -57,7 +57,7 @@ code-integration-test:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "conda init bash && bash test_job.sh integration"
-    - sudo chown -r gitlab-rubber .
+    - sudo chown -R gitlab-rubber .
   tags:
     - scse-mantid-builder
 
@@ -69,7 +69,7 @@ docker-update-test:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - sh -x scripts/sans-backend-run.sh -u scripts/docker-test.py
-    - sudo chown -r gitlab-rubber .
+    - sudo chown -R gitlab-rubber .
   tags:
     - scse-mantid-builder
 
@@ -81,7 +81,7 @@ docker-no-update-test:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - sh -x scripts/sans-backend-run.sh scripts/docker-test.py
-    - sudo chown -r gitlab-rubber .
+    - sudo chown -R gitlab-rubber .
   tags:
     - scse-mantid-builder
 

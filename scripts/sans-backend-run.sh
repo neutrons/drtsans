@@ -8,10 +8,10 @@ VAR_UPDATE='false'
 func_help_message() {
   printf "  %s is a wrapper for the ORNL Small Angle Neutron Scattering mantid module.
 
-  Usage: %s [-iuh] -- script_1.py script_2.py script_n.py
-      -i/--interactive) launches a python terminal rather than running provided scripts.
-      -u/--update)      forces an update of the application.
-      -h/--help)        prints this message.\n" "${VAR_APP_NAME}" "${VAR_APP_NAME}"
+  Usage: %s [-iuh] script_1.py script_2.py script_n.py
+      -i) launches a python terminal rather than running provided scripts.
+      -u) forces an update of the application.
+      -h) prints this message.\n" "${VAR_APP_NAME}" "${VAR_APP_NAME}"
 }
 
 func_chk_perms() {

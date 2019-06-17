@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 set -o errexit -o noclobber -o nounset
 VAR_APP_NAME="${0}"
@@ -24,36 +24,27 @@ func_chk_perms() {
 }
 
 func_main() {
-  params="$(getopt -o iuh -l iteractive,update,help --name "$0" -- "$@")"
-  eval set -- "$params"
-  while true; do
-    case "${1}" in
-        -i|--interactive)
-            VAR_INTERACT='true'
-            shift
-            ;;
-        -u|--update)
-            VAR_UPDATE='true'
-            shift
-            ;;
-        -h|--help)
+  while getopts "i:u:-h" OPT; do
+    case "${OPT}" in
+        i)
+            VAR_INTERACT='true';;
+        u)
+            VAR_UPDATE='true';;
+        h)
             func_help_message
-            exit 0
-            ;;
-        --)
+            exit 0;;
+        -)
             shift
-            break
-            ;;
+            break;;
         *)
             func_help_message
             printf "Error: Not implemented: %s" "${1}" >&2
-            exit 1
-            ;;
+            exit 1;;
     esac
   done
   docker -v 1>/dev/null 2>/dev/null
   if docker -v 1>/dev/null 2>/dev/null; then
-    if ${VAR_UPDATE}; then
+    if [ "${VAR_UPDATE}" = 'true' ]; then
       docker pull CONTAINER_URL
     fi
     if docker login code.ornl.gov:4567 2>/dev/null; then

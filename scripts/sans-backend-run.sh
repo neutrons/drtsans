@@ -24,7 +24,7 @@ func_chk_perms() {
 }
 
 func_main() {
-  while getopts "i:u:-h" OPT; do
+  while getopts "iu-h" OPT; do
     case "${OPT}" in
         i)
             VAR_INTERACT='true';;

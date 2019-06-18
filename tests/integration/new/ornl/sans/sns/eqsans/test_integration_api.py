@@ -1,5 +1,6 @@
-from __future__ import (absolute_import, division, print_function)
-
+"""
+    Test top-level API
+"""
 import pytest
 from mantid.dataobjects import EventWorkspace
 from ornl.sans.sns import eqsans
@@ -25,6 +26,24 @@ def test_load_events(run_set):
     det = instrument.getComponentByName(eqsans.detector_name)
     d1 = det.getDistance(instrument.getSample())
     assert run_set[3] == pytest.approx(d1 * 1000)
+
+
+def test_prepared_data(eqsans_f):
+    """
+        This is Section 3 of the requirements document.
+        It should just be a convenience function that brings together
+        loading, moving the detector, normalizing, binning in wavelength,
+        and subtracting dark current.
+    """
+    ws = eqsans.prepare_data(eqsans_f['data'], output_workspace='ws')
+    assert isinstance(ws, EventWorkspace)
+
+
+def test_correct_tof(eqsans_f):
+    """ Corrrect raw data TOF """
+    ws = eqsans.load_events(eqsans_f['data'])
+    ws = eqsans.correct_detector_frame(ws)
+    assert isinstance(ws, EventWorkspace)
 
 
 if __name__ == '__main__':

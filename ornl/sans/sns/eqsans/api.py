@@ -1,4 +1,21 @@
 """ Top-level API for EQSANS """
+# Import rolled up to complete a single top-level API
+from .beam_finder import direct_beam_center
+from mantid.simpleapi import SANSMaskDTP
+
+
+def find_beam_center(ws, mask_file_path=None):
+    """
+        Beam center finder, with optional mask.
+        input_ws: EventsWorkspace
+            Workspace for the direct beam run
+        mask_file_path: str
+            File path of mask to apply before calculation
+
+    """
+    if mask_file_path is not None:
+        ws = apply_mask(ws, mask_file_path)
+    return direct_beam_center(ws)
 
 
 def load_events(file_path):

@@ -5,6 +5,7 @@ from mantid.simpleapi import (MoveInstrumentComponent, LoadEventNexus,
                               MaskBTP)
 from ornl.settings import amend_config, unique_workspace_name
 from ornl.sans.sns.eqsans.beam_finder import direct_beam_center
+from ornl.sans.sns import eqsans
 
 
 def test_direct_beam_center(eqsans_f, eqsans_p):
@@ -26,6 +27,16 @@ def test_direct_beam_center(eqsans_f, eqsans_p):
     # 0 after the re-centring
     MoveInstrumentComponent(ws, ComponentName='detector1', X=-x, Y=-y)
     assert direct_beam_center(ws) == pytest.approx((0, 0), abs=1e-04)
+
+
+def test_direct_beam_from_top_level_api(eqsans_f, eqsans_p):
+    """ Testing the top-level API """
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+        ws = LoadEventNexus(Filename=eqsans_f['beamcenter'],
+                            OutputWorkspace=unique_workspace_name())
+    SANSMaskDTP(InputWorkspace=ws, tube=eqsans_p['tubes_to_mask'])
+    x, y = eqsans.find_beam_center(ws)
+    assert (x, y) == pytest.approx((0.0265, 0.0180), abs=1e-04)
 
 
 if __name__ == '__main__':

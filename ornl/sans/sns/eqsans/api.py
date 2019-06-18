@@ -68,4 +68,3 @@ def prepare_data(file_path, mask_file_path=None, sensitivity_file_path=None):
     ws = apply_sensitivity_correction(ws, sensitivity_file_path)
     ws = divide_by_flux(ws)
     return normalize(ws)
-

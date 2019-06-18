@@ -33,11 +33,12 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         `_dqx` and `_dqy`.
     """
 
-    assert ws.getNumberBins() == 1  # sanity check
+    assert ws.blocksize() == 1  # sanity check: only 1 bin
 
     det = Component(ws, component_name)
 
-    # Get WS data
+    # Note that the detctor is read from the lower left corner, then up
+    # the tube is read first from the bottom (256)
     i = ws.extractY()  # i.shape == (49154, 1)
     i_sigma = ws.extractE()
 
@@ -45,40 +46,44 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
 
     # Get rid of the monitors; from 49154 to 49152 spectra
-    qx, qy, dqx, dqy = qx[det.first_index:det.first_index + det.dims],\
-        qy[det.first_index:det.first_index + det.dims], \
-        dqx[det.first_index:det.first_index + det.dims], \
-        dqy[det.first_index:det.first_index + det.dims]
-    i, i_sigma = i[det.first_index:det.first_index + det.dims], \
-        i_sigma[det.first_index:det.first_index + det.dims]
+    qx = qx[det.first_index:det.first_index + det.dims]
+    qy = qy[det.first_index:det.first_index + det.dims]
+    dqx = dqx[det.first_index:det.first_index + det.dims]
+    dqy = dqy[det.first_index:det.first_index + det.dims]
+    i = i[det.first_index:det.first_index + det.dims]
+    i_sigma = i_sigma[det.first_index:det.first_index + det.dims]
     # get rid of the original bins: from shape == (49152, 1) to (49152,)
     i, i_sigma = i[:, 0], i_sigma[:, 0]
 
-    # Number of bins is the number of pixels in X and Y
+    # Number of bins in Qx Qy is the number of pixels in X and Y
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
         qx, qy, bins=[det.dim_x, det.dim_y], weights=i
     )
     counts_dqx_dqy, dqx_bin_edges, dqy_bin_edges = np.histogram2d(
         dqx, dqy, bins=[det.dim_x, det.dim_y], weights=i_sigma
     )
-
     qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
+    # qy_bin_centers.shape == dqy_bin_centers.shape == (256,)
     dqy_bin_centers = (dqy_bin_edges[1:] + dqy_bin_edges[:-1]) / 2.0
 
     # Grids for I, dqx, dqy
     qx_bin_edges_grid, qy_bin_centers_grid = np.meshgrid(
         qx_bin_edges, qy_bin_centers)
-    i_grid = i.reshape(det.dim_x, det.dim_y)
-    i_sigma_grid = i_sigma.reshape(det.dim_x, det.dim_y)
-
+    # Since the tubes are read first: reshape(n-rows,n-cols)
+    # We need to fill in the columns first: 'F'
+    i_grid = i.reshape(det.dim_y, det.dim_x, order='F')
+    i_sigma_grid = i_sigma.reshape(det.dim_y, det.dim_x, order='F')
+    # np.tile(array, (n-times, 1)) - Stack vertically n-times the array
     dqx_bin_centers_grid = np.tile(dqx_bin_edges, (len(dqy_bin_centers), 1))
-    dqy_bin_centers_grid = np.tile(np.rot90(np.array([dqy_bin_centers])),
-                                   (1, len(dqx_bin_edges)))
+    # array[np.newaxis].T transforms a vector (row) into a column array
+    # The tile repeat that column len(dqx_bin_edges) times
+    dqy_bin_centers_grid = np.tile(
+        dqy_bin_centers[np.newaxis].T, (1, len(dqx_bin_edges)))
     # Q WS
     iqxqy_ws = CreateWorkspace(
         DataX=qx_bin_edges_grid,  # 2D
-        DataY=i_grid.T,  # 2D
-        DataE=i_sigma_grid.T,  # 2D
+        DataY=i_grid,  # 2D
+        DataE=i_sigma_grid,  # 2D
         NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
@@ -161,7 +166,7 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
             will be called on the values in each bin.  Empty bins will be
             represented by function([]), or NaN if this returns an error.
     out_ws_prefix : str, optional
-        [description], by default "ws"
+        The prefix of the workspace created in Mantid, by default "ws"
 
     Returns
     -------
@@ -179,7 +184,7 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
         qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
 
     # Qy: qy_bin_centers_t_grid.shape == (256, 192)
-    qy_bin_centers_t = np.rot90([qy_bin_centers])
+    qy_bin_centers_t = qy_bin_centers[np.newaxis].T
     qy_bin_centers_t_grid = np.tile(
         qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
 
@@ -232,14 +237,71 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
 
 def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
                        bins=100, statistic='mean', out_ws_prefix="ws_wedge"):
-    '''
+    """
     Wedge calculation and integration
-    TODO!!
+
+    Calculates: I(Q) and Dq
+    The ws_* input parameters are the output workspaces from bin_into_q2d
+
+    TODO:
     The code is almost copy paste bin_into_q1d :(
     Ideally one would call inside this function bin_into_q1d but mantid
     does not allowing masking without going through a for cycle and mask
     by workspace index!
-    '''
+
+    Parameters
+    ----------
+    ws_iqxqy : Workspace2D
+        I(qx, qy)
+    ws_dqx : Workspace2D
+        dqx(qx, qy)
+    ws_dqy : Workspace2D
+        dqy(qx, qy)
+    phi_0 : int, optional
+        Where to start the wedge, by default 0
+    phi_aperture : int, optional
+        Aperture of the wedge, by default 30
+    bins : int or sequence of scalars, optional
+        See `scipy.stats.binned_statistic`.
+        If `bins` is an int, it defines the number of equal-width bins in the
+        given range (10 by default).  If `bins` is a sequence, it defines the
+        bin edges, including the rightmost edge, allowing for non-uniform bin
+        widths.  Values in `x` that are smaller than lowest bin edge are
+        assigned to bin number 0, values beyond the highest bin are assigned to
+        ``bins[-1]``.  If the bin edges are specified, the number of bins will
+        be, (nx = len(bins)-1).
+    statistic : str, optional
+        See `scipy.stats.binned_statistic`.
+        The statistic to compute, by default 'mean'
+        The following statistics are available:
+          * 'mean' : compute the mean of values for points within each bin.
+            Empty bins will be represented by NaN.
+          * 'std' : compute the standard deviation within each bin. This
+            is implicitly calculated with ddof=0.
+          * 'median' : compute the median of values for points within each
+            bin. Empty bins will be represented by NaN.
+          * 'count' : compute the count of points within each bin.  This is
+            identical to an unweighted histogram.  `values` array is not
+            referenced.
+          * 'sum' : compute the sum of values for points within each bin.
+            This is identical to a weighted histogram.
+          * 'min' : compute the minimum of values for points within each bin.
+            Empty bins will be represented by NaN.
+          * 'max' : compute the maximum of values for point within each bin.
+            Empty bins will be represented by NaN.
+          * function : a user-defined function which takes a 1D array of
+            values, and outputs a single numerical statistic. This function
+            will be called on the values in each bin.  Empty bins will be
+            represented by function([]), or NaN if this returns an error.
+    out_ws_prefix : str, optional
+        The prefix of the workspace created in Mantid, by default "ws_wedge"
+
+    Returns
+    -------
+    tuple
+         tuple (workspace name, workspace)
+
+    """
 
     # Calculate Q: qy_bin_centers.shape == (256,)
     qx_bin_edges_grid = ws_iqxqy.extractX()
@@ -250,7 +312,7 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
         qx_bin_edges_grid[:, 1:] + qx_bin_edges_grid[:, :-1]) / 2.0
 
     # Qy: qy_bin_centers_t_grid.shape == (256, 192)
-    qy_bin_centers_t = np.rot90([qy_bin_centers])
+    qy_bin_centers_t = qy_bin_centers[np.newaxis].T
     qy_bin_centers_t_grid = np.tile(
         qy_bin_centers_t, qx_bin_edges_grid.shape[1]-1)
 
@@ -305,14 +367,9 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
         OutputWorkspace=out_ws_prefix+"_condition",
     )
 
-    # TODO: This changes the shape!!!
-    # This transforms a
-    qx_bin_centers_grid = qx_bin_centers_grid[condition]
-    qy_bin_centers_t_grid = qy_bin_centers_t_grid[condition]
+    # This transforms a 2D into 1D array
     q_bin_centers_grid = q_bin_centers_grid[condition]
 
-    #
-    #
     # Calculate I(Q) and error(I(Q))
     i = ws_iqxqy.extractY()
     sigma_i = ws_iqxqy.extractE()

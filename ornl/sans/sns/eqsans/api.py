@@ -1,7 +1,6 @@
 """ Top-level API for EQSANS """
 # Import rolled up to complete a single top-level API
 from .beam_finder import direct_beam_center
-from mantid.simpleapi import SANSMaskDTP
 
 
 def find_beam_center(ws, mask_file_path=None):

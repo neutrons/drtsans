@@ -14,7 +14,9 @@ done
 cat  /tmp/web-cleaner.txt
 
 for DIR in ${HTTPD_PATH}/*; do
-  if ! $(grep ""${HTTPD_PATH}/${BRANCH}"" /tmp/web-cleaner.txt); then
+  if $(grep "${HTTPD_PATH}/${BRANCH}" /tmp/web-cleaner.txt); then
+    printf "%s is still in use.\n" "${BRANCH}"
+  else
     rm -rf "${HTTPD_PATH}/${BRANCH}"
   fi
 done

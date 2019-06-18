@@ -13,7 +13,9 @@ done
 
 cat  /tmp/web-cleaner.txt
 
-for DIR in ${HTTPD_PATH}/*; do
+declare -a DIRS=( ${HTTPD_PATH}/* )
+
+for DIR in "${DIRS[@]}"; do
   if [[ $(grep "${HTTPD_PATH}/${BRANCH}" /tmp/web-cleaner.txt) = "${HTTPD_PATH}/${BRANCH}" ]]; then
     printf "%s is still in use.\n" "${BRANCH}"
   else

@@ -6,8 +6,11 @@ declare -a BRANCHES=( $(git ls-remote --heads https://${CI_USER}:${CI_PASS}@code
 declare HTTPD_PATH='/var/www/html/sans-backend'
 
 for DIR in ${HTTPD_PATH}/*; do
-  if [[ ! "${DIR}" =~ ${HTTPD_PATH}/${BRANCHES[@]} ]]; then
-    printf "%s\n" "${DIR}"
+  printf "%s\n" $
+  if [[ "${DIR}" =~ ${HTTPD_PATH}/${BRANCHES[@]} ]]; then
+    printf "%s is OK!\n" "${DIR}"
+  else
+    printf "%s is NOT OK!\n" "${DIR}"
   fi
 done
   

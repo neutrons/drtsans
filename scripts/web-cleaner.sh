@@ -5,8 +5,8 @@ declare CI_PASS="${2}"
 declare -a BRANCHES=( $(git ls-remote --heads https://${CI_USER}:${CI_PASS}@code.ornl.gov/sns-hfir-scse/sans/sans-backend.git | cut -f 3 -d '/') )
 declare HTTPD_PATH='/var/www/html/sans-backend/'
 
-for DIR in HTTPD_PATH; do
-  if [[ ! "${DIR}" =~ ${HTTP_PATH}/* ]]; then
+for DIR in ${HTTPD_PATH}/*; do
+  if [[ ! "${DIR}" =~ ${BRANCHES[@]} ]]; then
     printf "%s" "${DIR}"
   fi
 done

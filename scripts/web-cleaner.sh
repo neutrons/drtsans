@@ -14,6 +14,7 @@ done
 cat  /tmp/web-cleaner.txt
 
 declare -a DIRS=( ${HTTPD_PATH}/* )
+echo "${DIRS[@]}"
 
 for DIR in "${DIRS[@]}"; do
   if [[ $(grep "${HTTPD_PATH}/${BRANCH}" /tmp/web-cleaner.txt) = "${HTTPD_PATH}/${BRANCH}" ]]; then

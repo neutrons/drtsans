@@ -43,7 +43,7 @@ code-unit-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
+    - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "conda init bash && bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder
@@ -56,7 +56,7 @@ code-integration-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
+    - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "conda init bash && bash /opt/sans-backend/test_job.sh integration"
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder

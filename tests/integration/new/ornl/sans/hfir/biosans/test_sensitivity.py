@@ -52,10 +52,10 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         InputFile=biosans_sensitivity_dataset['flood_mask'])
 
     # This is for the main detector, let's mask the wing detector
-    MaskBTP(InputWorkspace=dark_current_ws, Component='wing_detector')
-    MaskBTP(InputWorkspace=flood_ws, Component='wing_detector')
-    MaskBTP(InputWorkspace=flood_beamcenter_ws, Component='wing_detector')
-    MaskBTP(InputWorkspace=empty_transmission_ws, Component='wing_detector')
+    MaskBTP(Workspace=dark_current_ws, Component='wing_detector')
+    MaskBTP(Workspace=flood_ws, Component='wing_detector')
+    MaskBTP(Workspace=flood_beamcenter_ws, Component='wing_detector')
+    MaskBTP(Workspace=empty_transmission_ws, Component='wing_detector')
 
     # Let's correct the data first
     ###########################################################################
@@ -186,8 +186,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         Filename=biosans_sensitivity_dataset['flood'])
 
     # Let's mask the main detector
-    MaskBTP(InputWorkspace=dark_current_ws, Component='detector1')
-    MaskBTP(InputWorkspace=flood_ws, Detector="detector1")
+    MaskBTP(Workspace=dark_current_ws, Component='detector1')
+    MaskBTP(Workspace=flood_ws, Detector="detector1")
 
     # DC normalisation
     dark_current_norm_ws = time(dark_current_ws)
@@ -280,7 +280,7 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
     # move to the 3rd tube
     d.next_tube()
     # Mask 3rd tube
-    MaskBTP(InputWorkspace=dark_current_ws, Tube="3")
+    MaskBTP(Workspace=dark_current_ws, Tube="3")
     pixels_masked = d.get_pixels_masked()
     # All pixels should be masked
     assert np.count_nonzero(pixels_masked) == 256

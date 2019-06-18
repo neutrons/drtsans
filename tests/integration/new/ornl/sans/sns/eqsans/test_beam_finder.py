@@ -18,7 +18,7 @@ def test_direct_beam_center(eqsans_f, eqsans_p):
     with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         ws = LoadEventNexus(Filename=eqsans_f['beamcenter'],
                             OutputWorkspace=unique_workspace_name())
-    MaskBTP(Workspace=ws, tube=eqsans_p['tubes_to_mask'])
+    MaskBTP(Workspace=ws, Tube=eqsans_p['tubes_to_mask'])
     x, y = direct_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
     assert (x, y) == pytest.approx((0.0265, 0.0180), abs=1e-04)

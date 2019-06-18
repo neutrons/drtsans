@@ -7,7 +7,7 @@ declare HTTPD_PATH='/var/www/html/sans-backend'
 
 for DIR in ${BRANCHES}; do
   printf "%s\n" $
-  if [[ "${DIR}" =~ ${HTTPD_PATH}/${DIR} ]]; then
+  if [[ ! "${DIR}" =~ ${HTTPD_PATH}/${DIR} ]]; then
     printf "%s is OK!\n" "${DIR}"
   else
     printf "%s is NOT OK!\n" "${DIR}"

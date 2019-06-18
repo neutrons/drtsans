@@ -16,12 +16,14 @@ cat  /tmp/web-cleaner.txt
 declare -a DIRS=( ${HTTPD_PATH}/* )
 echo "${DIRS[@]}"
 
-for DIR in "${DIRS[@]}"; do
-  if [[ $(grep "${DIR}" /tmp/web-cleaner.txt) = "${HTTPD_PATH}/${BRANCH}" ]]; then
-    printf "%s is still in use.\n" "${BRANCH}"
-  else
-    rm -rf "${HTTPD_PATH}/${BRANCH}"
-  fi
+for BRANCH in "${BRANCHES[@]}"; do
+  for DIR in "${DIRS[@]}"; do
+    if [[ $(grep "${DIR}" /tmp/web-cleaner.txt) = "${HTTPD_PATH}/${BRANCH}" ]]; then
+      printf "%s is still in use.\n" "${BRANCH}"
+    else
+      rm -rf "${HTTPD_PATH}/${BRANCH}"
+    fi
+  done
 done
 
 rm -f /tmp/web-cleaner.txt

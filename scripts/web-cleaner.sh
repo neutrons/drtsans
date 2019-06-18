@@ -11,8 +11,10 @@ for BRANCH in "${BRANCHES[@]}"; do
   printf "%s/%s\n" "${HTTPD_PATH}" "${BRANCH}" >> /tmp/web-cleaner.txt
 done
 
+cat  /tmp/web-cleaner.txt
+
 for DIR in ${HTTPD_PATH}/*; do
-  if ! $(grep "${HTTPD_PATH}/${BRANCH}" /tmp/web-cleaner.txt); then
+  if ! $(grep ""${HTTPD_PATH}/${BRANCH}"" /tmp/web-cleaner.txt); then
     rm -rf "${HTTPD_PATH}/${BRANCH}"
   fi
 done

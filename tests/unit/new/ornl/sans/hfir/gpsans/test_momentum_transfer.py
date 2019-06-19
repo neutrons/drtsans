@@ -4,7 +4,7 @@ from __future__ import print_function
 from mantid.simpleapi import LoadHFIRSANS, Load
 from ornl.sans.momentum_transfer import (
     bin_into_q1d, bin_into_q2d, bin_wedge_into_q1d)
-
+import numpy as np
 
 def test_momentum_tranfer_anisotropic(gpsans_f):
 
@@ -41,12 +41,48 @@ def test_momentum_tranfer_anisotropic(gpsans_f):
     assert (ws_iq_feature_i.sum() - ws_iq_non_feature_i.sum()) > 1000
 
 
+def _normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
+
+
 def test_momentum_tranfer_cross_check(gpsans_f):
+    '''
 
-    ws = Load(Filename=gpsans_f['ws'], OutputWorkspace='ws')
-    ws_iq = Load(Filename=gpsans_f['ws_iq'], OutputWorkspace='ws_iq')
-    ws_iqxqy = Load(Filename=gpsans_f['ws_iqxqy'], OutputWorkspace='ws_iqxqy')
+    '''
 
-    # This fails !!
-    # wss_name_ws = bin_into_q2d(ws, out_ws_prefix='ws')
-    # ws_iqxqy_reduced = wss_name_ws[0][1]
+    import tempfile
+    from mantid import mtd
+    from reduction_workflow.command_interface import AppendDataFile, Reduce
+    from reduction_workflow.instruments.sans.hfir_command_interface import (
+        GPSANS, SetBeamCenter, AzimuthalAverage, OutputPath
+    )
+
+    GPSANS()
+    SetBeamCenter(92, 123)
+    AppendDataFile(gpsans_f['sample_scattering_2'], workspace='ws_legacy')
+    AzimuthalAverage(binning="0.01,0.001,0.11")
+    OutputPath(tempfile.gettempdir())
+    IQxQy(nbins=100, log_binning=False)
+
+    Reduce()
+
+    ws_legacy = mtd['ws_legacy']
+    ws_legacy_iq = mtd['ws_legacy_iq']
+    ws_legacy_qxqy = mtd['ws_legacy_iqxy']
+
+    wss_name_ws = bin_into_q2d(ws_legacy, out_ws_prefix='ws_new')
+    ws_new_iqxqy, ws_new_dqx, ws_new_dqy = [ws[1] for ws in wss_name_ws]
+    _, ws_new_iq = bin_into_q1d(ws_new_iqxqy, ws_new_dqx, ws_new_dqy,
+                                bins=np.linspace(0.01, 0.11, 101),
+                                out_ws_prefix='ws_new')
+
+    legacy_iq = ws_legacy_iq.extractY()
+    new_iq = ws_new_iq.extractY()
+
+    legacy_iq = np.nan_to_num(legacy_iq)
+    new_iq = np.nan_to_num(new_iq)
+
+    assert np.allclose(_normalize(legacy_iq), _normalize(new_iq))

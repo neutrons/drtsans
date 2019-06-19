@@ -137,10 +137,7 @@ def gpsans_f():
         sample_scattering=pjoin(dd, 'CG2_exp245_scan0010_0001.xml'),
         dark_current=pjoin(dd, 'CG2_exp244_scan0001_0001.xml'),
         anisotropic=pjoin(dd, 'CG2_exp296_scan0166_0001.xml'),
-        # reduced data for cross check
-        ws=pjoin(dd, 'ws.nxs'),
-        ws_iq=pjoin(dd, 'ws_iq.nxs'),
-        ws_iqxqy=pjoin(dd, 'ws_iqxqy.nxs'),
+        sample_scattering_2=pjoin(dd, 'CG2_exp325_scan0007_0001.xml'),
     )
 
 

@@ -34,7 +34,7 @@ Save file as nexus
 '''
 
 
-@pytest.mark.skip(reason="current CalculateEfficiency algorithm not aplicable")
+@pytest.mark.skip(reason="CalculateEfficiency algorithm not applicable yet")
 @pytest.mark.offline
 def test_sensitivity_procedural(gpsans_sensitivity_dataset):
     dark_current_ws = LoadHFIRSANS(

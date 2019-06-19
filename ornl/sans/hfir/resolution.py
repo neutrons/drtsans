@@ -32,10 +32,10 @@ def q_resolution_per_pixel(ws):
                                               log_key='source-sample-distance')
     kwargs = dict(units='m', log_key='sample-detector-distance')
     L2 = sans_geometry.sample_detector_distance(ws, **kwargs)
-    R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
-    R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
-    wl = sl.find_log_with_units('wavelength', 'Angstrom')
-    dwl = sl.find_log_with_units('wavelength-spread', 'Angstrom')
+    R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter')
+    R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter')
+    wl = sl.find_log_with_units('wavelength')
+    dwl = sl.find_log_with_units('wavelength-spread')
 
     spec_info = ws.spectrumInfo()
 

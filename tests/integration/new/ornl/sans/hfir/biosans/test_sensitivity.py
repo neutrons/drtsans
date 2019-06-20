@@ -25,13 +25,14 @@ Save file as nexus
 '''
 
 
+@pytest.mark.skip(reason="CalculateEfficiency algorithm not applicable yet")
 @pytest.mark.offline
 def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
-    from mantid.simpleapi import (CalculateSensitivity, LoadHFIRSANS, LoadMask,
+    from mantid.simpleapi import (CalculateEfficiency, LoadHFIRSANS, LoadMask,
                                   MaskDetectors, MoveInstrumentComponent,
                                   RenameWorkspace, ReplaceSpecialValues,
-                                  SANSMaskDTP, SANSSolidAngle, SaveNexus)
+                                  MaskBTP, SolidAngle, SaveNexus)
     from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
     from ornl.sans.hfir.dark_current import subtract_normalised_dark
     from ornl.sans.hfir.normalisation import time
@@ -52,10 +53,10 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         InputFile=biosans_sensitivity_dataset['flood_mask'])
 
     # This is for the main detector, let's mask the wing detector
-    SANSMaskDTP(InputWorkspace=dark_current_ws, Detector="2")
-    SANSMaskDTP(InputWorkspace=flood_ws, Detector="2")
-    SANSMaskDTP(InputWorkspace=flood_beamcenter_ws, Detector="2")
-    SANSMaskDTP(InputWorkspace=empty_transmission_ws, Detector="2")
+    MaskBTP(Workspace=dark_current_ws, Component='wing_detector')
+    MaskBTP(Workspace=flood_ws, Component='wing_detector')
+    MaskBTP(Workspace=flood_beamcenter_ws, Component='wing_detector')
+    MaskBTP(Workspace=empty_transmission_ws, Component='wing_detector')
 
     # Let's correct the data first
     ###########################################################################
@@ -111,7 +112,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     ###########################################################################
     # Solid Angle correction
-    solid_angle_ws = SANSSolidAngle(
+    solid_angle_ws = SolidAngle(
         InputWorkspace=flood_dc_time_corrected_ws, Type='Tube')
 
     flood_dc_time_sa_corrected_ws = flood_dc_time_corrected_ws / solid_angle_ws
@@ -138,7 +139,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     ###########################################################################
     # Sensitivity calculation
-    sensitivity_ws = CalculateSensitivity(
+    sensitivity_ws = CalculateEfficiency(
         InputWorkspace=flood_dc_time_sa_corrected_ws, MinThreshold=0.5,
         MaxThreshold=1.5)
 
@@ -186,8 +187,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         Filename=biosans_sensitivity_dataset['flood'])
 
     # Let's mask the main detector
-    SANSMaskDTP(InputWorkspace=dark_current_ws, Detector="1")
-    SANSMaskDTP(InputWorkspace=flood_ws, Detector="1")
+    MaskBTP(Workspace=dark_current_ws, Component='detector1')
+    MaskBTP(Workspace=flood_ws, Component="detector1")
 
     # DC normalisation
     dark_current_norm_ws = time(dark_current_ws)
@@ -221,7 +222,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         OutputWorkspace="flood_dc_time_trans_corrected_wing_ws")
 
     # Sensitivity calculation
-    sensitivity_ws = CalculateSensitivity(
+    sensitivity_ws = CalculateEfficiency(
         InputWorkspace=flood_dc_time_trans_corrected_wing_ws, MinThreshold=0.5,
         MaxThreshold=1.5)
 
@@ -237,7 +238,7 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
     '''
 
     from ornl.sans.sensitivity import Detector
-    from mantid.simpleapi import LoadHFIRSANS, SANSMaskDTP
+    from mantid.simpleapi import LoadHFIRSANS, MaskBTP
     from mantid.kernel import Property
     import numpy as np
 
@@ -280,7 +281,7 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
     # move to the 3rd tube
     d.next_tube()
     # Mask 3rd tube
-    SANSMaskDTP(InputWorkspace=dark_current_ws, Tube="3")
+    MaskBTP(Workspace=dark_current_ws, Tube="3")
     pixels_masked = d.get_pixels_masked()
     # All pixels should be masked
     assert np.count_nonzero(pixels_masked) == 256

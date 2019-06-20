@@ -34,7 +34,7 @@ def test_direct_beam_from_top_level_api(eqsans_f, eqsans_p):
     with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
         ws = LoadEventNexus(Filename=eqsans_f['beamcenter'],
                             OutputWorkspace=unique_workspace_name())
-    SANSMaskDTP(InputWorkspace=ws, tube=eqsans_p['tubes_to_mask'])
+    MaskBTP(InputWorkspace=ws, tube=eqsans_p['tubes_to_mask'])
     x, y = eqsans.find_beam_center(ws)
     assert (x, y) == pytest.approx((0.0265, 0.0180), abs=1e-04)
 

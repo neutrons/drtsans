@@ -9,7 +9,7 @@ from mantid.kernel import Property
 from mantid.simpleapi import (CalculateEfficiency, ClearMaskFlag,
                               LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
-                              ReplaceSpecialValues, SANSSolidAngle, SaveNexus)
+                              ReplaceSpecialValues, SolidAngle, SaveNexus)
 from ornl.sans.hfir.gpsans.beam_finder import direct_beam_center
 from ornl.sans.hfir.normalisation import monitor
 from ornl.sans.sensitivity import inf_value_to_mask
@@ -71,7 +71,7 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         flood_dc_corrected_ws = flood_ws - dark_current_ws
         #
         # Solid Angle correction
-        solid_angle_ws = SANSSolidAngle(
+        solid_angle_ws = SolidAngle(
             InputWorkspace=flood_dc_corrected_ws.name(), Type='Tube')
         flood_dc_sa_corrected_ws = flood_dc_corrected_ws / solid_angle_ws
         #

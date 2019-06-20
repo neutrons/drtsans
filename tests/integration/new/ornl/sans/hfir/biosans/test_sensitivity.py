@@ -32,7 +32,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     from mantid.simpleapi import (CalculateEfficiency, LoadHFIRSANS, LoadMask,
                                   MaskDetectors, MoveInstrumentComponent,
                                   RenameWorkspace, ReplaceSpecialValues,
-                                  MaskBTP, SANSSolidAngle, SaveNexus)
+                                  MaskBTP, SolidAngle, SaveNexus)
     from ornl.sans.hfir.biosans.beam_finder import direct_beam_center
     from ornl.sans.hfir.dark_current import subtract_normalised_dark
     from ornl.sans.hfir.normalisation import time
@@ -112,7 +112,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     ###########################################################################
     # Solid Angle correction
-    solid_angle_ws = SANSSolidAngle(
+    solid_angle_ws = SolidAngle(
         InputWorkspace=flood_dc_time_corrected_ws, Type='Tube')
 
     flood_dc_time_sa_corrected_ws = flood_dc_time_corrected_ws / solid_angle_ws

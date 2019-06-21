@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import tempfile
 from mantid.simpleapi import LoadHFIRSANS
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
 from ornl.settings import unique_workspace_name
@@ -24,22 +25,22 @@ def test_save_ascii(gpsans_f):
     assert ws_iq.extractY().shape == (1, 100)
     assert ws_iq.extractX().shape == (1, 101)
 
-    save_ascii_1D(ws_iq, 'test_reduction_log.hdf',
-                  '/tmp/test_1D_gpsans_lq.txt')
-    with open('/tmp/test_1D_gpsans_lq.txt', 'r') as output_file:
-        output_lines = output_file.readlines()
-    assert output_lines[101] == "0.158594\t0.000000\t0.235702\t0.025318\n"
+    with tempfile.NamedTemporaryFile('r+') as tmp:
+        save_ascii_1D(ws_iq, 'Test GPSANS', tmp.name)
+        output_lines = tmp.readlines()
+        print(output_lines[101])
+        assert output_lines[101] == \
+            "0.158594	0.000000	148.246656	0.025318\n"
 
-    save_xml_1D(ws_iq, 'test_reduction_log.hdf', '/tmp/test_1D_gpsans_lq.xml')
-    with open('/tmp/test_1D_gpsans_lq.xml', 'r') as output_file:
-        output_lines = output_file.readlines()
-    assert output_lines[110] == '\t\t\t<Idata><Q unit="1/A">0.158594</Q><I '\
-        'unit="Counts">0</I><Idev unit="Counts">0.235702</Idev><Qdev unit='\
-        '"1/A">0.0253178</Qdev></Idata>\n'
+    with tempfile.NamedTemporaryFile('r+') as tmp:
+        save_xml_1D(ws_iq, 'Test GPSANS', tmp.name)
+        output_lines = tmp.readlines()
+        assert output_lines[110] == '\t\t\t<Idata><Q unit="1/A">0.158594</Q>'\
+            '<I unit="Counts">0</I><Idev unit="Counts">0.235702</Idev>'\
+            '<Qdev unit="1/A">0.0253178</Qdev></Idata>\n'
 
-    save_ascii_2D(ws_iqxqy, ws_dqx, ws_dqy, 'test_reduction_log.hdf',
-                  '/tmp/test_2D_gpsans_lq.dat')
-    with open('/tmp/test_2D_gpsans_lq.dat', 'r') as output_file:
-        output_lines = output_file.readlines()
-    assert output_lines[48900] == "0.137103\t-0.081288\t0.000000\t1.000000\t"\
-        "0.020047\t0.002688\n"
+    with tempfile.NamedTemporaryFile('r+') as tmp:
+        save_ascii_2D(ws_iqxqy, ws_dqx, ws_dqy, 'Test 2D GPSANS', tmp.name)
+        output_lines = tmp.readlines()
+        assert output_lines[48900] == "0.137103\t-0.081288\t0.000000\t"\
+            "1.000000\t0.020047\t0.002688\n"

@@ -55,5 +55,5 @@ def test_save_ascii_parallel():
         save_ascii_2D(ws_iqxqy, ws_dqx, ws_dqy,
                       'test_reduction_log.hdf', tmp.name)
         output_lines = tmp.readlines()
-        assert output_lines[48900] == "0.169809\t-0.177483\t0.000000\t0.000000\t"\
-            "0.024772\t0.002118\n"
+        assert output_lines[48900] == "0.169809\t-0.177483\t0.000000\t"\
+            "0.000000\t0.024772\t0.002118\n"

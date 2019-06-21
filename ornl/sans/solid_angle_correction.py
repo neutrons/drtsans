@@ -6,7 +6,7 @@ from mantid.simpleapi import SolidAngle, ReplaceSpecialValues
 
 def solid_angle_correction(input_workspace, detector_type):
     solid_angle_ws = SolidAngle(InputWorkspace=input_workspace,
-                                    Method=detector_type)
+                                Method=detector_type)
     output_workspace = input_workspace / solid_angle_ws
     ReplaceSpecialValues(InputWorkspace=output_workspace,
                          OutputWorkspace=output_workspace, NaNValue=0.,

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import tempfile
 from mantid.simpleapi import LoadHFIRSANS
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
 from ornl.settings import unique_workspace_name
@@ -24,22 +25,22 @@ def test_save_ascii(biosans_sensitivity_dataset):
     assert ws_iq.extractY().shape == (1, 100)
     assert ws_iq.extractX().shape == (1, 101)
 
-    save_ascii_1D(ws_iq, 'test_reduction_log.hdf',
-                  '/tmp/test_1D_biosans_lq.txt')
-    with open('/tmp/test_1D_biosans_lq.txt', 'r') as output_file:
-        output_lines = output_file.readlines()
-    assert output_lines[101] == "0.112749\t121.166667\t3.177613\t0.021630\n"
+    with tempfile.NamedTemporaryFile('r+') as tmp:
+        save_ascii_1D(ws_iq, 'Test BioSANS', tmp.name)
+        output_lines = tmp.readlines()
+        print(output_lines[101])
+        assert output_lines[101] == \
+            "0.112749	107368.964140	2815.765996	0.021630\n"
 
-    save_xml_1D(ws_iq, 'test_reduction_log.hdf', '/tmp/test_1D_biosans_lq.xml')
-    with open('/tmp/test_1D_biosans_lq.xml', 'r') as output_file:
-        output_lines = output_file.readlines()
-    assert output_lines[110] == '\t\t\t<Idata><Q unit="1/A">0.112749</Q><I '\
-        'unit="Counts">121.167</I><Idev unit="Counts"'\
-        '>3.17761</Idev><Qdev unit="1/A">0.0216297</Qdev></Idata>\n'
+    with tempfile.NamedTemporaryFile('r+') as tmp:
+        save_xml_1D(ws_iq, 'Test BioSANS', tmp.name)
+        output_lines = tmp.readlines()
+        assert output_lines[110] == '\t\t\t<Idata><Q unit="1/A">0.112749</Q>'\
+            '<I unit="Counts">121.167</I><Idev unit="Counts"'\
+            '>3.17761</Idev><Qdev unit="1/A">0.0216297</Qdev></Idata>\n'
 
-    save_ascii_2D(ws_iqxqy, ws_dqx, ws_dqy, 'test_reduction_log.hdf',
-                  '/tmp/test_2D_biosans_lq.dat')
-    with open('/tmp/test_2D_biosans_lq.dat', 'r') as output_file:
-        output_lines = output_file.readlines()
-    assert output_lines[48388] == "0.077098\t-0.081494\t73.000000\t8.544004"\
-        "\t0.015055\t0.001741\n"
+    with tempfile.NamedTemporaryFile('r+') as tmp:
+        save_ascii_2D(ws_iqxqy, ws_dqx, ws_dqy, 'Test BioSANS 2D', tmp.name)
+        output_lines = tmp.readlines()
+        assert output_lines[48388] == "0.077098\t-0.081494\t73.000000\t"\
+            "8.544004\t0.015055\t0.001741\n"

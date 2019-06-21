@@ -145,7 +145,8 @@ def prepare_data(workspace):
 
     # Solid angle correction
     ws, _ = api.SANSSolidAngleCorrection(InputWorkspace=ws,
-                                         DetectorTubes=True, DetectorWing=False,
+                                         DetectorTubes=True,
+                                         DetectorWing=False,
                                          OutputWorkspace=ws)
 
     # Sensitivity correction

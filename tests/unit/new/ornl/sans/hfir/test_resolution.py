@@ -3,8 +3,6 @@
 """
 # import sys
 # sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
-from __future__ import (absolute_import, division, print_function)
-
 import os
 import tempfile
 import unittest
@@ -16,7 +14,6 @@ from ornl.sans.hfir import resolution
 from ornl.sans.samplelogs import SampleLogs
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans import hfir_command_interface as hfir
-
 
 def azimuthal_average(ws):
     """
@@ -48,9 +45,9 @@ def azimuthal_average(ws):
     return dq
 
 
+# TO-DO: use fixture refd for accessing data files
 def gpsans_files():
-    _dir, _ = os.path.split(os.path.abspath(__file__))
-    data_dir = os.path.join(_dir, '..', '..', '..', '..', '..', '..', 'data')
+    from tests.conftest import data_dir
     dd = os.path.join(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
     return dict(
         beamcenter=os.path.join(dd, 'CG2_exp325_scan0020_0001.xml'),

@@ -1,3 +1,4 @@
+# noqa: F403, F405
 from __future__ import (absolute_import, division, print_function)
 import unittest
 import math
@@ -53,8 +54,8 @@ class EQSANS_api(unittest.TestCase):
                  0.000446780891197, 9.50473596521e-05, 0.00034358746158, 0.0]
 
         q = iq_ws.readY(0)
-        diff = [math.fabs(q_ref[i]-q[i])<0.0001 for i in range(7, 100)]
-        output = reduce(lambda x, y:x and y, diff)
+        diff = [math.fabs(q_ref[i]-q[i]) < 0.0001 for i in range(7, 100)]
+        output = reduce(lambda x, y: x and y, diff)
         return output
 
     def test_simple_reduction_new_api(self):

@@ -1,3 +1,7 @@
+"""
+    Standalone mock api to be used as a prototype example for instrument scientists.
+    Those function should be put in the real code and replaced as we implement newer versions.
+"""
 from __future__ import (absolute_import, division, print_function)
 import logging
 import mantid.simpleapi as api

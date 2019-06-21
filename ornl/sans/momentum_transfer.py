@@ -194,7 +194,7 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
     # Calculate I(Q) and error(I(Q))
     i = ws_iqxqy.extractY()
     sigma_i = ws_iqxqy.extractE()
-    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)  # sanity check
+    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)
 
     intensity_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
         q_bin_centers_grid.ravel(), i.ravel(), statistic=statistic, bins=bins)
@@ -377,7 +377,7 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
     i = i[condition]
     sigma_i = sigma_i[condition]
 
-    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)  # sanity check
+    assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)
 
     intensity_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
         q_bin_centers_grid, i, statistic=statistic, bins=bins)

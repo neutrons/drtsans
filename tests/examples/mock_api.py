@@ -89,7 +89,7 @@ def geometry_correction(ws):
         Note: comes from the following algorithm
             self._simple_execution("GeometryAlgorithm", output_ws)
     """
-    
+    logging.warning("Not yet implemented")
     return ws
 
 
@@ -107,7 +107,7 @@ def iq(ws, number_of_bins=100, log_binning=False, sample_aperture=10.0):
                                             IndependentBinning=True,
                                             ScaleResults=True,
                                             ComputeResolution=True,
-                                            SampleApertureDiameter=sample_aperture,
+                                            SampleApertureDiameter=sample_aperture,  # noqa: E501
                                             OutputWorkspace="%s_iq" % ws)
     return iq_ws
 
@@ -135,9 +135,9 @@ def prepare_data(workspace):
     # self._simple_execution("DarkCurrentAlgorithm", workspace)
 
     # Normalize
-    ws, _= api.EQSANSNormalise(InputWorkspace=workspace,
-                               NormaliseToBeam=False, BeamSpectrumFile='',
-                               NormaliseToMonitor=False)
+    ws, _ = api.EQSANSNormalise(InputWorkspace=workspace,
+                                NormaliseToBeam=False, BeamSpectrumFile='',
+                                NormaliseToMonitor=False)
 
     # Mask
     api.SANSMask(Workspace=ws, MaskedDetectorList=None,

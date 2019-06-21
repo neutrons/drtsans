@@ -1,4 +1,4 @@
-# flake8: ignore=F403,F405
+# flake8: noqa
 from __future__ import (absolute_import, division, print_function)
 import unittest
 import math

@@ -1,6 +1,7 @@
 """
-    Standalone mock api to be used as a prototype example for instrument scientists.
-    Those function should be put in the real code and replaced as we implement newer versions.
+    Standalone mock api to be used as a prototype example for
+    instrument scientists. Those function should be put in the real code
+    and replaced as we implement newer versions.
 """
 from __future__ import (absolute_import, division, print_function)
 import logging
@@ -15,18 +16,21 @@ def find_beam_center(ws):
         :param ws: scattering workspace
     """
     logging.warning("Not yet implemented")
-    return 0 ,0
+    return 0, 0
 
 
 def load_events(filename, beam_center_x=None, beam_center_y=None):
     """
-        Load data should load, move the detector in the right place, and correct the TOF
+        Load data should load, move the detector in the right place,
+        and correct the TOF.
         For EQSANS, this is currently EQSANSLoad
     """
     _, output_ws = os.path.split(filename)
     ws, _, _ = api.EQSANSLoad(Filename=filename,
-                              BeamCenterX=beam_center_x, BeamCenterY=beam_center_y,
-                              UseConfigTOFCuts=False, LowTOFCut=None, HighTOFCut=None,
+                              BeamCenterX=beam_center_x,
+                              BeamCenterY=beam_center_y,
+                              UseConfigTOFCuts=False,
+                              LowTOFCut=None, HighTOFCut=None,
                               SkipTOFCorrection=False, WavelengthStep=0.1,
                               UseConfigMask=False, OutputWorkspace=output_ws)
     return ws
@@ -95,7 +99,7 @@ def iq(ws, number_of_bins=100, log_binning=False, sample_aperture=10.0):
         :param ws: scattering workspace
         :param number_of_bins int: number of bins in Q
         :param log_binning bool: if True, use log binning in Q
-        :param sample_aperture float: sample aperture in mm for resolution calculation
+        :param sample_aperture float: sample aperture in mm for resolution
     """
     iq_ws, _ = api.EQSANSAzimuthalAverage1D(InputWorkspace=ws,
                                             NumberOfBins=number_of_bins,
@@ -137,7 +141,7 @@ def prepare_data(workspace):
 
     # Mask
     api.SANSMask(Workspace=ws, MaskedDetectorList=None,
-                 MaskedEdges=[0,0,0,0], MaskedSide=None)
+                 MaskedEdges=[0, 0, 0, 0], MaskedSide=None)
 
     # Solid angle correction
     ws, _ = api.SANSSolidAngleCorrection(InputWorkspace=ws,

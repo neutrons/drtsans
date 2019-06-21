@@ -18,7 +18,7 @@ def test_sans_solid_angle(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    wsOutput = sac.solid_angle_correction(wsInput, detector_type='Normal')
+    wsOutput = sac.solid_angle_correction(wsInput, detector_type='Rectangle')
 
     # Let's do some validation
     assert wsOutput.getNumberHistograms(), 49153

@@ -1,8 +1,10 @@
 """
     Resolution calculations common to all SANS
 """
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
+from scipy import constants
 
 
 def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
@@ -61,9 +63,12 @@ def dq2_gravity(L1, L2, wl, dwl, theta):
     ------
     float
     """
-    h = 6.626e-34    # m^2 kg s^-1
-    m_n = 1.675e-27  # kg
-    g = 9.8          # m s^-2
+    # h = 6.626e-34    # m^2 kg s^-1
+    h = constants.h
+    # m_n = 1.675e-27  # kg
+    m_n = constants.neutron_mass
+    # g = 9.8          # m s^-2
+    g = constants.G
     B = g * m_n**2 * L2 * (L1 + L2) / 2 / h**2
     dq2 = 2 / 3 * B**2 * wl**2 * dwl**2
     dq2 *= (2.0 * np.pi * np.cos(theta) * np.cos(2.0 * theta)**2 / wl / L2)**2

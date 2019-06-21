@@ -41,7 +41,7 @@ def _create_reduced_ws():
     eqsans.UseConfigTOFTailsCutoff(False)
     eqsans.UseConfigMask(False)
     eqsans.SetBeamCenter(96.29, 126.15)
-    eqsans.SetTransmission(1.0, 0.0)
+    eqsans.SetTransmission(1.0, 1.0)
     eqsans.OutputPath(tempfile.gettempdir())
     Reduce()
 
@@ -51,12 +51,17 @@ def _create_reduced_ws():
 class EQSANSResolution(unittest.TestCase):
     def test_2d(self):
         """
-        Test the Q resolution for a 1D distribution
+        Test the Q and Q resolution for a 1D distribution
         """
         ws = _create_reduced_ws()
-        dqx, dqy = resolution.q_resolution_per_pixel(ws)
-        self.assertTrue(np.average(dqx) < 0.006)
-        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.0001)
+        qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
+
+        self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape)
+        self.assertTrue(np.min(np.abs(qx)) < np.max(np.abs(qx)))
+        self.assertTrue(np.min(np.abs(qy)) < np.max(np.abs(qy)))
+        self.assertTrue(np.average(dqx) < 0.005)
+        self.assertTrue(np.average(dqy) < 0.005)
+        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.00002)
 
 
 if __name__ == '__main__':

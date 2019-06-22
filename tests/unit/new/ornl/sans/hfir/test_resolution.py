@@ -15,6 +15,7 @@ from ornl.sans.samplelogs import SampleLogs
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans import hfir_command_interface as hfir
 
+
 def azimuthal_average(ws):
     """
         Test implementation of the azimuthal averaging so we can do

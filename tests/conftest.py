@@ -12,7 +12,8 @@ from ornl.settings import amend_config
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
 parent_dir = pjoin(os.path.dirname(this_module_path), os.pardir)
-data_dir = pjoin(parent_dir, 'data')
+
+data_dir = '/SNS/EQSANS/shared/sans-backend/data'
 
 
 def fr(ipts_number, run_number):

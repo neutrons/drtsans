@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 import pytest
 from mantid.dataobjects import EventWorkspace
 from ornl.sans.sns import eqsans
+from ornl.sans import solid_angle_correction as sac
 from ornl.settings import unique_workspace_name as uwn
 
 
@@ -25,6 +26,16 @@ def test_load_events(run_set):
     det = instrument.getComponentByName(eqsans.detector_name)
     d1 = det.getDistance(instrument.getSample())
     assert run_set[3] == pytest.approx(d1 * 1000)
+
+
+@pytest.mark.parametrize('run_set', run_sets)
+def test_solid_angle(run_set):
+    ws = eqsans.load_events(run_set[0], output_workspace=uwn())
+    ws = sac.solid_angle_correction(ws)
+    assert isinstance(ws, EventWorkspace)
+    assert ws.getNumberEvents() == run_set[1]
+    assert ws.getTofMax() == run_set[2]
+    # assert distance of detector1 same as that in detectorZ of the logs
 
 
 if __name__ == '__main__':

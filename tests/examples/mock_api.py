@@ -19,18 +19,28 @@ def find_beam_center(ws):
     return 0, 0
 
 
-def load_events(filename, beam_center_x=None, beam_center_y=None):
+def load_events(filename, beam_center_x=None, beam_center_y=None,
+                tof_min_cut=0, tof_max_cut=0,
+                sample_offset=0):
     """
         Load data should load, move the detector in the right place,
         and correct the TOF.
         For EQSANS, this is currently EQSANSLoad
+
+        @param tof_min_cut: amount of time to cut at the beginning
+                            of distribution [musec]
+        @param tof_max_cut: amount of time to cut at the end
+                            of distribution [musec]
+        @param sample_offset: Offset to be applied to the sample position [mm]
     """
     _, output_ws = os.path.split(filename)
     ws, _, _ = api.EQSANSLoad(Filename=filename,
                               BeamCenterX=beam_center_x,
                               BeamCenterY=beam_center_y,
                               UseConfigTOFCuts=False,
-                              LowTOFCut=None, HighTOFCut=None,
+                              SampleOffset=sample_offset,
+                              DetectorOffset=0,
+                              LowTOFCut=tof_min_cut, HighTOFCut=tof_max_cut,
                               SkipTOFCorrection=False, WavelengthStep=0.1,
                               UseConfigMask=False, OutputWorkspace=output_ws)
     return ws
@@ -126,18 +136,23 @@ def iqxqy(ws, number_of_bins=100, log_binning=False):
     return iq_ws
 
 
-def prepare_data(workspace):
+def prepare_data(workspace, normalize_to_monitor=False,
+                 beam_profile=''):
     """
         Prepare data for reduction
         :param ws: scattering workspace
+        :param normalize_to_monitor: if False, normalize to proton charge
+        :param beam_profile: if supplied, divide by the beam profile
     """
     # Dark current subtraction
     # self._simple_execution("DarkCurrentAlgorithm", workspace)
 
     # Normalize
+    normalize_to_beam = os.path.isfile(beam_profile)
     ws, _ = api.EQSANSNormalise(InputWorkspace=workspace,
-                                NormaliseToBeam=False, BeamSpectrumFile='',
-                                NormaliseToMonitor=False)
+                                NormaliseToBeam=normalize_to_beam,
+                                BeamSpectrumFile=beam_profile,
+                                NormaliseToMonitor=normalize_to_monitor)
 
     # Mask
     api.SANSMask(Workspace=ws, MaskedDetectorList=None,

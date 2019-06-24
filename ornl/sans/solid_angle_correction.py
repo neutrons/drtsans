@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division, print_function,
 from mantid.simpleapi import SolidAngle, ReplaceSpecialValues
 from ornl.settings import optional_output_workspace
 
+
 @optional_output_workspace
 def solid_angle_correction(input_workspace, detector_type='Rectangle'):
     solid_angle_ws = SolidAngle(InputWorkspace=input_workspace,

@@ -5,7 +5,7 @@ from mantid.simpleapi import SolidAngle, ReplaceSpecialValues
 from ornl.settings import optional_output_workspace
 
 @optional_output_workspace
-def solid_angle_correction(input_workspace, detector_type = 'Rectangle'):
+def solid_angle_correction(input_workspace, detector_type='Rectangle'):
     solid_angle_ws = SolidAngle(InputWorkspace=input_workspace,
                                 Method=detector_type)
     output_workspace = input_workspace / solid_angle_ws

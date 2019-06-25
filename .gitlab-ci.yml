@@ -1,103 +1,37 @@
 variables:
-  CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME"
   TEST_SCOPE: "unit"
 
+# Run sequentially and stop if anyone stage fails
 stages:
   - flake8
-  - dockerbuild
-  - docker-test
-  - code-test
-  - script-host
+  - python2.7
+  - python3.6
+  - integration
 
 flake8:
+  variables:
+    CI_DEBUG_TRACE: "true"
   stage: flake8
-  allow_failure: true
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 /opt/sans-backend"
-  tags:
-    - scse-mantid-builder
+    - flake8
 
-dockerbuild:
-  stage: dockerbuild
-  before_script:
-    - docker system prune -f
-    - docker image prune -af
+.python2.7:
+  variables:
+    CI_DEBUG_TRACE: "true"
+  stage: python2.7
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
-    - docker build -t $CONTAINER_URL .
-    - docker push $CONTAINER_URL
-    - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
-  tags:
-    - scse-mantid-builder
-  artifacts:
-    paths:
-    - scripts/sans-backend-run.sh
+    - source test_job.sh 2.7 ${TEST_SCOPE}
 
-docker-update-test:
-  stage: docker-test
-  dependencies: 
-    - dockerbuild
+python3.6:
+  variables:
+    CI_DEBUG_TRACE: "true"
+  stage: python3.6
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh -u scripts/docker-test.py
-    - sudo chown -R gitlab-runner .
-  tags:
-    - scse-mantid-builder
+    - source test_job.sh 3.6 ${TEST_SCOPE}
 
-docker-no-update-test:
-  stage: docker-test
-  dependencies: 
-    - dockerbuild
+integration:
+  variables:
+    CI_DEBUG_TRACE: "true"
+  stage: integration
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh scripts/docker-test.py
-    - sudo chown -R gitlab-runner .
-  tags:
-    - scse-mantid-builder
-
-code-unit-test:
-  stage: code-test
-  dependencies: 
-    - dockerbuild
-  allow_failure: true
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
-    - sudo chown -R gitlab-runner .
-  tags:
-    - scse-mantid-builder
-
-code-integration-test:
-  stage: code-test
-  dependencies: 
-    - dockerbuild
-  allow_failure: true
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
-    - sudo chown -R gitlab-runner .
-  tags:
-    - scse-mantid-builder
-
-script-host:
-  stage: script-host
-  dependencies: 
-    - dockerbuild
-  before_script:
-    - sudo yum install -y httpd
-    - sudo rm -f /etc/httpd/conf.d/welcome.conf
-    - sudo systemctl restart httpd
-  script:
-    - sudo mkdir -p /var/www/html/sans-backend/$CI_COMMIT_REF_NAME
-    - sudo ls -la /var/www/html/
-    - sudo cp -f scripts/sans-backend-run.sh /var/www/html/sans-backend/$CI_COMMIT_REF_NAME/
-    - sudo chmod -R 755 /var/www/html/
-    - curl http://localhost/sans-backend/$CI_COMMIT_REF_NAME/sans-backend-run.sh
-  tags:
-    - scse-mantid-demo
+    - source test_job.sh 3.6 integration

@@ -9,14 +9,16 @@ import mantid.simpleapi as api
 import os
 
 
-def find_beam_center(ws):
+def find_beam_center(filename):
     """
         Find beam center
 
         :param ws: scattering workspace
+        :param filename: file path for direct beam data
     """
-    logging.warning("Not yet implemented")
-    return 0, 0
+    x, y, _ = api.SANSBeamFinder(Filename=filename)
+
+    return x, y
 
 
 def load_events(filename, beam_center_x=None, beam_center_y=None,
@@ -111,15 +113,20 @@ def iq(ws, number_of_bins=100, log_binning=False, sample_aperture=10.0):
         :param log_binning bool: if True, use log binning in Q
         :param sample_aperture float: sample aperture in mm for resolution
     """
-    iq_ws, _ = api.EQSANSAzimuthalAverage1D(InputWorkspace=ws,
-                                            NumberOfBins=number_of_bins,
-                                            LogBinning=log_binning,
-                                            IndependentBinning=True,
-                                            ScaleResults=True,
-                                            ComputeResolution=True,
-                                            SampleApertureDiameter=sample_aperture,  # noqa: E501
-                                            OutputWorkspace="%s_iq" % ws)
-    return iq_ws
+    outputs = api.EQSANSAzimuthalAverage1D(InputWorkspace=ws,
+                                           NumberOfBins=number_of_bins,
+                                           LogBinning=log_binning,
+                                           IndependentBinning=True,
+                                           ScaleResults=True,
+                                           ComputeResolution=True,
+                                           SampleApertureDiameter=sample_aperture,  # noqa: E501
+                                           OutputWorkspace="%s_iq" % ws)
+
+    # For frame-skipping mode, we have an additional workspace do deal with
+    if len(outputs) == 3:
+        return outputs[0], outputs[1]
+    else:
+        return outputs[0]
 
 
 def iqxqy(ws, number_of_bins=100, log_binning=False):
@@ -129,7 +136,7 @@ def iqxqy(ws, number_of_bins=100, log_binning=False):
         :param number_of_bins int: number of bins in Q
         :param log_binning bool: if True, use log binning in Q
     """
-    iq_ws, _ = api.EQSANSQ2D(InputWorkspace=ws,
+    iq_ws, _, _ = api.EQSANSQ2D(InputWorkspace=ws,
                              NumberOfBins=number_of_bins,
                              IQxQyLogBinning=log_binning,
                              OutputWorkspace="%s_iqxy" % ws)

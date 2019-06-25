@@ -8,7 +8,7 @@ from mantid.simpleapi import mtd
 from reduction_workflow.instruments.sans.sns_command_interface import *
 from reduction_workflow.instruments.sans.hfir_command_interface import *
 
-import mock_api as api
+import mock_api as eqsans
 
 
 class EQSANS_api(unittest.TestCase):
@@ -62,29 +62,29 @@ class EQSANS_api(unittest.TestCase):
         """ Simple reduction example using the new API """
         # Find beam center
         # This can be done like this:
-        #     x, y = api.find_beam_center()
+        #     x, y = eqsans.find_beam_center()
         x, y = 96.29, 126.15
 
-        ws = api.load_events("EQSANS_104088")
-        ws = api.prepare_data(ws)
+        ws = eqsans.load_events("EQSANS_104088")
+        ws = eqsans.prepare_data(ws)
 
         # Find transmission beam center, or use the one we have
         # Apply transmission
-        ws = api.apply_transmission(ws, x, y)
+        ws = eqsans.apply_transmission(ws, x, y)
 
         # Now the background
-        ws_bck = api.load_events("EQSANS_105428")
-        ws_bck = api.prepare_data(ws_bck)
+        ws_bck = eqsans.load_events("EQSANS_105428")
+        ws_bck = eqsans.prepare_data(ws_bck)
 
         # Find transmission beam center, or use the one we have
         # Apply transmission
-        ws_bck = api.apply_transmission(ws_bck)
-        ws = api.subtract_background(ws, ws_bck)
+        ws_bck = eqsans.apply_transmission(ws_bck)
+        ws = eqsans.subtract_background(ws, ws_bck)
 
-        ws = api.absolute_scale(ws)
-        ws = api.geometry_correction(ws)
+        ws = eqsans.absolute_scale(ws)
+        ws = eqsans.geometry_correction(ws)
 
-        iq = api.iq(ws)
+        iq = eqsans.iq(ws)
         return self.check_iq(iq)
 
     def test_simple_reduction_old_api(self):

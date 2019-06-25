@@ -36,15 +36,18 @@ def load_events(filename, beam_center_x=None, beam_center_y=None,
         @param sample_offset: Offset to be applied to the sample position [mm]
     """
     _, output_ws = os.path.split(filename)
-    ws, _, _ = api.EQSANSLoad(Filename=filename,
-                              BeamCenterX=beam_center_x,
-                              BeamCenterY=beam_center_y,
-                              UseConfigTOFCuts=False,
-                              SampleOffset=sample_offset,
-                              DetectorOffset=0,
-                              LowTOFCut=tof_min_cut, HighTOFCut=tof_max_cut,
-                              SkipTOFCorrection=False, WavelengthStep=0.1,
-                              UseConfigMask=False, OutputWorkspace=output_ws)
+    ws, _ = api.EQSANSLoad(Filename=filename,
+                           BeamCenterX=beam_center_x,
+                           BeamCenterY=beam_center_y,
+                           UseConfigTOFCuts=False,
+                           SampleOffset=sample_offset,
+                           DetectorOffset=0,
+                           LoadMonitors=False,
+                           PreserveEvents=False,
+                           UseConfig=False,
+                           LowTOFCut=tof_min_cut, HighTOFCut=tof_max_cut,
+                           SkipTOFCorrection=False, WavelengthStep=0.1,
+                           UseConfigMask=False, OutputWorkspace=output_ws)
     return ws
 
 
@@ -124,7 +127,7 @@ def iq(ws, number_of_bins=100, log_binning=False, sample_aperture=10.0):
 
     # For frame-skipping mode, we have an additional workspace do deal with
     if len(outputs) == 3:
-        return outputs[0], outputs[1]
+        return outputs[0], outputs[2]
     else:
         return outputs[0]
 
@@ -144,7 +147,7 @@ def iqxqy(ws, number_of_bins=100, log_binning=False):
 
 
 def prepare_data(workspace, normalize_to_monitor=False,
-                 beam_profile=''):
+                 beam_profile='', tubes=True):
     """
         Prepare data for reduction
         :param ws: scattering workspace
@@ -159,7 +162,8 @@ def prepare_data(workspace, normalize_to_monitor=False,
     ws, _ = api.EQSANSNormalise(InputWorkspace=workspace,
                                 NormaliseToBeam=normalize_to_beam,
                                 BeamSpectrumFile=beam_profile,
-                                NormaliseToMonitor=normalize_to_monitor)
+                                NormaliseToMonitor=normalize_to_monitor,
+                                OutputWorkspace=str(workspace))
 
     # Mask
     api.SANSMask(Workspace=ws, MaskedDetectorList=None,
@@ -167,9 +171,9 @@ def prepare_data(workspace, normalize_to_monitor=False,
 
     # Solid angle correction
     ws, _ = api.SANSSolidAngleCorrection(InputWorkspace=ws,
-                                         DetectorTubes=True,
+                                         DetectorTubes=tubes,
                                          DetectorWing=False,
-                                         OutputWorkspace=ws)
+                                         OutputWorkspace=str(ws))
 
     # Sensitivity correction
     # p=property_manager.getProperty("SensitivityBeamCenterAlgorithm")

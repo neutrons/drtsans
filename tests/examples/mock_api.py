@@ -137,9 +137,9 @@ def iqxqy(ws, number_of_bins=100, log_binning=False):
         :param log_binning bool: if True, use log binning in Q
     """
     iq_ws, _, _ = api.EQSANSQ2D(InputWorkspace=ws,
-                             NumberOfBins=number_of_bins,
-                             IQxQyLogBinning=log_binning,
-                             OutputWorkspace="%s_iqxy" % ws)
+                                NumberOfBins=number_of_bins,
+                                IQxQyLogBinning=log_binning,
+                                OutputWorkspace="%s_iqxy" % ws)
     return iq_ws
 
 

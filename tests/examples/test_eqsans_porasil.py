@@ -1,6 +1,7 @@
 # flake8: noqa
 from __future__ import (absolute_import, division, print_function)
 import unittest
+import numpy as np
 
 from mantid.simpleapi import mtd, ExtractMask
 from reduction_workflow.instruments.sans.sns_command_interface import *
@@ -19,7 +20,7 @@ class EQSANS_api(unittest.TestCase):
         """ Verify the reduced output """
         iq1 = iq_frame1_ws.readY(0)
         iq2 = iq_frame2_ws.readY(0)
-        return (iq1[-1]-0.00875232) < 0.00001 and (iq2[-1]+2.40273e-05) < 0.00001
+        return np.fabs(iq1[-1]-0.00875232) < 0.00001 and np.fabs(iq2[-1]+2.40273e-05) < 0.00001
 
     def test_old_api(self):
         """ Real-life EQSANS reduction script """
@@ -57,9 +58,9 @@ class EQSANS_api(unittest.TestCase):
         #SaveIq(process='None')
         Reduce()
 
-        return self.check_iq(mtd['88980_frame1_Iq'], mtd['88980_frame2_Iq'])
+        self.assertTrue(self.check_iq(mtd['88980_frame1_Iq'], mtd['88980_frame2_Iq']))
 
-    def test_new_api(self):
+    def skip_test_new_api(self):
         """ Same example using the new API """
 
         mask60_ws4m = Load(Filename="/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs")
@@ -93,16 +94,16 @@ class EQSANS_api(unittest.TestCase):
         x, y = eqsans.find_beam_center("EQSANS_88973")
 
         ws = eqsans.load_events("EQSANS_88980",
-                             sample_offset=340)
+                                sample_offset=340)
         ws = eqsans.prepare_data(ws, normalize_to_monitor=False,
-                              beam_profile=beam_flux_file)
+                                 beam_profile=beam_flux_file)
 
         # Apply transmission
         ws = eqsans.apply_transmission(ws, x, y)
 
         # Now the background
         ws_bck = eqsans.load_events("EQSANS_88979",
-                                 sample_offset=340)
+                                    sample_offset=340)
         ws_bck = eqsans.prepare_data(ws_bck)
 
         # Find transmission beam center, or use the one we have
@@ -114,9 +115,10 @@ class EQSANS_api(unittest.TestCase):
         ws /= sample_thickness
 
         iq = eqsans.iq(ws, number_of_bins=100, log_binning=True,
-                    sample_aperture=10.0)
+                       sample_aperture=10.0)
         iqxqy = eqsans.iqxqy(ws, number_of_bins=75, log_binning=False)
 
+        self.assertTrue(self.check_iq(iq[0], iq[1]))
 
 if __name__ == '__main__':
     unittest.main()

@@ -140,7 +140,7 @@ class Cfg(object):
                         cfg[key].data.append(val)
                     else:
                         cfg[key].data = [old_val, val]
-                    if description != '':
+                    if description is not '':
                         cfg[key].help = description
                 else:
                     item = CfgItemValue(data=val, off=commented,

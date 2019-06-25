@@ -280,7 +280,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         if num_of_detectors_masked > 0 and \
             (d.n_pixels_per_tube - num_of_detectors_masked -
                 num_of_detectors_inf) > min_detectors_per_tube:
-            # number of detectors with values > min_detectors_per_tube
+                # number of detectors with values > min_detectors_per_tube
             # Let's fit
             y, e = d.get_ws_data()
             y_new, e_new = _interpolate_tube(

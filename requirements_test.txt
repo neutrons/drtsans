@@ -1,4 +1,4 @@
--r requirements.txt
+--file requirements.txt
 
 # For testing
 pytest==3.6.3

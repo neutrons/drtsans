@@ -31,11 +31,10 @@ def test_load_events(run_set):
 @pytest.mark.parametrize('run_set', run_sets)
 def test_solid_angle(run_set):
     ws = eqsans.load_events(run_set[0], output_workspace=uwn())
-    ws = sac.solid_angle_correction(ws)
-    assert isinstance(ws, EventWorkspace)
-    assert ws.getNumberEvents() == run_set[1]
-    assert ws.getTofMax() == run_set[2]
-    # assert distance of detector1 same as that in detectorZ of the logs
+    ws2 = sac.solid_angle_correction(ws, output_workspace=uwn())
+    assert isinstance(ws2, EventWorkspace)
+    assert ws2.getNumberEvents() == run_set[1]
+    assert ws2.getTofMax() == run_set[2]
 
 
 if __name__ == '__main__':

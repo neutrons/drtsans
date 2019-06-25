@@ -109,7 +109,7 @@ def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
     other: PyObject
         Instrument object, MatrixWorkspace, file name, run number
     units: str
-        'mm' (mili-meters), 'm' (meters)
+        'mm' (millimeters), 'm' (meters)
     log_key: str
         Only search for the given string in the logs. Do not use default
         log keys
@@ -134,7 +134,7 @@ def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
         sl = SampleLogs(other)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
-            assert sl[lk].units == 'mm'  # required entry in mili meters
+            # uses the default unit [mm] if no unit is defined
             return float(sl.single_value(lk)) * mm2units[units]
         except KeyError:
             pass
@@ -162,7 +162,7 @@ def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
     ws: Workspace
         Instrument object, MatrixWorkspace, file name, run number
     units: str
-        'mm' (mili-meters), 'm' (meters)
+        'mm' (millimeters), 'm' (meters)
     log_key: str
         Only search for the given string in the logs. Do not use default
         log keys
@@ -187,7 +187,7 @@ def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
         sl = SampleLogs(ws)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
-            assert sl[lk].units == 'mm'  # required entry in mili meters
+            # uses the default unit [mm] if no unit is defined
             return float(sl.single_value(lk)) * mm2units[units]
         except KeyError:
             pass
@@ -210,7 +210,7 @@ def source_detector_distance(ws, units='mm', search_logs=True):
     ws: Matrixworkspace
         Workspace containing logs and a full instrument
     units: str
-        'mm' (mili-meters), 'm' (meters)
+        'mm' (millimeters), 'm' (meters)
     search_logs: bool
         Report the value as the sum of the source to sample distance and
         sample to detector distance found in the logs

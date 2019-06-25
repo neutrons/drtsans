@@ -1,5 +1,4 @@
-from mantid.simpleapi import (
-    SANSMaskDTP, FindCenterOfMassPosition)
+from mantid.simpleapi import (MaskBTP, FindCenterOfMassPosition)
 from mantid.kernel import logger
 
 
@@ -54,7 +53,7 @@ def direct_beam_center(input_ws, tubes_to_mask=None, center_x=0, center_y=0,
     input_ws : [type]
         [description]
     tubes_to_mask : list, optional
-        input of SANSMaskDTP (the default is None, which is none)
+        input of MaskBTP (the default is None, which is none)
     center_x : int, optional
         [description] (the default is 0, which [default_description])
     center_y : int, optional
@@ -76,7 +75,7 @@ def direct_beam_center(input_ws, tubes_to_mask=None, center_x=0, center_y=0,
     '''
 
     if tubes_to_mask is not None:
-        SANSMaskDTP(InputWorkspace=input_ws, Tube=tubes_to_mask)
+        MaskBTP(Workspace=input_ws, Tube=tubes_to_mask)
 
     center = FindCenterOfMassPosition(
         InputWorkspace=input_ws, CenterX=0, CenterY=0,

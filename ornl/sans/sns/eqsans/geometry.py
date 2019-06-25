@@ -6,26 +6,58 @@ from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import sample_source_distance
 
+__all__ = ['detector_name', 'detector_z_log',
+           'translate_sample_by_z', 'translate_detector_by_z']
 
-def translate_detector_z(ws, z=None):
+detector_name = 'detector1'
+detector_z_log = 'detectorZ'
+
+
+def translate_sample_by_z(ws, z):
+    r"""
+    Shift the position of the sample by the desired amount
+
+    Parameters
+    ----------
+    ws: Workspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied
+    """
+    MoveInstrumentComponent(ws, Z=z, ComponentName='sample',
+                            RelativePosition=True)
+
+
+def translate_detector_z(ws, z=None, relative=True):
     r"""
     Adjust Z-coordinate of detector bank in instrument file.
 
 
     Parameters
     ----------
-    ws: MatrixWorkspace
+    ws: Workspace
         Input workspace containing instrument file
     z: float
         Translation to be applied, in units of meters. If `None`, log_key
-        'detectorZ' is used
+        stored in `detector_z_log` is used
+    relative: bool
+        If True, add to the current z-coordinate. If False, substitute
+        the current z-coordinate with the new value.
     """
     if z is None:
         sl = SampleLogs(ws)
-        z = 1e-3 * sl.single_value('detectorZ')  # assumed in mili-meters
+        z = 1e-3 * sl.single_value(detector_z_log)  # assumed in mili-meters
 
-    kwargs = dict(ComponentName='detector1', RelativePosition=True)
+    kwargs = dict(ComponentName=detector_name,
+                  RelativePosition=relative)
     MoveInstrumentComponent(ws, Z=z, **kwargs)
+
+
+def translate_detector_by_z(ws, z, **kwargs):
+    r"""
+    Simplified call to translate_detector_z
+    """
+    return translate_detector_z(ws, z=z, relative=True, **kwargs)
 
 
 def sample_aperture_diameter(other, unit='mm'):

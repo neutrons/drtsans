@@ -1,5 +1,5 @@
 
-Files
+Files located in /SNS/EQSANS/shared/sans-backend/data/
 
 ```
 ├── eqsans

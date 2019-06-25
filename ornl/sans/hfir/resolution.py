@@ -13,7 +13,7 @@ def q_resolution_per_pixel(ws):
     The resolution can be computed by giving a binned
     workspace to this function:
 
-    dqx, dqy = q_resolution_per_pixel(ws_2d)
+    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
 
     The returned numpy arrays are of the same dimensions
     as the input array.
@@ -32,10 +32,10 @@ def q_resolution_per_pixel(ws):
                                               log_key='source-sample-distance')
     kwargs = dict(units='m', log_key='sample-detector-distance')
     L2 = sans_geometry.sample_detector_distance(ws, **kwargs)
-    R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
-    R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
-    wl = sl.find_log_with_units('wavelength', 'Angstrom')
-    dwl = sl.find_log_with_units('wavelength-spread', 'Angstrom')
+    R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter')
+    R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter')
+    wl = sl.find_log_with_units('wavelength')
+    dwl = sl.find_log_with_units('wavelength-spread')
 
     spec_info = ws.spectrumInfo()
 
@@ -51,9 +51,9 @@ def q_resolution_per_pixel(ws):
             qx[i] = np.cos(phi) * _q
             qy[i] = np.sin(phi) * _q
 
-    dqx = np.sqrt(dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta))
-    dqy = np.sqrt(dqx2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta))
-    return dqx, dqy
+    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta))
+    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta))
+    return qx, qy, dqx, dqy
 
 
 def q_resolution(ws):
@@ -92,7 +92,7 @@ def q_resolution(ws):
     if len(q) == 1:
         # We have a 1D I(q)
         q_mid = (q[0][1:] + q[0][:-1]) / 2.0
-        dq = np.sqrt(dqx2_hfir(q_mid, L1, L2, R1, R2, wl, dwl))
+        dq = np.sqrt(_dqx2(q_mid, L1, L2, R1, R2, wl, dwl))
         return dq
     else:
         # We have a 2D I(qx, qy)
@@ -106,14 +106,14 @@ def q_resolution(ws):
         for i in range(len(q)):
             q_length = np.sqrt(qy_mid[i]**2 + qx_mid**2)
             theta = 2.0 * np.arcsin(wl * q_length / 4.0 / np.pi)
-            dqx[i] = np.sqrt(dqx2_hfir(qx_mid, L1, L2, R1,
-                                       R2, wl, dwl, theta))
-            dqy[i] = np.sqrt(dqy2_hfir(qy_mid[i], L1, L2,
-                                       R1, R2, wl, dwl, theta))
+            dqx[i] = np.sqrt(_dqx2(qx_mid, L1, L2, R1,
+                                   R2, wl, dwl, theta))
+            dqy[i] = np.sqrt(_dqy2(qy_mid[i], L1, L2,
+                                   R1, R2, wl, dwl, theta))
         return dqx, dqy
 
 
-def dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
+def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0055):
     r"""
     Q resolution in the horizontal direction.
 
@@ -150,7 +150,7 @@ def dqx2_hfir(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.011):
     return dq2_geo + np.fabs(qx) * (dwl / wl)**2 / 6.0
 
 
-def dqy2_hfir(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.007):
+def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0043):
     r"""
     Q resolution in vertical direction.
 

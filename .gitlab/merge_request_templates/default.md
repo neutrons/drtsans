@@ -14,7 +14,3 @@ source test_job.sh 3.6 integration
 **For Approver To Test:**
 
 <!-- Instructions for testing. -->
-
-Fixes #xxxx. <!-- and fix #xxxx or close #xxxx xor resolves #xxxx -->
-
-

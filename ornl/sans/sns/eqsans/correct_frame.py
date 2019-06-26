@@ -6,7 +6,7 @@ from mantid.simpleapi import ConvertUnits, Rebin, EQSANSCorrectFrame
 
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
-from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.samplelogs import SampleLogsReader
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
 from ornl.sans.frame_mode import FrameMode
 from ornl.sans import wavelength as wlg
@@ -33,7 +33,7 @@ def transmitted_bands(ws):
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
-    sl = SampleLogs(ws)
+    sl = SampleLogsReader(ws)
     pulse_period = 1.e6 / sl.single_value('frequency')  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     # Wavelength band of neutrons from the leading pulse transmitted
@@ -64,7 +64,7 @@ def clipped_bands_from_logs(ws):
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
-    sl = SampleLogs(ws)
+    sl = SampleLogsReader(ws)
     lead = wlg.Wband(sl.wavelength_lead_min.value,
                      sl.wavelength_lead_max.value)
     if bool(sl.is_frame_skipping.value) is True:
@@ -175,7 +175,7 @@ def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
         If True, also trim slow neutrons from the lead pulse (using `htc`) and
         fast neutrons from the skip pulse (using `ltc`)
     """
-    sl = SampleLogs(ws)
+    sl = SampleLogsReader(ws)
     ch = EQSANSDiskChopperSet(ws)
     sl.tof_frame_width = ch.period
     clip_times = 1 if interior_clip is False else 2
@@ -213,7 +213,7 @@ def correct_frame(ws, source_to_component_distance):
         - skip_band: WBand wavelength band for the skip pulse. `None` if not
             working in frame-skipping mode
     """
-    sl = SampleLogs(ws)
+    sl = SampleLogsReader(ws)
     pulse_period = 1.e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     # The TOF values recorded are never be bigger than the frame width,
@@ -300,7 +300,7 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
             _ws.dataE(i)[to_zero] = 1.0
 
     # Insert bands information in the logs
-    sl = SampleLogs(_ws)
+    sl = SampleLogsReader(_ws)
     sl.wavelength_min, sl.wavelength_max = w_min, w_max
     sl.wavelength_lead_min = bands.lead.min
     sl.wavelength_lead_max = bands.lead.max

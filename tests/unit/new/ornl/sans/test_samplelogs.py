@@ -6,7 +6,7 @@ from os.path import join as pjn
 from mantid.simpleapi import Load
 from mantid.api import Run
 
-from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.samplelogs import SampleLogsReader
 
 
 @pytest.mark.offline
@@ -19,14 +19,14 @@ class TestSampleLogs(object):
         w = Load(test_file, OutputWorkspace='test_init_w')
         r = w.getRun()
         for other in [test_file, w, r]:
-            sl = SampleLogs(other)
+            sl = SampleLogsReader(other)
             assert isinstance(sl._run, Run)
 
     def test_getattr(self, refd):
         test_file = pjn(refd.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-        sl = SampleLogs(test_file)
+        sl = SampleLogsReader(test_file)
         assert_almost_equal(sl.Phase1.value.mean(), 22444, decimal=0)
 
 

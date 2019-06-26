@@ -3,29 +3,58 @@
 """
 import pytest
 from mantid.dataobjects import EventWorkspace
+import inspect
+
+# public API
 from ornl.sans.sns import eqsans
-from ornl.settings import unique_workspace_name as uwn
+
+# protected API
+from ornl.settings import (namedtuplefy, unique_workspace_name as uwn)
+from ornl.sans.samplelogs import SampleLogsReader
 
 
-#               run        num-events max-tof #SDD
-run_sets = (('EQSANS_92353', 262291, 33332.5, 4000.0),)  # old IDF,
-"""To-Do after PR new IDF accepted in mantid master
-run_sets = (('EQSANS_92353', 262291, 33332.5, 0.0),  # old IDF, no translation
-            ('EQSANS_102616', 0.0, 0.0, 0.0))  # new IDF, translation
-"""
+keys = ('run', 'num_events', 'nominal_sdd', 'sdd', 'ssd', 'min_tof', 'max_tof',
+        'skip_frame')
+values = (('EQSANS_86217', 508339, 1300, 1300, 14122, 9717, 59719, True),
+          ('EQSANS_92353', 262291, 4000, 4000, 14122, 11410, 61412, True),
+          ('EQSANS_85550', 270022, 5000, 4998, 14122, 12036, 62040, True),
+          ('EQSANS_101595', 289989, 1300, 1300, 14122, 7773, 24441, False),
+          ('EQSANS_88565', 19362, 4000, 4000, 14122, 45615, 62281, False),
+          ('EQSANS_88901', 340431, 8000, 7989, 14122, 67332, 83999, False))
+run_sets = [{k:v for k, v in zip(keys, value)} for value in values]
 
 
-@pytest.mark.parametrize('run_set', run_sets)
-def test_load_events(run_set):
-    ws = eqsans.load_events(run_set[0], output_workspace=uwn())
-    assert isinstance(ws, EventWorkspace)
-    assert ws.getNumberEvents() == run_set[1]
-    assert ws.getTofMax() == run_set[2]
-    # assert distance of detector1 same as that in detectorZ of the logs
-    instrument = ws.getInstrument()
-    det = instrument.getComponentByName(eqsans.detector_name)
-    d1 = det.getDistance(instrument.getSample())
-    assert run_set[3] == pytest.approx(d1 * 1000)
+@pytest.fixture(scope='module', params=run_sets)
+@namedtuplefy
+def rs(request):
+    run_set = request.param
+    ws = eqsans.load_events(run_set['run'], output_workspace=uwn())
+    return {**run_set, **dict(ws=ws)}
+
+
+class TestLoadEvents(object):
+
+    def test_geometry(self, rs):
+        ws = rs.ws
+        assert isinstance(ws, EventWorkspace)
+        assert ws.getNumberEvents() == rs.num_events
+        # assert distance of detector1 same as that in detectorZ of the logs
+        instrument = ws.getInstrument()
+        det = instrument.getComponentByName(eqsans.detector_name)
+        d1 = det.getDistance(instrument.getSample())
+        assert rs.nominal_sdd == pytest.approx(d1 * 1000, abs=1)
+        # Check logs
+        sl = SampleLogsReader(ws)
+        assert rs.ssd ==\
+               pytest.approx(sl.single_value('source-sample-distance'), abs=1)
+        assert rs.sdd ==\
+               pytest.approx(sl.single_value('sample-detector-distance'),
+                             abs=1)
+
+    def test_tofs(self, rs):
+        ws = rs.ws
+        assert ws.getTofMin() == pytest.approx(rs.min_tof, abs=1)
+        assert ws.getTofMax() == pytest.approx(rs.max_tof, abs=1)
 
 
 def test_prepared_data(eqsans_f):
@@ -38,12 +67,6 @@ def test_prepared_data(eqsans_f):
     ws = eqsans.prepare_data(eqsans_f['data'], output_workspace='ws')
     assert isinstance(ws, EventWorkspace)
 
-
-def test_correct_tof(eqsans_f):
-    """ Corrrect raw data TOF """
-    ws = eqsans.load_events(eqsans_f['data'])
-    ws = eqsans.correct_detector_frame(ws)
-    assert isinstance(ws, EventWorkspace)
 
 
 if __name__ == '__main__':

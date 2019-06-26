@@ -3,26 +3,21 @@ from __future__ import (absolute_import, division, print_function)
 import os
 import numpy as np
 
-from mantid.api import Run, MatrixWorkspace
+from mantid.api import (Run, MatrixWorkspace)
 from mantid.simpleapi import Load
 
 
-class SampleLogs(object):
+class SampleLogsReader(object):
     r"""
-    Thin wrapper around mantid.api.Run for more pythonic
-    gettters and setters
+    Log reader, a bit more pythonic
     """
 
     def __init__(self, other):
-        self.__dict__['_run'] = self.find_run(other)
+        self._run = self.find_run(other)
 
     def __getitem__(self, item):
         if item in self._run.keys():
             return self._run[item]
-
-    def __setitem__(self, key, value):
-        _run = self.__dict__['_run']
-        _run.addProperty(key, value, True)
 
     def __getattr__(self, item):
         _run = self.__dict__['_run']
@@ -31,12 +26,6 @@ class SampleLogs(object):
         except AttributeError:
             if item in _run.keys():
                 return _run.getProperty(item)
-
-    def __setattr__(self, key, value):
-        _run = self.__dict__['_run']
-        if key == '_run':
-            _run = value
-        _run.addProperty(key, value, True)
 
     @property
     def mantid_logs(self):

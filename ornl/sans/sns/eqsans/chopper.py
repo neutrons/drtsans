@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 from ornl.sans.chopper import DiskChopper
-from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.samplelogs import SampleLogsReader
 from ornl.sans.frame_mode import FrameMode
 
 
@@ -32,7 +32,7 @@ class EQSANSDiskChopperSet(object):
         """
 
         # Load choppers settings from the logs
-        sl = SampleLogs(other)
+        sl = SampleLogsReader(other)
         self._choppers = list()
         for chopper_index in range(self._n_choppers):
             aperture = self._aperture[chopper_index]

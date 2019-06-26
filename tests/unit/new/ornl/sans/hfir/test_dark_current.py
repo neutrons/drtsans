@@ -7,7 +7,7 @@ import pytest
 def test_dark_current(gpsans_f):
     from ornl.sans.hfir.normalisation import time
     from ornl.sans.hfir.dark_current import subtract_normalised_dark
-    from ornl.sans.samplelogs import SampleLogs
+    from ornl.sans.samplelogs import SampleLogsReader
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
@@ -30,7 +30,7 @@ def test_dark_current(gpsans_f):
     )
 
     # Let's test:
-    normalised_sample_time = SampleLogs(sample_ws).timer.value
+    normalised_sample_time = SampleLogsReader(sample_ws).timer.value
 
     v1_sample = sample_ws.dataY(612)[0]
     v1_dc = normalised_dc_ws.dataY(612)[0]

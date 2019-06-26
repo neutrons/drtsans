@@ -17,16 +17,6 @@ def find_beam_center(ws, mask_file_path=None):
     return direct_beam_center(ws)
 
 
-def load_events(file_path):
-    """ Load events, sets instrument geometry, and correct for TOF """
-    raise NotImplementedError()
-
-
-def correct_detector_frame(ws):
-    """ Correct an EQSANS workspace for TOF """
-    raise NotImplementedError()
-
-
 def set_instrument_geometry(ws):
     """ Move detector components to their proper location """
     raise NotImplementedError()

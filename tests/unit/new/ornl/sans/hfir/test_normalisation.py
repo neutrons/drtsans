@@ -8,7 +8,7 @@ import pytest
 def test_normalisation_monitor(gpsans_f):
 
     from ornl.sans.hfir.normalisation import monitor
-    from ornl.sans.samplelogs import SampleLogs
+    from ornl.sans.samplelogs import SampleLogsReader
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
@@ -19,7 +19,7 @@ def test_normalisation_monitor(gpsans_f):
 
     output_sample_ws = monitor(input_sample_ws)
 
-    sample_logs = SampleLogs(input_sample_ws)
+    sample_logs = SampleLogsReader(input_sample_ws)
     monitor_counts = sample_logs.monitor.value
     assert monitor_counts == 1284652
     assert output_sample_ws.readY(0)[0] == \
@@ -30,7 +30,7 @@ def test_normalisation_monitor(gpsans_f):
 def test_normalisation_time(gpsans_f):
 
     from ornl.sans.hfir.normalisation import time
-    from ornl.sans.samplelogs import SampleLogs
+    from ornl.sans.samplelogs import SampleLogsReader
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
@@ -41,7 +41,7 @@ def test_normalisation_time(gpsans_f):
 
     output_sample_ws = time(input_sample_ws)
 
-    sample_logs = SampleLogs(input_sample_ws)
+    sample_logs = SampleLogsReader(input_sample_ws)
     timer = float(sample_logs.timer.value)
     assert timer == 60.0
     assert output_sample_ws.readY(612)[0] == \

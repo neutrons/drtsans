@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
-from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.samplelogs import SampleLogsReader
 from ornl.sans.resolution import dq2_geometry, dq2_gravity
 from ornl.sans import geometry as sans_geometry
 
@@ -27,7 +27,7 @@ def q_resolution_per_pixel(ws):
     ------
     numpy array of the same dimension as the data
     """
-    sl = SampleLogs(ws)
+    sl = SampleLogsReader(ws)
     L1 = sans_geometry.source_sample_distance(ws, units='m',
                                               log_key='source-sample-distance')
     kwargs = dict(units='m', log_key='sample-detector-distance')
@@ -78,7 +78,7 @@ def q_resolution(ws):
     ------
     numpy array of the same dimension as the data
     """
-    sl = SampleLogs(ws)
+    sl = SampleLogsReader(ws)
 
     L1 = sans_geometry.source_sample_distance(ws, 'm')
     L2 = sans_geometry.sample_detector_distance(ws, 'm')

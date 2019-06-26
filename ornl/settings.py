@@ -162,6 +162,7 @@ def optional_output_workspace(func):
     output_workspace_parameter = parameters.get(name, None)
     name_in_signature = name in parameters
 
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         #
         # decorator does not change func if output_workspace is

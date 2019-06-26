@@ -2,7 +2,8 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-from mantid.simpleapi import ConvertUnits, Rebin, EQSANSCorrectFrame
+from mantid.simpleapi import (ConvertUnits, Rebin, EQSANSCorrectFrame
+                              AddSampleLog)
 
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
@@ -175,12 +176,13 @@ def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
         If True, also trim slow neutrons from the lead pulse (using `htc`) and
         fast neutrons from the skip pulse (using `ltc`)
     """
-    sl = SampleLogsReader(ws)
     ch = EQSANSDiskChopperSet(ws)
-    sl.tof_frame_width = ch.period
+    AddSampleLog(ws, Logname='tof_frame_width',
+                 LogText=str(ch.period), LogUnit='ms')
     clip_times = 1 if interior_clip is False else 2
-    sl.tof_frame_width_clipped = ch.period -\
-        clip_times * (low_tof_clip + high_tof_clip)
+    tof_width_clipped = ch.period - clip_times * (low_tof_clip + high_tof_clip)
+    AddSampleLog(ws, Logname='tof_frame_width_clipped',
+                 LogText=str(tof_width_clipped), LogUnit='ms')
 
 
 def correct_frame(ws, source_to_component_distance):

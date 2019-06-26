@@ -1,6 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
-from mantid.simpleapi import MoveInstrumentComponent
+from mantid.simpleapi import (MoveInstrumentComponent, AddSampleLog)
 
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogsReader
@@ -172,8 +172,12 @@ def insert_aperture_logs(ws):
     ws: MatrixWorkspace
         Insert metadata in this workspace's logs
     """
-    sl = SampleLogsReader(ws)
-    sl['sample-aperture-diameter'] = sample_aperture_diameter(ws)
+    kw = dict(LogType='Number', LogUnit='mm', NumberType='Double')
+    AddSampleLog(ws, Logname='sample-aperture-diameter',
+                 LogText=str(sample_aperture_diameter(ws)), **kw)
     sa = source_aperture(ws)
-    sl['source-aperture-diameter'] = sa.diameter
-    sl['source-aperture-sample-distance'] = sa.distance_to_sample
+    AddSampleLog(ws, Logname='source-aperture-diameter',
+                 LogText=str(sa.diameter), **kw)
+    AddSampleLog(ws, Logname='source-aperture-sample-distance',
+                 LogText=str(sa.distance_to_sample), **kw)
+

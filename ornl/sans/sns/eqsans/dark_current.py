@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (Integration, Transpose, RebinToWorkspace,
-                              ConvertUnits, RenameWorkspace)
+                              ConvertUnits, RenameWorkspace, AddSampleLog)
 
 from ornl.settings import unique_workspace_name, namedtuplefy
 from ornl.sans.samplelogs import SampleLogsReader
@@ -161,5 +161,7 @@ def subtract_normalised_dark(data, dark, out_ws):
     d = duration(data, log_key=duration_log_key).value
     difference = data - d * dark
     RenameWorkspace(difference, out_ws)
-    SampleLogsReader(difference).normalizing_duration = duration_log_key
+    AddSampleLog(difference,
+                 Logname='normalizing_duration',
+                 LogText=duration_log_key)
     return difference

@@ -2,8 +2,8 @@
     Test top-level API
 """
 import pytest
+from pytest import approx
 from mantid.dataobjects import EventWorkspace
-import inspect
 
 # public API
 from ornl.sans.sns import eqsans
@@ -21,7 +21,7 @@ values = (('EQSANS_86217', 508339, 1300, 1300, 14122, 9717, 59719, True),
           ('EQSANS_101595', 289989, 1300, 1300, 14122, 7773, 24441, False),
           ('EQSANS_88565', 19362, 4000, 4000, 14122, 45615, 62281, False),
           ('EQSANS_88901', 340431, 8000, 7989, 14122, 67332, 83999, False))
-run_sets = [{k:v for k, v in zip(keys, value)} for value in values]
+run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 
 
 @pytest.fixture(scope='module', params=run_sets)
@@ -45,11 +45,8 @@ class TestLoadEvents(object):
         assert rs.nominal_sdd == pytest.approx(d1 * 1000, abs=1)
         # Check logs
         sl = SampleLogsReader(ws)
-        assert rs.ssd ==\
-               pytest.approx(sl.single_value('source-sample-distance'), abs=1)
-        assert rs.sdd ==\
-               pytest.approx(sl.single_value('sample-detector-distance'),
-                             abs=1)
+        assert rs.ssd == approx(sl.single_value('source-sample-distance'), abs=1)
+        assert rs.sdd == approx(sl.single_value('sample-detector-distance'), abs=1)
 
     def test_tofs(self, rs):
         ws = rs.ws
@@ -66,7 +63,6 @@ def test_prepared_data(eqsans_f):
     """
     ws = eqsans.prepare_data(eqsans_f['data'], output_workspace='ws')
     assert isinstance(ws, EventWorkspace)
-
 
 
 if __name__ == '__main__':

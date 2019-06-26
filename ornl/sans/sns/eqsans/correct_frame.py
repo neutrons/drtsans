@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-from mantid.simpleapi import (ConvertUnits, Rebin, EQSANSCorrectFrame
+from mantid.simpleapi import (ConvertUnits, Rebin, EQSANSCorrectFrame,
                               AddSampleLog)
 
 from ornl.settings import (optional_output_workspace,

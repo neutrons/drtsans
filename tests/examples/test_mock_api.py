@@ -73,7 +73,7 @@ class EQSANS_api(unittest.TestCase):
 
         # Find transmission beam center, or use the one we have
         # Apply transmission
-        ws = eqsans.apply_transmission(ws, x, y)
+        ws = eqsans.apply_transmission(ws, 1.0, 0)
 
         # Now the background
         ws_bck = eqsans.load_events("EQSANS_105428",
@@ -82,11 +82,8 @@ class EQSANS_api(unittest.TestCase):
 
         # Find transmission beam center, or use the one we have
         # Apply transmission
-        ws_bck = eqsans.apply_transmission(ws_bck)
+        ws_bck = eqsans.apply_transmission(ws_bck, 1.0, 0)
         ws = eqsans.subtract_background(ws, ws_bck)
-
-        ws = eqsans.absolute_scale(ws)
-        ws = eqsans.geometry_correction(ws)
 
         iq = eqsans.iq(ws)
         self.assertTrue(self.check_iq(iq))

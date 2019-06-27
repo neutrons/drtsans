@@ -13,8 +13,8 @@ class SampleLogs(object):
     """
 
     def __init__(self, other):
-        self._run = self.find_run(other)
         self._ws = None
+        self._run = self.find_run(other)
 
     def __getitem__(self, item):
         if item in self._run.keys():
@@ -71,8 +71,10 @@ class SampleLogs(object):
             log_text = str(value)
 
         # Done, call Mantid algorithm
-        kw = {k: v for (k,v) in zip(('LogUnit', 'NumberType'), (log_unit, number_type)) if v is not None}
-        AddSampleLog(self._ws, LogName=name, LogText=log_text, LogType=log_type, **kw)
+        pairings = dict(LogUnit=log_unit, NumberType=number_type)
+        kw = {k: v for (k, v) in pairings.items() if v is not None}
+        AddSampleLog(self._ws, LogName=name, LogText=log_text,
+                     LogType=log_type, **kw)
 
     @property
     def mantid_logs(self):

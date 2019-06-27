@@ -172,7 +172,6 @@ def insert_aperture_logs(ws):
     ws: MatrixWorkspace
         Insert metadata in this workspace's logs
     """
-    kw = dict(LogType='Number', LogUnit='mm', NumberType='Double')
     sl = SampleLogs(ws)
     sl.insert('sample-aperture-diameter',
               sample_aperture_diameter(ws), unit='mm')

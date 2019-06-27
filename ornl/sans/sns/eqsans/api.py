@@ -72,10 +72,10 @@ def prepare_data(file_path, mask_file_path=None, sensitivity_file_path=None):
     """
     ws = load_events(file_path)
     # Uncomment as we address them
-    #ws = apply_mask(ws, mask_file_path)
-    #ws = initial_uncertainty_estimation(ws)
-    #ws = apply_solid_angle_correction(ws)
-    #ws = apply_sensitivity_correction(ws, sensitivity_file_path)
-    #ws = divide_by_flux(ws)
-    #ws = normalize(ws)
+    # ws = apply_mask(ws, mask_file_path)
+    # ws = initial_uncertainty_estimation(ws)
+    # ws = apply_solid_angle_correction(ws)
+    # ws = apply_sensitivity_correction(ws, sensitivity_file_path)
+    # ws = divide_by_flux(ws)
+    # ws = normalize(ws)
     return ws

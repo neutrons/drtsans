@@ -229,7 +229,8 @@ def correct_frame(ws, source_to_component_distance):
                        FrameWidth=frame_width,
                        FrameSkipping=(ch.frame_mode is FrameMode.skip))
     # Amend the logs
-    sl.is_frame_skipping = 1 if ch.frame_mode == FrameMode.skip else 0
+    fr_skip = 1 if ch.frame_mode == FrameMode.skip else 0
+    AddSampleLog(ws, Logname='is_frame_skipping', LogText=str(fr_skip))
 
 
 def correct_detector_frame(ws):
@@ -304,9 +305,13 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
     # Insert bands information in the logs
     sl = SampleLogsReader(_ws)
     sl.wavelength_min, sl.wavelength_max = w_min, w_max
-    sl.wavelength_lead_min = bands.lead.min
-    sl.wavelength_lead_max = bands.lead.max
+    AddSampleLog(_ws, Logname='wavelength_lead_min',
+                 LogText=str(bands.lead.min), LogUnit='Angstrom')
+    AddSampleLog(_ws, Logname='wavelength_lead_max',
+                 LogText=str(bands.lead.max), LogUnit='Angstrom')
     if fm is True:
-        sl.wavelength_skip_min = bands.skip.min
-        sl.wavelength_skip_max = bands.skip.max
+        AddSampleLog(_ws, Logname='wavelength_skip_min',
+                     LogText=str(bands.skip.min), LogUnit='Angstrom')
+        AddSampleLog(_ws, Logname='wavelength_skip_max',
+                     LogText=str(bands.skip.max), LogUnit='Angstrom')
     return _ws

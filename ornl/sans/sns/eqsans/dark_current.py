@@ -129,7 +129,7 @@ def normalise_to_workspace(dark, data, out_ws):
         for i in range(_dark.getNumberHistograms()):
             _dark.dataY(i)[gap_indexes] = 0.0
             _dark.dataE(i)[gap_indexes] = 0.0
-    SampleLogsReader(_dark).normalizing_duration = d.log_key  # append to the logs
+    AddSampleLog(_dark, Logname='normalizing_duration', LogText=d.log_key)
     return _dark
 
 

@@ -129,7 +129,8 @@ def normalise_to_workspace(dark, data, out_ws):
         for i in range(_dark.getNumberHistograms()):
             _dark.dataY(i)[gap_indexes] = 0.0
             _dark.dataE(i)[gap_indexes] = 0.0
-    AddSampleLog(_dark, Logname='normalizing_duration', LogText=d.log_key)
+    AddSampleLog(_dark, Logname='normalizing_duration', LogText=d.log_key,
+                 LogType='String')
     return _dark
 
 
@@ -161,7 +162,6 @@ def subtract_normalised_dark(data, dark, out_ws):
     d = duration(data, log_key=duration_log_key).value
     difference = data - d * dark
     RenameWorkspace(difference, out_ws)
-    AddSampleLog(difference,
-                 Logname='normalizing_duration',
-                 LogText=duration_log_key)
+    AddSampleLog(difference, Logname='normalizing_duration',
+                 LogText=duration_log_key, LogType='String')
     return difference

@@ -177,12 +177,12 @@ def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
         fast neutrons from the skip pulse (using `ltc`)
     """
     ch = EQSANSDiskChopperSet(ws)
-    AddSampleLog(ws, Logname='tof_frame_width',
-                 LogText=str(ch.period), LogUnit='ms')
+    kw = dict(LogUnit='ms', LogType='Number', NumberType='Double')
+    AddSampleLog(ws, Logname='tof_frame_width', LogText=str(ch.period), **kw)
     clip_times = 1 if interior_clip is False else 2
     tof_width_clipped = ch.period - clip_times * (low_tof_clip + high_tof_clip)
     AddSampleLog(ws, Logname='tof_frame_width_clipped',
-                 LogText=str(tof_width_clipped), LogUnit='ms')
+                 LogText=str(tof_width_clipped), **kw)
 
 
 def correct_frame(ws, source_to_component_distance):
@@ -230,7 +230,8 @@ def correct_frame(ws, source_to_component_distance):
                        FrameSkipping=(ch.frame_mode is FrameMode.skip))
     # Amend the logs
     fr_skip = 1 if ch.frame_mode == FrameMode.skip else 0
-    AddSampleLog(ws, Logname='is_frame_skipping', LogText=str(fr_skip))
+    AddSampleLog(ws, Logname='is_frame_skipping', LogText=str(fr_skip),
+                 LogType='Number', Numbertype='Int')
 
 
 def correct_detector_frame(ws):
@@ -305,13 +306,14 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
     # Insert bands information in the logs
     sl = SampleLogsReader(_ws)
     sl.wavelength_min, sl.wavelength_max = w_min, w_max
+    kw = dict(LogUnit='Angstrom', LogType='Number', Numbertype='Double')
     AddSampleLog(_ws, Logname='wavelength_lead_min',
-                 LogText=str(bands.lead.min), LogUnit='Angstrom')
+                 LogText=str(bands.lead.min), **kw)
     AddSampleLog(_ws, Logname='wavelength_lead_max',
-                 LogText=str(bands.lead.max), LogUnit='Angstrom')
+                 LogText=str(bands.lead.max), **kw)
     if fm is True:
         AddSampleLog(_ws, Logname='wavelength_skip_min',
-                     LogText=str(bands.skip.min), LogUnit='Angstrom')
+                     LogText=str(bands.skip.min), **kw)
         AddSampleLog(_ws, Logname='wavelength_skip_max',
-                     LogText=str(bands.skip.max), LogUnit='Angstrom')
+                     LogText=str(bands.skip.max), **kw)
     return _ws

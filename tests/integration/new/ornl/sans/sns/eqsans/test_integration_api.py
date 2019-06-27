@@ -54,6 +54,7 @@ class TestLoadEvents(object):
         ws = rs.ws
         assert ws.getTofMin() == pytest.approx(rs.min_tof, abs=1)
         assert ws.getTofMax() == pytest.approx(rs.max_tof, abs=1)
+        assert bool(SampleLogs(ws).is_frame_skipping.value) == rs.skip_frame
 
 
 def test_prepared_data(eqsans_f):

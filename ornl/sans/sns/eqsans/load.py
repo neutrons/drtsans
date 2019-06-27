@@ -1,5 +1,5 @@
 from mantid.simpleapi import LoadEventNexus
-from ornl.settings import (optional_output_workspace,
+from ornl.settings import (optional_output_workspace, amend_config,
                            unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import (source_sample_distance,
@@ -35,8 +35,9 @@ def load_events(run, output_workspace=None, **levn):
     EventWorkspace
         Reference to the events workspace
     """
-    _ws = LoadEventNexus(Filename=str(run),
-                         OutputWorkspace=uwd(), **levn)
+    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+        _ws = LoadEventNexus(Filename=str(run),
+                             OutputWorkspace=uwd(), **levn)
     #
     # Correct geometry
     #

@@ -63,7 +63,8 @@ def normalize(ws, normalization_type):
 
 
 @optional_output_workspace
-def prepare_data(file_path, mask_file_path=None, sensitivity_file_path=None):
+def prepare_data(file_path, dark_current=None,
+                 mask_file_path=None, sensitivity_file_path=None):
     """
         Load an EQSANS data file and bring the data to a point where it
         can be used. This includes applying basic corrections that are
@@ -72,6 +73,8 @@ def prepare_data(file_path, mask_file_path=None, sensitivity_file_path=None):
     """
     ws = load_events(file_path)
     # Uncomment as we address them
+    # ws = convert_to_wavelength(ws)
+    # ws = subtract_dark_current(ws, dark_current)
     # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)
     # ws = apply_solid_angle_correction(ws)

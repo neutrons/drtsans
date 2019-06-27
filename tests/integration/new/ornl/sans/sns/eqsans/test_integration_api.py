@@ -45,8 +45,10 @@ class TestLoadEvents(object):
         assert rs.nominal_sdd == pytest.approx(d1 * 1000, abs=1)
         # Check logs
         sl = SampleLogsReader(ws)
-        assert rs.ssd == approx(sl.single_value('source-sample-distance'), abs=1)
-        assert rs.sdd == approx(sl.single_value('sample-detector-distance'), abs=1)
+        assert rs.ssd == approx(sl.single_value('source-sample-distance'),
+                                abs=1)
+        assert rs.sdd == approx(sl.single_value('sample-detector-distance'),
+                                abs=1)
 
     def test_tofs(self, rs):
         ws = rs.ws

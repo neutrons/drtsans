@@ -11,7 +11,7 @@ import numpy as np
 
 from mantid import simpleapi as api
 from ornl.sans.hfir import resolution
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans import hfir_command_interface as hfir
 
@@ -21,7 +21,7 @@ def azimuthal_average(ws):
         Test implementation of the azimuthal averaging so we can do
         a quick comparison of outputs.
     """
-    sl = SampleLogsReader(ws)
+    sl = SampleLogs(ws)
     wl = sl.find_log_with_units('wavelength', 'Angstrom')
 
     spec_info = ws.spectrumInfo()

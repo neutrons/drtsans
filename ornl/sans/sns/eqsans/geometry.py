@@ -1,9 +1,9 @@
 from __future__ import (absolute_import, division, print_function)
 
-from mantid.simpleapi import (MoveInstrumentComponent, AddSampleLog)
+from mantid.simpleapi import MoveInstrumentComponent
 
 from ornl.settings import namedtuplefy
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import sample_source_distance
 
 __all__ = ['detector_name', 'detector_z_log',
@@ -45,7 +45,7 @@ def translate_detector_z(ws, z=None, relative=True):
         the current z-coordinate with the new value.
     """
     if z is None:
-        sl = SampleLogsReader(ws)
+        sl = SampleLogs(ws)
         z = 1e-3 * sl.single_value(detector_z_log)  # assumed in mili-meters
 
     kwargs = dict(ComponentName=detector_name,
@@ -74,7 +74,7 @@ def sample_aperture_diameter(other, unit='mm'):
     float
         Sample aperture diameter, in requested units
     """
-    sl = SampleLogsReader(other)
+    sl = SampleLogs(other)
     sad = sl.single_value('beamslit4')
     if unit == 'm':
         sad /= 1000.0
@@ -114,7 +114,7 @@ def source_aperture(other, unit='mm'):
                          [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0],
                          [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0]]
     distance_to_source = [10080, 11156, 12150]  # in mili-meters
-    sl = SampleLogsReader(other)
+    sl = SampleLogs(other)
     slit_indexes = [int(sl[log_key].value.mean()) - 1 for log_key in
                     ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3']]
     diameter = 20.0  # default slit size
@@ -173,11 +173,10 @@ def insert_aperture_logs(ws):
         Insert metadata in this workspace's logs
     """
     kw = dict(LogType='Number', LogUnit='mm', NumberType='Double')
-    AddSampleLog(ws, Logname='sample-aperture-diameter',
-                 LogText=str(sample_aperture_diameter(ws)), **kw)
+    sl = SampleLogs(ws)
+    sl.insert('sample-aperture-diameter',
+              sample_aperture_diameter(ws), unit='mm')
     sa = source_aperture(ws)
-    AddSampleLog(ws, Logname='source-aperture-diameter',
-                 LogText=str(sa.diameter), **kw)
-    AddSampleLog(ws, Logname='source-aperture-sample-distance',
-                 LogText=str(sa.distance_to_sample), **kw)
-
+    sl.insert('source-aperture-diameter', sa.diameter, unit='mm')
+    sl.insert('source-aperture-sample-distance',
+              sa.distance_to_sample, unit='mm')

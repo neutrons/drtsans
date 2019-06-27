@@ -6,7 +6,7 @@ from pytest import approx
 from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces
 
 from ornl.settings import amend_config, unique_workspace_name
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 import ornl.sans.sns.eqsans.dark_current as dkc
 
 
@@ -49,7 +49,7 @@ def test_subtract_normalised_dark(wss, refd):
     _dark_normalised = LoadNexus(name, OutputWorkspace=unique_workspace_name())
     _w0 = dkc.subtract_normalised_dark(wss['data'], _dark_normalised,
                                        unique_workspace_name())
-    assert SampleLogsReader(_w0).normalizing_duration.value == 'duration'
+    assert SampleLogs(_w0).normalizing_duration.value == 'duration'
     _w1 = SumSpectra(_w0, OutputWorkspace=unique_workspace_name())
     name = pjn(refd.new.eqsans, 'test_dark_current', 'data_minus_dark.nxs')
     _w2 = LoadNexus(name, OutputWorkspace=unique_workspace_name())

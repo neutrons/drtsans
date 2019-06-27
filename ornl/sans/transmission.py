@@ -5,7 +5,7 @@ from mantid.kernel import logger
 from mantid.simpleapi import (ApplyTransmissionCorrection,
                               FindDetectorsInShape, GroupDetectors,
                               ReplaceSpecialValues)
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 
 
 def _apply_transmission_mantid(input_ws, trans_value=None, trans_error=None,
@@ -84,7 +84,7 @@ def _calculate_radius_from_input_ws(
     """
     try:
         # Apertures
-        sample_logs = SampleLogsReader(input_ws)
+        sample_logs = SampleLogs(input_ws)
         radius_sample_aperture = sample_logs[
             sample_aperture_diameter_log].value / 2.
         radius_source_aperture = sample_logs[

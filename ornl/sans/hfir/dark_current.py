@@ -1,5 +1,5 @@
 from __future__ import (absolute_import, division, print_function)
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 
 
 def subtract_normalised_dark(data_ws, dark_current_ws):
@@ -23,6 +23,6 @@ def subtract_normalised_dark(data_ws, dark_current_ws):
         `data` minus `dark` current
     """
 
-    duration_data = SampleLogsReader(data_ws).timer.value  # seconds
+    duration_data = SampleLogs(data_ws).timer.value  # seconds
     __difference_normalised_dc = data_ws - duration_data * dark_current_ws
     return __difference_normalised_dc

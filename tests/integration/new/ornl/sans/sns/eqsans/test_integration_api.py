@@ -10,7 +10,7 @@ from ornl.sans.sns import eqsans
 
 # protected API
 from ornl.settings import (namedtuplefy, unique_workspace_name as uwn)
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 
 
 keys = ('run', 'num_events', 'nominal_sdd', 'sdd', 'ssd', 'min_tof', 'max_tof',
@@ -44,7 +44,7 @@ class TestLoadEvents(object):
         d1 = det.getDistance(instrument.getSample())
         assert rs.nominal_sdd == pytest.approx(d1 * 1000, abs=1)
         # Check logs
-        sl = SampleLogsReader(ws)
+        sl = SampleLogs(ws)
         assert rs.ssd == approx(sl.single_value('source-sample-distance'),
                                 abs=1)
         assert rs.sdd == approx(sl.single_value('sample-detector-distance'),

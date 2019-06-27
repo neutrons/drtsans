@@ -3,10 +3,10 @@ from __future__ import (absolute_import, division, print_function)
 from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (Integration, Transpose, RebinToWorkspace,
-                              ConvertUnits, RenameWorkspace, AddSampleLog)
+                              ConvertUnits, RenameWorkspace)
 
 from ornl.settings import unique_workspace_name, namedtuplefy
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import correct_frame as cf
 
 
@@ -34,7 +34,7 @@ def duration(dark, log_key=None):
     """
     log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if \
         log_key is None else (log_key, )
-    sl = SampleLogsReader(dark)
+    sl = SampleLogs(dark)
 
     def from_start_time(lk):
         st = parse_date(sl[lk].value)
@@ -109,7 +109,7 @@ def normalise_to_workspace(dark, data, out_ws):
     MatrixWorkspace
         Output workspace, dark current rebinned to wavelength and rescaled
     """
-    sl = SampleLogsReader(data)
+    sl = SampleLogs(data)
     fwr = sl.tof_frame_width_clipped.value / sl.tof_frame_width.value
     nc, ec = counts_in_detector(dark)  # counts and error per detector
     _dark = ConvertUnits(dark, Target='Wavelength', Emode='Elastic',
@@ -129,8 +129,7 @@ def normalise_to_workspace(dark, data, out_ws):
         for i in range(_dark.getNumberHistograms()):
             _dark.dataY(i)[gap_indexes] = 0.0
             _dark.dataE(i)[gap_indexes] = 0.0
-    AddSampleLog(_dark, Logname='normalizing_duration', LogText=d.log_key,
-                 LogType='String')
+    SampleLogs(_dark).insert('normalizing_duration', d.log_key)
     return _dark
 
 
@@ -158,10 +157,9 @@ def subtract_normalised_dark(data, dark, out_ws):
     MatrixWorkspace
         `data` minus `dark` current
     """
-    duration_log_key = SampleLogsReader(dark).normalizing_duration.value
+    duration_log_key = SampleLogs(dark).normalizing_duration.value
     d = duration(data, log_key=duration_log_key).value
     difference = data - d * dark
     RenameWorkspace(difference, out_ws)
-    AddSampleLog(difference, Logname='normalizing_duration',
-                 LogText=duration_log_key, LogType='String')
+    SampleLogs(difference).insert('normalizing_duration', duration_log_key)
     return difference

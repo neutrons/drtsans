@@ -2,12 +2,11 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-from mantid.simpleapi import (ConvertUnits, Rebin, EQSANSCorrectFrame,
-                              AddSampleLog)
+from mantid.simpleapi import (ConvertUnits, Rebin, EQSANSCorrectFrame)
 
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
 from ornl.sans.frame_mode import FrameMode
 from ornl.sans import wavelength as wlg
@@ -34,7 +33,7 @@ def transmitted_bands(ws):
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
-    sl = SampleLogsReader(ws)
+    sl = SampleLogs(ws)
     pulse_period = 1.e6 / sl.single_value('frequency')  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     # Wavelength band of neutrons from the leading pulse transmitted
@@ -65,7 +64,7 @@ def clipped_bands_from_logs(ws):
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
-    sl = SampleLogsReader(ws)
+    sl = SampleLogs(ws)
     lead = wlg.Wband(sl.wavelength_lead_min.value,
                      sl.wavelength_lead_max.value)
     if bool(sl.is_frame_skipping.value) is True:
@@ -177,12 +176,11 @@ def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
         fast neutrons from the skip pulse (using `ltc`)
     """
     ch = EQSANSDiskChopperSet(ws)
-    kw = dict(LogUnit='ms', LogType='Number', NumberType='Double')
-    AddSampleLog(ws, Logname='tof_frame_width', LogText=str(ch.period), **kw)
+    sl = SampleLogs(ws)
+    sl.insert('tof_frame_width', ch.period, unit='ms')
     clip_times = 1 if interior_clip is False else 2
     tof_width_clipped = ch.period - clip_times * (low_tof_clip + high_tof_clip)
-    AddSampleLog(ws, Logname='tof_frame_width_clipped',
-                 LogText=str(tof_width_clipped), **kw)
+    sl.insert('tof_frame_width_clipped', tof_width_clipped, unit='ms')
 
 
 def correct_frame(ws, source_to_component_distance):
@@ -215,7 +213,7 @@ def correct_frame(ws, source_to_component_distance):
         - skip_band: WBand wavelength band for the skip pulse. `None` if not
             working in frame-skipping mode
     """
-    sl = SampleLogsReader(ws)
+    sl = SampleLogs(ws)
     pulse_period = 1.e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     # The TOF values recorded are never be bigger than the frame width,
@@ -230,8 +228,7 @@ def correct_frame(ws, source_to_component_distance):
                        FrameSkipping=(ch.frame_mode is FrameMode.skip))
     # Amend the logs
     fr_skip = 1 if ch.frame_mode == FrameMode.skip else 0
-    AddSampleLog(ws, Logname='is_frame_skipping', LogText=str(fr_skip),
-                 LogType='Number', Numbertype='Int')
+    sl.insert('is_frame_skipping', fr_skip)
 
 
 def correct_detector_frame(ws):
@@ -304,16 +301,11 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
             _ws.dataE(i)[to_zero] = 1.0
 
     # Insert bands information in the logs
-    sl = SampleLogsReader(_ws)
+    sl = SampleLogs(_ws)
     sl.wavelength_min, sl.wavelength_max = w_min, w_max
-    kw = dict(LogUnit='Angstrom', LogType='Number', Numbertype='Double')
-    AddSampleLog(_ws, Logname='wavelength_lead_min',
-                 LogText=str(bands.lead.min), **kw)
-    AddSampleLog(_ws, Logname='wavelength_lead_max',
-                 LogText=str(bands.lead.max), **kw)
+    sl.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
+    sl.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
     if fm is True:
-        AddSampleLog(_ws, Logname='wavelength_skip_min',
-                     LogText=str(bands.skip.min), **kw)
-        AddSampleLog(_ws, Logname='wavelength_skip_max',
-                     LogText=str(bands.skip.max), **kw)
+        sl.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
+        sl.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
     return _ws

@@ -4,16 +4,17 @@ import os
 import numpy as np
 
 from mantid.api import (Run, MatrixWorkspace)
-from mantid.simpleapi import Load
+from mantid.simpleapi import (Load, AddSampleLog)
 
 
-class SampleLogsReader(object):
+class SampleLogs(object):
     r"""
     Log reader, a bit more pythonic
     """
 
     def __init__(self, other):
         self._run = self.find_run(other)
+        self._ws = None
 
     def __getitem__(self, item):
         if item in self._run.keys():
@@ -27,9 +28,59 @@ class SampleLogsReader(object):
             if item in _run.keys():
                 return _run.getProperty(item)
 
+    def insert(self, name, value, unit=None):
+        r"""
+        Wrapper to Mantid AddSampleLog algorithm
+
+        The following properties of AddSampleLog are determined by
+        inspection of `value`: LogText, LogType, NumberType
+
+        Parameters
+        ----------
+        name: str
+            log entry name
+        value: str, int, double, list
+            Value to insert
+        unit: str
+            Log unit
+        """
+        log_unit = unit  # this could end up being None
+        number_type = None  # this could end up being None
+
+        def figure_log_type(val):
+            log_type_dict = dict(list='Number Series', int='Number', float='Number', str='String')
+            for k, v in log_type_dict.items():
+                if isinstance(value, k):
+                    return v
+
+        def figure_number_type(val):
+            for k, v in dict(int='Int',float='Double').items():
+                if isinstance(val, k):
+                    return  v
+            if isinstance(val, list):
+                return figure_number_type(val[0])
+
+        log_type = figure_log_type(value)
+        if log_type == 'Number':
+            number_type = figure_number_type(value)
+
+        # cast `value` to str
+        if log_type == 'NumberSeries':
+            log_text = ', '.join([str(x) for x in value])
+        else:
+            log_text = str(value)
+
+        # Done, call Mantid algorithm
+        kw = {k: v for (k,v) in zip(('LogUnit', 'NumberType'), (log_unit, number_type)) if v is not None}
+        AddSampleLog(self._ws, LogName=name, LogText=log_text, LogType=log_type, **kw)
+
     @property
     def mantid_logs(self):
         return self._run
+
+    @property
+    def workspace(self):
+        return self._ws
 
     def single_value(self, log_key, operation=np.mean):
         _run = self.__dict__['_run']
@@ -48,11 +99,12 @@ class SampleLogsReader(object):
         Run
             Reference to the run object
         """
+        def from_ws(ws):
+            self._ws = ws
+            return ws.getRun()
+
         def from_run(a_run):
             return a_run
-
-        def from_ws(ws):
-            return ws.getRun()
 
         def from_integer(run_number):
             w = Load(Filename=str(run_number))

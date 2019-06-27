@@ -4,7 +4,7 @@ import os
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.simpleapi import Load
-from ornl.sans.samplelogs import SampleLogsReader
+from ornl.sans.samplelogs import SampleLogs
 
 
 def bank_detector_ids(ws, masked=None):
@@ -131,7 +131,7 @@ def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
                     'sample_source-distance', 'sample_source_distance')
         if log_key is not None:
             log_keys = [log_key]
-        sl = SampleLogsReader(other)
+        sl = SampleLogs(other)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
             # uses the default unit [mm] if no unit is defined
@@ -184,7 +184,7 @@ def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
                     'sample_detector-distance', 'sample_detector_distance')
         if log_key is not None:
             log_keys = [log_key]
-        sl = SampleLogsReader(ws)
+        sl = SampleLogs(ws)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
             # uses the default unit [mm] if no unit is defined

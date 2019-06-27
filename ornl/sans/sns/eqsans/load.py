@@ -43,7 +43,6 @@ def load_events(run, output_workspace=None, **levn):
     # issue #72 LoadInstrument here, loading future EQSANS IDF
     # that moves the detector according to the logs
     translate_detector_z(_ws)  # search logs and translate
-    kw = dict(LogType='Number', LogUnit='mm', NumberType='Double')
     sl = SampleLogs(_ws)
     sl.insert('source-sample-distance', source_sample_distance(_ws), unit='mm')
     sl.insert('sample-detector-distance',

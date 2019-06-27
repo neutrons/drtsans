@@ -66,7 +66,7 @@ class SampleLogs(object):
 
         # cast `value` to str
         if log_type == 'NumberSeries':
-            log_text = ', '.join([str(x) for x in value])
+            log_text = ' '.join([str(x) for x in value])
         else:
             log_text = str(value)
 

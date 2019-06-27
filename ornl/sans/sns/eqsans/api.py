@@ -2,6 +2,8 @@
 # Import rolled up to complete a single top-level API
 from .beam_finder import direct_beam_center
 from .load import load_events
+from ornl.settings import optional_output_workspace
+
 
 def find_beam_center(ws, mask_file_path=None):
     """
@@ -60,6 +62,7 @@ def normalize(ws, normalization_type):
     raise NotImplementedError()
 
 
+@optional_output_workspace
 def prepare_data(file_path, mask_file_path=None, sensitivity_file_path=None):
     """
         Load an EQSANS data file and bring the data to a point where it

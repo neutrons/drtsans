@@ -5,7 +5,7 @@ from ornl.sans.sns.eqsans.load import load_events
 
 
 def test_load_events():
-    ws_test_load_events= load_events('EQSANS_92353')
+    ws_test_load_events = load_events('EQSANS_92353')
     assert ws_test_load_events.name() == 'ws_test_load_events'
 
     ws_name = uwn()

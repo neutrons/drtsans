@@ -184,8 +184,9 @@ def optional_output_workspace(func):
         if name_in_signature is False and name in kwargs:
             output_workspace = kwargs.pop(name)
             returned_workspace = func(*args, **kwargs)
-            RenameWorkspace(returned_workspace,
-                            OutputWorkspace=output_workspace)
+            if returned_workspace.name() != output_workspace:
+                RenameWorkspace(returned_workspace,
+                                OutputWorkspace=output_workspace)
             return returned_workspace
         #
         # Find out whether the first required parameter is a workspace

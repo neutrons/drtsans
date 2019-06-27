@@ -11,7 +11,7 @@ __all__ = ['load_events']
 
 
 @optional_output_workspace
-def load_events(run, output_workspace=None, **levn):
+def load_events(run, **levn):
     r"""
     Load events
 

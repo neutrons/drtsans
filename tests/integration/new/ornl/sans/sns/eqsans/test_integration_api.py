@@ -64,7 +64,7 @@ def test_prepared_data(eqsans_f):
         loading, moving the detector, normalizing, binning in wavelength,
         and subtracting dark current.
     """
-    ws = eqsans.prepare_data(eqsans_f['data'], output_workspace='ws')
+    ws = eqsans.prepare_data(eqsans_f['data'])
     assert isinstance(ws, EventWorkspace)
 
 

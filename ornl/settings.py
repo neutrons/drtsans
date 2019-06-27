@@ -224,7 +224,8 @@ def optional_output_workspace(func):
         #       passing as optional argument
         #
         returned_workspace = func(*args, **kwargs)
-        RenameWorkspace(returned_workspace,
-                        OutputWorkspace=output_workspace)
+        if returned_workspace.name() != output_workspace:
+            RenameWorkspace(returned_workspace,
+                            OutputWorkspace=output_workspace)
         return returned_workspace
     return wrapper

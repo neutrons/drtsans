@@ -48,15 +48,15 @@ class SampleLogs(object):
         number_type = None  # this could end up being None
 
         def figure_log_type(val):
-            log_type_dict = dict(list='Number Series', int='Number', float='Number', str='String')
-            for k, v in log_type_dict.items():
-                if isinstance(value, k):
+            for k, v in {list: 'Number Series', int: 'Number',
+                         float: 'Number', str: 'String'}.items():
+                if isinstance(val, k):
                     return v
 
         def figure_number_type(val):
-            for k, v in dict(int='Int',float='Double').items():
+            for k, v in {int: 'Int', float: 'Double'}.items():
                 if isinstance(val, k):
-                    return  v
+                    return v
             if isinstance(val, list):
                 return figure_number_type(val[0])
 

@@ -162,6 +162,7 @@ def optional_output_workspace(func):
     output_workspace_parameter = parameters.get(name, None)
     name_in_signature = name in parameters
 
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         #
         # decorator does not change func if output_workspace is
@@ -183,8 +184,9 @@ def optional_output_workspace(func):
         if name_in_signature is False and name in kwargs:
             output_workspace = kwargs.pop(name)
             returned_workspace = func(*args, **kwargs)
-            RenameWorkspace(returned_workspace,
-                            OutputWorkspace=output_workspace)
+            if returned_workspace.name() != output_workspace:
+                RenameWorkspace(returned_workspace,
+                                OutputWorkspace=output_workspace)
             return returned_workspace
         #
         # Find out whether the first required parameter is a workspace
@@ -222,7 +224,8 @@ def optional_output_workspace(func):
         #       passing as optional argument
         #
         returned_workspace = func(*args, **kwargs)
-        RenameWorkspace(returned_workspace,
-                        OutputWorkspace=output_workspace)
+        if returned_workspace.name() != output_workspace:
+            RenameWorkspace(returned_workspace,
+                            OutputWorkspace=output_workspace)
         return returned_workspace
     return wrapper

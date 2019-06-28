@@ -251,7 +251,7 @@ class Wbands(object):
 
         def mul_bands(other_bands):
             ib = Wbands()
-            for band in other._bands:
+            for band in other_bands:
                 i = self * band
                 if i is not None:
                     ib += i  # add from a Wbands object

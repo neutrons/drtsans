@@ -12,6 +12,7 @@ flake8:
   variables:
     CI_DEBUG_TRACE: "true"
   stage: flake8
+  allow_failure: true
   script:
     - flake8
 

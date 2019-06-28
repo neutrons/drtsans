@@ -7,7 +7,6 @@ from mantid.simpleapi import (CompareWorkspaces, Load,
                               LoadEmptyInstrument,
                               MoveInstrumentComponent)
 from ornl.sans import solid_angle_correction as sac
-from ornl
 
 def test_solid_angle(refd):
     # Load empty instrument
@@ -36,13 +35,13 @@ def test_solid_angle_optional_output(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    _ = sac.solid_angle_correction(wsInput, detector_type='Rectangle', output_workspace='wsInput')
+    wsOutput = sac.solid_angle_correction(wsInput, detector_type='Rectangle', output_workspace='wsOutput')
 
     # Let's do some validation
-    assert wsInput.getNumberHistograms(), 49153
+    assert wsOutput.getNumberHistograms(), 49153
     reference_workspace = Load(Filename=join(refd.new.eqsans,
                                              'test_sans_solid_angle.nxs'))
-    assert CompareWorkspaces(wsInput, reference_workspace)
+    assert CompareWorkspaces(wsOutput, reference_workspace)
 
 
 

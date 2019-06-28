@@ -7,9 +7,9 @@ from mantid.simpleapi import (CompareWorkspaces, Load,
                               LoadEmptyInstrument,
                               MoveInstrumentComponent)
 from ornl.sans import solid_angle_correction as sac
+from ornl
 
-
-def test_sans_solid_angle(refd):
+def test_solid_angle(refd):
     # Load empty instrument
     wsInput = LoadEmptyInstrument(InstrumentName='eqsans')
 
@@ -25,6 +25,25 @@ def test_sans_solid_angle(refd):
     reference_workspace = Load(Filename=join(refd.new.eqsans,
                                              'test_sans_solid_angle.nxs'))
     assert CompareWorkspaces(wsOutput, reference_workspace)
+
+
+def test_solid_angle_optional_output(refd):
+    # Load empty instrument
+    wsInput = LoadEmptyInstrument(InstrumentName='eqsans')
+
+    # Move the detector 5m away from the sample
+    MoveInstrumentComponent(Workspace=wsInput, ComponentName='detector1',
+                            RelativePosition='0', Z='5')
+
+    # Apply solid angle correction
+    _ = sac.solid_angle_correction(wsInput, detector_type='Rectangle', output_workspace='wsInput')
+
+    # Let's do some validation
+    assert wsInput.getNumberHistograms(), 49153
+    reference_workspace = Load(Filename=join(refd.new.eqsans,
+                                             'test_sans_solid_angle.nxs'))
+    assert CompareWorkspaces(wsInput, reference_workspace)
+
 
 
 if __name__ == '__main__':

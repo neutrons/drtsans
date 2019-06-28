@@ -8,10 +8,26 @@ from mantid.simpleapi import (AddSampleLog, ConfigService, CreateWorkspace,
                               ExtractSpectra, MoveInstrumentComponent, Rebin)
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
 from ornl.sans.sns.eqsans import reduce
+from ornl.sans.sns.eqsans import normalisation
+from ornl.sans.sns.eqsans import correct_frame
 from ornl.settings import unique_workspace_name
 
 
 def legacy_reduction():
+
+    # # # Just loading does this:
+    # EQSANSLoad(
+    #     Filename='/SNS/EQSANS/IPTS-17292/0/68200/NeXus/EQSANS_68200_event.nxs',
+    #     OutputWorkspace='EQSANS_68200', LowTOFCut=500,
+    #     HighTOFCut=2000, UseConfig=False, PreserveEvents=False,
+    #     LoadMonitors=False, ReductionProperties='__reduction_parameters_JAmS5')
+    # EQSANSNormalise(InputWorkspace='EQSANS_68200',
+    #                 ReductionProperties='__reduction_parameters_JAmS5',
+    #                 OutputWorkspace='EQSANS_68200')
+    # SANSMask(Workspace='EQSANS_68200', MaskedEdges='')
+    # ApplyTransmissionCorrection(InputWorkspace='EQSANS_68200',
+    #                             OutputWorkspace='EQSANS_68200',
+    #                             TransmissionValue=1, TransmissionError=1)
 
     from reduction_workflow.command_interface import AppendDataFile, Reduce
     from reduction_workflow.instruments.sans import (
@@ -27,11 +43,14 @@ def legacy_reduction():
     eqsans.UseConfigTOFTailsCutoff(False)
     eqsans.UseConfigMask(False)
     eqsans.SetBeamCenter(90, 132.5)
-    eqsans.SetTransmission(1.0, 1.0)
+    # eqsans.SetTransmission(1.0, 1.0)
     eqsans.SetTOFTailsCutoff(low_cut=500, high_cut=2000)
     eqsans.SetWavelengthStep(step=0.1)
-    # eqsans.NoTransmission()
+    eqsans.Resolution(sample_aperture_diameter=10.0)
+    eqsans.NoTransmission()
+    eqsans.NoNormalization()
     eqsans.NoSolidAngle()
+    eqsans.TotalChargeNormalization()
     eqsans.OutputPath(tempfile.gettempdir())
     Reduce()
 
@@ -48,6 +67,14 @@ def test_momentum_tranfer_serial():
     # Center the beam: xyz: 0.0165214,0.0150392,4.00951
     MoveInstrumentComponent(Workspace='ws', ComponentName='detector1',
                             X=-0.025, Y=-0.016, RelativePosition=False)
+
+    correct_frame.log_tof_structure(ws, 500, 2000, interior_clip=True)
+
+    flux_ws = normalisation.load_beam_flux_file(
+        '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample',
+        out_ws='flux_ws', ws_reference=ws)
+
+    ws = ws/flux_ws
 
     # this temporary. Waiting for jose to finish `eqsans.load_events`
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/66

@@ -21,11 +21,9 @@ For every flood:
 
 Join (average) all the sensitivities in one single file
 Save file as nexus
-
 '''
 
 
-@pytest.mark.skip(reason="CalculateEfficiency algorithm not applicable yet")
 @pytest.mark.offline
 def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
@@ -53,10 +51,10 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         InputFile=biosans_sensitivity_dataset['flood_mask'])
 
     # This is for the main detector, let's mask the wing detector
-    MaskBTP(Workspace=dark_current_ws, Component='wing_detector')
-    MaskBTP(Workspace=flood_ws, Component='wing_detector')
-    MaskBTP(Workspace=flood_beamcenter_ws, Component='wing_detector')
-    MaskBTP(Workspace=empty_transmission_ws, Component='wing_detector')
+    MaskBTP(Workspace=dark_current_ws, Components='wing_detector')
+    MaskBTP(Workspace=flood_ws, Components='wing_detector')
+    MaskBTP(Workspace=flood_beamcenter_ws, Components='wing_detector')
+    MaskBTP(Workspace=empty_transmission_ws, Components='wing_detector')
 
     # Let's correct the data first
     ###########################################################################
@@ -113,7 +111,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     ###########################################################################
     # Solid Angle correction
     solid_angle_ws = SolidAngle(
-        InputWorkspace=flood_dc_time_corrected_ws, Type='Tube')
+        InputWorkspace=flood_dc_time_corrected_ws, Method='VerticalTube')
 
     flood_dc_time_sa_corrected_ws = flood_dc_time_corrected_ws / solid_angle_ws
 
@@ -187,8 +185,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         Filename=biosans_sensitivity_dataset['flood'])
 
     # Let's mask the main detector
-    MaskBTP(Workspace=dark_current_ws, Component='detector1')
-    MaskBTP(Workspace=flood_ws, Component="detector1")
+    MaskBTP(Workspace=dark_current_ws, Components='detector1')
+    MaskBTP(Workspace=flood_ws, Components="detector1")
 
     # DC normalisation
     dark_current_norm_ws = time(dark_current_ws)

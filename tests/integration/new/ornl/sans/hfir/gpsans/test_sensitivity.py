@@ -30,11 +30,9 @@ For every flood:
 
 Join (average) all the sensitivities in one single file
 Save file as nexus
-
 '''
 
 
-@pytest.mark.skip(reason="CalculateEfficiency algorithm not applicable yet")
 @pytest.mark.offline
 def test_sensitivity_procedural(gpsans_sensitivity_dataset):
     dark_current_ws = LoadHFIRSANS(
@@ -72,7 +70,7 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         #
         # Solid Angle correction
         solid_angle_ws = SolidAngle(
-            InputWorkspace=flood_dc_corrected_ws.name(), Type='Tube')
+            InputWorkspace=flood_dc_corrected_ws.name(), Method='VerticalTube')
         flood_dc_sa_corrected_ws = flood_dc_corrected_ws / solid_angle_ws
         #
         # Monitor Normalization

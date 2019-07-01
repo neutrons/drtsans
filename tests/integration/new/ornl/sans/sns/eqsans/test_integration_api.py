@@ -4,7 +4,6 @@
 import pytest
 from pytest import approx
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import SumSpectra, SaveNexus
 
 # public API
 from ornl.sans.sns import eqsans

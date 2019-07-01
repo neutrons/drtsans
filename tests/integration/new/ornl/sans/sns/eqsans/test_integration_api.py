@@ -84,6 +84,7 @@ def test_transform_to_wavelength(rs):
     assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
 
 
+@pytest.mark.skip(reason="prepare data not yet completed")
 def test_prepared_data(eqsans_f):
     """
         This is Section 3 of the requirements document.

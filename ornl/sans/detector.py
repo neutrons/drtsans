@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
+import numpy as np
+
 
 class Component:
     '''
@@ -61,3 +63,19 @@ class Component:
         else:
             raise ValueError('Iterared WS and did not find first det id = '
                              '{}'.format(first_det_id))
+
+    def masked_ws_indices(self):
+        """
+        return an array with True or False if a detector is either masked or
+        not for all the component
+
+        Returns
+        -------
+        bool np.array
+            array with True or False if a detector is either masked or
+            not for all the component
+        """
+        si = self._workspace.spectrumInfo()
+        mask_array = [si.isMasked(i) for i in range(
+            self.first_index, self.first_index+self.dim_x*self.dim_y)]
+        return np.array(mask_array)

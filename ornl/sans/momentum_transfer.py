@@ -32,10 +32,12 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         The resolution dx,dy is set in separated workspaces suffixed by
         `_dqx` and `_dqy`.
     """
+    # flake8: noqa E712
 
     assert ws.blocksize() == 1  # sanity check: only 1 bin
 
     det = Component(ws, component_name)
+    masked_pixels = det.masked_ws_indices()
 
     # Note that the detctor is read from the lower left corner, then up
     # the tube is read first from the bottom (256)
@@ -54,6 +56,16 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     i_sigma = i_sigma[det.first_index:det.first_index + det.dims]
     # get rid of the original bins: from shape == (49152, 1) to (49152,)
     i, i_sigma = i[:, 0], i_sigma[:, 0]
+
+    # Get rid of the masked pixels
+    qx = qx[masked_pixels==False]
+    qy = qy[det.first_index:det.first_index + det.dims]
+    dqx = dqx[det.first_index:det.first_index + det.dims]
+    dqy = dqy[det.first_index:det.first_index + det.dims]
+    i = i[det.first_index:det.first_index + det.dims]
+    i_sigma = i_sigma[det.first_index:det.first_index + det.dims]
+
+
 
     # Number of bins in Qx Qy is the number of pixels in X and Y
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(

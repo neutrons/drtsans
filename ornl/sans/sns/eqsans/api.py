@@ -77,7 +77,7 @@ def prepare_data(file_path, detector_offset=0, sample_offset=0,
     """
     ws = load_events(file_path, detector_offset=detector_offset,
                      sample_offset=sample_offset)
-    ws = transform_to_wavelength(ws, bind_width=bind_width,
+    ws = transform_to_wavelength(ws, bin_width=bin_width,
                                  low_tof_clip=low_tof_clip,
                                  high_tof_clip=high_tof_clip)
     # Uncomment as we address them

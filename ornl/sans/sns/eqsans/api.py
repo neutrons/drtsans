@@ -1,8 +1,10 @@
 """ Top-level API for EQSANS """
 # Import rolled up to complete a single top-level API
 from .beam_finder import direct_beam_center
-from .load import load_events
 from ornl.settings import optional_output_workspace
+
+# Imports from EQSANS public API
+from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength)
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -64,6 +66,7 @@ def normalize(ws, normalization_type):
 
 @optional_output_workspace
 def prepare_data(file_path, detector_offset=0, sample_offset=0,
+                 bind_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  dark_current=None,
                  mask_file_path=None, sensitivity_file_path=None):
     """
@@ -74,8 +77,11 @@ def prepare_data(file_path, detector_offset=0, sample_offset=0,
     """
     ws = load_events(file_path, detector_offset=detector_offset,
                      sample_offset=sample_offset)
+    ws = transform_to_wavelength(ws, bind_width=bind_width,
+                                 low_tof_clip=low_tof_clip,
+                                 high_tof_clip=high_tof_clip)
     # Uncomment as we address them
-    # ws = convert_to_wavelength(ws)
+
     # ws = subtract_dark_current(ws, dark_current)
     # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)

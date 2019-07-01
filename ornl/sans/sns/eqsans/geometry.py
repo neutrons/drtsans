@@ -24,7 +24,8 @@ def translate_sample_by_z(ws, z):
     z: float
         Translation to be applied
     """
-    MoveInstrumentComponent(ws, Z=z, ComponentName='sample',
+    MoveInstrumentComponent(ws, Z=z,
+                            ComponentName='sample-position',
                             RelativePosition=True)
 
 

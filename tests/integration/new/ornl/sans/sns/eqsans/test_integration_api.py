@@ -34,10 +34,13 @@ def rs(request):
 
 class TestLoadEvents(object):
 
-    def test_geometry(self, rs):
+    def test_loading_file(self, rs):
         ws = rs.ws
         assert isinstance(ws, EventWorkspace)
         assert ws.getNumberEvents() == rs.num_events
+
+    def test_geometry(self, rs):
+        ws = rs.ws
         # assert distance of detector1 same as that in detectorZ of the logs
         instrument = ws.getInstrument()
         det = instrument.getComponentByName(eqsans.detector_name)
@@ -55,6 +58,15 @@ class TestLoadEvents(object):
         assert ws.getTofMin() == pytest.approx(rs.min_tof, abs=1)
         assert ws.getTofMax() == pytest.approx(rs.max_tof, abs=1)
         assert bool(SampleLogs(ws).is_frame_skipping.value) == rs.skip_frame
+
+    def test_offsets(self):
+        ws = eqsans.load_events('EQSANS_86217', output_workspace=uwn(),
+                                detector_offset=42, sample_offset=24)
+        sl = SampleLogs(ws)
+        ssd = sl.single_value('source-sample-distance')
+        sdd = sl.single_value('sample-detector-distance')
+        assert 14146 == pytest.approx(ssd, abs=0.1)
+        assert 1318 == pytest.approx(sdd, abs=0.1)
 
 
 def test_prepared_data(eqsans_f):

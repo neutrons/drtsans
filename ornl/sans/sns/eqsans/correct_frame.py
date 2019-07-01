@@ -10,8 +10,11 @@ from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
 from ornl.sans.frame_mode import FrameMode
 from ornl.sans import wavelength as wlg
-from ornl.settings import namedtuplefy
+from ornl.settins import namedtuplefy
 from ornl.sans.geometry import source_detector_distance
+
+
+__all__ = ['transform_to_wavelength', ]
 
 
 @namedtuplefy
@@ -302,10 +305,22 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
 
     # Insert bands information in the logs
     sl = SampleLogs(_ws)
-    sl.wavelength_min, sl.wavelength_max = w_min, w_max
+    sl.insert('wavelength_min', w_min, unit='Angstrom')
+    sl.insert('wavelength_max', w_max, unit='Angstrom')
     sl.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
     sl.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
     if fm is True:
         sl.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
         sl.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
     return _ws
+
+
+@optional_output_workspace
+def transform_to_wavelength(ws, bin_width=0.1,
+                            low_tof_clip=0., high_tof_clip=0.,
+                            keep_events=False):
+
+    sdd = source_detector_distance(ws, units='m')
+    bands = transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip)
+    return convert_to_wavelength(ws, bands, bin_width, events=keep_events,
+                                 output_workspace=uwd())

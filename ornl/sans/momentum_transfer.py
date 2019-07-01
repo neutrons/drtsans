@@ -57,15 +57,18 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     # get rid of the original bins: from shape == (49152, 1) to (49152,)
     i, i_sigma = i[:, 0], i_sigma[:, 0]
 
-    # Get rid of the masked pixels
-    qx = qx[masked_pixels==False]
-    qy = qy[det.first_index:det.first_index + det.dims]
-    dqx = dqx[det.first_index:det.first_index + det.dims]
-    dqy = dqy[det.first_index:det.first_index + det.dims]
-    i = i[det.first_index:det.first_index + det.dims]
-    i_sigma = i_sigma[det.first_index:det.first_index + det.dims]
-
-
+    # Create numpy mask arrays with the masked pixels
+    qx = np.ma.MaskedArray(qx, masked_pixels, dtype=np.float,
+                           fill_value=np.nan)
+    qy = np.ma.MaskedArray(qy, masked_pixels, dtype=np.float,
+                           fill_value=np.nan)
+    dqx = np.ma.MaskedArray(
+        dqx, masked_pixels, dtype=np.float, fill_value=np.nan)
+    dqy = np.ma.MaskedArray(
+        dqy, masked_pixels, dtype=np.float, fill_value=np.nan)
+    i = np.ma.MaskedArray(i, masked_pixels, dtype=np.float, fill_value=np.nan)
+    i_sigma = np.ma.MaskedArray(
+        i_sigma, masked_pixels, dtype=np.float, fill_value=np.nan)
 
     # Number of bins in Qx Qy is the number of pixels in X and Y
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
@@ -91,11 +94,12 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     # The tile repeat that column len(dqx_bin_edges) times
     dqy_bin_centers_grid = np.tile(
         dqy_bin_centers[np.newaxis].T, (1, len(dqx_bin_edges)))
+
     # Q WS
     iqxqy_ws = CreateWorkspace(
         DataX=qx_bin_edges_grid,  # 2D
-        DataY=i_grid,  # 2D
-        DataE=i_sigma_grid,  # 2D
+        DataY=i_grid.filled(),  # 2D: mask as np.nan
+        DataE=i_sigma_grid.filled(),  # 2D: mask as np.nan
         NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',

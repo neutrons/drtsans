@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 
 from mantid import mtd
-from mantid.simpleapi import LoadHFIRSANS
+from mantid.simpleapi import LoadHFIRSANS, MaskBTP
 from ornl.sans.momentum_transfer import (bin_into_q1d, bin_into_q2d,
                                          bin_wedge_into_q1d)
 from reduction_workflow.command_interface import AppendDataFile, Reduce
@@ -14,7 +14,7 @@ from reduction_workflow.instruments.sans.hfir_command_interface import (
     GPSANS, AzimuthalAverage, IQxQy, OutputPath, SetBeamCenter)
 
 
-def test_momentum_tranfer_anisotropic(gpsans_f):
+def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     '''
     Tests the basic for momentum transfer:
     - Iq, Iqxqy: Shape of the output workspaces
@@ -84,3 +84,35 @@ def test_momentum_tranfer_cross_check(gpsans_f):
     new_iq = np.nan_to_num(new_iq[0])
 
     assert np.allclose(legacy_iq, new_iq, atol=1e-01)
+
+
+def test_momentum_tranfer_with_mask(gpsans_f):
+    '''
+
+    '''
+    filename = gpsans_f['sample_scattering_2']
+    ws = LoadHFIRSANS(Filename=filename, OutputWorkspace='mask_raw')
+    
+    # Let's mask the detector ends
+    MaskBTP(ws, Components='detector1', Pixel='0-19,236-255')
+
+    wss_name_ws = bin_into_q2d(ws, out_ws_prefix='mask')
+    assert len(wss_name_ws) == 3
+
+    ws_iqxqy, ws_dqx, ws_dqy = [ws[1] for ws in wss_name_ws]
+    assert ws_iqxqy.extractY().shape == (256, 192)
+    assert ws_iqxqy.extractX().shape == (256, 193)
+
+    _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix='mask')
+    assert ws_iq.extractY().shape == (1, 100)
+    assert ws_iq.extractX().shape == (1, 101)
+
+    # ws_iq_end = np.ravel(ws_iq.extractY())[-10:]
+    # assert np.array_equal(ws_iq_end, np.full_like(ws_iq_end, np.nan))
+    # for v in ws_iq_end:
+    #     assert v == np.nan
+
+
+
+
+

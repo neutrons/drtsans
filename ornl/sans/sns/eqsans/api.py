@@ -63,7 +63,8 @@ def normalize(ws, normalization_type):
 
 
 @optional_output_workspace
-def prepare_data(file_path, dark_current=None,
+def prepare_data(file_path, detector_offset=0, sample_offset=0,
+                 dark_current=None,
                  mask_file_path=None, sensitivity_file_path=None):
     """
         Load an EQSANS data file and bring the data to a point where it
@@ -71,7 +72,8 @@ def prepare_data(file_path, dark_current=None,
         always applied regardless of whether the data is background or
         scattering data.
     """
-    ws = load_events(file_path)
+    ws = load_events(file_path, detector_offset=detector_offset,
+                     sample_offset=sample_offset)
     # Uncomment as we address them
     # ws = convert_to_wavelength(ws)
     # ws = subtract_dark_current(ws, dark_current)

@@ -88,12 +88,12 @@ def test_momentum_tranfer_cross_check(gpsans_f):
 
 def test_momentum_tranfer_with_mask(gpsans_f):
     '''
-
+    Test Iq, Iqxqy with the ends of the detector tubes masked
     '''
     filename = gpsans_f['sample_scattering_2']
     ws = LoadHFIRSANS(Filename=filename, OutputWorkspace='mask_raw')
-    
-    # Let's mask the detector ends
+
+    # Let's mask the detector ends: 20 + 20
     MaskBTP(ws, Components='detector1', Pixel='0-19,236-255')
 
     wss_name_ws = bin_into_q2d(ws, out_ws_prefix='mask')
@@ -103,16 +103,15 @@ def test_momentum_tranfer_with_mask(gpsans_f):
     assert ws_iqxqy.extractY().shape == (256, 192)
     assert ws_iqxqy.extractX().shape == (256, 193)
 
+    # Let's make sure the I(qx,qy) has masked the values as the detector
+    i = ws_iqxqy.extractY()
+    nans = np.isnan(i)
+    assert np.any(nans)
+    assert np.count_nonzero(nans) == 192 * (20 + 20)  # 192 tubes
+
     _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix='mask')
     assert ws_iq.extractY().shape == (1, 100)
     assert ws_iq.extractX().shape == (1, 101)
-
-    # ws_iq_end = np.ravel(ws_iq.extractY())[-10:]
-    # assert np.array_equal(ws_iq_end, np.full_like(ws_iq_end, np.nan))
-    # for v in ws_iq_end:
-    #     assert v == np.nan
-
-
-
-
-
+    # Check if the last I of I(q) are nan
+    ws_iq_end = np.ravel(ws_iq.extractY())[-20:]
+    assert np.all(np.isnan(ws_iq_end))

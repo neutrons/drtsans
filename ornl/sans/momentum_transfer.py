@@ -11,6 +11,8 @@ from ornl.sans.hfir import resolution
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     """Bin the data into Q 2D
 
+    TODO: This needs refactoring. Too long too complicated.
+
     Parameters
     ----------
     ws : MatrixWorkspace
@@ -31,6 +33,7 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         To date Mantid has no option to add uncertainties to the axis.
         The resolution dx,dy is set in separated workspaces suffixed by
         `_dqx` and `_dqy`.
+
     """
     # flake8: noqa E712
 
@@ -140,6 +143,9 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
                  out_ws_prefix="ws"):
     """ Calculates: I(Q) and Dq
     The ws_* input parameters are the output workspaces from bin_into_q2d
+
+    TODO:
+    This needs refactoring. Too long too complicated.
 
     Parameters
     ----------

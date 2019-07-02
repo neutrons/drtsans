@@ -13,7 +13,7 @@ flake8:
   stage: flake8
   allow_failure: true
   before_script:
-    - sudo cp fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -27,7 +27,7 @@ dockerbuild:
   before_script:
     - docker system prune -f
     - docker image prune -af
-    - sudo cp fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -47,7 +47,7 @@ docker-update-test:
   dependencies: 
     - dockerbuild
   before_script:
-    - sudo cp fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -62,7 +62,7 @@ docker-no-update-test:
   dependencies: 
     - dockerbuild
   before_script:
-    - sudo cp fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -78,7 +78,7 @@ code-unit-test:
     - dockerbuild
   allow_failure: true
   before_script:
-    - sudo cp fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -94,7 +94,7 @@ code-integration-test:
     - dockerbuild
   allow_failure: true
   before_script:
-    - sudo cp fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -112,7 +112,7 @@ script-host:
     - sudo yum install -y httpd
     - sudo rm -f /etc/httpd/conf.d/welcome.conf
     - sudo systemctl restart httpd
-    - sudo cp fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
     - sudo mkdir -p /var/www/html/sans-backend/$CI_COMMIT_REF_NAME

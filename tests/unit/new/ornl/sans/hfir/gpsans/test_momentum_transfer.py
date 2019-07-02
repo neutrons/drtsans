@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 
 from mantid import mtd
-from mantid.simpleapi import LoadHFIRSANS
+from mantid.simpleapi import LoadHFIRSANS, MaskBTP
 from ornl.sans.momentum_transfer import (bin_into_q1d, bin_into_q2d,
                                          bin_wedge_into_q1d)
 from reduction_workflow.command_interface import AppendDataFile, Reduce
@@ -14,7 +14,7 @@ from reduction_workflow.instruments.sans.hfir_command_interface import (
     GPSANS, AzimuthalAverage, IQxQy, OutputPath, SetBeamCenter)
 
 
-def test_momentum_tranfer_anisotropic(gpsans_f):
+def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     '''
     Tests the basic for momentum transfer:
     - Iq, Iqxqy: Shape of the output workspaces
@@ -84,3 +84,34 @@ def test_momentum_tranfer_cross_check(gpsans_f):
     new_iq = np.nan_to_num(new_iq[0])
 
     assert np.allclose(legacy_iq, new_iq, atol=1e-01)
+
+
+def test_momentum_tranfer_with_mask(gpsans_f):
+    '''
+    Test Iq, Iqxqy with the ends of the detector tubes masked
+    '''
+    filename = gpsans_f['sample_scattering_2']
+    ws = LoadHFIRSANS(Filename=filename, OutputWorkspace='mask_raw')
+
+    # Let's mask the detector ends: 20 + 20
+    MaskBTP(ws, Components='detector1', Pixel='0-19,236-255')
+
+    wss_name_ws = bin_into_q2d(ws, out_ws_prefix='mask')
+    assert len(wss_name_ws) == 3
+
+    ws_iqxqy, ws_dqx, ws_dqy = [ws[1] for ws in wss_name_ws]
+    assert ws_iqxqy.extractY().shape == (256, 192)
+    assert ws_iqxqy.extractX().shape == (256, 193)
+
+    # Let's make sure the I(qx,qy) has masked the values as the detector
+    i = ws_iqxqy.extractY()
+    nans = np.isnan(i)
+    assert np.any(nans)
+    assert np.count_nonzero(nans) == 192 * (20 + 20)  # 192 tubes
+
+    _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, out_ws_prefix='mask')
+    assert ws_iq.extractY().shape == (1, 100)
+    assert ws_iq.extractX().shape == (1, 101)
+    # Check if the last I of I(q) are nan
+    ws_iq_end = np.ravel(ws_iq.extractY())[-20:]
+    assert np.all(np.isnan(ws_iq_end))

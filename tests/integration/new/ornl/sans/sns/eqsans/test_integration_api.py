@@ -9,18 +9,24 @@ from mantid.dataobjects import EventWorkspace
 from ornl.sans.sns import eqsans
 
 # protected API
-from ornl.settings import (namedtuplefy, unique_workspace_name as uwn)
+from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwn)
 from ornl.sans.samplelogs import SampleLogs
 
 
 keys = ('run', 'num_events', 'nominal_sdd', 'sdd', 'ssd', 'min_tof', 'max_tof',
-        'skip_frame')
-values = (('EQSANS_86217', 508339, 1300, 1300, 14122, 9717, 59719, True),
-          ('EQSANS_92353', 262291, 4000, 4000, 14122, 11410, 61412, True),
-          ('EQSANS_85550', 270022, 5000, 4998, 14122, 12036, 62040, True),
-          ('EQSANS_101595', 289989, 1300, 1300, 14122, 7773, 24441, False),
-          ('EQSANS_88565', 19362, 4000, 4000, 14122, 45615, 62281, False),
-          ('EQSANS_88901', 340431, 8000, 7989, 14122, 67332, 83999, False))
+        'skip_frame', 'w_min', 'w_max')
+values = (('EQSANS_86217', 508339, 1300, 1300, 14122, 9717, 59719, True,
+           2.61, 14.72),
+          ('EQSANS_92353', 262291, 4000, 4000, 14122, 11410, 61412, True,
+           2.59, 12.98),
+          ('EQSANS_85550', 270022, 5000, 4998, 14122, 12036, 62040, True,
+           2.59, 12.43),
+          ('EQSANS_101595', 289989, 1300, 1300, 14122, 7773, 24441, False,
+           2.11, 5.65),
+          ('EQSANS_88565', 19362, 4000, 4000, 14122, 45615, 62281, False,
+           10.02, 13.2),
+          ('EQSANS_88901', 340431, 8000, 7989, 14122, 67332, 83999, False,
+           11.99, 14.62))
 run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 
 
@@ -28,7 +34,8 @@ run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 @namedtuplefy
 def rs(request):
     run_set = request.param
-    ws = eqsans.load_events(run_set['run'], output_workspace=uwn())
+    run = run_set['run']
+    ws = eqsans.load_events(run, output_workspace=uwn())
     return {**run_set, **dict(ws=ws)}
 
 
@@ -69,6 +76,15 @@ class TestLoadEvents(object):
         assert 1318 == pytest.approx(sdd, abs=0.1)
 
 
+def test_transform_to_wavelength(rs):
+    ws = eqsans.transform_to_wavelength(rs.ws, low_tof_clip=500,
+                                        high_tof_clip=2000)
+    sl = SampleLogs(ws)
+    assert sl.wavelength_min.value == approx(rs.w_min, abs=0.05)
+    assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
+
+
+@pytest.mark.skip(reason="prepare data not yet completed")
 def test_prepared_data(eqsans_f):
     """
         This is Section 3 of the requirements document.

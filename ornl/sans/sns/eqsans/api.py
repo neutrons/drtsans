@@ -66,7 +66,7 @@ def normalize(ws, normalization_type):
 
 @optional_output_workspace
 def prepare_data(file_path, detector_offset=0, sample_offset=0,
-                 bind_width=0.1, low_tof_clip=500, high_tof_clip=2000,
+                 bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  dark_current=None,
                  mask_file_path=None, sensitivity_file_path=None):
     """

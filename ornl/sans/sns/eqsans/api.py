@@ -5,7 +5,7 @@ from ornl.settings import optional_output_workspace
 
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
-                                  center_detector)
+                                  center_detector, subtract_dark_current)
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -66,16 +66,23 @@ def normalize(ws, normalization_type):
 
 
 @optional_output_workspace
-def prepare_data(file_path, detector_offset=0, sample_offset=0,
+def prepare_data(file_path,
+                 detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  x_center=0.0, y_center=0.0,
                  dark_current=None,
-                 mask_file_path=None, sensitivity_file_path=None):
-    """
+                 mask_file_path=None,
+                 sensitivity_file_path=None):
+    r"""
         Load an EQSANS data file and bring the data to a point where it
         can be used. This includes applying basic corrections that are
         always applied regardless of whether the data is background or
         scattering data.
+
+    Parameters
+    ----------
+    dark_current: str, EventWorkspace
+        Run number, file path, or event workspace
     """
     ws = load_events(file_path, detector_offset=detector_offset,
                      sample_offset=sample_offset)
@@ -83,9 +90,9 @@ def prepare_data(file_path, detector_offset=0, sample_offset=0,
                                  low_tof_clip=low_tof_clip,
                                  high_tof_clip=high_tof_clip)
     center_detector(ws, x=x_center, y=y_center)
+    if dark_current is not None:
+        ws = subtract_dark_current(ws, dark_current)
     # Uncomment as we address them
-
-    # ws = subtract_dark_current(ws, dark_current)
     # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)
     # ws = apply_solid_angle_correction(ws)

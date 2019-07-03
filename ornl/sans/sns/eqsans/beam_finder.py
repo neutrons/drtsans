@@ -5,7 +5,7 @@ from mantid.simpleapi import (Integration, FindCenterOfMassPosition)
 
 def direct_beam_center(input_ws, method='center_of_mass'):
     r"""
-    Calculate coordinates of beam impinging on the detector
+    Calculate absolute coordinates of beam impinging on the detector
 
     Parameters
     ----------

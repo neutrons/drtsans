@@ -4,7 +4,8 @@ from .beam_finder import direct_beam_center
 from ornl.settings import optional_output_workspace
 
 # Imports from EQSANS public API
-from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength)
+from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
+                                  center_detector)
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -67,6 +68,7 @@ def normalize(ws, normalization_type):
 @optional_output_workspace
 def prepare_data(file_path, detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
+                 x_center=0.0, y_center=0.0,
                  dark_current=None,
                  mask_file_path=None, sensitivity_file_path=None):
     """
@@ -80,6 +82,7 @@ def prepare_data(file_path, detector_offset=0, sample_offset=0,
     ws = transform_to_wavelength(ws, bin_width=bin_width,
                                  low_tof_clip=low_tof_clip,
                                  high_tof_clip=high_tof_clip)
+    center_detector(ws, x=x_center, y=y_center)
     # Uncomment as we address them
 
     # ws = subtract_dark_current(ws, dark_current)

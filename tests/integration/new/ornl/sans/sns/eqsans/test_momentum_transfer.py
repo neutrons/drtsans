@@ -7,27 +7,14 @@ from mantid import mtd
 from mantid.simpleapi import (AddSampleLog, ConfigService, CreateWorkspace,
                               ExtractSpectra, MoveInstrumentComponent, Rebin)
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
-from ornl.sans.sns.eqsans import reduce
 from ornl.sans.sns.eqsans import normalisation
-from ornl.sans.sns.eqsans import correct_frame
 from ornl.settings import unique_workspace_name
+from ornl.sans.sns.eqsans import load_events, transform_to_wavelength
+# from ornl.sans.sns.eqsans import center_detector
+# from ornl.sans.sns.eqsans import geometry
 
 
 def legacy_reduction():
-
-    # # # Just loading does this:
-    # EQSANSLoad(
-    #     Filename='/SNS/EQSANS/IPTS-17292/0/68200/NeXus/EQSANS_68200_event.nxs',
-    #     OutputWorkspace='EQSANS_68200', LowTOFCut=500,
-    #     HighTOFCut=2000, UseConfig=False, PreserveEvents=False,
-    #     LoadMonitors=False, ReductionProperties='__reduction_parameters_JAmS5')
-    # EQSANSNormalise(InputWorkspace='EQSANS_68200',
-    #                 ReductionProperties='__reduction_parameters_JAmS5',
-    #                 OutputWorkspace='EQSANS_68200')
-    # SANSMask(Workspace='EQSANS_68200', MaskedEdges='')
-    # ApplyTransmissionCorrection(InputWorkspace='EQSANS_68200',
-    #                             OutputWorkspace='EQSANS_68200',
-    #                             TransmissionValue=1, TransmissionError=1)
 
     from reduction_workflow.command_interface import AppendDataFile, Reduce
     from reduction_workflow.instruments.sans import (
@@ -62,24 +49,34 @@ def test_momentum_tranfer_serial():
 
     '''
 
-    ws = reduce.load_w('EQSANS_68200', low_tof_clip=500,
-                       high_tof_clip=2000, dw=0.1)
-    # Center the beam: xyz: 0.0165214,0.0150392,4.00951
-    MoveInstrumentComponent(Workspace='ws', ComponentName='detector1',
-                            X=-0.025, Y=-0.016, RelativePosition=False)
+    ws = load_events('EQSANS_68200', detector_offset=0,
+                     sample_offset=0)
+    ws = transform_to_wavelength(ws, bin_width=0.1,
+                                 low_tof_clip=500,
+                                 high_tof_clip=2000)
 
-    correct_frame.log_tof_structure(ws, 500, 2000, interior_clip=True)
+    # center_detector will do this when jose fixes the Z issue
+    # Center the beam: xyz: 0.0165214,0.0150392,4.00951
+    instrument = ws.getInstrument()
+    component = instrument.getComponentByName("detector1")
+    z = component.getPos()[2]
+    MoveInstrumentComponent(Workspace='ws', ComponentName='detector1',
+                            X=-0.025, Y=-0.016, Z=z, RelativePosition=False)
 
     flux_ws = normalisation.load_beam_flux_file(
         '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample',
         out_ws='flux_ws', ws_reference=ws)
 
-    ws = ws/flux_ws
+    ws = normalisation.proton_charge_and_flux(ws, flux_ws, "ws")
 
-    # this temporary. Waiting for jose to finish `eqsans.load_events`
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/66
+    # This is not working! slit4 missing
+    # geometry.sample_aperture_diameter(ws)
+    # To date this does not add keyword to logs
+    # geometry.source_aperture_diameter(ws)
+
+    # this temporary. Waiting for jose to finish the issues above
     AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter',
-                 LogText='20.', LogType='Number', LogUnit='mm')
+                 LogText='10.', LogType='Number', LogUnit='mm')
     AddSampleLog(Workspace=ws, LogName='source-aperture-diameter',
                  LogText='20.', LogType='Number', LogUnit='mm')
 

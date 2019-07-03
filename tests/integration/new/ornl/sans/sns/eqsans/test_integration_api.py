@@ -14,19 +14,19 @@ from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import detector_name
 
 
-keys = ('run', 'num_events', 'nominal_sdd', 'sdd', 'ssd', 'min_tof', 'max_tof',
+keys = ('run', 'num_events', 'sdd', 'ssd', 'min_tof', 'max_tof',
         'skip_frame', 'w_min', 'w_max')
-values = (('EQSANS_86217', 508339, 1300, 1300, 14122, 9717, 59719, True,
+values = (('EQSANS_86217', 508339, 1300, 14122, 9717, 59719, True,
            2.61, 14.72),
-          ('EQSANS_92353', 262291, 4000, 4000, 14122, 11410, 61412, True,
+          ('EQSANS_92353', 262291, 4000, 14122, 11410, 61412, True,
            2.59, 12.98),
-          ('EQSANS_85550', 270022, 5000, 4998, 14122, 12036, 62040, True,
+          ('EQSANS_85550', 270022, 5000, 14122, 12036, 62040, True,
            2.59, 12.43),
-          ('EQSANS_101595', 289989, 1300, 1300, 14122, 7773, 24441, False,
+          ('EQSANS_101595', 289989, 1300, 14122, 7773, 24441, False,
            2.11, 5.65),
-          ('EQSANS_88565', 19362, 4000, 4000, 14122, 45615, 62281, False,
+          ('EQSANS_88565', 19362, 4000, 14122, 45615, 62281, False,
            10.02, 13.2),
-          ('EQSANS_88901', 340431, 8000, 7989, 14122, 67332, 83999, False,
+          ('EQSANS_88901', 340431, 8000, 14122, 67332, 83999, False,
            11.99, 14.62))
 run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 
@@ -53,7 +53,7 @@ class TestLoadEvents(object):
         instrument = ws.getInstrument()
         det = instrument.getComponentByName(detector_name(instrument))
         d1 = det.getDistance(instrument.getSample())
-        assert rs.nominal_sdd == pytest.approx(d1 * 1000, abs=1)
+        assert rs.sdd == pytest.approx(d1 * 1000, abs=1)
         # Check logs
         sl = SampleLogs(ws)
         assert rs.ssd == approx(sl.single_value('source-sample-distance'),

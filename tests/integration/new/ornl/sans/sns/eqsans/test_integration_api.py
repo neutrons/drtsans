@@ -11,6 +11,7 @@ from ornl.sans.sns import eqsans
 # protected API
 from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwn)
 from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.geometry import detector_name
 
 
 keys = ('run', 'num_events', 'nominal_sdd', 'sdd', 'ssd', 'min_tof', 'max_tof',
@@ -50,7 +51,7 @@ class TestLoadEvents(object):
         ws = rs.ws
         # assert distance of detector1 same as that in detectorZ of the logs
         instrument = ws.getInstrument()
-        det = instrument.getComponentByName(eqsans.detector_name)
+        det = instrument.getComponentByName(detector_name(instrument))
         d1 = det.getDistance(instrument.getSample())
         assert rs.nominal_sdd == pytest.approx(d1 * 1000, abs=1)
         # Check logs

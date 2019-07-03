@@ -82,9 +82,9 @@ def prepare_data(data,
     Parameters
     ----------
     data: int, str, EventWorkspace
-        Run number, file path, or event workspace
+        Run number as int or str, file path, EventWorkspace
     dark_current: int, str, EventWorkspace
-        Run number, file path, or event workspace
+        Run number as int or str, file path, EventWorkspace
     """
     ws = load_events(data, detector_offset=detector_offset,
                      sample_offset=sample_offset)

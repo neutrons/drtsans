@@ -66,7 +66,7 @@ def normalize(ws, normalization_type):
 
 
 @optional_output_workspace
-def prepare_data(file_path,
+def prepare_data(data,
                  detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  x_center=0.0, y_center=0.0,
@@ -81,10 +81,12 @@ def prepare_data(file_path,
 
     Parameters
     ----------
-    dark_current: str, EventWorkspace
+    data: int, str, EventWorkspace
+        Run number, file path, or event workspace
+    dark_current: int, str, EventWorkspace
         Run number, file path, or event workspace
     """
-    ws = load_events(file_path, detector_offset=detector_offset,
+    ws = load_events(data, detector_offset=detector_offset,
                      sample_offset=sample_offset)
     ws = transform_to_wavelength(ws, bin_width=bin_width,
                                  low_tof_clip=low_tof_clip,

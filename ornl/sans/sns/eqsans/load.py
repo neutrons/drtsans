@@ -1,4 +1,5 @@
-from mantid.simpleapi import LoadEventNexus
+
+from mantid.simpleapi import (LoadEventNexus, CloneWorkspace)
 from ornl.settings import (optional_output_workspace, amend_config,
                            unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
@@ -39,9 +40,12 @@ def load_events(run, detector_offset=0., sample_offset=0., **levn):
     EventWorkspace
         Reference to the events workspace
     """
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
-        _ws = LoadEventNexus(Filename=str(run),
-                             OutputWorkspace=uwd(), **levn)
+    if isinstance(run, int) or isinstance(run, str):
+        with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+            _ws = LoadEventNexus(Filename=str(run),
+                                 OutputWorkspace=uwd(), **levn)
+    else:
+        _ws = CloneWorkspace(run, OutputWorkspace=uwd())
     #
     # Correct geometry
     #

@@ -3,8 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (Integration, Transpose, RebinToWorkspace,
-                              ConvertUnits, RenameWorkspace, Subtract,
-                              Scale, LoadEventNexus)
+                              ConvertUnits, Subtract, Scale, LoadEventNexus)
 
 from ornl.settings import (namedtuplefy, optional_output_workspace,
                            unique_workspace_dundername as uwd)
@@ -175,10 +174,7 @@ def subtract_normalised_dark_current(data, dark):
     MatrixWorkspace
         `data` minus `dark` current
     """
-    try:
-        duration_log_key = SampleLogs(dark).normalizing_duration.value
-    except:
-        KeyError('Dark current has not been normalized')
+    duration_log_key = SampleLogs(dark).normalizing_duration.value
     d = duration(data, log_key=duration_log_key).value
     scaled = Scale(dark, Factor=-d, OutputWorkspace=uwd())
     difference = Subtract(data, scaled, OutputWorkspace=uwd())

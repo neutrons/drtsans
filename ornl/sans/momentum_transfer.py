@@ -6,6 +6,7 @@ from scipy import stats
 from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
 from ornl.sans.detector import Component
 from ornl.sans.hfir import resolution
+from mantid.kernel import logger
 
 
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
@@ -40,12 +41,21 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     assert ws.blocksize() == 1  # sanity check: only 1 bin
 
     det = Component(ws, component_name)
+    logger.information(str(det))
     masked_pixels = det.masked_ws_indices()
 
     # Note that the detctor is read from the lower left corner, then up
     # the tube is read first from the bottom (256)
-    i = ws.extractY()  # i.shape == (49154, 1)
+    
+    #i = ws.extractY()  # i.shape == (49154, 1)
     i_sigma = ws.extractE()
+
+
+    data=ws.extractY().reshape(-1,8,256).T # shape = (256, 8, 24)
+    data_sorted=data[:,[0,4,1,5,2,6,3,7],:] # same shape
+    i=data_sorted.transpose().reshape(-1,1)
+
+
 
     # All returned arrays have the same shape == (49154,)
     qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)

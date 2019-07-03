@@ -5,13 +5,14 @@ from mantid.simpleapi import MoveInstrumentComponent
 
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import sample_source_distance
+from ornl.sans.geometry import (sample_source_distance,
+                                sample_detector_distance,
+                                detector_name)
 
-__all__ = ['detector_name', 'detector_z_log',
+__all__ = ['detector_z_log',
            'translate_sample_by_z', 'translate_detector_by_z',
            'center_detector']
 
-detector_name = 'detector1'
 detector_z_log = 'detectorZ'
 
 
@@ -51,7 +52,7 @@ def translate_detector_z(ws, z=None, relative=True):
         sl = SampleLogs(ws)
         z = 1e-3 * sl.single_value(detector_z_log)  # assumed in mili-meters
 
-    kwargs = dict(ComponentName=detector_name,
+    kwargs = dict(ComponentName=detector_name(ws),
                   RelativePosition=relative)
     MoveInstrumentComponent(ws, Z=z, **kwargs)
 
@@ -91,9 +92,14 @@ def center_detector(ws, x, y, units='m', relative=False):
     t_x = x if units == 'm' else x / 1.e3
     t_y = y if units == 'm' else y / 1.e3
     MoveInstrumentComponent(ws, X=t_x, Y=t_y,
-                            ComponentName=detector_name,
+                            ComponentName=detector_name(ws),
                             RelativePosition=relative)
-    det = ws.getInstrument().getComponentByName(detector_name)
+
+    # Recalculate distance from sample to detector
+    sdd = sample_detector_distance(ws, units='mm', search_logs=False)
+    SampleLogs(ws).insert('sample-detector-distance', sdd, unit='mm')
+    instrument = ws.getInstrument()
+    det = instrument.getComponentByName(detector_name(instrument))
     return np.array(det.getPos())
 
 

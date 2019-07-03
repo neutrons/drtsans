@@ -152,7 +152,7 @@ def normalise_to_workspace(dark, data):
 
 
 @optional_output_workspace
-def subtract_normalized_dark_current(data, dark):
+def subtract_normalised_dark_current(data, dark):
     r"""
     Subtract normalized dark current from data, taking into account
     the duration of both `data` and `dark` runs.
@@ -208,7 +208,7 @@ def subtract_dark_current(data, dark):
     else:
         _dark = dark  # assumed it is an EventWorkspace
     _dark_normal = normalise_to_workspace(_dark, data, output_workspace=uwd())
-    difference = subtract_normalized_dark_current(data, _dark_normal,
+    difference = subtract_normalised_dark_current(data, _dark_normal,
                                                   output_workspace=uwd())
     _dark_normal.delete()
     if _dark is not dark:

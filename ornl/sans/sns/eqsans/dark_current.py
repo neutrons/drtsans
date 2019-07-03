@@ -196,17 +196,17 @@ def subtract_dark_current(data, dark):
     ----------
     data : Workspace
         The workspace to be normalised
-    dark: EventsWorkspace
-        Dark current workspace with units in time-of-flight
+    dark: int, str, EventsWorkspace
+        run number, file path, or workspace for dark current
 
     Returns
     -------
     MatrixWorkspace
     """
-    if isinstance(dark, str):
-        _dark = LoadEventNexus(dark, output_workspace=uwd())
+    if isinstance(dark, str) or isinstance(dark, str):
+        _dark = LoadEventNexus(str(dark), output_workspace=uwd())
     else:
-        _dark = dark
+        _dark = dark  # assumed it is an EventWorkspace
     _dark_normal = normalise_to_workspace(_dark, data, output_workspace=uwd())
     difference = subtract_normalized_dark_current(data, _dark_normal,
                                                   output_workspace=uwd())

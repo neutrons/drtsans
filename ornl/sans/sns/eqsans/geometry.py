@@ -91,7 +91,12 @@ def center_detector(ws, x, y, units='m', relative=False):
     """
     t_x = x if units == 'm' else x / 1.e3
     t_y = y if units == 'm' else y / 1.e3
-    MoveInstrumentComponent(ws, X=t_x, Y=t_y,
+    t_z = 0.0
+    if relative is False:
+        i = ws.getInstrument()
+        # preserve the Z coordinate value
+        t_z = i.getComponentByName(detector_name(i)).getPos()[-1]
+    MoveInstrumentComponent(ws, X=t_x, Y=t_y, Z=t_z,
                             ComponentName=detector_name(ws),
                             RelativePosition=relative)
 

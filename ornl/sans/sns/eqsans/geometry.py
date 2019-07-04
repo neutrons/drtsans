@@ -140,7 +140,7 @@ def sample_aperture_diameter(run, unit='mm'):
 
 
 @namedtuplefy
-def source_aperture(other, unit='mm', search_logs=True):
+def source_aperture(other, unit='mm'):
     r"""
     Find the source aperture diameter and position
 
@@ -238,8 +238,8 @@ def source_aperture_diameter(run, unit='mm'):
 
 def insert_aperture_logs(ws):
     r"""
-    Insert source and sample aperture diameters in the logs.
-    Units are in mm
+    Insert source and sample aperture diameters in the logs, as well as
+    the distance between the source aperture and the sample. Units are in mm
 
     Parameters
     ----------
@@ -247,9 +247,11 @@ def insert_aperture_logs(ws):
         Insert metadata in this workspace's logs
     """
     sl = SampleLogs(ws)
-    sl.insert('sample-aperture-diameter',
-              sample_aperture_diameter(ws), unit='mm')
-    sa = source_aperture(ws)
-    sl.insert('source-aperture-diameter', sa.diameter, unit='mm')
-    sl.insert('source-aperture-sample-distance',
-              sa.distance_to_sample, unit='mm')
+    if 'sample-aperture-diameter' not in sl.keys():
+        sample_aperture_diameter(ws, unit='mm')  # this function will insert the log
+    if 'source-aperture-diameter' not in sl.keys():
+        sad = source_aperture(ws, unit='mm').diameter
+        sl.insert('source-aperture-diameter', sad, unit='mm')
+    if 'source-aperture-sample-distance' not in sl.keys():
+        sds = source_aperture(ws, unit='mm').distance_to_sample
+        sl.insert('source-aperture-sample-distance', sds, unit='mm')

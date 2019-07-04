@@ -42,6 +42,5 @@ def test_source_aperture_diameter():
     assert sad == approx(20)
 
 
-
 if __name__ == '__main__':
     pytest.main()

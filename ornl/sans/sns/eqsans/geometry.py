@@ -193,7 +193,7 @@ def source_aperture(other, unit='mm', search_logs=True):
     return dict(diameter=diameter, distance_to_sample=asd, unit=unit)
 
 
-def source_aperture_diameter(run, unit='mm', search_logs=True):
+def source_aperture_diameter(run, unit='mm'):
     r"""
     Find the source aperture diameter
 
@@ -218,8 +218,6 @@ def source_aperture_diameter(run, unit='mm', search_logs=True):
     run: Mantid Run instance, MatrixWorkspace, file name, run number
     unit: str
         Length unit, either 'm' or 'mm'
-    search_logs: Bool
-        Report log value in "source-aperture-diameter" key
 
     Returns
     -------
@@ -228,7 +226,7 @@ def source_aperture_diameter(run, unit='mm', search_logs=True):
     """
     log_key = 'source-aperture-diameter'
     sl = SampleLogs(run)
-    if search_logs is True:
+    if log_key in sl.keys():
         sad = sl.single_value(log_key)  # units are 'mm'
     else:
         sad = source_aperture(run, unit='mm').diameter

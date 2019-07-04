@@ -36,12 +36,11 @@ def test_sample_aperture_diameter():
 
 def test_source_aperture_diameter():
     ws = LoadEventNexus('EQSANS_92353')
-    sad = source_aperture_diameter(ws, search_logs=False)
+    sad = source_aperture_diameter(ws)
     assert sad == approx(20)
     sad = SampleLogs(ws).single_value('source-aperture-diameter')
     assert sad == approx(20)
-    sad = source_aperture_diameter(ws, search_logs=True)
-    assert sad == approx(20)
+
 
 
 if __name__ == '__main__':

@@ -248,7 +248,7 @@ def insert_aperture_logs(ws):
     """
     sl = SampleLogs(ws)
     if 'sample-aperture-diameter' not in sl.keys():
-        sample_aperture_diameter(ws, unit='mm')  # this function will insert the log
+        sample_aperture_diameter(ws, unit='mm')  # function will insert the log
     if 'source-aperture-diameter' not in sl.keys():
         sad = source_aperture(ws, unit='mm').diameter
         sl.insert('source-aperture-diameter', sad, unit='mm')

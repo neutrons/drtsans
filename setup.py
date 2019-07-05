@@ -1,5 +1,5 @@
 """
-    Setup script for ORNL SANS reduction
+Setup script for ORNL SANS reduction
 """
 from __future__ import absolute_import, division, print_function
 from setuptools import setup, find_packages
@@ -17,5 +17,6 @@ setup(name="ornl",
       package_dir={},
       package_data={},
       install_requires=[],
-      setup_requires=[],
+      setup_requires=['pytest-runner'],
+      tests_require=['pytest', 'pytest-xdist'],
       )

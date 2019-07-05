@@ -3,34 +3,6 @@ from __future__ import print_function
 from mantid.simpleapi import (
     LoadAscii, ConvertToHistogram, RebinToWorkspace, NormaliseToUnity, Divide,
     NormaliseByCurrent, Multiply, DeleteWorkspace)
-from ornl.settings import unique_workspace_name
-from ornl.sans.sns.eqsans import dark_current as dkc
-
-
-def time(ws_input, ws_dark_current, out_ws):
-    r"""
-    Time normalization. It is only used for dark current.
-    It does not make sense to use it for other files
-
-    Parameters
-    ----------
-    ws_input : Workspace
-        The workspace to be normalised
-    ws_dark_current: EventsWorkspace
-        Dark current workspace with units in time-of-flight
-    out_ws: str
-        Name of the normalized output workspace
-
-    Returns
-    -------
-    MatrixWorkspace
-        `ws_input` minus `ws_dark_current`
-    """
-    dark_normal = dkc.normalise_to_workspace(ws_dark_current, ws_input,
-                                             unique_workspace_name())
-    difference = dkc.subtract_normalised_dark(ws_input, dark_normal, out_ws)
-    DeleteWorkspace(dark_normal)  # a bit of cleanup doesn't hurt
-    return difference
 
 
 def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):

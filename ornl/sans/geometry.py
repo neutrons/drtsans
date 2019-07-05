@@ -7,6 +7,31 @@ from mantid.simpleapi import Load
 from ornl.sans.samplelogs import SampleLogs
 
 
+def detector_name(ipt):
+    r"""
+    Name of the main detector array
+
+    Parameters
+    ----------
+    ipt: str, Instrument, Workspace
+        Input instrument name, Instrument instance, or Workspace
+
+    Returns
+    -------
+    str
+    """
+    inst_to_det = {'EQSANS': 'detector1', 'EQ-SANS': 'detector1',
+                   'BIOSANS': 'detector1',
+                   'GPSANS': 'detector1'}
+    if isinstance(ipt, str):
+        instrument_name = ipt
+    elif isinstance(ipt, Instrument):
+        instrument_name = ipt.getName()
+    else:
+        instrument_name = ipt.getInstrument().getName()  # assume workspace
+    return inst_to_det[instrument_name]
+
+
 def bank_detector_ids(ws, masked=None):
     r"""
     Return the ID's for the detectors in detector banks (excludes monitors)
@@ -193,9 +218,8 @@ def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
             pass
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(ws)
-    sample = instrument.getSample()
-    sdd_i = [det.getDistance(sample) for det in bank_detectors(ws)]
-    return min(sdd_i) * m2units[units]
+    det = instrument.getComponentByName(detector_name(ws))
+    return det.getDistance(instrument.getSample()) * m2units[units]
 
 
 def source_detector_distance(ws, units='mm', search_logs=True):

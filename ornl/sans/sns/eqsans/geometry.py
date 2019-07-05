@@ -1,15 +1,19 @@
 from __future__ import (absolute_import, division, print_function)
 
+import numpy as np
 from mantid.simpleapi import MoveInstrumentComponent
 
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import sample_source_distance
+from ornl.sans.geometry import (sample_source_distance,
+                                sample_detector_distance,
+                                detector_name)
 
-__all__ = ['detector_name', 'detector_z_log',
-           'translate_sample_by_z', 'translate_detector_by_z']
+__all__ = ['detector_z_log',
+           'translate_sample_by_z', 'translate_detector_by_z',
+           'center_detector', 'sample_aperture_diameter',
+           'source_aperture_diameter']
 
-detector_name = 'detector1'
 detector_z_log = 'detectorZ'
 
 
@@ -24,7 +28,8 @@ def translate_sample_by_z(ws, z):
     z: float
         Translation to be applied
     """
-    MoveInstrumentComponent(ws, Z=z, ComponentName='sample',
+    MoveInstrumentComponent(ws, Z=z,
+                            ComponentName='sample-position',
                             RelativePosition=True)
 
 
@@ -48,7 +53,7 @@ def translate_detector_z(ws, z=None, relative=True):
         sl = SampleLogs(ws)
         z = 1e-3 * sl.single_value(detector_z_log)  # assumed in mili-meters
 
-    kwargs = dict(ComponentName=detector_name,
+    kwargs = dict(ComponentName=detector_name(ws),
                   RelativePosition=relative)
     MoveInstrumentComponent(ws, Z=z, **kwargs)
 
@@ -60,22 +65,75 @@ def translate_detector_by_z(ws, z, **kwargs):
     return translate_detector_z(ws, z=z, relative=True, **kwargs)
 
 
-def sample_aperture_diameter(other, unit='mm'):
+def center_detector(ws, x, y, units='m', relative=False):
     r"""
-    Find the sample aperture diameter
+    Move the detector on the XY plane.
+
+    Usually `x` and `y` will be the absolute coordinates of the beam
+    impinging on the detector.
 
     Parameters
     ----------
-    other: Run, MatrixWorkspace, file name, run number
+    ws: Workspace
+        Input workspace containing the instrument
+    x: float
+        Final position or translation along the X-axis
+    y: float
+        Final position or translation along the Y-axis
+    units: str
+        Either meters 'm' or mili-meters 'mm'
+    relative: Bool
+        Apply translation if True, otherwise `x` and `y` are final coordinates
+
+    Returns
+    =======
+    numpy.ndarray
+        Detector vector position
+    """
+    t_x = x if units == 'm' else x / 1.e3
+    t_y = y if units == 'm' else y / 1.e3
+    t_z = 0.0
+    if relative is False:
+        i = ws.getInstrument()
+        # preserve the Z coordinate value
+        t_z = i.getComponentByName(detector_name(i)).getPos()[-1]
+    MoveInstrumentComponent(ws, X=t_x, Y=t_y, Z=t_z,
+                            ComponentName=detector_name(ws),
+                            RelativePosition=relative)
+
+    # Recalculate distance from sample to detector
+    sdd = sample_detector_distance(ws, units='mm', search_logs=False)
+    SampleLogs(ws).insert('sample-detector-distance', sdd, unit='mm')
+    instrument = ws.getInstrument()
+    det = instrument.getComponentByName(detector_name(instrument))
+    return np.array(det.getPos())
+
+
+def sample_aperture_diameter(run, unit='mm'):
+    r"""
+    Find the sample aperture diameter from the logs.
+
+    Log keys searched are 'sample-aperture-diameter' and 'beamslit4'.
+
+    Parameters
+    ----------
+    run: Mantid Run instance, MatrixWorkspace, file name, run number
+        Input from which to find the aperture
     unit: str
-        Length unit, either 'm' or 'mm'
+        return aperture in requested length unit, either 'm' or 'mm'
+
     Returns
     -------
     float
         Sample aperture diameter, in requested units
     """
-    sl = SampleLogs(other)
-    sad = sl.single_value('beamslit4')
+    sl = SampleLogs(run)
+    for log_key in ('sample-aperture-diameter', 'beamslit4'):
+        if log_key in sl.keys():
+            sad = sl.single_value(log_key)
+            break
+    if 'sample-aperture-diameter' not in sl.keys():
+        sl.insert('sample-aperture-diameter', sad, unit='mm')
     if unit == 'm':
         sad /= 1000.0
     return sad
@@ -102,6 +160,7 @@ def source_aperture(other, unit='mm'):
     other: Run, MatrixWorkspace, file name, run number
     unit: str
         Length unit, either 'm' or 'mm'
+
     Returns
     -------
     namedtuple
@@ -134,9 +193,11 @@ def source_aperture(other, unit='mm'):
     return dict(diameter=diameter, distance_to_sample=asd, unit=unit)
 
 
-def source_aperture_diameter(other, unit='mm'):
+def source_aperture_diameter(run, unit='mm'):
     r"""
     Find the source aperture diameter
+
+    Either report log vale or compute this quantity.
 
     After the moderator (source) there are three consecutive discs
     (termed wheels), each with eight holes in them (eight slits).
@@ -149,23 +210,36 @@ def source_aperture_diameter(other, unit='mm'):
     rotation angle for each wheel in order to align the appropriate slit
     with the neutron beam. These angles are not used in reduction.
 
+    If the aperture is computed, then the value is stored
+    in log key "source-aperture-diameter", with mili meter units
+
     Parameters
     ----------
-    other: Run, MatrixWorkspace, file name, run number
+    run: Mantid Run instance, MatrixWorkspace, file name, run number
     unit: str
         Length unit, either 'm' or 'mm'
+
     Returns
     -------
     float
         Source aperture diameter, in requested units
     """
-    return source_aperture(other, unit=unit).diameter
+    log_key = 'source-aperture-diameter'
+    sl = SampleLogs(run)
+    if log_key in sl.keys():
+        sad = sl.single_value(log_key)  # units are 'mm'
+    else:
+        sad = source_aperture(run, unit='mm').diameter
+        sl.insert(log_key, sad, unit='mm')
+    if unit == 'm':
+        sad /= 1000.0
+    return sad
 
 
 def insert_aperture_logs(ws):
     r"""
-    Insert source and sample aperture diameters in the logs.
-    Units are in mm
+    Insert source and sample aperture diameters in the logs, as well as
+    the distance between the source aperture and the sample. Units are in mm
 
     Parameters
     ----------
@@ -173,9 +247,11 @@ def insert_aperture_logs(ws):
         Insert metadata in this workspace's logs
     """
     sl = SampleLogs(ws)
-    sl.insert('sample-aperture-diameter',
-              sample_aperture_diameter(ws), unit='mm')
-    sa = source_aperture(ws)
-    sl.insert('source-aperture-diameter', sa.diameter, unit='mm')
-    sl.insert('source-aperture-sample-distance',
-              sa.distance_to_sample, unit='mm')
+    if 'sample-aperture-diameter' not in sl.keys():
+        sample_aperture_diameter(ws, unit='mm')  # function will insert the log
+    if 'source-aperture-diameter' not in sl.keys():
+        sad = source_aperture(ws, unit='mm').diameter
+        sl.insert('source-aperture-diameter', sad, unit='mm')
+    if 'source-aperture-sample-distance' not in sl.keys():
+        sds = source_aperture(ws, unit='mm').distance_to_sample
+        sl.insert('source-aperture-sample-distance', sds, unit='mm')

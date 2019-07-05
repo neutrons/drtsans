@@ -7,7 +7,7 @@ from mantid.dataobjects import EventWorkspace
 
 # public API
 from ornl.sans.sns import eqsans
-from ornl.sans import solid_angle_correction as sac
+from ornl.sans import solid_angle_correction
 
 # protected API
 from ornl.settings import (namedtuplefy, unique_workspace_name as uwn)
@@ -69,13 +69,12 @@ def test_prepared_data(eqsans_f):
     assert isinstance(ws, EventWorkspace)
 
 
-@pytest.mark.parametrize('run_set', run_sets)
-def test_solid_angle(run_set):
-    ws = eqsans.load_events(run_set[0], output_workspace=uwn())
-    ws2 = sac.solid_angle_correction(ws, output_workspace=uwn())
+def test_solid_angle(rs):
+    ws = rs.ws
+    ws2 = solid_angle_correction(ws, output_workspace=uwn(),
+                                 detector_type='VerticalTube')
     assert isinstance(ws2, EventWorkspace)
-    assert ws2.getNumberEvents() == run_set[1]
-    assert ws2.getTofMax() == run_set[2]
+    assert ws2.getNumberEvents() == rs.num_events
 
 
 if __name__ == '__main__':

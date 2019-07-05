@@ -97,5 +97,10 @@ def test_prepared_data(eqsans_f):
     assert isinstance(ws, EventWorkspace)
 
 
+class TestFluxNormalization(object):
+
+    def test_divide_by_flux(self):
+        pass
+
 if __name__ == '__main__':
     pytest.main()

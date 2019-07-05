@@ -8,7 +8,7 @@ from ornl.settings import (optional_output_workspace,
 
 
 @optional_output_workspace
-def solid_angle_correction(input_workspace, detector_type='Rectangle'):
+def solid_angle_correction(input_workspace, detector_type='VerticalTube'):
     r"""
     The algorithm calculates solid angles from the sample position of
     the input workspace for all of the spectra selected. The output workspace

@@ -29,7 +29,7 @@ def solid_angle_correction(input_workspace, detector_type='Rectangle'):
 
     """
     solid_angle_ws = SolidAngle(InputWorkspace=input_workspace,
-                                OutputWorkspace=uwd(), 
+                                OutputWorkspace=uwd(),
                                 Method=detector_type)
     output_workspace = Divide(LHSWorkspace=input_workspace,
                               RHSWorkspace=solid_angle_ws,

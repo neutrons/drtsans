@@ -6,7 +6,8 @@ import pytest
 from mantid.simpleapi import (CompareWorkspaces, Load,
                               LoadEmptyInstrument,
                               MoveInstrumentComponent)
-from ornl.sans import solid_angle_correction as sac
+from ornl.sans import solid_angle_correction
+
 
 def test_solid_angle(refd):
     # Load empty instrument
@@ -17,7 +18,7 @@ def test_solid_angle(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    wsOutput = sac.solid_angle_correction(wsInput, detector_type='Rectangle')
+    wsOutput = solid_angle_correction(wsInput, detector_type='Rectangle')
 
     # Let's do some validation
     assert wsOutput.getNumberHistograms(), 49153
@@ -35,7 +36,8 @@ def test_solid_angle_optional_output(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    wsOutput = sac.solid_angle_correction(wsInput, detector_type='Rectangle', output_workspace='wsOutput')
+    wsOutput = solid_angle_correction(wsInput, detector_type='Rectangle',
+                                      output_workspace='wsOutput')
 
     # Let's do some validation
     assert wsOutput.getNumberHistograms(), 49153
@@ -53,7 +55,8 @@ def test_solid_angle_input_output(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    wsInput = sac.solid_angle_correction(wsInput, detector_type='Rectangle', output_workspace='wsInput')
+    wsInput = solid_angle_correction(wsInput, detector_type='Rectangle',
+                                     output_workspace='wsInput')
 
     # Let's do some validation
     assert wsInput.getNumberHistograms(), 49153

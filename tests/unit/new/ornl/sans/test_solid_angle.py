@@ -18,12 +18,12 @@ def test_solid_angle(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    wsOutput = solid_angle_correction(wsInput, detector_type='Rectangle')
+    wsOutput = solid_angle_correction(wsInput, detector_type='VerticalTube')
 
     # Let's do some validation
     assert wsOutput.getNumberHistograms(), 49153
     reference_workspace = Load(Filename=join(refd.new.eqsans,
-                                             'test_sans_solid_angle.nxs'))
+                                             'test_solid_angle.nxs'))
     assert CompareWorkspaces(wsOutput, reference_workspace)
 
 
@@ -36,13 +36,13 @@ def test_solid_angle_optional_output(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    wsOutput = solid_angle_correction(wsInput, detector_type='Rectangle',
+    wsOutput = solid_angle_correction(wsInput, detector_type='VerticalTube',
                                       output_workspace='wsOutput')
 
     # Let's do some validation
     assert wsOutput.getNumberHistograms(), 49153
     reference_workspace = Load(Filename=join(refd.new.eqsans,
-                                             'test_sans_solid_angle.nxs'))
+                                             'test_solid_angle.nxs'))
     assert CompareWorkspaces(wsOutput, reference_workspace)
 
 
@@ -55,13 +55,13 @@ def test_solid_angle_input_output(refd):
                             RelativePosition='0', Z='5')
 
     # Apply solid angle correction
-    wsInput = solid_angle_correction(wsInput, detector_type='Rectangle',
+    wsInput = solid_angle_correction(wsInput, detector_type='VerticalTube',
                                      output_workspace='wsInput')
 
     # Let's do some validation
     assert wsInput.getNumberHistograms(), 49153
     reference_workspace = Load(Filename=join(refd.new.eqsans,
-                                             'test_sans_solid_angle.nxs'))
+                                             'test_solid_angle.nxs'))
     assert CompareWorkspaces(wsInput, reference_workspace)
 
 

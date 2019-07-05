@@ -3,6 +3,7 @@
 from .beam_finder import direct_beam_center
 from .load import load_events
 from ornl.settings import optional_output_workspace
+from ornl.sans import solid_angle_correction
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -47,7 +48,7 @@ def apply_solid_angle_correction(ws):
     """
         Apply solid angle correction
     """
-    raise NotImplementedError()
+    return solid_angle_correction(ws, detector_type='VerticalTube')
 
 
 def apply_sensitivity_correction(ws, sensitivity_file_path):
@@ -77,7 +78,7 @@ def prepare_data(file_path, dark_current=None,
     # ws = subtract_dark_current(ws, dark_current)
     # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)
-    # ws = apply_solid_angle_correction(ws)
+    ws = apply_solid_angle_correction(ws)
     # ws = apply_sensitivity_correction(ws, sensitivity_file_path)
     # ws = divide_by_flux(ws)
     # ws = normalize(ws)

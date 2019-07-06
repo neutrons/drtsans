@@ -6,7 +6,7 @@ from ornl.settings import optional_output_workspace
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
-                                  normalize_by_flux)
+                                  normalise_by_flux)
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -25,11 +25,6 @@ def find_beam_center(ws, mask_file_path=None):
 
 def set_instrument_geometry(ws):
     """ Move detector components to their proper location """
-    raise NotImplementedError()
-
-
-def divide_by_flux(ws, flux_file_path):
-    """ Divide wavelength distribution by the flux distribution """
     raise NotImplementedError()
 
 
@@ -100,11 +95,10 @@ def prepare_data(data,
     if dark_current is not None:
         ws = subtract_dark_current(ws, dark_current)
     if flux is not None:
-        ws = normalize_by_flux(ws, flux)
+        ws = normalise_by_flux(ws, flux)
     # Uncomment as we address them
     # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)
     # ws = apply_solid_angle_correction(ws)
     # ws = apply_sensitivity_correction(ws, sensitivity_file_path)
-    # ws = normalize(ws)
     return ws

@@ -1,9 +1,12 @@
 """
     Test top-level API
 """
+from os.path import join as pj
 import pytest
 from pytest import approx
+import numpy as np
 from mantid.dataobjects import EventWorkspace
+from mantid.simpleapi import SumSpectra
 
 # public API
 from ornl.sans.sns import eqsans
@@ -15,20 +18,27 @@ from ornl.sans.geometry import detector_name
 
 
 keys = ('run', 'num_events', 'sdd', 'ssd', 'min_tof', 'max_tof',
-        'skip_frame', 'w_min', 'w_max')
+        'skip_frame', 'w_min', 'w_max', 'flux')
+
 values = (('EQSANS_86217', 508339, 1300, 14122, 9717, 59719, True,
-           2.61, 14.72),
+           2.61, 14.72, 1654),
           ('EQSANS_92353', 262291, 4000, 14122, 11410, 61412, True,
-           2.59, 12.98),
+           2.59, 12.98, 1299),
           ('EQSANS_85550', 270022, 5000, 14122, 12036, 62040, True,
-           2.59, 12.43),
+           2.59, 12.43, 1804),
           ('EQSANS_101595', 289989, 1300, 14122, 7773, 24441, False,
-           2.11, 5.65),
+           2.11, 5.65, 429),
           ('EQSANS_88565', 19362, 4000, 14122, 45615, 62281, False,
-           10.02, 13.2),
+           10.02, 13.2, 2143),
           ('EQSANS_88901', 340431, 8000, 14122, 67332, 83999, False,
-           11.99, 14.62))
+           11.99, 14.62, 157523))
+
 run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
+
+
+@pytest.fixture(scope='module')
+def flux_file(refd):
+    return pj(refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt')
 
 
 @pytest.fixture(scope='module', params=run_sets)
@@ -37,7 +47,9 @@ def rs(request):
     run_set = request.param
     run = run_set['run']
     ws = eqsans.load_events(run, output_workspace=uwn())
-    return {**run_set, **dict(ws=ws)}
+    kw = dict(low_tof_clip=500, high_tof_clip=2000, output_workspace=uwn())
+    wl = eqsans.transform_to_wavelength(ws, **kw)
+    return {**run_set, **dict(ws=ws, wl=wl)}
 
 
 class TestLoadEvents(object):
@@ -85,6 +97,12 @@ def test_transform_to_wavelength(rs):
     assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
 
 
+def test_normalise_by_flux(rs, flux_file):
+    ws = eqsans.normalise_by_flux(rs.wl, flux_file)
+    ws = SumSpectra(ws)
+    assert np.average(ws.dataY(0)) == approx(rs.flux, abs=1)
+
+
 @pytest.mark.skip(reason="prepare data not yet completed")
 def test_prepared_data(eqsans_f):
     """
@@ -96,11 +114,6 @@ def test_prepared_data(eqsans_f):
     ws = eqsans.prepare_data(eqsans_f['data'])
     assert isinstance(ws, EventWorkspace)
 
-
-class TestFluxNormalization(object):
-
-    def test_divide_by_flux(self):
-        pass
 
 if __name__ == '__main__':
     pytest.main()

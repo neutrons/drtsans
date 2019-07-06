@@ -2,13 +2,13 @@ from __future__ import print_function
 
 from mantid.simpleapi import (
     LoadAscii, ConvertToHistogram, RebinToWorkspace, NormaliseToUnity, Divide,
-    NormaliseByCurrent, Multiply, DeleteWorkspace)
+    NormaliseByCurrent, Multiply, DeleteWorkspace, ConvertToDistribution)
 
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
 
 
-__all__ = ['normalize_by_flux', ]
+__all__ = ['normalise_by_flux', ]
 
 
 def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
@@ -40,7 +40,8 @@ def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
 def load_beam_flux_file(flux, ws_reference=None):
     r"""
 
-    Loads the beam flux file and convert to wavelength distribution.
+    Loads the beam flux file and converts to a wavelength
+    normalized probability distribution.
 
     Parameters
     ----------
@@ -56,16 +57,17 @@ def load_beam_flux_file(flux, ws_reference=None):
                    OutputWorkspace=uwd())
     ws = ConvertToHistogram(InputWorkspace=ws,
                             OutputWorkspace=ws.name())
+    ConvertToDistribution(ws)
+    ws = NormaliseToUnity(ws, OutputWorkspace=ws.name())
     if ws_reference is not None:
         ws = RebinToWorkspace(WorkspaceToRebin=ws,
                               WorkspaceToMatch=ws_reference,
                               OutputWorkspace=ws.name())
-    ws = NormaliseToUnity(ws, OutputWorkspace=ws.name())
     return ws
 
 
 @optional_output_workspace
-def normalize_by_proton_charge_and_flux(ws, flux):
+def normalise_by_proton_charge_and_flux(ws, flux):
     r"""Normalises ws to proton and measured flux
 
     Parameters
@@ -77,13 +79,14 @@ def normalize_by_proton_charge_and_flux(ws, flux):
 
     """
     # Normalise by the flux
-    ws = Divide(LHSWorkspace=ws, RHSWorkspace=flux, OutputWorkspace=uwd())
+    w = Divide(LHSWorkspace=ws, RHSWorkspace=flux, OutputWorkspace=uwd())
     # Normalize by Proton charge
-    NormaliseByCurrent(ws, OutputWorkspace=ws.name())
-    return ws
+    w = NormaliseByCurrent(w, OutputWorkspace=w.name())
+    return w
 
 
-def normalize_by_flux(ws, flux):
+@optional_output_workspace
+def normalise_by_flux(ws, flux):
     r"""
     Normalize counts by flux wavelength distribution and proton charge.
 
@@ -100,4 +103,5 @@ def normalize_by_flux(ws, flux):
     MatrixWorkspace
     """
     w_flux = load_beam_flux_file(flux, ws_reference=ws, output_workspace=uwd())
-    return normalize_by_proton_charge_and_flux(ws, w_flux)
+    return normalise_by_proton_charge_and_flux(ws, w_flux,
+                                               output_workspace=uwd())

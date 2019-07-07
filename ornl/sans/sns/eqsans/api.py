@@ -6,7 +6,7 @@ from ornl.settings import optional_output_workspace
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
-                                  normalise_by_flux)
+                                  normalise_by_flux, apply_mask)
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -68,7 +68,7 @@ def prepare_data(data,
                  x_center=0.0, y_center=0.0,
                  dark_current=None,
                  flux=None,
-                 mask_file_path=None,
+                 mask=None, panel=None,
                  sensitivity_file_path=None):
     r"""
         Load an EQSANS data file and bring the data to a point where it
@@ -85,6 +85,10 @@ def prepare_data(data,
     flux: str
         Path to file containing the wavelength distribution
         of the neutron flux.
+    panel: str
+        Either 'front' or 'back' to mask a whole panel
+    mask: mask file path, MaskWorkspace
+        Mask to be applied.
     """
     ws = load_events(data, detector_offset=detector_offset,
                      sample_offset=sample_offset)
@@ -96,8 +100,8 @@ def prepare_data(data,
         ws = subtract_dark_current(ws, dark_current)
     if flux is not None:
         ws = normalise_by_flux(ws, flux)
+    apply_mask(ws, panel=panel, mask=mask)
     # Uncomment as we address them
-    # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)
     # ws = apply_solid_angle_correction(ws)
     # ws = apply_sensitivity_correction(ws, sensitivity_file_path)

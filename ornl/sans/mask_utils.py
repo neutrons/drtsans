@@ -2,8 +2,9 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 from mantid.dataobjects import MaskWorkspace
-from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP)
-from ornl.settings import unique_workspace_dundername as uwd
+from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, CloneWorkspace)
+from ornl.settings import (optional_output_workspace,
+                           unique_workspace_dundername as uwd)
 
 
 def mask_as_numpy_array(w, invert=False):
@@ -28,12 +29,13 @@ def masked_indexes(w, invert=False):
     return np.where(mask)[0]
 
 
+@optional_output_workspace
 def apply_mask(w, mask=None, **btp):
     r"""
-    Apply a mask or region-of-interest to a workspace.
+    Apply a mask to a workspace.
 
-    The function accepts a path to a mask file, a MaskWorkspace, or options
-    to algorithm MaskBTP.
+    The function accepts a path to a mask file or a MaskWorkspace,
+    plus options for algorithm MaskBTP.
 
     Parameters
     ----------
@@ -44,19 +46,22 @@ def apply_mask(w, mask=None, **btp):
         is not empty
     btp: dict
         Options to Mantid algorithm MaskBTP. Will be used if `mask=None`
+
+    Returns
+    -------
+    MaskWorkspace
+        Combination of mask and MaskBTP
     """
     instrument = w.getInstrument().name()
-    if mask is None:
-        if bool(btp):
-            MaskBTP(w, instrument=instrument, **btp)
-            return
-        else:
-            raise RuntimeError('maskbtp expected if mask is None')
-    elif isinstance(mask, str):
+    if isinstance(mask, str):
         wm = LoadMask(Instrument=instrument, InputFile=mask, RefWorkspace=w,
                       OutputWorkspace=uwd())
     elif isinstance(mask, MaskWorkspace):
-        wm = mask
+        wm = CloneWorkspace(mask, OutputWorkspace=uwd())
     else:
         raise RuntimeError('mask not understood')
+    if bool(btp):
+        wm2 = MaskBTP(instrument=instrument, **btp, OutputWorkspace=uwd())
+        wm += wm2
     MaskDetectors(Workspace=w, MaskedWorkspace=wm)
+    return wm

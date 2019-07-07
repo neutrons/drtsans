@@ -20,10 +20,12 @@ def apply_mask(w, panel=None, mask=None, **btp):
         Mask to be applied
     btp: dict
         Options to Mantid algorithm MaskBTP. Will be used if `mask=None`
+
+    Returns
+    -------
+    MaskWorkspace
+        Combination of panel, mask, and MaskBTP masks
     """
-    comp = dict(front='')
     if panel:
         btp.update(Components=panel + '-panel')
-        mask_utils.apply_mask(w, **btp)
-    else:
-        apply_mask(w, mask=mask, **btp)
+    mask_utils.apply_mask(w, mask=None, **btp)

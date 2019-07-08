@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-from mantid.simpleapi import ConvertUnits, Rebin, EQSANSCorrectFrame
+from mantid.simpleapi import (ConvertUnits, Rebin, EQSANSCorrectFrame)
 
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
@@ -12,6 +12,9 @@ from ornl.sans.frame_mode import FrameMode
 from ornl.sans import wavelength as wlg
 from ornl.settings import namedtuplefy
 from ornl.sans.geometry import source_detector_distance
+
+
+__all__ = ['transform_to_wavelength', ]
 
 
 @namedtuplefy
@@ -175,12 +178,12 @@ def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
         If True, also trim slow neutrons from the lead pulse (using `htc`) and
         fast neutrons from the skip pulse (using `ltc`)
     """
-    sl = SampleLogs(ws)
     ch = EQSANSDiskChopperSet(ws)
-    sl.tof_frame_width = ch.period
+    sl = SampleLogs(ws)
+    sl.insert('tof_frame_width', ch.period, unit='ms')
     clip_times = 1 if interior_clip is False else 2
-    sl.tof_frame_width_clipped = ch.period -\
-        clip_times * (low_tof_clip + high_tof_clip)
+    tof_width_clipped = ch.period - clip_times * (low_tof_clip + high_tof_clip)
+    sl.insert('tof_frame_width_clipped', tof_width_clipped, unit='ms')
 
 
 def correct_frame(ws, source_to_component_distance):
@@ -227,7 +230,8 @@ def correct_frame(ws, source_to_component_distance):
                        FrameWidth=frame_width,
                        FrameSkipping=(ch.frame_mode is FrameMode.skip))
     # Amend the logs
-    sl.is_frame_skipping = 1 if ch.frame_mode == FrameMode.skip else 0
+    fr_skip = 1 if ch.frame_mode == FrameMode.skip else 0
+    sl.insert('is_frame_skipping', fr_skip)
 
 
 def correct_detector_frame(ws):
@@ -301,10 +305,22 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
 
     # Insert bands information in the logs
     sl = SampleLogs(_ws)
-    sl.wavelength_min, sl.wavelength_max = w_min, w_max
-    sl.wavelength_lead_min = bands.lead.min
-    sl.wavelength_lead_max = bands.lead.max
+    sl.insert('wavelength_min', w_min, unit='Angstrom')
+    sl.insert('wavelength_max', w_max, unit='Angstrom')
+    sl.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
+    sl.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
     if fm is True:
-        sl.wavelength_skip_min = bands.skip.min
-        sl.wavelength_skip_max = bands.skip.max
+        sl.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
+        sl.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
     return _ws
+
+
+@optional_output_workspace
+def transform_to_wavelength(ws, bin_width=0.1,
+                            low_tof_clip=0., high_tof_clip=0.,
+                            keep_events=False):
+
+    sdd = source_detector_distance(ws, units='m')
+    bands = transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip)
+    return convert_to_wavelength(ws, bands, bin_width, events=keep_events,
+                                 output_workspace=uwd())

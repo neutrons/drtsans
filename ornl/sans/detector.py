@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
+import numpy as np
+
 
 class Component:
     '''
@@ -9,8 +11,8 @@ class Component:
     # class variables that will cache the component details
     dim_x = -1
     dim_y = -1
-    dims = -1
-    first_index = -1
+    dims = -1  # total number of pixels
+    first_index = -1  # workspace index of the smallest pixel id
 
     def __init__(self, workspace, component_name):
         self._workspace = workspace
@@ -20,27 +22,37 @@ class Component:
         first_det_id = self._detector_details(component_name)
         self._detector_first_ws_index(first_det_id)
 
+    def _num_pixels_in_tube(self, info, component_index):
+        '''Recursive function that determines how many pixels are in a single
+        tube (y-dimension). This assumes that things without grand-children
+        are tubes'''
+        component_index = int(component_index)
+        children = info.children(component_index)
+
+        grandchildren = info.children(int(children[0]))
+        if len(grandchildren) == 0:
+            return children[0], len(children)
+        else:
+            return self._num_pixels_in_tube(info, children[0])
+
     def _detector_details(self, component_name):
         """Private function that reads the instrument and get component_name
         dimensions and first detector id
         """
-        instrument = self._workspace.getInstrument()
-        component = instrument.getComponentByName(component_name)
-        self.dim_x = component.nelements()
+        component_info = self._workspace.componentInfo()
+        detector_info = self._workspace.detectorInfo()
+        component_index = component_info.indexOfAny(component_name)
 
-        if component[0].nelements() == 1:
-            # Handles EQSANS
-            self.dim_y = component[0][0].nelements()
-            first_det_id = component[0][0][0].getID()
-        else:
-            # Handles BioSANS/GPSANS
-            self.dim_y = component[0].nelements()
-            first_det_id = component[0][0].getID()
-        self.dims = self.dim_x * self.dim_y
-        return first_det_id
+        total_pixels = len(component_info.detectorsInSubtree(component_index))
+        tube_index, self.dim_y = \
+            self._num_pixels_in_tube(component_info, component_index)
+        self.dim_x = total_pixels // self.dim_y
+        self.dims = total_pixels
+
+        return detector_info.detectorIDs()[tube_index]
 
     def _detector_first_ws_index(self, first_det_id):
-        ''' sets the first_index of this component
+        '''sets the first_index of this component
         '''
         for ws_index in range(self._workspace.getNumberHistograms()):
             if self._workspace.getSpectrum(
@@ -51,3 +63,19 @@ class Component:
         else:
             raise ValueError('Iterared WS and did not find first det id = '
                              '{}'.format(first_det_id))
+
+    def masked_ws_indices(self):
+        """
+        return an array with True or False if a detector is either masked or
+        not for all the component
+
+        Returns
+        -------
+        bool np.array
+            array with True or False if a detector is either masked or
+            not for all the component
+        """
+        si = self._workspace.spectrumInfo()
+        mask_array = [si.isMasked(i) for i in range(
+            self.first_index, self.first_index+self.dim_x*self.dim_y)]
+        return np.array(mask_array)

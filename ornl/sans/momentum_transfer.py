@@ -11,6 +11,8 @@ from ornl.sans.hfir import resolution
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     """Bin the data into Q 2D
 
+    TODO: This needs refactoring. Too long too complicated.
+
     Parameters
     ----------
     ws : MatrixWorkspace
@@ -31,11 +33,14 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         To date Mantid has no option to add uncertainties to the axis.
         The resolution dx,dy is set in separated workspaces suffixed by
         `_dqx` and `_dqy`.
+
     """
+    # flake8: noqa E712
 
     assert ws.blocksize() == 1  # sanity check: only 1 bin
 
     det = Component(ws, component_name)
+    masked_pixels = det.masked_ws_indices()
 
     # Note that the detctor is read from the lower left corner, then up
     # the tube is read first from the bottom (256)
@@ -54,6 +59,19 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     i_sigma = i_sigma[det.first_index:det.first_index + det.dims]
     # get rid of the original bins: from shape == (49152, 1) to (49152,)
     i, i_sigma = i[:, 0], i_sigma[:, 0]
+
+    # Create numpy mask arrays with the masked pixels
+    qx = np.ma.MaskedArray(qx, masked_pixels, dtype=np.float,
+                           fill_value=np.nan)
+    qy = np.ma.MaskedArray(qy, masked_pixels, dtype=np.float,
+                           fill_value=np.nan)
+    dqx = np.ma.MaskedArray(
+        dqx, masked_pixels, dtype=np.float, fill_value=np.nan)
+    dqy = np.ma.MaskedArray(
+        dqy, masked_pixels, dtype=np.float, fill_value=np.nan)
+    i = np.ma.MaskedArray(i, masked_pixels, dtype=np.float, fill_value=np.nan)
+    i_sigma = np.ma.MaskedArray(
+        i_sigma, masked_pixels, dtype=np.float, fill_value=np.nan)
 
     # Number of bins in Qx Qy is the number of pixels in X and Y
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
@@ -79,11 +97,12 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     # The tile repeat that column len(dqx_bin_edges) times
     dqy_bin_centers_grid = np.tile(
         dqy_bin_centers[np.newaxis].T, (1, len(dqx_bin_edges)))
+
     # Q WS
     iqxqy_ws = CreateWorkspace(
         DataX=qx_bin_edges_grid,  # 2D
-        DataY=i_grid,  # 2D
-        DataE=i_sigma_grid,  # 2D
+        DataY=i_grid.filled(),  # 2D: mask as np.nan
+        DataE=i_sigma_grid.filled(),  # 2D: mask as np.nan
         NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
@@ -124,6 +143,9 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
                  out_ws_prefix="ws"):
     """ Calculates: I(Q) and Dq
     The ws_* input parameters are the output workspaces from bin_into_q2d
+
+    TODO:
+    This needs refactoring. Too long too complicated.
 
     Parameters
     ----------

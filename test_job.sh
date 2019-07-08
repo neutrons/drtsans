@@ -5,7 +5,7 @@ TEST_SCOPE=$2  # 'unit' or 'integration'
 
 N_SUB=8  # number of python subprocesses
 
-module load mantid/ORNL_SANS_py${PYTHON_VERSION}
+module load mantid/master_py${PYTHON_VERSION}
 
 virtualenv -p python${PYTHON_VERSION} testenv${PYTHON_VERSION}
 source testenv${PYTHON_VERSION}/bin/activate

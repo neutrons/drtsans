@@ -10,6 +10,7 @@ from mantid.simpleapi import SumSpectra
 
 # public API
 from ornl.sans.sns import eqsans
+from ornl.sans import solid_angle_correction
 
 # protected API
 from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwn)
@@ -113,6 +114,14 @@ def test_prepared_data(eqsans_f):
     """
     ws = eqsans.prepare_data(eqsans_f['data'])
     assert isinstance(ws, EventWorkspace)
+
+
+def test_solid_angle(rs):
+    ws = rs.ws
+    ws2 = solid_angle_correction(ws, output_workspace=uwn(),
+                                 detector_type='VerticalTube')
+    assert isinstance(ws2, EventWorkspace)
+    assert ws2.getNumberEvents() == rs.num_events
 
 
 if __name__ == '__main__':

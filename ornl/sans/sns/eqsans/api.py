@@ -2,6 +2,7 @@
 # Import rolled up to complete a single top-level API
 from .beam_finder import direct_beam_center
 from ornl.settings import optional_output_workspace
+from ornl.sans import solid_angle_correction
 
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
@@ -46,7 +47,7 @@ def apply_solid_angle_correction(ws):
     """
         Apply solid angle correction
     """
-    raise NotImplementedError()
+    return solid_angle_correction(ws, detector_type='VerticalTube')
 
 
 def apply_sensitivity_correction(ws, sensitivity_file_path):
@@ -99,6 +100,6 @@ def prepare_data(data,
     # Uncomment as we address them
     # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)
-    # ws = apply_solid_angle_correction(ws)
+    ws = apply_solid_angle_correction(ws)
     # ws = apply_sensitivity_correction(ws, sensitivity_file_path)
     return ws

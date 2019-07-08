@@ -5,7 +5,8 @@ from ornl.settings import optional_output_workspace
 
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
-                                  center_detector, subtract_dark_current)
+                                  center_detector, subtract_dark_current,
+                                  normalise_by_flux)
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -24,11 +25,6 @@ def find_beam_center(ws, mask_file_path=None):
 
 def set_instrument_geometry(ws):
     """ Move detector components to their proper location """
-    raise NotImplementedError()
-
-
-def divide_by_flux(ws, flux_file_path):
-    """ Divide wavelength distribution by the flux distribution """
     raise NotImplementedError()
 
 
@@ -71,6 +67,7 @@ def prepare_data(data,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  x_center=0.0, y_center=0.0,
                  dark_current=None,
+                 flux=None,
                  mask_file_path=None,
                  sensitivity_file_path=None):
     r"""
@@ -85,6 +82,9 @@ def prepare_data(data,
         Run number as int or str, file path, EventWorkspace
     dark_current: int, str, EventWorkspace
         Run number as int or str, file path, EventWorkspace
+    flux: str
+        Path to file containing the wavelength distribution
+        of the neutron flux.
     """
     ws = load_events(data, detector_offset=detector_offset,
                      sample_offset=sample_offset)
@@ -94,11 +94,11 @@ def prepare_data(data,
     center_detector(ws, x=x_center, y=y_center)
     if dark_current is not None:
         ws = subtract_dark_current(ws, dark_current)
+    if flux is not None:
+        ws = normalise_by_flux(ws, flux)
     # Uncomment as we address them
     # ws = apply_mask(ws, mask_file_path)
     # ws = initial_uncertainty_estimation(ws)
     # ws = apply_solid_angle_correction(ws)
     # ws = apply_sensitivity_correction(ws, sensitivity_file_path)
-    # ws = divide_by_flux(ws)
-    # ws = normalize(ws)
     return ws

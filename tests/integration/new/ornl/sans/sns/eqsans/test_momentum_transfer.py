@@ -39,6 +39,8 @@ def legacy_reduction():
     eqsans.NoSolidAngle()
     eqsans.TotalChargeNormalization()
     eqsans.OutputPath(tempfile.gettempdir())
+    eqsans.AzimuthalAverage(n_bins=110)
+    eqsans.IQxQy(nbins=110, log_binning=False)
     Reduce()
 
     return mtd['EQSANS_68200']
@@ -51,10 +53,11 @@ def test_momentum_tranfer_serial():
 
     ws = load_events('EQSANS_68200', detector_offset=0,
                      sample_offset=0)
+
     ws = transform_to_wavelength(ws, bin_width=0.1,
                                  low_tof_clip=500,
                                  high_tof_clip=2000)
-
+    
     # center_detector will do this when jose fixes the Z issue
     # Center the beam: xyz: 0.0165214,0.0150392,4.00951
     instrument = ws.getInstrument()
@@ -84,7 +87,7 @@ def test_momentum_tranfer_serial():
 
     ws = Rebin(
         InputWorkspace=ws,
-        OutputWorkspace=unique_workspace_name(suffix="_rebin"),
+        OutputWorkspace="ws_rebin",
         Params="{:.2f},{:.2f},{:.2f}".format(
             rebin_start, rebin_step, rebin_end)
     )
@@ -95,7 +98,7 @@ def test_momentum_tranfer_serial():
 
         ws_extracted = ExtractSpectra(
             InputWorkspace=ws,
-            OutputWorkspace=unique_workspace_name(suffix="_{:}".format(index)),
+            OutputWorkspace="slice_{:}".format(index),
             XMin=bin_start, XMax=bin_start+rebin_step)
 
         wavelength_mean = bin_start + rebin_step/2

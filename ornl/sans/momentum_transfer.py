@@ -9,7 +9,33 @@ from ornl.sans.hfir import resolution
 from mantid.kernel import logger
 
 
-def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
+def _remove_monitors(data, component):
+    """Based on the component definitition removes the monitor index from
+    the data
+
+    Parameters
+    ----------
+    data : np.array
+
+    component : Component
+
+
+    Returns
+    -------
+    np.array
+        A slice of the data without the monitors
+    """
+    return data[component.first_index:component.first_index + component.dims]
+
+
+def _mask_pixels(data, masked_pixels):
+
+    return np.ma.MaskedArray(data, masked_pixels, dtype=np.float,
+                             fill_value=np.nan)
+
+
+def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
+                 bins=None):
     """Bin the data into Q 2D
 
     TODO: This needs refactoring. Too long too complicated.
@@ -26,6 +52,14 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
         by default "detector1"
     out_ws_prefix : str, optional
         The output workspace is prefix by this, by default "ws".
+    
+    bins : int or array_like or [int, int] or [array, array], optional
+        The bin specification:
+            If int, the number of bins for the two dimensions (nx=ny=bins).
+            If array_like, the bin edges for the two dimensions (x_edges=y_edges=bins).
+            If [int, int], the number of bins in each dimension (nx, ny = bins).
+            If [array, array], the bin edges in each dimension (x_edges, y_edges = bins).
+            A combination [int, array] or [array, int], where int is the number of bins and array is the bin edges.
 
     Returns
     -------
@@ -41,104 +75,67 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws"):
     assert ws.blocksize() == 1  # sanity check: only 1 bin
 
     det = Component(ws, component_name)
-    logger.information(str(det))
+    if bins is None:
+        bins = [det.dim_x, det.dim_y]
     masked_pixels = det.masked_ws_indices()
 
-    # Note that the detctor is read from the lower left corner, then up
-    # the tube is read first from the bottom (256)
-    
-    #i = ws.extractY()  # i.shape == (49154, 1)
-    i_sigma = ws.extractE()
-
-
-    data=ws.extractY().reshape(-1,8,256).T # shape = (256, 8, 24)
-    data_sorted=data[:,[0,4,1,5,2,6,3,7],:] # same shape
-    i=data_sorted.transpose().reshape(-1,1)
-
-
-
-    # All returned arrays have the same shape == (49154,)
+    # 1D arrays
     qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
+    i = ws.extractY().ravel().ravel()
+    i_sigma = ws.extractE().ravel()
 
     # Get rid of the monitors; from 49154 to 49152 spectra
-    qx = qx[det.first_index:det.first_index + det.dims]
-    qy = qy[det.first_index:det.first_index + det.dims]
-    dqx = dqx[det.first_index:det.first_index + det.dims]
-    dqy = dqy[det.first_index:det.first_index + det.dims]
-    i = i[det.first_index:det.first_index + det.dims]
-    i_sigma = i_sigma[det.first_index:det.first_index + det.dims]
-    # get rid of the original bins: from shape == (49152, 1) to (49152,)
-    i, i_sigma = i[:, 0], i_sigma[:, 0]
+    qx, qy, dqx, dqy, i, i_sigma = [
+        _remove_monitors(d, det) for d in [qx, qy, dqx, dqy, i, i_sigma]]
 
     # Create numpy mask arrays with the masked pixels
-    qx = np.ma.MaskedArray(qx, masked_pixels, dtype=np.float,
-                           fill_value=np.nan)
-    qy = np.ma.MaskedArray(qy, masked_pixels, dtype=np.float,
-                           fill_value=np.nan)
-    dqx = np.ma.MaskedArray(
-        dqx, masked_pixels, dtype=np.float, fill_value=np.nan)
-    dqy = np.ma.MaskedArray(
-        dqy, masked_pixels, dtype=np.float, fill_value=np.nan)
-    i = np.ma.MaskedArray(i, masked_pixels, dtype=np.float, fill_value=np.nan)
-    i_sigma = np.ma.MaskedArray(
-        i_sigma, masked_pixels, dtype=np.float, fill_value=np.nan)
+    qx, qy, dqx, dqy, i, i_sigma = [
+        _mask_pixels(d, masked_pixels) for d in [qx, qy, dqx, dqy, i, i_sigma]]
 
     # Number of bins in Qx Qy is the number of pixels in X and Y
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
-        qx, qy, bins=[det.dim_x, det.dim_y], weights=i
+        qx, qy, bins=bins, weights=i,
     )
     counts_dqx_dqy, dqx_bin_edges, dqy_bin_edges = np.histogram2d(
-        dqx, dqy, bins=[det.dim_x, det.dim_y], weights=i_sigma
+        dqx, dqy, bins=bins, weights=i_sigma,
     )
+
     qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
     # qy_bin_centers.shape == dqy_bin_centers.shape == (256,)
+    dqx_bin_centers = (dqx_bin_edges[1:] + dqx_bin_edges[:-1]) / 2.0
     dqy_bin_centers = (dqy_bin_edges[1:] + dqy_bin_edges[:-1]) / 2.0
-
-    # Grids for I, dqx, dqy
-    qx_bin_edges_grid, qy_bin_centers_grid = np.meshgrid(
-        qx_bin_edges, qy_bin_centers)
-    # Since the tubes are read first: reshape(n-rows,n-cols)
-    # We need to fill in the columns first: 'F'
-    i_grid = i.reshape(det.dim_y, det.dim_x, order='F')
-    i_sigma_grid = i_sigma.reshape(det.dim_y, det.dim_x, order='F')
-    # np.tile(array, (n-times, 1)) - Stack vertically n-times the array
-    dqx_bin_centers_grid = np.tile(dqx_bin_edges, (len(dqy_bin_centers), 1))
-    # array[np.newaxis].T transforms a vector (row) into a column array
-    # The tile repeat that column len(dqx_bin_edges) times
-    dqy_bin_centers_grid = np.tile(
-        dqy_bin_centers[np.newaxis].T, (1, len(dqx_bin_edges)))
 
     # Q WS
     iqxqy_ws = CreateWorkspace(
-        DataX=qx_bin_edges_grid,  # 2D
-        DataY=i_grid.filled(),  # 2D: mask as np.nan
-        DataE=i_sigma_grid.filled(),  # 2D: mask as np.nan
+        DataX=np.tile(qx_bin_edges, len(qy_bin_centers)),
+        DataY=counts_qx_qy.T,
+        DataE=counts_dqx_dqy.T,
         NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
-        VerticalAxisValues=qy_bin_centers,  # 1D
+        VerticalAxisValues=qy_bin_centers,
         OutputWorkspace=out_ws_prefix+"_iqxqy"
     )
 
     dqx_ws = CreateWorkspace(
-        DataX=qx_bin_edges_grid,  # 2D
-        DataY=dqx_bin_centers_grid,  # 2D
-        DataE=None,  # 2D
+        DataX=np.tile(qx_bin_edges, len(qy_bin_centers)),
+        DataY=np.tile(dqx_bin_centers, len(dqy_bin_centers)).T,
+        DataE=None,
         NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
-        VerticalAxisValues=qy_bin_centers,  # 1D
+        VerticalAxisValues=qy_bin_centers,
         OutputWorkspace=out_ws_prefix+"_dqx",
     )
 
     dqy_ws = CreateWorkspace(
-        DataX=qx_bin_edges_grid,  # 2D
-        DataY=dqy_bin_centers_grid,  # 2D
-        DataE=None,  # 2D
+        DataX=np.tile(qx_bin_edges, len(qy_bin_centers)),
+        DataY=np.tile(dqy_bin_centers, (len(dqx_bin_centers), 1)).T,
+        DataE=None,
         NSpec=len(qy_bin_centers),
         UnitX='MomentumTransfer',
         VerticalAxisUnit='MomentumTransfer',
-        VerticalAxisValues=qy_bin_centers,  # 1D
+        VerticalAxisValues=qy_bin_centers,
         OutputWorkspace=out_ws_prefix+"_dqy",
     )
 

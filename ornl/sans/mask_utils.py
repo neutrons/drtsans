@@ -2,7 +2,8 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 from mantid.dataobjects import MaskWorkspace
-from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, CloneWorkspace)
+from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, CloneWorkspace,
+                              ExtractMask)
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
 
@@ -52,16 +53,14 @@ def apply_mask(w, mask=None, **btp):
     MaskWorkspace
         Combination of mask and MaskBTP
     """
-    instrument = w.getInstrument().name()
-    if isinstance(mask, str):
-        wm = LoadMask(Instrument=instrument, InputFile=mask, RefWorkspace=w,
-                      OutputWorkspace=uwd())
-    elif isinstance(mask, MaskWorkspace):
-        wm = CloneWorkspace(mask, OutputWorkspace=uwd())
-    else:
-        raise RuntimeError('mask not understood')
+    instrument = w.getInstrument().getName()
+    if mask is not None:
+        if isinstance(mask, str):
+            wm = LoadMask(Instrument=instrument, InputFile=mask,
+                          RefWorkspace=w, OutputWorkspace=uwd())
+        elif isinstance(mask, MaskWorkspace):
+            wm = CloneWorkspace(mask, OutputWorkspace=uwd())
+        MaskDetectors(Workspace=w, MaskedWorkspace=wm)
     if bool(btp):
-        wm2 = MaskBTP(instrument=instrument, **btp, OutputWorkspace=uwd())
-        wm += wm2
-    MaskDetectors(Workspace=w, MaskedWorkspace=wm)
-    return wm
+        MaskBTP(Workspace=w, **btp)
+    return ExtractMask(InputWorkspace=w, OutputWorkspace=uwd()).OutputWorkspace

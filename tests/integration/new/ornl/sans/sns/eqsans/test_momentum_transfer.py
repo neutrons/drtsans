@@ -31,6 +31,8 @@ def legacy_reduction():
     eqsans.UseConfigMask(False)
     eqsans.SetBeamCenter(90, 132.5)
     # eqsans.SetTransmission(1.0, 1.0)
+    # eqsans.SensitivityCorrection("/SNS/EQSANS/shared/NeXusFiles/EQSANS/2018B_mp/Sensitivity_patched_thinPMMA_2o5m_97716_event.nxs",
+    #     min_sensitivity=0.5, max_sensitivity=1.5, use_sample_dc=False)
     eqsans.SetTOFTailsCutoff(low_cut=500, high_cut=2000)
     eqsans.SetWavelengthStep(step=0.1)
     eqsans.Resolution(sample_aperture_diameter=10.0)
@@ -39,11 +41,13 @@ def legacy_reduction():
     eqsans.NoSolidAngle()
     eqsans.TotalChargeNormalization()
     eqsans.OutputPath(tempfile.gettempdir())
-    eqsans.AzimuthalAverage(n_bins=110)
-    eqsans.IQxQy(nbins=110, log_binning=False)
+    eqsans.AzimuthalAverage(n_bins=100)
+    eqsans.IQxQy(nbins=100, log_binning=False)
     Reduce()
 
     return mtd['EQSANS_68200']
+
+    
 
 
 def test_momentum_tranfer_serial():
@@ -112,17 +116,20 @@ def test_momentum_tranfer_serial():
         ws_prefix = "ws_{}".format(index)
 
         # 2D
-        wss_name_ws = bin_into_q2d(ws_extracted, out_ws_prefix=ws_prefix)
+        wss_name_ws = bin_into_q2d(
+            ws_extracted, out_ws_prefix=ws_prefix, bins=[100, 100])
         assert len(wss_name_ws) == 3
 
         ws_iqxqy, ws_dqx, ws_dqy = [ws[1] for ws in wss_name_ws]
-        assert ws_iqxqy.extractY().shape == (256, 192)
-        assert ws_iqxqy.extractX().shape == (256, 193)
+        # assert ws_iqxqy.extractY().shape == (256, 192)
+        # assert ws_iqxqy.extractX().shape == (256, 193)
         # 1D
         _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
-                                out_ws_prefix=ws_prefix)
-        assert ws_iq.extractY().shape == (1, 100)
-        assert ws_iq.extractX().shape == (1, 101)
+                                out_ws_prefix=ws_prefix,
+                                # The same binning as legacy
+                                bins=np.linspace(0.00119358, 0.460477, 100))
+        # assert ws_iq.extractY().shape == (1, 100)
+        # assert ws_iq.extractX().shape == (1, 101)
 
     # Calculate an average I(q)
 

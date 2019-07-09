@@ -55,11 +55,17 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
     
     bins : int or array_like or [int, int] or [array, array], optional
         The bin specification:
-            If int, the number of bins for the two dimensions (nx=ny=bins).
-            If array_like, the bin edges for the two dimensions (x_edges=y_edges=bins).
-            If [int, int], the number of bins in each dimension (nx, ny = bins).
-            If [array, array], the bin edges in each dimension (x_edges, y_edges = bins).
-            A combination [int, array] or [array, int], where int is the number of bins and array is the bin edges.
+            - If int, the number of bins for the two dimensions (nx=ny=bins).
+            - If array_like, the bin edges for the two dimensions
+              (x_edges=y_edges=bins).
+            - If [int, int], the number of bins in each dimension
+              (nx, ny = bins).
+            - If [array, array], the bin edges in each dimension
+              (x_edges, y_edges = bins).
+            - A combination [int, array] or [array, int], where int is the
+              number of bins and array is the bin edges.
+        If None the detector dimensions are given:
+          bins = [det.dim_x, det.dim_y]
 
     Returns
     -------
@@ -93,12 +99,18 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
         _mask_pixels(d, masked_pixels) for d in [qx, qy, dqx, dqy, i, i_sigma]]
 
     # Number of bins in Qx Qy is the number of pixels in X and Y
+    counts_qx_qy_weights, qx_bin_edges, qy_bin_edges = np.histogram2d(
+        qx, qy, bins=bins)
     counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
-        qx, qy, bins=bins, weights=i,
-    )
+        qx, qy, bins=bins, weights=i)
+    counts_qx_qy /= counts_qx_qy_weights
+
+    # Error propagation is wrong
+    counts_dqx_dqy_weights, dqx_bin_edges, dqy_bin_edges = np.histogram2d(
+        dqx, dqy, bins=bins)
     counts_dqx_dqy, dqx_bin_edges, dqy_bin_edges = np.histogram2d(
-        dqx, dqy, bins=bins, weights=i_sigma,
-    )
+        dqx, dqy, bins=bins, weights=i_sigma)
+    counts_dqx_dqy /= counts_dqx_dqy_weights
 
     qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
     # qy_bin_centers.shape == dqy_bin_centers.shape == (256,)
@@ -225,6 +237,12 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
     sigma_i = ws_iqxqy.extractE()
     assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)
 
+    # get rid of nans
+    condition = np.isfinite(i)
+    q_bin_centers_grid = q_bin_centers_grid[condition]
+    i = i[condition]
+    sigma_i = sigma_i[condition]
+
     intensity_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
         q_bin_centers_grid.ravel(), i.ravel(), statistic=statistic, bins=bins)
 
@@ -241,11 +259,13 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
     dq_bin_centers_grid = np.sqrt(
         np.square(dqx_bin_centers_grid) + np.square(dqy_bin_centers_grid))
     # get all to centres
-    dq_bin_centers_grid_all = (
-        dq_bin_centers_grid[:, 1:] + dq_bin_centers_grid[:, :-1]) / 2.0
+    # dq_bin_centers_grid_all = (
+    #     dq_bin_centers_grid[:, 1:] + dq_bin_centers_grid[:, :-1]) / 2.0
 
+    dq_bin_centers_grid = dq_bin_centers_grid[condition]
+    
     dq_intensity_statistic, dq_bin_edges, dq_binnumber = \
-        stats.binned_statistic(dq_bin_centers_grid_all.ravel(), i.ravel(),
+        stats.binned_statistic(dq_bin_centers_grid.ravel(), i.ravel(),
                                statistic=statistic, bins=bins)
 
     dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0

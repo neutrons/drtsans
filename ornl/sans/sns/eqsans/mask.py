@@ -33,4 +33,3 @@ def apply_mask(w, panel=None, mask=None, **btp):
     if panel:
         MaskBTP(Workspace=w, instrument='EQ-SANS', Components='front-panel')
     return mask_utils.apply_mask(w, mask=mask, output_workspace=uwd(), **btp)
-

@@ -20,9 +20,11 @@ def test_apply_mask():
     SaveMask(m, '/tmp/m.xml')
     SaveMask(m2, '/tmp/m2.xml')
     ClearMaskFlag(w)
-    m = LoadMask(Instrument='EQ-SANS', InputFile='/tmp/m.xml', RefWorkspace=w, OutputWorkspace='m')
+    m = LoadMask(Instrument='EQ-SANS', InputFile='/tmp/m.xml',
+                 RefWorkspace=w, OutputWorkspace='m')
     ClearMaskFlag(w)
-    m2 = LoadMask(Instrument='EQ-SANS', InputFile='/tmp/m2.xml', RefWorkspace=w, OutputWorkspace='m2')
+    m2 = LoadMask(Instrument='EQ-SANS', InputFile='/tmp/m2.xml',
+                  RefWorkspace=w, OutputWorkspace='m2')
     assert CompareWorkspaces(m, m2).Result
 
 

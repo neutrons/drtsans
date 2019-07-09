@@ -68,7 +68,7 @@ def prepare_data(data,
                  x_center=0.0, y_center=0.0,
                  dark_current=None,
                  flux=None,
-                 mask=None, panel=None, btp=dict()
+                 mask=None, panel=None, btp=dict(),
                  sensitivity_file_path=None):
     r"""
         Load an EQSANS data file and bring the data to a point where it

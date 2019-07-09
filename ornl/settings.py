@@ -9,10 +9,8 @@ from collections import namedtuple, Mapping
 from contextlib import contextmanager
 
 import mantid
-from mantid.simpleapi import RenameWorkspace
 from mantid.api import AnalysisDataService
 from mantid.kernel import ConfigService
-from mantid.kernel.funcinspect import process_frame
 
 # import mantid's workspace types exposed to python
 workspace_types = [getattr(mantid.dataobjects, w_type_name) for w_type_name in
@@ -116,13 +114,17 @@ def unique_workspace_dundername():
 
 def optional_output_workspace(func):
     r"""
-    Decorator to endow a function with output_workspace optional keyword
+    Decorator to endow a function with output_workspace optional keyword. If
+    there is a parameter called 'input_workspace' the decorator will add a
+    default value of output_workspace to be input_workspace. Without an
+    'input_workspace' the default value of 'output_workspace' is the result
+    of :py:obj:`ornl.settings.unique_workspace_dundername`
 
     # Case 1: the decorated function receives an input workspace
     #         as first argument
 
     @optional_output_workspace
-    def foo(input_ws, *args, *kwargs):
+    def foo(input_workspace, *args, **kwargs):
         ....
         return some_workspace
 
@@ -136,7 +138,7 @@ def optional_output_workspace(func):
     # Case 2: the decorated function does not receive an input workspace
     #         as first argument
     @optional_output_workspace
-    def bar(input_file, *args, *kwargs):
+    def bar(input_file, *args, **kwargs):
         .....
         return some_workspace
 
@@ -149,7 +151,7 @@ def optional_output_workspace(func):
     Parameters
     ----------
     func: Function
-        Target of decorator. Must return a workspace
+        Target of decorator. Must return a workspace and must accept kwargs
 
     Returns
     -------
@@ -160,72 +162,33 @@ def optional_output_workspace(func):
     # optional "output_workspace" keyword
     parameters = dict(inspect.signature(func).parameters)
     output_workspace_parameter = parameters.get(name, None)
-    name_in_signature = name in parameters
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        #
+        name_specified = output_workspace_parameter is not None and \
+           output_workspace_parameter.default is not None
+
+        if name_specified:
+            return func(*args, **kwargs)
+
         # decorator does not change func if output_workspace is
         # a keyword of func and has a default value different than None
-        #
         if output_workspace_parameter is not None and \
            output_workspace_parameter.default is not None:
             return func(*args, **kwargs)
-        #
+
         # decorator does not change func if output_workspace is
         # a keyword of func and we are passing a value for it
-        #
-        if name_in_signature and kwargs.get(name, None) is not None:
+        if kwargs.get(name, None) is not None:
             return func(*args, **kwargs)
-        #
-        # Case: output_workspace is not in func's signature but we are
-        #       passing it in the list of optional arguments
-        #
-        if name_in_signature is False and name in kwargs:
-            output_workspace = kwargs.pop(name)
-            returned_workspace = func(*args, **kwargs)
-            if returned_workspace.name() != output_workspace:
-                RenameWorkspace(returned_workspace,
-                                OutputWorkspace=output_workspace)
-            return returned_workspace
-        #
-        # Find out whether the first required parameter is a workspace
-        #
-        inspect_assignment = True
-        if len(args) > 0:
-            for workspace_type in workspace_types:
-                if isinstance(args[0], workspace_type):
-                    inspect_assignment = False
-                    break
-        #
-        # Case we passed a workspace as first required argument
-        #
-        if inspect_assignment is False:
-            returned_workspace = func(*args, **kwargs)
-            if returned_workspace is not args[0]:  # avoid corner case
-                RenameWorkspace(returned_workspace,
-                                OutputWorkspace=args[0].name())
-            return returned_workspace
-        #
-        # Inspect the name of the variable receiving the workspace
-        #
-        lhs = process_frame(inspect.currentframe().f_back)[1]
-        output_workspace = None if len(lhs) != 1 else lhs[0]
-        if output_workspace is None:
-            raise RuntimeError('No output workspace name provided')
-        #
-        # Case: output_workspace is in func's signature but its value is None
-        #
-        if name_in_signature:
-            kwargs[name] = output_workspace
+
+        if 'input_workspace' in parameters:
+            # copy from input to output
+            kwargs[name] = str(parameters.get('input_workspace'))
             return func(*args, **kwargs)
-        #
-        # Case: output_workspace is not in func's signature and we are not
-        #       passing as optional argument
-        #
-        returned_workspace = func(*args, **kwargs)
-        if returned_workspace.name() != output_workspace:
-            RenameWorkspace(returned_workspace,
-                            OutputWorkspace=output_workspace)
-        return returned_workspace
+
+        # create a random hidden workspace name
+        kwargs[name] = unique_workspace_dundername()
+        return func(*args, **kwargs)
+
     return wrapper

@@ -2,9 +2,8 @@ from __future__ import (absolute_import, division, print_function)
 
 import pytest
 from ornl.settings import (namedtuplefy, amend_config,
-                           unique_workspace_dundername,
                            optional_output_workspace)
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import mtd, CreateWorkspace, RenameWorkspace
 from mantid.kernel import ConfigService
 
 
@@ -47,14 +46,14 @@ def test_offline():
 def test_optional_output_workspace():
 
     @optional_output_workspace
-    def foo():
+    def foo(**kwargs):
         r"""Creates a silly workspace with some random name"""
         return CreateWorkspace(DataX=[42, ], DataY=[42, ],
-                               OutputWorkspace=unique_workspace_dundername())
+                               OutputWorkspace=kwargs['output_workspace'])
     ws = foo()
-    assert ws.name() == 'ws'
+    assert ws.name().startswith('__')
     ws = foo(output_workspace='sw')
-    assert ws.name() == 'sw'
+    assert ws.name().startswith('sw')
 
     @optional_output_workspace
     def foo(output_workspace=None):
@@ -62,7 +61,7 @@ def test_optional_output_workspace():
         return CreateWorkspace(DataX=[42, ], DataY=[42, ],
                                OutputWorkspace=output_workspace)
     ws = foo()
-    assert ws.name() == 'ws'
+    assert ws.name().startswith('__')
     ws = foo(output_workspace='sw')
     assert ws.name() == 'sw'
 
@@ -77,8 +76,11 @@ def test_optional_output_workspace():
     assert ws.name() == 'sw'
 
     @optional_output_workspace
-    def foo(iws):
-        return 2.0 * iws
+    def foo(iws, output_workspace='meaning_of_the_universe', **kwargs):
+        tmp = 2.0 * iws
+        RenameWorkspace(InputWorkspace=tmp, OutputWorkspace=output_workspace)
+        return mtd[output_workspace]
+
     ws = CreateWorkspace(DataX=[42, ], DataY=[42, ],
                          OutputWorkspace='meaning_of_the_universe')
     other_ws = foo(ws, output_workspace='skeletor')
@@ -86,16 +88,24 @@ def test_optional_output_workspace():
     other_ws = foo(ws)
     assert other_ws.name() == 'meaning_of_the_universe'
 
-    # Corner case: returned workspace is the input workspace
     @optional_output_workspace
-    def foo(iws):
-        return iws
+    def foo(input_workspace, **kwargs):
+        input_workspace = str(input_workspace)
+        output_workspace = str(kwargs['output_workspace'])
+        if input_workspace == output_workspace:
+            return mtd[input_workspace]
+        else:
+            RenameWorkspace(InputWorkspace=input_workspace,
+                            OutputWorkspace=output_workspace)
+            return mtd[output_workspace]
+
+    # test in-place as the default
     ws = CreateWorkspace(DataX=[42, ], DataY=[42, ],
                          OutputWorkspace='meaning_of_the_universe')
-    other_ws = foo(ws, output_workspace='skeletor')
-    assert other_ws.name() == 'skeletor'  # a simple Rename
-    other_ws = foo(ws)
-    assert other_ws.name() == 'skeletor'  # nothing is done
+    other = foo(ws)
+    assert other.name() == ws.name()
+    other = foo(ws, output_workspace='skeletor')
+    assert other.name() == 'skeletor'
 
 
 if __name__ == '__main__':

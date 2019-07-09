@@ -6,7 +6,7 @@ import pytest
 from pytest import approx
 import numpy as np
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import SumSpectra
+from mantid.simpleapi import SumSpectra, mtd
 
 # public API
 from ornl.sans.sns import eqsans
@@ -47,7 +47,8 @@ def flux_file(refd):
 def rs(request):
     run_set = request.param
     run = run_set['run']
-    ws = eqsans.load_events(run, output_workspace=uwn())
+    ws = uwn()
+    eqsans.load_events(run, output_workspace=ws)
     kw = dict(low_tof_clip=500, high_tof_clip=2000, output_workspace=uwn())
     wl = eqsans.transform_to_wavelength(ws, **kw)
     return {**run_set, **dict(ws=ws, wl=wl)}
@@ -56,12 +57,12 @@ def rs(request):
 class TestLoadEvents(object):
 
     def test_loading_file(self, rs):
-        ws = rs.ws
+        ws = mtd[rs.ws]
         assert isinstance(ws, EventWorkspace)
         assert ws.getNumberEvents() == rs.num_events
 
     def test_geometry(self, rs):
-        ws = rs.ws
+        ws = mtd[rs.ws]
         # assert distance of detector1 same as that in detectorZ of the logs
         instrument = ws.getInstrument()
         det = instrument.getComponentByName(detector_name(instrument))
@@ -75,7 +76,7 @@ class TestLoadEvents(object):
                                 abs=1)
 
     def test_tofs(self, rs):
-        ws = rs.ws
+        ws = mtd[rs.ws]
         assert ws.getTofMin() == pytest.approx(rs.min_tof, abs=1)
         assert ws.getTofMax() == pytest.approx(rs.max_tof, abs=1)
         assert bool(SampleLogs(ws).is_frame_skipping.value) == rs.skip_frame

@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-from mantid.simpleapi import (ConvertUnits, Rebin, EQSANSCorrectFrame)
+from mantid.simpleapi import (mtd, ConvertUnits, Rebin, EQSANSCorrectFrame)
 
 from ornl.settings import (optional_output_workspace,
                            unique_workspace_dundername as uwd)
@@ -319,7 +319,7 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
 def transform_to_wavelength(ws, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
                             keep_events=False):
-
+    ws = mtd[str(ws)]
     sdd = source_detector_distance(ws, units='m')
     bands = transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip)
     return convert_to_wavelength(ws, bands, bin_width, events=keep_events,

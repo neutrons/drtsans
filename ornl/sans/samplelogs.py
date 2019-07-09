@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from mantid.api import (Run, MatrixWorkspace)
-from mantid.simpleapi import (Load, AddSampleLog)
+from mantid.simpleapi import (mtd, Load, AddSampleLog)
 
 
 class SampleLogs(object):
@@ -113,9 +113,13 @@ class SampleLogs(object):
             return self.find_run(w)
 
         def from_string(s):
+            # see if it is a file
             if os.path.isfile(s):
                 w = Load(Filename=s)
                 return self.find_run(w)
+            # see if it is an already named data object
+            elif s in mtd:
+                return mtd[s]
             else:
                 try:
                     i = int(s)

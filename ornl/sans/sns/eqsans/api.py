@@ -68,7 +68,7 @@ def prepare_data(data,
                  x_center=0.0, y_center=0.0,
                  dark_current=None,
                  flux=None,
-                 mask=None, panel=None,
+                 mask=None, panel=None, btp=dict()
                  sensitivity_file_path=None):
     r"""
         Load an EQSANS data file and bring the data to a point where it
@@ -89,6 +89,8 @@ def prepare_data(data,
         Either 'front' or 'back' to mask a whole panel
     mask: mask file path, MaskWorkspace
         Mask to be applied.
+    btp: dict
+        Additional properties to MaskBTP, if desired
     """
     ws = load_events(data, detector_offset=detector_offset,
                      sample_offset=sample_offset)
@@ -100,7 +102,7 @@ def prepare_data(data,
         ws = subtract_dark_current(ws, dark_current)
     if flux is not None:
         ws = normalise_by_flux(ws, flux)
-    apply_mask(ws, panel=panel, mask=mask)
+    apply_mask(ws, panel=panel, mask=mask, **btp)
     # Uncomment as we address them
     # ws = initial_uncertainty_estimation(ws)
     # ws = apply_solid_angle_correction(ws)

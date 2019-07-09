@@ -28,13 +28,6 @@ def set_instrument_geometry(ws):
     raise NotImplementedError()
 
 
-def apply_mask(ws, mask_file_path):
-    """
-        Apply mask to detector pixels
-    """
-    raise NotImplementedError()
-
-
 def initial_uncertainty_estimation(ws):
     """
         Assign uncertainty for every bin in x, y, TOF

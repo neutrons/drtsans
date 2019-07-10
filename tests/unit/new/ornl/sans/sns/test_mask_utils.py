@@ -15,13 +15,13 @@ def test_apply_mask():
     m = apply_mask(w, Components='back-panel', output_workspace=uwd())
     assert isinstance(m, MaskWorkspace)
     ClearMaskFlag(w)
-    MaskBTP(Workspace=w, instrument='EQ-SANS', Components='back-panel')
+    MaskBTP(Workspace=w, Components='back-panel')
     m2 = ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
     assert CompareWorkspaces(m, m2).Result
     ClearMaskFlag(w)
     m = apply_mask(w, Bank='1-24', Pixel='1-10', output_workspace=m.name())
     ClearMaskFlag(w)
-    MaskBTP(Workspace=w, instrument='EQ-SANS', Bank='1-24', Pixel='1-10')
+    MaskBTP(Workspace=w, Bank='1-24', Pixel='1-10')
     m2 = ExtractMask(w, OutputWorkspace=m2.name()).OutputWorkspace
     assert CompareWorkspaces(m, m2).Result
     #
@@ -36,7 +36,7 @@ def test_apply_mask():
     # using a File
     #
     ClearMaskFlag(w)
-    MaskBTP(Workspace=w, instrument='EQ-SANS', Bank='1-24', Pixel='1-10')
+    MaskBTP(Workspace=w, Bank='1-24', Pixel='1-10')
     m = ExtractMask(w, OutputWorkspace=m.name()).OutputWorkspace
     with NamedTemporaryFile(suffix='.xml') as f:
         SaveMask(m, f.name)
@@ -48,13 +48,13 @@ def test_apply_mask():
     # using a MaskWorkspace and MaskBTP
     #
     ClearMaskFlag(w)
-    MaskBTP(Workspace=w, instrument='EQ-SANS', Components='front-panel')
+    MaskBTP(Workspace=w, Components='front-panel')
     m2 = ExtractMask(w, OutputWorkspace=m2.name()).OutputWorkspace
     m = apply_mask(w, mask=m2, Bank='25-48', Pixel='1-10',
                    output_workspace=m.name())
     ClearMaskFlag(w)
-    MaskBTP(Workspace=w, instrument='EQ-SANS', Components='front-panel')
-    MaskBTP(Workspace=w, instrument='EQ-SANS', Bank='25-48', Pixel='1-10')
+    MaskBTP(Workspace=w, Components='front-panel')
+    MaskBTP(Workspace=w, Bank='25-48', Pixel='1-10')
     m2 = ExtractMask(w, OutputWorkspace=m2.name()).OutputWorkspace
     assert CompareWorkspaces(m, m2).Result
 

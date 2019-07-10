@@ -7,7 +7,7 @@ from ornl.sans import solid_angle_correction
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
-                                  normalise_by_flux)
+                                  normalise_by_flux, apply_mask)
 
 
 def find_beam_center(ws, mask_file_path=None):
@@ -26,13 +26,6 @@ def find_beam_center(ws, mask_file_path=None):
 
 def set_instrument_geometry(ws):
     """ Move detector components to their proper location """
-    raise NotImplementedError()
-
-
-def apply_mask(ws, mask_file_path):
-    """
-        Apply mask to detector pixels
-    """
     raise NotImplementedError()
 
 
@@ -68,9 +61,9 @@ def prepare_data(data,
                  x_center=0.0, y_center=0.0,
                  dark_current=None,
                  flux=None,
-                 mask_file_path=None,
+                 mask=None, panel=None, btp=dict(),
                  sensitivity_file_path=None,
-                 output_workspace=None):
+                 output_workspace = None):
     r"""
         Load an EQSANS data file and bring the data to a point where it
         can be used. This includes applying basic corrections that are
@@ -86,6 +79,12 @@ def prepare_data(data,
     flux: str
         Path to file containing the wavelength distribution
         of the neutron flux.
+    panel: str
+        Either 'front' or 'back' to mask a whole panel
+    mask: mask file path, MaskWorkspace
+        Mask to be applied.
+    btp: dict
+        Additional properties to MaskBTP, if desired
     """
     # let load_events dictate the name of the workspace
     output_workspace = load_events(data, detector_offset=detector_offset,
@@ -102,12 +101,11 @@ def prepare_data(data,
                               output_workspace=output_workspace)
     if flux is not None:
         normalise_by_flux(output_workspace, flux,
-                          output_workspace=output_workspace)
+                  output_workspace=output_workspace)
+    apply_mask(output_workspace, panel=panel, mask=mask, **btp)
     # Uncomment as we address them
-    # apply_mask(ws, mask_file_path, output_workspace=output_workspace)
     # initial_uncertainty_estimation(ws, output_workspace=output_workspace)
     apply_solid_angle_correction(output_workspace,
                                  output_workspace=output_workspace)
-    # apply_sensitivity_correction(ws, sensitivity_file_path,
-    #                              output_workspace=output_workspace)
+    # apply_sensitivity_correction(ws, sensitivity_file_path, output_workspace=output_workspace)
     return mtd[output_workspace]

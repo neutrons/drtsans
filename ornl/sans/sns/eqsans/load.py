@@ -1,6 +1,6 @@
 
 from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace)
-from ornl.settings import (amend_config, unique_workspace_name)
+from ornl.settings import amend_config
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import (source_sample_distance,
                                 sample_detector_distance)

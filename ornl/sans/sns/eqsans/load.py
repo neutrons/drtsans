@@ -1,6 +1,6 @@
 
 from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace)
-from ornl.settings import (amend_config)
+from ornl.settings import (amend_config, unique_workspace_name)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import (source_sample_distance,
                                 sample_detector_distance)
@@ -8,6 +8,7 @@ from ornl.sans.sns.eqsans.geometry import (translate_detector_z,
                                            translate_detector_by_z,
                                            translate_sample_by_z)
 from ornl.sans.sns.eqsans.correct_frame import correct_detector_frame
+import os
 
 __all__ = ['load_events']
 
@@ -40,7 +41,12 @@ def load_events(run, detector_offset=0., sample_offset=0.,
         Reference to the events workspace
     """
     if output_workspace is None:
-        output_workspace = str(run)
+        if isinstance(run, str):
+            output_workspace = os.path.split(run)[-1]
+            output_workspace = '_'.join(output_workspace.split('_')[:2])
+            output_workspace = output_workspace.split('.')[0]
+        else:
+            output_workspace = unique_workspace_name(suffix=str(run))
 
     if isinstance(run, int) or isinstance(run, str):
         with amend_config({'datasearch.searcharchive': 'hfir,sns'}):

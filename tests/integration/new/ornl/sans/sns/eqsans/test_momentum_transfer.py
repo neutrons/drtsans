@@ -5,10 +5,10 @@ import numpy as np
 
 from mantid import mtd
 from mantid.simpleapi import (AddSampleLog, ConfigService, CreateWorkspace,
-                              ExtractSpectra, MoveInstrumentComponent, Rebin)
+                              ExtractSpectra, MoveInstrumentComponent, Rebin,
+                              ReplaceSpecialValues)
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
 from ornl.sans.sns.eqsans import normalisation
-from ornl.settings import unique_workspace_name
 from ornl.sans.sns.eqsans import load_events, transform_to_wavelength
 # from ornl.sans.sns.eqsans import center_detector
 # from ornl.sans.sns.eqsans import geometry
@@ -30,9 +30,6 @@ def legacy_reduction():
     eqsans.UseConfigTOFTailsCutoff(False)
     eqsans.UseConfigMask(False)
     eqsans.SetBeamCenter(90, 132.5)
-    # eqsans.SetTransmission(1.0, 1.0)
-    # eqsans.SensitivityCorrection("/SNS/EQSANS/shared/NeXusFiles/EQSANS/2018B_mp/Sensitivity_patched_thinPMMA_2o5m_97716_event.nxs",
-    #     min_sensitivity=0.5, max_sensitivity=1.5, use_sample_dc=False)
     eqsans.SetTOFTailsCutoff(low_cut=500, high_cut=2000)
     eqsans.SetWavelengthStep(step=0.1)
     eqsans.Resolution(sample_aperture_diameter=10.0)
@@ -45,9 +42,7 @@ def legacy_reduction():
     eqsans.IQxQy(nbins=100, log_binning=False)
     Reduce()
 
-    return mtd['EQSANS_68200']
-
-    
+    return mtd['EQSANS_68200_iq']
 
 
 def test_momentum_tranfer_serial():
@@ -61,7 +56,7 @@ def test_momentum_tranfer_serial():
     ws = transform_to_wavelength(ws, bin_width=0.1,
                                  low_tof_clip=500,
                                  high_tof_clip=2000)
-    
+
     # center_detector will do this when jose fixes the Z issue
     # Center the beam: xyz: 0.0165214,0.0150392,4.00951
     instrument = ws.getInstrument()
@@ -131,24 +126,57 @@ def test_momentum_tranfer_serial():
         # assert ws_iq.extractY().shape == (1, 100)
         # assert ws_iq.extractX().shape == (1, 101)
 
-    # Calculate an average I(q)
+    all_bins = np.array([mtd["ws_{}_iq".format(index)].extractX() for
+                         index, _ in enumerate(bins)])
+    q_max = all_bins.max()
+    q_min = all_bins.min()
 
-    mean_x = np.mean([mtd["ws_{}_iq".format(index)].extractX() for
-                      index, _ in enumerate(bins)], axis=0)
-    mean_y = np.mean([mtd["ws_{}_iq".format(index)].extractY() for
-                      index, _ in enumerate(bins)], axis=0)
-    mean_e = np.sqrt(np.sum([(mtd["ws_{}_iq".format(index)].extractE())**2 for
-                             index, _ in enumerate(bins)], axis=0))
+    [Rebin(
+        InputWorkspace=mtd["ws_{}_iq".format(index)],
+        OutputWorkspace="ws_rebin_{}_iq".format(index),
+        Params='{},0.004,{}'.format(q_min, q_max)) for
+        index, _ in enumerate(bins)]
+
+    # Calculate an average I(q)
+    q = [mtd["ws_rebin_{}_iq".format(index)].extractX().ravel() for
+         index, _ in enumerate(bins)]
+    i = [mtd["ws_rebin_{}_iq".format(index)].extractY().ravel() for
+         index, _ in enumerate(bins)]
+    dq = [mtd["ws_rebin_{}_iq".format(index)].extractE().ravel() for
+          index, _ in enumerate(bins)]
+
+    q = np.ma.masked_invalid(q)
+    i = np.ma.masked_invalid(i)
+    dq = np.ma.masked_invalid(dq)
+
+    # Calculate an average I(q)
+    mean_q = np.mean(q, axis=0)
+    mean_i = np.mean(i, axis=0)
+    mean_dq = np.sqrt(np.sum(dq**2, axis=0))
 
     mean_iq = CreateWorkspace(
-        DataX=mean_x,
-        DataY=mean_y,
-        DataE=mean_e,
+        DataX=mean_q.filled(np.nan),
+        DataY=mean_i.filled(np.nan),
+        DataE=mean_dq.filled(np.nan),
         # Dx=dq_bin_centers,  # bin centers!!
         NSpec=1,
         UnitX='MomentumTransfer',
         YUnitLabel='Counts',
-        OutputWorkspace="mean_iq"
+        OutputWorkspace="mean_rebin_iq"
     )
 
-    assert mean_iq is not None
+    iq_old = legacy_reduction()
+
+    iq_new = ReplaceSpecialValues(
+        InputWorkspace=mean_iq, NaNValue=0, InfinityValue=0)
+
+    max_old = iq_old.readY(0).max()
+    max_new = iq_new.readY(0).max()
+
+    iq_old_final = iq_old * max_new/max_old
+
+    assert iq_old_final is not None
+
+    # plt.plot(iq_new.extractY().ravel())
+    # plt.plot(iq_old_final.extractY().ravel())
+    # plt.show()

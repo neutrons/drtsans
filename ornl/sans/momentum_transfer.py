@@ -6,7 +6,6 @@ from scipy import stats
 from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
 from ornl.sans.detector import Component
 from ornl.sans.hfir import resolution
-from mantid.kernel import logger
 
 
 def _remove_monitors(data, component):
@@ -243,10 +242,10 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
     i = i[condition]
     sigma_i = sigma_i[condition]
 
-    intensity_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
+    intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
         q_bin_centers_grid.ravel(), i.ravel(), statistic=statistic, bins=bins)
 
-    sigma_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
+    sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
         q_bin_centers_grid.ravel(), sigma_i.ravel(),
         statistic=lambda array_1d: np.sqrt(
             np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
@@ -264,7 +263,7 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
 
     dq_bin_centers_grid = dq_bin_centers_grid[condition]
     
-    dq_intensity_statistic, dq_bin_edges, dq_binnumber = \
+    _, dq_bin_edges, _ = \
         stats.binned_statistic(dq_bin_centers_grid.ravel(), i.ravel(),
                                statistic=statistic, bins=bins)
 
@@ -428,10 +427,10 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
 
     assert(q_bin_centers_grid.shape == i.shape == sigma_i.shape)
 
-    intensity_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
+    intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
         q_bin_centers_grid, i, statistic=statistic, bins=bins)
 
-    sigma_statistic, q_bin_edges, q_binnumber = stats.binned_statistic(
+    sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
         q_bin_centers_grid, sigma_i,
         statistic=lambda array_1d: np.sqrt(
             np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
@@ -449,7 +448,7 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
 
     dq_bin_centers_grid_all = dq_bin_centers_grid_all[condition]
 
-    dq_intensity_statistic, dq_bin_edges, dq_binnumber = \
+    _, dq_bin_edges, _ = \
         stats.binned_statistic(dq_bin_centers_grid_all, i,
                                statistic=statistic, bins=bins)
 

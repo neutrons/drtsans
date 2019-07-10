@@ -17,8 +17,9 @@ def test_save_ascii_parallel():
 
     from mantid.simpleapi import AddSampleLog
     from ornl.sans.sns.eqsans import reduce
-    ws = reduce.load_w('EQSANS_68200', unique_workspace_name(suffix="_raw"),
-                       low_tof_clip=500, high_tof_clip=2000, dw=0.1)
+    ws = reduce.load_w('EQSANS_68200', low_tof_clip=500, high_tof_clip=2000,
+                       dw=0.1,
+                       output_workspace=unique_workspace_name(suffix="_raw"))
     AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter',
                  LogText='10.', LogType='Number', LogUnit='mm')
     AddSampleLog(Workspace=ws, LogName='source-aperture-diameter',

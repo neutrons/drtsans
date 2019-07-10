@@ -91,13 +91,13 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     return mtd[output_workspace]
 
 
-def normalise_by_flux(ws, flux, output_workspace=None):
+def normalise_by_flux(input_workspace, flux, output_workspace=None):
     r"""
     Normalize counts by flux wavelength distribution and proton charge.
 
     Parameters
     ----------
-    ws: MatrixWorkspace
+    input_workspace: MatrixWorkspace
         Input workspace, binned in wavelength
     flux: str
         path to file containing the wavelength distribution
@@ -108,9 +108,9 @@ def normalise_by_flux(ws, flux, output_workspace=None):
     MatrixWorkspace
     """
     if output_workspace is None:
-        output_workspace = uwd()  # output to hidden workspace
-    w_flux = load_beam_flux_file(flux, ws_reference=ws)
-    normalise_by_proton_charge_and_flux(ws, w_flux,
+        output_workspace = str(input_workspace)
+    w_flux = load_beam_flux_file(flux, ws_reference=input_workspace)
+    normalise_by_proton_charge_and_flux(input_workspace, w_flux,
                                         output_workspace=output_workspace)
     w_flux.delete()
 

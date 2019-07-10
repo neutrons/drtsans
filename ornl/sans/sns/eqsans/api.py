@@ -63,7 +63,7 @@ def prepare_data(data,
                  flux=None,
                  mask=None, panel=None, btp=dict(),
                  sensitivity_file_path=None,
-                 output_workspace = None):
+                 output_workspace=None):
     r"""
         Load an EQSANS data file and bring the data to a point where it
         can be used. This includes applying basic corrections that are
@@ -101,11 +101,12 @@ def prepare_data(data,
                               output_workspace=output_workspace)
     if flux is not None:
         normalise_by_flux(output_workspace, flux,
-                  output_workspace=output_workspace)
+                          output_workspace=output_workspace)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
     # Uncomment as we address them
     # initial_uncertainty_estimation(ws, output_workspace=output_workspace)
     apply_solid_angle_correction(output_workspace,
                                  output_workspace=output_workspace)
-    # apply_sensitivity_correction(ws, sensitivity_file_path, output_workspace=output_workspace)
+    # apply_sensitivity_correction(ws, sensitivity_file_path,
+    #                              output_workspace=output_workspace)
     return mtd[output_workspace]

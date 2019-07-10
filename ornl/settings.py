@@ -2,7 +2,6 @@ from __future__ import (absolute_import, division, print_function)
 
 import random
 import string
-import inspect
 from collections import OrderedDict
 import functools
 from collections import namedtuple, Mapping

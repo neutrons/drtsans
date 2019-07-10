@@ -82,6 +82,6 @@ class Component:
 
     def __str__(self):
         return "Component: {} with {} pixels (dim x={}, dim y={})." \
-        " First index = {}.".format(self._component_name,
-            self.dims, self.dim_x, self.dim_y, self.first_index
-        )
+            " First index = {}.".format(
+                self._component_name, self.dims, self.dim_x, self.dim_y,
+                self.first_index)

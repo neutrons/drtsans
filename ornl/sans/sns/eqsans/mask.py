@@ -1,13 +1,10 @@
 from mantid.simpleapi import MaskBTP
-from ornl.settings import (optional_output_workspace,
-                           unique_workspace_dundername as uwd)
 from ornl.sans import mask_utils
 
 __all__ = ['apply_mask']
 
 
-@optional_output_workspace
-def apply_mask(w, panel=None, mask=None, **btp):
+def apply_mask(w, panel=None, mask=None, output_workspace=None, **btp):
     r"""
     Apply a mask or region-of-interest to a workspace.
 
@@ -32,4 +29,6 @@ def apply_mask(w, panel=None, mask=None, **btp):
     """
     if panel:
         MaskBTP(Workspace=w, instrument='EQ-SANS', Components='front-panel')
-    return mask_utils.apply_mask(w, mask=mask, output_workspace=uwd(), **btp)
+    # let apply_mask handle selecting output workspace's name
+    return mask_utils.apply_mask(w, mask=mask,
+                                 output_workspace=output_workspace, **btp)

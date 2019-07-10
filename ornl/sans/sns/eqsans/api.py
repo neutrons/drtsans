@@ -93,20 +93,15 @@ def prepare_data(data,
     output_workspace = str(output_workspace)  # convert it to its name
     transform_to_wavelength(output_workspace, bin_width=bin_width,
                             low_tof_clip=low_tof_clip,
-                            high_tof_clip=high_tof_clip,
-                            output_workspace=output_workspace)
+                            high_tof_clip=high_tof_clip)
     center_detector(output_workspace, x=x_center, y=y_center)
     if dark_current is not None:
-        subtract_dark_current(output_workspace, dark_current,
-                              output_workspace=output_workspace)
+        subtract_dark_current(output_workspace, dark_current)
     if flux is not None:
-        normalise_by_flux(output_workspace, flux,
-                          output_workspace=output_workspace)
+        normalise_by_flux(output_workspace, flux)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
     # Uncomment as we address them
-    # initial_uncertainty_estimation(ws, output_workspace=output_workspace)
-    apply_solid_angle_correction(output_workspace,
-                                 output_workspace=output_workspace)
-    # apply_sensitivity_correction(ws, sensitivity_file_path,
-    #                              output_workspace=output_workspace)
+    # initial_uncertainty_estimation(output_workspace)
+    apply_solid_angle_correction(output_workspace)
+    # apply_sensitivity_correction(output_workspace, sensitivity_file_path)
     return mtd[output_workspace]

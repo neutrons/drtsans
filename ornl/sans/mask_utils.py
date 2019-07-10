@@ -54,7 +54,7 @@ def apply_mask(w, mask=None, output_workspace=None, **btp):
     if output_workspace is None:
         output_workspace = uwd()
     instrument = w.getInstrument().getName()
-    w = str(w)  # remove the change of invalided reference
+    w = str(w)
     if mask is not None:
         if isinstance(mask, str):
             wm = LoadMask(Instrument=instrument, InputFile=mask,

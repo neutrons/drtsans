@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 import os
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
-from mantid.simpleapi import Load
+from mantid.simpleapi import mtd, Load
 from ornl.sans.samplelogs import SampleLogs
 
 
@@ -109,6 +109,8 @@ def get_instrument(other):
         if os.path.isfile(s):
             w = Load(Filename=s)
             return get_instrument(w)
+        elif s in mtd:
+            return get_instrument(mtd[s])
         else:
             try:
                 i = int(s)

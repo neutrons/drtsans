@@ -32,6 +32,9 @@ def load_events(run, detector_offset=0., sample_offset=0.,
     sample_offset: float
         Additional translation of the sample, in mm. The sample flange remains
         at the origin of coordinates.
+    output_workspace: workspace reference
+        If not specified it will be EQSANS_55555 determined from the supplied
+        value of ``run``
     kwargs: dict
         Additional positional arguments for LoadEventNexus.
 
@@ -46,10 +49,11 @@ def load_events(run, detector_offset=0., sample_offset=0.,
             output_workspace = '_'.join(output_workspace.split('_')[:2])
             output_workspace = output_workspace.split('.')[0]
         else:
-            output_workspace = unique_workspace_name(suffix=str(run))
+            output_workspace = 'EQSANS_{}'.format(run)
 
     if isinstance(run, int) or isinstance(run, str):
-        with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+        with amend_config({'datasearch.searcharchive': 'hfir,sns',
+                           'default.instrument', 'EQSANS'}):
             LoadEventNexus(Filename=str(run),
                            OutputWorkspace=output_workspace, **kwargs)
     else:

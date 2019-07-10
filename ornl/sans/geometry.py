@@ -1,9 +1,9 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
-from mantid.api import MatrixWorkspace
+from mantid.api import mtd, MatrixWorkspace
 from mantid.geometry import Instrument
-from mantid.simpleapi import mtd, Load
+from mantid.simpleapi import Load
 from ornl.sans.samplelogs import SampleLogs
 
 
@@ -24,7 +24,10 @@ def detector_name(ipt):
                    'BIOSANS': 'detector1',
                    'GPSANS': 'detector1'}
     if isinstance(ipt, str):
-        instrument_name = ipt
+        if ipt in mtd:
+            instrument_name = mtd[ipt].getInstrument().getName()
+        else:
+            instrument_name = ipt
     elif isinstance(ipt, Instrument):
         instrument_name = ipt.getName()
     else:

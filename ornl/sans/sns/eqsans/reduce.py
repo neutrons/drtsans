@@ -1,15 +1,15 @@
 from __future__ import (absolute_import, division, print_function)
 
-from mantid.simpleapi import Load
+from mantid.simpleapi import mtd, Load
 
-from ornl.settings import (amend_config, optional_output_workspace,
+from ornl.settings import (amend_config,
                            unique_workspace_dundername as uwd)
 from ornl.sans import geometry
 from ornl.sans.sns.eqsans import geometry as e_geometry, correct_frame
 
 
-@optional_output_workspace
-def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1):
+def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1,
+           output_workspace=None):
     r"""
     Load a run, correct the TOF frame, and convert to wavelength
 
@@ -28,16 +28,21 @@ def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1):
     -------
     MatrixWorkspace
     """
+    if output_workspace is None:
+        output_workspace = uwd()  # unique hidden name
+
     with amend_config({'instrumentName': 'EQSANS',
                        'datasearch.searcharchive': 'on'}):
-        _ws = Load(run, OutputWorkspace=uwd())
-        e_geometry.translate_detector_z(_ws)
-        correct_frame.correct_detector_frame(_ws)
-        sdd = geometry.source_detector_distance(_ws, units='m')
-        args = (_ws, sdd, low_tof_clip, high_tof_clip)
-        bands = correct_frame.transmitted_bands_clipped(*args,
+        Load(Filename=run, OutputWorkspace=output_workspace)
+        e_geometry.translate_detector_z(output_workspace)  # inplace
+        correct_frame.correct_detector_frame(output_workspace)
+        sdd = geometry.source_detector_distance(output_workspace, units='m')
+        bands = correct_frame.transmitted_bands_clipped(output_workspace, sdd,
+                                                        low_tof_clip,
+                                                        high_tof_clip,
                                                         interior_clip=True)
-        _ws = correct_frame.convert_to_wavelength(_ws, bands, dw, events=False)
-        correct_frame.log_tof_structure(_ws, low_tof_clip, high_tof_clip,
-                                        interior_clip=True)
-        return _ws
+        correct_frame.convert_to_wavelength(output_workspace, bands, dw,
+                                            events=False)
+        correct_frame.log_tof_structure(output_workspace, low_tof_clip,
+                                        high_tof_clip, interior_clip=True)
+        return mtd[output_workspace]

@@ -1,7 +1,6 @@
 
-from mantid.simpleapi import (LoadEventNexus, CloneWorkspace)
-from ornl.settings import (optional_output_workspace, amend_config,
-                           unique_workspace_dundername as uwd)
+from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace)
+from ornl.settings import (amend_config)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import (source_sample_distance,
                                 sample_detector_distance)
@@ -13,8 +12,8 @@ from ornl.sans.sns.eqsans.correct_frame import correct_detector_frame
 __all__ = ['load_events']
 
 
-@optional_output_workspace
-def load_events(run, detector_offset=0., sample_offset=0., **levn):
+def load_events(run, detector_offset=0., sample_offset=0.,
+                output_workspace=None, **kwargs):
     r"""
     Load events with initial corrections for geometry and time-of-flight
 
@@ -32,7 +31,7 @@ def load_events(run, detector_offset=0., sample_offset=0., **levn):
     sample_offset: float
         Additional translation of the sample, in mm. The sample flange remains
         at the origin of coordinates.
-    levn: dict
+    kwargs: dict
         Additional positional arguments for LoadEventNexus.
 
     Returns
@@ -40,28 +39,33 @@ def load_events(run, detector_offset=0., sample_offset=0., **levn):
     EventWorkspace
         Reference to the events workspace
     """
+    if output_workspace is None:
+        output_workspace = str(run)
+
     if isinstance(run, int) or isinstance(run, str):
         with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
-            _ws = LoadEventNexus(Filename=str(run),
-                                 OutputWorkspace=uwd(), **levn)
+            LoadEventNexus(Filename=str(run),
+                           OutputWorkspace=output_workspace, **kwargs)
     else:
-        _ws = CloneWorkspace(run, OutputWorkspace=uwd())
+        CloneWorkspace(run, OutputWorkspace=output_workspace)
     #
     # Correct geometry
     #
     # issue #72 LoadInstrument here, loading future EQSANS IDF
     # that moves the detector according to the logs
-    translate_detector_z(_ws)  # search logs and translate
-    translate_detector_by_z(_ws, 1e-3 * detector_offset)
-    translate_sample_by_z(_ws, 1e-3 * sample_offset)
+    translate_detector_z(output_workspace)  # search logs and translate
+    translate_detector_by_z(output_workspace, 1e-3 * detector_offset)
+    translate_sample_by_z(output_workspace, 1e-3 * sample_offset)
 
-    sl = SampleLogs(_ws)
+    sl = SampleLogs(output_workspace)
     sl.insert('source-sample-distance',
-              source_sample_distance(_ws, search_logs=False), unit='mm')
+              source_sample_distance(output_workspace, search_logs=False),
+              unit='mm')
     sl.insert('sample-detector-distance',
-              sample_detector_distance(_ws, search_logs=False), unit='mm')
+              sample_detector_distance(output_workspace, search_logs=False),
+              unit='mm')
     #
     # Correct TOF
     #
-    correct_detector_frame(_ws)
-    return _ws
+    correct_detector_frame(output_workspace)
+    return mtd[output_workspace]

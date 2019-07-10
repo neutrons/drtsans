@@ -25,7 +25,7 @@ def data_ws():
 def test_load_beam_flux_file(flux_file, data_ws):
     # No reference workspace
     w = load_beam_flux_file(flux_file)
-    assert w.name() == 'w'
+    assert w.name().startswith('__')  # gets random hidden name
     i = Integration(w)
     assert i.dataY(0)[0] == approx(1)  # normalized
     assert max(w.dataY(0)) == approx(0.337, abs=0.001)

@@ -93,14 +93,15 @@ class TestLoadEvents(object):
 
 def test_transform_to_wavelength(rs):
     ws = eqsans.transform_to_wavelength(rs.ws, low_tof_clip=500,
-                                        high_tof_clip=2000)
+                                        high_tof_clip=2000,
+                                        output_workspace=uwn())
     sl = SampleLogs(ws)
     assert sl.wavelength_min.value == approx(rs.w_min, abs=0.05)
     assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
 
 
 def test_normalise_by_flux(rs, flux_file):
-    ws = eqsans.normalise_by_flux(rs.wl, flux_file)
+    ws = eqsans.normalise_by_flux(rs.wl, flux_file, output_workspace=uwn())
     ws = SumSpectra(ws)
     assert np.average(ws.dataY(0)) == approx(rs.flux, abs=1)
 
@@ -118,8 +119,7 @@ def test_prepared_data(eqsans_f):
 
 
 def test_solid_angle(rs):
-    ws = rs.ws
-    ws2 = solid_angle_correction(ws, output_workspace=uwn(),
+    ws2 = solid_angle_correction(rs.ws, output_workspace=uwn(),
                                  detector_type='VerticalTube')
     assert isinstance(ws2, EventWorkspace)
     assert ws2.getNumberEvents() == rs.num_events

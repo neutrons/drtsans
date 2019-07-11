@@ -9,7 +9,7 @@ from ornl.sans.hfir import resolution
 
 
 def _remove_monitors(data, component):
-    """Based on the component definitition removes the monitor index from
+    """Based on the component definition removes the monitor index from
     the data
 
     Parameters
@@ -464,4 +464,61 @@ def bin_wedge_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, phi_0=0, phi_aperture=30,
         YUnitLabel='Counts',
         OutputWorkspace=out_ws_prefix+"_iq"
     )
+    return iq.name(), iq
+
+
+def bin_into_q1d_test(ws, component_name="detector1", out_ws_prefix="ws_test",
+                      bins=100, statistic='mean'):
+    """
+    Bin into Q1D direcly from a WS
+
+    """
+    # flake8: noqa E712
+
+    assert ws.blocksize() == 1  # sanity check: only 1 bin
+
+    det = Component(ws, component_name)
+    if bins is None:
+        bins = [det.dim_x, det.dim_y]
+    masked_pixels = det.masked_ws_indices()
+
+    # 1D arrays
+    qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
+    i = ws.extractY().ravel().ravel()
+    i_sigma = ws.extractE().ravel()
+
+    # Get rid of the monitors; from 49154 to 49152 spectra
+    qx, qy, dqx, dqy, i, i_sigma = [
+        _remove_monitors(d, det) for d in [qx, qy, dqx, dqy, i, i_sigma]]
+
+    # Create numpy mask arrays with the masked pixels
+    qx, qy, dqx, dqy, i, i_sigma = [
+        _mask_pixels(d, masked_pixels) for d in [qx, qy, dqx, dqy, i, i_sigma]]
+
+    q = np.sqrt(np.square(qx) + np.square(qy))
+    dq = np.sqrt(np.square(dqx) + np.square(dqy))
+
+    intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
+        q, i, statistic=statistic, bins=bins)
+
+    sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
+        q, i_sigma, statistic=lambda array_1d: np.sqrt(
+            np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
+    
+    _, dq_bin_edges, _ = stats.binned_statistic(
+        dq, i, statistic=statistic, bins=bins)
+
+    dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
+
+    iq = CreateWorkspace(
+        DataX=np.array([q_bin_edges]),
+        DataY=np.array([intensity_statistic]),
+        DataE=np.array([sigma_statistic]),
+        Dx=dq_bin_centers,  # bin centers!!
+        NSpec=1,
+        UnitX='MomentumTransfer',
+        YUnitLabel='Counts',
+        OutputWorkspace=out_ws_prefix+"_iq"
+    )
+
     return iq.name(), iq

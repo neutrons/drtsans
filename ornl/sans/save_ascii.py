@@ -20,6 +20,7 @@ def save_ascii_1D(wksp, title, filename):
     f = open(filename, "w+")
     f.write('# ' + title + '\n')
     f.write('#Q (1/A)        I (1/cm)        dI (1/cm)       dQ (1/A)\n')
+
     for i in range(len(intensity)):
         f.write('{:.6f}\t'.format(q[i]))
         f.write('{:.6f}\t'.format(intensity[i]))
@@ -68,7 +69,7 @@ def save_ascii_2D(q2, q2x, q2y, title, filename):
     for i in range(len(q2.readY(0))):
         for j in range(q2.getNumberHistograms()):
             qy = float(q2.getAxis(1).label(j))
-            x = 0.5*(q2.readX(j)[i]+q2.readX(j)[i+1])
+            x = 0.5 * (q2.readX(j)[i] + q2.readX(j)[i + 1])
             f.write('{:.6f}\t'.format(x))
             f.write('{:.6f}\t'.format(qy))
             f.write('{:.6f}\t'.format(q2.readY(j)[i]))

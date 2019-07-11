@@ -1,8 +1,7 @@
 """ Top-level API for EQSANS """
+from mantid.api import mtd
 # Import rolled up to complete a single top-level API
-from ornl.settings import optional_output_workspace
 from ornl.sans import solid_angle_correction
-
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,

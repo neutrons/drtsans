@@ -78,6 +78,8 @@ code-unit-test:
     - dockerbuild
   allow_failure: true
   before_script:
+    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/
+    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
@@ -94,6 +96,8 @@ code-integration-test:
     - dockerbuild
   allow_failure: true
   before_script:
+    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/
+    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:

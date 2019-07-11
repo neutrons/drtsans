@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
-from mantid.simpleapi import MoveInstrumentComponent
+from mantid.simpleapi import mtd, MoveInstrumentComponent
 
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
@@ -28,7 +28,7 @@ def translate_sample_by_z(ws, z):
     z: float
         Translation to be applied
     """
-    MoveInstrumentComponent(ws, Z=z,
+    MoveInstrumentComponent(Workspace=str(ws), Z=z,
                             ComponentName='sample-position',
                             RelativePosition=True)
 
@@ -53,9 +53,8 @@ def translate_detector_z(ws, z=None, relative=True):
         sl = SampleLogs(ws)
         z = 1e-3 * sl.single_value(detector_z_log)  # assumed in mili-meters
 
-    kwargs = dict(ComponentName=detector_name(ws),
-                  RelativePosition=relative)
-    MoveInstrumentComponent(ws, Z=z, **kwargs)
+    MoveInstrumentComponent(Workspace=ws, Z=z, ComponentName=detector_name(ws),
+                            RelativePosition=relative)
 
 
 def translate_detector_by_z(ws, z, **kwargs):
@@ -94,7 +93,7 @@ def center_detector(ws, x, y, units='m', relative=False):
     t_y = y if units == 'm' else y / 1.e3
     t_z = 0.0
     if relative is False:
-        i = ws.getInstrument()
+        i = mtd[str(ws)].getInstrument()
         # preserve the Z coordinate value
         t_z = i.getComponentByName(detector_name(i)).getPos()[-1]
     MoveInstrumentComponent(ws, X=t_x, Y=t_y, Z=t_z,
@@ -104,7 +103,7 @@ def center_detector(ws, x, y, units='m', relative=False):
     # Recalculate distance from sample to detector
     sdd = sample_detector_distance(ws, units='mm', search_logs=False)
     SampleLogs(ws).insert('sample-detector-distance', sdd, unit='mm')
-    instrument = ws.getInstrument()
+    instrument = mtd[str(ws)].getInstrument()
     det = instrument.getComponentByName(detector_name(instrument))
     return np.array(det.getPos())
 

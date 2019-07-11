@@ -2,9 +2,8 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 from mantid.dataobjects import MaskWorkspace
-from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP,
-                              ExtractMask)
-from ornl.settings import (unique_workspace_dundername as uwd)
+from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, ExtractMask)
+from ornl.settings import unique_workspace_dundername as uwd
 
 
 def mask_as_numpy_array(w, invert=False):

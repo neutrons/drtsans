@@ -1,8 +1,8 @@
 from tempfile import NamedTemporaryFile
 import pytest
 from pytest import approx
-from mantid.simpleapi import (MoveInstrumentComponent, LoadEventNexus,
-                              MaskBTP, ClearMaskFlag, ExtractMask, SaveMask)
+from mantid.simpleapi import (LoadEventNexus, ClearMaskFlag, ExtractMask,
+                              SaveMask)
 from ornl.settings import amend_config, unique_workspace_dundername as uwd
 from ornl.sans.sns import eqsans
 

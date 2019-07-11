@@ -136,16 +136,17 @@ def normalise_to_workspace(dark, data, output_workspace=None):
     n_bins = len(_dark.dataY(0))
     n_significant_bins = n_bins - n_gap_bins  # wavelength bins with counts
     #
-    # factor is number of counts per unit time and wavelength bin
+    # factor_y is number of counts per unit time and wavelength bin
     #
     dark_duration = duration(dark)
-    factor = fwr / (dark_duration.value * n_significant_bins)
+    factor_y = fwr / (dark_duration.value * n_significant_bins)
+    factor_e = fwr / (dark_duration.value * np.sqrt(n_significant_bins))
     #
     #
     #
     for i in range(_dark.getNumberHistograms()):
-        _dark.dataY(i)[:] = np.ones(n_bins) * factor * nc[i]
-        _dark.dataE(i)[:] = np.ones(n_bins) * factor * ec[i]
+        _dark.dataY(i)[:] = np.ones(n_bins) * factor_y * nc[i]
+        _dark.dataE(i)[:] = np.ones(n_bins) * factor_e * ec[i]
     if n_gap_bins > 0:
         for i in range(_dark.getNumberHistograms()):
             _dark.dataY(i)[gap_indexes] = 0.0

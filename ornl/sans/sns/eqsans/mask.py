@@ -28,7 +28,7 @@ def apply_mask(w, panel=None, mask=None, output_workspace=None, **btp):
         Combination of panel, mask, and MaskBTP masks
     """
     if panel:
-        MaskBTP(Workspace=w, instrument='EQ-SANS', Components='front-panel')
+        MaskBTP(Workspace=w, instrument='EQ-SANS', Components=panel + '-panel')
     # let apply_mask handle selecting output workspace's name
     return mask_utils.apply_mask(w, mask=mask,
                                  output_workspace=output_workspace, **btp)

@@ -119,7 +119,7 @@ class SampleLogs(object):
                 return self.find_run(w)
             # see if it is an already named data object
             elif s in mtd:
-                return mtd[s]
+                return self.find_run(mtd[s])
             else:
                 try:
                     i = int(s)

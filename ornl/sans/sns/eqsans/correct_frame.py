@@ -4,8 +4,6 @@ import numpy as np
 
 from mantid.simpleapi import (mtd, ConvertUnits, Rebin, EQSANSCorrectFrame)
 
-from ornl.settings import (optional_output_workspace,
-                           unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
 from ornl.sans.frame_mode import FrameMode
@@ -266,14 +264,14 @@ def band_gap_indexes(ws, bands):
                          (ws.dataX(0) < bands.skip.min))[0]).tolist()
 
 
-@optional_output_workspace
-def convert_to_wavelength(ws, bands, bin_width, events=False):
+def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
+                          output_workspace=None):
     r"""
     Convert a time-of-fligth events workspace to a wavelength workpsace
 
     Parameters
     ----------
-    ws: EventsWorkspace
+    input_workspace: EventsWorkspace
         Input workspace, after TOF frame correction
     bands: namedtuple
         Output of running `transmitted_bands_clipped` on the workspace
@@ -286,25 +284,31 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
     MatrixWorspace
         EventsWorkspace or Matrix2DWorkspace
     """
-    fm = (EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip)  # frame skip?
+    input_workspace = str(input_workspace)
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
+    # is this in frame skipping mode?
+    fm = (EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip)
 
     # Convert to Wavelength and rebin
-    _ws = ConvertUnits(ws, Target='Wavelength', Emode='Elastic',
-                       OutputWorkspace=uwd())
+    ConvertUnits(InputWorkspace=input_workspace, Target='Wavelength',
+                 Emode='Elastic', OutputWorkspace=output_workspace)
     w_min = bands.lead.min
     w_max = bands.lead.max if fm is False else bands.skip.max
-    _ws = Rebin(_ws, Params=[w_min, bin_width, w_max],
-                PreserveEvents=events, OutputWorkspace=_ws.name())
+    Rebin(InputWorkspace=output_workspace, Params=[w_min, bin_width, w_max],
+          PreserveEvents=events, OutputWorkspace=output_workspace)
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
     if fm is True:
+        _ws = mtd[output_workspace]
         to_zero = band_gap_indexes(_ws, bands)
         for i in range(_ws.getNumberHistograms()):
             _ws.dataY(i)[to_zero] = 0.0
             _ws.dataE(i)[to_zero] = 1.0
 
     # Insert bands information in the logs
-    sl = SampleLogs(_ws)
+    sl = SampleLogs(output_workspace)
     sl.insert('wavelength_min', w_min, unit='Angstrom')
     sl.insert('wavelength_max', w_max, unit='Angstrom')
     sl.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
@@ -312,15 +316,19 @@ def convert_to_wavelength(ws, bands, bin_width, events=False):
     if fm is True:
         sl.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
         sl.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
-    return _ws
+    return mtd[output_workspace]
 
 
-@optional_output_workspace
-def transform_to_wavelength(ws, bin_width=0.1,
+def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=False):
-    ws = mtd[str(ws)]
-    sdd = source_detector_distance(ws, units='m')
-    bands = transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip)
-    return convert_to_wavelength(ws, bands, bin_width, events=keep_events,
-                                 output_workspace=uwd())
+                            keep_events=False, output_workspace=None):
+    input_workspace = mtd[str(input_workspace)]
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
+    sdd = source_detector_distance(input_workspace, units='m')
+    bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
+                                      high_tof_clip)
+    return convert_to_wavelength(input_workspace, bands, bin_width,
+                                 events=keep_events,
+                                 output_workspace=output_workspace)

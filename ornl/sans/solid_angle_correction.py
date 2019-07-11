@@ -1,14 +1,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from mantid.simpleapi import (Divide, mtd, SolidAngle,
+from mantid.simpleapi import (DeleteWorkspace, Divide, mtd, SolidAngle,
                               ReplaceSpecialValues)
-from ornl.settings import (optional_output_workspace,
-                           unique_workspace_dundername as uwd)
+from ornl.settings import (unique_workspace_dundername as uwd)
 
 
-@optional_output_workspace
-def solid_angle_correction(input_workspace, detector_type='VerticalTube'):
+def solid_angle_correction(input_workspace, detector_type='VerticalTube',
+                           output_workspace=None):
     r"""
     The algorithm calculates solid angles from the sample position of
     the input workspace for all of the spectra selected. The output workspace
@@ -29,8 +28,9 @@ def solid_angle_correction(input_workspace, detector_type='VerticalTube'):
 
     """
     input_workspace = str(input_workspace)
-    solid_angle_ws = uwd()
-    output_workspace = uwd()
+    solid_angle_ws = uwd()  # temporary workspace
+    if output_workspace is None:
+        output_workspace = input_workspace
 
     SolidAngle(InputWorkspace=input_workspace,
                OutputWorkspace=solid_angle_ws,
@@ -38,7 +38,9 @@ def solid_angle_correction(input_workspace, detector_type='VerticalTube'):
     Divide(LHSWorkspace=input_workspace,
            RHSWorkspace=solid_angle_ws,
            OutputWorkspace=output_workspace)
+    DeleteWorkspace(solid_angle_ws)
     ReplaceSpecialValues(InputWorkspace=output_workspace,
                          OutputWorkspace=output_workspace, NaNValue=0.,
                          InfinityValue=0.)
+
     return mtd[output_workspace]

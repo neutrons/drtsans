@@ -2,10 +2,11 @@ from __future__ import (absolute_import, division, print_function)
 
 from dateutil.parser import parse as parse_date
 import numpy as np
-from mantid.simpleapi import (Integration, Transpose, RebinToWorkspace,
+from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
                               ConvertUnits, Subtract, Scale, LoadEventNexus)
+import os
 
-from ornl.settings import (namedtuplefy, optional_output_workspace,
+from ornl.settings import (namedtuplefy,
                            unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import correct_frame as cf
@@ -84,8 +85,7 @@ def counts_in_detector(dark):
     return y, e
 
 
-@optional_output_workspace
-def normalise_to_workspace(dark, data):
+def normalise_to_workspace(dark, data, output_workspace=None):
     r"""
     Scale and Rebin in wavelength a `dark` current workspace with information
     from a `data` workspace.
@@ -111,16 +111,20 @@ def normalise_to_workspace(dark, data):
     MatrixWorkspace
         Output workspace, dark current rebinned to wavelength and rescaled
     """
+    if output_workspace is None:
+        output_workspace = str(dark)
+
     sl = SampleLogs(data)
     # rescale counts by the shorter considered TOF width
     fwr = sl.tof_frame_width_clipped.value / sl.tof_frame_width.value
     nc, ec = counts_in_detector(dark)  # counts and error per detector
-    _dark = ConvertUnits(dark,
-                         Target='Wavelength', Emode='Elastic',
-                         OutputWorkspace=uwd())
-    _dark = RebinToWorkspace(_dark, data,
-                             PreserveEvents=False,
-                             OutputWorkspace=_dark.name())
+    ConvertUnits(InputWorkspace=dark,
+                 Target='Wavelength', Emode='Elastic',
+                 OutputWorkspace=output_workspace)
+    RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data,
+                     PreserveEvents=False,
+                     OutputWorkspace=output_workspace)
+    _dark = mtd[output_workspace]
     #
     # Determine the histogram bins for which data should have counts
     # If running in frame-skipped mode, there is a wavelength band
@@ -150,8 +154,8 @@ def normalise_to_workspace(dark, data):
     return _dark
 
 
-@optional_output_workspace
-def subtract_normalised_dark_current(data, dark):
+def subtract_normalised_dark_current(input_workspace, dark,
+                                     output_workspace=None):
     r"""
     Subtract normalized dark current from data, taking into account
     the duration of both `data` and `dark` runs.
@@ -163,7 +167,7 @@ def subtract_normalised_dark_current(data, dark):
 
     Parameters
     ----------
-    data: MatrixWorkspace
+    input_workspace: MatrixWorkspace
         Sample scattering with intensities versus wavelength
     dark: MatrixWorkspace
         Normalized dark current after being normalized with
@@ -174,23 +178,27 @@ def subtract_normalised_dark_current(data, dark):
     MatrixWorkspace
         `data` minus `dark` current
     """
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
     duration_log_key = SampleLogs(dark).normalizing_duration.value
-    d = duration(data, log_key=duration_log_key).value
-    scaled = Scale(dark, Factor=-d, OutputWorkspace=uwd())
-    difference = Subtract(data, scaled, OutputWorkspace=uwd())
+    d = duration(input_workspace, log_key=duration_log_key).value
+    scaled = Scale(InputWorkspace=dark, Factor=-d, OutputWorkspace=uwd())
+    Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled,
+             OutputWorkspace=output_workspace)
     scaled.delete()
-    SampleLogs(difference).insert('normalizing_duration', duration_log_key)
-    return difference
+    SampleLogs(output_workspace).insert('normalizing_duration',
+                                        duration_log_key)
+    return mtd[output_workspace]
 
 
-@optional_output_workspace
-def subtract_dark_current(data, dark):
+def subtract_dark_current(input_workspace, dark, output_workspace=None):
     r"""
 
 
     Parameters
     ----------
-    data : Workspace
+    input_workspace : Workspace
         The workspace to be normalised
     dark: int, str, EventsWorkspace
         run number, file path, or workspace for dark current
@@ -199,14 +207,19 @@ def subtract_dark_current(data, dark):
     -------
     MatrixWorkspace
     """
-    if isinstance(dark, str) or isinstance(dark, str):
-        _dark = LoadEventNexus(str(dark), output_workspace=uwd())
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
+    if isinstance(dark, str) and os.path.exists(dark):
+        _dark = LoadEventNexus(Filename=dark, OutputWorkspace=uwd())
     else:
         _dark = dark  # assumed it is an EventWorkspace
-    _dark_normal = normalise_to_workspace(_dark, data, output_workspace=uwd())
-    difference = subtract_normalised_dark_current(data, _dark_normal,
-                                                  output_workspace=uwd())
+    _dark_normal = normalise_to_workspace(_dark, input_workspace,
+                                          output_workspace=uwd())
+    subtract_normalised_dark_current(input_workspace, _dark_normal,
+                                     output_workspace=output_workspace)
     _dark_normal.delete()
     if _dark is not dark:
         _dark.delete()
-    return difference
+
+    return mtd[output_workspace]

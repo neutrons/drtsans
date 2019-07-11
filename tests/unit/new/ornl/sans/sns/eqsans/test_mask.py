@@ -26,5 +26,6 @@ def test_apply_mask():
     m2 = ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
     assert CompareWorkspaces(m, m2).Result
 
+
 if __name__ == '__main__':
     pytest.main()

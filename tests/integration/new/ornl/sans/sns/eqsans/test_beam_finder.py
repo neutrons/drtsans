@@ -33,6 +33,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     #
     # Find the beam center with a mask file
     #
+    ClearMaskFlag(ws)
     with NamedTemporaryFile(delete=True, suffix='.xml') as f:
         SaveMask(InputWorkspace=mask_ws, OutputFile=f.name)
         xy = eqsans.find_beam_center(ws, mask=f.name)

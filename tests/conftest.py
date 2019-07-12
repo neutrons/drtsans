@@ -295,3 +295,99 @@ def porasil_slice1m():
 
     return ret_val(ipts=ipts, shared=shared, r=r, f=f,
                    w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)
+
+
+@pytest.fixture(scope='session')
+def generate_sans_generic_IDF(request):
+    '''
+    generate a test IDF with a rectangular detector
+    with Nx X Ny pixels
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+
+    Note that we use Mantid convention for the orientation
+    '''
+
+    Nx=request.param.get('Nx',3)
+    Ny=request.param.get('Ny',3)
+    dx=request.param.get('dx',1.)
+    dy=request.param.get('dy',1.)
+    xc=request.param.get('xc',0.)
+    yc=request.param.get('yc',0.)
+    zc=request.param.get('zc',5.)
+    assert (int(Nx)==Nx and Nx>1 and Nx<300)
+    assert (int(Ny)==Ny and Ny>1 and Ny<300)
+    assert dx>0
+    assert dy>0
+    assert zc>0
+    half_dx=dx*.5
+    half_dy=dy*.5
+    # parameters
+    # 0:xc 1:yc 2:zc
+    # 3:Nx 2:Ny 3:xstart=-(Nx-1)*half_dx 4:ystart
+    # 5:dx 6:dy 7:half_dx 8:half_dy
+    template_xml='''<?xml version='1.0' encoding='UTF-8'?>
+<instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
+                               valid-to     ="2100-12-31 23:59:59"
+                               last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>
+        <angle unit="degree"/>
+        <reference-frame>
+        <along-beam axis="z"/>
+        <pointing-up axis="y"/>
+        <handedness val="right"/>
+        <theta-sign axis="x"/>
+        </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="-11.0"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+    <!--RectangularDetector-->
+    <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{4}">
+        <location x="{0}" y="{1}" z="{2}" name="bank1" rot="0.0" axis-x="0" axis-y="1" axis-z="0">
+        </location>
+    </component>
+
+    <!-- Rectangular Detector Panel -->
+    <type name="panel" is="rectangular_detector" type="pixel"
+        xpixels="{3}" xstart="{5}" xstep="+{7}"
+        ypixels="{4}" ystart="{6}" ystep="+{8}" >
+        <properties/>
+    </type>
+
+    <!-- Pixel for Detectors-->
+    <type is="detector" name="pixel">
+        <cuboid id="pixel-shape">
+            <left-front-bottom-point y="-{10}" x="-{9}" z="0.0"/>
+            <left-front-top-point y="{10}" x="-{9}" z="0.0"/>
+            <left-back-bottom-point y="-{10}" x="-{9}" z="-0.0001"/>
+            <right-front-bottom-point y="-{10}" x="{9}" z="0.0"/>
+        </cuboid>
+        <algebra val="pixel-shape"/>
+    </type>
+
+</instrument>'''
+    return template_xml.format(xc,yc,zc,Nx,Ny,-(Nx-1)*half_dx,-(Ny-1)*half_dy,dx,dy,half_dx,half_dy)

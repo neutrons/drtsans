@@ -319,20 +319,20 @@ def generate_sans_generic_IDF(request):
     Note that we use Mantid convention for the orientation
     '''
 
-    Nx=request.param.get('Nx',3)
-    Ny=request.param.get('Ny',3)
-    dx=request.param.get('dx',1.)
-    dy=request.param.get('dy',1.)
-    xc=request.param.get('xc',0.)
-    yc=request.param.get('yc',0.)
-    zc=request.param.get('zc',5.)
-    assert (int(Nx)==Nx and Nx>1 and Nx<300)
-    assert (int(Ny)==Ny and Ny>1 and Ny<300)
-    assert dx>0
-    assert dy>0
-    assert zc>0
-    half_dx=dx*.5
-    half_dy=dy*.5
+    Nx = request.param.get('Nx', 3)
+    Ny = request.param.get('Ny', 3)
+    dx = request.param.get('dx', 1.)
+    dy = request.param.get('dy', 1.)
+    xc = request.param.get('xc', 0.)
+    yc = request.param.get('yc', 0.)
+    zc = request.param.get('zc', 5.)
+    assert (int(Nx) == Nx and Nx > 1 and Nx < 300)
+    assert (int(Ny) == Ny and Ny > 1 and Ny < 300)
+    assert dx > 0
+    assert dy > 0
+    assert zc > 0
+    half_dx = dx * .5
+    half_dy = dy * .5
     # parameters
     # 0:xc 1:yc 2:zc
     # 3:Nx 2:Ny 3:xstart=-(Nx-1)*half_dx 4:ystart
@@ -367,7 +367,9 @@ def generate_sans_generic_IDF(request):
 
     <!--RectangularDetector-->
     <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{4}">
-        <location x="{0}" y="{1}" z="{2}" name="bank1" rot="0.0" axis-x="0" axis-y="1" axis-z="0">
+        <location x="{0}" y="{1}" z="{2}"
+            name="bank1"
+            rot="0.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
     </component>
 

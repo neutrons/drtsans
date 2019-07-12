@@ -393,4 +393,4 @@ def generate_sans_generic_IDF(request):
 
 </instrument>'''
     return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
-        -(Ny-1) * half_dy, dx, dy, half_dx, half_dy)
+                               -(Ny-1) * half_dy, dx, dy, half_dx, half_dy)

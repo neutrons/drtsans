@@ -8,6 +8,7 @@ from ornl.sans.save_ascii import save_ascii_1D, save_ascii_2D, save_xml_1D
 
 from mantid.simpleapi import Load
 import numpy as np
+import  xml.etree.ElementTree as ET
 
 def test_save_ascii_1d(refd):
     '''
@@ -21,21 +22,28 @@ def test_save_ascii_1d(refd):
 
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_ascii_1D(ws, 'test_reduction_log.hdf', tmp.name)
-        output_lines = np.loadtxt(tmp.name,dtype={'names':('Q', 'I', 'dI', 'dQ'),'formats':('f', 'f', 'f', 'f')})
-        reference_lines = np.loadtxt(join(refd.new.eqsans,'test_save_output/EQSANS_68200_Iq.txt'),
+        output = np.loadtxt(tmp.name, dtype={'names':('Q', 'I', 'dI', 'dQ'),'formats':('f', 'f', 'f', 'f')})
+        reference = np.loadtxt(join(refd.new.eqsans,'test_save_output/EQSANS_68200_Iq.txt'),
                                     dtype={'names':('Q', 'I', 'dI', 'dQ'),'formats':('f', 'f', 'f', 'f')})
-        assert np.allclose(output_lines['Q'],reference_lines['Q'],atol=1e-6)
-        assert np.allclose(output_lines['I'],reference_lines['I'],atol=1e-6)
-        assert np.allclose(output_lines['dI'],reference_lines['dI'],atol=1e-6)
-        assert np.allclose(output_lines['dQ'],reference_lines['dQ'],atol=1e-6)
+        assert np.allclose(output['Q'], reference['Q'], atol=1e-6)
+        assert np.allclose(output['I'], reference['I'], atol=1e-6)
+        assert np.allclose(output['dI'], reference['dI'], atol=1e-6)
+        assert np.allclose(output['dQ'], reference['dQ'], atol=1e-6)
 
 
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_xml_1D(ws, 'test_reduction_log.hdf', tmp.name)
-        output_lines = tmp.readlines()
-        assert output_lines[110] == '\t\t\t<Idata><Q unit="1/A">0.246823</Q>'\
-            '<I unit="Counts">0</I><Idev unit="Counts">0</Idev><Qdev unit='\
-            '"1/A">0.0351595</Qdev></Idata>\n'
+        output = []
+        tree = ET.parse(tmp.name)
+        root = tree.getroot()
+        for node in root[0][2]:
+            output.append([float(node[0].text), float(node[1].text), float(node[2].text), float(node[3].text)])
+        reference = []
+        tree = ET.parse(join(refd.new.eqsans,'test_save_output/EQSANS_68200_Iq.xml'))
+        root = tree.getroot()
+        for node in root[0][2]:
+            reference.append([float(node[0].text), float(node[1].text), float(node[2].text), float(node[3].text)])
+        assert np.allclose(output, reference, atol=1e-6)
 
 
 def test_save_ascii_2d():

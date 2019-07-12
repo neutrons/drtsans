@@ -28,7 +28,7 @@ def test_frame_skipper(frame_skipper):
                          [{'Nx': 4, 'Ny': 4}],
                          indirect=True)
 def test_generate_IDF(generate_sans_generic_IDF):
-    expected='''<?xml version=\'1.0\' encoding=\'UTF-8\'?>
+    expected = '''<?xml version=\'1.0\' encoding=\'UTF-8\'?>
 <instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
@@ -85,6 +85,7 @@ def test_generate_IDF(generate_sans_generic_IDF):
 </instrument>'''
 
     assert generate_sans_generic_IDF == expected
+
 
 if __name__ == '__main__':
     pytest.main()

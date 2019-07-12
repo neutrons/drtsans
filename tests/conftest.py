@@ -337,7 +337,7 @@ def generate_sans_generic_IDF(request):
     # 0:xc 1:yc 2:zc
     # 3:Nx 2:Ny 3:xstart=-(Nx-1)*half_dx 4:ystart
     # 5:dx 6:dy 7:half_dx 8:half_dy
-    template_xml='''<?xml version='1.0' encoding='UTF-8'?>
+    template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
 <instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
@@ -392,4 +392,5 @@ def generate_sans_generic_IDF(request):
     </type>
 
 </instrument>'''
-    return template_xml.format(xc,yc,zc,Nx,Ny,-(Nx-1)*half_dx,-(Ny-1)*half_dy,dx,dy,half_dx,half_dy)
+    return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
+        -(Ny-1) * half_dy, dx, dy, half_dx, half_dy)

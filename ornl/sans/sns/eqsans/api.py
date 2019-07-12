@@ -3,11 +3,12 @@ from mantid.api import mtd
 from mantid import simpleapi as sapi
 from ornl.settings import unique_workspace_dundername as uwd
 # Import rolled up to complete a single top-level API
-from ornl.sans import solid_angle_correction
+from ornl.sans import apply_sensitivity_correction, solid_angle_correction
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
+import os
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data']
@@ -20,10 +21,8 @@ def apply_solid_angle_correction(ws):
     return solid_angle_correction(ws, detector_type='VerticalTube')
 
 
-def apply_sensitivity_correction(ws, sensitivity_file_path):
-    """
-        Apply sensitivity correction
-    """
+def normalize(ws, normalization_type):
+    """ Normalize to time, monitor, or proton charge """
     raise NotImplementedError()
 
 
@@ -110,8 +109,10 @@ def prepare_data(data,
     if flux is not None:
         normalise_by_flux(output_workspace, flux)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
-    # Uncomment as we address them
     apply_solid_angle_correction(output_workspace)
-    # apply_sensitivity_correction(output_workspace, sensitivity_file_path)
     center_detector(output_workspace, x=x_center, y=y_center)
+    if sensitivity_file_path is not None \
+            and os.path.exists(sensitivity_file_path):
+        apply_sensitivity_correction(output_workspace,
+                                     filename=sensitivity_file_path)
     return mtd[output_workspace]

@@ -1,16 +1,15 @@
 variables:
+  CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME"
   TEST_SCOPE: "unit"
 
-# Run sequentially and stop if anyone stage fails
 stages:
   - flake8
-  - python2.7
-  - python3.6
-  - integration
+  - dockerbuild
+  - docker-test
+  - code-test
+  - script-host
 
 flake8:
-  variables:
-    CI_DEBUG_TRACE: "true"
   stage: flake8
   allow_failure: true
   before_script:
@@ -51,7 +50,12 @@ docker-update-test:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - source test_job.sh 3.6 ${TEST_SCOPE}
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - sh -x scripts/sans-backend-run.sh -u scripts/docker-test.py
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
 
 docker-no-update-test:
   stage: docker-test
@@ -61,7 +65,12 @@ docker-no-update-test:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - source test_job.sh 3.6 integration
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - sh -x scripts/sans-backend-run.sh scripts/docker-test.py
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
 
 code-unit-test:
   stage: code-test

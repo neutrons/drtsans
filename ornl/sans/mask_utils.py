@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
+from mantid.api import mtd
 from mantid.dataobjects import MaskWorkspace
 from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, ExtractMask)
 from ornl.settings import unique_workspace_dundername as uwd
@@ -50,10 +51,10 @@ def apply_mask(w, mask=None, output_workspace=None, **btp):
     MaskWorkspace
         Combination of mask and MaskBTP
     """
+    w = str(w)
     if output_workspace is None:
         output_workspace = uwd()
-    instrument = w.getInstrument().getName()
-    w = str(w)
+    instrument = mtd[w].getInstrument().getName()
     if mask is not None:
         if isinstance(mask, str):
             wm = LoadMask(Instrument=instrument, InputFile=mask,

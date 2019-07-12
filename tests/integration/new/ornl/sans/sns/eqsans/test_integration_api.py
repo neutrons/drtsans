@@ -94,10 +94,15 @@ class TestLoadEvents(object):
 def test_transform_to_wavelength(rs):
     ws = eqsans.transform_to_wavelength(rs.ws, low_tof_clip=500,
                                         high_tof_clip=2000,
+                                        zero_uncertainty=42.0,
                                         output_workspace=uwn())
     sl = SampleLogs(ws)
     assert sl.wavelength_min.value == approx(rs.w_min, abs=0.05)
     assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
+    # assert zero uncertainty assignment
+    for i in range(ws.getNumberHistograms()):
+        zci = np.where(ws.dataY(i) == 0)[0]  # zero count indices
+        assert ws.dataE(i)[zci] == approx(42.0*np.ones(len(zci)))
 
 
 def test_normalise_by_flux(rs, flux_file):

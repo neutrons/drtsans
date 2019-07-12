@@ -3,9 +3,11 @@ from __future__ import absolute_import, division, print_function
 from collections import OrderedDict
 
 import numpy as np
+import os
 
 from mantid.kernel import Property, logger
-from mantid.simpleapi import CloneWorkspace
+from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
+    DeleteWorkspace, Divide, LoadNexusProcessed, SaveNexusProcessed
 from ornl.settings import unique_workspace_name
 
 
@@ -321,3 +323,41 @@ def inf_value_to_mask(ws):
             detector_info_input_ws.setMasked(i, True)
             ws.setY(i, np.array([1]))
             ws.setE(i, np.array([0]))
+
+
+def apply_sensitivity_correction(input_workspace, filename=None,
+                                 sensitivity=None, output_workspace=None):
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
+    #
+    cleanupSensitivity = False
+    if sensitivity is None or str(sensitivity) not in mtd:  # load the file
+        if sensitivity is None:
+            sensitivity = os.path.split(filename)[-1]
+            sensitivity = sensitivity.split('.')[0]
+        cleanupSensitivity = True
+        LoadNexusProcessed(Filename=filename, OutputWorkspace=sensitivity)
+
+    Divide(LHSWorkspace=input_workspace, RHSWorkspace=sensitivity,
+           OutputWorkspace=output_workspace)
+
+    if cleanupSensitivity:
+        DeleteWorkspace(sensitivity)
+
+    return mtd[output_workspace]
+
+
+def calculate_sensitivity_correction(input_workspace, min_threashold,
+                                     max_threshold, filename,
+                                     output_workspace=None):
+    if output_workspace is None:
+        output_workspace = '{}_sensitivity'.format(input_workspace)
+
+    CalculateEfficiency(InputWorkspace=str(input_workspace),
+                        OutputWorkspace=output_workspace,
+                        MinThreshold=min_threashold,
+                        MaxThreshold=max_threshold)
+    SaveNexusProcessed(InputWorkspace=output_workspace,
+                       Filename=filename)
+    return mtd[output_workspace]

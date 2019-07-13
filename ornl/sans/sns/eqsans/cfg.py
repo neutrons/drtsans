@@ -12,11 +12,16 @@ from contextlib import contextmanager
 cfg_dir = '/SNS/EQSANS/shared/instrument_configuration'
 
 
-def closest_config(run):
+def closest_config(run, config_dir=cfg_dir):
     """
     Configuration file for a given run number.
     The appropriate configuration file is the one marked with a run number
     that is closest and smaller (or equal) than the input run number
+
+    Parameters
+    ----------
+    config_dir: str
+        Directory containing configuration files
 
     Returns
     -------
@@ -25,7 +30,7 @@ def closest_config(run):
     """
     pattern = re.compile(r'eqsans_configuration\.(\d+)')
     reference_runs = list()
-    for root, dirs, files in os.walk(cfg_dir):
+    for root, dirs, files in os.walk(config_dir):
         for file_name in files:
             match = pattern.search(file_name)
             if match is not None:
@@ -34,12 +39,12 @@ def closest_config(run):
     reference_runs = np.asarray(reference_runs)
     maximum_index_below_run = np.where(run >= reference_runs)[0][-1]
     reference_run = reference_runs[maximum_index_below_run]
-    return os.path.join(cfg_dir,
+    return os.path.join(config_dir,
                         'eqsans_configuration.{}'.format(reference_run))
 
 
 @contextmanager
-def open_source(source):
+def open_source(source, config_dir=cfg_dir):
     """
     Find the configuration file appropriate to the input source info
 
@@ -48,6 +53,8 @@ def open_source(source):
     source: str
         One of the following: (1) absolute path or just filename to a
         configuration file; (2) run-number
+    config_dir: str
+        Directory containing configuration files
 
     Yields
     ------
@@ -58,12 +65,12 @@ def open_source(source):
     if os.path.isfile(src):
         file_handle = open(src)
     else:
-        file = os.path.join(cfg_dir, src)
+        file = os.path.join(config_dir, src)
         if os.path.isfile(file):
             file_handle = open(file)
         else:
             run = int(source)
-            file_handle = open(closest_config(run))
+            file_handle = open(closest_config(run, config_dir=config_dir))
     try:
         yield file_handle
     finally:
@@ -104,15 +111,17 @@ class Cfg(object):
     """
 
     @staticmethod
-    def load(source):
+    def load(source, config_dir=cfg_dir):
         """
         Load the configuration file appropriate to the input source info
 
         Parameters
         ----------
-        file: str
+        source: str
             One of the following: (1) absolute path or just filename to a
             configuration file; (2) run-number
+        config_dir: str
+            Directory containing configuration files
 
         Returns
         -------
@@ -120,7 +129,7 @@ class Cfg(object):
             A dictionary with CfgItemValue objects as values
         """
         cfg = dict()
-        with open_source(source) as f:
+        with open_source(source, config_dir=config_dir) as f:
             for line in f.readlines():
                 if '=' not in line:
                     continue  # this line contains no valid entries
@@ -148,8 +157,9 @@ class Cfg(object):
                     cfg[key] = item
         return cfg
 
-    def __init__(self, source=None):
-        self._cfg = dict() if source is None else Cfg.load(source)
+    def __init__(self, source=None, config_dir=cfg_dir):
+        self._cfg = dict() if source is None \
+            else Cfg.load(source, config_dir=config_dir)
 
     def __getitem__(self, item):
         return self._cfg[item]

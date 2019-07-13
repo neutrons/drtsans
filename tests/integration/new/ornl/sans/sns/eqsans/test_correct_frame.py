@@ -65,8 +65,8 @@ def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
                 AnalysisDataService.remove(w.name())
 
 
-def test_correct_detector_frame():
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+def test_correct_detector_frame(refd):
+    with amend_config(data_dir=refd.new.eqsans):
         for run_number, wavelength_bin, sdd in trials.values():
             wo = Load(Filename=run_number, OutputWorkspace=uwn())
             ws = CloneWorkspace(wo, OutputWorkspace=uwn())
@@ -77,8 +77,8 @@ def test_correct_detector_frame():
             AnalysisDataService.remove(wo.name())
 
 
-def test_convert_to_wavelength():
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+def test_convert_to_wavelength(refd):
+    with amend_config(data_dir=refd.new.eqsans):
         for run_number, wavelength_bin, sadd in trials.values():
             wo = Load(Filename=run_number, OutputWorkspace=uwn())
             ws = CloneWorkspace(wo, OutputWorkspace=uwn())

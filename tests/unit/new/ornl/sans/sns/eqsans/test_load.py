@@ -2,17 +2,19 @@ import pytest
 import numpy as np
 
 from mantid.simpleapi import (Rebin, SumSpectra)
-from ornl.settings import unique_workspace_name as uwn
+from ornl.settings import (amend_config, unique_workspace_name as uwn)
 from ornl.sans.sns.eqsans.load import load_events
 
 
-def test_load_events():
+def test_load_events(refd):
     # default workspace name is file hint
-    ws_test_load_events = load_events('EQSANS_92353')
+    with amend_config(data_dir=refd.new.eqsans):
+        ws_test_load_events = load_events('EQSANS_92353')
     assert ws_test_load_events.name() == 'EQSANS_92353'
 
     ws_name = uwn()
-    ws = load_events('EQSANS_92353', output_workspace=ws_name)
+    with amend_config(data_dir=refd.new.eqsans):
+        ws = load_events('EQSANS_92353', output_workspace=ws_name)
     assert ws.name() == ws_name
 
     assert ws.getTofMin() == pytest.approx(11410, abs=1)

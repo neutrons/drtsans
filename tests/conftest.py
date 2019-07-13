@@ -275,7 +275,7 @@ def porasil_slice1m(refd):
 
     # Absolute path to benchmark files
     f = dict(s=pjoin(refd.new.eqsans, 'EQSANS_92164.nxs.h5'),  # sample
-             m=pjoin(refd.new.eqsans, '2017B_mp/beamstop60_mask_4m.nxs'),  # mask
+             m=pjoin(refd.new.eqsans, '2017B_mp/beamstop60_mask_4m.nxs'),  # noqa: E501 mask
              dc=pjoin(refd.new.eqsans, 'EQSANS_89157.nxs.h5'),  # dark current
              se=pjoin(refd.new.eqsans, 'Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
              dbc=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct_beam_center

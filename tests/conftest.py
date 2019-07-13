@@ -72,16 +72,17 @@ class GetWS(object):
 
 @pytest.fixture(scope='session')
 def refd():
-    """A namedtuple with the directory locations for reference data
+    """A namedtuple with the directory **absolute** paths for test data
 
     Examples:
-        refd.data, topmost data directory
-        refd.legacy, topmost directory for tests using legacy code
-        refd.new, topmost directory for tests using new code
-        refd.legacy.biosans, refd.legacy.gpsans, refd.legacy.eqsans, topmost
-            directories for instrument specific tests using legacy code
-        refd.new.biosans, refd.new.gpsans, refd.new.eqsans, topmost
-            directories for instrument specific tests using new code
+        refd.data, topmost data directory data/
+        refd.legacy, data/legacy/ornl/sans/
+        refd.new, data/new/ornl/sans/
+        refd.legacy.biosans, refd.legacy.gpsans, refd.legacy.eqsans, are
+            data/legacy/ornl/sans/hfir/biosans and so on.
+        refd.new.biosans, refd.new.gpsans, refd.new.eqsans, are
+            data/new/ornl/sans/hfir/biosans and so on.
+
     Returns
     -------
     namedtuple

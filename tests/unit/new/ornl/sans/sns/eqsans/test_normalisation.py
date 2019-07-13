@@ -6,7 +6,7 @@ from mantid.simpleapi import (Integration, SumSpectra)
 from ornl.sans.sns.eqsans.normalisation import \
     (load_beam_flux_file, normalise_by_proton_charge_and_flux,
      normalise_by_flux)
-from ornl.settings import unique_workspace_dundername as uwd
+from ornl.settings import amend_config, unique_workspace_dundername as uwd
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength)
 from ornl.sans.samplelogs import SampleLogs
 
@@ -17,8 +17,9 @@ def flux_file(refd):
 
 
 @pytest.fixture(scope='module')
-def data_ws():
-    w = load_events('EQSANS_92353', output_workspace=uwd())
+def data_ws(refd):
+    with amend_config(data_dir=refd.new.eqsans):
+        w = load_events('EQSANS_92353', output_workspace=uwd())
     return transform_to_wavelength(w, output_workspace=w.name())
 
 

@@ -1,5 +1,6 @@
 from tempfile import NamedTemporaryFile
 import pytest
+<<<<<<< HEAD
 from pytest import approx
 from mantid.simpleapi import (LoadEventNexus, ClearMaskFlag, ExtractMask,
                               SaveMask)
@@ -15,7 +16,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     1. Apply mask
     2. Find the beam center
     """
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+    with amend_config(data_dir=refd.new.eqsans):
         ws = LoadEventNexus(Filename=eqsans_f['beamcenter'],
                             OutputWorkspace=uwd())
     #

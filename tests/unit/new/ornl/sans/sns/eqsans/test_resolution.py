@@ -6,6 +6,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
+from os.path import join as pj
 import tempfile
 import unittest
 
@@ -18,14 +19,13 @@ from reduction_workflow.instruments.sans import sns_command_interface as eqsans
 
 
 def eqsans_files():
-    ipts = '/SNS/EQSANS/IPTS-20196/nexus'
-    # shared = '/SNS/EQSANS/shared/NeXusFiles/EQSANS'
-
+    from tests.conftest import data_dir
+    dd = os.path.join(data_dir, 'new', 'ornl', 'sans', 'sns', 'eqsans')
     return dict(
-        beamcenter=os.path.join(ipts, 'EQSANS_92160.nxs.h5'),
-        sample_transmission=os.path.join(ipts, 'EQSANS_92162.nxs.h5'),
-        sample_scattering=os.path.join(ipts, 'EQSANS_92164.nxs.h5'),
-        dark_current=os.path.join(ipts, 'EQSANS_89157.nxs.h5'),
+        beamcenter=pj(dd, 'EQSANS_92160.nxs.h5'),
+        sample_transmission=pj(dd, 'EQSANS_92162.nxs.h5'),
+        sample_scattering=pj(dd, 'EQSANS_92164.nxs.h5'),
+        dark_current=pj(dd, 'EQSANS_89157.nxs.h5'),
     )
 
 

@@ -10,7 +10,7 @@ from ornl.settings import (amend_config,
 
 
 def test_load_w(refd):
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+    with amend_config(data_dir=refd.new.eqsans):
         _w0 = reduce.load_w('EQSANS_92353', output_workspace=uwd(),
                             low_tof_clip=500, high_tof_clip=2000, dw=0.1)
         _w1 = SumSpectra(_w0, OutputWorkspace=_w0.name())

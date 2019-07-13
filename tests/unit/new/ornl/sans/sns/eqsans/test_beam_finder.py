@@ -10,7 +10,7 @@ from ornl.sans.sns.eqsans.beam_finder import center_detector, find_beam_center
 
 
 def test_find_beam_center():
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+    with amend_config(data_dir=refd.new.eqsans):
         w = LoadEventNexus(Filename='EQSANS_92160', OutputWorkspace=uwd())
     assert find_beam_center(w) == approx((0.025, 0.013), abs=1e-3)
 
@@ -19,7 +19,7 @@ def test_center_detector():
     #
     # Translate detector according to method center_of_mass
     #
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+    with amend_config(data_dir=refd.new.eqsans):
         w = LoadEventNexus(Filename='EQSANS_92160', OutputWorkspace=uwd())
     r = center_detector(w, method='center_of_mass')
     assert r == approx((0.025, 0.013, 0), abs=0.001)

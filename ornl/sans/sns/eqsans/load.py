@@ -52,7 +52,7 @@ def load_events(run, detector_offset=0., sample_offset=0.,
             output_workspace = 'EQSANS_{}'.format(run)
 
     if isinstance(run, int) or isinstance(run, str):
-        with amend_config({'datasearch.searcharchive': 'hfir,sns',
+        with amend_config({'datasearch.searcharchive': 'off',
                            'default.instrument': 'EQSANS'}):
             LoadEventNexus(Filename=str(run),
                            OutputWorkspace=output_workspace, **kwargs)

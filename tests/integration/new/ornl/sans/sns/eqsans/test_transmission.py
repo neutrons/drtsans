@@ -19,8 +19,7 @@ def test_transmission(refd):
         _ws = Load(pjn(cmp_dir, asset))
         return CompareWorkspaces(tentative, _ws)
 
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'on'}):
+    with amend_config({'instrumentName': 'EQSANS'}):
         # Prepare data
         sample = Load(pjn(data_dir, 'sample.nxs'))
         insert_aperture_logs(sample)  # source and sample aperture diameters

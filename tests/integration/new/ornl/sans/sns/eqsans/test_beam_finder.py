@@ -1,10 +1,9 @@
 from tempfile import NamedTemporaryFile
 import pytest
-<<<<<<< HEAD
 from pytest import approx
 from mantid.simpleapi import (LoadEventNexus, ClearMaskFlag, ExtractMask,
                               SaveMask)
-from ornl.settings import amend_config, unique_workspace_dundername as uwd
+from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.sns import eqsans
 
 
@@ -16,9 +15,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     1. Apply mask
     2. Find the beam center
     """
-    with amend_config(data_dir=refd.new.eqsans):
-        ws = LoadEventNexus(Filename=eqsans_f['beamcenter'],
-                            OutputWorkspace=uwd())
+    ws = LoadEventNexus(Filename=eqsans_f['beamcenter'], OutputWorkspace=uwd())
     #
     # Find the beam center
     #

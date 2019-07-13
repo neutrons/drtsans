@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 from scipy import stats
 
-from mantid.simpleapi import CreateWorkspace, GroupWorkspaces
+from mantid.simpleapi import CreateWorkspace, GroupWorkspaces, CreateEmptyTableWorkspace
 from ornl.sans.detector import Component
 from ornl.sans.hfir import resolution
 
@@ -33,6 +33,28 @@ def _mask_pixels(data, masked_pixels):
                              fill_value=np.nan)
 
 
+def create_table_ws(qx, qy, dqx, dqy, i, i_sigma):
+    table_iq = CreateEmptyTableWorkspace()
+    table_iq.addColumn(type="float", name="Qx")
+    table_iq.addColumn(type="float", name="Qy")
+    table_iq.addColumn(type="float", name="dQx")
+    table_iq.addColumn(type="float", name="dQy")
+    table_iq.addColumn(type="float", name="I")
+    table_iq.addColumn(type="float", name="Sigma(I)")
+
+    for qx_i, qy_i, dqx_i, dqy_i, i_i, i_sigma_i in zip(qx, qy, dqx, dqy, i, i_sigma):
+        nextRow = {
+            'Qx': qx_i,
+            'Qy': qy_i,
+            'dQx': dqx_i,
+            'dQy': dqy_i,
+            "I": i_i,
+            "Sigma(I)": i_sigma_i,
+        }
+        table_iq.addRow(nextRow)
+    return table_iq
+
+
 def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
                  bins=None):
     """Bin the data into Q 2D
@@ -51,7 +73,7 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
         by default "detector1"
     out_ws_prefix : str, optional
         The output workspace is prefix by this, by default "ws".
-    
+
     bins : int or array_like or [int, int] or [array, array], optional
         The bin specification:
             - If int, the number of bins for the two dimensions (nx=ny=bins).
@@ -97,6 +119,9 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
     qx, qy, dqx, dqy, i, i_sigma = [
         _mask_pixels(d, masked_pixels) for d in [qx, qy, dqx, dqy, i, i_sigma]]
 
+    # Create Iqxqi table
+    table_ws = create_table_ws(qx, qy, dqx, dqy, i, i_sigma)
+
     # Number of bins in Qx Qy is the number of pixels in X and Y
     counts_qx_qy_weights, qx_bin_edges, qy_bin_edges = np.histogram2d(
         qx, qy, bins=bins)
@@ -112,9 +137,6 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
     counts_dqx_dqy /= counts_dqx_dqy_weights
 
     qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
-    # qy_bin_centers.shape == dqy_bin_centers.shape == (256,)
-    dqx_bin_centers = (dqx_bin_edges[1:] + dqx_bin_edges[:-1]) / 2.0
-    dqy_bin_centers = (dqy_bin_edges[1:] + dqy_bin_edges[:-1]) / 2.0
 
     # Q WS
     iqxqy_ws = CreateWorkspace(
@@ -126,28 +148,6 @@ def bin_into_q2d(ws, component_name="detector1", out_ws_prefix="ws",
         VerticalAxisUnit='MomentumTransfer',
         VerticalAxisValues=qy_bin_centers,
         OutputWorkspace=out_ws_prefix+"_iqxqy"
-    )
-
-    dqx_ws = CreateWorkspace(
-        DataX=np.tile(qx_bin_edges, len(qy_bin_centers)),
-        DataY=np.tile(dqx_bin_centers, len(dqy_bin_centers)).T,
-        DataE=None,
-        NSpec=len(qy_bin_centers),
-        UnitX='MomentumTransfer',
-        VerticalAxisUnit='MomentumTransfer',
-        VerticalAxisValues=qy_bin_centers,
-        OutputWorkspace=out_ws_prefix+"_dqx",
-    )
-
-    dqy_ws = CreateWorkspace(
-        DataX=np.tile(qx_bin_edges, len(qy_bin_centers)),
-        DataY=np.tile(dqy_bin_centers, (len(dqx_bin_centers), 1)).T,
-        DataE=None,
-        NSpec=len(qy_bin_centers),
-        UnitX='MomentumTransfer',
-        VerticalAxisUnit='MomentumTransfer',
-        VerticalAxisValues=qy_bin_centers,
-        OutputWorkspace=out_ws_prefix+"_dqy",
     )
 
     qxqy_wss_grouped = GroupWorkspaces(
@@ -262,7 +262,7 @@ def bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy, bins=100, statistic='mean',
     #     dq_bin_centers_grid[:, 1:] + dq_bin_centers_grid[:, :-1]) / 2.0
 
     dq_bin_centers_grid = dq_bin_centers_grid[condition]
-    
+
     _, dq_bin_edges, _ = \
         stats.binned_statistic(dq_bin_centers_grid.ravel(), i.ravel(),
                                statistic=statistic, bins=bins)
@@ -504,7 +504,7 @@ def bin_into_q1d_test(ws, component_name="detector1", out_ws_prefix="ws_test",
     sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
         q, i_sigma, statistic=lambda array_1d: np.sqrt(
             np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
-    
+
     _, dq_bin_edges, _ = stats.binned_statistic(
         dq, i, statistic=statistic, bins=bins)
 

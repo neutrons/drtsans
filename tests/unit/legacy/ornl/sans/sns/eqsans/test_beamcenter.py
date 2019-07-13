@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 import pytest
-from ornl.settings import amend_config
 from mantid.simpleapi import SANSBeamFinder
 from mantid.kernel import PropertyManagerDataService, PropertyManager
 

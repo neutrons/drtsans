@@ -14,7 +14,7 @@ __all__ = ['load_events']
 
 
 def load_events(run, detector_offset=0., sample_offset=0.,
-                output_workspace=None, **kwargs):
+                data_dir=None, output_workspace=None, **kwargs):
     r"""
     Load events with initial corrections for geometry and time-of-flight
 
@@ -32,6 +32,8 @@ def load_events(run, detector_offset=0., sample_offset=0.,
     sample_offset: float
         Additional translation of the sample, in mm. The sample flange remains
         at the origin of coordinates.
+    data_dir: str, list
+        Additional data search directories
     output_workspace: workspace reference
         If not specified it will be EQSANS_55555 determined from the supplied
         value of ``run``
@@ -52,8 +54,8 @@ def load_events(run, detector_offset=0., sample_offset=0.,
             output_workspace = 'EQSANS_{}'.format(run)
 
     if isinstance(run, int) or isinstance(run, str):
-        with amend_config({'datasearch.searcharchive': 'off',
-                           'default.instrument': 'EQSANS'}):
+        with amend_config({'datasearch.searcharchive': 'hfir, sns',
+                           'default.instrument': 'EQSANS'}, data_dir=data_dir):
             LoadEventNexus(Filename=str(run),
                            OutputWorkspace=output_workspace, **kwargs)
     else:

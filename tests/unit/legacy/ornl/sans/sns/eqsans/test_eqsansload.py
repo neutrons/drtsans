@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
+import pytest
 
 '''
 Run as simple test
@@ -12,6 +11,7 @@ PYTHONPATH=. pytest -v -s tests/test_eqsansload.py
 '''
 
 
+@pytest.mark.skip(reason="Deprecated by eqsans.cfg")
 def test_get_config_file():
     from ornl.sans.sns.eqsans.parameters import _get_config_file
     fn = '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.{}'
@@ -20,6 +20,7 @@ def test_get_config_file():
     assert _get_config_file(72001) == fn.format(71820)
 
 
+@pytest.mark.skip(reason="Deprecated by eqsans.cfg")
 def test_get_parameters():
     from ornl.sans.sns.eqsans.parameters import get_parameters
     params = get_parameters(68200)
@@ -27,6 +28,7 @@ def test_get_parameters():
     assert params['rectangular mask'].split('\n')[0] == '0 0;7 255'
 
 
+@pytest.mark.skip(reason="No access to /SNS/EQSANS/shared/instrument_configuration")    # noqa: E501
 def test_EQSANSLoad(eqsans_f):
     """
     EQSANSLoad workflow algorithm as called by Mantid

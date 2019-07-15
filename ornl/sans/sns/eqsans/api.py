@@ -7,7 +7,7 @@ from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
 
-__all__ = ['prepare_data']
+__all__ = ['prepare_data', 'apply_solid_angle_correction']
 
 
 def apply_solid_angle_correction(ws):

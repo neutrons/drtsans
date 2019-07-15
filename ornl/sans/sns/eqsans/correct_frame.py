@@ -267,7 +267,7 @@ def band_gap_indexes(ws, bands):
 def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
                           output_workspace=None):
     r"""
-    Convert a time-of-fligth events workspace to a wavelength workpsace
+    Convert a time-of-fligth events workspace to a wavelength workspace
 
     Parameters
     ----------
@@ -321,7 +321,35 @@ def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
 
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=False, output_workspace=None):
+                            keep_events=False, zero_uncertainty=1.0,
+                            output_workspace=None):
+    r"""
+    Convert to Wavelength histogram data
+
+    Parameters
+    ----------
+    input_workspace: str, EventsWorkspace
+        Events workspace in time-of-flight
+    bin_width: float
+        Histogram bin width.
+    low_tof_clip: float
+        Ignore events with a time-of-flight (TOF) smaller than the minimal
+        TOF plus this quantity.
+    high_tof_clip: float
+        Ignore events with a time-of-flight (TOF) bigger than the maximal
+        TOF minus this quantity.
+    keep_events: Bool
+        The final histogram will be an EventsWorkspace if True.
+    zero_uncertainty: float
+        Assign this error to histogram bins having no counts.
+    output_workspace: str
+        Name of the output workspace. If None, the input_workspace will be
+        overwritten.
+
+    Returns
+    -------
+    MatrixWorkspace, EventsWorkspace
+    """
     input_workspace = mtd[str(input_workspace)]
     if output_workspace is None:
         output_workspace = str(input_workspace)
@@ -329,6 +357,11 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     sdd = source_detector_distance(input_workspace, units='m')
     bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
                                       high_tof_clip)
-    return convert_to_wavelength(input_workspace, bands, bin_width,
-                                 events=keep_events,
-                                 output_workspace=output_workspace)
+    w = convert_to_wavelength(input_workspace, bands, bin_width,
+                              events=keep_events,
+                              output_workspace=output_workspace)
+    # uncertainty when no counts in the bin
+    for i in range(w.getNumberHistograms()):
+        zero_count_indices = np.where(w.dataY(i) == 0)[0]
+        w.dataE(i)[zero_count_indices] = zero_uncertainty
+    return w

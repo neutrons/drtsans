@@ -1,18 +1,11 @@
-from __future__ import (absolute_import, division, print_function)
-
-import numpy as np
-from mantid.simpleapi import mtd, MoveInstrumentComponent
-
+from mantid.simpleapi import MoveInstrumentComponent
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import (sample_source_distance,
-                                sample_detector_distance,
-                                detector_name)
+from ornl.sans.geometry import (detector_name, sample_source_distance)
 
 __all__ = ['detector_z_log',
            'translate_sample_by_z', 'translate_detector_by_z',
-           'center_detector', 'sample_aperture_diameter',
-           'source_aperture_diameter']
+           'sample_aperture_diameter', 'source_aperture_diameter']
 
 detector_z_log = 'detectorZ'
 
@@ -62,50 +55,6 @@ def translate_detector_by_z(ws, z, **kwargs):
     Simplified call to translate_detector_z
     """
     return translate_detector_z(ws, z=z, relative=True, **kwargs)
-
-
-def center_detector(ws, x, y, units='m', relative=False):
-    r"""
-    Move the detector on the XY plane.
-
-    Usually `x` and `y` will be the absolute coordinates of the beam
-    impinging on the detector.
-
-    Parameters
-    ----------
-    ws: Workspace
-        Input workspace containing the instrument
-    x: float
-        Final position or translation along the X-axis
-    y: float
-        Final position or translation along the Y-axis
-    units: str
-        Either meters 'm' or mili-meters 'mm'
-    relative: Bool
-        Apply translation if True, otherwise `x` and `y` are final coordinates
-
-    Returns
-    =======
-    numpy.ndarray
-        Detector vector position
-    """
-    t_x = x if units == 'm' else x / 1.e3
-    t_y = y if units == 'm' else y / 1.e3
-    t_z = 0.0
-    if relative is False:
-        i = mtd[str(ws)].getInstrument()
-        # preserve the Z coordinate value
-        t_z = i.getComponentByName(detector_name(i)).getPos()[-1]
-    MoveInstrumentComponent(ws, X=t_x, Y=t_y, Z=t_z,
-                            ComponentName=detector_name(ws),
-                            RelativePosition=relative)
-
-    # Recalculate distance from sample to detector
-    sdd = sample_detector_distance(ws, units='mm', search_logs=False)
-    SampleLogs(ws).insert('sample-detector-distance', sdd, unit='mm')
-    instrument = mtd[str(ws)].getInstrument()
-    det = instrument.getComponentByName(detector_name(instrument))
-    return np.array(det.getPos())
 
 
 def sample_aperture_diameter(run, unit='mm'):

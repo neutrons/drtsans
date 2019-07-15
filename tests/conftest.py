@@ -72,15 +72,21 @@ class GetWS(object):
 
 @pytest.fixture(scope='session')
 def refd():
-    """Directory locations for reference data
+    """A namedtuple with the directory **absolute** paths for test data
+
+    Examples:
+        refd.data, topmost data directory data/
+        refd.legacy, data/legacy/ornl/sans/
+        refd.new, data/new/ornl/sans/
+        refd.legacy.biosans, refd.legacy.gpsans, refd.legacy.eqsans, are
+            data/legacy/ornl/sans/hfir/biosans and so on.
+        refd.new.biosans, refd.new.gpsans, refd.new.eqsans, are
+            data/new/ornl/sans/hfir/biosans and so on.
 
     Returns
     -------
     namedtuple
-        refd.data, refd.legacy, refd.new,
-        refd.legacy.biosans, refd.legacy.gpsans, refd.legacy.eqsans
-        refd.new.biosans, refd.new.gpsans, refd.new.eqsans
-        """
+    """
     d_leg = pjoin(data_dir, 'legacy', 'ornl', 'sans')
     d_new = pjoin(data_dir, 'new', 'ornl', 'sans')
     rett = namedtuple('rett', 'data legacy new')
@@ -98,16 +104,16 @@ def refd():
 
 
 @pytest.fixture(scope='session')
-def eqsans_f():
-    return dict(data='EQSANS_68168',
-                beamcenter='EQSANS_68183',
-                darkcurrent='EQSANS_68200')
+def eqsans_f(refd):
+    return dict(data=pjoin(refd.new.eqsans, 'EQSANS_68168_event.nxs'),
+                beamcenter=pjoin(refd.new.eqsans, 'EQSANS_68183_event.nxs'),
+                darkcurrent=pjoin(refd.new.eqsans, 'EQSANS_68200_event.nxs'))
 
 
 @pytest.fixture(scope='session')
-def eqsans_w(eqsans_f):
+def eqsans_w(refd, eqsans_f):
     r"""Load EQSANS files into workspaces"""
-    with amend_config({'datasearch.searcharchive': 'hfir,sns'}):
+    with amend_config(data_dir=refd.new.eqsans):
         return {k: mtds.LoadEventNexus(v, OutputWorkspace=k)
                 for (k, v) in eqsans_f.items()}
 
@@ -200,7 +206,7 @@ def gpsans_sensitivity_dataset():
 
 
 @pytest.fixture(scope='session')
-def frame_skipper():
+def frame_skipperF(refd):
     """Data and monitor with frame skipping
         """
 
@@ -216,8 +222,8 @@ def frame_skipper():
              )
 
     # Absolute path to benchmark files
-    f = dict(s=fr(ipts, '92353'),  # sample
-             mo=fr(ipts, '92353'),  # monitors
+    f = dict(s=pjoin(refd.new.eqsans, 'EQSANS_92353.nxs.h5'),  # sample
+             mo=pjoin(refd.new.eqsans, 'EQSANS_92353.nxs.h5')  # monitors
              )
 
     # Loader algorithms for the benchmark files
@@ -230,7 +236,7 @@ def frame_skipper():
 
 
 @pytest.fixture(scope='session')
-def porasil_slice1m():
+def porasil_slice1m(refd):
     """EQSANS reduction benchmark. See porasil_slice1m.help
 
     File are loaded only once. For entries pointing to the same file, such as
@@ -269,16 +275,16 @@ def porasil_slice1m():
              )
 
     # Absolute path to benchmark files
-    f = dict(s=fr(ipts, '92164'),  # sample
-             m=pjoin(shared, '2017B_mp/beamstop60_mask_4m.nxs'),  # mask
-             dc=pjoin(shared, '2017B_mp/EQSANS_89157.nxs.h5'),  # dark current
-             se=pjoin(shared, '2017B_mp/Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
-             dbc=fr(ipts, '92160'),  # direct_beam_center
-             dbts=fr(ipts, '92161'),  # direct beam transmission sample
-             dbte=fr(ipts, '92160'),  # direct beam transmission empty
-             b=fr(ipts, '92163'),  # background
-             bdbts=fr(ipts, '92161'),  # noqa: E501 background direct beam transmission sample
-             bdbte=fr(ipts, '92160')  # noqa: E501 background_direct_beam_transmission_empty
+    f = dict(s=pjoin(refd.new.eqsans, 'EQSANS_92164.nxs.h5'),  # sample
+             m=pjoin(refd.new.eqsans, '2017B_mp/beamstop60_mask_4m.nxs'),  # noqa: E501 mask
+             dc=pjoin(refd.new.eqsans, 'EQSANS_89157.nxs.h5'),  # dark current
+             se=pjoin(refd.new.eqsans, 'Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
+             dbc=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct_beam_center
+             dbts=pjoin(refd.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 direct beam transmission sample
+             dbte=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct beam transmission empty
+             b=pjoin(refd.new.eqsans, 'EQSANS_92163.nxs.h5'),  # background
+             bdbts=pjoin(refd.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 background direct beam transmission sample
+             bdbte=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5')  # noqa: E501 background_direct_beam_transmission_empty
              )
 
     lds = dict(s='Load',  # sample
@@ -295,3 +301,102 @@ def porasil_slice1m():
 
     return ret_val(ipts=ipts, shared=shared, r=r, f=f,
                    w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)
+
+
+@pytest.fixture(scope='session')
+def generate_sans_generic_IDF(request):
+    '''
+    generate a test IDF with a rectangular detector
+    with Nx X Ny pixels
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+
+    Note that we use Mantid convention for the orientation
+    '''
+
+    Nx = request.param.get('Nx', 3)
+    Ny = request.param.get('Ny', 3)
+    dx = request.param.get('dx', 1.)
+    dy = request.param.get('dy', 1.)
+    xc = request.param.get('xc', 0.)
+    yc = request.param.get('yc', 0.)
+    zc = request.param.get('zc', 5.)
+    assert (int(Nx) == Nx and Nx > 1 and Nx < 300)
+    assert (int(Ny) == Ny and Ny > 1 and Ny < 300)
+    assert dx > 0
+    assert dy > 0
+    assert zc > 0
+    half_dx = dx * .5
+    half_dy = dy * .5
+    # parameters
+    # 0:xc 1:yc 2:zc
+    # 3:Nx 2:Ny 3:xstart=-(Nx-1)*half_dx 4:ystart
+    # 5:dx 6:dy 7:half_dx 8:half_dy
+    template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
+<instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
+                               valid-to     ="2100-12-31 23:59:59"
+                               last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>
+        <angle unit="degree"/>
+        <reference-frame>
+        <along-beam axis="z"/>
+        <pointing-up axis="y"/>
+        <handedness val="right"/>
+        <theta-sign axis="x"/>
+        </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="-11.0"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+    <!--RectangularDetector-->
+    <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{4}">
+        <location x="{0}" y="{1}" z="{2}"
+            name="bank1"
+            rot="0.0" axis-x="0" axis-y="1" axis-z="0">
+        </location>
+    </component>
+
+    <!-- Rectangular Detector Panel -->
+    <type name="panel" is="rectangular_detector" type="pixel"
+        xpixels="{3}" xstart="{5}" xstep="+{7}"
+        ypixels="{4}" ystart="{6}" ystep="+{8}" >
+        <properties/>
+    </type>
+
+    <!-- Pixel for Detectors-->
+    <type is="detector" name="pixel">
+        <cuboid id="pixel-shape">
+            <left-front-bottom-point y="-{10}" x="-{9}" z="0.0"/>
+            <left-front-top-point y="{10}" x="-{9}" z="0.0"/>
+            <left-back-bottom-point y="-{10}" x="-{9}" z="-0.0001"/>
+            <right-front-bottom-point y="-{10}" x="{9}" z="0.0"/>
+        </cuboid>
+        <algebra val="pixel-shape"/>
+    </type>
+
+</instrument>'''
+    return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
+                               -(Ny-1) * half_dy, dx, dy, half_dx, half_dy)

@@ -1,27 +1,11 @@
 """ Top-level API for EQSANS """
+from mantid.api import mtd
 # Import rolled up to complete a single top-level API
-from .beam_finder import direct_beam_center
-from mantid.simpleapi import mtd
 from ornl.sans import solid_angle_correction
-
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
-
-
-def find_beam_center(ws, mask_file_path=None):
-    """
-        Beam center finder, with optional mask.
-        input_ws: EventsWorkspace
-            Workspace for the direct beam run
-        mask_file_path: str
-            File path of mask to apply before calculation
-
-    """
-    if mask_file_path is not None:
-        ws = apply_mask(ws, mask_file_path)
-    return direct_beam_center(ws)
 
 
 def set_instrument_geometry(ws):

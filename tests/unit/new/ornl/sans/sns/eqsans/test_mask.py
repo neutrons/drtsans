@@ -16,6 +16,15 @@ def test_apply_mask():
     MaskBTP(Workspace=w, Bank='25-48', Pixel='1-10')
     m2 = ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
     assert CompareWorkspaces(m, m2).Result
+    #
+    # Mask back panel
+    #
+    ClearMaskFlag(w)
+    m = apply_mask(w, panel='back')
+    ClearMaskFlag(w)
+    MaskBTP(Workspace=w, Components='back-panel')
+    m2 = ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
+    assert CompareWorkspaces(m, m2).Result
 
 
 if __name__ == '__main__':

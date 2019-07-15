@@ -13,7 +13,8 @@ from ornl.sans.sns import eqsans
 from ornl.sans import solid_angle_correction
 
 # protected API
-from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwn)
+from ornl.settings import (amend_config, namedtuplefy,
+                           unique_workspace_dundername as uwn)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import detector_name
 
@@ -44,11 +45,12 @@ def flux_file(refd):
 
 @pytest.fixture(scope='module', params=run_sets)
 @namedtuplefy
-def rs(request):
+def rs(refd, request):
     run_set = request.param
     run = run_set['run']
     ws = uwn()
-    eqsans.load_events(run, output_workspace=ws)
+    with amend_config(data_dir=refd.new.eqsans):
+        eqsans.load_events(run, output_workspace=ws)
     kw = dict(low_tof_clip=500, high_tof_clip=2000, output_workspace=uwn())
     wl = eqsans.transform_to_wavelength(ws, **kw)
     return {**run_set, **dict(ws=ws, wl=wl)}
@@ -81,9 +83,10 @@ class TestLoadEvents(object):
         assert ws.getTofMax() == pytest.approx(rs.max_tof, abs=1)
         assert bool(SampleLogs(ws).is_frame_skipping.value) == rs.skip_frame
 
-    def test_offsets(self):
-        ws = eqsans.load_events('EQSANS_86217', output_workspace=uwn(),
-                                detector_offset=42, sample_offset=24)
+    def test_offsets(self, refd):
+        with amend_config(data_dir=refd.new.eqsans):
+            ws = eqsans.load_events('EQSANS_86217', output_workspace=uwn(),
+                                    detector_offset=42, sample_offset=24)
         sl = SampleLogs(ws)
         ssd = sl.single_value('source-sample-distance')
         sdd = sl.single_value('sample-detector-distance')
@@ -94,10 +97,15 @@ class TestLoadEvents(object):
 def test_transform_to_wavelength(rs):
     ws = eqsans.transform_to_wavelength(rs.ws, low_tof_clip=500,
                                         high_tof_clip=2000,
+                                        zero_uncertainty=42.0,
                                         output_workspace=uwn())
     sl = SampleLogs(ws)
     assert sl.wavelength_min.value == approx(rs.w_min, abs=0.05)
     assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
+    # assert zero uncertainty assignment
+    for i in range(ws.getNumberHistograms()):
+        zci = np.where(ws.dataY(i) == 0)[0]  # zero count indices
+        assert ws.dataE(i)[zci] == approx(42.0*np.ones(len(zci)))
 
 
 def test_normalise_by_flux(rs, flux_file):

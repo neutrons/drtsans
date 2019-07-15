@@ -2,9 +2,8 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 from mantid.dataobjects import MaskWorkspace
-from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP,
-                              ExtractMask)
-from ornl.settings import (unique_workspace_dundername as uwd)
+from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, ExtractMask)
+from ornl.settings import unique_workspace_dundername as uwd
 
 
 def mask_as_numpy_array(w, invert=False):
@@ -54,7 +53,7 @@ def apply_mask(w, mask=None, output_workspace=None, **btp):
     if output_workspace is None:
         output_workspace = uwd()
     instrument = w.getInstrument().getName()
-    w = str(w)  # remove the change of invalided reference
+    w = str(w)
     if mask is not None:
         if isinstance(mask, str):
             wm = LoadMask(Instrument=instrument, InputFile=mask,

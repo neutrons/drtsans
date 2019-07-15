@@ -21,7 +21,7 @@ def test_save_ascii_1d(refd):
     ws = Load(Filename=join(refd.new.eqsans,
                             'test_save_output/EQSANS_68200_iq.nxs'))
 
-    with tempfile.NamedTemporaryFile('r+') as tmp:
+    with tempfile.NamedTemporaryFile('wt') as tmp:
         save_ascii_1D(ws, 'test_reduction_log.hdf', tmp.name)
         output = np.loadtxt(tmp.name, dtype={'names': ('Q', 'I', 'dI', 'dQ'),
                                              'formats': ('f', 'f', 'f', 'f')})
@@ -34,7 +34,7 @@ def test_save_ascii_1d(refd):
         assert np.allclose(output['dI'], reference['dI'], atol=1e-6)
         assert np.allclose(output['dQ'], reference['dQ'], atol=1e-6)
 
-    with tempfile.NamedTemporaryFile('r+') as tmp:
+    with tempfile.NamedTemporaryFile('wt') as tmp:
         save_xml_1D(ws, 'test_reduction_log.hdf', tmp.name)
         output = []
         tree = ET.parse(tmp.name)

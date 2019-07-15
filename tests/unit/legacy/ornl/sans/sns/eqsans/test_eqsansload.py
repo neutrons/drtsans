@@ -10,6 +10,7 @@ PYTHONPATH=. pytest -v -s tests/test_eqsansload.py
 
 '''
 
+
 @pytest.mark.skip(reason="Deprecated by eqsans.cfg")
 def test_get_config_file():
     from ornl.sans.sns.eqsans.parameters import _get_config_file

@@ -7,17 +7,7 @@ from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
 
-
-def set_instrument_geometry(ws):
-    """ Move detector components to their proper location """
-    raise NotImplementedError()
-
-
-def initial_uncertainty_estimation(ws):
-    """
-        Assign uncertainty for every bin in x, y, TOF
-    """
-    raise NotImplementedError()
+__all__ = ['prepare_data']
 
 
 def apply_solid_angle_correction(ws):
@@ -31,11 +21,6 @@ def apply_sensitivity_correction(ws, sensitivity_file_path):
     """
         Apply sensitivity correction
     """
-    raise NotImplementedError()
-
-
-def normalize(ws, normalization_type):
-    """ Normalize to time, monitor, or proton charge """
     raise NotImplementedError()
 
 

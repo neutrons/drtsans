@@ -1,38 +1,133 @@
 variables:
+  CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_NAME"
   TEST_SCOPE: "unit"
 
-# Run sequentially and stop if anyone stage fails
 stages:
   - flake8
-  - python2.7
-  - python3.6
-  - integration
+  - dockerbuild
+  - docker-test
+  - code-test
+  - script-host
 
 flake8:
-  variables:
-    CI_DEBUG_TRACE: "true"
   stage: flake8
   allow_failure: true
+  before_script:
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - flake8
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 /opt/sans-backend"
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
 
-.python2.7:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: python2.7
+dockerbuild:
+  stage: dockerbuild
+  before_script:
+    - docker system prune -f
+    - docker image prune -af
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - source test_job.sh 2.7 ${TEST_SCOPE}
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
+    - docker build -t $CONTAINER_URL .
+    - docker push $CONTAINER_URL
+    - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
+  artifacts:
+    paths:
+    - scripts/sans-backend-run.sh
 
-python3.6:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: python3.6
+docker-update-test:
+  stage: docker-test
+  dependencies: 
+    - dockerbuild
+  before_script:
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - source test_job.sh 3.6 ${TEST_SCOPE}
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - sh -x scripts/sans-backend-run.sh -u scripts/docker-test.py
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
 
-integration:
-  variables:
-    CI_DEBUG_TRACE: "true"
-  stage: integration
+docker-no-update-test:
+  stage: docker-test
+  dependencies: 
+    - dockerbuild
+  before_script:
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - source test_job.sh 3.6 integration
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - sh -x scripts/sans-backend-run.sh scripts/docker-test.py
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
+
+code-unit-test:
+  stage: code-test
+  dependencies: 
+    - dockerbuild
+  allow_failure: true
+  before_script:
+    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
+    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
+    - popd
+  tags:
+    - scse-mantid-builder
+
+code-integration-test:
+  stage: code-test
+  dependencies: 
+    - dockerbuild
+  allow_failure: true
+  before_script:
+    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
+    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
+    - popd
+  tags:
+    - scse-mantid-builder
+
+script-host:
+  stage: script-host
+  dependencies: 
+    - dockerbuild
+  before_script:
+    - sudo yum install -y httpd
+    - sudo rm -f /etc/httpd/conf.d/welcome.conf
+    - sudo systemctl restart httpd
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+  script:
+    - sudo mkdir -p /var/www/html/sans-backend/$CI_COMMIT_REF_NAME
+    - sudo ls -la /var/www/html/
+    - sudo cp -f scripts/sans-backend-run.sh /var/www/html/sans-backend/$CI_COMMIT_REF_NAME/
+    - sudo chmod -R 755 /var/www/html/
+    - curl http://localhost/sans-backend/$CI_COMMIT_REF_NAME/sans-backend-run.sh
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-demo

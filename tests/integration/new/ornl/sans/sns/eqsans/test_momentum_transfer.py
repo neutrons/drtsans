@@ -7,7 +7,7 @@ from mantid import mtd
 from mantid.simpleapi import (AddSampleLog, ConfigService, CreateWorkspace,
                               ExtractSpectra, MoveInstrumentComponent, Rebin,
                               ReplaceSpecialValues)
-from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
+from ornl.sans.momentum_transfer import MomentumTransfer
 from ornl.sans.sns.eqsans import normalisation
 from ornl.sans.sns.eqsans import load_events, transform_to_wavelength
 # from ornl.sans.sns.eqsans import center_detector
@@ -62,14 +62,14 @@ def test_momentum_tranfer_serial():
     instrument = ws.getInstrument()
     component = instrument.getComponentByName("detector1")
     z = component.getPos()[2]
-    MoveInstrumentComponent(Workspace='ws', ComponentName='detector1',
+    MoveInstrumentComponent(Workspace=ws, ComponentName='detector1',
                             X=-0.025, Y=-0.016, Z=z, RelativePosition=False)
 
     flux_ws = normalisation.load_beam_flux_file(
         '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample',
-        out_ws='flux_ws', ws_reference=ws)
+        output_workspace='flux_ws', ws_reference=ws)
 
-    ws = normalisation.proton_charge_and_flux(ws, flux_ws, "ws")
+    ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # This is not working! slit4 missing
     # geometry.sample_aperture_diameter(ws)

@@ -337,6 +337,8 @@ def apply_sensitivity_correction(input_workspace, filename=None,
             sensitivity = os.path.split(filename)[-1]
             sensitivity = sensitivity.split('.')[0]
         cleanupSensitivity = True
+        if not os.path.exists(filename):
+            raise RuntimeError('Cannot find file "{}"'.format(filename))
         LoadNexusProcessed(Filename=filename, OutputWorkspace=sensitivity)
 
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=sensitivity,

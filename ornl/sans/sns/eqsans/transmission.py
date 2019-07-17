@@ -32,7 +32,8 @@ def calculate_transmission(input_sample, input_reference,
     input_sample: MatrixWorkspace
         Prepared sample workspace (possibly obtained with an attenuated beam)
     input_reference: MatrixWorkspace
-        Prepared direct beam workspace (possibly obtained with an attenuated beam)
+        Prepared direct beam workspace (possibly obtained with an attenuated
+        beam)
     radius: float
         Radius around the bean center for pixel integration, in millimeters.
         If None, radius will be obtained or calculated using `input_reference`.

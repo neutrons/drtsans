@@ -185,7 +185,8 @@ def sample_source_distance(*args, **kwargs):
     return source_sample_distance(*args, **kwargs)
 
 
-def sample_detector_distance(source, units='mm', log_key=None, search_logs=True):
+def sample_detector_distance(source, units='mm', log_key=None,
+                             search_logs=True):
     r"""
     Return the distance from the sample to the detector bank
 
@@ -257,5 +258,6 @@ def source_detector_distance(source, units='mm', search_logs=True):
 
     """
     ssd = source_sample_distance(source, units=units, search_logs=search_logs)
-    sdd = sample_detector_distance(source, units=units, search_logs=search_logs)
+    sdd = sample_detector_distance(source, units=units,
+                                   search_logs=search_logs)
     return ssd + sdd

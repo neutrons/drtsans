@@ -5,7 +5,7 @@ from numpy.testing import assert_almost_equal
 from os.path import join as pjn
 from mantid.simpleapi import Load, CompareWorkspaces
 from ornl.settings import amend_config
-from ornl.sans.transmission import (_zero_angle_transmission,
+from ornl.sans.transmission import (calculate_transmission,
                                     _apply_transmission_mantid)
 from ornl.sans.sns.eqsans.transmission import beam_radius, fit_raw
 from ornl.sans.sns.eqsans.geometry import insert_aperture_logs
@@ -26,8 +26,8 @@ def test_transmission(refd):
         reference = Load(pjn(data_dir, 'direct_beam.nxs'))
 
         # Calculate raw transmission
-        raw_transmission = _zero_angle_transmission(sample, reference,
-                                                    beam_radius(sample))
+        raw_transmission = calculate_transmission(sample, reference,
+                                                  beam_radius(sample))
         quick_compare(raw_transmission, 'raw_transmission.nxs')
 
         # Fit the raw transmission

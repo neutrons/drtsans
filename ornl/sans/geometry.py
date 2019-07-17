@@ -35,13 +35,13 @@ def detector_name(ipt):
     return inst_to_det[instrument_name]
 
 
-def bank_detector_ids(ws, masked=None):
+def bank_detector_ids(input_workspace, masked=None):
     r"""
     Return the ID's for the detectors in detector banks (excludes monitors)
 
     Parameters
     ----------
-    ws: MatrixWorkspace
+    input_workspace: MatrixWorkspace
         Input workspace to find the detectors
     masked: None or Bool
         `None` yields all detector ID's; `True` yields all masked
@@ -51,6 +51,7 @@ def bank_detector_ids(ws, masked=None):
     -------
     list
     """
+    ws = mtd[str(input_workspace)]
     ids = ws.detectorInfo().detectorIDs()
     all = ids[ids >= 0].tolist()
     if masked is None:
@@ -61,14 +62,14 @@ def bank_detector_ids(ws, masked=None):
                 masked == instrument.getDetector(det_id).isMasked()]
 
 
-def bank_detectors(ws, masked=None):
+def bank_detectors(input_workspace, masked=None):
     r"""
     Generator function to yield the detectors in the banks of the instrument.
     Excludes monitors
 
     Parameters
     ----------
-    ws: MatrixWorkspace
+    input_workspace: MatrixWorkspace
         Input workspace to find the detectors
     masked: None or Bool
         `None` yields all detectors; `True` yields all masked detectors;
@@ -77,6 +78,7 @@ def bank_detectors(ws, masked=None):
     ------
     mantid.geometry.Detector
     """
+    ws = mtd[str(input_workspace)]
     instrument = ws.getInstrument()
     for det_id in bank_detector_ids(ws, masked=masked):
         yield instrument.getDetector(det_id)
@@ -85,13 +87,15 @@ def bank_detectors(ws, masked=None):
             yield instrument.getDetector(det_id)
 
 
-def get_instrument(other):
+def get_instrument(source):
     r"""
     Return the instrument object
 
     Parameters
     ----------
-    other: Instrument object, MatrixWorkspace, file name, run number
+    source: PyObject
+        Instrument object, MatrixWorkspace, , workspace name, file name,
+        run number
 
     Returns
     -------
@@ -123,11 +127,11 @@ def get_instrument(other):
 
     dispatch = {Instrument: from_instrument, MatrixWorkspace: from_ws,
                 int: from_integer, str: from_string}
-    finder = [v for k, v in dispatch.items() if isinstance(other, k)][0]
-    return finder(other)
+    finder = [v for k, v in dispatch.items() if isinstance(source, k)][0]
+    return finder(source)
 
 
-def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
+def source_sample_distance(source, units='mm', log_key=None, search_logs=True):
     r"""
     Report the distance (always positive!) between source and sample.
 
@@ -136,8 +140,9 @@ def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
 
     Parameters
     ----------
-    other: PyObject
-        Instrument object, MatrixWorkspace, file name, run number
+    source: PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number
     units: str
         'mm' (millimeters), 'm' (meters)
     log_key: str
@@ -161,7 +166,7 @@ def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
                     'sample_source-distance', 'sample_source_distance')
         if log_key is not None:
             log_keys = [log_key]
-        sl = SampleLogs(other)
+        sl = SampleLogs(source)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
             # uses the default unit [mm] if no unit is defined
@@ -170,7 +175,7 @@ def source_sample_distance(other, units='mm', log_key=None, search_logs=True):
             pass
 
     # Calculate the distance using the instrument definition file
-    instrument = get_instrument(other)
+    instrument = get_instrument(source)
     sample = instrument.getSample()
     return abs(sample.getDistance(instrument.getSource())) * m2units[units]
 
@@ -180,7 +185,7 @@ def sample_source_distance(*args, **kwargs):
     return source_sample_distance(*args, **kwargs)
 
 
-def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
+def sample_detector_distance(source, units='mm', log_key=None, search_logs=True):
     r"""
     Return the distance from the sample to the detector bank
 
@@ -189,8 +194,9 @@ def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
 
     Parameters
     ----------
-    ws: Workspace
-        Instrument object, MatrixWorkspace, file name, run number
+    source: PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number.
     units: str
         'mm' (millimeters), 'm' (meters)
     log_key: str
@@ -214,7 +220,7 @@ def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
                     'sample_detector-distance', 'sample_detector_distance')
         if log_key is not None:
             log_keys = [log_key]
-        sl = SampleLogs(ws)
+        sl = SampleLogs(source)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
             # uses the default unit [mm] if no unit is defined
@@ -222,12 +228,12 @@ def sample_detector_distance(ws, units='mm', log_key=None, search_logs=True):
         except KeyError:
             pass
     # Calculate the distance using the instrument definition file
-    instrument = get_instrument(ws)
-    det = instrument.getComponentByName(detector_name(ws))
+    instrument = get_instrument(source)
+    det = instrument.getComponentByName(detector_name(source))
     return det.getDistance(instrument.getSample()) * m2units[units]
 
 
-def source_detector_distance(ws, units='mm', search_logs=True):
+def source_detector_distance(source, units='mm', search_logs=True):
     r"""
     Calculate distance between source and detector bank, in mili meters
 
@@ -236,8 +242,9 @@ def source_detector_distance(ws, units='mm', search_logs=True):
 
     Parameters
     ----------
-    ws: Matrixworkspace
-        Workspace containing logs and a full instrument
+    source: PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number
     units: str
         'mm' (millimeters), 'm' (meters)
     search_logs: bool
@@ -249,5 +256,6 @@ def source_detector_distance(ws, units='mm', search_logs=True):
     float
 
     """
-    return source_sample_distance(ws, units=units, search_logs=search_logs) +\
-        sample_detector_distance(ws, units=units, search_logs=search_logs)
+    ssd = source_sample_distance(source, units=units, search_logs=search_logs)
+    sdd = sample_detector_distance(source, units=units, search_logs=search_logs)
+    return ssd + sdd

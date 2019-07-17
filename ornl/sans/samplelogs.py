@@ -10,11 +10,17 @@ from mantid.simpleapi import (mtd, Load, AddSampleLog)
 class SampleLogs(object):
     r"""
     Log reader, a bit more pythonic
+
+    Params
+    ------
+    source: PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number
     """
 
-    def __init__(self, other):
+    def __init__(self, source):
         self._ws = None
-        self._run = self.find_run(other)
+        self._run = self.find_run(source)
 
     def __getitem__(self, item):
         if item in self._run.keys():

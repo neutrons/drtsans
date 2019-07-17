@@ -4,10 +4,9 @@ from __future__ import print_function
 import numpy as np
 
 from mantid import mtd
-from mantid.simpleapi import (AddSampleLog, ConfigService, CreateWorkspace,
-                              ExtractSpectra, MoveInstrumentComponent, Rebin,
-                              ReplaceSpecialValues)
-from ornl.sans.momentum_transfer import MomentumTransfer
+from mantid.simpleapi import (AddSampleLog, ConfigService,
+                              ExtractSpectra, MoveInstrumentComponent, Rebin)
+from ornl.sans.sns.eqsans.momentum_transfer import MomentumTransfer
 from ornl.sans.sns.eqsans import normalisation
 from ornl.sans.sns.eqsans import load_events, transform_to_wavelength
 # from ornl.sans.sns.eqsans import center_detector
@@ -93,11 +92,25 @@ def test_momentum_tranfer_serial():
 
     bins = np.arange(rebin_start, rebin_end, rebin_step)
 
-    for index, bin_start in enumerate(bins):
+    #
+    ws_sum = ExtractSpectra(InputWorkspace=ws, XMin=rebin_start,
+                            XMax=rebin_start+rebin_step)
+
+    wavelength_mean = rebin_start + rebin_step/2
+
+    AddSampleLog(Workspace=ws_sum, LogName='wavelength',
+                 LogText="{:.2f}".format(wavelength_mean),
+                 LogType='Number', LogUnit='Angstrom')
+
+    AddSampleLog(Workspace=ws_sum, LogName='wavelength-spread',
+                 LogText='0.2', LogType='Number', LogUnit='Angstrom')
+
+    mt_sum = MomentumTransfer(ws_sum)
+
+    for index, bin_start in enumerate(bins[1:]):
 
         ws_extracted = ExtractSpectra(
             InputWorkspace=ws,
-            OutputWorkspace="slice_{:}".format(index),
             XMin=bin_start, XMax=bin_start+rebin_step)
 
         wavelength_mean = bin_start + rebin_step/2
@@ -108,75 +121,46 @@ def test_momentum_tranfer_serial():
 
         AddSampleLog(Workspace=ws_extracted, LogName='wavelength-spread',
                      LogText='0.2', LogType='Number', LogUnit='Angstrom')
-        ws_prefix = "ws_{}".format(index)
 
-        # 2D
-        wss_name_ws = bin_into_q2d(
-            ws_extracted, out_ws_prefix=ws_prefix, bins=[100, 100])
-        assert len(wss_name_ws) == 3
+        mt_extracted = MomentumTransfer(ws_extracted)
+        mt_sum += mt_extracted
 
-        ws_iqxqy, ws_dqx, ws_dqy = [ws[1] for ws in wss_name_ws]
-        # assert ws_iqxqy.extractY().shape == (256, 192)
-        # assert ws_iqxqy.extractX().shape == (256, 193)
-        # 1D
-        _, ws_iq = bin_into_q1d(ws_iqxqy, ws_dqx, ws_dqy,
-                                out_ws_prefix=ws_prefix,
-                                # The same binning as legacy
-                                bins=np.linspace(0.00119358, 0.460477, 100))
-        # assert ws_iq.extractY().shape == (1, 100)
-        # assert ws_iq.extractX().shape == (1, 101)
+        assert mt_extracted.qx.shape == mt_extracted.qy.shape == \
+            mt_extracted.dqx.shape == mt_extracted.dqy.shape == \
+            mt_extracted.i.shape == mt_extracted.i_sigma.shape == (256*192, )
 
-    all_bins = np.array([mtd["ws_{}_iq".format(index)].extractX() for
-                         index, _ in enumerate(bins)])
-    q_max = all_bins.max()
-    q_min = all_bins.min()
+        assert mt_sum.qx.shape == mt_sum.qy.shape == mt_sum.dqx.shape == \
+            mt_sum.dqy.shape == mt_sum.i.shape == mt_sum.i_sigma.shape == \
+            (256*192 + (index+1) * 256*192,)
 
-    [Rebin(
-        InputWorkspace=mtd["ws_{}_iq".format(index)],
-        OutputWorkspace="ws_rebin_{}_iq".format(index),
-        Params='{},0.004,{}'.format(q_min, q_max)) for
-        index, _ in enumerate(bins)]
+    # This is slow!!!!
+    # ws_sum_table = mt_sum.q2d()
+    # assert type(ws_sum_table) == mantid.dataobjects.TableWorkspace
 
-    # Calculate an average I(q)
-    q = [mtd["ws_rebin_{}_iq".format(index)].extractX().ravel() for
-         index, _ in enumerate(bins)]
-    i = [mtd["ws_rebin_{}_iq".format(index)].extractY().ravel() for
-         index, _ in enumerate(bins)]
-    dq = [mtd["ws_rebin_{}_iq".format(index)].extractE().ravel() for
-          index, _ in enumerate(bins)]
+    _, ws_sum_q2d = mt_sum.bin_into_q2d()
+    assert ws_sum_q2d.extractY().shape == (256, 192)
+    assert ws_sum_q2d.extractX().shape == (256, 193)
 
-    q = np.ma.masked_invalid(q)
-    i = np.ma.masked_invalid(i)
-    dq = np.ma.masked_invalid(dq)
+    _, ws_sum_q1d = mt_sum.bin_into_q1d()
+    assert ws_sum_q1d.extractY().shape == (1, 100)
+    assert ws_sum_q1d.extractX().shape == (1, 101)
 
-    # Calculate an average I(q)
-    mean_q = np.mean(q, axis=0)
-    mean_i = np.mean(i, axis=0)
-    mean_dq = np.sqrt(np.sum(dq**2, axis=0))
+    ws_iq_old = legacy_reduction()
+    ws_iq_new = ws_sum_q1d
 
-    mean_iq = CreateWorkspace(
-        DataX=mean_q.filled(np.nan),
-        DataY=mean_i.filled(np.nan),
-        DataE=mean_dq.filled(np.nan),
-        # Dx=dq_bin_centers,  # bin centers!!
-        NSpec=1,
-        UnitX='MomentumTransfer',
-        YUnitLabel='Counts',
-        OutputWorkspace="mean_rebin_iq"
-    )
+    max_old = ws_iq_old.readY(0).max()
+    max_new = ws_iq_new.readY(0).max()
 
-    iq_old = legacy_reduction()
+    ws_iq_old = ws_iq_old * max_new/max_old
 
-    iq_new = ReplaceSpecialValues(
-        InputWorkspace=mean_iq, NaNValue=0, InfinityValue=0)
+    ws_iq_new = Rebin(InputWorkspace=ws_iq_new,
+                      Params="0.00119358, .00463923, 0.457006261051")
+    ws_iq_old = Rebin(InputWorkspace=ws_iq_old,
+                      Params="0.00119358, .00463923, 0.457006261051")
 
-    max_old = iq_old.readY(0).max()
-    max_new = iq_new.readY(0).max()
+    assert np.allclose(ws_iq_new.extractY(), ws_iq_old.extractY(), rtol=1)
 
-    iq_old_final = iq_old * max_new/max_old
-
-    assert iq_old_final is not None
-
-    # plt.plot(iq_new.extractY().ravel())
-    # plt.plot(iq_old_final.extractY().ravel())
+    # plt.loglog(ws_iq.extractY().ravel(), label = 'New')
+    # plt.loglog(ws_iq_old.extractY().ravel(), label = 'Old')
+    # plt.legend()
     # plt.show()

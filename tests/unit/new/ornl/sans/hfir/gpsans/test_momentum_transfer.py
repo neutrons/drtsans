@@ -32,11 +32,11 @@ def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     table_iq = mt.q2d()
     assert type(table_iq) == mantid.dataobjects.TableWorkspace
 
-    ws_name, ws = mt.bin_into_q2d()
+    _, ws = mt.bin_into_q2d()
     assert ws.extractY().shape == (256, 192)
     assert ws.extractX().shape == (256, 193)
 
-    ws_name, ws = mt.bin_into_q1d()
+    _, ws = mt.bin_into_q1d()
     assert ws.extractY().shape == (1, 100)
     assert ws.extractX().shape == (1, 101)
 

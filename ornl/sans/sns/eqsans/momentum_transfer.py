@@ -1,17 +1,15 @@
 from __future__ import print_function
 
 import numpy as np
-from scipy import stats
 
 from ornl.sans.momentum_transfer \
     import MomentumTransfer as MomentumTransferMain
 
 
-# To ignore warning:   invalid value encountered in true_divide
-np.seterr(divide='ignore', invalid='ignore')
-
-
 class MomentumTransfer(MomentumTransferMain):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def __iadd__(self, other):
         """This is an overload for `+=` operator.
@@ -22,9 +20,11 @@ class MomentumTransfer(MomentumTransferMain):
         other : MomentumTransfer class
 
         """
-        self.qx = np.concatenate(self.qx, other.qx)
-        self.qy = np.concatenate(self.qy, other.qy)
-        self.dqx = np.concatenate(self.dqx, other.dqx)
-        self.dqy = np.concatenate(self.dqy, other.dqy)
-        self.i = np.concatenate(self.i, other.i)
-        self.i_sigma = np.concatenate(self.i_sigma, other.i_sigma)
+        self.qx = np.concatenate((self.qx, other.qx))
+        self.qy = np.concatenate((self.qy, other.qy))
+        self.dqx = np.concatenate((self.dqx, other.dqx))
+        self.dqy = np.concatenate((self.dqy, other.dqy))
+        self.i = np.concatenate((self.i, other.i))
+        self.i_sigma = np.concatenate((self.i_sigma, other.i_sigma))
+
+        return self

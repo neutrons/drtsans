@@ -8,6 +8,9 @@ from mantid.simpleapi import (CreateWorkspace,
 from ornl.sans.detector import Component
 from ornl.sans.hfir import resolution
 
+# To ignore warning:   invalid value encountered in true_divide
+np.seterr(divide='ignore', invalid='ignore')
+
 
 class MomentumTransfer:
 
@@ -42,22 +45,6 @@ class MomentumTransfer:
         self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
             self._mask_pixels(d, masked_pixels) for d in [
                 self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]]
-
-    def __iadd__(self, other):
-        """This is an overload for `+=` operator.
-        Usefull for EQSANS when calculating I(qx,qy) or I(q) from several bins.
-
-        Parameters
-        ----------
-        other : MomentumTransfer class
-
-        """
-        self.qx = np.concatenate(self.qx, other.qx)
-        self.qy = np.concatenate(self.qy, other.qy)
-        self.dqx = np.concatenate(self.dqx, other.dqx)
-        self.dqy = np.concatenate(self.dqy, other.dqy)
-        self.i = np.concatenate(self.i, other.i)
-        self.i_sigma = np.concatenate(self.i_sigma, other.i_sigma)
 
     def _create_table_ws(self):
         table_iq = CreateEmptyTableWorkspace(
@@ -153,6 +140,34 @@ class MomentumTransfer:
 
         return iqxqy_ws.name(), iqxqy_ws
 
+    @staticmethod
+    def _bin_into_q1d(q, dq, i, i_sigma, prefix, bins=100, statistic='mean'):
+
+        intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
+            q, i, statistic=statistic, bins=bins)
+
+        sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
+            q, i_sigma, statistic=lambda array_1d: np.sqrt(
+                np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
+
+        _, dq_bin_edges, _ = \
+            stats.binned_statistic(dq, i, statistic=statistic, bins=bins)
+
+        dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
+
+        iq = CreateWorkspace(
+            DataX=np.array([q_bin_edges]),
+            DataY=np.array([intensity_statistic]),
+            DataE=np.array([sigma_statistic]),
+            Dx=dq_bin_centers,  # bin centers!!
+            NSpec=1,
+            UnitX='MomentumTransfer',
+            YUnitLabel='Counts',
+            OutputWorkspace=prefix+"_iq"
+        )
+
+        return iq.name(), iq
+
     def bin_into_q1d(self, bins=100, statistic='mean'):
         """ Calculates: I(Q) and Dq
         The ws_* input parameters are the output workspaces from bin_into_q2d
@@ -205,34 +220,10 @@ class MomentumTransfer:
         """
 
         q = np.sqrt(np.square(self.qx) + np.square(self.qy))
-
-        intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
-            q, self.i, statistic=statistic, bins=bins)
-
-        sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
-            q, self.i_sigma, statistic=lambda array_1d: np.sqrt(
-                np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
-
-        # Bin centres in y edges in x
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
 
-        _, dq_bin_edges, _ = \
-            stats.binned_statistic(dq, self.i, statistic=statistic, bins=bins)
-
-        dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
-
-        iq = CreateWorkspace(
-            DataX=np.array([q_bin_edges]),
-            DataY=np.array([intensity_statistic]),
-            DataE=np.array([sigma_statistic]),
-            Dx=dq_bin_centers,  # bin centers!!
-            NSpec=1,
-            UnitX='MomentumTransfer',
-            YUnitLabel='Counts',
-            OutputWorkspace=self.prefix+"_iq"
-        )
-
-        return iq.name(), iq
+        return MomentumTransfer._bin_into_q1d(q, dq, self.i, self.i_sigma,
+                                              self.prefix, bins, statistic)
 
     def bin_wedge_into_q1d(self, phi_0=0, phi_aperture=30,
                            bins=100, statistic='mean'):
@@ -290,25 +281,25 @@ class MomentumTransfer:
 
         """
 
-        angle = np.arctan2(self.qy, self.qx)
+        angle_rad = np.arctan2(self.qy, self.qx)
 
         # Let's work in radians
-        phi_0 = np.deg2rad(phi_0)
-        phi_aperture = np.deg2rad(phi_aperture)
+        phi_0_rad = np.deg2rad(phi_0)
+        phi_aperture_rad = np.deg2rad(phi_aperture)
 
-        phi_aperture_min = phi_0 - phi_aperture/2
-        phi_aperture_max = phi_0 + phi_aperture/2
+        phi_aperture_min_rad = phi_0_rad - phi_aperture_rad/2
+        phi_aperture_max_rad = phi_0_rad + phi_aperture_rad/2
         # opposite 180 degrees apart
-        phi_aperture_min_pi = phi_aperture_min + np.pi
-        phi_aperture_max_pi = phi_aperture_max + np.pi
+        phi_aperture_min_pi_rad = phi_aperture_min_rad + np.pi
+        phi_aperture_max_pi_rad = phi_aperture_max_rad + np.pi
 
-        condition1 = (angle > phi_aperture_min) & \
-            (angle < phi_aperture_max)
+        condition1 = (angle_rad > phi_aperture_min_rad) & \
+            (angle_rad < phi_aperture_max_rad)
         # make angle > np.pi varying between np.pi and 2*np.pi, rather than the
         # initial -np.pi to np.pi
-        angle[angle < 0] = 2*np.pi + angle[angle < 0]
-        condition2 = (angle > phi_aperture_min_pi) & \
-            (angle < phi_aperture_max_pi)
+        angle_rad[angle_rad < 0] = 2*np.pi + angle_rad[angle_rad < 0]
+        condition2 = (angle_rad > phi_aperture_min_pi_rad) & \
+            (angle_rad < phi_aperture_max_pi_rad)
         # True where the wedge is located, otherwise false
         condition = condition1 | condition2
 
@@ -317,31 +308,8 @@ class MomentumTransfer:
         i = self.i[condition]
         i_sigma = self.i_sigma[condition]
 
-        intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
-            q, i, statistic=statistic, bins=bins)
-
-        sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
-            q, i_sigma, statistic=lambda array_1d: np.sqrt(
-                np.sum(np.square(array_1d))) / len(array_1d), bins=bins)
-
-        # Bin centres in y edges in x
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
         dq = dq[condition]
 
-        _, dq_bin_edges, _ = stats.binned_statistic(
-            dq, i, statistic=statistic, bins=bins)
-
-        dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
-
-        iq = CreateWorkspace(
-            DataX=np.array([q_bin_edges]),
-            DataY=np.array([intensity_statistic]),
-            DataE=np.array([sigma_statistic]),
-            Dx=dq_bin_centers,  # bin centers!!
-            NSpec=1,
-            UnitX='MomentumTransfer',
-            YUnitLabel='Counts',
-            OutputWorkspace=self.prefix+"_wedge_iq"
-        )
-
-        return iq.name(), iq
+        return MomentumTransfer._bin_into_q1d(
+            q, dq, i, i_sigma, self.prefix+"_wedge_", bins, statistic)

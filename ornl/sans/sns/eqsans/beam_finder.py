@@ -12,7 +12,7 @@ __all__ = ['center_detector', 'find_beam_center']
 
 
 def center_detector(input_workspace, mask=None, method='center_of_mass',
-                    x=None, y=None, units='m', relative=False,
+                    x=None, y=None, unit='m', relative=False,
                     move_detector=True):
     r"""
     Move the detector on the XY plane to center the beam location
@@ -45,7 +45,7 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
         Final position or translation along the X-axis
     y: float
         Final position or translation along the Y-axis
-    units: str
+    unit: str
         units of `x` and `y`. Either meters 'm' or mili-meters 'mm'
     relative: Bool
         Values of `x` and `y` are either absolute coordinates or a
@@ -77,8 +77,8 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
         rf = rs
 
     if x is not None and y is not None:
-        t_x = x if units == 'm' else x / 1.e3
-        t_y = y if units == 'm' else y / 1.e3
+        t_x = x if unit == 'm' else x / 1.e3
+        t_y = y if unit == 'm' else y / 1.e3
         if relative is True:
             rf = rs + np.array([t_x, t_y, 0.0])
         else:
@@ -89,7 +89,7 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
         MoveInstrumentComponent(ws, X=rf[0], Y=rf[1], Z=rf[2],
                                 ComponentName=detector_name(ws),
                                 RelativePosition=False)
-        sdd = sample_detector_distance(ws, units='mm', search_logs=False)
+        sdd = sample_detector_distance(ws, unit='mm', search_logs=False)
         SampleLogs(ws).insert('sample-detector-distance', sdd, unit='mm')
 
     return rf

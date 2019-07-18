@@ -233,7 +233,7 @@ def correct_frame(ws, source_to_component_distance):
 
 
 def correct_detector_frame(ws):
-    correct_frame(ws, source_detector_distance(ws, units='m'))
+    correct_frame(ws, source_detector_distance(ws, unit='m'))
 
 
 def band_gap_indexes(ws, bands):
@@ -354,7 +354,7 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    sdd = source_detector_distance(input_workspace, units='m')
+    sdd = source_detector_distance(input_workspace, unit='m')
     bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
                                       high_tof_clip)
     w = convert_to_wavelength(input_workspace, bands, bin_width,

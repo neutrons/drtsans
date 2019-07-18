@@ -131,7 +131,7 @@ def get_instrument(source):
     return finder(source)
 
 
-def source_sample_distance(source, units='mm', log_key=None, search_logs=True):
+def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
     r"""
     Report the distance (always positive!) between source and sample.
 
@@ -143,7 +143,7 @@ def source_sample_distance(source, units='mm', log_key=None, search_logs=True):
     source: PyObject
         Instrument object, MatrixWorkspace, workspace name, file name,
         run number
-    units: str
+    unit: str
         'mm' (millimeters), 'm' (meters)
     log_key: str
         Only search for the given string in the logs. Do not use default
@@ -170,22 +170,17 @@ def source_sample_distance(source, units='mm', log_key=None, search_logs=True):
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
             # uses the default unit [mm] if no unit is defined
-            return float(sl.single_value(lk)) * mm2units[units]
+            return float(sl.single_value(lk)) * mm2units[unit]
         except KeyError:
             pass
 
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
     sample = instrument.getSample()
-    return abs(sample.getDistance(instrument.getSource())) * m2units[units]
+    return abs(sample.getDistance(instrument.getSource())) * m2units[unit]
 
 
-def sample_source_distance(*args, **kwargs):
-    r"""Syntactic sugar of function `source_sample_distance`"""
-    return source_sample_distance(*args, **kwargs)
-
-
-def sample_detector_distance(source, units='mm', log_key=None,
+def sample_detector_distance(source, unit='mm', log_key=None,
                              search_logs=True):
     r"""
     Return the distance from the sample to the detector bank
@@ -198,7 +193,7 @@ def sample_detector_distance(source, units='mm', log_key=None,
     source: PyObject
         Instrument object, MatrixWorkspace, workspace name, file name,
         run number.
-    units: str
+    unit: str
         'mm' (millimeters), 'm' (meters)
     log_key: str
         Only search for the given string in the logs. Do not use default
@@ -225,16 +220,16 @@ def sample_detector_distance(source, units='mm', log_key=None,
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
             # uses the default unit [mm] if no unit is defined
-            return float(sl.single_value(lk)) * mm2units[units]
+            return float(sl.single_value(lk)) * mm2units[unit]
         except KeyError:
             pass
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
     det = instrument.getComponentByName(detector_name(source))
-    return det.getDistance(instrument.getSample()) * m2units[units]
+    return det.getDistance(instrument.getSample()) * m2units[unit]
 
 
-def source_detector_distance(source, units='mm', search_logs=True):
+def source_detector_distance(source, unit='mm', search_logs=True):
     r"""
     Calculate distance between source and detector bank, in mili meters
 
@@ -246,7 +241,7 @@ def source_detector_distance(source, units='mm', search_logs=True):
     source: PyObject
         Instrument object, MatrixWorkspace, workspace name, file name,
         run number
-    units: str
+    unit: str
         'mm' (millimeters), 'm' (meters)
     search_logs: bool
         Report the value as the sum of the source to sample distance and
@@ -257,7 +252,6 @@ def source_detector_distance(source, units='mm', search_logs=True):
     float
 
     """
-    ssd = source_sample_distance(source, units=units, search_logs=search_logs)
-    sdd = sample_detector_distance(source, units=units,
-                                   search_logs=search_logs)
+    ssd = source_sample_distance(source, unit=unit, search_logs=search_logs)
+    sdd = sample_detector_distance(source, unit=unit, search_logs=search_logs)
     return ssd + sdd

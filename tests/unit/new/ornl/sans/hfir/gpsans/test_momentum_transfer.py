@@ -8,7 +8,7 @@ import numpy as np
 import mantid
 from mantid import mtd
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS, MaskBTP
-from ornl.sans.momentum_transfer import MomentumTransfer
+from ornl.sans.momentum_transfer import MomentumTransfer, log_space
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans.hfir_command_interface import (
     GPSANS, AzimuthalAverage, IQxQy, OutputPath, SetBeamCenter)
@@ -123,3 +123,27 @@ def test_momentum_tranfer_with_and_without_mask(gpsans_f):
     assert ws_non_mask_iq.extractX().shape == (1, 101)
     # Q range in non mask is higher
     assert ws_non_mask_iq.extractX().max() > ws_mask_iq.extractX().max()
+
+
+def test_momentum_tranfer_log_binning(gpsans_f):
+
+    ws = LoadHFIRSANS(
+        Filename=gpsans_f['anisotropic'],
+        OutputWorkspace='aniso_raw')
+
+    mt = MomentumTransfer(ws)
+    assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \
+        mt.i.shape == mt.i_sigma.shape == (256*192, )
+
+    table_iq = mt.q2d()
+    assert type(table_iq) == mantid.dataobjects.TableWorkspace
+
+    binning = log_space(0.001, 0.004)
+    assert len(binning) == 100
+    _, ws = mt.bin_into_q2d(bins=[binning, binning])
+    assert ws.extractY().shape == (99, 99)
+    assert ws.extractX().shape == (99, 100)
+
+    _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=121))
+    assert ws.extractY().shape == (1, 120)
+    assert ws.extractX().shape == (1, 121)

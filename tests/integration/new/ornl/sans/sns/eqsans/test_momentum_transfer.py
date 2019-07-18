@@ -3,15 +3,16 @@ from __future__ import print_function
 
 import numpy as np
 
+import mantid
 from mantid import mtd
 from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
-                              MoveInstrumentComponent, Rebin)
+                              Rebin)
 from ornl.sans.sns.eqsans import (load_events, normalisation,
                                   transform_to_wavelength)
 from ornl.sans.sns.eqsans.momentum_transfer import MomentumTransfer
 
-# from ornl.sans.sns.eqsans import center_detector
-# from ornl.sans.sns.eqsans import geometry
+from ornl.sans.sns.eqsans import center_detector
+from ornl.sans.sns.eqsans import geometry
 
 
 def legacy_reduction():
@@ -50,20 +51,12 @@ def test_momentum_tranfer_serial():
 
     '''
 
-    ws = load_events('EQSANS_68200', detector_offset=0,
-                     sample_offset=0)
+    ws = load_events('EQSANS_68200', detector_offset=0, sample_offset=0)
 
     ws = transform_to_wavelength(ws, bin_width=0.1,
-                                 low_tof_clip=500,
-                                 high_tof_clip=2000)
+                                 low_tof_clip=500, high_tof_clip=2000)
 
-    # center_detector will do this when jose fixes the Z issue
-    # Center the beam: xyz: 0.0165214,0.0150392,4.00951
-    instrument = ws.getInstrument()
-    component = instrument.getComponentByName("detector1")
-    z = component.getPos()[2]
-    MoveInstrumentComponent(Workspace=ws, ComponentName='detector1',
-                            X=-0.025, Y=-0.016, Z=z, RelativePosition=False)
+    center_detector(ws, x=-0.025, y=-0.016, units='m')
 
     flux_ws = normalisation.load_beam_flux_file(
         '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample',
@@ -71,38 +64,29 @@ def test_momentum_tranfer_serial():
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
-    # This is not working! slit4 missing
-    # geometry.sample_aperture_diameter(ws)
-    # To date this does not add keyword to logs
-    # geometry.source_aperture_diameter(ws)
-
-    # this temporary. Waiting for jose to finish the issues above
+    # geometry.sample_aperture_diameter is not working: slit4 missing
+    # We hard code the sample_aperture_diameter instead
     AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter',
                  LogText='10.', LogType='Number', LogUnit='mm')
-    AddSampleLog(Workspace=ws, LogName='source-aperture-diameter',
-                 LogText='20.', LogType='Number', LogUnit='mm')
+
+    geometry.source_aperture_diameter(ws)
 
     rebin_start, rebin_end, rebin_step = 2.6, 5.6, 0.2
 
-    ws = Rebin(
-        InputWorkspace=ws,
-        OutputWorkspace="ws_rebin",
-        Params="{:.2f},{:.2f},{:.2f}".format(
-            rebin_start, rebin_step, rebin_end)
-    )
+    ws = Rebin(InputWorkspace=ws,OutputWorkspace="ws_rebin",
+               Params="{:.2f},{:.2f},{:.2f}".format(
+                   rebin_start, rebin_step, rebin_end))
 
     bins = np.arange(rebin_start, rebin_end, rebin_step)
 
-    #
+    # Here starts the part where we strip down the lambda bins
     ws_sum = ExtractSpectra(InputWorkspace=ws, XMin=rebin_start,
                             XMax=rebin_start+rebin_step)
 
     wavelength_mean = rebin_start + rebin_step/2
-
     AddSampleLog(Workspace=ws_sum, LogName='wavelength',
                  LogText="{:.2f}".format(wavelength_mean),
                  LogType='Number', LogUnit='Angstrom')
-
     AddSampleLog(Workspace=ws_sum, LogName='wavelength-spread',
                  LogText='0.2', LogType='Number', LogUnit='Angstrom')
 
@@ -111,15 +95,12 @@ def test_momentum_tranfer_serial():
     for index, bin_start in enumerate(bins[1:]):
 
         ws_extracted = ExtractSpectra(
-            InputWorkspace=ws,
-            XMin=bin_start, XMax=bin_start+rebin_step)
+            InputWorkspace=ws, XMin=bin_start, XMax=bin_start+rebin_step)
 
         wavelength_mean = bin_start + rebin_step/2
-
         AddSampleLog(Workspace=ws_extracted, LogName='wavelength',
                      LogText="{:.2f}".format(wavelength_mean),
                      LogType='Number', LogUnit='Angstrom')
-
         AddSampleLog(Workspace=ws_extracted, LogName='wavelength-spread',
                      LogText='0.2', LogType='Number', LogUnit='Angstrom')
 
@@ -134,9 +115,8 @@ def test_momentum_tranfer_serial():
             mt_sum.dqy.shape == mt_sum.i.shape == mt_sum.i_sigma.shape == \
             (256*192 + (index+1) * 256*192,)
 
-    # This is slow!!!!
-    # ws_sum_table = mt_sum.q2d()
-    # assert type(ws_sum_table) == mantid.dataobjects.TableWorkspace
+    ws_sum_table = mt_sum.q2d()
+    assert type(ws_sum_table) == mantid.dataobjects.TableWorkspace
 
     _, ws_sum_q2d = mt_sum.bin_into_q2d()
     assert ws_sum_q2d.extractY().shape == (256, 192)
@@ -161,7 +141,7 @@ def test_momentum_tranfer_serial():
 
     assert np.allclose(ws_iq_new.extractY(), ws_iq_old.extractY(), rtol=1)
 
-    # plt.loglog(ws_iq.extractY().ravel(), label = 'New')
+    # plt.loglog(ws_iq_new.extractY().ravel(), label = 'New')
     # plt.loglog(ws_iq_old.extractY().ravel(), label = 'Old')
     # plt.legend()
     # plt.show()

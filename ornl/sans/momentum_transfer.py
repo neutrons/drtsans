@@ -3,8 +3,7 @@ from __future__ import print_function
 import numpy as np
 from scipy import stats
 
-from mantid.simpleapi import (CreateWorkspace,
-                              CreateEmptyTableWorkspace)
+from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
 from ornl.sans.detector import Component
 from ornl.sans.hfir import resolution
 

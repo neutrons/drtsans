@@ -7,7 +7,7 @@ import numpy as np
 
 import mantid
 from mantid import mtd
-from mantid.simpleapi import LoadHFIRSANS, MaskBTP, CloneWorkspace
+from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS, MaskBTP
 from ornl.sans.momentum_transfer import MomentumTransfer
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans.hfir_command_interface import (

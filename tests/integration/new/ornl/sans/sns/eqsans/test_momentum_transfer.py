@@ -4,11 +4,12 @@ from __future__ import print_function
 import numpy as np
 
 from mantid import mtd
-from mantid.simpleapi import (AddSampleLog, ConfigService,
-                              ExtractSpectra, MoveInstrumentComponent, Rebin)
+from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
+                              MoveInstrumentComponent, Rebin)
+from ornl.sans.sns.eqsans import (load_events, normalisation,
+                                  transform_to_wavelength)
 from ornl.sans.sns.eqsans.momentum_transfer import MomentumTransfer
-from ornl.sans.sns.eqsans import normalisation
-from ornl.sans.sns.eqsans import load_events, transform_to_wavelength
+
 # from ornl.sans.sns.eqsans import center_detector
 # from ornl.sans.sns.eqsans import geometry
 

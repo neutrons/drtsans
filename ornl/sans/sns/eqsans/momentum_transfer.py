@@ -2,14 +2,16 @@ from __future__ import print_function
 
 import numpy as np
 
-from ornl.sans.momentum_transfer \
-    import MomentumTransfer as MomentumTransferMain
+from ornl.sans.momentum_transfer import \
+    MomentumTransfer as MomentumTransferMain
 
 
 class MomentumTransfer(MomentumTransferMain):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, input_workspace, component_name="detector1",
+                 out_ws_prefix="ws"):
+        super().__init__(input_workspace, component_name=component_name,
+                         out_ws_prefix=out_ws_prefix)
 
     def __iadd__(self, other):
         """This is an overload for `+=` operator.

@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 from mantid.api import mtd
-from mantid.simpleapi import (Fit, CloneWorkspace, Plus, RenameWorkspace)
+from mantid.simpleapi import (Fit, CloneWorkspace, Plus)
 
 from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwd)
 from ornl.sans.transmission import calculate_transmission as calc_trans

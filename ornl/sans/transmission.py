@@ -4,7 +4,7 @@ from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import (ApplyTransmissionCorrection, Divide,
                               FindDetectorsInShape, GroupDetectors,
-                              ReplaceSpecialValues, Integration)
+                              ReplaceSpecialValues)
 from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns import eqsans

@@ -1,7 +1,7 @@
 from mantid.simpleapi import MoveInstrumentComponent
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import (detector_name, sample_source_distance)
+from ornl.sans.geometry import (detector_name, source_sample_distance)
 
 __all__ = ['detector_z_log',
            'translate_sample_by_z', 'translate_detector_by_z',
@@ -126,7 +126,7 @@ def source_aperture(other, unit='mm'):
                     ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3']]
     diameter = 20.0  # default slit size
     asd = -1.0  # aperture to sample distance
-    ssd = sample_source_distance(other, units='mm')
+    ssd = source_sample_distance(other, unit='mm')
     for wheel_index in range(n_wheels):
         slit_index = slit_indexes[wheel_index]
         y = ssd - distance_to_source[wheel_index]  # aperture to sample dist

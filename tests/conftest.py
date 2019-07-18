@@ -332,6 +332,9 @@ def generate_sans_generic_IDF(request):
     xc = request.param.get('xc', 0.)
     yc = request.param.get('yc', 0.)
     zc = request.param.get('zc', 5.)
+    xr = request.param.get('xr', xc)
+    yr = request.param.get('yr', yc)
+    zr = request.param.get('zr', zc)
     assert (int(Nx) == Nx and Nx > 1 and Nx < 300)
     assert (int(Ny) == Ny and Ny > 1 and Ny < 300)
     assert dx > 0
@@ -373,8 +376,8 @@ def generate_sans_generic_IDF(request):
 
     <!--RectangularDetector-->
     <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{4}">
-        <location x="{0}" y="{1}" z="{2}"
-            name="bank1"
+        <location x="{11}" y="{12}" z="{13}"
+            name="detector1"
             rot="0.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
     </component>
@@ -397,6 +400,14 @@ def generate_sans_generic_IDF(request):
         <algebra val="pixel-shape"/>
     </type>
 
+    <parameter name="x-pixel-size">
+        <value val="{14}"/>
+    </parameter>
+
+    <parameter name="y-pixel-size">
+        <value val="{15}"/>
+    </parameter>
 </instrument>'''
     return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
-                               -(Ny-1) * half_dy, dx, dy, half_dx, half_dy)
+                               -(Ny-1) * half_dy, dx, dy, half_dx,
+                               half_dy, xr, yr, zr, dx*1000., dy*1000.)

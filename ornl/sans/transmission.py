@@ -12,7 +12,7 @@ from ornl.sans.sns import eqsans
 
 # To-do. This should be substituted with a function similar to
 # eqsans.transmission.beam_radius
-def beam_radius(input_workspace,
+def beam_radius(input_workspace, unit='mm',
                 sample_aperture_diameter_log='sample-aperture-diameter',
                 source_aperture_diameter_log='source-aperture-diameter',
                 sdd_log='sample-detector-distance',
@@ -25,6 +25,8 @@ def beam_radius(input_workspace,
     ----------
     input_workspace: MatrixWorkspace, str
         Input workspace
+    unit: str
+        Either 'mm' or 'm'.
     sample_aperture_diameter_log: str
         Log entry for the sample-aperture diameter
     source_aperture_diameter_log: str
@@ -40,10 +42,10 @@ def beam_radius(input_workspace,
         Radius, in millimeters
     """
     ws = mtd[str(input_workspace)]
-    if input_workspace.getInstrument().name() == 'EQ-SANS':
+    if ws.getInstrument().getName() == 'EQ-SANS':
         return eqsans.beam_radius(ws, unit='mm')
     try:
-        # Apertures
+        # Apertures, assumed to be in mili-meters
         sample_logs = SampleLogs(ws)
         radius_sample_aperture = sample_logs[
             sample_aperture_diameter_log].value / 2.
@@ -61,7 +63,7 @@ def beam_radius(input_workspace,
         logger.error(error)
         raise
     logger.notice("Radius calculated from the WS = {:.2} mm".format(radius))
-    return radius
+    return radius if unit == 'mm' else 1e-3 * radius
 
 
 def detector_ids(input_workspace, radius, unit='mm'):

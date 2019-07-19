@@ -61,7 +61,7 @@ class EQSANSResolution(unittest.TestCase):
         self.assertTrue(np.min(np.abs(qy)) < np.max(np.abs(qy)))
         self.assertTrue(np.average(dqx) < 0.005)
         self.assertTrue(np.average(dqy) < 0.005)
-        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.00002)
+        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.0001)
 
 
 if __name__ == '__main__':

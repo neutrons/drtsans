@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import pytest
 import tempfile
 from mantid.simpleapi import LoadHFIRSANS
 from ornl.sans.momentum_transfer import bin_into_q1d, bin_into_q2d
@@ -44,3 +45,7 @@ def test_save_ascii(biosans_sensitivity_dataset):
         output_lines = tmp.readlines()
         assert output_lines[48388] == "0.077098\t-0.081494\t73.000000\t"\
             "8.544004\t0.015055\t0.001741\n"
+
+
+if __name__ == '__main__':
+    pytest.main()

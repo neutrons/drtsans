@@ -35,8 +35,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     from ornl.sans.hfir.dark_current import subtract_normalised_dark
     from ornl.sans.hfir.normalisation import time
     from ornl.sans.sensitivity import inf_value_to_mask, interpolate_mask
-    from ornl.sans.transmission import (apply_transmission_correction_value,
-                                        calculate_transmission_value)
+    from ornl.sans.transmission import (apply_transmission_correction,
+                                        calculate_transmission)
     # Load the files into WS
     dark_current_ws = LoadHFIRSANS(
         Filename=biosans_sensitivity_dataset['dark_current'])
@@ -131,10 +131,10 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     ###########################################################################
     # This is only to get transmission from the flat measurement
     # The value will be used in the wing detector
-    calculated_transmission_value,  calculated_transmission_error = \
-        calculate_transmission_value(flood_dc_time_sa_corrected_ws,
-                                     empty_transmission_time_sa_corrected_ws)
-
+    trans = calculate_transmission(flood_dc_time_sa_corrected_ws,
+                                   empty_transmission_time_sa_corrected_ws)
+    calculated_transmission_value = trans.dataY(0)[0]
+    calculated_transmission_error = trans.dataE(0)[0]
     ###########################################################################
     # Sensitivity calculation
     sensitivity_ws = CalculateEfficiency(
@@ -212,9 +212,11 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     # Apply Transmission Correction
     flood_dc_time_trans_corrected_wing_ws = \
-        apply_transmission_correction_value(
-            flood_dc_time_corrected_ws, calculated_transmission_value,
-            calculated_transmission_error, theta_dependent=False)
+        apply_transmission_correction(
+            flood_dc_time_corrected_ws,
+            trans_value=calculated_transmission_value,
+            trans_error=calculated_transmission_error,
+            theta_dependent=False)
     flood_dc_time_trans_corrected_wing_ws = RenameWorkspace(
         InputWorkspace=flood_dc_time_trans_corrected_wing_ws,
         OutputWorkspace="flood_dc_time_trans_corrected_wing_ws")

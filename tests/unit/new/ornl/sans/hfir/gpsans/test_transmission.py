@@ -73,8 +73,8 @@ def test_apply_transmission_correction(gpsans_full_dataset,
 
     ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
-    MoveInstrumentComponent( Workspace=ws, ComponentName='detector1',
-                             X=-x, Y=-y)
+    MoveInstrumentComponent(Workspace=ws, ComponentName='detector1',
+                            X=-x, Y=-y)
 
     ws_c = apply_transmission_correction(ws, trans_workspace=trans_ws,
                                          theta_dependent=False,

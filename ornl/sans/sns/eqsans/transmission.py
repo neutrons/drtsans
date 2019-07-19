@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 from mantid.api import mtd
-from mantid.simpleapi import (Fit, CloneWorkspace, Plus)
+from mantid.simpleapi import (Fit, CloneWorkspace, Plus, SaveNexus)
 
 from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwd)
 from ornl.sans.transmission import calculate_transmission as calc_trans
@@ -57,7 +57,7 @@ def calculate_transmission(input_sample, input_reference,
                      radius=radius, radius_unit=radius_unit,
                      output_workspace=output_workspace, )
     if bool(fit_func) is True:
-        fit_raw(zat, func=fit_func)  # will overwrite zat workspace
+        zat = fit_raw(zat, func=fit_func).transmission  # overwrites zat
     return zat
 
 
@@ -134,6 +134,7 @@ def fit_band(input_workspace, band, func='name=UserFunction,Formula=a*x+b',
         i += 1
     upper_bin_boundary = i
     start_x, end_x = x[lower_bin_boundary], x[upper_bin_boundary - 1]
+    SaveNexus(ws, '/tmp/junk.nxs')
     mfit = Fit(Function=func, InputWorkspace=ws.name(), WorkspaceIndex=0,
                StartX=start_x, EndX=end_x, Output=uwd())
 

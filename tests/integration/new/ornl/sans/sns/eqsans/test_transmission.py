@@ -1,10 +1,8 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-from numpy.testing import assert_almost_equal
 from os.path import join as pjn
-
-from mantid.simpleapi import LoadNexus, CompareWorkspaces, SaveNexus
+from mantid.simpleapi import LoadNexus, CompareWorkspaces, SumSpectra
 
 from ornl.settings import namedtuplefy, unique_workspace_dundername as uwd
 from ornl.sans.sns.eqsans.geometry import insert_aperture_logs
@@ -32,25 +30,39 @@ def trans_fix(refd):
                 reference_skip=d, compare=quick_compare)
 
 
-def test_calculate_transmission(trans_fix):
-    # Raw transmission values
-    raw = calculate_transmission(trans_fix.sample_skip,
-                                 trans_fix.reference_skip, radius=50,
-                                 fit_func=None)
-    SaveNexus(raw, '/tmp/raw_transmission_skip.nxs')
+def test_calculate_raw_transmission(trans_fix):
     raw = calculate_transmission(trans_fix.sample, trans_fix.reference,
                                  fit_func=None)
     assert trans_fix.compare(raw, 'raw_transmission.nxs')
-    # Fitted transmission values
+    # big radius because detector is not centered
+    raw = calculate_transmission(trans_fix.sample_skip,
+                                 trans_fix.reference_skip, radius=50,
+                                 fit_func=None)
+    assert trans_fix.compare(raw, 'raw_transmission_skip.nxs')
+
+
+def test_calculate_fitted_transmission(trans_fix):
     fitted = calculate_transmission(trans_fix.sample, trans_fix.reference)
-    trans_fix.compare(fitted, 'fitted_transmission.nxs')
-    assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 1.1, decimal=1)
+    assert trans_fix.compare(fitted, 'fitted_transmission.nxs')
+    # big radius because detector is not centered
+    fitted = calculate_transmission(trans_fix.sample_skip,
+                                    trans_fix.reference_skip, radius=50)
+    assert trans_fix.compare(fitted, 'fitted_transmission_skip.nxs')
 
 
 def test_apply_transmission(trans_fix):
-    corr = apply_transmission_correction(trans_fix.sample, trans_fix.reference,
+    trans = calculate_transmission(trans_fix.sample, trans_fix.reference)
+    corr = apply_transmission_correction(trans_fix.sample, trans,
                                          output_workspace=uwd())
+    corr = SumSpectra(corr, OutputWorkspace=corr.name())
     trans_fix.compare(corr, 'sample_corrected.nxs')
+    # big radius because detector is not centered
+    trans = calculate_transmission(trans_fix.sample_skip,
+                                   trans_fix.reference_skip, radius=50)
+    corr = apply_transmission_correction(trans_fix.sample_skip, trans,
+                                         output_workspace=uwd())
+    corr = SumSpectra(corr, OutputWorkspace=corr.name())
+    trans_fix.compare(corr, 'sample_corrected_skip.nxs')
 
 
 if __name__ == '__main__':

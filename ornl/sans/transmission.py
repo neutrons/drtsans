@@ -7,11 +7,11 @@ from mantid.simpleapi import (ApplyTransmissionCorrection, Divide,
                               ReplaceSpecialValues)
 from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns import eqsans
 
 
 # To-do. This should be substituted with a function similar to
-# eqsans.transmission.beam_radius
+# eqsans.transmission.beam_radius so that
+# eqsans.transmission.beam_radius is not required anymore
 def beam_radius(input_workspace, unit='mm',
                 sample_aperture_diameter_log='sample-aperture-diameter',
                 source_aperture_diameter_log='source-aperture-diameter',
@@ -41,9 +41,10 @@ def beam_radius(input_workspace, unit='mm',
     float
         Radius, in millimeters
     """
+    from ornl.sans.sns.eqsans import beam_radius as eqsans_beam_radius
     ws = mtd[str(input_workspace)]
     if ws.getInstrument().getName() == 'EQ-SANS':
-        return eqsans.beam_radius(ws, unit='mm')
+        return eqsans_beam_radius(ws, unit='mm')
     try:
         # Apertures, assumed to be in mili-meters
         sample_logs = SampleLogs(ws)
@@ -85,14 +86,14 @@ def detector_ids(input_workspace, radius, unit='mm'):
         List of detector ID's
     """
     r = radius * 1e-3 if unit == 'mm' else radius
-    cylinder = f'''
+    cylinder = r"""
     <infinite-cylinder id="shape">
         <centre x="0.0" y="0.0" z="0.0" />
         <axis x="0.0" y="0.0" z="1" />
-        <radius val="{r}" />
+        <radius val="{}" />
     </infinite-cylinder>
     <algebra val="shape" />
-    '''
+    """.format(r)
     return FindDetectorsInShape(Workspace=input_workspace, ShapeXML=cylinder)
 
 

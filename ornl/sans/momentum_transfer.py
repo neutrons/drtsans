@@ -365,3 +365,72 @@ class MomentumTransfer:
 
         return MomentumTransfer._bin_into_q1d(
             q, dq, i, i_sigma, self.prefix+"_wedge_", bins, statistic)
+
+    def bin_annular_into_q1d(self, q_min=0.001, q_max=0.4,
+                             bins=100, statistic='mean'):
+        """
+        Wedge calculation and integration
+
+        Calculates: I(Q) and Dq
+        The ws_* input parameters are the output workspaces from bin_into_q2d
+
+        Parameters
+        ----------
+        q_min : float, optional
+            , by default 
+        q_max : float, optional
+            , by default 
+        bins : int or sequence of scalars, optional
+            See `scipy.stats.binned_statistic`.
+            If `bins` is an int, it defines the number of equal-width bins in
+            the given range (10 by default).  If `bins` is a sequence, it
+            defines the bin edges, including the rightmost edge, allowing for
+            non-uniform bin widths.  Values in `x` that are smaller than lowest
+            bin edge areassigned to bin number 0, values beyond the highest bin
+            are assigned to ``bins[-1]``.  If the bin edges are specified,
+            the number of bins will be, (nx = len(bins)-1).
+        statistic : str, optional
+            See `scipy.stats.binned_statistic`.
+            The statistic to compute, by default 'mean'
+            The following statistics are available:
+            * 'mean' : compute the mean of values for points within each bin.
+                Empty bins will be represented by NaN.
+            * 'std' : compute the standard deviation within each bin. This
+                is implicitly calculated with ddof=0.
+            * 'median' : compute the median of values for points within each
+                bin. Empty bins will be represented by NaN.
+            * 'count' : compute the count of points within each bin.  This is
+                identical to an unweighted histogram.  `values` array is not
+                referenced.
+            * 'sum' : compute the sum of values for points within each bin.
+                This is identical to a weighted histogram.
+            * 'min' : compute the minimum of values for points within each bin.
+                Empty bins will be represented by NaN.
+            * 'max' : compute the maximum of values for point within each bin.
+                Empty bins will be represented by NaN.
+            * function : a user-defined function which takes a 1D array of
+                values, and outputs a single numerical statistic. This function
+                will be called on the values in each bin.  Empty bins will be
+                represented by function([]), or NaN if this returns an error.
+        out_ws_prefix : str, optional
+            The prefix of the workspace created in Mantid, by default "ws"
+
+        Returns
+        -------
+        tuple
+            (workspace name, workspace)
+
+        """
+
+        q = np.sqrt(np.square(self.qx) + np.square(self.qy))
+        condition = (q >= q_min) & (q <= q_max)
+
+        q = q[condition]
+        i = self.i[condition]
+        i_sigma = self.i_sigma[condition]
+
+        dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
+        dq = dq[condition]
+
+        return MomentumTransfer._bin_into_q1d(
+            q, dq, i, i_sigma, self.prefix+"_annular_", bins, statistic)

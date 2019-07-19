@@ -4,6 +4,7 @@ from __future__ import print_function
 import tempfile
 
 import numpy as np
+import scipy
 
 import mantid
 from mantid import mtd
@@ -144,6 +145,54 @@ def test_momentum_tranfer_log_binning(gpsans_f):
     assert ws.extractY().shape == (99, 99)
     assert ws.extractX().shape == (99, 100)
 
-    _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=121))
-    assert ws.extractY().shape == (1, 120)
-    assert ws.extractX().shape == (1, 121)
+    n_bins = 121
+    _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=n_bins))
+    assert ws.extractY().shape == (1, n_bins-1)
+    assert ws.extractX().shape == (1, n_bins)
+    bins = ws.extractX().ravel()
+    assert np.allclose(bins, np.geomspace(bins[0], bins[-1], num=n_bins))
+
+    n_bins = 400
+    _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=n_bins))
+    assert ws.extractY().shape == (1, n_bins-1)
+    assert ws.extractX().shape == (1, n_bins)
+    bins = ws.extractX().ravel()
+    assert np.allclose(bins, np.geomspace(bins[0], bins[-1], num=n_bins))
+
+
+def test_momentum_tranfer_with_annular_1d_binning(gpsans_f):
+    '''
+    Test Iq, Iqxqy with the ends of the detector tubes masked
+    '''
+    filename = gpsans_f['sample_scattering_2']
+    ws = LoadHFIRSANS(Filename=filename)
+
+    mt = MomentumTransfer(ws, out_ws_prefix='ws')
+
+    _, ws_iq = mt.bin_into_q1d()
+    assert ws_iq.extractY().shape == (1, 100)
+    assert ws_iq.extractX().shape == (1, 101)
+
+    q_min = 0.05
+    q_max = 0.2
+    _, ws_annular_iq = mt.bin_annular_into_q1d(
+        q_min=q_min, q_max=q_max, bins=20)
+    assert ws_annular_iq.extractY().shape == (1, 20)
+    assert ws_annular_iq.extractX().shape == (1, 21)
+
+    # we are comparing the I of both curves. Since the binning and number of
+    # bins is different, we need to interpolate the values
+    iq_q = ws_iq.extractX().ravel()
+    iq_q = (iq_q[1:] + iq_q[:-1]) / 2.0  # Bin centres
+    iq_q_subset = iq_q[(iq_q >= q_min) & (iq_q <= q_max)]
+    iq_i = ws_iq.extractY().ravel()
+    iq_i_subset = iq_i[(iq_q >= q_min) & (iq_q <= q_max)]
+
+    iq_annular_q = ws_annular_iq.extractX().ravel()
+    iq_annular_q = (iq_annular_q[1:] + iq_annular_q[:-1]) / 2.0  # Bin centres
+    iq_annular_i = ws_annular_iq.extractY().ravel()
+
+    f = scipy.interpolate.InterpolatedUnivariateSpline(
+        iq_annular_q, iq_annular_i)
+
+    assert np.allclose(iq_i_subset, f(iq_q_subset), rtol=1)

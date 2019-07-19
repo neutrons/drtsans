@@ -10,4 +10,6 @@ sortedcontainers==1.5.7
 scikit-image==0.14.0
 h5py==2.8.0
 pyyaml==3.13
+# To run in parallel mantid algorithms and serialize resulting WSs
+pathos==0.2.4
 

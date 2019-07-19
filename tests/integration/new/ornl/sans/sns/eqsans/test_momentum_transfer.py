@@ -79,21 +79,10 @@ def test_momentum_tranfer_serial():
 
     bins = np.arange(rebin_start, rebin_end, rebin_step)
 
-    # Here starts the part where we strip down the lambda bins
-    ws_sum = ExtractSpectra(InputWorkspace=ws, XMin=rebin_start,
-                            XMax=rebin_start+rebin_step)
+    mt_sum = MomentumTransfer()
 
-    wavelength_mean = rebin_start + rebin_step/2
-    AddSampleLog(Workspace=ws_sum, LogName='wavelength',
-                 LogText="{:.2f}".format(wavelength_mean),
-                 LogType='Number', LogUnit='Angstrom')
-    AddSampleLog(Workspace=ws_sum, LogName='wavelength-spread',
-                 LogText='0.2', LogType='Number', LogUnit='Angstrom')
-
-    mt_sum = MomentumTransfer(ws_sum)
-
-    for index, bin_start in enumerate(bins[1:]):
-
+    for index, bin_start in enumerate(bins):
+        total_pixels_in_detector = 256*192
         ws_extracted = ExtractSpectra(
             InputWorkspace=ws, XMin=bin_start, XMax=bin_start+rebin_step)
 
@@ -109,11 +98,12 @@ def test_momentum_tranfer_serial():
 
         assert mt_extracted.qx.shape == mt_extracted.qy.shape == \
             mt_extracted.dqx.shape == mt_extracted.dqy.shape == \
-            mt_extracted.i.shape == mt_extracted.i_sigma.shape == (256*192, )
+            mt_extracted.i.shape == mt_extracted.i_sigma.shape == \
+            (total_pixels_in_detector, )
 
         assert mt_sum.qx.shape == mt_sum.qy.shape == mt_sum.dqx.shape == \
             mt_sum.dqy.shape == mt_sum.i.shape == mt_sum.i_sigma.shape == \
-            (256*192 + (index+1) * 256*192,)
+            (total_pixels_in_detector + (index * total_pixels_in_detector),)
 
     ws_sum_table = mt_sum.q2d()
     assert type(ws_sum_table) == mantid.dataobjects.TableWorkspace

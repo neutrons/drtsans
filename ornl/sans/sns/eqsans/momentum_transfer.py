@@ -8,7 +8,7 @@ from ornl.sans.momentum_transfer import \
 
 class MomentumTransfer(MomentumTransferMain):
 
-    def __init__(self, input_workspace, component_name="detector1",
+    def __init__(self, input_workspace=None, component_name="detector1",
                  out_ws_prefix="ws"):
         super().__init__(input_workspace, component_name=component_name,
                          out_ws_prefix=out_ws_prefix)
@@ -28,5 +28,8 @@ class MomentumTransfer(MomentumTransferMain):
         self.dqy = np.concatenate((self.dqy, other.dqy))
         self.i = np.concatenate((self.i, other.i))
         self.i_sigma = np.concatenate((self.i_sigma, other.i_sigma))
+
+        if self.component is None:
+            self.component = other.component
 
         return self

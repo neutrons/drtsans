@@ -64,15 +64,25 @@ class MomentumTransfer:
     q1d and q2d are calculated from there arrays
     '''
 
-    qx, qy, dqx, dqy, i, i_sigma = None, None, None, None, None, None
+    qx, qy, dqx, dqy, i, i_sigma = np.empty(0), np.empty(0), np.empty(0), \
+        np.empty(0), np.empty(0), np.empty(0)
     prefix = None
     component = None
 
-    def __init__(self, input_workspace, component_name="detector1",
+    def __init__(self, input_workspace=None, component_name="detector1",
                  out_ws_prefix="ws"):
         self.prefix = out_ws_prefix
-        self.component = Component(input_workspace, component_name)
-        self._initialize_qs(input_workspace)
+        if input_workspace is not None:
+            self.component = Component(input_workspace, component_name)
+            self._initialize_qs(input_workspace)
+
+    def _remove_monitors(self, data):
+        return data[self.component.first_index:
+                    self.component.first_index + self.component.dims]
+
+    def _mask_pixels(self, data, masked_pixels):
+        return np.ma.MaskedArray(data, masked_pixels, dtype=np.float,
+                                 fill_value=np.nan)
 
     def _initialize_qs(self, input_workspace):
 
@@ -121,14 +131,6 @@ class MomentumTransfer:
 
     def q2d(self):
         return self._create_table_ws()
-
-    def _remove_monitors(self, data):
-        return data[self.component.first_index:
-                    self.component.first_index + self.component.dims]
-
-    def _mask_pixels(self, data, masked_pixels):
-        return np.ma.MaskedArray(data, masked_pixels, dtype=np.float,
-                                 fill_value=np.nan)
 
     def bin_into_q2d(self, bins=None):
         """Bin the data into Q 2D for visualization only! No dqx/y data!!!

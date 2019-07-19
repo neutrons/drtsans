@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import pytest
 
 from pathos.multiprocessing import ProcessingPool
 
@@ -77,7 +78,7 @@ def bin_in_parallel(params):
     return ((table_iq.name(), table_iq), (ws_q2d_name, ws_q2d),
             (ws_q1d_name, ws_q1d))
 
-
+@pytest.mark.skip(reason="Only works as standalone test.")
 def test_momentum_tranfer_parallel(biosans_f):
     '''
     Note that we are using `pathos`. That's the only way to serialize

@@ -19,7 +19,7 @@ def trans_fix(refd):
     def quick_compare(tentative, asset):
         r"""asset: str, name of golden standard nexus file"""
         ws = LoadNexus(pjn(cmp_dir, asset), OutputWorkspace=uwd())
-        return CompareWorkspaces(tentative, ws).Result
+        return CompareWorkspaces(tentative, ws, Tolerance=1.E-6).Result
 
     a = LoadNexus(pjn(data_dir, 'sample.nxs'))
     insert_aperture_logs(a)  # source and sample aperture diameters

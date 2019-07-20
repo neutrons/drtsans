@@ -55,7 +55,7 @@ def calculate_transmission(input_sample, input_reference,
     """
     zat = calc_trans(input_sample, input_reference,
                      radius=radius, radius_unit=radius_unit,
-                     output_workspace=output_workspace, )
+                     output_workspace=output_workspace)
     if bool(fit_func) is True:
         zat = fit_raw(zat, func=fit_func).transmission  # overwrites zat
     return zat

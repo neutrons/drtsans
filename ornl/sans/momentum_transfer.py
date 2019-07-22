@@ -1,8 +1,13 @@
 from __future__ import print_function
 
+from ast import literal_eval
+from string import Template
+
 import numpy as np
 from scipy import stats
 
+import mantid
+from mantid.kernel import logger
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
 from ornl.sans.detector import Component
 from ornl.sans.hfir import resolution
@@ -64,17 +69,44 @@ class MomentumTransfer:
     q1d and q2d are calculated from there arrays
     '''
 
+    # For now the detector dims in Table Workspace will be in the comment
+    # as below (there is no other form of adding key=value to table WS)
+    DETECTOR_DIMENSIONS_TEMPLATE = "detector_dimensions=($dim_x,$dim_y)"
+
     qx, qy, dqx, dqy, i, i_sigma = np.empty(0), np.empty(0), np.empty(0), \
         np.empty(0), np.empty(0), np.empty(0)
     prefix = None
     component = None
+    detector_dims = None
 
     def __init__(self, input_workspace=None, component_name="detector1",
                  out_ws_prefix="ws"):
+
         self.prefix = out_ws_prefix
-        if input_workspace is not None:
+
+        if isinstance(input_workspace, mantid.dataobjects.TableWorkspace):
+            self._load_table_workspace(input_workspace)
+        elif isinstance(input_workspace, mantid.dataobjects.Workspace2D):
             self.component = Component(input_workspace, component_name)
+            self.detector_dims = (self.component.dim_x, self.component.dim_y)
             self._initialize_qs(input_workspace)
+
+    def _load_table_workspace(self, input_workspace):
+        data = input_workspace.toDict()
+        self.qx = data['Qx']
+        self.qy = data['Qy']
+        self.dqx = data['dQx']
+        self.dqy = data['dQy']
+        self.i = data["I"]
+        self.i_sigma = data["Sigma(I)"]
+
+        # Gets the detector dimensions: "detector_dimensions=($dim_x,$dim_y)"
+        if self.DETECTOR_DIMENSIONS_TEMPLATE.split("=")[0] != \
+                input_workspace.getComment().split("=")[0]:
+            logger.error("Can not get the detector dimensions!")
+        else:
+            self.detector_dims = literal_eval(
+                input_workspace.getComment().split("=")[1])
 
     def _remove_monitors(self, data):
         return data[self.component.first_index:
@@ -127,6 +159,11 @@ class MomentumTransfer:
                 "Sigma(I)": i_sigma_i,
             }
             table_iq.addRow(nextRow)
+
+        template = Template(self.DETECTOR_DIMENSIONS_TEMPLATE)
+        table_iq.setComment(template.substitute(
+            dim_x=self.detector_dims[0], dim_y=self.detector_dims[1]))
+
         return table_iq
 
     def q2d(self):
@@ -377,9 +414,9 @@ class MomentumTransfer:
         Parameters
         ----------
         q_min : float, optional
-            , by default 
+            , by default
         q_max : float, optional
-            , by default 
+            , by default
         bins : int or sequence of scalars, optional
             See `scipy.stats.binned_statistic`.
             If `bins` is an int, it defines the number of equal-width bins in

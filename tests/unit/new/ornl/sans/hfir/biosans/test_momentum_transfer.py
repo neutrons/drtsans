@@ -26,7 +26,7 @@ def test_momentum_tranfer_serial(biosans_f):
         mt.i.shape == mt.i_sigma.shape == (256*192, )
 
     table_iq = mt.q2d()
-    assert type(table_iq) == mantid.dataobjects.TableWorkspace
+    assert isinstance(table_iq, mantid.dataobjects.TableWorkspace)
 
     _, ws = mt.bin_into_q2d()
     assert ws.extractY().shape == (256, 192)

@@ -31,7 +31,7 @@ def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
         mt.i.shape == mt.i_sigma.shape == (256*192, )
 
     table_iq = mt.q2d()
-    assert type(table_iq) == mantid.dataobjects.TableWorkspace
+    assert isinstance(table_iq, mantid.dataobjects.TableWorkspace)
 
     _, ws = mt.bin_into_q2d()
     assert ws.extractY().shape == (256, 192)
@@ -137,7 +137,7 @@ def test_momentum_tranfer_log_binning(gpsans_f):
         mt.i.shape == mt.i_sigma.shape == (256*192, )
 
     table_iq = mt.q2d()
-    assert type(table_iq) == mantid.dataobjects.TableWorkspace
+    assert isinstance(table_iq, mantid.dataobjects.TableWorkspace)
 
     binning = log_space(0.001, 0.004)
     assert len(binning) == 100
@@ -196,3 +196,37 @@ def test_momentum_tranfer_with_annular_1d_binning(gpsans_f):
         iq_annular_q, iq_annular_i)
 
     assert np.allclose(iq_i_subset, f(iq_q_subset), rtol=1)
+
+
+def test_momentum_tranfer_table(gpsans_f):
+    '''
+    Generate table from normal WS
+    Create a new MomentumTransfer from that table
+    the Iq of both MomentumTransfers must be the same
+    '''
+
+    ws = LoadHFIRSANS(
+        Filename=gpsans_f['anisotropic'],
+        OutputWorkspace='aniso_raw')
+
+    mt_ws2d = MomentumTransfer(ws)
+    assert mt_ws2d.qx.shape == mt_ws2d.qy.shape == mt_ws2d.dqx.shape == \
+        mt_ws2d.dqy.shape == mt_ws2d.i.shape == mt_ws2d.i_sigma.shape == \
+        (256*192, )
+
+    ws_table = mt_ws2d.q2d()
+    assert isinstance(ws_table, mantid.dataobjects.TableWorkspace)
+    _, iq_from_ws2d = mt_ws2d.bin_into_q1d()
+
+    i_from_ws2d = iq_from_ws2d.extractY()
+    assert i_from_ws2d.shape == (1, 100)
+    assert iq_from_ws2d.extractX().shape == (1, 101)
+
+    mt_table = MomentumTransfer(ws_table)
+    _, iq_from_table = mt_table.bin_into_q1d()
+
+    i_from_table = iq_from_table.extractY()
+    assert i_from_table.shape == (1, 100)
+    assert iq_from_table.extractX().shape == (1, 101)
+
+    assert np.allclose(i_from_ws2d, i_from_table)

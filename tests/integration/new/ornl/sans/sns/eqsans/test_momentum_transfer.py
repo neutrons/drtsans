@@ -47,9 +47,6 @@ def legacy_reduction():
 
 
 def test_momentum_tranfer_serial():
-    '''
-
-    '''
 
     ws = load_events('EQSANS_68200', detector_offset=0, sample_offset=0)
 
@@ -73,7 +70,7 @@ def test_momentum_tranfer_serial():
 
     rebin_start, rebin_end, rebin_step = 2.6, 5.6, 0.2
 
-    ws = Rebin(InputWorkspace=ws,OutputWorkspace="ws_rebin",
+    ws = Rebin(InputWorkspace=ws, OutputWorkspace="ws_rebin",
                Params="{:.2f},{:.2f},{:.2f}".format(
                    rebin_start, rebin_step, rebin_end))
 
@@ -106,7 +103,7 @@ def test_momentum_tranfer_serial():
             (total_pixels_in_detector + (index * total_pixels_in_detector),)
 
     ws_sum_table = mt_sum.q2d()
-    assert type(ws_sum_table) == mantid.dataobjects.TableWorkspace
+    assert isinstance(ws_sum_table, mantid.dataobjects.TableWorkspace)
 
     _, ws_sum_q2d = mt_sum.bin_into_q2d()
     assert ws_sum_q2d.extractY().shape == (256, 192)

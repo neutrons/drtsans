@@ -48,18 +48,18 @@ def test_solid_angle(generate_sans_generic_IDF):
     b[1] = 0.0
     # angle between b and c
     cos_alpha = b.scalar_prod(r)/(b.norm()*r.norm())
-    assert cos_alpha == pytest.approx(0.9994904782)
+    assert cos_alpha == pytest.approx(0.9994904783)
 
     # calculate solid angle with Mantid and verify result
     ws2 = SolidAngle(InputWorkspace=str(ws), Method='VerticalTube')
-    assert ws2.dataY(4)[0] == pytest.approx(9.29763209E-07)
+    assert ws2.dataY(4)[0] == pytest.approx(9.2976320958E-07)
 
     # calculate and apply solid angle correction to workspace
     # and verify result
     ws = eqsans.apply_solid_angle_correction(str(ws))
 
-    assert ws.dataY(4)[0] == pytest.approx(167784655.715)
-    assert ws.dataE(4)[0] == pytest.approx(13433523.5782)
+    assert ws.dataY(4)[0] == pytest.approx(167784655.70)
+    assert ws.dataE(4)[0] == pytest.approx(13433523.577)
 
     os.remove(r'/tmp/GenericSANS_Definition.xml')
 

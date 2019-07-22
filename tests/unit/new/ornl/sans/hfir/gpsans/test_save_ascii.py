@@ -30,7 +30,7 @@ def test_save_ascii(gpsans_f):
         output_lines = tmp.readlines()
         print(output_lines[101])
         assert output_lines[101] == \
-            "0.158594	0.000000	148.246656	0.025318\n"
+            "0.158594	0.000000	148.246656	0.025312\n"
 
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_xml_1D(ws_iq, 'Test GPSANS', tmp.name)

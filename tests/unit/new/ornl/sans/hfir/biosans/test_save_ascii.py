@@ -29,9 +29,8 @@ def test_save_ascii(biosans_sensitivity_dataset):
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_ascii_1D(ws_iq, 'Test BioSANS', tmp.name)
         output_lines = tmp.readlines()
-        print(output_lines[101])
         assert output_lines[101] == \
-            "0.112749	107368.964140	2815.765996	0.021630\n"
+            "0.112749	107368.964140	2815.765996	0.021596\n"
 
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_xml_1D(ws_iq, 'Test BioSANS', tmp.name)

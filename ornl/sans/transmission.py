@@ -145,7 +145,8 @@ def calculate_transmission(input_sample, input_reference,
                  RHSWorkspace=grouped_input_reference,
                  OutputWorkspace=output_workspace)
     av_t, av_e = np.mean(zat.dataY(0)), np.linalg.norm(zat.dataE(0))
-    logger.notice(f'Average zero angle transmission = {av_t} +/- {av_e}')
+    message = 'Average zero angle transmission = {0} +/- {1}'
+    logger.notice(message.format(av_t, av_e))
     return zat
 
 

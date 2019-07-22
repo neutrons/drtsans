@@ -6,7 +6,7 @@ import pytest
 from pytest import approx
 import numpy as np
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import SumSpectra, mtd
+from mantid.simpleapi import SumSpectra, mtd, LoadNexus
 
 # public API
 from ornl.sans.sns import eqsans
@@ -14,7 +14,7 @@ from ornl.sans import solid_angle_correction
 
 # protected API
 from ornl.settings import (amend_config, namedtuplefy,
-                           unique_workspace_dundername as uwn)
+                           unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import detector_name
 
@@ -48,10 +48,10 @@ def flux_file(refd):
 def rs(refd, request):
     run_set = request.param
     run = run_set['run']
-    ws = uwn()
+    ws = uwd()
     with amend_config(data_dir=refd.new.eqsans):
         eqsans.load_events(run, output_workspace=ws)
-    kw = dict(low_tof_clip=500, high_tof_clip=2000, output_workspace=uwn())
+    kw = dict(low_tof_clip=500, high_tof_clip=2000, output_workspace=uwd())
     wl = eqsans.transform_to_wavelength(ws, **kw)
     return {**run_set, **dict(ws=ws, wl=wl)}
 
@@ -85,7 +85,7 @@ class TestLoadEvents(object):
 
     def test_offsets(self, refd):
         with amend_config(data_dir=refd.new.eqsans):
-            ws = eqsans.load_events('EQSANS_86217', output_workspace=uwn(),
+            ws = eqsans.load_events('EQSANS_86217', output_workspace=uwd(),
                                     detector_offset=42, sample_offset=24)
         sl = SampleLogs(ws)
         ssd = sl.single_value('source-sample-distance')
@@ -98,7 +98,7 @@ def test_transform_to_wavelength(rs):
     ws = eqsans.transform_to_wavelength(rs.ws, low_tof_clip=500,
                                         high_tof_clip=2000,
                                         zero_uncertainty=42.0,
-                                        output_workspace=uwn())
+                                        output_workspace=uwd())
     sl = SampleLogs(ws)
     assert sl.wavelength_min.value == approx(rs.w_min, abs=0.05)
     assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
@@ -109,9 +109,19 @@ def test_transform_to_wavelength(rs):
 
 
 def test_normalise_by_flux(rs, flux_file):
-    ws = eqsans.normalise_by_flux(rs.wl, flux_file, output_workspace=uwn())
+    ws = eqsans.normalise_by_flux(rs.wl, flux_file, output_workspace=uwd())
     ws = SumSpectra(ws)
     assert np.average(ws.dataY(0)) == approx(rs.flux, abs=1)
+
+
+def test_subtract_background(refd):
+    data_dir = pj(refd.new.eqsans, 'test_subtract_background')
+    ws = LoadNexus(pj(data_dir, 'sample.nxs'), OutputWorkspace=uwd())
+    ws_name = ws.name()
+    wb = LoadNexus(pj(data_dir, 'background.nxs'), OutputWorkspace=uwd())
+    ws_wb = eqsans.subtract_background(ws, wb, scale=0.42)
+    assert ws_wb.name() == ws_name
+    assert max(ws_wb.dataY(0)) < 1.e-09
 
 
 @pytest.mark.skip(reason="prepare data not yet completed")
@@ -127,7 +137,7 @@ def test_prepared_data(eqsans_f):
 
 
 def test_solid_angle(rs):
-    ws2 = solid_angle_correction(rs.ws, output_workspace=uwn(),
+    ws2 = solid_angle_correction(rs.ws, output_workspace=uwd(),
                                  detector_type='VerticalTube')
     assert isinstance(ws2, EventWorkspace)
     assert ws2.getNumberEvents() == rs.num_events

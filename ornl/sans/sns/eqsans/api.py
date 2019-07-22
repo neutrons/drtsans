@@ -54,14 +54,14 @@ def subtract_background(input_workspace, background, scale=1.0,
     if output_wokspace is None:
         output_wokspace = str(input_workspace)
     ws = mtd[str(input_workspace)]
-    wb = mtd[str(backgroud)]
+    wb = mtd[str(background)]
     wb2 = sapi.RebinToWorkspace(WorkspaceToRebin=wb,
                                 WorkspaceToMatch=ws,
                                 OutputWorkspace=uwd())
     wb2 = sapi.Scale(InputWorkspace=wb2, OutputWorkspace=wb2.name(),
                      Factor=scale, Operation='Multiply')
-    Minus(LHSWorkspace=ws, RHSWorkspace=wb2,
-          OutputWorkspace=output_wokspace)
+    sapi.Minus(LHSWorkspace=ws, RHSWorkspace=wb2,
+               OutputWorkspace=output_wokspace)
     wb2.delete()
     return mtd[output_wokspace]
 

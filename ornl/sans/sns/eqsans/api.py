@@ -75,10 +75,10 @@ def prepare_data(data,
                  sensitivity_file_path=None,
                  output_workspace=None):
     r"""
-        Load an EQSANS data file and bring the data to a point where it
-        can be used. This includes applying basic corrections that are
-        always applied regardless of whether the data is background or
-        scattering data.
+    Load an EQSANS data file and bring the data to a point where it
+    can be used. This includes applying basic corrections that are
+    always applied regardless of whether the data is background or
+    scattering data.
 
     Parameters
     ----------
@@ -114,5 +114,5 @@ def prepare_data(data,
     if sensitivity_file_path is not None \
             and os.path.exists(sensitivity_file_path):
         apply_sensitivity_correction(output_workspace,
-                                     filename=sensitivity_file_path)
+                                     sensitivity_filename=sensitivity_file_path)  # noqa: E501 can't fit in line
     return mtd[output_workspace]

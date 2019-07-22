@@ -40,6 +40,12 @@ def test_calculation(cleanfile):
     cleanfile(FILENAME)
     assert wksp
 
+    # check for the number masked
+    info = wksp.detectorInfo()
+    masked = [i for i in range(info.size())  # detectorInfo index != detId
+              if info.isMasked(i)]
+    assert len(masked) == 26513
+
     # verify resonable values in the output workspace
     values = wksp.extractY().flatten()
     values = values[values != Property.EMPTY_DBL]  # get rid of masked values
@@ -64,7 +70,8 @@ def test_apply_calculation(cleanfile, fromFile):
         if not os.path.exists(FILENAME):
             create_sensitivity_file()
             cleanfile(FILENAME)
-        wksp = apply_sensitivity_correction(WKSPNAME_IN, filename=FILENAME,
+        wksp = apply_sensitivity_correction(WKSPNAME_IN,
+                                            sensitivity_filename=FILENAME,
                                             output_workspace=uwn())
     else:
         if not os.path.exists(FILENAME):
@@ -73,7 +80,7 @@ def test_apply_calculation(cleanfile, fromFile):
         sensitivity = LoadNexusProcessed(Filename=FILENAME,
                                          OutputWorkspace=uwn())
         wksp = apply_sensitivity_correction(WKSPNAME_IN,
-                                            sensitivity=sensitivity,
+                                            sensitivity_workspace=sensitivity,
                                             output_workspace=uwn())
         sensitivity.delete()
 

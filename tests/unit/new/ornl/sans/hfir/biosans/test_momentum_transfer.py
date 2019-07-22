@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import pytest
 
-from pathos.multiprocessing import ProcessingPool
+from multiprocessing import Pool
+
+import pytest
 
 import mantid
 from mantid import mtd
@@ -78,6 +79,7 @@ def bin_in_parallel(params):
     return ((table_iq.name(), table_iq), (ws_q2d_name, ws_q2d),
             (ws_q1d_name, ws_q1d))
 
+
 @pytest.mark.skip(reason="Only works as standalone test.")
 def test_momentum_tranfer_parallel(biosans_f):
     '''
@@ -93,7 +95,7 @@ def test_momentum_tranfer_parallel(biosans_f):
 
     parameters = [('detector1', 'main'), ('wing_detector', 'wing')]
 
-    with ProcessingPool(nodes=2) as pool:
+    with Pool(processes=2) as pool:
         return_list = pool.map(bin_in_parallel, parameters)
 
     for ret in return_list:

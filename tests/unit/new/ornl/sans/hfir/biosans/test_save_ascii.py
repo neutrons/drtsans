@@ -37,7 +37,7 @@ def test_save_ascii(biosans_sensitivity_dataset):
         output_lines = tmp.readlines()
         assert output_lines[110] == '\t\t\t<Idata><Q unit="1/A">0.112749</Q>'\
             '<I unit="Counts">121.167</I><Idev unit="Counts"'\
-            '>3.17761</Idev><Qdev unit="1/A">0.0216297</Qdev></Idata>\n'
+            '>3.17761</Idev><Qdev unit="1/A">0.0215961</Qdev></Idata>\n'
 
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_ascii_2D(ws_iqxqy, ws_dqx, ws_dqy, 'Test BioSANS 2D', tmp.name)

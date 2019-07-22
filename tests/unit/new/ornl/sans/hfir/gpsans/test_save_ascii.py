@@ -37,7 +37,7 @@ def test_save_ascii(gpsans_f):
         output_lines = tmp.readlines()
         assert output_lines[110] == '\t\t\t<Idata><Q unit="1/A">0.158594</Q>'\
             '<I unit="Counts">0</I><Idev unit="Counts">0.235702</Idev>'\
-            '<Qdev unit="1/A">0.0253178</Qdev></Idata>\n'
+            '<Qdev unit="1/A">0.0253123</Qdev></Idata>\n'
 
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_ascii_2D(ws_iqxqy, ws_dqx, ws_dqy, 'Test 2D GPSANS', tmp.name)

@@ -26,7 +26,6 @@ def test_fit_raw(refd):
     ws = fitted.transmission
     assert ws.name() == 'fitted_transmission'
     assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 1.1, decimal=1)
-    assert_almost_equal(fitted.skip_mfit.OutputChi2overDoF, 1.1, decimal=1)
 
 
 @pytest.mark.offline

@@ -136,11 +136,12 @@ def savereductionlog(wksp1d, wksp2d=None, filename=None, **kwargs):
         raise RuntimeError('Cannot write out 1d workspace "{}"'.format(wksp1d))
     # TODO more checks?
 
-    # save the 1d dataset
+    # save the 2 workspaces
     SaveNexusProcessed(InputWorkspace=str(wksp1d), Filename=filename,
                        PreserveEvents=False)
-
-    # TODO save the 2d data
+    if wksp2d:
+        SaveNexusProcessed(InputWorkspace=str(wksp2d), Filename=filename,
+                           PreserveEvents=False, Append=True)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

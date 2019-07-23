@@ -117,6 +117,17 @@ def checkProcessingEntry(handle, **kwargs):
     checkNXprocess(entry, 'sangria')
 
 
+def checkWorkspaces(filename, orig, entry):
+    reloaded = orig + '_reload'
+    LoadNexusProcessed(Filename=filename, OutputWorkspace=reloaded,
+                       EntryNumber=entry)
+    result, msg = CompareWorkspaces(Workspace1=orig,
+                                    Workspace2=reloaded)
+    assert result, msg
+    if reloaded in mtd:
+        mtd.remove(reloaded)
+
+
 def test_only_wksp1d(refd):
     wksp_name = 'test_only_wksp1d'
     # setup inputs
@@ -150,20 +161,13 @@ def test_only_wksp1d(refd):
                              starttime=starttime, username=username)
 
     # use mantid to check the workspace1d
-    wksp_from_file = wksp_name + 'reload'
-    LoadNexusProcessed(Filename=tmpfile, OutputWorkspace=wksp_from_file,
-                       EntryNumber=1)
-    result, msg = CompareWorkspaces(Workspace1=wksp_name,
-                                    Workspace2=wksp_from_file)
-    assert result, msg
+    checkWorkspaces(tmpfile, wksp_name, 1)
 
     # cleanup
     if os.path.exists(tmpfile):
         os.unlink(tmpfile)
     if wksp_name in mtd:
         mtd.remove(wksp_name)
-    if wksp_from_file in mtd:
-        mtd.remove(wksp_from_file)
 
 
 def test_empty_filename():

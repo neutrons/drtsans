@@ -1,5 +1,7 @@
 """ Top-level API for EQSANS """
 from mantid.api import mtd
+from mantid import simpleapi as sapi
+from ornl.settings import unique_workspace_dundername as uwd
 # Import rolled up to complete a single top-level API
 from ornl.sans import solid_angle_correction
 # Imports from EQSANS public API
@@ -7,7 +9,8 @@ from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
 
-__all__ = ['prepare_data', 'apply_solid_angle_correction']
+__all__ = ['apply_solid_angle_correction', 'subtract_background',
+           'prepare_data']
 
 
 def apply_solid_angle_correction(ws):
@@ -22,6 +25,45 @@ def apply_sensitivity_correction(ws, sensitivity_file_path):
         Apply sensitivity correction
     """
     raise NotImplementedError()
+
+
+def subtract_background(input_workspace, background, scale=1.0,
+                        output_wokspace=None):
+    r"""
+    Subtract a prepared background from a prepared sample.
+
+    Perform a rebin if sample and background have different binning.
+
+    Parameters
+    ----------
+    input_workspace: str, MatrixWorkspace
+        Sample workspace.
+    background: str, MatrixWorkspace
+        Background workspace.
+    scale: float
+        Rescale background intensities by this multiplicative factor before
+        subtraction from the sample.
+    output_wokspace: str
+        Name of the sample corrected by the background. If None, then
+        `input_workspace` will be overwritten.
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    if output_wokspace is None:
+        output_wokspace = str(input_workspace)
+    ws = mtd[str(input_workspace)]
+    wb = mtd[str(background)]
+    wb2 = sapi.RebinToWorkspace(WorkspaceToRebin=wb,
+                                WorkspaceToMatch=ws,
+                                OutputWorkspace=uwd())
+    wb2 = sapi.Scale(InputWorkspace=wb2, OutputWorkspace=wb2.name(),
+                     Factor=scale, Operation='Multiply')
+    sapi.Minus(LHSWorkspace=ws, RHSWorkspace=wb2,
+               OutputWorkspace=output_wokspace)
+    wb2.delete()
+    return mtd[output_wokspace]
 
 
 def prepare_data(data,

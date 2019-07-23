@@ -15,7 +15,7 @@ def test_fit_band(refd):
                    'raw_transmission.nxs'))
     bands = transmitted_bands(raw)
     fb = fit_band(raw, bands.lead, 'name=UserFunction,Formula=a*x+b')
-    assert_almost_equal(fb.mfit.OutputChi2overDoF, 32, decimal=0)
+    assert_almost_equal(fb.mfit.OutputChi2overDoF, 1.1, decimal=1)
 
 
 @pytest.mark.offline
@@ -25,8 +25,7 @@ def test_fit_raw(refd):
     fitted = fit_raw(raw, 'fitted_transmission')
     ws = fitted.transmission
     assert ws.name() == 'fitted_transmission'
-    assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 32, decimal=0)
-    assert_almost_equal(fitted.skip_mfit.OutputChi2overDoF, 16, decimal=0)
+    assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 1.1, decimal=1)
 
 
 @pytest.mark.offline

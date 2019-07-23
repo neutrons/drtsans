@@ -9,7 +9,7 @@ import scipy
 import mantid
 from mantid import mtd
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS, MaskBTP
-from ornl.sans.momentum_transfer import MomentumTransfer, log_space
+from ornl.sans.momentum_transfer import MomentumTransfer
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans.hfir_command_interface import (
     GPSANS, AzimuthalAverage, IQxQy, OutputPath, SetBeamCenter)
@@ -136,21 +136,23 @@ def test_momentum_tranfer_log_binning(gpsans_f):
     table_iq = mt.q2d()
     assert isinstance(table_iq, mantid.dataobjects.TableWorkspace)
 
-    binning = log_space(0.001, 0.004)
+    binning = np.logspace(np.log10(0.001), np.log10(0.004), num=100)
     assert len(binning) == 100
     _, ws = mt.bin_into_q2d(bins=[binning, binning])
     assert ws.extractY().shape == (99, 99)
     assert ws.extractX().shape == (99, 100)
 
     n_bins = 121
-    _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=n_bins))
+    _, ws = mt.bin_into_q1d(
+        bins=np.logspace(np.log10(0.001), np.log10(0.004), num=n_bins))
     assert ws.extractY().shape == (1, n_bins - 1)
     assert ws.extractX().shape == (1, n_bins)
     bins = ws.extractX().ravel()
     assert np.allclose(bins, np.geomspace(bins[0], bins[-1], num=n_bins))
 
     n_bins = 400
-    _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=n_bins))
+    _, ws = mt.bin_into_q1d(
+        bins=np.logspace(np.log10(0.001), np.log10(0.004), num=n_bins))
     assert ws.extractY().shape == (1, n_bins - 1)
     assert ws.extractX().shape == (1, n_bins)
     bins = ws.extractX().ravel()

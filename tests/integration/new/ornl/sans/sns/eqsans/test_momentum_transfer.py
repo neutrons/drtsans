@@ -9,10 +9,10 @@ from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
                               Rebin)
 from ornl.sans.sns.eqsans import (load_events, normalisation,
                                   transform_to_wavelength)
-from ornl.sans.sns.eqsans.momentum_transfer import MomentumTransfer
-
-from ornl.sans.sns.eqsans import center_detector
-from ornl.sans.sns.eqsans import geometry
+from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer,
+                                                    prepare_momentum_transfer,
+                                                    iq, iqxqy)
+from ornl.sans.sns.eqsans import center_detector, geometry
 
 
 def legacy_reduction():
@@ -145,3 +145,39 @@ def test_momentum_tranfer_serial():
     # plt.loglog(ws_iq_old.extractY().ravel(), label = 'Old')
     # plt.legend()
     # plt.show()
+
+
+def test_api():
+
+    ws = load_events('EQSANS_68200', detector_offset=0, sample_offset=0)
+
+    ws = transform_to_wavelength(ws,
+                                 bin_width=0.1,
+                                 low_tof_clip=500,
+                                 high_tof_clip=2000)
+
+    center_detector(ws, x=-0.025, y=-0.016, units='m')
+
+    flux_ws = normalisation.load_beam_flux_file(
+        '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample',
+        output_workspace='flux_ws',
+        ws_reference=ws)
+
+    ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+
+    #
+    prepare_momentum_transfer(ws, "2.6,0.2,5.6")
+    assert mtd.doesExist(ws.name() + "_iqxqy_table")
+
+    iq(ws)
+    assert mtd.doesExist(ws.name() + "_iq")
+
+    iq(ws, bins=100, log_binning=True)
+    ws_iq = mtd[ws.name() + "_iq"]
+    # check if it is log binning:
+    q = ws_iq.readX(0)
+    q_divide = q[1:]/q[:-1]
+    assert np.allclose(q_divide, q_divide[0])
+
+    iqxqy(ws)
+    assert mtd.doesExist(ws.name() + "_iqxqy")

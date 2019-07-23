@@ -16,51 +16,6 @@ from ornl.sans.hfir import resolution
 np.seterr(divide='ignore', invalid='ignore')
 
 
-def log_space(start, stop, num=100):
-    """
-    Return numbers spaced evenly on a log scale.
-
-    In linear space, the sequence starts at base ** start (base to the power
-    of start) and ends with base ** stop.
-
-    > log_space(0.001, 0.6)
-      [0.001,
-        0.0010667487284100271,
-        0.0011379528495644108,
-        0.0012139097552634022,
-        0.0012949366878317627,
-        0.001381372065116025,
-        (..)
-        0.40717250825126383,
-        0.43435075542055696,
-        0.4633431160288143,
-        0.49427067984127726,
-        0.5272626192110421,
-        0.5624567285815201,
-        0.6]
-
-    Parameters
-    ----------
-    start : float
-        The starting value of the sequence.
-
-    stop : float
-        The final value of the sequence.
-        Num values are spaced over the interval in log-space, of which all
-        (a sequence of length num) are returned.
-
-    num : integer, optional
-        Number of samples to generate. Default is 100.
-
-    Returns
-    -------
-    list
-        An array with the space
-    """
-
-    return list(np.geomspace(start, stop, num=num, endpoint=True))
-
-
 class MomentumTransfer:
     '''
     Momentum Transfer class
@@ -270,8 +225,6 @@ class MomentumTransfer:
     def bin_into_q1d(self, bins=100, statistic='mean'):
         """ Calculates: I(Q) and Dq
         The ws_* input parameters are the output workspaces from bin_into_q2d
-
-
 
         Parameters
         ----------

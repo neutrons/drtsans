@@ -3,9 +3,12 @@ from __future__ import absolute_import, division, print_function
 from collections import OrderedDict
 
 import numpy as np
+import os
 
 from mantid.kernel import Property, logger
-from mantid.simpleapi import CloneWorkspace
+from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
+    DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
+    MaskDetectorsIf, SaveNexusProcessed
 from ornl.settings import unique_workspace_name
 
 
@@ -280,7 +283,8 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
         if num_of_detectors_masked > 0 and \
             (d.n_pixels_per_tube - num_of_detectors_masked -
                 num_of_detectors_inf) > min_detectors_per_tube:
-                # number of detectors with values > min_detectors_per_tube
+            # number of detectors with values > min_detectors_per_tube
+
             # Let's fit
             y, e = d.get_ws_data()
             y_new, e_new = _interpolate_tube(
@@ -321,3 +325,70 @@ def inf_value_to_mask(ws):
             detector_info_input_ws.setMasked(i, True)
             ws.setY(i, np.array([1]))
             ws.setE(i, np.array([0]))
+
+
+def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
+                                 sensitivity_workspace=None,
+                                 output_workspace=None):
+    '''Apply a previously calculated sensitivity correction
+
+    Parameters
+    ==========
+    input_workspace: Workspace2D
+        workspace to apply the correction to
+    sensitivity_filename:
+        file containing previously calculated sensitivity correction
+    sensitivity_workspace:
+        workspace containing previously calculated sensitivity correction. This
+        overrides the sensitivity_filename if both are provided.
+    output_workspace: Workspace2D
+        corrected workspace. This is the input workspace by default
+    '''
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
+    cleanupSensitivity = False
+    if sensitivity_workspace is None or \
+            str(sensitivity_workspace) not in mtd:  # load the file
+        if sensitivity_workspace is None:
+            sensitivity_workspace = os.path.split(sensitivity_filename)[-1]
+            sensitivity_workspace = sensitivity_workspace.split('.')[0]
+        cleanupSensitivity = True
+        if not os.path.exists(sensitivity_filename):
+            msg = 'Cannot find file "{}"'.format(sensitivity_filename)
+            raise RuntimeError(msg)
+        LoadNexusProcessed(Filename=sensitivity_filename,
+                           OutputWorkspace=sensitivity_workspace)
+    if (not sensitivity_workspace) or (str(sensitivity_workspace) not in mtd):
+        raise RuntimeError('No sensitivity workspace provided')
+
+    if str(input_workspace) != str(output_workspace):
+        CloneWorkspace(InputWorkspace=input_workspace,
+                       OutputWorkspace=output_workspace)
+    MaskDetectors(Workspace=output_workspace,
+                  MaskedWorkspace=sensitivity_workspace)
+    Divide(LHSWorkspace=output_workspace, RHSWorkspace=sensitivity_workspace,
+           OutputWorkspace=output_workspace)
+
+    if cleanupSensitivity:
+        DeleteWorkspace(sensitivity_workspace)
+
+    return mtd[output_workspace]
+
+
+def calculate_sensitivity_correction(input_workspace, min_threashold,
+                                     max_threshold, filename,
+                                     output_workspace=None):
+    if output_workspace is None:
+        output_workspace = '{}_sensitivity'.format(input_workspace)
+
+    CalculateEfficiency(InputWorkspace=str(input_workspace),
+                        OutputWorkspace=output_workspace,
+                        MinThreshold=min_threashold,
+                        MaxThreshold=max_threshold)
+    MaskDetectorsIf(InputWorkspace=output_workspace,
+                    OutputWorkspace=output_workspace, Mode='SelectIf',
+                    Operator='Equal', Value=Property.EMPTY_DBL)
+    SaveNexusProcessed(InputWorkspace=output_workspace,
+                       Filename=filename)
+    return mtd[output_workspace]

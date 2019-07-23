@@ -105,14 +105,13 @@ def prepare_data(data,
     transform_to_wavelength(output_workspace, bin_width=bin_width,
                             low_tof_clip=low_tof_clip,
                             high_tof_clip=high_tof_clip)
-    center_detector(output_workspace, x=x_center, y=y_center)
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
     if flux is not None:
         normalise_by_flux(output_workspace, flux)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
     # Uncomment as we address them
-    # initial_uncertainty_estimation(output_workspace)
     apply_solid_angle_correction(output_workspace)
     # apply_sensitivity_correction(output_workspace, sensitivity_file_path)
+    center_detector(output_workspace, x=x_center, y=y_center)
     return mtd[output_workspace]

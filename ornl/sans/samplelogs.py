@@ -10,11 +10,17 @@ from mantid.simpleapi import (mtd, Load, AddSampleLog)
 class SampleLogs(object):
     r"""
     Log reader, a bit more pythonic
+
+    Params
+    ------
+    source: PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number
     """
 
-    def __init__(self, other):
+    def __init__(self, source):
         self._ws = None
-        self._run = self.find_run(other)
+        self._run = self.find_run(source)
 
     def __getitem__(self, item):
         if item in self._run.keys():
@@ -132,7 +138,7 @@ class SampleLogs(object):
         finder = [v for k, v in dispatch.items() if isinstance(other, k)][0]
         return finder(other)
 
-    def find_log_with_units(self, log_key, units=None):
+    def find_log_with_units(self, log_key, unit=None):
         r"""
         Find a log entry in the logs, and ensure it has the right units
 
@@ -140,7 +146,7 @@ class SampleLogs(object):
         ----------
         log_key: string
                  key of the log to find
-        units: None or string
+        unit: None or string
                units string to enforce
 
         Returns
@@ -148,7 +154,7 @@ class SampleLogs(object):
             log value
         """
         if log_key in self.keys():
-            if units is not None and not self[log_key].units == units:
+            if unit is not None and not self[log_key].units == unit:
                 error_msg = "Found %s with wrong units" % log_key
                 error_msg += " [%s]" % self[log_key].units
                 raise RuntimeError(error_msg)

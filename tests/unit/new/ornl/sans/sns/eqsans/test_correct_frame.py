@@ -24,7 +24,7 @@ def test_transmitted_bands(refd):
 def test_transmitted_bands_clipped(refd):
     with amend_config(data_dir=refd.new.eqsans):
         ws = Load(Filename='EQSANS_86217')
-        sdd = source_detector_distance(ws, units='m')
+        sdd = source_detector_distance(ws, unit='m')
         bands_0 = cf.transmitted_bands_clipped(ws, sdd, 0.0, 0.0)
         lwc, hwc = (0.139, 0.560)  # expected clippings
         # With no interior clipping

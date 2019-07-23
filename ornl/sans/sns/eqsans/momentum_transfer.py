@@ -33,5 +33,6 @@ class MomentumTransfer(MomentumTransferMain):
 
         if self.component is None:
             self.component = other.component
+            self.detector_dims = (self.component.dim_x, self.component.dim_y)
 
         return self

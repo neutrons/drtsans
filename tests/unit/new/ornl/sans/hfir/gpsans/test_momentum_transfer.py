@@ -22,9 +22,8 @@ def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     - Wedge location: makes sure the feature has a higher count
     '''
 
-    ws = LoadHFIRSANS(
-        Filename=gpsans_f['anisotropic'],
-        OutputWorkspace='aniso_raw')
+    ws = LoadHFIRSANS(Filename=gpsans_f['anisotropic'],
+                      OutputWorkspace='aniso_raw')
 
     mt = MomentumTransfer(ws)
     assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \
@@ -47,7 +46,8 @@ def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     assert ws_iq_feature.extractX().shape == (1, 101)
     ws_iq_feature = CloneWorkspace(ws_iq_feature)
 
-    _, ws_iq_non_feature = mt.bin_wedge_into_q1d(phi_0=55+90, phi_aperture=30)
+    _, ws_iq_non_feature = mt.bin_wedge_into_q1d(phi_0=55 + 90,
+                                                 phi_aperture=30)
     ws_iq_non_feature_i = ws_iq_non_feature.extractY()
     assert ws_iq_non_feature_i.shape == (1, 100)
     assert ws_iq_non_feature.extractX().shape == (1, 101)
@@ -64,9 +64,7 @@ def test_momentum_tranfer_cross_check(gpsans_f):
 
     GPSANS()
     SetBeamCenter(92, 123)
-    AppendDataFile(
-        gpsans_f['sample_scattering_2'],
-        workspace='ws_legacy')
+    AppendDataFile(gpsans_f['sample_scattering_2'], workspace='ws_legacy')
     AzimuthalAverage(binning="0.01,0.001,0.11")
     OutputPath(tempfile.gettempdir())
     IQxQy(nbins=110, log_binning=False)
@@ -128,9 +126,8 @@ def test_momentum_tranfer_with_and_without_mask(gpsans_f):
 
 def test_momentum_tranfer_log_binning(gpsans_f):
 
-    ws = LoadHFIRSANS(
-        Filename=gpsans_f['anisotropic'],
-        OutputWorkspace='aniso_raw')
+    ws = LoadHFIRSANS(Filename=gpsans_f['anisotropic'],
+                      OutputWorkspace='aniso_raw')
 
     mt = MomentumTransfer(ws)
     assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \
@@ -147,14 +144,14 @@ def test_momentum_tranfer_log_binning(gpsans_f):
 
     n_bins = 121
     _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=n_bins))
-    assert ws.extractY().shape == (1, n_bins-1)
+    assert ws.extractY().shape == (1, n_bins - 1)
     assert ws.extractX().shape == (1, n_bins)
     bins = ws.extractX().ravel()
     assert np.allclose(bins, np.geomspace(bins[0], bins[-1], num=n_bins))
 
     n_bins = 400
     _, ws = mt.bin_into_q1d(bins=log_space(0.001, 0.004, num=n_bins))
-    assert ws.extractY().shape == (1, n_bins-1)
+    assert ws.extractY().shape == (1, n_bins - 1)
     assert ws.extractX().shape == (1, n_bins)
     bins = ws.extractX().ravel()
     assert np.allclose(bins, np.geomspace(bins[0], bins[-1], num=n_bins))
@@ -175,8 +172,9 @@ def test_momentum_tranfer_with_annular_1d_binning(gpsans_f):
 
     q_min = 0.05
     q_max = 0.2
-    _, ws_annular_iq = mt.bin_annular_into_q1d(
-        q_min=q_min, q_max=q_max, bins=20)
+    _, ws_annular_iq = mt.bin_annular_into_q1d(q_min=q_min,
+                                               q_max=q_max,
+                                               bins=20)
     assert ws_annular_iq.extractY().shape == (1, 20)
     assert ws_annular_iq.extractX().shape == (1, 21)
 
@@ -192,8 +190,8 @@ def test_momentum_tranfer_with_annular_1d_binning(gpsans_f):
     iq_annular_q = (iq_annular_q[1:] + iq_annular_q[:-1]) / 2.0  # Bin centres
     iq_annular_i = ws_annular_iq.extractY().ravel()
 
-    f = scipy.interpolate.InterpolatedUnivariateSpline(
-        iq_annular_q, iq_annular_i)
+    f = scipy.interpolate.InterpolatedUnivariateSpline(iq_annular_q,
+                                                       iq_annular_i)
 
     assert np.allclose(iq_i_subset, f(iq_q_subset), rtol=1)
 
@@ -205,9 +203,8 @@ def test_momentum_tranfer_table(gpsans_f):
     the Iq of both MomentumTransfers must be the same
     '''
 
-    ws = LoadHFIRSANS(
-        Filename=gpsans_f['anisotropic'],
-        OutputWorkspace='aniso_raw')
+    ws = LoadHFIRSANS(Filename=gpsans_f['anisotropic'],
+                      OutputWorkspace='aniso_raw')
 
     mt_ws2d = MomentumTransfer(ws)
     assert mt_ws2d.qx.shape == mt_ws2d.qy.shape == mt_ws2d.dqx.shape == \

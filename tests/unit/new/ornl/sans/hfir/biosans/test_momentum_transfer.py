@@ -42,7 +42,7 @@ def test_momentum_tranfer_serial(biosans_f):
     assert ws_iq_feature.extractX().shape == (1, 101)
     ws_iq_feature = CloneWorkspace(ws_iq_feature)
 
-    _, ws_iq_non_feature = mt.bin_wedge_into_q1d(phi_0=0+90, phi_aperture=30)
+    _, ws_iq_non_feature = mt.bin_wedge_into_q1d(phi_0=0 + 90, phi_aperture=30)
     ws_iq_non_feature_i = ws_iq_non_feature.extractY()
     assert ws_iq_non_feature_i.shape == (1, 100)
     assert ws_iq_non_feature.extractX().shape == (1, 101)
@@ -69,15 +69,16 @@ def bin_in_parallel(params):
 
     component_name, out_ws_prefix = params
     ws = mtd["ws_data_raw"]
-    mt = MomentumTransfer(ws, component_name=component_name,
+    mt = MomentumTransfer(ws,
+                          component_name=component_name,
                           out_ws_prefix=out_ws_prefix)
 
     table_iq = mt.q2d()
     ws_q2d_name, ws_q2d = mt.bin_into_q2d()
     ws_q1d_name, ws_q1d = mt.bin_into_q1d()
 
-    return ((table_iq.name(), table_iq), (ws_q2d_name, ws_q2d),
-            (ws_q1d_name, ws_q1d))
+    return ((table_iq.name(), table_iq), (ws_q2d_name, ws_q2d), (ws_q1d_name,
+                                                                 ws_q1d))
 
 
 @pytest.mark.skip(reason="Only works as standalone test.")

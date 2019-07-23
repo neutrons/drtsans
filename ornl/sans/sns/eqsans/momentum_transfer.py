@@ -7,10 +7,12 @@ from ornl.sans.momentum_transfer import \
 
 
 class MomentumTransfer(MomentumTransferMain):
-
-    def __init__(self, input_workspace=None, component_name="detector1",
+    def __init__(self,
+                 input_workspace=None,
+                 component_name="detector1",
                  out_ws_prefix="ws"):
-        super().__init__(input_workspace, component_name=component_name,
+        super().__init__(input_workspace,
+                         component_name=component_name,
                          out_ws_prefix=out_ws_prefix)
 
     def __iadd__(self, other):

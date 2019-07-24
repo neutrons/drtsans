@@ -156,6 +156,7 @@ def biosans_f():
     dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'biosans')
     return dict(
         beamcenter=pjoin(dd, 'BioSANS_exp402_scan0006_0001.xml'),
+        anisotropic=pjoin(dd, 'BioSANS_exp440_scan0022_0006.xml'),
     )
 
 

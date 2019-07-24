@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import os
+
 import numpy as np
 
 import mantid
 from mantid import mtd
-from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
-                              Rebin)
-from ornl.sans.sns.eqsans import (load_events, normalisation,
-                                  transform_to_wavelength)
-from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer,
-                                                    prepare_momentum_transfer,
-                                                    iq, iqxqy)
-from ornl.sans.sns.eqsans import center_detector, geometry
+from mantid.simpleapi import AddSampleLog, ConfigService, ExtractSpectra, Rebin
+from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
+                                  normalisation, transform_to_wavelength)
+from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer, iq,
+                                                    iqxqy,
+                                                    prepare_momentum_transfer)
 
 
-def legacy_reduction():
+def legacy_reduction(refd):
 
     from reduction_workflow.command_interface import AppendDataFile, Reduce
     from reduction_workflow.instruments.sans import (sns_command_interface as
@@ -26,7 +26,7 @@ def legacy_reduction():
     configI["facilityName"] = 'SNS'
 
     eqsans.EQSANS()
-    AppendDataFile('EQSANS_68200')
+    AppendDataFile(os.path.join(refd.new.eqsans, 'EQSANS_68200_event.nxs'))
     eqsans.UseConfig(False)
     eqsans.UseConfigTOFTailsCutoff(False)
     eqsans.UseConfigMask(False)
@@ -43,24 +43,26 @@ def legacy_reduction():
     eqsans.IQxQy(nbins=100, log_binning=False)
     Reduce()
 
-    return mtd['EQSANS_68200_iq']
+    return mtd['EQSANS_68200_event_iq']
 
 
-def test_momentum_tranfer_serial():
+def test_momentum_tranfer_serial(refd):
 
-    ws = load_events('EQSANS_68200', detector_offset=0, sample_offset=0)
+    ws = load_events(os.path.join(refd.new.eqsans, 'EQSANS_68200_event.nxs'),
+                     detector_offset=0,
+                     sample_offset=0)
 
     ws = transform_to_wavelength(ws,
                                  bin_width=0.1,
                                  low_tof_clip=500,
                                  high_tof_clip=2000)
 
-    center_detector(ws, x=-0.025, y=-0.016, units='m')
+    center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
-    flux_ws = normalisation.load_beam_flux_file(
-        '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample',
-        output_workspace='flux_ws',
-        ws_reference=ws)
+    flux_ws = normalisation.load_beam_flux_file(os.path.join(
+        refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+                                                output_workspace='flux_ws',
+                                                ws_reference=ws)
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
@@ -126,7 +128,7 @@ def test_momentum_tranfer_serial():
     assert ws_sum_q1d.extractY().shape == (1, 100)
     assert ws_sum_q1d.extractX().shape == (1, 101)
 
-    ws_iq_old = legacy_reduction()
+    ws_iq_old = legacy_reduction(refd)
     ws_iq_new = ws_sum_q1d
 
     max_old = ws_iq_old.readY(0).max()
@@ -147,21 +149,23 @@ def test_momentum_tranfer_serial():
     # plt.show()
 
 
-def test_api():
+def test_api(refd):
 
-    ws = load_events('EQSANS_68200', detector_offset=0, sample_offset=0)
+    ws = load_events(os.path.join(refd.new.eqsans, 'EQSANS_68200_event.nxs'),
+                     detector_offset=0,
+                     sample_offset=0)
 
     ws = transform_to_wavelength(ws,
                                  bin_width=0.1,
                                  low_tof_clip=500,
                                  high_tof_clip=2000)
 
-    center_detector(ws, x=-0.025, y=-0.016, units='m')
+    center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
-    flux_ws = normalisation.load_beam_flux_file(
-        '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample',
-        output_workspace='flux_ws',
-        ws_reference=ws)
+    flux_ws = normalisation.load_beam_flux_file(os.path.join(
+        refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+                                                output_workspace='flux_ws',
+                                                ws_reference=ws)
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
@@ -176,7 +180,7 @@ def test_api():
     ws_iq = mtd[ws.name() + "_iq"]
     # check if it is log binning:
     q = ws_iq.readX(0)
-    q_divide = q[1:]/q[:-1]
+    q_divide = q[1:] / q[:-1]
     assert np.allclose(q_divide, q_divide[0])
 
     iqxqy(ws)

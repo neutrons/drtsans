@@ -10,16 +10,17 @@ from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
 from ornl.sans.momentum_transfer import MomentumTransfer
-from ornl.settings import unique_workspace_name
 
 
+@pytest.mark.skip(reason="It doesn't pass on the build servers. "
+                  "XML lib incompatitibility.")
 def test_momentum_tranfer_serial(biosans_f):
 
     ws = LoadHFIRSANS(
         # Filename='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/'\
         #      'biosans/BioSANS_exp440_scan0022_0006.xml',
         Filename=biosans_f['anisotropic'],
-        OutputWorkspace=unique_workspace_name())
+        OutputWorkspace="ws")
 
     mt = MomentumTransfer(ws)
     assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \

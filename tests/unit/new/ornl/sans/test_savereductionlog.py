@@ -118,6 +118,10 @@ def checkProcessingEntry(handle, **kwargs):
 
 
 def checkWorkspaces(filename, orig, entry):
+    if not orig:
+        print('nothing to check against')
+        return
+
     reloaded = orig + '_reload'
     LoadNexusProcessed(Filename=filename, OutputWorkspace=reloaded,
                        EntryNumber=entry)
@@ -128,46 +132,76 @@ def checkWorkspaces(filename, orig, entry):
         mtd.remove(reloaded)
 
 
-def test_only_wksp1d(refd):
-    wksp_name = 'test_only_wksp1d'
+@pytest.mark.parametrize(
+    'filename1d', ['test_save_output/EQSANS_68200_iq.nxs', '']
+)
+@pytest.mark.parametrize(
+    'filename2d', ['test_save_output/EQSANS_68200_iq.nxs', '']
+)
+def test_saving(refd, filename1d, filename2d):
+    wksp1d = ''
+    wksp2d = ''
+
     # setup inputs
-    tmpfile = os.path.join(gettempdir(), wksp_name + '.nxs.h5')
+    tmpfile = os.path.join(gettempdir(), wksp1d + '.nxs.h5')
     tmpfile = os.path.abspath(tmpfile)
     if os.path.exists(tmpfile):
         os.unlink(tmpfile)  # remove it if it already exists
 
-    infile = os.path.join(refd.new.eqsans,
-                          'test_save_output/EQSANS_68200_iq.nxs')
-    Load(Filename=infile, OutputWorkspace=wksp_name)
+    if filename1d:
+        filename1d = os.path.join(refd.new.eqsans,
+                                  filename1d)
+        wksp1d = 'test_save_wksp1d'
+        Load(Filename=filename1d, OutputWorkspace=wksp1d)
+
+    if filename2d:
+        filename2d = os.path.join(refd.new.eqsans,
+                                  filename2d)
+        wksp2d = 'test_save_wksp2d'
+        if filename2d == filename1d:
+            wksp2d = wksp1d  # just reuse the workspace
+        else:
+            Load(Filename=filename2d, OutputWorkspace=wksp2d)
 
     pythonscript = 'blah blah blah'
     reductionparams = ''
     starttime = '1992-01-19T00:00:01Z'
     username = 'Jimmy Neutron'
+    user = 'neutron'
 
-    # run the function
-    savereductionlog(wksp_name, filename=tmpfile, python=pythonscript,
-                     starttime=starttime, username=username)
+    # run the function - use same workspace for both
+    if wksp1d:
+        savereductionlog(wksp1d, wksp2d, filename=tmpfile, python=pythonscript,
+                         starttime=starttime, user=user, username=username)
 
-    # validation
-    assert os.path.exists(tmpfile), \
-        'Output file "{}" does not exist'.format(tmpfile)
+        # validation
+        assert os.path.exists(tmpfile), \
+            'Output file "{}" does not exist'.format(tmpfile)
 
-    # go into the file to check things
-    with h5py.File(tmpfile, 'r') as handle:
-        check1d(handle, wksp_name)
-        checkProcessingEntry(handle, pythonscript=pythonscript,
-                             reductionparams=reductionparams,
-                             starttime=starttime, username=username)
+        # go into the file to check things
+        with h5py.File(tmpfile, 'r') as handle:
+            check1d(handle, wksp1d)
+            checkProcessingEntry(handle, pythonscript=pythonscript,
+                                 reductionparams=reductionparams,
+                                 starttime=starttime, username=username)
 
-    # use mantid to check the workspace1d
-    checkWorkspaces(tmpfile, wksp_name, 1)
+        # use mantid to check the workspaces
+        checkWorkspaces(tmpfile, wksp1d, 1)
+        checkWorkspaces(tmpfile, wksp2d, 2)
+    else:  # not supplying 1d workspace should always fail
+        with pytest.raises(RuntimeError):
+            savereductionlog(wksp1d, wksp2d, filename=tmpfile,
+                             python=pythonscript, starttime=starttime,
+                             user=user, username=username)
+        assert not os.path.exists(tmpfile), \
+            'Output file "{}" should not exist'.format(tmpfile)
 
     # cleanup
     if os.path.exists(tmpfile):
         os.unlink(tmpfile)
-    if wksp_name in mtd:
-        mtd.remove(wksp_name)
+    for wksp in [wksp1d, wksp2d]:
+        if wksp and wksp in mtd:
+            mtd.remove(wksp)
 
 
 def test_empty_filename():

@@ -33,8 +33,7 @@ def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1,
     if output_workspace is None:
         output_workspace = uwd()  # unique hidden name
 
-    with amend_config({'instrumentName': 'EQSANS',
-                       'datasearch.searcharchive': 'hfir,sns'},
+    with amend_config({'instrumentName': 'EQSANS'},
                       data_dir=data_dir):
         Load(Filename=run, OutputWorkspace=output_workspace)
         e_geometry.translate_detector_z(output_workspace)  # inplace

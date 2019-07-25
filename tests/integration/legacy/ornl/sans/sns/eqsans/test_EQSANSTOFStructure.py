@@ -1,22 +1,15 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
+from ornl.settings import amend_config
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 
-from mantid.kernel import ConfigService
 from mantid.simpleapi import Load, EQSANSTofStructure, CompareWorkspaces
 
 
 def test_eqsanstofstructure(refd):
-
-    config = ConfigService.Instance()
-    previous_instrument = config['instrumentName']
-    config['instrumentName'] = 'EQSANS'
-    previous_archive = config['datasearch.searcharchive']
-    config['datasearch.searcharchive'] = 'hfir,sns'
-
-    try:
+    with amend_config({'instrumentName': 'EQSANS'}):
         ddir = pjn(refd.legacy.eqsans, 'test_eqsanstofstructure')
         Load(Filename=pjn(ddir, 'EQSANS_92353_event_eqsanstofstr_in.nxs'),
              OutputWorkspace='change_tof_structure')
@@ -34,9 +27,6 @@ def test_eqsanstofstructure(refd):
                                       Workspace2='reference_workspace',
                                       Tolerance=1e-4)
         assert cmp is True
-    finally:
-        config['instrumentName'] = previous_instrument
-        config['datasearch.searcharchive'] = previous_archive
 
 
 if __name__ == '__main__':

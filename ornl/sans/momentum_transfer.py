@@ -131,7 +131,8 @@ class MomentumTransfer:
         return self._create_table_ws(suffix)
 
     def bin_into_q2d(self, bins=None, suffix="_iqxqy"):
-        """Bin the data into Q 2D for visualization only! No dqx/y data!!!
+        """Bin the data into Q 2D for visualization only!
+        No uncertainties data!!!
 
         Parameters
         ----------
@@ -167,23 +168,12 @@ class MomentumTransfer:
             self.qx, self.qy, bins=bins, weights=self.i)
         counts_qx_qy /= counts_qx_qy_weights
 
-        # TODO: Error propagation is probably wrong
-        counts_dqx_dqy_weights, _, _ = np.histogram2d(self.dqx,
-                                                      self.dqy,
-                                                      bins=bins)
-        counts_dqx_dqy, _, _ = np.histogram2d(self.dqx,
-                                              self.dqy,
-                                              bins=bins,
-                                              weights=self.i_sigma)
-        counts_dqx_dqy /= counts_dqx_dqy_weights
-
         qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
 
         # When doing histogram2d the masks are gone
         iqxqy_ws = CreateWorkspace(DataX=np.tile(qx_bin_edges,
                                                  len(qy_bin_centers)),
                                    DataY=counts_qx_qy.T,
-                                   DataE=counts_dqx_dqy.T,
                                    NSpec=len(qy_bin_centers),
                                    UnitX='MomentumTransfer',
                                    VerticalAxisUnit='MomentumTransfer',

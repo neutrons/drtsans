@@ -74,6 +74,9 @@ def amend_config(new_config=None, data_dir=None):
     backup = dict()
     config = ConfigService.Instance()
     if new_config is not None:
+        SEARCH_ARCHIVE = 'datasearch.searcharchive'
+        if SEARCH_ARCHIVE not in new_config:
+            new_config[SEARCH_ARCHIVE] = 'hfir, sns'
         for key, val in new_config.items():
             backup[key] = config[key]
             config[key] = val  # config does not have an 'update' method

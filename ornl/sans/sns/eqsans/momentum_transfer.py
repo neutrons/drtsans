@@ -7,6 +7,9 @@ from mantid.simpleapi import AddSampleLog, ExtractSpectra, Rebin
 from ornl.sans.momentum_transfer import \
     MomentumTransfer as MomentumTransferMain
 from ornl.sans.sns.eqsans import geometry
+from mantid.kernel import logger
+from ornl.sans.samplelogs import SampleLogs
+
 
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
@@ -50,17 +53,23 @@ class MomentumTransfer(MomentumTransferMain):
 
 
 def prepare_momentum_transfer(input_workspace,
-                              wavelength_binning,
-                              sample_aperture=10.0):
+                              wavelength_binning=0.2,
+                              sample_aperture=10.0,
+                              prefix=None,
+                              suffix="_iqxqy_table"):
+                              
     """Generates the table workspace necessary for the binning.
-    This table contains unbinned Qx Qy
-    It's named: input_workspace.name() + "_iqxqy_table"
-
+    This table contains unbinned Qx Qy.
+    It is named `prefix + suffix`, by default:
+        `input_workspace.name() + "_iqxqy_table"`
+    
     Parameters
     ----------
     input_workspace : Workspace2D
         The corrected Workspace
-    wavelength_binning : Mantid Binning
+    wavelength_binning : Mantid Binning, optional
+        By default 0.2. If one value get's the min and max wavelength from the
+        wavelength axis. The step will be 0.2.
         A comma separated list of first bin boundary, width, last bin boundary.
         Optionally this can be followed by a comma and more widths and last
         boundary pairs. Optionally this can also be a single number, which is
@@ -70,6 +79,10 @@ def prepare_momentum_transfer(input_workspace,
         respectively. Negative width values indicate logarithmic binning.
     sample_aperture : float, optional
         Sample aperture diameter, by default 10.0
+    prefix : string, optional
+        if None uses `input_workspace.name()`, by default None
+    suffix : str, optional
+        The suffix for the table workspace, by default "_iqxqy_table"
     """
 
     AddSampleLog(Workspace=input_workspace,
@@ -77,8 +90,27 @@ def prepare_momentum_transfer(input_workspace,
                  LogText='{}'.format(sample_aperture),
                  LogType='Number',
                  LogUnit='mm')
-
     geometry.source_aperture_diameter(input_workspace)
+    
+
+
+    sl = SampleLogs(input_workspace)
+    if bool(sl.is_frame_skipping.value) is True:
+        
+        logger.information("This is a frame skipping data set. Outputing 2 WS.")
+        frame1_wavelength_min = sl.wavelength_skip_min.value
+        frame1_wavelength_max = sl.wavelength_skip_max.value
+        
+        frame2_wavelength_min = sl.wavelength_lead_min.value
+        frame2_wavelength_max = sl.wavelength_lead_max.value
+
+    else:
+        frame1_wavelength_min = sl.wavelength_min.value
+        frame1_wavelength_max = sl.wavelength_max.value
+
+
+
+    
 
     ws_rebin = Rebin(InputWorkspace=input_workspace,
                      OutputWorkspace="ws_rebin",
@@ -87,8 +119,10 @@ def prepare_momentum_transfer(input_workspace,
     bins = ws_rebin.readX(0)
     bin_step = abs(bins[1] - bins[0])
 
-    # sufix = _iqxqy_table
-    mt_sum = MomentumTransfer(out_ws_prefix=input_workspace.name())
+    if prefix is None:
+        prefix = input_workspace.name()
+    
+    mt_sum = MomentumTransfer(out_ws_prefix=prefix)
 
     for bin_start in bins[:-1]:
         ws_extracted = ExtractSpectra(InputWorkspace=ws_rebin,
@@ -109,7 +143,7 @@ def prepare_momentum_transfer(input_workspace,
         mt_extracted = MomentumTransfer(ws_extracted)
         mt_sum += mt_extracted
 
-    return mt_sum.q2d()
+    return mt_sum.q2d(suffix=suffix)
 
 
 def iq(input_workspace, bins=100, log_binning=False):

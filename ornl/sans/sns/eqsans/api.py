@@ -1,13 +1,17 @@
 """ Top-level API for EQSANS """
 from mantid.api import mtd
+from mantid import simpleapi as sapi
+from ornl.settings import unique_workspace_dundername as uwd
 # Import rolled up to complete a single top-level API
-from ornl.sans import solid_angle_correction
+from ornl.sans import apply_sensitivity_correction, solid_angle_correction
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
+import os
 
-__all__ = ['prepare_data', 'apply_solid_angle_correction']
+__all__ = ['apply_solid_angle_correction', 'subtract_background',
+           'prepare_data']
 
 
 def apply_solid_angle_correction(ws):
@@ -17,11 +21,48 @@ def apply_solid_angle_correction(ws):
     return solid_angle_correction(ws, detector_type='VerticalTube')
 
 
-def apply_sensitivity_correction(ws, sensitivity_file_path):
-    """
-        Apply sensitivity correction
-    """
+def normalize(ws, normalization_type):
+    """ Normalize to time, monitor, or proton charge """
     raise NotImplementedError()
+
+
+def subtract_background(input_workspace, background, scale=1.0,
+                        output_wokspace=None):
+    r"""
+    Subtract a prepared background from a prepared sample.
+
+    Perform a rebin if sample and background have different binning.
+
+    Parameters
+    ----------
+    input_workspace: str, MatrixWorkspace
+        Sample workspace.
+    background: str, MatrixWorkspace
+        Background workspace.
+    scale: float
+        Rescale background intensities by this multiplicative factor before
+        subtraction from the sample.
+    output_wokspace: str
+        Name of the sample corrected by the background. If None, then
+        `input_workspace` will be overwritten.
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    if output_wokspace is None:
+        output_wokspace = str(input_workspace)
+    ws = mtd[str(input_workspace)]
+    wb = mtd[str(background)]
+    wb2 = sapi.RebinToWorkspace(WorkspaceToRebin=wb,
+                                WorkspaceToMatch=ws,
+                                OutputWorkspace=uwd())
+    wb2 = sapi.Scale(InputWorkspace=wb2, OutputWorkspace=wb2.name(),
+                     Factor=scale, Operation='Multiply')
+    sapi.Minus(LHSWorkspace=ws, RHSWorkspace=wb2,
+               OutputWorkspace=output_wokspace)
+    wb2.delete()
+    return mtd[output_wokspace]
 
 
 def prepare_data(data,
@@ -34,10 +75,10 @@ def prepare_data(data,
                  sensitivity_file_path=None,
                  output_workspace=None):
     r"""
-        Load an EQSANS data file and bring the data to a point where it
-        can be used. This includes applying basic corrections that are
-        always applied regardless of whether the data is background or
-        scattering data.
+    Load an EQSANS data file and bring the data to a point where it
+    can be used. This includes applying basic corrections that are
+    always applied regardless of whether the data is background or
+    scattering data.
 
     Parameters
     ----------
@@ -63,14 +104,15 @@ def prepare_data(data,
     transform_to_wavelength(output_workspace, bin_width=bin_width,
                             low_tof_clip=low_tof_clip,
                             high_tof_clip=high_tof_clip)
-    center_detector(output_workspace, x=x_center, y=y_center)
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
     if flux is not None:
         normalise_by_flux(output_workspace, flux)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
-    # Uncomment as we address them
-    # initial_uncertainty_estimation(output_workspace)
     apply_solid_angle_correction(output_workspace)
-    # apply_sensitivity_correction(output_workspace, sensitivity_file_path)
+    center_detector(output_workspace, x=x_center, y=y_center)
+    if sensitivity_file_path is not None \
+            and os.path.exists(sensitivity_file_path):
+        apply_sensitivity_correction(output_workspace,
+                                     sensitivity_filename=sensitivity_file_path)  # noqa: E501 can't fit in line
     return mtd[output_workspace]

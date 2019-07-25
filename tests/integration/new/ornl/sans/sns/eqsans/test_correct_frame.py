@@ -84,7 +84,7 @@ def test_convert_to_wavelength(refd):
             ws = CloneWorkspace(wo, OutputWorkspace=uwn())
             MoveInstrumentComponent(ws, ComponentName='detector1', Z=sadd)
             cf.correct_detector_frame(ws)
-            sodd = source_detector_distance(ws, units='m')
+            sodd = source_detector_distance(ws, unit='m')
             bands = cf.transmitted_bands_clipped(ws, sodd, 500, 2000,
                                                  interior_clip=True)
             ws = cf.convert_to_wavelength(ws, bands, wavelength_bin)

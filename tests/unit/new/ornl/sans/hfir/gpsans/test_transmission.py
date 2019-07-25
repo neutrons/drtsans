@@ -1,7 +1,10 @@
-#!/usr/bin/env python
-from __future__ import print_function
-
 import pytest
+from pytest import approx
+from mantid.simpleapi import (LoadHFIRSANS, MoveInstrumentComponent,
+                              CreateWorkspace)
+from ornl.settings import unique_workspace_dundername as uwd
+from ornl.sans.transmission import (calculate_transmission,
+                                    apply_transmission_correction)
 
 
 @pytest.fixture(scope='module')
@@ -38,16 +41,8 @@ def dataset_center(gpsans_full_dataset):
     return x, y
 
 
-@pytest.mark.offline
 def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
                                 dataset_center):
-    '''
-
-    '''
-    from ornl.sans.transmission import (
-        calculate_transmission_value, calculate_transmission_ws)
-    from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent
-
     x, y = dataset_center[0], dataset_center[1]
     input_sample_ws = sample_scattering_sum_ws
     MoveInstrumentComponent(
@@ -59,30 +54,15 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
     MoveInstrumentComponent(
         Workspace=input_reference_ws, ComponentName='detector1', X=-x, Y=-y)
 
-    calculated_transmission_ws = calculate_transmission_ws(
-        input_sample_ws, input_reference_ws)
+    trans = calculate_transmission(input_sample_ws, input_reference_ws)
 
-    calculated_transmission_value = calculate_transmission_value(
-        input_sample_ws, input_reference_ws)
-
-    assert calculated_transmission_value[0] == pytest.approx(0.08224, abs=1e-4)
-    assert calculated_transmission_value[1] == pytest.approx(0.01267, abs=1e-4)
-
-    assert calculated_transmission_ws.readY(0)[0] == \
-        pytest.approx(0.08224, abs=1e-4)
-    assert calculated_transmission_ws.readE(0)[0] == \
-        pytest.approx(0.01267, abs=1e-4)
+    assert trans.readY(0)[0] == approx(0.08224, abs=1e-4)
+    assert trans.readE(0)[0] == approx(0.01267, abs=1e-4)
 
 
-@pytest.mark.offline
-def test_apply_transmission_with_ws(gpsans_full_dataset,
-                                    sample_scattering_sum_ws, dataset_center):
-    '''
-    '''
-
-    from ornl.sans.transmission import _apply_transmission_mantid
-    from mantid.simpleapi import CreateWorkspace, MoveInstrumentComponent
-
+def test_apply_transmission_correction(gpsans_full_dataset,
+                                       sample_scattering_sum_ws,
+                                       dataset_center):
     trans_value = 0.5191
     trans_ws = CreateWorkspace(
         DataX=[3.8, 4.2],
@@ -91,95 +71,69 @@ def test_apply_transmission_with_ws(gpsans_full_dataset,
         UnitX="Wavelength"
     )
 
-    ws_sample = sample_scattering_sum_ws
+    ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
-    MoveInstrumentComponent(
-        Workspace=ws_sample, ComponentName='detector1', X=-x, Y=-y)
+    MoveInstrumentComponent(Workspace=ws, ComponentName='detector1',
+                            X=-x, Y=-y)
 
-    ws_sample_corrected = _apply_transmission_mantid(
-        ws_sample, trans_ws=trans_ws, theta_dependent=False)
+    ws_c = apply_transmission_correction(ws, trans_workspace=trans_ws,
+                                         theta_dependent=False,
+                                         output_workspace=uwd())
 
-    assert ws_sample.readY(9100)[0] == pytest.approx(20.0, abs=1e-3)
-    assert ws_sample_corrected.readY(
-        9100)[0] == pytest.approx(20.0 / trans_value, abs=1e-3)
+    assert ws.readY(9100)[0] == approx(20.0, abs=1e-3)
+    assert ws_c.readY(9100)[0] == approx(20.0 / trans_value, abs=1e-3)
 
 
-@pytest.mark.offline
 def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center,
                                         sample_scattering_sum_ws):
-    '''
-    '''
-
-    from ornl.sans.transmission import _apply_transmission_mantid
-    from mantid.simpleapi import MoveInstrumentComponent
-
     trans_value = 0.5191
     trans_error = 0.0141
 
-    ws_sample = sample_scattering_sum_ws
+    ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
-    MoveInstrumentComponent(
-        Workspace=ws_sample, ComponentName='detector1', X=-x, Y=-y)
+    MoveInstrumentComponent(Workspace=ws, ComponentName='detector1',
+                            X=-x, Y=-y)
 
-    ws_sample_corrected = _apply_transmission_mantid(
-        ws_sample, trans_value=trans_value, trans_error=trans_error,
-        theta_dependent=False)
+    ws_c = apply_transmission_correction(ws, trans_value=trans_value,
+                                         trans_error=trans_error,
+                                         theta_dependent=False,
+                                         output_workspace=uwd())
 
-    assert ws_sample.readY(9100)[0] == pytest.approx(20.0, abs=1e-3)
-    assert ws_sample_corrected.readY(
-        9100)[0] == pytest.approx(20.0 / trans_value, abs=1e-3)
+    assert ws.readY(9100)[0] == approx(20.0, abs=1e-3)
+    assert ws_c.readY(9100)[0] == approx(20.0 / trans_value, abs=1e-3)
 
 
-@pytest.mark.offline
 def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center,
                                           sample_scattering_sum_ws):
-    '''
-    This is the function that users / scientists use 90% of the time
-    '''
-    from ornl.sans.transmission import apply_transmission_correction_ws
-    from mantid.simpleapi import MoveInstrumentComponent, CreateWorkspace
-
-    input_sample_ws = sample_scattering_sum_ws
+    ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
-    MoveInstrumentComponent(
-        Workspace=input_sample_ws, ComponentName='detector1', X=-x, Y=-y)
+    MoveInstrumentComponent(Workspace=ws, ComponentName='detector1',
+                            X=-x, Y=-y)
 
-    transmission_ws = CreateWorkspace(
-        DataX=[0, 1], DataY=[0.08224400871459694], DataE=[0.012671053121947698]
-    )
+    trans_ws = CreateWorkspace(DataX=[0, 1], DataY=[0.08224400871459694],
+                               DataE=[0.012671053121947698])
 
-    input_sample_corrected_ws = apply_transmission_correction_ws(
-        input_sample_ws, transmission_ws, theta_dependent=False)
+    ws_c = apply_transmission_correction(ws, trans_ws, theta_dependent=False,
+                                         output_workspace=uwd())
 
-    assert input_sample_corrected_ws.readY(9100)[0] == \
-        pytest.approx(243.178, abs=1e-2)
-    assert input_sample_corrected_ws.readE(9100)[0] == \
-        pytest.approx(58.312, abs=1e-2)
+    assert ws_c.readY(9100)[0] == approx(243.178, abs=1e-2)
+    assert ws_c.readE(9100)[0] == approx(58.312, abs=1e-2)
 
 
-@pytest.mark.offline
 def test_apply_transmission_correction_value(gpsans_full_dataset,
                                              sample_scattering_sum_ws):
-    '''
-    This is the function that users / scientists use 90% of the time
-    '''
-    from ornl.sans.transmission import apply_transmission_correction_value
-
-    input_sample_ws = sample_scattering_sum_ws
-
-    # Zero angle transmission values as the input_reference_ws above
+    ws = sample_scattering_sum_ws
+    # Zero angle transmission values
     trans_value = 0.08224400871459694
     trans_error = 0.012671053121947698
 
-    input_sample_corrected_ws = apply_transmission_correction_value(
-        input_sample_ws, trans_value=trans_value, trans_error=trans_error,
-        theta_dependent=False)
-
+    ws_c = apply_transmission_correction(ws, trans_value=trans_value,
+                                         trans_error=trans_error,
+                                         theta_dependent=False,
+                                         output_workspace=uwd())
     # Note the corrected values are the same as above
-    assert input_sample_corrected_ws.readY(9100)[0] == \
-        pytest.approx(243.178, abs=1e-2)
-    assert input_sample_corrected_ws.readE(9100)[0] == \
-        pytest.approx(58.312, abs=1e-2)
+    assert ws_c.readY(9100)[0] == approx(243.178, abs=1e-2)
+    assert ws_c.readE(9100)[0] == approx(58.312, abs=1e-2)
 
 
 if __name__ == '__main__':

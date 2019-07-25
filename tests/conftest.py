@@ -70,6 +70,31 @@ class GetWS(object):
         raise TypeError(msg)
 
 
+@pytest.fixture(scope='module')
+def cleanfile():
+    '''Fixture that deletes registered files when the .py file is finished. It
+    will cleanup on exception and will safely skip over files that do not
+    exist.
+
+    Usage:
+
+    def test_something(cleanfile):
+        cleanfile('/some/file/the/test.creates')
+        # do stuff
+    '''
+    filenames = []
+
+    def _cleanfile(filename):
+        filenames.append(filename)
+        return filename
+
+    yield _cleanfile
+
+    for name in filenames:
+        if os.path.exists(name):
+            os.unlink(name)
+
+
 @pytest.fixture(scope='session')
 def refd():
     """A namedtuple with the directory **absolute** paths for test data
@@ -131,6 +156,7 @@ def biosans_f():
     dd = pjoin(data_dir, 'new', 'ornl', 'sans', 'hfir', 'biosans')
     return dict(
         beamcenter=pjoin(dd, 'BioSANS_exp402_scan0006_0001.xml'),
+        anisotropic=pjoin(dd, 'BioSANS_exp440_scan0022_0006.xml'),
     )
 
 

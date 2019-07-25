@@ -27,10 +27,9 @@ def q_resolution_per_pixel(ws):
     ------
     numpy array of the same dimension as the data
     """
-    L1 = sans_geometry.source_sample_distance(ws, units='m',
+    L1 = sans_geometry.source_sample_distance(ws, unit='m',
                                               log_key='source-sample-distance')
-    kwargs = dict(units='m', log_key='sample-detector-distance')
-    L2 = sans_geometry.sample_detector_distance(ws, **kwargs)
+    L2 = sans_geometry.sample_detector_distance(ws)
     R1 = 0.5 * eqsans_geometry.source_aperture_diameter(ws, unit='m')
     R2 = 0.5 * eqsans_geometry.sample_aperture_diameter(ws, unit='m')
 

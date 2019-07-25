@@ -109,7 +109,7 @@ def prepare_momentum_transfer(input_workspace,
         mt_extracted = MomentumTransfer(ws_extracted)
         mt_sum += mt_extracted
 
-    mt_sum.q2d()
+    return mt_sum.q2d()
 
 
 def iq(input_workspace, bins=100, log_binning=False):
@@ -141,7 +141,8 @@ def iq(input_workspace, bins=100, log_binning=False):
         q = np.sqrt(np.square(mt.qx) + np.square(mt.qy))
         bins = np.logspace(np.log10(np.min(q)), np.log10(np.max(q)), num=bins)
 
-    _, _ = mt.bin_into_q1d(bins=bins)
+    _, ws = mt.bin_into_q1d(bins=bins)
+    return ws
 
 
 def iqxqy(input_workspace, bins=100):
@@ -172,6 +173,7 @@ def iqxqy(input_workspace, bins=100):
 
     mt = MomentumTransfer(table_ws, out_ws_prefix=input_workspace.name())
 
+    # TODO: log binning
     # log_binning : bool, optional
     #     if True bins must be an integer or an array with two integers, e.g.,
     #     100 or [100, 100]
@@ -194,4 +196,5 @@ def iqxqy(input_workspace, bins=100):
     #                               num=num_y)
     #         bins = [bins_qx, bins_qy]
 
-    _, _ = mt.bin_into_q2d(bins=bins)
+    _, ws = mt.bin_into_q2d(bins=bins)
+    return ws

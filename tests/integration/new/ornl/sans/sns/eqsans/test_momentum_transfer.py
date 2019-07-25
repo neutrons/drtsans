@@ -185,3 +185,7 @@ def test_api(refd):
 
     iqxqy(ws)
     assert mtd.doesExist(ws.name() + "_iqxqy")
+
+
+def test_api_frame_skipping(refd):
+    pass

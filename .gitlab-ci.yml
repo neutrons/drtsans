@@ -47,30 +47,32 @@ docker-update-test:
   dependencies: 
     - dockerbuild
   before_script:
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+    - sudo yum install -y nfs-utils
+    - sudo mkdir -p /SNS/EQSANS
+    - sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS || true
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh -u scripts/docker-test.py
+    - sh -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
-    - scse-mantid-builder
+    - scse-sans-demo
 
 docker-no-update-test:
   stage: docker-test
   dependencies: 
     - dockerbuild
   before_script:
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+    - sudo yum install -y nfs-utils
+    - sudo mkdir -p /SNS/EQSANS
+    - sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS || true
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh scripts/docker-test.py
+    - sh -x scripts/sans-backend-run.sh || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
-    - scse-mantid-builder
+    - scse-sans-demo
 
 code-unit-test:
   stage: code-test

@@ -1,9 +1,11 @@
 import json
 import sys
-
-from mantid.kernel import ConfigService
-ConfigService.setString('UpdateInstrumentDefinitions.OnStartup', '0')
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+# from mantid.kernel import ConfigService
+# ConfigService.setString('UpdateInstrumentDefinitions.OnStartup', '0')
 from mantid.simpleapi import (LoadEventNexus, Segfault)  # noqa: E402
+
 
 if __name__ == '__main__':
     if len(sys.argv) >= 2:

@@ -22,7 +22,8 @@ if __name__ == '__main__':
         logFile = open(out_log, "w")
         errFile = open(out_err, "w")
         json_string = json.dumps(json_parameters)
-        cmd = "python3 sans_reduction_test.py '{}'".format(json_string)
+        cmd = "python3 /opt/sans-backend/scripts/sans_reduction_test.py"
+        cmd += " '{}'".format(json_string)
         proc = subprocess.Popen(cmd,
                                 shell=True,
                                 stdin=subprocess.PIPE,

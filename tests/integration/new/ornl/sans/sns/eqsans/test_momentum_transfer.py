@@ -9,7 +9,8 @@ import mantid
 from mantid import mtd
 from mantid.simpleapi import AddSampleLog, ConfigService, ExtractSpectra, Rebin
 from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
-                                  normalisation, transform_to_wavelength)
+                                  normalisation, transform_to_wavelength,
+                                  prepare_data)
 from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer, iq,
                                                     iqxqy,
                                                     prepare_momentum_transfer)
@@ -61,8 +62,8 @@ def test_momentum_tranfer_serial(refd):
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
         refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
-                                                output_workspace='flux_ws',
-                                                ws_reference=ws)
+        output_workspace='flux_ws',
+        ws_reference=ws)
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
@@ -164,8 +165,8 @@ def test_api(refd):
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
         refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
-                                                output_workspace='flux_ws',
-                                                ws_reference=ws)
+        output_workspace='flux_ws',
+        ws_reference=ws)
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
@@ -188,82 +189,26 @@ def test_api(refd):
 
 
 def test_api_frame_skipping(refd):
-    import os
-    import numpy as np
-    import scipy.stats
-    from mantid.simpleapi import mtd
-    from mantid import simpleapi as api
-    from reduction_workflow.instruments.sans.sns_command_interface import *
-    from reduction_workflow.instruments.sans.hfir_command_interface import *
-    from ornl.sans.sns import eqsans
-    import matplotlib.pyplot as plt
 
-    # The new way of dealing with the beam center is in real space, relative to the center of the detector.
-    # The EQSANS detector is 192 x 256 pixels, and the pixel sizes are 5.5 mm x 4.3 mm
-    x_center = -(192/2.0 - 90.93) * 0.0055
-    y_center = (256/2.0 - 131.47) * 0.0043
-    print("Beam center in real space: %g %g" % (x_center, y_center))
+    db_ws = load_events(os.path.join(refd.new.eqsans, "EQSANS_88973.nxs.h5"))
+    center = center_detector(db_ws)
 
-    db_ws = eqsans.load_events("EQSANS_88973")
-    center = eqsans.center_detector(db_ws)
-    print("Beam center found: %g %g" % (center[0], center[1]))
+    ws = prepare_data(os.path.join(refd.new.eqsans, "EQSANS_88980.nxs.h5"),
+                      x_center=-center[0], y_center=-center[1],
+                      # use_config_tof_cuts=True,
+                      # use_config=True,
+                      # use_config_mask=True,
+                      # correct_for_flight_path=True,
+                      # flux=beam_flux_file,
+                      # mask=detector_ids604m,
+                      # dark_current=dark_data_file,
+                      # sensitivity_file_path=sensitivity_file,
+                      sample_offset=340)
 
+    ws_frame1, ws_frame2 = prepare_momentum_transfer(ws)
 
-    mask60_ws4m = api.Load(Filename="/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs")
-    ws604m, masked60_detectors4m = api.ExtractMask(InputWorkspace=mask60_ws4m, OutputWorkspace="__edited_mask604m")
-    detector_ids604m = [int(i) for i in masked60_detectors4m]
+    ws_frame1_iq = iq(ws_frame1, bins=150, log_binning=True)
+    ws_frame2_iq = iq(ws_frame2, bins=150, log_binning=True)
 
-    beam_flux_file = "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample"
-    absolute_scale = 0.0208641883
-    sample_thickness = 0.1  # mm
-    dark_data_file = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5"
-    sensitivity_file = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017A_mp/Sensitivity_patched_thinPMMA_4m_79165_event.nxs"
-
-    ws = eqsans.prepare_data("EQSANS_88980",
-                            x_center=-center[0], y_center=-center[1],
-                            #use_config_tof_cuts=True,
-                            #use_config=True,
-                            #use_config_mask=True,
-                            #correct_for_flight_path=True,
-                            flux=beam_flux_file,
-                            mask=detector_ids604m,
-                            #dark_current=dark_data_file,
-                            sensitivity_file_path=sensitivity_file,
-                            sample_offset=340)
-    ws /= sample_thickness
-    ws *= absolute_scale
-
-
-    scale_match = 50000
-    wl_f1_min = ws.getRun()['wavelength_lead_min'].value
-    wl_f1_max = ws.getRun()['wavelength_lead_max'].value
-    wl_f2_min = ws.getRun()['wavelength_skip_min'].value
-    wl_f2_max = ws.getRun()['wavelength_skip_max'].value
-    print("WL ranges: [%s - %s], [%s - %s]" % (wl_f1_min, wl_f1_max, wl_f2_min, wl_f2_max))
-
-    eqsans.prepare_momentum_transfer(ws, wavelength_binning=[wl_f1_min, 0.1, wl_f1_max])
-    eqsans.iq(ws, bins=150, log_binning=True)
-
-    iq_ws_f1 = mtd[ws.name() + "_iq"]
-    iq_f1 = iq_ws_f1.extractY()[0] / scale_match
-    diq_f1 = iq_ws_f1.extractE()[0] / scale_match
-    q_f1 = iq_ws_f1.extractX()[0]
-
-
-    eqsans.prepare_momentum_transfer(ws, wavelength_binning=[wl_f2_min, 0.1, wl_f2_max])
-    eqsans.iq(ws, bins=150, log_binning=True)
-
-    iq_ws_f2 = mtd[ws.name() + "_iq"]
-    iq_f2 = iq_ws_f2.extractY()[0] / scale_match
-    diq_f2 = iq_ws_f2.extractE()[0] / scale_match
-    q_f2 = iq_ws_f2.extractX()[0]
-
-    ref_f1 = np.loadtxt('data/ref_porasil_complete_frame1.txt')
-    ref_f2 = np.loadtxt('data/ref_porasil_complete_frame2.txt')
-
-    plt.loglog(ref_f1.T[0], ref_f1.T[1], label='old frame 1')
-    plt.loglog(ref_f2.T[0], ref_f2.T[1], label='old frame 2')
-    plt.loglog((q_f1[1:]-q_f1[:-1])/2, iq_f1, label='new frame 1')
-    plt.loglog((q_f2[1:]-q_f2[:-1])/2, iq_f2, label='new frame 2')
-    plt.legend()
-    plt.show()
+    assert ws_frame1_iq is not None
+    assert ws_frame2_iq is not None

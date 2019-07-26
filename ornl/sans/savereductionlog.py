@@ -15,15 +15,19 @@ def _createnxgroup(parent, name, klass):
 
 
 def _savenxnote(nxentry, name, mimetype, file_name, data):
-    '''
+    '''Write an NXnote inside an entry
     http://download.nexusformat.org/doc/html/classes/base_classes/NXnote.html
 
-    :param nxentry:
-    :param name:
-    :param mimetype:
-    :param file_name:
-    :param data:
-    :return: The generated note
+    nxentry: HDF handle
+        NXentry to put the NXnote into
+    name: str
+        Name of the NXnote group
+    mimetype: str
+        Mimetype of the data
+    file_name: str
+        Name of the file that the note was taken from
+    data: str
+        The contents of the note
     '''
     nxnote = _createnxgroup(nxentry, name, 'NXnote')
 
@@ -34,25 +38,34 @@ def _savenxnote(nxentry, name, mimetype, file_name, data):
     return nxnote
 
 
-def _savepythonscript(nxentry, **kwargs):
-    '''
-    :param entry: The h5py entry that the note should be in
-    :param kwargs: A dict containing ``python`` and ``pythonfile`` arguments.
-    See :ref:`savereductionlog` for what they mean.
+def _savepythonscript(nxentry, pythonfile, pythonscript):
+    '''Write the python script as a NXnote
+
+    nxentry: HDF handle
+        NXentry to put the NXnote into
+    pythonfile: str
+        Filename that was supplied to reduction
+    pythonscript: str
+        The python script itself
     '''
     # read the contents of the script
-    scriptfile = kwargs.get('pythonfile', '')
-    scriptcontents = kwargs.get('python', '')
-    if not scriptcontents:
-        with open(scriptfile, 'r') as script:
-            scriptcontents = script.read()
+    if not pythonscript:
+        with open(pythonfile, 'r') as script:
+            pythonscript = script.read()
 
     return _savenxnote(nxentry, 'reduction_script', 'text/x-python',
-                       scriptfile, scriptcontents)
+                       pythonfile, pythonscript)
 
 
-def _savereductionparams(nxentry, **kwargs):
-    parameters = kwargs.get('reductionparams', '')
+def _savereductionparams(nxentry, parameters):
+    '''Save the all of the reduction parameters as an NXnote
+
+    nxentry: HDF handle
+        NXentry to put the NXnote into
+    parameters: dict or str
+        The parameters supplied to the reduction script. This will be converted
+        to a json string if it isn't one already.
+    '''
     if not isinstance(parameters, str):
         parameters = json.dumps(parameters)
     return _savenxnote(nxentry, 'reduction_parameters',
@@ -61,12 +74,32 @@ def _savereductionparams(nxentry, **kwargs):
 
 
 def _savenxprocess(nxentry, program, version):
+    '''Create a NXprocess for the specified program
+
+    Parameters
+    ----------
+    nxentry: HDF handle
+        NXentry to put the NXprocess into
+    program: str
+        name of the program
+    version: str
+        program's version string
+    '''
     nxprocess = _createnxgroup(nxentry, program, 'NXprocess')
     nxprocess.create_dataset(name='program', data=[np.string_(program)])
     nxprocess.create_dataset(name='version', data=[np.string_(version)])
 
 
 def _savenxlog(nxcollection, property):
+    '''Create a NXlog from the supplied property
+
+    Parameters
+    ----------
+    nxcollection: HDF handle
+        NXcollection that the NXlog should be added to
+    property: PropertyWithValue
+        log item to inspect and write its values to disk
+    '''
     nxlog = _createnxgroup(nxcollection, property.name, 'NXlog')
 
     try:
@@ -99,21 +132,40 @@ def _savenxlog(nxcollection, property):
     return nxlog
 
 
-def _savespecialparameters(nxentry, wksp, **kwargs):
+def _savespecialparameters(nxentry, wksp):
+    '''Save the special parameters from the workspace
+
+    Currently this only saves the derived parameters. It should be expanded to
+    save some of the special input parameters as well.
+
+    Parameters
+    ----------
+    nxentry: HDF handle
+        Entry group to put information in
+    wksp: Workspace2D
+        Workspace to get the information from
+    '''
     nxcollection = _createnxgroup(nxentry, 'derived_parameters',
                                   'NXcollection')
     runObj = mtd[str(wksp)].run()
 
-    # TODO add more of the "important" parameters
+    # TODO add more of the "important" derived parameters
     names = ['beam_center_x', 'beam_center_y',
              'qmax', 'qmin', 'qstep', ]
     for name in names:
         if name in runObj:  # they are optional
             _savenxlog(nxcollection, runObj[name])
 
+    # TODO look in the workspace history for some of the special input
+    #      parameters
+
 
 def savereductionlog(wksp1d, wksp2d=None, filename=None, **kwargs):
-    r'''Save the reduction log TODO this needs more blah-blah describing the format
+    r'''Save the reduction log
+
+    There are three ``NXentry``. The first is for the 1d reduced data, second
+    is for the 2d reduced data, and the third is for the extra information
+    about how the data was processed.
 
     Parameters
     ----------
@@ -128,7 +180,16 @@ def savereductionlog(wksp1d, wksp2d=None, filename=None, **kwargs):
         - ``python`` the script used to create everything
         - `pythonfile`` the name of the file containing the python script.
           Will be read into ``python`` argument if not already supplied
+        - ``reductionparams`` is the parameters supplied to the reduction
+          script
         - ``starttime`` when the original script was started
+        - ``hostname`` name of the computer used. If not provided, will be
+          gotten from the system environment ``HOSTNAME``
+        - ``user`` user-id of who reduced the data (as in xcamms). If not
+          provided will be gotten from the system environment ``USER``
+        - ``username`` username of who reduced the data (as in actual name).
+          If not provided will be gotten from the system environment
+          ``USERNAME``
     '''
     if not filename:
         raise RuntimeError('Cannot write to file "{}"'.format(filename))
@@ -148,8 +209,10 @@ def savereductionlog(wksp1d, wksp2d=None, filename=None, **kwargs):
         entry = _createnxgroup(handle, 'reduction_information', 'NXentry')
 
         # read the contents of the script
-        _savepythonscript(entry, **kwargs)
-        _savereductionparams(entry, **kwargs)
+        _savepythonscript(entry, pythonfile=kwargs.get('pythonfile', ''),
+                          pythonscript=kwargs.get('python', ''))
+        _savereductionparams(entry, parameters=kwargs.get('reductionparams',
+                                                          ''))
 
         # timestamp of when it happened - default to now
         starttime = kwargs.get('starttime', datetime.now().isoformat())

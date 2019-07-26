@@ -20,9 +20,9 @@ class MomentumTransfer(MomentumTransferMain):
                  input_workspace=None,
                  component_name="detector1",
                  out_ws_prefix="ws"):
-        super().__init__(input_workspace,
-                         component_name=component_name,
-                         out_ws_prefix=out_ws_prefix)
+        super(MomentumTransfer, self).__init__(input_workspace,
+                                               component_name=component_name,
+                                               out_ws_prefix=out_ws_prefix)
 
     def __iadd__(self, other):
         """This is an overload for `+=` operator.

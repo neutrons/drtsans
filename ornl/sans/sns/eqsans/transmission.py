@@ -53,6 +53,8 @@ def calculate_transmission(input_sample, input_reference,
     MatrixWorkspace
         Workspace containing the raw transmission values
     """
+    if output_workspace is None:
+        output_workspace = uwd()
     zat = calc_trans(input_sample, input_reference,
                      radius=radius, radius_unit=radius_unit,
                      output_workspace=output_workspace)

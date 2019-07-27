@@ -23,7 +23,9 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
     If `x` and `y` are a translation (`relative=False`) then both
     `method` and the translation will be applied.
 
-    case 1: position detector after a center of mass estimation
+    case 1: position detector after a center of mass estimation. The
+        intersection between the neutron beam and the detector array will
+        have coordinates (0, 0, Z).
         center_detector(ws)
     case 2: position detector at absolute coordinates (x0,y0)
         center_detector(ws, x=x0, y=y0)
@@ -71,9 +73,11 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
         if mask is not None:
             fmsk = apply_mask(ws_flattened, mask=mask)
             fmsk.delete()
+        # (t_x, t_y) is the intersection point of the neutron beam with the
+        # detector
         t_x, t_y = list(method_to_alg[method](InputWorkspace=ws_flattened))
         ws_flattened.delete()
-        rs = np.array([t_x, t_y, rs[-1]])
+        rs = np.array([-t_x, -t_y, rs[-1]])
         rf = rs
 
     if x is not None and y is not None:

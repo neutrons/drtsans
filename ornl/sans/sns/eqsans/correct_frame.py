@@ -128,8 +128,9 @@ def transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip,
         trim neutrons of the leading pulse with TOF bigger than the maximal
         TOF minus this value.  Units in micro-seconds
     interior_clip: False
-        If True, also trim slow neutrons from the lead pulse (using `htc`) and
-        fast neutrons from the skip pulse (using `ltc`)
+        If True, trim slow neutrons from the lead pulse (using
+        `high_tof_clip`) and fast neutrons from the skip pulse (using
+         `low_tof_clip`)
     Returns
     -------
     namedtuple
@@ -153,7 +154,8 @@ def transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip,
     return dict(lead=lead, skip=skip)
 
 
-def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
+def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
+                      interior_clip=False):
     r"""
     Append to the logs relevant information about the time of flight
     frame and structure
@@ -162,8 +164,8 @@ def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
 
     Parameters
     ----------
-    ws: MatrixWorkspace
-        InputWorkspace
+    input_workspace: str, MatrixWorkspace
+        Input workspace to amend its logs
     sdd: float
         Distance from source to detector, in meters
     low_tof_clip: float
@@ -175,13 +177,20 @@ def log_tof_structure(ws, low_tof_clip, high_tof_clip, interior_clip=False):
     interior_clip: False
         If True, also trim slow neutrons from the lead pulse (using `htc`) and
         fast neutrons from the skip pulse (using `ltc`)
+
+    Returns
+    -------
+    MatrixWorkspace
+        The input workspace, with the logs ammended
     """
+    ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)
     sl = SampleLogs(ws)
     sl.insert('tof_frame_width', ch.period, unit='ms')
     clip_times = 1 if interior_clip is False else 2
     tof_width_clipped = ch.period - clip_times * (low_tof_clip + high_tof_clip)
     sl.insert('tof_frame_width_clipped', tof_width_clipped, unit='ms')
+    return ws
 
 
 def correct_frame(ws, source_to_component_distance):
@@ -322,7 +331,7 @@ def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
                             keep_events=False, zero_uncertainty=1.0,
-                            output_workspace=None):
+                            interior_clip=False, output_workspace=None):
     r"""
     Convert to Wavelength histogram data
 
@@ -342,6 +351,10 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
         The final histogram will be an EventsWorkspace if True.
     zero_uncertainty: float
         Assign this error to histogram bins having no counts.
+    interior_clip: False
+        If True, trim slow neutrons from the lead pulse (using
+        `high_tof_clip`) and fast neutrons from the skip pulse (using
+         `low_tof_clip`)
     output_workspace: str
         Name of the output workspace. If None, the input_workspace will be
         overwritten.
@@ -355,11 +368,14 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
         output_workspace = str(input_workspace)
 
     sdd = source_detector_distance(input_workspace, unit='m')
-    bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
-                                      high_tof_clip)
-    w = convert_to_wavelength(input_workspace, bands, bin_width,
-                              events=keep_events,
-                              output_workspace=output_workspace)
+    bands = transmitted_bands_clipped(input_workspace, sdd,
+                                      low_tof_clip, high_tof_clip,
+                                      interior_clip=interior_clip)
+    convert_to_wavelength(input_workspace, bands, bin_width,
+                          events=keep_events,
+                          output_workspace=output_workspace)
+    w = log_tof_structure(output_workspace, low_tof_clip,
+                          high_tof_clip, interior_clip=interior_clip)
     # uncertainty when no counts in the bin
     for i in range(w.getNumberHistograms()):
         zero_count_indices = np.where(w.dataY(i) == 0)[0]

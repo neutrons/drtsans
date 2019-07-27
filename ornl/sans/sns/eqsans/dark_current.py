@@ -4,7 +4,6 @@ from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
                               ConvertUnits, Subtract, Scale, LoadEventNexus)
-import os
 
 from ornl.settings import (namedtuplefy, amend_config,
                            unique_workspace_dundername as uwd)

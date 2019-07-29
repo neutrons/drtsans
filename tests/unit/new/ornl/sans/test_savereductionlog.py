@@ -171,8 +171,9 @@ def test_saving(refd, filename1d, filename2d):
 
     # run the function - use same workspace for both
     if wksp1d:
-        savereductionlog(wksp1d, wksp2d, filename=tmpfile, python=pythonscript,
-                         starttime=starttime, user=user, username=username)
+        savereductionlog(wksp1d, wksp2d=wksp2d, filename=tmpfile,
+                         python=pythonscript, starttime=starttime,
+                         user=user, username=username)
 
         # validation
         assert os.path.exists(tmpfile), \
@@ -190,7 +191,7 @@ def test_saving(refd, filename1d, filename2d):
         checkWorkspaces(tmpfile, wksp2d, 2)
     else:  # not supplying 1d workspace should always fail
         with pytest.raises(RuntimeError):
-            savereductionlog(wksp1d, wksp2d, filename=tmpfile,
+            savereductionlog(wksp1d, wksp2d=wksp2d, filename=tmpfile,
                              python=pythonscript, starttime=starttime,
                              user=user, username=username)
         assert not os.path.exists(tmpfile), \

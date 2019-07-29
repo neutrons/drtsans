@@ -160,7 +160,7 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
-def savereductionlog(wksp1d, wksp2d=None, filename=None, **kwargs):
+def savereductionlog(wksp1d, filename, wksp2d=None, **kwargs):
     r'''Save the reduction log
 
     There are three ``NXentry``. The first is for the 1d reduced data, second
@@ -171,10 +171,10 @@ def savereductionlog(wksp1d, wksp2d=None, filename=None, **kwargs):
     ----------
     wksp1d: Workspace2D
         Workspace containing only one spectru (the I(q) curve)
-    wksp2d: Workspace2D
-        Not currently used
     filename: string
         The output filename to write to
+    wksp2d: Workspace2D
+        Workspace containing I(Qx, Qy)
     kwargs: dict
         dictionary of optional items:
         - ``python`` the script used to create everything

@@ -212,11 +212,11 @@ def test_api_frame_skipping(refd):
 
     ws_frame1_iq = iq(ws_frame1, bins=150, log_binning=True)
     ws_frame2_iq = iq(ws_frame2, bins=150, log_binning=True)
-
-    _ = iqxqy(ws_frame1)
-    _ = iqxqy(ws_frame2)
-
-    assert not np.allclose(ws_frame1_iq.extractX(), ws_frame2_iq.extractX())
-
     assert ws_frame1_iq is not None
     assert ws_frame2_iq is not None
+    assert not np.allclose(ws_frame1_iq.extractX(), ws_frame2_iq.extractX())
+
+    ws_frame1_iqxqy = iqxqy(ws_frame1)
+    ws_frame2_iqxqy = iqxqy(ws_frame2)
+    assert ws_frame1_iqxqy is not None
+    assert ws_frame2_iqxqy is not None

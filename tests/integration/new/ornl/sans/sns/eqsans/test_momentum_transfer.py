@@ -171,20 +171,23 @@ def test_api(refd):
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     #
-    prepare_momentum_transfer(ws, "2.6,0.2,5.6")
-    assert mtd.doesExist(ws.name() + "_iqxqy_table")
+    table_ws = prepare_momentum_transfer(
+        ws, wavelength_binning=[2.6, 0.2, 5.6])
+    assert mtd.doesExist(ws.name() + "_table")
 
-    iq(ws)
+    table_ws = table_ws[0]
+
+    iq_ws = iq(table_ws)
     assert mtd.doesExist(ws.name() + "_iq")
 
-    iq(ws, bins=100, log_binning=True)
-    ws_iq = mtd[ws.name() + "_iq"]
+    _ = iq(table_ws, bins=100, log_binning=True)
+    iq_ws = mtd[ws.name() + "_iq"]
     # check if it is log binning:
-    q = ws_iq.readX(0)
+    q = iq_ws.readX(0)
     q_divide = q[1:] / q[:-1]
     assert np.allclose(q_divide, q_divide[0])
 
-    iqxqy(ws)
+    _ = iqxqy(table_ws)
     assert mtd.doesExist(ws.name() + "_iqxqy")
 
 
@@ -209,6 +212,11 @@ def test_api_frame_skipping(refd):
 
     ws_frame1_iq = iq(ws_frame1, bins=150, log_binning=True)
     ws_frame2_iq = iq(ws_frame2, bins=150, log_binning=True)
+
+    _ = iqxqy(ws_frame1)
+    _ = iqxqy(ws_frame2)
+
+    assert not np.allclose(ws_frame1_iq.extractX(), ws_frame2_iq.extractX())
 
     assert ws_frame1_iq is not None
     assert ws_frame2_iq is not None

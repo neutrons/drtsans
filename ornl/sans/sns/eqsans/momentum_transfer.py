@@ -2,8 +2,8 @@ from __future__ import print_function
 
 import numpy as np
 
-from mantid import mtd
-from mantid.simpleapi import AddSampleLog, ExtractSpectra, Rebin
+from mantid.simpleapi import (
+    AddSampleLog, ExtractSpectra, Rebin, DeleteWorkspace)
 from ornl.sans.momentum_transfer import \
     MomentumTransfer as MomentumTransferMain
 from ornl.sans.sns.eqsans import geometry
@@ -56,7 +56,7 @@ def prepare_momentum_transfer(input_workspace,
                               wavelength_binning=[0.5],
                               sample_aperture=10.0,
                               prefix=None,
-                              suffix="_iqxqy_table"):
+                              suffix="_table"):
     """Generates the table workspace necessary for the binning.
     This table contains unbinned Qx Qy.
     It is named `prefix + suffix`, by default:
@@ -67,9 +67,11 @@ def prepare_momentum_transfer(input_workspace,
     input_workspace : Workspace2D
         The corrected Workspace
     wavelength_binning : list, optional
+        This is the binning used to calculate independent I(Qi).
+        In the future this will serve for I(Q) = K*I(Qi)+b.
         use: [min, step, max] or [step]
         By default [0.5], i.e. the step 0.5.
-        This is the same as mantid binning.
+        This is the same as mantid binning format.
     sample_aperture : float, optional
         Sample aperture diameter, by default 10.0
     prefix : string, optional
@@ -81,22 +83,23 @@ def prepare_momentum_transfer(input_workspace,
     -------
         Workspace2D
         or
-        (Workspace2D, Workspace2D) in case of frame skipping dat aset
+        (Workspace2D, Workspace2D) in case of frame skipping datset
     """
 
-    AddSampleLog(Workspace=input_workspace,
-                 LogName='sample-aperture-diameter',
-                 LogText='{}'.format(sample_aperture),
-                 LogType='Number',
-                 LogUnit='mm')
+    assert len(wavelength_binning) == 1 or len(wavelength_binning) == 3, \
+        "wavelength_binning must be a list of 1 or 3 elements"
+
+    AddSampleLog(
+        Workspace=input_workspace, LogName='sample-aperture-diameter',
+        LogText='{}'.format(sample_aperture), LogType='Number',
+        LogUnit='mm')
     geometry.source_aperture_diameter(input_workspace)
 
-    frames = []
     sl = SampleLogs(input_workspace)
+    frames = []
     if bool(sl.is_frame_skipping.value) is True:
 
-        logger.information(
-            "This is a frame skipping data set. Outputing 2 WS.")
+        logger.information("This is a frame skipping data set.")
         frame1_wavelength_min = sl.wavelength_skip_min.value
         frame1_wavelength_max = sl.wavelength_skip_max.value
 
@@ -115,50 +118,47 @@ def prepare_momentum_transfer(input_workspace,
             "The WS is frame skipping, use only the step in wavelength_binning")
         return
 
+    if prefix is None:
+        prefix = input_workspace.name()
+    result_wss = []
     for index, (wavelength_min, wavelength_max) in enumerate(frames):
 
         if len(wavelength_binning) == 1:
-            wavelength_binning = [wavelength_min,
-                                  wavelength_binning[0], wavelength_max]
+            wavelength_rebinning = [wavelength_min,
+                                    wavelength_binning[0], wavelength_max]
+        else:
+            wavelength_rebinning = wavelength_binning
 
-        ws_rebin = Rebin(
-            InputWorkspace=input_workspace,
-            OutputWorkspace="ws_tmp_rebin",
-            Params=wavelength_binning)
+        ws_rebin = Rebin(InputWorkspace=input_workspace,
+                         OutputWorkspace="ws_rebin",
+                         Params=wavelength_rebinning)
+
+        if len(frames) > 1:
+            this_prefix = prefix + "_frame{}".format(index+1)
+        else:
+            this_prefix = prefix
+
+        mt_sum = MomentumTransfer(out_ws_prefix=this_prefix)
 
         bins = ws_rebin.readX(0)
-        bin_step = abs(bins[1] - bins[0])
-
-        if prefix is None:
-            prefix = input_workspace.name()
-
-        mt_sum = MomentumTransfer(out_ws_prefix=prefix)
-
-        for bin_start in bins[:-1]:
+        for bin_index in range(len(bins)-1):
             ws_extracted = ExtractSpectra(InputWorkspace=ws_rebin,
-                                          XMin=bin_start,
-                                          XMax=bin_start + bin_step)
-            wavelength_mean = bin_start + bin_step / 2.0
-            AddSampleLog(Workspace=ws_extracted,
-                         LogName='wavelength',
+                                          XMin=bins[bin_index],
+                                          XMax=bins[bin_index+1])
+            wavelength_mean = (bins[bin_index] + bins[bin_index+1]) / 2.0
+
+            AddSampleLog(Workspace=ws_extracted, LogName='wavelength',
                          LogText="{:.2f}".format(wavelength_mean),
-                         LogType='Number',
-                         LogUnit='Angstrom')
-            AddSampleLog(Workspace=ws_extracted,
-                         LogName='wavelength-spread',
-                         LogText='0.2',
-                         LogType='Number',
-                         LogUnit='Angstrom')
+                         LogType='Number', LogUnit='Angstrom')
+            AddSampleLog(Workspace=ws_extracted, LogName='wavelength-spread',
+                         LogText='0.2', LogType='Number', LogUnit='Angstrom')
 
             mt_extracted = MomentumTransfer(ws_extracted)
             mt_sum += mt_extracted
-
-        if len(frames) == 1:
-            return mt_sum.q2d(suffix=suffix)
-        else:
-            mt_sum.q2d(suffix=suffix+"_frame_{}".format(index+1))
-
-    return mtd[prefix+suffix+"_frame_1"], mtd[prefix+suffix+"_frame_2"]
+        result_wss.append(mt_sum.q2d(suffix=suffix))
+        DeleteWorkspace(ws_rebin)
+        DeleteWorkspace(ws_extracted)
+    return result_wss
 
 
 def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
@@ -180,10 +180,15 @@ def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
         the number of bins will be, (nx = len(bins)-1).
     log_binning : bool, optional
         if True bins must be an integer, by default False
+    Returns
+    -------
+        Workspace2D
+        Only a WS with a single spectra
     """
 
-    mt = MomentumTransfer(input_table_workspace,
-                          out_ws_prefix=input_table_workspace.name())
+    mt = MomentumTransfer(
+        input_table_workspace,
+        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
     if log_binning and isinstance(bins, int):
         # TODO: calculate and keep q in MomentumTransfer?
@@ -196,7 +201,7 @@ def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
 
 def iqxqy(input_table_workspace, bins=100, suffix='_iqxqy'):
     """
-    Creates a WS named: input_workspace.name() + "_iqxqy"
+    Creates a WS named: input_table_workspace.name() + "_iqxqy"
 
     Parameters
     ----------
@@ -217,10 +222,15 @@ def iqxqy(input_table_workspace, bins=100, suffix='_iqxqy'):
         If None the detector dimensions are given:
         bins = [det.dim_x, det.dim_y]
 
+    Returns
+    -------
+        Workspace2D
+        For visualization only.
     """
 
-    mt = MomentumTransfer(input_table_workspace,
-                          out_ws_prefix=input_table_workspace.name())
+    mt = MomentumTransfer(
+        input_table_workspace,
+        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
     # TODO: log binning
     # log_binning : bool, optional

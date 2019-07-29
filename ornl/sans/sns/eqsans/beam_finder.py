@@ -23,7 +23,9 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
     If `x` and `y` are a translation (`relative=False`) then both
     `method` and the translation will be applied.
 
-    case 1: position detector after a center of mass estimation
+    case 1: position detector after a center of mass estimation. The
+        intersection between the neutron beam and the detector array will
+        have coordinates (0, 0, Z).
         center_detector(ws)
     case 2: position detector at absolute coordinates (x0,y0)
         center_detector(ws, x=x0, y=y0)
@@ -56,7 +58,7 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
     Returns
     =======
     numpy.ndarray
-        Detector vector position
+        Coordinates of the detector center
     """
     ws = mtd[str(input_workspace)]
     i = ws.getInstrument()
@@ -71,9 +73,11 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
         if mask is not None:
             fmsk = apply_mask(ws_flattened, mask=mask)
             fmsk.delete()
+        # (t_x, t_y) is the intersection point of the neutron beam with the
+        # detector
         t_x, t_y = list(method_to_alg[method](InputWorkspace=ws_flattened))
         ws_flattened.delete()
-        rs = np.array([t_x, t_y, rs[-1]])
+        rs = np.array([-t_x, -t_y, rs[-1]])
         rf = rs
 
     if x is not None and y is not None:
@@ -114,6 +118,9 @@ def find_beam_center(input_workspace, mask=None, method='center_of_mass'):
     tuple
         (X, Y) coordinates of the beam center (units in meters)
     """
+    # `r` below is the position that the center of the detector would adopt
+    # such that the coordinates of the neutron beam impinging on the
+    # detector has coordinates (0, 0, z)
     r = center_detector(input_workspace, mask=mask, method=method,
                         move_detector=False)
-    return r[0], r[1]
+    return -r[0], -r[1]

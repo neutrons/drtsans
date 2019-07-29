@@ -68,7 +68,7 @@ def subtract_background(input_workspace, background, scale=1.0,
 def prepare_data(data,
                  detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
-                 x_center=0.0, y_center=0.0,
+                 x_center=None, y_center=None,
                  dark_current=None,
                  flux=None,
                  mask=None, panel=None, btp=dict(),
@@ -84,6 +84,14 @@ def prepare_data(data,
     ----------
     data: int, str, EventWorkspace
         Run number as int or str, file path, EventWorkspace
+    x_center: float
+        Move the center of the detector to this X-coordinate. If `None`, the
+        detector will be moved such that the X-coordinate of the intersection
+        point between the neutron beam and the detector array will have `x=0`.
+    y_center: float
+        Move the center of the detector to this X-coordinate. If `None`, the
+        detector will be moved such that the X-coordinate of the intersection
+        point between the neutron beam and the detector array will have `x=0`.
     dark_current: int, str, EventWorkspace
         Run number as int or str, file path, EventWorkspace
     flux: str

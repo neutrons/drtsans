@@ -18,7 +18,7 @@ if __name__ == '__main__':
         if instrument == 'EQ-SANS':
             reduction_script = 'eqsans_reduction.py'
         filename_string = json_parameters['outputFilename']
-        output_folder = json_parameters['configuration']['outputDir']
+        output_folder = json_parameters['configuration']['outputFolder']
         out_log = os.path.join(output_folder,
                                filename_string+'.out')
         out_err = os.path.join(output_folder,

@@ -6,7 +6,8 @@ from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans import apply_sensitivity_correction, solid_angle_correction
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
-                                  center_detector, subtract_dark_current,
+                                  find_beam_center, center_detector,
+                                  subtract_dark_current,
                                   normalise_by_flux, apply_mask)
 import os
 
@@ -112,13 +113,13 @@ def prepare_data(data,
     transform_to_wavelength(output_workspace, bin_width=bin_width,
                             low_tof_clip=low_tof_clip,
                             high_tof_clip=high_tof_clip)
+    center_detector(output_workspace, x=x_center, y=y_center)
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
     if flux is not None:
         normalise_by_flux(output_workspace, flux)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
     apply_solid_angle_correction(output_workspace)
-    center_detector(output_workspace, x=x_center, y=y_center)
     if sensitivity_file_path is not None \
             and os.path.exists(sensitivity_file_path):
         apply_sensitivity_correction(output_workspace,

@@ -22,7 +22,7 @@ def test_center_detector(refd):
     with amend_config(data_dir=refd.new.eqsans):
         w = LoadEventNexus(Filename='EQSANS_92160', OutputWorkspace=uwd())
     r = center_detector(w, method='center_of_mass')
-    assert r == approx((0.025, 0.013, 0), abs=0.001)
+    assert r == approx((-0.0255, -0.0131, 0), abs=0.0001)
     #
     # Translate detector according to method center_of_mass plus additional
     # translation
@@ -31,7 +31,7 @@ def test_center_detector(refd):
                             RelativePosition=False)
     r = center_detector(w, method='center_of_mass', x=0.01, y=0.02,
                         relative=True)
-    assert r == approx((0.035, 0.033, 0), abs=0.001)
+    assert r == approx((-0.0155, 0.0069, 0), abs=0.001)
     r_0 = [0.1, 0.2, 0.3]
     MoveInstrumentComponent(w, X=r_0[0], Y=r_0[1], Z=r_0[2],
                             ComponentName=detector_name(w),

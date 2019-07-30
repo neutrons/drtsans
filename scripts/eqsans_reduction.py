@@ -101,7 +101,7 @@ if __name__ == '__main__':
     numQBins = int(json_params["binning"]["size"])
     log_binning = json_params["binning"]["useLog"]
     eqsans.iq(ws, bins=numQBins, log_binning=log_binning)
-    outfile = os.path.join(json_conf["outputFolder"],
+    outfile = os.path.join(json_conf["outputDir"],
                            json_params["outputFilename"]+'_frame1.txt')
     msapi.SaveAscii(ws.name() + "_iq",
                     Filename=outfile,
@@ -115,7 +115,7 @@ if __name__ == '__main__':
                                                              wl_f2_max])
         # TODO can we have different binning
         eqsans.iq(ws, bins=numQBins, log_binning=log_binning)
-        outfile = os.path.join(json_conf["outputFolder"],
+        outfile = os.path.join(json_conf["outputDir"],
                                json_params["outputFilename"]+'_frame2.txt')
         msapi.SaveAscii(ws.name() + "_iq",
                         Filename=outfile,

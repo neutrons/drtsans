@@ -400,7 +400,7 @@ def generate_sans_generic_IDF(request):
     <!--RectangularDetector-->
     <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{4}">
         <location x="{0}" y="{1}" z="{2}"
-            name="bank1"
+            name="detector1"
             rot="0.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
     </component>
@@ -423,6 +423,14 @@ def generate_sans_generic_IDF(request):
         <algebra val="pixel-shape"/>
     </type>
 
+    <parameter name="x-pixel-size">
+        <value val="{11}"/>
+    </parameter>
+
+    <parameter name="y-pixel-size">
+        <value val="{12}"/>
+    </parameter>
 </instrument>'''
     return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
-                               -(Ny-1) * half_dy, dx, dy, half_dx, half_dy)
+                               -(Ny-1) * half_dy, dx, dy, half_dx,
+                               half_dy, dx*1000., dy*1000.)

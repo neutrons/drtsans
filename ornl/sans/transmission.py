@@ -4,7 +4,7 @@ from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import (ApplyTransmissionCorrection, Divide,
                               FindDetectorsInShape, GroupDetectors,
-                              ReplaceSpecialValues)
+                              ReplaceSpecialValues, RebinToWorkspace)
 from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.samplelogs import SampleLogs
 
@@ -121,6 +121,7 @@ def calculate_transmission(input_sample, input_reference,
         Either 'mm' or 'm', and only used in conjunction with option `radius`.
     output_workspace: str
         Name of the output workspace containing the raw transmission values.
+        If None, a hidden random name will be provided.
 
     Returns
     -------
@@ -136,17 +137,20 @@ def calculate_transmission(input_sample, input_reference,
     det_ids = detector_ids(input_reference, r, unit='mm')
 
     # by default it sums all the grouped detectors
-    grouped_input_sample = GroupDetectors(InputWorkspace=input_sample,
-                                          DetectorList=det_ids)
-    grouped_input_reference = GroupDetectors(InputWorkspace=input_reference,
-                                             DetectorList=det_ids)
+    gis = GroupDetectors(InputWorkspace=input_sample, DetectorList=det_ids,
+                         OutputWorkspace=uwd())
+    gir = GroupDetectors(InputWorkspace=input_reference, DetectorList=det_ids,
+                         OutputWorkspace=uwd())
+    gir = RebinToWorkspace(WorkspaceToRebin=gir, WorkspaceToMatch=gis,
+                           OutputWorkspace=gir.name())
     # calculate zero angle transmission coefficient(s)
-    zat = Divide(LHSWorkspace=grouped_input_sample,
-                 RHSWorkspace=grouped_input_reference,
+    zat = Divide(LHSWorkspace=gis, RHSWorkspace=gir,
                  OutputWorkspace=output_workspace)
     av_t, av_e = np.mean(zat.dataY(0)), np.linalg.norm(zat.dataE(0))
     message = 'Average zero angle transmission = {0} +/- {1}'
     logger.notice(message.format(av_t, av_e))
+    gis.delete()
+    gir.delete()
     return zat
 
 

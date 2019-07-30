@@ -1,6 +1,7 @@
 FROM code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
 
 WORKDIR /tmp/input
+USER snsdata
 
 COPY ornl /opt/sans-backend/ornl
 COPY tests /opt/sans-backend/tests

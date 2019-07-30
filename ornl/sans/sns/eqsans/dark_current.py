@@ -4,9 +4,8 @@ from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
                               ConvertUnits, Subtract, Scale, LoadEventNexus)
-import os
 
-from ornl.settings import (namedtuplefy,
+from ornl.settings import (namedtuplefy, amend_config,
                            unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import correct_frame as cf
@@ -199,7 +198,7 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
 
     Parameters
     ----------
-    input_workspace : Workspace
+    input_workspace : int, str, EventWorkspace
         The workspace to be normalised
     dark: int, str, EventsWorkspace
         run number, file path, or workspace for dark current
@@ -211,8 +210,9 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    if isinstance(dark, str) and os.path.exists(dark):
-        _dark = LoadEventNexus(Filename=dark, OutputWorkspace=uwd())
+    if isinstance(dark, str) or isinstance(dark, int):
+        with amend_config({'default.instrument': 'EQSANS'}):
+            _dark = LoadEventNexus(Filename=dark, OutputWorkspace=uwd())
     else:
         _dark = dark  # assumed it is an EventWorkspace
     _dark_normal = normalise_to_workspace(_dark, input_workspace,

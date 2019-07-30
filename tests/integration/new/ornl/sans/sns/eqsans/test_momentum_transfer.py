@@ -7,7 +7,8 @@ import numpy as np
 
 import mantid
 from mantid import mtd
-from mantid.simpleapi import AddSampleLog, ConfigService, ExtractSpectra, Rebin
+from mantid.simpleapi import (
+    AddSampleLog, ConfigService, ExtractSpectra, Rebin, MaskAngle)
 from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
                                   normalisation, transform_to_wavelength,
                                   prepare_data)
@@ -180,15 +181,36 @@ def test_api(refd):
     iq_ws = iq(table_ws)
     assert mtd.doesExist(ws.name() + "_iq")
 
-    _ = iq(table_ws, bins=100, log_binning=True)
-    iq_ws = mtd[ws.name() + "_iq"]
+    iq_ws = iq(table_ws, bins=100, log_binning=True)
+    assert mtd[ws.name() + "_iq"] is not None
+
     # check if it is log binning:
     q = iq_ws.readX(0)
     q_divide = q[1:] / q[:-1]
     assert np.allclose(q_divide, q_divide[0])
 
-    _ = iqxqy(table_ws)
+    iqxqy_ws = iqxqy(table_ws)
+    assert iqxqy_ws is not None
     assert mtd.doesExist(ws.name() + "_iqxqy")
+
+    # Test Mask now
+    MaskAngle(Workspace=ws, MaxAngle=0.4, Angle="TwoTheta")
+
+    table_ws_masked = prepare_momentum_transfer(
+        ws, wavelength_binning=[2.6, 0.2, 5.6], prefix='mask')
+
+    table_ws_masked = table_ws_masked[0]
+
+    iq_ws_masked = iq(table_ws_masked, bins=100, log_binning=True)
+    assert np.all(
+        iq_ws_masked.extractY()[0][:5] < iq_ws.extractY()[0][:5])
+
+    iqxqy_ws_masked = iqxqy(table_ws_masked)
+    # Masked values around beam center
+    assert iqxqy_ws_masked.readY(51)[52] == 0
+    assert iqxqy_ws_masked.readY(51)[53] == 0
+    assert iqxqy_ws_masked.readY(51)[52] < iqxqy_ws.readY(51)[52]
+    assert iqxqy_ws_masked.readY(51)[53] < iqxqy_ws.readY(51)[53]
 
 
 def test_api_frame_skipping(refd):

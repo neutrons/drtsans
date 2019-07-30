@@ -113,9 +113,10 @@ def prepare_momentum_transfer(input_workspace,
         frame1_wavelength_max = sl.wavelength_max.value
         frames.append((frame1_wavelength_min, frame1_wavelength_max))
 
-    if len(wavelength_binning) > 1 and bool(sl.is_frame_skipping.value) is True:
-        logger.error(
-            "The WS is frame skipping, use only the step in wavelength_binning")
+    if len(wavelength_binning) > 1 and \
+            bool(sl.is_frame_skipping.value) is True:
+        logger.error("The WS is frame skipping, use only the step in "
+                     "the wavelength_binning")
         return
 
     if prefix is None:

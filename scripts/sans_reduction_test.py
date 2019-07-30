@@ -11,7 +11,7 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         json_string = ' '.join(sys.argv[1:])
         json_parameters = json.loads(json_string)
-        filename = '{}_{}'.format(json_parameters['instrument'],
+        filename = '{}_{}'.format('EQSANS',
                                   json_parameters['run_number'])
         w = LoadEventNexus(filename)
         Segfault(DryRun=not json_parameters['fail'])

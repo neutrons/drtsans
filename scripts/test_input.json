@@ -1,1 +1,1 @@
-{"run_number": 88980, "instrument": "EQSANS", "output_dir": "/tmp/SANS_output", "fail": false}
+{"run_number": 88980, "instrumentName": "TEST", "configuration":{"outputFolder": "/tmp/SANS_output"}, "outputFilename":"TestOutputFileName","fail": false}

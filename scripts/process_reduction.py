@@ -13,16 +13,20 @@ if __name__ == '__main__':
         json_file = sys.argv[1]
         with open(json_file, 'r') as jsf:
             json_parameters = json.load(jsf)
-        filename_string = '{}_{}'.format(json_parameters['instrument'],
-                                         json_parameters['run_number'])
-        out_log = os.path.join(json_parameters['output_dir'],
+        instrument = json_parameters['instrumentName']
+        reduction_script = 'sans_reduction_test.py'
+        if instrument == 'EQ-SANS':
+            reduction_script = 'eqsans_reduction.py'
+        filename_string = json_parameters['outputFilename']
+        output_folder = json_parameters['configuration']['outputFolder']
+        out_log = os.path.join(output_folder,
                                filename_string+'.out')
-        out_err = os.path.join(json_parameters['output_dir'],
+        out_err = os.path.join(output_folder,
                                filename_string+'.err')
         logFile = open(out_log, "w")
         errFile = open(out_err, "w")
         json_string = json.dumps(json_parameters)
-        cmd = "python3 /opt/sans-backend/scripts/sans_reduction_test.py"
+        cmd = "python3 /opt/sans-backend/scripts/{}".format(reduction_script)
         cmd += " '{}'".format(json_string)
         proc = subprocess.Popen(cmd,
                                 shell=True,

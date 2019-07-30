@@ -4,8 +4,10 @@ import pytest
 from os.path import join as pjn
 from mantid.simpleapi import LoadNexus, CompareWorkspaces, SumSpectra
 
-from ornl.settings import namedtuplefy, unique_workspace_dundername as uwd
+from ornl.settings import (amend_config, namedtuplefy,
+                           unique_workspace_dundername as uwd)
 from ornl.sans.sns.eqsans.geometry import insert_aperture_logs
+from ornl.sans.sns.eqsans.api import prepare_data
 from ornl.sans.sns.eqsans import (calculate_transmission,
                                   apply_transmission_correction)
 
@@ -28,6 +30,18 @@ def trans_fix(refd):
     d = LoadNexus(pjn(data_dir, 'direct_beam_skip.nxs'))
     return dict(data_dir=data_dir, sample=a, reference=b, sample_skip=c,
                 reference_skip=d, compare=quick_compare)
+
+
+def test_masked_beam_center(refd, trans_fix):
+    r"""Test for an exception raised when the beam centers are masked"""
+    mask = pjn(trans_fix.data_dir, 'beam_center_masked.xml')
+    with amend_config(data_dir=refd.new.eqsans):
+        s = prepare_data("EQSANS_88975", mask=mask, output_workspace=uwd())
+        d = prepare_data("EQSANS_88973", mask=mask, output_workspace=uwd())
+    with pytest.raises(RuntimeError, match=r'More than half of the detectors'):
+        calculate_transmission(s, d, output_workspace=())
+    s.delete()
+    d.delete()
 
 
 def test_calculate_raw_transmission(trans_fix):

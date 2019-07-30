@@ -141,8 +141,9 @@ def calculate_transmission(input_sample, input_reference,
     det_ids = detector_ids(input_reference, r, unit='mm')
 
     # Avoid pitfall of masking many pixels around the beam center
-    msg = f'More than half of the detectors within a radius of {r:.2f} mm' \
-          ' from the beam center are masked in the input {0}'
+    msg = 'More than half of the detectors ' +\
+          'within a radius of {:.2f} mm '.format(r) +\
+          'from the beam center are masked in the input {0}'
     for k, v in dict(sample=input_sample, reference=input_reference).items():
         if len(masked_detectors(v, det_ids)) > len(det_ids) / 2:
             raise RuntimeError(msg.format(k))

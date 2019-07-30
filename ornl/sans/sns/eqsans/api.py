@@ -6,8 +6,7 @@ from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans import apply_sensitivity_correction, solid_angle_correction
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
-                                  find_beam_center, center_detector,
-                                  subtract_dark_current,
+                                  center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
 import os
 

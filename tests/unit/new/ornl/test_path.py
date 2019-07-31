@@ -6,8 +6,6 @@ import pytest
 # arbitrarily selected IPTS to see if the mount is in place
 HAVE_EQSANS_MOUNT = os_exists('/SNS/EQSANS/IPTS-23732/')
 
-DATA_DIR = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/'
-
 SEARCH_ON = {}
 SEARCH_OFF = {'datasearch.searcharchive': 'off'}
 
@@ -23,11 +21,14 @@ IPTS_23732 = '/SNS/EQSANS/IPTS-23732/nexus/'
                           ('EQSANS106027',
                            IPTS_23732 + 'EQSANS_106027.nxs.h5'),
                           ('EQSANS_88974.nxs.h5',
-                           DATA_DIR + 'EQSANS_88974.nxs.h5')],
+                           'DATADIR/EQSANS_88974.nxs.h5')],
                          ids=('EQSANS_106026', 'EQSANS_106026',
                               'EQSANS_88974'))
-def test_abspath_with_archivesearch(hint, fullpath):
-    with amend_config(SEARCH_ON, data_dir=DATA_DIR):
+def test_abspath_with_archivesearch(hint, fullpath, refd):
+    # set the data directory in the result using the test fixture
+    fullpath = fullpath.replace('DATADIR', refd.new.eqsans)
+
+    with amend_config(SEARCH_ON, data_dir=refd.new.eqsans):
         assert abspath(hint) == fullpath
 
 
@@ -48,8 +49,8 @@ def test_abspath_without_archivesearch(hint):
                          [('EQSANS_106026', True),
                           ('EQSANS106027', True),
                           ('EQSANS_88974.nxs.h5', True)])
-def test_exists_with_archivesearch(hint, found):
-    with amend_config(SEARCH_ON, data_dir=DATA_DIR):
+def test_exists_with_archivesearch(hint, found, refd):
+    with amend_config(SEARCH_ON, data_dir=refd.new.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 
 
@@ -57,6 +58,6 @@ def test_exists_with_archivesearch(hint, found):
                          [('EQSANS_106026', False),
                           ('EQSANS106027', False),
                           ('EQSANS_88974.nxs.h5', True)])
-def test_exists_without_archivesearch(hint, found):
-    with amend_config(SEARCH_OFF, data_dir=DATA_DIR):
+def test_exists_without_archivesearch(hint, found, refd):
+    with amend_config(SEARCH_OFF, data_dir=refd.new.eqsans):
         assert exists(hint) == found  # allows verifying against True and False

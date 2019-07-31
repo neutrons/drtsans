@@ -2,9 +2,11 @@ import json
 import os
 import sys
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+
 import mantid.simpleapi as msapi  # noqa E402
 from ornl.sans.sns import eqsans  # noqa E402
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 if __name__ == '__main__':
@@ -83,42 +85,25 @@ if __name__ == '__main__':
     ws /= sample_thickness
     ws *= absolute_scale
 
-    # Retrieve information from data, this will eventually not be needed
-    frame_skipping = False
-    scale_match = 50000
-    wl_f1_min = ws.getRun()['wavelength_lead_min'].value
-    wl_f1_max = ws.getRun()['wavelength_lead_max'].value
-    if 'wavelength_skip_min' in ws.getRun():
-        frame_skipping = True
-        wl_f2_min = ws.getRun()['wavelength_skip_min'].value
-        wl_f2_max = ws.getRun()['wavelength_skip_max'].value
+    # If frame_skipping we will have more than one table workspace
+    table_ws_list = eqsans.prepare_momentum_transfer(
+        ws, wavelength_binning=[0.2])
 
-    # first frame
-    # TODO 0.1 is parameter?
-    eqsans.prepare_momentum_transfer(ws, wavelength_binning=[wl_f1_min,
-                                                             0.1,
-                                                             wl_f1_max])
-    # TODO check the configuration-numQbins and configuration_QbinType
-    numQBins = int(json_params["binning"]["size"])
-    log_binning = json_params["binning"]["useLog"]
-    eqsans.iq(ws, bins=numQBins, log_binning=log_binning)
-    outfile = os.path.join(json_conf["outputDir"],
-                           json_params["outputFilename"]+'_frame1.txt')
-    msapi.SaveAscii(ws.name() + "_iq",
-                    Filename=outfile,
-                    WriteSpectrumID=False,
-                    WriteXError=True)
-    # second frame
-    if frame_skipping:
-        eqsans.prepare_momentum_transfer(ws,
-                                         wavelength_binning=[wl_f2_min,
-                                                             0.1,
-                                                             wl_f2_max])
-        # TODO can we have different binning
-        eqsans.iq(ws, bins=numQBins, log_binning=log_binning)
+    for index, table_ws in enumerate(table_ws_list):
+
+        # TODO check the configuration-numQbins and configuration_QbinType
+        numQBins = int(json_params["binning"]["size"])
+        log_binning = json_params["binning"]["useLog"]
+
+        iq_ws = eqsans.iq(table_ws, bins=numQBins, log_binning=log_binning)
+
+        suffix = ""
+        if len(table_ws_list) > 1:
+            suffix = "_frame_{}".format(index+1)
         outfile = os.path.join(json_conf["outputDir"],
-                               json_params["outputFilename"]+'_frame2.txt')
-        msapi.SaveAscii(ws.name() + "_iq",
+                               json_params["outputFilename"]+suffix)
+
+        msapi.SaveAscii(iq_ws,
                         Filename=outfile,
                         WriteSpectrumID=False,
                         WriteXError=True)

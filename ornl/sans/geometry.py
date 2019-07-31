@@ -1,9 +1,8 @@
-from __future__ import (absolute_import, division, print_function)
-
 import os
 from mantid.api import mtd, MatrixWorkspace
 from mantid.geometry import Instrument
-from mantid.simpleapi import Load
+from mantid.simpleapi import Load, ExtractMask
+from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.samplelogs import SampleLogs
 
 
@@ -69,7 +68,7 @@ def bank_detectors(input_workspace, masked=None):
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: str, MatrixWorkspace
         Input workspace to find the detectors
     masked: None or Bool
         `None` yields all detectors; `True` yields all masked detectors;
@@ -85,6 +84,30 @@ def bank_detectors(input_workspace, masked=None):
         det = instrument.getDetector(det_id)
         if masked is None or masked == det.isMasked():
             yield instrument.getDetector(det_id)
+
+
+def masked_detectors(input_workspace, query_ids=None):
+    r"""
+    List of detector ID's that are masked
+
+    Parameters
+    ----------
+    input_workspace: str, MatrixWorkspace
+        Input workspace to find the detectors
+    query_ids: list
+        Restrict the search to this list of detector ID's. If `None`, query
+        all detectors.
+
+    Returns
+    -------
+    list
+    """
+    mask_ws, det_ids = ExtractMask(input_workspace,
+                                   OutputWorkspace=uwd())
+    if query_ids is not None:
+        det_ids = sorted(list(set(det_ids) & set(query_ids)))
+    mask_ws.delete()
+    return det_ids
 
 
 def get_instrument(source):

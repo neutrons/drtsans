@@ -7,6 +7,7 @@ from mantid.simpleapi import (ApplyTransmissionCorrection, Divide,
                               ReplaceSpecialValues, RebinToWorkspace)
 from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.geometry import masked_detectors
 
 
 # To-do. This should be substituted with a function similar to
@@ -86,6 +87,7 @@ def detector_ids(input_workspace, radius, unit='mm'):
         List of detector ID's
     """
     r = radius * 1e-3 if unit == 'mm' else radius
+
     cylinder = r"""
     <infinite-cylinder id="shape">
         <centre x="0.0" y="0.0" z="0.0" />
@@ -94,7 +96,9 @@ def detector_ids(input_workspace, radius, unit='mm'):
     </infinite-cylinder>
     <algebra val="shape" />
     """.format(r)
-    return FindDetectorsInShape(Workspace=input_workspace, ShapeXML=cylinder)
+    det_ids = FindDetectorsInShape(Workspace=input_workspace,
+                                   ShapeXML=cylinder)
+    return det_ids
 
 
 def calculate_transmission(input_sample, input_reference,
@@ -135,6 +139,14 @@ def calculate_transmission(input_sample, input_reference,
     else:
         r = radius if radius_unit == 'mm' else 1.e3 * radius  # to mm
     det_ids = detector_ids(input_reference, r, unit='mm')
+
+    # Avoid pitfall of masking many pixels around the beam center
+    msg = 'More than half of the detectors ' +\
+          'within a radius of {:.2f} mm '.format(r) +\
+          'from the beam center are masked in the input {0}'
+    for k, v in dict(sample=input_sample, reference=input_reference).items():
+        if len(masked_detectors(v, det_ids)) > len(det_ids) / 2:
+            raise RuntimeError(msg.format(k))
 
     # by default it sums all the grouped detectors
     gis = GroupDetectors(InputWorkspace=input_sample, DetectorList=det_ids,

@@ -98,9 +98,9 @@ class MomentumTransfer:
             [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
         ]
 
-    def _create_table_ws(self):
+    def _create_table_ws(self, suffix):
         table_iq = CreateEmptyTableWorkspace(OutputWorkspace=self.prefix +
-                                             "_iqxqy_table")
+                                             suffix)
         table_iq.addColumn(type="float", name="Qx")
         table_iq.addColumn(type="float", name="Qy")
         table_iq.addColumn(type="float", name="dQx")
@@ -127,11 +127,12 @@ class MomentumTransfer:
 
         return table_iq
 
-    def q2d(self):
-        return self._create_table_ws()
+    def q2d(self, suffix="_iqxqy_table"):
+        return self._create_table_ws(suffix)
 
-    def bin_into_q2d(self, bins=None):
-        """Bin the data into Q 2D for visualization only! No dqx/y data!!!
+    def bin_into_q2d(self, bins=None, suffix="_iqxqy"):
+        """Bin the data into Q 2D for visualization only!
+        No uncertainties data!!!
 
         Parameters
         ----------
@@ -167,33 +168,29 @@ class MomentumTransfer:
             self.qx, self.qy, bins=bins, weights=self.i)
         counts_qx_qy /= counts_qx_qy_weights
 
-        # TODO: Error propagation is probably wrong
-        counts_dqx_dqy_weights, _, _ = np.histogram2d(self.dqx,
-                                                      self.dqy,
-                                                      bins=bins)
-        counts_dqx_dqy, _, _ = np.histogram2d(self.dqx,
-                                              self.dqy,
-                                              bins=bins,
-                                              weights=self.i_sigma)
-        counts_dqx_dqy /= counts_dqx_dqy_weights
-
         qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
 
         # When doing histogram2d the masks are gone
         iqxqy_ws = CreateWorkspace(DataX=np.tile(qx_bin_edges,
                                                  len(qy_bin_centers)),
                                    DataY=counts_qx_qy.T,
-                                   DataE=counts_dqx_dqy.T,
                                    NSpec=len(qy_bin_centers),
                                    UnitX='MomentumTransfer',
                                    VerticalAxisUnit='MomentumTransfer',
                                    VerticalAxisValues=qy_bin_centers,
-                                   OutputWorkspace=self.prefix + "_iqxqy")
+                                   OutputWorkspace=self.prefix + suffix)
 
         return iqxqy_ws.name(), iqxqy_ws
 
     @staticmethod
-    def _bin_into_q1d(q, dq, i, i_sigma, prefix, bins=100, statistic='mean'):
+    def _bin_into_q1d(q,
+                      dq,
+                      i,
+                      i_sigma,
+                      prefix,
+                      bins=100,
+                      statistic='mean',
+                      suffix="_iq"):
 
         intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
             q, i, statistic=statistic, bins=bins)
@@ -218,11 +215,11 @@ class MomentumTransfer:
             NSpec=1,
             UnitX='MomentumTransfer',
             YUnitLabel='Counts',
-            OutputWorkspace=prefix + "_iq")
+            OutputWorkspace=prefix + suffix)
 
         return iq.name(), iq
 
-    def bin_into_q1d(self, bins=100, statistic='mean'):
+    def bin_into_q1d(self, bins=100, statistic='mean', suffix="_iq"):
         """ Calculates: I(Q) and Dq
         The ws_* input parameters are the output workspaces from bin_into_q2d
 
@@ -275,13 +272,15 @@ class MomentumTransfer:
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
 
         return MomentumTransfer._bin_into_q1d(q, dq, self.i, self.i_sigma,
-                                              self.prefix, bins, statistic)
+                                              self.prefix, bins, statistic,
+                                              suffix)
 
     def bin_wedge_into_q1d(self,
                            phi_0=0,
                            phi_aperture=30,
                            bins=100,
-                           statistic='mean'):
+                           statistic='mean',
+                           suffix="_wedge_iq"):
         """
         Wedge calculation and integration
 
@@ -367,14 +366,15 @@ class MomentumTransfer:
         dq = dq[condition]
 
         return MomentumTransfer._bin_into_q1d(q, dq, i, i_sigma,
-                                              self.prefix + "_wedge_", bins,
-                                              statistic)
+                                              self.prefix, bins,
+                                              statistic, suffix)
 
     def bin_annular_into_q1d(self,
                              q_min=0.001,
                              q_max=0.4,
                              bins=100,
-                             statistic='mean'):
+                             statistic='mean',
+                             suffix="_annular_iq"):
         """
         Wedge calculation and integration
 
@@ -440,5 +440,5 @@ class MomentumTransfer:
         dq = dq[condition]
 
         return MomentumTransfer._bin_into_q1d(q, dq, i, i_sigma,
-                                              self.prefix + "_annular_", bins,
-                                              statistic)
+                                              self.prefix, bins,
+                                              statistic, suffix)

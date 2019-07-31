@@ -7,9 +7,11 @@ import numpy as np
 
 import mantid
 from mantid import mtd
-from mantid.simpleapi import AddSampleLog, ConfigService, ExtractSpectra, Rebin
+from mantid.simpleapi import (
+    AddSampleLog, ConfigService, ExtractSpectra, Rebin, MaskAngle)
 from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
-                                  normalisation, transform_to_wavelength)
+                                  normalisation, transform_to_wavelength,
+                                  prepare_data)
 from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer, iq,
                                                     iqxqy,
                                                     prepare_momentum_transfer)
@@ -61,8 +63,8 @@ def test_momentum_tranfer_serial(refd):
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
         refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
-                                                output_workspace='flux_ws',
-                                                ws_reference=ws)
+        output_workspace='flux_ws',
+        ws_reference=ws)
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
@@ -164,24 +166,79 @@ def test_api(refd):
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
         refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
-                                                output_workspace='flux_ws',
-                                                ws_reference=ws)
+        output_workspace='flux_ws',
+        ws_reference=ws)
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     #
-    prepare_momentum_transfer(ws, "2.6,0.2,5.6")
-    assert mtd.doesExist(ws.name() + "_iqxqy_table")
+    table_ws = prepare_momentum_transfer(
+        ws, wavelength_binning=[2.6, 0.2, 5.6])
+    assert mtd.doesExist(ws.name() + "_table")
 
-    iq(ws)
+    table_ws = table_ws[0]
+
+    iq_ws = iq(table_ws)
     assert mtd.doesExist(ws.name() + "_iq")
 
-    iq(ws, bins=100, log_binning=True)
-    ws_iq = mtd[ws.name() + "_iq"]
+    iq_ws = iq(table_ws, bins=100, log_binning=True)
+    assert mtd[ws.name() + "_iq"] is not None
+
     # check if it is log binning:
-    q = ws_iq.readX(0)
+    q = iq_ws.readX(0)
     q_divide = q[1:] / q[:-1]
     assert np.allclose(q_divide, q_divide[0])
 
-    iqxqy(ws)
+    iqxqy_ws = iqxqy(table_ws)
+    assert iqxqy_ws is not None
     assert mtd.doesExist(ws.name() + "_iqxqy")
+
+    # Test Mask now
+    MaskAngle(Workspace=ws, MaxAngle=0.4, Angle="TwoTheta")
+
+    table_ws_masked = prepare_momentum_transfer(
+        ws, wavelength_binning=[2.6, 0.2, 5.6], prefix='mask')
+
+    table_ws_masked = table_ws_masked[0]
+
+    iq_ws_masked = iq(table_ws_masked, bins=100, log_binning=True)
+    assert np.all(
+        iq_ws_masked.extractY()[0][:5] < iq_ws.extractY()[0][:5])
+
+    iqxqy_ws_masked = iqxqy(table_ws_masked)
+    # Masked values around beam center
+    assert iqxqy_ws_masked.readY(51)[52] == 0
+    assert iqxqy_ws_masked.readY(51)[53] == 0
+    assert iqxqy_ws_masked.readY(51)[52] < iqxqy_ws.readY(51)[52]
+    assert iqxqy_ws_masked.readY(51)[53] < iqxqy_ws.readY(51)[53]
+
+
+def test_api_frame_skipping(refd):
+
+    db_ws = load_events(os.path.join(refd.new.eqsans, "EQSANS_88973.nxs.h5"))
+    center = center_detector(db_ws)
+
+    ws = prepare_data(os.path.join(refd.new.eqsans, "EQSANS_88980.nxs.h5"),
+                      x_center=-center[0], y_center=-center[1],
+                      # use_config_tof_cuts=True,
+                      # use_config=True,
+                      # use_config_mask=True,
+                      # correct_for_flight_path=True,
+                      # flux=beam_flux_file,
+                      # mask=detector_ids604m,
+                      # dark_current=dark_data_file,
+                      # sensitivity_file_path=sensitivity_file,
+                      sample_offset=340)
+
+    ws_frame1, ws_frame2 = prepare_momentum_transfer(ws)
+
+    ws_frame1_iq = iq(ws_frame1, bins=150, log_binning=True)
+    ws_frame2_iq = iq(ws_frame2, bins=150, log_binning=True)
+    assert ws_frame1_iq is not None
+    assert ws_frame2_iq is not None
+    assert not np.allclose(ws_frame1_iq.extractX(), ws_frame2_iq.extractX())
+
+    ws_frame1_iqxqy = iqxqy(ws_frame1)
+    ws_frame2_iqxqy = iqxqy(ws_frame2)
+    assert ws_frame1_iqxqy is not None
+    assert ws_frame2_iqxqy is not None

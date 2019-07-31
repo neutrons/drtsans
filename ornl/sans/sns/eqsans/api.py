@@ -8,7 +8,7 @@ from ornl.sans import apply_sensitivity_correction, solid_angle_correction
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
-import os
+from ornl.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data']
@@ -120,7 +120,7 @@ def prepare_data(data,
     apply_solid_angle_correction(output_workspace)
     center_detector(output_workspace, x=x_center, y=y_center)
     if sensitivity_file_path is not None \
-            and os.path.exists(sensitivity_file_path):
+            and path_exists(sensitivity_file_path):
         apply_sensitivity_correction(output_workspace,
                                      sensitivity_filename=sensitivity_file_path)  # noqa: E501 can't fit in line
     return mtd[output_workspace]

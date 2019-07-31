@@ -9,6 +9,7 @@ from mantid.kernel import Property, logger
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
     MaskDetectorsIf, SaveNexusProcessed
+from ornl.path import exists as path_exists
 from ornl.settings import unique_workspace_name
 
 
@@ -354,7 +355,7 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
             sensitivity_workspace = os.path.split(sensitivity_filename)[-1]
             sensitivity_workspace = sensitivity_workspace.split('.')[0]
         cleanupSensitivity = True
-        if not os.path.exists(sensitivity_filename):
+        if not path_exists(sensitivity_filename):
             msg = 'Cannot find file "{}"'.format(sensitivity_filename)
             raise RuntimeError(msg)
         LoadNexusProcessed(Filename=sensitivity_filename,

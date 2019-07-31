@@ -5,10 +5,15 @@ __all__ = ['abspath', 'exists']
 
 
 def abspath(path):
-    '''
-    Returns an absolute path
+    '''Returns an absolute path
+
+    In addition to fully supporting what :ref:`~os.path.abspath` does,
+    this also supports path strings in such as ``EQSANS_106026`` and
+    ``EQSANS106026``. It will search your data search path and the
+    data archive using ONCat.
 
     This uses :ref:`mantid.api.FileFinder`.
+
     '''
     # don't use network for first check
     if os_path.exists(path):
@@ -39,6 +44,11 @@ def abspath(path):
 def exists(path):
     '''
     Test whether a path exists.  Returns False for broken symbolic links
+
+    In addition to fully supporting what :ref:`~os.path.exists` does,
+    this also supports path strings in such as ``EQSANS_106026`` and
+    ``EQSANS106026``. It will search your data search path and the
+    data archive using ONCat.
 
     This uses :ref:`mantid.api.FileFinder`.
     '''

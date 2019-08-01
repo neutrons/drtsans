@@ -1,8 +1,7 @@
 from scipy import interpolate
 from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               RebinToWorkspace, NormaliseToUnity, Divide,
-                              NormaliseByCurrent, Multiply, DeleteWorkspace,
-                              ConvertToDistribution)
+                              NormaliseByCurrent, ConvertToDistribution)
 
 from ornl.settings import (unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
@@ -149,7 +148,7 @@ def normalise_by_monitor(input_workspace, monitor_workspace, flux,
     mm.delete()
     # Correct monitor-to-flux ratio
     Divide(LHSWorkspace=output_workspace, RHSWorkspace=flux,
-             OutputWorkspace=output_workspace)
+           OutputWorkspace=output_workspace)
     return mtd[output_workspace]
 
 

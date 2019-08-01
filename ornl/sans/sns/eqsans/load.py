@@ -40,7 +40,7 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
         if isinstance(run, str):
             output_workspace = os.path.split(run)[-1]
             output_workspace = '_'.join(output_workspace.split('_')[:2])
-            output_workspace = output_workspace.split('.')[0] + suffix'
+            output_workspace = output_workspace.split('.')[0] + suffix
         else:
             output_workspace = 'EQSANS_{}{}'.format(run, suffix)
 
@@ -50,8 +50,8 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
                           OutputWorkspace=output_workspace)
 
     smd = source_monitor_distance(output_workspace, unit='mm')
-    SampleLogs(output_workspace).insert('source-monitor-distance',
-                                         smd, unit='mm')
+    SampleLogs(output_workspace).insert('source-monitor-distance', smd,
+                                        unit='mm')
     correct_monitor_frame(output_workspace)
     return mtd[output_workspace]
 

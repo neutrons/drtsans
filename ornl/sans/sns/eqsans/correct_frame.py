@@ -249,7 +249,7 @@ def correct_frame(input_workspace, source_to_component_distance):
 def correct_detector_frame(ws):
     correct_frame(ws, source_detector_distance(ws, unit='m'))
 
-    
+
 def correct_monitor_frame(input_workspace):
     r"""
     Assign the correct TOF to each event.

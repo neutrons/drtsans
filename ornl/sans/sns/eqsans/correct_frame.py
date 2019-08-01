@@ -10,6 +10,7 @@ from ornl.sans.frame_mode import FrameMode
 from ornl.sans import wavelength as wlg
 from ornl.settings import namedtuplefy
 from ornl.sans.geometry import source_detector_distance
+from ornl.sans.sns.eqsans.geometry import source_monitor_distance
 
 
 __all__ = ['transform_to_wavelength', ]
@@ -248,6 +249,25 @@ def correct_frame(input_workspace, source_to_component_distance):
 def correct_detector_frame(ws):
     correct_frame(ws, source_detector_distance(ws, unit='m'))
 
+    
+def correct_monitor_frame(input_workspace):
+    r"""
+    Assign the correct TOF to each event.
+
+    Parameters
+    ----------
+    input_workspace: EventsWorkspace
+        Monitor events workspace
+
+    Returns
+    -------
+    EventsWorkspace
+    """
+    ws = mtd[str(input_workspace)]
+    if EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip:
+        raise RuntimeError('cannot correct monitor frame in "skip" mode')
+    correct_frame(ws, source_monitor_distance(ws, unit='m'))
+
 
 def band_gap_indexes(input_workspace, bands):
     r"""
@@ -345,7 +365,7 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     input_workspace: str, EventsWorkspace
         Events workspace in time-of-flight
     bin_width: float
-        Histogram bin width.
+        Bin width for the output workspace, in Angstroms.
     low_tof_clip: float
         Ignore events with a time-of-flight (TOF) smaller than the minimal
         TOF plus this quantity.
@@ -371,11 +391,12 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     input_workspace = mtd[str(input_workspace)]
     if output_workspace is None:
         output_workspace = str(input_workspace)
-
-    sdd = source_detector_distance(input_workspace, unit='m')
-    bands = transmitted_bands_clipped(input_workspace, sdd,
-                                      low_tof_clip, high_tof_clip,
-                                      interior_clip=interior_clip)
+    if low_tof_clip > 0. or high_tof_clip > 0.:
+        sdd = source_detector_distance(input_workspace, unit='m')
+        bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
+                                          high_tof_clip)
+    else:
+        bands = transmitted_bands(input_workspace)
     convert_to_wavelength(input_workspace, bands, bin_width,
                           events=keep_events,
                           output_workspace=output_workspace)

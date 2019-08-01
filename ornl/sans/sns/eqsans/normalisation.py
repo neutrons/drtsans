@@ -1,39 +1,13 @@
-from __future__ import print_function
-
+from scipy import interpolate
 from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               RebinToWorkspace, NormaliseToUnity, Divide,
                               NormaliseByCurrent, Multiply, DeleteWorkspace,
                               ConvertToDistribution)
 
 from ornl.settings import (unique_workspace_dundername as uwd)
-
+from ornl.sans.samplelogs import SampleLogs
 
 __all__ = ['normalise_by_flux', ]
-
-
-def monitor(ws_input, ws_monitor, ws_flux_to_monitor_ratio):
-    r"""Monitor normalisation
-
-    Parameters
-    ----------
-    ws_input : Workspace
-        The workspace to be normalised
-    ws_monitor : Workspace
-        The workspace with the monitor count
-    ws_flux_to_monitor_ratio : Workspace
-        Pre-mesured flux-to-monitor ratio spectrum
-
-    Returns
-    -------
-    Workspace
-        [description]
-    """
-
-    ws_tmp = Multiply(LHSWorkspace=ws_monitor,
-                      RHSWorkspace=ws_flux_to_monitor_ratio)
-    ws = Divide(LHSWorkspace=ws_input, RHSWorkspace=ws_tmp)
-    DeleteWorkspace(ws_tmp)
-    return ws
 
 
 def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
@@ -47,9 +21,15 @@ def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
     flux: str
         Path to file with the wavelength distribution of the neutron
         flux. Loader is Mantid `LoadAscii` algorithm.
-
     ws_reference : Workspace
         Workspace to rebin the flux to. If None, no rebin is performed
+    output_workspace: str
+        Name of the output workspace. If None, a hidden random name
+        will be assigned.
+
+    Returns
+    -------
+    MatrixWorkspace
     """
     if output_workspace is None:
         output_workspace = uwd()  # make a hidden workspace
@@ -70,15 +50,22 @@ def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
 
 def normalise_by_proton_charge_and_flux(input_workspace, flux,
                                         output_workspace=None):
-    r"""Normalises ws to proton and measured flux
+    r"""
+    Normalises the input workspace by proton charge and measured flux
 
     Parameters
     ----------
-    input_workspace : MatrixWorkspace
+    input_workspace : str, MatrixWorkspace
         Workspace to be normalised, rebinned in wavelength.
     flux : Workspace
         Measured beam flux file ws, usually the output of `load_beam_flux_file`
+    output_workspace : str
+        Name of the normalised workspace. If None, the name of the input
+        workspace is chosen (the input workspace is overwritten).
 
+    Returns
+    -------
+    MatrixWorkspace
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
@@ -91,17 +78,105 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     return mtd[output_workspace]
 
 
-def normalise_by_flux(input_workspace, flux, output_workspace=None):
+def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
+                                    output_workspace=None):
     r"""
-    Normalize counts by flux wavelength distribution and proton charge.
+    Loads the flux-to-monitor ratio
+
+    Parameters
+    ----------
+    flux: str
+        Path to file with the flux-to-monitor ratio data. Loader is
+        Mantid `LoadAscii` algorithm.
+    ws_reference : Workspace
+        Workspace to rebin the flux-to-monitor ratio. If None, no rebin is
+        performed. Values obtained by spline interpolation.
+    output_workspace: str
+        Name of the output workspace. If None, a hidden random name
+        will be assigned.
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    if output_workspace is None:
+        output_workspace = uwd()  # make a hidden workspace
+    w = LoadAscii(Filename=flux, Separator="Tab", Unit="Wavelength",
+                  OutputWorkspace=output_workspace)
+    if ws_reference is not None:
+        tck = interpolate.splrep(w.dataX(0), w.dataY(0))
+        x = ws_reference.dataX(0)
+        w.dataX(0)[:] = (x[:-1] + x[1:]) / 2  # assumed histogrammed data
+        w.dataY(0)[:] = interpolate.splev(w.dataX(0), tck, der=0)
+    return w
+
+
+def normalise_by_monitor(input_workspace, monitor_workspace, flux,
+                         output_workspace=None):
+    r"""
+    Normalises the input workspace by monitor count and flux-to-monitor
+    ratio.
+
+    Parameters
+    ----------
+    input_workspace : str, MatrixWorkspace
+        Workspace to be normalised, rebinned in wavelength.
+    monitor_workspace : str, MatrixWorkspace
+        Counts from the monitor.
+    flux : Workspace
+        Measured flux-to-monitor ratio, usually the output of
+        `load_flux_to_monitor_ratio_file`.
+    output_workspace : str
+        Name of the normalised workspace. If None, the name of the input
+        workspace is chosen (the input workspace is overwritten).
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    # Check non-skip mode
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+    wi = mtd[str(input_workspace)]
+    if bool(SampleLogs(wi).is_frame_skipping.value) is True:
+        msg = 'Normalisation by monitor not possible in frame-skipping mode'
+        raise ValueError(msg)
+    # Normalise by the monitor
+    m = mtd[str(monitor_workspace)]
+    mm = RebinToWorkspace(m, input_workspace, OutputWorkspace=uwd())
+    Divide(LHSWorkspace=input_workspace, RHSWorkspace=mm,
+           OutputWorkspace=output_workspace)
+    mm.delete()
+    # Correct monitor-to-flux ratio
+    Divide(LHSWorkspace=output_workspace, RHSWorkspace=flux,
+             OutputWorkspace=output_workspace)
+    return mtd[output_workspace]
+
+
+def normalise_by_flux(input_workspace, flux, method='proton charge',
+                      monitor_workspace=None, output_workspace=None):
+    r"""
+    Normalize counts by several methods to estimate the neutron flux.
+
+    Neutron flux can be estimated either with a monitor or with the proton
+    charge.
 
     Parameters
     ----------
     input_workspace: MatrixWorkspace
         Input workspace, binned in wavelength
     flux: str
-        path to file containing the wavelength distribution
-        of the neutron flux.
+        If `method` is 'proton charge', flux is the path to the file
+        containing the wavelength distribution of the neutron flux. If
+        `method` is `monitor`, then flux is the path to the file containing
+        a pre-measured flux-to-monitor ratio spectrum
+    method: str
+        Either 'proton charge' or 'monitor'
+    monitor_workspace: str, MatrixWorkspace
+        Prepared monitor workspace
+    output_workspace : str
+        Name of the normalised workspace. If None, the name of the input
+        workspace is chosen (the input workspace is overwritten).
 
     Returns
     -------
@@ -109,9 +184,19 @@ def normalise_by_flux(input_workspace, flux, output_workspace=None):
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    w_flux = load_beam_flux_file(flux, ws_reference=input_workspace)
-    normalise_by_proton_charge_and_flux(input_workspace, w_flux,
-                                        output_workspace=output_workspace)
+    # Select the flux file
+    flux_loader = {'proton charge': load_beam_flux_file,
+                   'monitor': load_flux_to_monitor_ratio_file}
+    w_flux = flux_loader[method](flux, ws_reference=input_workspace)
+    # Select the normalisation function
+    normaliser = {'proton charge': normalise_by_proton_charge_and_flux,
+                  'monitor': normalise_by_monitor}
+    # Additional arguments specific to the normaliser
+    kwargs = {'proton charge': dict(),
+              'monitor': dict(monitor_workspace=monitor_workspace)}
+    normaliser[method](input_workspace, w_flux,
+                       output_workspace=output_workspace, **kwargs)
+    # A bit of cleanup
     w_flux.delete()
 
     return mtd[output_workspace]

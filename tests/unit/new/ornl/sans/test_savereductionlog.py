@@ -136,32 +136,40 @@ def checkWorkspaces(filename, orig, entry):
     'filename1d', ['test_save_output/EQSANS_68200_iq.nxs', '']
 )
 @pytest.mark.parametrize(
-    'filename2d', ['test_save_output/EQSANS_68200_iq.nxs', '']
+    'filename_other', [(),
+                       ('test_save_output/EQSANS_68200_iq.nxs', ''),
+                       ('', 'test_save_output/EQSANS_68200_iq.nxs'),
+                       ('test_save_output/EQSANS_68200_iq.nxs',
+                        'test_save_output/EQSANS_68200_iq.nxs')]
 )
-def test_saving(refd, filename1d, filename2d):
+def test_saving(refd, filename1d, filename_other):
     wksp1d = ''
-    wksp2d = ''
+    wksp_other = []
 
     # setup inputs
-    tmpfile = os.path.join(gettempdir(), wksp1d + '.nxs.h5')
-    tmpfile = os.path.abspath(tmpfile)
-    if os.path.exists(tmpfile):
-        os.unlink(tmpfile)  # remove it if it already exists
-
     if filename1d:
         filename1d = os.path.join(refd.new.eqsans,
                                   filename1d)
         wksp1d = 'test_save_wksp1d'
         Load(Filename=filename1d, OutputWorkspace=wksp1d)
 
-    if filename2d:
-        filename2d = os.path.join(refd.new.eqsans,
-                                  filename2d)
-        wksp2d = 'test_save_wksp2d'
-        if filename2d == filename1d:
-            wksp2d = wksp1d  # just reuse the workspace
+    for i, filename in enumerate(filename_other):
+        if filename:
+            filename = os.path.join(refd.new.eqsans,
+                                    filename)
+            wksp = 'test_save_wksp_{}'.format(i)
+            if filename == filename1d:
+                wksp = wksp1d  # just reuse the workspace
+            else:
+                Load(Filename=filename, OutputWorkspace=wksp)
+            wksp_other.append(wksp)
         else:
-            Load(Filename=filename2d, OutputWorkspace=wksp2d)
+            wksp_other.append('')
+
+    tmpfile = os.path.join(gettempdir(), wksp1d + '.nxs.h5')
+    tmpfile = os.path.abspath(tmpfile)
+    if os.path.exists(tmpfile):
+        os.unlink(tmpfile)  # remove it if it already exists
 
     pythonscript = 'blah blah blah'
     reductionparams = ''
@@ -171,7 +179,7 @@ def test_saving(refd, filename1d, filename2d):
 
     # run the function - use same workspace for both
     if wksp1d:
-        savereductionlog(wksp1d, wksp2d=wksp2d, filename=tmpfile,
+        savereductionlog(wksp1d, tmpfile, *wksp_other,
                          python=pythonscript, starttime=starttime,
                          user=user, username=username)
 
@@ -188,10 +196,12 @@ def test_saving(refd, filename1d, filename2d):
 
         # use mantid to check the workspaces
         checkWorkspaces(tmpfile, wksp1d, 1)
-        checkWorkspaces(tmpfile, wksp2d, 2)
+        for i, wksp in enumerate(wksp_other):
+            if wksp:
+                checkWorkspaces(tmpfile, wksp, i + 1)
     else:  # not supplying 1d workspace should always fail
         with pytest.raises(RuntimeError):
-            savereductionlog(wksp1d, wksp2d=wksp2d, filename=tmpfile,
+            savereductionlog(wksp1d, tmpfile, *wksp_other,
                              python=pythonscript, starttime=starttime,
                              user=user, username=username)
         assert not os.path.exists(tmpfile), \
@@ -200,7 +210,8 @@ def test_saving(refd, filename1d, filename2d):
     # cleanup
     if os.path.exists(tmpfile):
         os.unlink(tmpfile)
-    for wksp in [wksp1d, wksp2d]:
+    wksp_other.append(wksp1d)
+    for wksp in wksp_other:
         if wksp and wksp in mtd:
             mtd.remove(wksp)
 

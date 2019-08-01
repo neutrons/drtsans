@@ -2,8 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from mantid.simpleapi import (
-    AddSampleLog, ExtractSpectra, Rebin, DeleteWorkspace)
+from mantid.simpleapi import (ExtractSpectra, Rebin, DeleteWorkspace)
 from ornl.sans.momentum_transfer import \
     MomentumTransfer as MomentumTransferMain
 from ornl.sans.sns.eqsans import geometry
@@ -89,10 +88,8 @@ def prepare_momentum_transfer(input_workspace,
     assert len(wavelength_binning) == 1 or len(wavelength_binning) == 3, \
         "wavelength_binning must be a list of 1 or 3 elements"
 
-    AddSampleLog(
-        Workspace=input_workspace, LogName='sample-aperture-diameter',
-        LogText='{}'.format(sample_aperture), LogType='Number',
-        LogUnit='mm')
+    input_workspace.mutableRun().addProperty('sample-aperture-diameter',
+                                             sample_aperture, 'mm', True)
     geometry.source_aperture_diameter(input_workspace)
 
     sl = SampleLogs(input_workspace)
@@ -148,11 +145,10 @@ def prepare_momentum_transfer(input_workspace,
                                           XMax=bins[bin_index+1])
             wavelength_mean = (bins[bin_index] + bins[bin_index+1]) / 2.0
 
-            AddSampleLog(Workspace=ws_extracted, LogName='wavelength',
-                         LogText="{:.2f}".format(wavelength_mean),
-                         LogType='Number', LogUnit='Angstrom')
-            AddSampleLog(Workspace=ws_extracted, LogName='wavelength-spread',
-                         LogText='0.2', LogType='Number', LogUnit='Angstrom')
+            runObj = ws_extracted.mutableRun()
+            runObj.addProperty('wavelength', float(wavelength_mean),
+                               'Angstrom', True)
+            runObj.addProperty('wavelength-spread', 0.2, 'Angstrom', True)
 
             mt_extracted = MomentumTransfer(ws_extracted)
             mt_sum += mt_extracted

@@ -2,11 +2,9 @@ import json
 import os
 import sys
 import warnings
-
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from ornl.sans.sns import eqsans  # noqa E402
-
-warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 if __name__ == '__main__':
@@ -87,7 +85,7 @@ if __name__ == '__main__':
 
     # If frame_skipping we will have more than one table workspace
     table_ws_list = eqsans.prepare_momentum_transfer(
-        ws, wavelength_binning=[0.2])
+        ws, wavelength_binning=[0.5])
 
     for index, table_ws in enumerate(table_ws_list):
 

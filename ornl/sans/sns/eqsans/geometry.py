@@ -85,19 +85,26 @@ def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
     """
     m2units = dict(mm=1e3, m=1.0)
     mm2units = dict(mm=1.0, m=1e-3)
+    sl = SampleLogs(source)
 
     # Search the logs for the distance
     if search_logs is True:
         lk = 'source-monitor-distance' if log_key is not None else log_key
-        sl = SampleLogs(source)
         try:
-            return float(sl.single_value(lk)) * mm2units[unit]
-        except KeyError:
+            return sl.single_value(lk) * mm2units[unit]
+        except Exception:
             pass
+
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
     monitor = instrument.getComponentByName('monitor1')
-    return abs(monitor.getDistance(instrument.getSource())) * m2units[unit]
+    smd = monitor.getDistance(instrument.getSource())
+
+    # Insert in the logs if not present
+    if 'source-monitor-distance' not in sl.keys():
+        sl.insert('source-monitor-distance', smd * 1.e3, unit='mm')
+
+    return smd * m2units[unit]
 
 
 def sample_aperture_diameter(run, unit='mm'):

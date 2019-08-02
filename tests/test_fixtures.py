@@ -87,5 +87,14 @@ def test_generate_IDF(generate_sans_generic_IDF):
     assert generate_sans_generic_IDF == expected
 
 
+def test_serve_events_workspace(serve_events_workspace):
+    start = time.time()
+    w1 = serve_events_workspace('EQSANS_92353')
+    t1 = time.time()
+    w2 = serve_events_workspace('EQSANS_92353')
+    assert 10 * (time.time() - t1) < t1 - start  # 10 times faster
+    assert w1.name() != w2.name()
+
+
 if __name__ == '__main__':
     pytest.main()

@@ -4,6 +4,8 @@ import sys
 import os
 
 import pytest
+import random
+import string
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds

@@ -38,20 +38,30 @@ def q_resolution_per_pixel(ws):
 
     spec_info = ws.spectrumInfo()
 
-    theta = np.zeros(spec_info.size())
-    qx = np.zeros(spec_info.size())
-    qy = np.zeros(spec_info.size())
+    twotheta = np.zeros(spec_info.size())
+    phi = np.zeros(spec_info.size())
     for i in range(spec_info.size()):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
-            theta[i] = spec_info.twoTheta(i)
-            _x, _y, _z = spec_info.position(i)
-            phi = np.arctan2(_y, _x)
-            _q = 4.0 * np.pi * np.sin(spec_info.twoTheta(i) / 2.0) / wl
-            qx[i] = np.cos(phi) * _q
-            qy[i] = np.sin(phi) * _q
+            twotheta[i] = spec_info.twoTheta(i)
+            # assumes sample is at zero and orientation is McStas style
+            _x, _y, _ = spec_info.position(i)
+            phi[i] = np.arctan2(_y, _x)
+        else:
+            twotheta[i] = np.nan
 
-    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta))
-    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta))
+    _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
+
+    # convert things that are masked to zero
+    _q[np.isnan(twotheta)] = 0.
+    twotheta[np.isnan(twotheta)] = 0.  # do this one last
+
+    qx = np.cos(phi) * _q
+    qy = np.sin(phi) * _q
+    del _q, phi
+
+    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, twotheta))
+    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, twotheta))
+
     return qx, qy, dqx, dqy
 
 

@@ -194,7 +194,7 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
     kwargs = {'proton charge': dict(),
               'monitor': dict(monitor_workspace=monitor_workspace)}
     normaliser[method](input_workspace, w_flux,
-                       output_workspace=output_workspace, **kwargs)
+                       output_workspace=output_workspace, **kwargs[method])
     # A bit of cleanup
     w_flux.delete()
 

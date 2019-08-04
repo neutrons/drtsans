@@ -205,14 +205,8 @@ def correct_frame(input_workspace, source_to_component_distance):
     input_workspace: str, EventsWorkspace
         Data workspace
     source_to_component_distance: float
-        Distance from source to detecting component (detector1, monitor) in
+        Distance from source to detecting component (detector or monitor), in
         meters
-    ltc: float
-        trim neutrons of the leading pulse with a TOF smaller than the
-        minimal TOF plus this value
-    htc: float
-        trim neutrons f the leading pulse with TOF bigger than the maxima
-         TOF minus this value.
 
     Returns
     -------
@@ -227,7 +221,7 @@ def correct_frame(input_workspace, source_to_component_distance):
     sl = SampleLogs(ws)
     pulse_period = 1.e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
-    # The TOF values recorded are never be bigger than the frame width,
+    # The TOF values recorded are never bigger than the frame width,
     # which is also the choppers' rotational period.
     frame_width = ch.period  # either 10^6/60 or 10^6/30 micro-seconds
 
@@ -259,9 +253,11 @@ def correct_monitor_frame(input_workspace):
     -------
     EventsWorkspace
     """
+    # check we are not running in skip-frame mode
     ws = mtd[str(input_workspace)]
     if EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip:
         raise RuntimeError('cannot correct monitor frame in "skip" mode')
+    # correct TOF's
     correct_frame(ws, source_monitor_distance(ws, unit='m'))
 
 
@@ -297,7 +293,7 @@ def band_gap_indexes(input_workspace, bands):
 def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
                           output_workspace=None):
     r"""
-    Convert a time-of-fligth events workspace to a wavelength workspace
+    Convert a time-of-flight events workspace to a wavelength workspace
 
     Parameters
     ----------
@@ -354,7 +350,7 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
                             keep_events=False, zero_uncertainty=1.0,
                             interior_clip=False, output_workspace=None):
     r"""
-    Convert to Wavelength histogram data
+    API function that converts corrected TOF's to Wavelength.
 
     Parameters
     ----------

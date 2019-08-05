@@ -89,9 +89,7 @@ def test_generate_IDF(generate_sans_generic_IDF):
 
 
 def test_serve_events_workspace(serve_events_workspace):
-    start = time.time()
     w1 = serve_events_workspace('EQSANS_92353')
-    t1 = time.time()
     w2 = serve_events_workspace('EQSANS_92353')
     assert w1.name() != w2.name()
     originals = [w.name() for w in serve_events_workspace._cache.values()]

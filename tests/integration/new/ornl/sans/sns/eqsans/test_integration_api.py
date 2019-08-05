@@ -143,5 +143,13 @@ def test_solid_angle(rs):
     assert ws2.getNumberEvents() == rs.num_events
 
 
+def test_save_ascii_1D():
+    assert 'save_ascii_1D' in dir(eqsans)
+
+
+def test_save_xml_1D():
+    assert 'save_xml_1D' in dir(eqsans)
+
+
 if __name__ == '__main__':
     pytest.main()

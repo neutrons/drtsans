@@ -37,7 +37,7 @@ def save_xml_1D(wksp, title, filename):
     wksp : Workspace2D
         Workspace containing only one spectrum (the I(q) curve)
     title : string
-        first line of the ascii file
+        Text to append to Process section
     filename : string
         The output filename
     """

@@ -4,6 +4,8 @@ import sys
 import os
 
 import pytest
+import random
+import string
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
@@ -434,3 +436,47 @@ def generate_sans_generic_IDF(request):
     return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
                                -(Ny-1) * half_dy, dx, dy, half_dx,
                                half_dy, dx*1000., dy*1000.)
+
+
+@pytest.fixture(scope='session')
+def serve_events_workspace(refd):
+    r"""
+    Load an events workspace and cache it for future requests.
+
+    If the same run is requested, the fixture clones the cached workspace,
+    thus avoiding reloading the file.
+
+    Parameters
+    ----------
+    run: str
+        Instrument plus run number string, e.g 'EQSANS_92353'
+    dd: str
+        directory location where to find the file. Unnecessary if /SNS mounted.
+
+    Returns
+    -------
+    EventsWorkspace
+    """
+    def wrapper(run, dd=refd.new.eqsans):
+        cache = wrapper._cache
+        names = wrapper._names
+
+        def uwd():
+            while True:
+                name = '__' + ''.join(random.choice(string.ascii_lowercase)
+                                      for _ in range(9))
+                if name not in names:
+                    return name
+
+        if cache.get(run, None) is None:
+            with amend_config(data_dir=dd):
+                cache[run] = mtds.LoadEventNexus(run, OutputWorkspace=uwd())
+                names.append(cache[run])
+        clone = mtds.CloneWorkspace(cache[run], OutputWorkspace=uwd())
+        names.append(clone.name())
+        return clone
+
+    wrapper._cache = dict()  # caches the loaded original ws
+    wrapper._names = list()  # stores names for all ws produced
+    yield wrapper
+    [mtds.DeleteWorkspace(name) for name in wrapper._names]

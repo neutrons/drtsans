@@ -95,6 +95,9 @@ def test_serve_events_workspace(serve_events_workspace):
     w2 = serve_events_workspace('EQSANS_92353')
     assert 10 * (time.time() - t1) < t1 - start  # 10 times faster
     assert w1.name() != w2.name()
+    originals = [w.name() for w in serve_events_workspace._cache.values()]
+    assert w1.name() not in originals
+    assert w2.name() not in originals
 
 
 if __name__ == '__main__':

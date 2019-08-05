@@ -193,6 +193,15 @@ def test_api(refd):
     assert iqxqy_ws is not None
     assert mtd.doesExist(ws.name() + "_iqxqy")
 
+    # test 2d with log_binning
+    iqxqy_ws_log = iqxqy(table_ws, log_binning=True)
+    qx = iqxqy_ws_log.readX(0)
+    # Let's divide this qx in two: the 1st negative part and the last positive
+    qx_divide_negative = qx[1:31] / qx[:30]
+    qx_divide_positive = qx[-30:] / qx[-31:-1]
+    assert np.allclose(qx_divide_negative, qx_divide_negative[0])
+    assert np.allclose(qx_divide_positive, qx_divide_positive[0])
+
     # Test Mask now
     MaskAngle(Workspace=ws, MaxAngle=0.4, Angle="TwoTheta")
 

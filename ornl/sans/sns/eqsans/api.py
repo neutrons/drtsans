@@ -15,7 +15,8 @@ from ornl.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
-           'save_nist_dat', 'save_nexus']
+           'save_nist_dat', 'save_nexus',
+           'prepare_monitors', 'prepare_data']
 
 
 def apply_solid_angle_correction(input_workspace):
@@ -88,10 +89,10 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
     -------
     MatrixWorkspace
     """
-    output_workspace = load_events_monitor(data,
-                                           output_workspace=output_workspace)
-    transform_to_wavelength(output_workspace, bin_width=bin_width)
-    return mtd[output_workspace]
+    w = load_events_monitor(data, output_workspace=output_workspace)
+    w = squash_monitor_spikes(w)
+    w = transform_to_wavelength(w, bin_width=bin_width)
+    return w
 
 
 def prepare_data(data,

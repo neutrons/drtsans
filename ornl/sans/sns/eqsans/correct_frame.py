@@ -261,6 +261,41 @@ def correct_monitor_frame(input_workspace):
     correct_frame(ws, source_monitor_distance(ws, unit='m'))
 
 
+def squash_monitor_spikes(input_workspace, output_workspace=None):
+    r"""
+    Detect and remove spikes in monitor data
+
+    This function will transform to histogram data and return a workspace
+    with only the first spectrum of the input workspace
+
+    Parameters
+    ----------
+    input_workspace: EventsWorkspace
+        Monitor events workspace
+    output_workspace : str
+        Name of the normalised workspace. If None, the name of the input
+        workspace is chosen (the input workspace is overwritten).
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    window = 10  # 10 micro seconds
+    bin_width = 1  # 1 micro second
+    w = mtd[str(input_workspace)]
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+    w = Rebin(input_workspace, Params=bin_width, PreserveEvents=False,
+              OutputWorkspace=output_workspace)
+    y0 = w.dataY(0)
+    av = np.convolve(y0, np.ones(window), 'valid') / window
+    jumps = list()
+    for i, y in enumerate(w.dataY(0)[window:-1-window]):
+        j = i + window
+        jumps.append((av[i-1] - y0[j])**2 + (y0[j] - av[i+1])**2)
+    jumps = np.sqrt(jumps)
+
+
 def band_gap_indexes(input_workspace, bands):
     r"""
     Convention to define the indexes of the gap band.
@@ -354,7 +389,7 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
 
     Parameters
     ----------
-    input_workspace: str, EventsWorkspace
+    input_workspace: str, EventsWorkspace, Matrixworkspace
         Events workspace in time-of-flight
     bin_width: float
         Bin width for the output workspace, in Angstroms.

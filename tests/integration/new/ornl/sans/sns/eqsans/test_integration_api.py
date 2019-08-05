@@ -6,7 +6,7 @@ import pytest
 from pytest import approx
 import numpy as np
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import SumSpectra, mtd, LoadNexus
+from mantid.simpleapi import SumSpectra, mtd, LoadNexus, SaveNexus
 
 # public API
 from ornl.sans.sns import eqsans
@@ -122,6 +122,20 @@ def test_subtract_background(refd):
     ws_wb = eqsans.subtract_background(ws, wb, scale=0.42)
     assert ws_wb.name() == ws_name
     assert max(ws_wb.dataY(0)) < 1.e-09
+
+
+def test_prepare_monitors(refd):
+    with amend_config(data_dir=refd.new.eqsans):
+        # Raises for a run in skip frame mode
+        with pytest.raises(RuntimeError, match='cannot correct monitor'):
+            eqsans.prepare_monitors('EQSANS_92353')
+
+        w = eqsans.prepare_monitors('EQSANS_88901')
+        assert w.name() == 'EQSANS_88901_monitors'
+        sl = SampleLogs(w)
+        assert sl.wavelength_min.value == approx(11.8, abs=0.1)
+        assert sl.wavelength_max.value == approx(14.9, abs=0.1)
+        SaveNexus(w, '/tmp/new_wav.nxs')
 
 
 @pytest.mark.skip(reason="prepare data not yet completed")

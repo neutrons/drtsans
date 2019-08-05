@@ -109,7 +109,8 @@ class MomentumTransfer:
         table_iq.addColumn(type="float", name="Sigma(I)")
 
         for qx_i, qy_i, dqx_i, dqy_i, i_i, i_sigma_i in zip(
-                self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma):
+                self.qx.tolist(), self.qy.tolist(), self.dqx.tolist(),
+                self.dqy.tolist(), self.i.tolist(), self.i_sigma.tolist()):
             nextRow = {
                 'Qx': qx_i,
                 'Qy': qy_i,

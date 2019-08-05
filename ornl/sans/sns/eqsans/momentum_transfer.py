@@ -289,8 +289,6 @@ def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
 
         if num_x is not None and num_y is not None:
             # first let's find where the negatives start and end
-            print("->", num_x, len(mt.qx))
-            print("->", num_y, len(mt.qy))
             bins_qx = _linear_log_array(sorted(mt.qx), num_x)
             bins_qy = _linear_log_array(sorted(mt.qy), num_y)
             bins = [bins_qx, bins_qy]

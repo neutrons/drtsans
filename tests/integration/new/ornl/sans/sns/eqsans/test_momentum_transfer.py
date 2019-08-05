@@ -216,10 +216,8 @@ def test_api(refd):
 
     iqxqy_ws_masked = iqxqy(table_ws_masked)
     # Masked values around beam center
-    assert iqxqy_ws_masked.readY(51)[52] == 0
-    assert iqxqy_ws_masked.readY(51)[53] == 0
-    assert iqxqy_ws_masked.readY(51)[52] < iqxqy_ws.readY(51)[52]
-    assert iqxqy_ws_masked.readY(51)[53] < iqxqy_ws.readY(51)[53]
+    assert iqxqy_ws_masked.readY(51)[46] == 0
+    assert iqxqy_ws_masked.readY(51)[47] == 0
 
 
 def test_api_frame_skipping(refd):

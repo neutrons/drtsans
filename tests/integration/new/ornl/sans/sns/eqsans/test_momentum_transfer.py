@@ -193,12 +193,15 @@ def test_api(refd):
     assert iqxqy_ws is not None
     assert mtd.doesExist(ws.name() + "_iqxqy")
 
-    # test 2d with log_binning
+    # test 2d with log_binning=True
     iqxqy_ws_log = iqxqy(table_ws, log_binning=True)
     qx = iqxqy_ws_log.readX(0)
-    # Let's divide this qx in two: the 1st negative part and the last positive
-    qx_divide_negative = qx[1:31] / qx[:30]
-    qx_divide_positive = qx[-30:] / qx[-31:-1]
+    # Q log bining in 2D may have different negative and positive bin widths.
+    # The Qx must be thus divided in two: the beggining (negative) and at the
+    # end (positive). Let's pick a few bins (e.g. 30) where we now the division
+    # with the anterior bin is constant.
+    qx_divide_negative = qx[1:31] / qx[:30]  # beginning off Qx
+    qx_divide_positive = qx[-30:] / qx[-31:-1]  # end of qx
     assert np.allclose(qx_divide_negative, qx_divide_negative[0])
     assert np.allclose(qx_divide_positive, qx_divide_positive[0])
 

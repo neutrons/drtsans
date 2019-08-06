@@ -196,8 +196,46 @@ def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
     return ws
 
 
-def iqxqy(input_table_workspace, bins=100, suffix='_iqxqy'):
+def _linear_log_array(arr, n_bins):
+    """Transforms a linear binning array into a log
+    The input array must be sorted, for example:
+    [-5, ..., -1, 0, 1, ..., 6]
+    is valid.
+
+    Parameters
+    ----------
+    arr : array
+        array with original binning with negative values
+    n_bins : int
+        number of bins in the returned array
+
+    Returns
+    -------
+    array
+        Logarithmic binning array
     """
+
+    negative_bins = np.array([arr[0], np.where(np.array(arr) < 0,
+                                               arr, -np.inf).max()])
+    positive_bins = np.array([np.where(np.array(arr) > 0,
+                                       arr, np.inf).min(), arr[-1]])
+
+    negative_bins *= -1
+    negative_bins = np.flip(negative_bins, axis=0)
+
+    bins_negative = np.geomspace(negative_bins[0], negative_bins[1], n_bins//2)
+    bins_negative *= -1
+    bins_negative = np.flip(bins_negative, axis=0)
+
+    bins_positive = np.geomspace(positive_bins[0], positive_bins[1], n_bins//2)
+    bins = np.hstack((bins_negative, bins_positive))
+
+    return bins
+
+
+def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
+    """
+    Only used to visulize Qx vs Qy.
     Creates a WS named: input_table_workspace.name() + "_iqxqy"
 
     Parameters
@@ -234,23 +272,26 @@ def iqxqy(input_table_workspace, bins=100, suffix='_iqxqy'):
     #     if True bins must be an integer or an array with two integers, e.g.,
     #     100 or [100, 100]
     #     , by default False
-    # if log_binning:
-    #     num_x = None
-    #     num_y = None
-    #     if isinstance(bins, int):
-    #         num_x = bins
-    #         num_y = bins
-    #     elif isinstance(bins, list) and len(bins) == 2:
-    #         num_x = bins[0]
-    #         num_y = bins[1]
-    #     if num_x is not None and num_y is not None:
-    #         bins_qx = np.logspace(np.log10(np.min(mt.qx)),
-    #                               np.log10(np.max(mt.qx)),
-    #                               num=num_x)
-    #         bins_qy = np.logspace(np.log10(np.min(mt.qy)),
-    #                               np.log10(np.max(mt.qy)),
-    #                               num=num_y)
-    #         bins = [bins_qx, bins_qy]
+    if log_binning:
+        # number of bins
+        num_x = None
+        num_y = None
+        if isinstance(bins, int):
+            num_x = bins
+            num_y = bins
+        elif isinstance(bins, list) and len(bins) == 2:
+            num_x = bins[0]
+            num_y = bins[1]
+        else:
+            logger.error("Please use bins as an int or a list with two "
+                         "arguments. E.g.: bins=100 or bins=[120, 80]")
+            return
+
+        if num_x is not None and num_y is not None:
+            # first let's find where the negatives start and end
+            bins_qx = _linear_log_array(sorted(mt.qx), num_x)
+            bins_qy = _linear_log_array(sorted(mt.qy), num_y)
+            bins = [bins_qx, bins_qy]
 
     _, ws = mt.bin_into_q2d(bins=bins, suffix=suffix)
     return ws

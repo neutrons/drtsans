@@ -174,7 +174,7 @@ class MomentumTransfer:
         # When doing histogram2d the masks are gone
         iqxqy_ws = CreateWorkspace(DataX=np.tile(qx_bin_edges,
                                                  len(qy_bin_centers)),
-                                   DataY=counts_qx_qy.T,
+                                   DataY=np.fliplr(counts_qx_qy.T),
                                    NSpec=len(qy_bin_centers),
                                    UnitX='MomentumTransfer',
                                    VerticalAxisUnit='MomentumTransfer',

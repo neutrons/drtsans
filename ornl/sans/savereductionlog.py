@@ -1,6 +1,7 @@
 from datetime import datetime
 import h5py
 import json
+import socket
 from mantid import __version__ as mantid_version
 from mantid.simpleapi import mtd, SaveNexusProcessed
 import numpy as np
@@ -219,7 +220,7 @@ def savereductionlog(wksp1d, filename, wksp2d=None, **kwargs):
         entry.create_dataset(name='start_time', data=[np.string_(starttime)])
 
         # computer it was on
-        hostname = environ.get('HOSTNAME', '')
+        hostname = socket.gethostname()
         hostname = kwargs.get('hostname', hostname)  # parameter wins
         if hostname:
             entry.create_dataset(name='hostname', data=[np.string_(hostname)])

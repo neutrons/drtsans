@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from mantid.api import (Run, MatrixWorkspace)
-from mantid.simpleapi import (mtd, Load, AddSampleLog)
+from mantid.simpleapi import (mtd, Load)
 
 
 class SampleLogs(object):
@@ -50,37 +50,12 @@ class SampleLogs(object):
         unit: str
             Log unit
         """
-        log_unit = unit  # this could end up being None
-        number_type = None  # this could end up being None
+        if not unit:
+            unit = ''
+        if isinstance(value, list):
+            value = value[0]  # copies AddSampleLog behavior
 
-        def figure_log_type(val):
-            for k, v in {list: 'Number Series', int: 'Number',
-                         float: 'Number', str: 'String'}.items():
-                if isinstance(val, k):
-                    return v
-
-        def figure_number_type(val):
-            for k, v in {int: 'Int', float: 'Double'}.items():
-                if isinstance(val, k):
-                    return v
-            if isinstance(val, list):
-                return figure_number_type(val[0])
-
-        log_type = figure_log_type(value)
-        if log_type == 'Number':
-            number_type = figure_number_type(value)
-
-        # cast `value` to str
-        if log_type == 'NumberSeries':
-            log_text = ' '.join([str(x) for x in value])
-        else:
-            log_text = str(value)
-
-        # Done, call Mantid algorithm
-        pairings = dict(LogUnit=log_unit, NumberType=number_type)
-        kw = {k: v for (k, v) in pairings.items() if v is not None}
-        AddSampleLog(self._ws, LogName=name, LogText=log_text,
-                     LogType=log_type, **kw)
+        self._ws.mutableRun().addProperty(name, value, unit, True)
 
     @property
     def mantid_logs(self):

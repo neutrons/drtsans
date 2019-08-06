@@ -10,7 +10,7 @@ import mantid
 from mantid.kernel import logger
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
 from ornl.sans.detector import Component
-from ornl.sans.hfir import resolution
+
 
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
@@ -33,11 +33,10 @@ class MomentumTransfer:
     component = None
     detector_dims = None
 
-    def __init__(self,
-                 input_workspace=None,
-                 component_name="detector1",
-                 out_ws_prefix="ws"):
+    def __init__(self, resolution, input_workspace=None,
+                 component_name="detector1", out_ws_prefix="ws"):
 
+        self.resolution = resolution
         self.prefix = out_ws_prefix
 
         if isinstance(input_workspace, mantid.dataobjects.TableWorkspace):
@@ -82,10 +81,13 @@ class MomentumTransfer:
 
         # 1D arrays
         self.qx, self.qy, self.dqx, self.dqy = \
-            resolution.q_resolution_per_pixel(input_workspace)
+            self.resolution.q_resolution_per_pixel(input_workspace)
         self.i = input_workspace.extractY().ravel()
         self.i_sigma = input_workspace.extractE().ravel()
-
+        # Ravel just in case! For EQSANS for example is needed!
+        self.qx, self.qy, self.dqx, self.dqy = \
+            self.qx.ravel(), self.qy.ravel(), self.dqx.ravel(), \
+            self.dqy.ravel()
         # Get rid of the monitors; from 49154 to 49152 spectra
         self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
             self._remove_monitors(d) for d in

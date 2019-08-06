@@ -8,7 +8,7 @@ from ornl.sans.momentum_transfer import \
 from ornl.sans.sns.eqsans import geometry
 from mantid.kernel import logger
 from ornl.sans.samplelogs import SampleLogs
-
+from ornl.sans.sns.eqsans import resolution
 
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
@@ -19,7 +19,7 @@ class MomentumTransfer(MomentumTransferMain):
                  input_workspace=None,
                  component_name="detector1",
                  out_ws_prefix="ws"):
-        super(MomentumTransfer, self).__init__(input_workspace,
+        super(MomentumTransfer, self).__init__(resolution, input_workspace,
                                                component_name=component_name,
                                                out_ws_prefix=out_ws_prefix)
 

@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-import time
 
 
 @pytest.mark.skip(reason="only for debugging")

@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.signal import find_peaks
+from scipy.stats import zscore
 from mantid.simpleapi import (mtd, ConvertUnits, Rebin, EQSANSCorrectFrame)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
@@ -261,9 +263,10 @@ def correct_monitor_frame(input_workspace):
     correct_frame(ws, source_monitor_distance(ws, unit='m'))
 
 
-def squash_monitor_spikes(input_workspace, output_workspace=None):
+def smash_monitor_spikes(input_workspace, output_workspace=None):
     r"""
-    Detect and remove spikes in monitor data
+    Detect and remove spikes in monitor data TOF between min and max TOF's.
+    These spikes will spoil rebinning to wavelength
 
     This function will transform to histogram data and return a workspace
     with only the first spectrum of the input workspace
@@ -280,20 +283,49 @@ def squash_monitor_spikes(input_workspace, output_workspace=None):
     -------
     MatrixWorkspace
     """
-    window = 10  # 10 micro seconds
-    bin_width = 1  # 1 micro second
     w = mtd[str(input_workspace)]
     if output_workspace is None:
         output_workspace = str(input_workspace)
+
+    # We detect spikes in histogram mode
+    bin_width = 1  # 1 micro second
     w = Rebin(input_workspace, Params=bin_width, PreserveEvents=False,
               OutputWorkspace=output_workspace)
-    y0 = w.dataY(0)
-    av = np.convolve(y0, np.ones(window), 'valid') / window
-    jumps = list()
-    for i, y in enumerate(w.dataY(0)[window:-1-window]):
-        j = i + window
-        jumps.append((av[i-1] - y0[j])**2 + (y0[j] - av[i+1])**2)
-    jumps = np.sqrt(jumps)
+
+    # Find intensities in the range of valid time-of-flight
+    intensity = w.dataY(0)
+    tofs = w.dataX(0)
+    smd = source_monitor_distance(w, unit='m')
+    tof_min, tof_max = limiting_tofs(w, smd).lead
+    valid_idx = np.where(np.logical_and(tofs >= tof_min, tofs <= tof_max))[0]
+    if valid_idx[-1] == len(intensity):
+        valid_idx = valid_idx[:-1]  # dataX is one element longer than dataY
+    intensity = intensity[valid_idx]
+
+    def remove_spikes(y, sigf_zscore=10, minima=False):
+        if minima is True:
+            y *= -1.0
+        while True:
+            peak_indexes, v = find_peaks(y, prominence=0)
+            if peak_indexes.size == 0:
+                raise RuntimeError('Monitor spectrum is flat')
+            prom = zscore(v['prominences'])
+            spike_prom_indexes = np.where(prom > sigf_zscore)[0]
+            if spike_prom_indexes.size == 0:
+                break
+            spike_indexes = peak_indexes[spike_prom_indexes]
+            y[spike_indexes] -= v['prominences'][spike_prom_indexes]
+        if minima is True:
+            y *= -1.0
+
+    # Remove maxima spikes
+    remove_spikes(intensity, sigf_zscore=15)
+    # Remove minima spikes
+    remove_spikes(intensity, sigf_zscore=10, minima=True)
+
+    # Insert intensities free of spikes
+    w.dataY(0)[valid_idx] = intensity
+    return w
 
 
 def band_gap_indexes(input_workspace, bands):

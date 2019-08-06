@@ -7,7 +7,9 @@ from mantid.simpleapi import (Load, EQSANSLoad, SumSpectra, RebinToWorkspace,
 from mantid.api import AnalysisDataService
 from ornl.settings import amend_config, unique_workspace_dundername as uwd
 from ornl.sans.sns.eqsans.correct_frame import (correct_detector_frame,
-                                                correct_monitor_frame)
+                                                correct_monitor_frame,
+                                                smash_monitor_spikes)
+from ornl.sans.sns.eqsans.load import load_events_monitor
 from ornl.sans.sns.eqsans import correct_frame as cf
 from ornl.sans.geometry import source_detector_distance
 
@@ -73,6 +75,18 @@ def test_correct_detector_frame(serve_events_workspace):
         MoveInstrumentComponent(ws, ComponentName='detector1', Z=sdd)
         correct_detector_frame(ws)
         compare_to_eqsans_load(ws, wo, wavelength_bin, sdd, 500, 2000)
+
+
+def test_smash_monitor_spikes():
+    # Smash two spikes
+    w = load_events_monitor('EQSANS_88565')
+    w = smash_monitor_spikes(w)
+    assert max(w.dataY(0)) < 1e3
+
+    # Monitor data is crap
+    w = load_events_monitor('EQSANS_101595')
+    with pytest.raises(RuntimeError, match='Monitor spectrum is flat'):
+        smash_monitor_spikes(w)
 
 
 def test_correct_monitor_frame(serve_events_workspace):

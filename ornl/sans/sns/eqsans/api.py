@@ -11,6 +11,7 @@ from ornl.sans.sns.eqsans import (load_events, load_events_monitor,
                                   transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
+from ornl.sans.sns.eqsans.correct_frame import smash_monitor_spikes
 from ornl.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -90,7 +91,7 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
     MatrixWorkspace
     """
     w = load_events_monitor(data, output_workspace=output_workspace)
-    w = squash_monitor_spikes(w)
+    w = smash_monitor_spikes(w)
     w = transform_to_wavelength(w, bin_width=bin_width)
     return w
 

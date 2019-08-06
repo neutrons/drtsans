@@ -12,9 +12,9 @@ from mantid.simpleapi import (
 from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
                                   normalisation, transform_to_wavelength,
                                   prepare_data)
-from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer, iq,
-                                                    iqxqy,
-                                                    prepare_momentum_transfer)
+from ornl.sans.sns.eqsans.momentum_transfer import (
+    MomentumTransfer, iq, iqxqy, iq_wedge, iq_annular,
+    prepare_momentum_transfer)
 
 
 def legacy_reduction(refd):
@@ -188,6 +188,14 @@ def test_api(refd):
     q = iq_ws.readX(0)
     q_divide = q[1:] / q[:-1]
     assert np.allclose(q_divide, q_divide[0])
+
+    # Test Wedge
+    iq_wedge_ws = iq_wedge(table_ws)
+    assert iq_wedge_ws
+
+    # Tests annulus
+    iq_annular_ws = iq_annular(table_ws)
+    assert iq_annular_ws
 
     iqxqy_ws = iqxqy(table_ws)
     assert iqxqy_ws is not None

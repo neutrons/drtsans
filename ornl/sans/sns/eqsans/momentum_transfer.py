@@ -295,3 +295,138 @@ def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
 
     _, ws = mt.bin_into_q2d(bins=bins, suffix=suffix)
     return ws
+
+
+def iq_wedge(input_table_workspace,  phi_0=0,
+                       phi_aperture=30, bins=100, statistic='mean',
+                       suffix="_wedge_iq"):
+    """
+    Wedge calculation and integration
+
+    Calculates: I(Q) and Dq
+    The ws_* input parameters are the output workspaces from bin_into_q2d
+
+    Parameters
+    ----------
+    input_table_workspace : TableWorkspace
+
+    phi_0 : int, optional
+        Where to start the wedge, by default 0
+    phi_aperture : int, optional
+        Aperture of the wedge, by default 30
+    bins : int or sequence of scalars, optional
+        See `scipy.stats.binned_statistic`.
+        If `bins` is an int, it defines the number of equal-width bins in
+        the given range (10 by default).  If `bins` is a sequence, it
+        defines the bin edges, including the rightmost edge, allowing for
+        non-uniform bin widths.  Values in `x` that are smaller than lowest
+        bin edge areassigned to bin number 0, values beyond the highest bin
+        are assigned to ``bins[-1]``.  If the bin edges are specified,
+        the number of bins will be, (nx = len(bins)-1).
+    statistic : str, optional
+        See `scipy.stats.binned_statistic`.
+        The statistic to compute, by default 'mean'
+        The following statistics are available:
+        * 'mean' : compute the mean of values for points within each bin.
+            Empty bins will be represented by NaN.
+        * 'std' : compute the standard deviation within each bin. This
+            is implicitly calculated with ddof=0.
+        * 'median' : compute the median of values for points within each
+            bin. Empty bins will be represented by NaN.
+        * 'count' : compute the count of points within each bin.  This is
+            identical to an unweighted histogram.  `values` array is not
+            referenced.
+        * 'sum' : compute the sum of values for points within each bin.
+            This is identical to a weighted histogram.
+        * 'min' : compute the minimum of values for points within each bin.
+            Empty bins will be represented by NaN.
+        * 'max' : compute the maximum of values for point within each bin.
+            Empty bins will be represented by NaN.
+        * function : a user-defined function which takes a 1D array of
+            values, and outputs a single numerical statistic. This function
+            will be called on the values in each bin.  Empty bins will be
+            represented by function([]), or NaN if this returns an error.
+    out_ws_prefix : str, optional
+        The prefix of the workspace created in Mantid, by default "ws"
+
+    Returns
+    -------
+        Workspace2D with one spectrum: I(q)
+
+    """
+
+    mt = MomentumTransfer(
+        input_table_workspace,
+        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
+
+    _, ws = mt.bin_wedge_into_q1d(phi_0=phi_0, phi_aperture=phi_aperture,
+                                  bins=bins, statistic=statistic,
+                                  suffix=suffix)
+    return ws
+
+
+def iq_annular(input_table_workspace, q_min=0.001, q_max=0.4,
+                         bins=100, statistic='mean', suffix="_annular_iq"):
+    """
+    Wedge calculation and integration
+
+    Calculates: I(Q) and Dq
+    The ws_* input parameters are the output workspaces from bin_into_q2d
+
+    Parameters
+    ----------
+    input_table_workspace : TableWorkspace
+
+    q_min : float, optional
+        , by default
+    q_max : float, optional
+        , by default
+        Aperture of the wedge, by default 30
+    bins : int or sequence of scalars, optional
+        See `scipy.stats.binned_statistic`.
+        If `bins` is an int, it defines the number of equal-width bins in
+        the given range (10 by default).  If `bins` is a sequence, it
+        defines the bin edges, including the rightmost edge, allowing for
+        non-uniform bin widths.  Values in `x` that are smaller than lowest
+        bin edge areassigned to bin number 0, values beyond the highest bin
+        are assigned to ``bins[-1]``.  If the bin edges are specified,
+        the number of bins will be, (nx = len(bins)-1).
+    statistic : str, optional
+        See `scipy.stats.binned_statistic`.
+        The statistic to compute, by default 'mean'
+        The following statistics are available:
+        * 'mean' : compute the mean of values for points within each bin.
+            Empty bins will be represented by NaN.
+        * 'std' : compute the standard deviation within each bin. This
+            is implicitly calculated with ddof=0.
+        * 'median' : compute the median of values for points within each
+            bin. Empty bins will be represented by NaN.
+        * 'count' : compute the count of points within each bin.  This is
+            identical to an unweighted histogram.  `values` array is not
+            referenced.
+        * 'sum' : compute the sum of values for points within each bin.
+            This is identical to a weighted histogram.
+        * 'min' : compute the minimum of values for points within each bin.
+            Empty bins will be represented by NaN.
+        * 'max' : compute the maximum of values for point within each bin.
+            Empty bins will be represented by NaN.
+        * function : a user-defined function which takes a 1D array of
+            values, and outputs a single numerical statistic. This function
+            will be called on the values in each bin.  Empty bins will be
+            represented by function([]), or NaN if this returns an error.
+    out_ws_prefix : str, optional
+        The prefix of the workspace created in Mantid, by default "ws"
+
+    Returns
+    -------
+        Workspace2D with one spectrum: I(q)
+
+    """
+
+    mt = MomentumTransfer(
+        input_table_workspace,
+        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
+
+    _, ws = mt.bin_annular_into_q1d(q_min=q_min, q_max=q_max, bins=bins,
+                                    statistic=statistic, suffix=suffix)
+    return ws

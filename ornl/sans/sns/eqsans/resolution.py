@@ -44,22 +44,33 @@ def q_resolution_per_pixel(ws):
         raise RuntimeError("X size mismatch: %s %s" %
                            (spec_info.size(), wl.shape[0]))
 
-    theta = np.zeros_like(wl)
-    qx = np.zeros_like(wl)
-    qy = np.zeros_like(wl)
+    twotheta = np.zeros_like(wl)
+    phi = np.zeros_like(wl)
     s2p = np.zeros_like(wl)
     for i in range(spec_info.size()):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
-            theta[i] = spec_info.twoTheta(i) * np.ones(wl.shape[1])
-            s2p[i] = spec_info.l2(i) * np.ones(wl.shape[1])
-            _x, _y, _z = spec_info.position(i)
-            phi = np.arctan2(_y, _x)
-            _q = 4.0 * np.pi * np.sin(spec_info.twoTheta(i) / 2.0) / wl[i]
-            qx[i] = np.cos(phi) * _q
-            qy[i] = np.sin(phi) * _q
+            twotheta[i] = spec_info.twoTheta(i)
+            s2p[i] = spec_info.l2(i)
 
-    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p))
-    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p))
+            # this is only correct if beam is in z-direction
+            # TODO change to mantid's calculation
+            _x, _y, _z = spec_info.position(i)
+            phi[i] = np.arctan2(_y, _x)
+        else:
+            twotheta[i] = np.nan
+
+    _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
+    _q[np.isnan(twotheta)] = 0.
+    twotheta[np.isnan(twotheta)] = 0.  # do this one last
+
+    qx = np.cos(phi) * _q
+    qy = np.sin(phi) * _q
+    del _q, phi
+
+    dtof = _moderator_time_error(wl)
+    theta = 0.5 * twotheta
+    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
+    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
     return qx, qy, dqx, dqy
 
 
@@ -77,19 +88,25 @@ def _moderator_time_error(wl):
     float
     """
     time_error = np.zeros_like(wl)
-    time_error[wl > 2.0] = 0.0148 * wl[wl > 2.0]**3 \
-        - 0.5233 * wl[wl > 2.0]**2 \
-        + 6.4797 * wl[wl > 2.0] + 231.99
-    time_error[wl <= 2.0] = 392.31 * wl[wl <= 2.0]**6 \
-        - 3169.3 * wl[wl <= 2.0]**5 \
-        + 10445 * wl[wl <= 2.0]**4 \
-        - 17872 * wl[wl <= 2.0]**3 \
-        + 16509 * wl[wl <= 2.0]**2 \
-        - 7448.4 * wl[wl <= 2.0] + 1280.5
+
+    mask = wl > 2.0
+    time_error[mask] = 0.0148 * wl[mask]**3 \
+        - 0.5233 * wl[mask]**2 \
+        + 6.4797 * wl[mask] + 231.99
+
+    mask = wl <= 2.0
+    time_error[mask] = 392.31 * wl[mask]**6 \
+        - 3169.3 * wl[mask]**5 \
+        + 10445 * wl[mask]**4 \
+        - 17872 * wl[mask]**3 \
+        + 16509 * wl[mask]**2 \
+        - 7448.4 * wl[mask] + 1280.5
+
+    del mask
     return time_error
 
 
-def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055):
+def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055, dtof=0.):
     """
     Q resolution in the horizontal direction.
 
@@ -125,12 +142,11 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055):
     if theta is None:
         theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dtof = _moderator_time_error(wl)
     dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
     return dq2_geo + np.fabs(qx) * (dq_tof_term + (dwl / wl)**2) / 12.0
 
 
-def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043):
+def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043, dtof=0.):
     """
     Q resolution in vertical direction.
 
@@ -166,7 +182,6 @@ def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043):
     if theta is None:
         theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dtof = _moderator_time_error(wl)
     dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
     dq2 = dq2_geo + dq2_grav

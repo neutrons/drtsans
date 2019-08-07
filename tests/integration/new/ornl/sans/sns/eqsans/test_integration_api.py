@@ -143,12 +143,9 @@ def test_solid_angle(rs):
     assert ws2.getNumberEvents() == rs.num_events
 
 
-def test_save_ascii_1D():
-    assert 'save_ascii_1D' in dir(eqsans)
-
-
-def test_save_xml_1D():
-    assert 'save_xml_1D' in dir(eqsans)
+@pytest.mark.parameterize('name', ['save_ascii_1D', 'save_xml_1D'])
+def test_api_contents():
+    assert name in dir(eqsans)  # noqa F821
 
 
 if __name__ == '__main__':

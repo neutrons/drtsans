@@ -3,8 +3,8 @@ from mantid.api import mtd
 from mantid import simpleapi as sapi
 from ornl.settings import unique_workspace_dundername as uwd
 # Import rolled up to complete a single top-level API
-from ornl.sans import (apply_sensitivity_correction, solid_angle_correction,
-                       save_ascii)
+from ornl.sans import (apply_sensitivity_correction, solid_angle_correction)
+from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
@@ -21,24 +21,6 @@ def apply_solid_angle_correction(input_workspace):
     """
     return solid_angle_correction(input_workspace,
                                   detector_type='VerticalTube')
-
-
-def save_ascii_1D(input_workspace, title, filename):
-    """
-    :param input_workspace: Workspace containing only one spectrum
-    :param title: First line of the ascii file
-    :param filename: Output filename
-    """
-    save_ascii.save_ascii_1D(input_workspace, title, filename)
-
-
-def save_xml_1D(input_workspace, title, filename):
-    """
-    :param input_workspace: Workspace containing only one spectrum
-    :param title: Text to append to Process section
-    :param filename: Output filename
-    """
-    save_ascii.save_xml_1d(input_workspace, title, filename)
 
 
 def normalize(ws, normalization_type):

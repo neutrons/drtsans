@@ -6,5 +6,5 @@ TEST_SCOPE=$1  # 'unit' or 'integration'
 
 source activate mantid
 cd /opt/sans-backend
-echo "Writing tests results to /tmp/sans-backend/${TEST_SCOPE}_test_results.xml"
-pytest -v /opt/sans-backend/tests/${TEST_SCOPE} --junitxml=/tmp/${TEST_SCOPE}_test_results.xml
+echo "Writing tests results to $(pwd)/${TEST_SCOPE}_test_results.xml"
+pytest -v /opt/sans-backend/tests/${TEST_SCOPE} --junitxml=./${TEST_SCOPE}_test_results.xml

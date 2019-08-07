@@ -93,7 +93,7 @@ code-unit-test:
     - popd
   artifacts:
     paths:
-      -  /tmp/unit_test_results.xml
+      -  unit_test_results.xml
     reports:
       junit: unit_test_results.xml
   tags:
@@ -118,7 +118,7 @@ code-integration-test:
     - popd
   artifacts:
     paths:
-      -  /tmp/integration_test_results.xml
+      -  integration_test_results.xml
     reports:
       junit: integration_test_results.xml
   tags:

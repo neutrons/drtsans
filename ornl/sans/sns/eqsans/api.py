@@ -5,6 +5,7 @@ from ornl.settings import unique_workspace_dundername as uwd
 # Import rolled up to complete a single top-level API
 from ornl.sans import (apply_sensitivity_correction, solid_angle_correction)
 from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
+from ornl.sans.save_2d import save_nist_dat, save_nexus
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   center_detector, subtract_dark_current,
@@ -12,7 +13,8 @@ from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
 from ornl.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
-           'prepare_data', 'save_ascii_1D', 'save_xml_1D']
+           'prepare_data', 'save_ascii_1D', 'save_xml_1D',
+           'save_nist_dat', 'save_nexus']
 
 
 def apply_solid_angle_correction(input_workspace):

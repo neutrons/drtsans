@@ -144,7 +144,7 @@ def test_solid_angle(rs):
 
 
 @pytest.mark.parametrize('name', ['save_ascii_1D', 'save_xml_1D'])
-def test_api_contents():
+def test_api_contents(name):
     assert name in dir(eqsans)  # noqa F821
 
 

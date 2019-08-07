@@ -189,10 +189,12 @@ def test_api(refd):
     q_divide = q[1:] / q[:-1]
     assert np.allclose(q_divide, q_divide[0])
 
+    # TODO: this needs a proper test
     # Test Wedge
     iq_wedge_ws = iq_wedge(table_ws)
     assert iq_wedge_ws
 
+    # TODO: this needs a proper test
     # Tests annulus
     iq_annular_ws = iq_annular(table_ws)
     assert iq_annular_ws

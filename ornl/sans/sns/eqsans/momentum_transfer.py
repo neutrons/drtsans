@@ -155,6 +155,7 @@ def prepare_momentum_transfer(input_workspace,
         result_wss.append(mt_sum.q2d(suffix=suffix))
         DeleteWorkspace(ws_rebin)
         DeleteWorkspace(ws_extracted)
+
     return result_wss
 
 
@@ -188,7 +189,6 @@ def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
         out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
     if log_binning and isinstance(bins, int):
-        # TODO: calculate and keep q in MomentumTransfer?
         q = np.sqrt(np.square(mt.qx) + np.square(mt.qy))
         bins = np.logspace(np.log10(np.min(q)), np.log10(np.max(q)), num=bins)
 
@@ -267,11 +267,6 @@ def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
         input_table_workspace,
         out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
-    # TODO: log binning
-    # log_binning : bool, optional
-    #     if True bins must be an integer or an array with two integers, e.g.,
-    #     100 or [100, 100]
-    #     , by default False
     if log_binning:
         # number of bins
         num_x = None
@@ -294,12 +289,13 @@ def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
             bins = [bins_qx, bins_qy]
 
     _, ws = mt.bin_into_q2d(bins=bins, suffix=suffix)
+
     return ws
 
 
 def iq_wedge(input_table_workspace,  phi_0=0,
-                       phi_aperture=30, bins=100, statistic='mean',
-                       suffix="_wedge_iq"):
+             phi_aperture=30, bins=100, statistic='mean',
+             suffix="_wedge_iq"):
     """
     Wedge calculation and integration
 
@@ -366,7 +362,7 @@ def iq_wedge(input_table_workspace,  phi_0=0,
 
 
 def iq_annular(input_table_workspace, q_min=0.001, q_max=0.4,
-                         bins=100, statistic='mean', suffix="_annular_iq"):
+               bins=100, statistic='mean', suffix="_annular_iq"):
     """
     Wedge calculation and integration
 

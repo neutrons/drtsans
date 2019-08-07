@@ -41,6 +41,7 @@ class MomentumTransfer:
 
         if isinstance(input_workspace, mantid.dataobjects.TableWorkspace):
             self._load_table_workspace(input_workspace)
+
         elif isinstance(input_workspace, mantid.dataobjects.Workspace2D):
             self.component = Component(input_workspace, component_name)
             self.detector_dims = (self.component.dim_x, self.component.dim_y)
@@ -48,12 +49,12 @@ class MomentumTransfer:
 
     def _load_table_workspace(self, input_workspace):
         data = input_workspace.toDict()
-        self.qx = data['Qx']
-        self.qy = data['Qy']
-        self.dqx = data['dQx']
-        self.dqy = data['dQy']
-        self.i = data["I"]
-        self.i_sigma = data["Sigma(I)"]
+        self.qx = np.array(data['Qx'])
+        self.qy = np.array(data['Qy'])
+        self.dqx = np.array(data['dQx'])
+        self.dqy = np.array(data['dQy'])
+        self.i = np.array(data["I"])
+        self.i_sigma = np.array(data["Sigma(I)"])
 
         # Gets the detector dimensions: "detector_dimensions=($dim_x,$dim_y)"
         if self.DETECTOR_DIMENSIONS_TEMPLATE.split("=")[0] != \
@@ -186,14 +187,8 @@ class MomentumTransfer:
         return iqxqy_ws.name(), iqxqy_ws
 
     @staticmethod
-    def _bin_into_q1d(q,
-                      dq,
-                      i,
-                      i_sigma,
-                      prefix,
-                      bins=100,
-                      statistic='mean',
-                      suffix="_iq"):
+    def _bin_into_q1d(q, dq, i, i_sigma, prefix, bins=100,
+                      statistic='mean', suffix="_iq"):
 
         intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
             q, i, statistic=statistic, bins=bins)
@@ -278,12 +273,8 @@ class MomentumTransfer:
                                               self.prefix, bins, statistic,
                                               suffix)
 
-    def bin_wedge_into_q1d(self,
-                           phi_0=0,
-                           phi_aperture=30,
-                           bins=100,
-                           statistic='mean',
-                           suffix="_wedge_iq"):
+    def bin_wedge_into_q1d(self, phi_0=0, phi_aperture=30, bins=100,
+                           statistic='mean', suffix="_wedge_iq"):
         """
         Wedge calculation and integration
 
@@ -340,6 +331,22 @@ class MomentumTransfer:
 
         angle_rad = np.arctan2(self.qy, self.qx)
 
+        # plt.scatter(mt.qx, mt.qy, c=angle_rad)
+        # plt.colorbar()
+        # plt.show()
+
+        # # This is just to show the angle
+        # CreateWorkspace(
+        #     DataX=self.qx,
+        #     DataY=angle_grid,
+        #     DataE=np.sqrt(angle_grid),
+        #     NSpec=256,
+        #     UnitX='MomentumTransfer',
+        #     VerticalAxisUnit='MomentumTransfer',
+        #     VerticalAxisValues=self.qy,
+        #     OutputWorkspace=out_ws_prefix+"_angle",
+        # )
+
         # Let's work in radians
         phi_0_rad = np.deg2rad(phi_0)
         phi_aperture_rad = np.deg2rad(phi_aperture)
@@ -360,8 +367,21 @@ class MomentumTransfer:
         # True where the wedge is located, otherwise false
         condition = condition1 | condition2
 
+        # # This is just to show the condition
+        # CreateWorkspace(
+        #     DataX=qx_bin_edges_grid,
+        #     DataY=condition,
+        #     DataE=np.sqrt(angle_grid),
+        #     NSpec=256,
+        #     UnitX='MomentumTransfer',
+        #     VerticalAxisUnit='MomentumTransfer',
+        #     VerticalAxisValues=qy_bin_centers,
+        #     OutputWorkspace=out_ws_prefix+"_condition",
+        # )
+
         q = np.sqrt(np.square(self.qx) + np.square(self.qy))
         q = q[condition]
+
         i = self.i[condition]
         i_sigma = self.i_sigma[condition]
 

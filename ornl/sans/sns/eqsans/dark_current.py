@@ -144,8 +144,8 @@ def normalise_to_workspace(dark, data, output_workspace=None):
     #
     #
     for i in range(_dark.getNumberHistograms()):
-        _dark.dataY(i)[:] = np.ones(n_bins) * factor_y * nc[i]
-        _dark.dataE(i)[:] = np.ones(n_bins) * factor_e * ec[i]
+        _dark.dataY(i)[:] = factor_y * nc[i]
+        _dark.dataE(i)[:] = factor_e * ec[i]
     if n_gap_bins > 0:
         for i in range(_dark.getNumberHistograms()):
             _dark.dataY(i)[gap_indexes] = 0.0

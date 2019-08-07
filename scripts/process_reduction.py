@@ -15,7 +15,7 @@ if __name__ == '__main__':
             json_parameters = json.load(jsf)
         instrument = json_parameters['instrumentName']
         reduction_script = 'sans_reduction_test.py'
-        if instrument == 'EQ-SANS':
+        if instrument == 'EQSANS':
             reduction_script = 'eqsans_reduction.py'
         filename_string = json_parameters['outputFilename']
         output_folder = json_parameters['configuration']['outputDir']

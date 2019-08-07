@@ -99,9 +99,7 @@ if __name__ == '__main__':
         if len(table_ws_list) > 1:
             suffix = "_frame_{}".format(index+1)
         outfile = os.path.join(json_conf["outputDir"],
-                               json_params["outputFilename"]+suffix)
+                               json_params["outputFilename"] + suffix)
 
-        msapi.SaveAscii(iq_ws,
-                        Filename=outfile,
-                        WriteSpectrumID=False,
-                        WriteXError=True)
+        eqsans.ave_ascii_1d(iq_ws, str(json_params["outputFilename"] + suffix),
+                            outfile)

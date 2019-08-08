@@ -93,7 +93,8 @@ def test_smash_monitor_spikes(refd):
 def test_correct_monitor_frame(refd):
     for k, v in trials.items():
         with amend_config(data_dir=refd.new.eqsans):
-            w = LoadNexusMonitors(v[0], LoadOnly='Events', OutputWorkspace=uwd())
+            w = LoadNexusMonitors(v[0], LoadOnly='Events',
+                                  OutputWorkspace=uwd())
         if not bool(k.find('skip')):  # run in skip frame mode
             with pytest.raises(RuntimeError, match='cannot correct monitor'):
                 correct_monitor_frame(w)

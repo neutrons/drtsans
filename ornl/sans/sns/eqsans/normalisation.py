@@ -115,7 +115,7 @@ def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
     return mtd[output_workspace]
 
 
-def normalise_by_monitor(input_workspace, monitor_workspace, flux_to_monitor,
+def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace,
                          output_workspace=None):
     r"""
     Normalises the input workspace by monitor count and flux-to-monitor
@@ -125,11 +125,11 @@ def normalise_by_monitor(input_workspace, monitor_workspace, flux_to_monitor,
     ----------
     input_workspace : str, MatrixWorkspace
         Workspace to be normalised, rebinned in wavelength.
-    monitor_workspace : str, MatrixWorkspace
-        Counts from the monitor.
     flux_to_monitor : str, MatrixWorkspace
         Flux to monitor ratio. A file path or a workspace resulting from
         calling `load_flux_to_monitor_ratio_file`.
+    monitor_workspace : str, MatrixWorkspace
+        Counts from the monitor.
     output_workspace : str
         Name of the normalised workspace. If None, the name of the input
         workspace is chosen (the input workspace is overwritten).
@@ -218,10 +218,10 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
     normaliser = {'proton charge': normalise_by_proton_charge_and_flux,
                   'monitor': normalise_by_monitor}
     # Additional arguments specific to the normaliser
-    kwargs = {'proton charge': dict(),
-              'monitor': dict(monitor_workspace=monitor_workspace)}
-    normaliser[method](input_workspace, w_flux,
-                       output_workspace=output_workspace, **kwargs[method])
+    args = {'proton charge': list(),
+            'monitor': [monitor_workspace]}
+    normaliser[method](input_workspace, w_flux, *args[method],
+                       output_workspace=output_workspace)
     # A bit of cleanup
     w_flux.delete()
 

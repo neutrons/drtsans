@@ -68,37 +68,47 @@ def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
     assert u == approx(u2 / (flux_ws.dataY(0) * pc), rel=0.01)
 
 
-def test_normalise_by_flux(beam_flux, data_ws):
-    dws = data_ws['92353']
-    w = normalise_by_flux(dws, beam_flux, output_workspace='data_normed')
-    assert w.name() == 'data_normed'
-    u = SumSpectra(w, OutputWorkspace=uwd()).dataY(0)
-    u2 = SumSpectra(dws, OutputWorkspace=uwd()).dataY(0)
-    flux_ws = load_beam_flux_file(beam_flux, ws_reference=dws)
-    pc = SampleLogs(dws).getProtonCharge()
-    assert u == approx(u2 / (flux_ws.dataY(0) * pc), rel=0.01)
-
-
 def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
     # No reference workspace
     w = load_flux_to_monitor_ratio_file(flux_to_monitor)
     assert len(w.dataX(0)) == 1 + len(w.dataY(0))
-    assert len(w.dataX(0)) == 3283
+    assert len(w.dataX(0)) == 48664
     # Reference workspace
     dws = data_ws['88565']
     w = load_flux_to_monitor_ratio_file(flux_to_monitor, ws_reference=dws)
     assert w.dataX(0) == approx(dws.dataX(0), abs=1e-3)
-    assert max(w.dataY(0)) * 1e7 == approx(4.25, abs=0.01)
+    assert max(w.dataY(0)) == approx(118, abs=1)
 
 
 def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     dws, mon = data_ws['92353'], monitor_ws['88565']
     with pytest.raises(ValueError, match='not possible in frame-skipping'):
-        w = normalise_by_monitor(dws, mon, flux_to_monitor,
+        w = normalise_by_monitor(dws, flux_to_monitor, mon,
                                  output_workspace=uwd())
     dws, mon = data_ws['88565'], monitor_ws['88565']
-    w = normalise_by_monitor(dws, mon, flux_to_monitor,
+    w = normalise_by_monitor(dws, flux_to_monitor, mon,
                              output_workspace=uwd())
+    w = SumSpectra(w, OutputWorkspace=w.name())
+    assert min(w.dataY(0)) == approx(1555, abs=1)
+    w.delete()
+
+
+def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
+
+    # Normalize by flux and proton charge
+    dws = data_ws['92353']
+    w = normalise_by_flux(dws, beam_flux, output_workspace=uwd())
+    u = SumSpectra(w, OutputWorkspace=uwd()).dataY(0)
+    u2 = SumSpectra(dws, OutputWorkspace=uwd()).dataY(0)
+    flux_ws = load_beam_flux_file(beam_flux, ws_reference=dws)
+    pc = SampleLogs(dws).getProtonCharge()
+    assert u == approx(u2 / (flux_ws.dataY(0) * pc), rel=0.01)
+    w.delete()
+
+    # Normalize by monitor and flux-to-monitor ratio
+    dws, mon = data_ws['88565'], monitor_ws['88565']
+    w = normalise_by_flux(dws, flux_to_monitor, method='monitor',
+                          monitor_workspace=mon, output_workspace=uwd())
     w = SumSpectra(w, OutputWorkspace=w.name())
     assert min(w.dataY(0)) == approx(1555, abs=1)
     w.delete()

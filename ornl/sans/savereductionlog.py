@@ -160,7 +160,7 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
-def savereductionlog(wksp, filename, *args, **kwargs):
+def savereductionlog(filename, wksp, *args, **kwargs):
     r'''Save the reduction log
 
     There are three ``NXentry``. The first is for the 1d reduced data, second

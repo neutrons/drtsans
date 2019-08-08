@@ -179,7 +179,7 @@ def test_saving(refd, filename1d, filename_other):
 
     # run the function - use same workspace for both
     if wksp1d:
-        savereductionlog(wksp1d, tmpfile, *wksp_other,
+        savereductionlog(tmpfile, wksp1d, *wksp_other,
                          python=pythonscript, starttime=starttime,
                          user=user, username=username)
 
@@ -201,7 +201,7 @@ def test_saving(refd, filename1d, filename_other):
                 checkWorkspaces(tmpfile, wksp, i + 1)
     else:  # not supplying 1d workspace should always fail
         with pytest.raises(RuntimeError):
-            savereductionlog(wksp1d, tmpfile, *wksp_other,
+            savereductionlog(tmpfile, wksp1d, *wksp_other,
                              python=pythonscript, starttime=starttime,
                              user=user, username=username)
         assert not os.path.exists(tmpfile), \
@@ -218,13 +218,13 @@ def test_saving(refd, filename1d, filename_other):
 
 def test_empty_filename():
     with pytest.raises(RuntimeError):
-        savereductionlog(None, filename='')
+        savereductionlog(filename='', wksp=None)
 
 
 def test_nonexistant_1d_wksp():
     tmpfile = os.path.join(gettempdir(), 'test_nonexistant_1d_wksp.nxs')
     with pytest.raises(RuntimeError):
-        savereductionlog(None, filename=tmpfile)
+        savereductionlog(filename=tmpfile, wksp=None)
 
 
 if __name__ == '__main__':

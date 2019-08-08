@@ -268,8 +268,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
     Detect and remove spikes in monitor data TOF between min and max TOF's.
     These spikes will spoil rebinning to wavelength
 
-    This function will transform to histogram data and return a workspace
-    with only the first spectrum of the input workspace
+    This function will transform to histogram data.
 
     Parameters
     ----------

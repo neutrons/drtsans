@@ -92,9 +92,15 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
 
 
 def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
+    dws, mon = data_ws['92353'], monitor_ws['88565']
+    with pytest.raises(ValueError, match='not possible in frame-skipping'):
+        w = normalise_by_monitor(dws, mon, flux_to_monitor,
+                                 output_workspace=uwd())
     dws, mon = data_ws['88565'], monitor_ws['88565']
     w = normalise_by_monitor(dws, mon, flux_to_monitor,
                              output_workspace=uwd())
+    w = SumSpectra(w, OutputWorkspace=w.name())
+    assert min(w.dataY(0)) == approx(1555, abs=1)
     w.delete()
 
 

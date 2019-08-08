@@ -1,8 +1,9 @@
-from scipy import interpolate
 from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               RebinToWorkspace, NormaliseToUnity, Divide,
-                              NormaliseByCurrent, ConvertToDistribution)
-
+                              NormaliseByCurrent, ConvertToDistribution,
+                              CloneWorkspace, RemoveSpectra, Multiply, Load,
+                              DeleteWorkspace)
+from ornl import path
 from ornl.settings import (unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 
@@ -20,7 +21,7 @@ def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
     flux: str
         Path to file with the wavelength distribution of the neutron
         flux. Loader is Mantid `LoadAscii` algorithm.
-    ws_reference : Workspace
+    ws_reference : str, MatrixWorkspace
         Workspace to rebin the flux to. If None, no rebin is performed
     output_workspace: str
         Name of the output workspace. If None, a hidden random name
@@ -78,6 +79,7 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
 
 
 def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
+                                    loader_kwargs=dict(),
                                     output_workspace=None):
     r"""
     Loads the flux-to-monitor ratio
@@ -87,9 +89,8 @@ def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
     flux: str
         Path to file with the flux-to-monitor ratio data. Loader is
         Mantid `LoadAscii` algorithm.
-    ws_reference : Workspace
-        Workspace to rebin the flux-to-monitor ratio. If None, no rebin is
-        performed. Values obtained by spline interpolation.
+    loader_kwargs: dict
+        optional keyword arguments to Mantid's Load algorithm
     output_workspace: str
         Name of the output workspace. If None, a hidden random name
         will be assigned.
@@ -100,17 +101,21 @@ def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
     """
     if output_workspace is None:
         output_workspace = uwd()  # make a hidden workspace
-    w = LoadAscii(Filename=flux, Separator="Tab", Unit="Wavelength",
-                  OutputWorkspace=output_workspace)
+
+    # Let Mantid figure out what kind file format is the flux file
+    Load(Filename=flux, OutputWorkspace=output_workspace, **loader_kwargs)
+    ConvertToHistogram(InputWorkspace=output_workspace,
+                       OutputWorkspace=output_workspace)
     if ws_reference is not None:
-        tck = interpolate.splrep(w.dataX(0), w.dataY(0))
-        x = ws_reference.dataX(0)
-        w.dataX(0)[:] = (x[:-1] + x[1:]) / 2  # assumed histogrammed data
-        w.dataY(0)[:] = interpolate.splev(w.dataX(0), tck, der=0)
-    return w
+        # RebinToWorkspace akin to average of the ratios within each bin,
+        # except of a scaling factor
+        RebinToWorkspace(WorkspaceToRebin=output_workspace,
+                         WorkspaceToMatch=ws_reference,
+                         OutputWorkspace=output_workspace)
+    return mtd[output_workspace]
 
 
-def normalise_by_monitor(input_workspace, monitor_workspace, flux,
+def normalise_by_monitor(input_workspace, monitor_workspace, flux_to_monitor,
                          output_workspace=None):
     r"""
     Normalises the input workspace by monitor count and flux-to-monitor
@@ -122,9 +127,9 @@ def normalise_by_monitor(input_workspace, monitor_workspace, flux,
         Workspace to be normalised, rebinned in wavelength.
     monitor_workspace : str, MatrixWorkspace
         Counts from the monitor.
-    flux : Workspace
-        Measured flux-to-monitor ratio, usually the output of
-        `load_flux_to_monitor_ratio_file`.
+    flux_to_monitor : str, MatrixWorkspace
+        Flux to monitor ratio. A file path or a workspace resulting from
+        calling `load_flux_to_monitor_ratio_file`.
     output_workspace : str
         Name of the normalised workspace. If None, the name of the input
         workspace is chosen (the input workspace is overwritten).
@@ -133,22 +138,44 @@ def normalise_by_monitor(input_workspace, monitor_workspace, flux,
     -------
     MatrixWorkspace
     """
-    # Check non-skip mode
     if output_workspace is None:
         output_workspace = str(input_workspace)
     wi = mtd[str(input_workspace)]
+
+    # Check non-skip mode
     if bool(SampleLogs(wi).is_frame_skipping.value) is True:
         msg = 'Normalisation by monitor not possible in frame-skipping mode'
         raise ValueError(msg)
-    # Normalise by the monitor
-    m = mtd[str(monitor_workspace)]
-    mm = RebinToWorkspace(m, input_workspace, OutputWorkspace=uwd())
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=mm,
+
+    # Only the first spectrum of the monitor is required
+    monitor = uwd()
+    RebinToWorkspace(monitor_workspace, input_workspace,
+                     OutputWorkspace=monitor)
+    excess_idx = range(1, mtd[monitor].getNumberHistograms())
+    RemoveSpectra(monitor, WorkspaceIndices=excess_idx,
+                  OutputWorkspace=monitor)
+
+    # Elucidate the nature of the flux to monitor input
+    flux = uwd()
+    if isinstance(flux_to_monitor, str) and path.exists(flux_to_monitor):
+        load_flux_to_monitor_ratio_file(flux_to_monitor,
+                                        ws_reference=input_workspace,
+                                        output_workspace=flux)
+    else:
+        CloneWorkspace(flux_to_monitor, OutputWorkspace=flux)
+        RebinToWorkspace(flux, input_workspace, OutputWorkspace=flux)
+
+    # Generate a normalized beam flux distribution
+    Multiply(flux, monitor, OutputWorkspace=flux)
+    ConvertToDistribution(Workspace=flux)
+    NormaliseToUnity(InputWorkspace=flux, OutputWorkspace=flux)
+
+    # Normalise our input workspace
+    Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux,
            OutputWorkspace=output_workspace)
-    mm.delete()
-    # Correct monitor-to-flux ratio
-    Divide(LHSWorkspace=output_workspace, RHSWorkspace=flux,
-           OutputWorkspace=output_workspace)
+
+    # Clean the dust balls
+    [DeleteWorkspace(name) for name in (flux, monitor)]
     return mtd[output_workspace]
 
 

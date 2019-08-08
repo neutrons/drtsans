@@ -69,7 +69,8 @@ def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
 
 
 def test_correct_detector_frame(serve_events_workspace):
-    for run_number, wavelength_bin, sdd in trials.values():
+    for v in trials.values():
+        run_number, wavelength_bin, sdd = v[0:3]
         wo = serve_events_workspace(run_number)
         ws = serve_events_workspace(run_number)
         MoveInstrumentComponent(ws, ComponentName='detector1', Z=sdd)
@@ -77,21 +78,22 @@ def test_correct_detector_frame(serve_events_workspace):
         compare_to_eqsans_load(ws, wo, wavelength_bin, sdd, 500, 2000)
 
 
-def test_smash_monitor_spikes():
+def test_smash_monitor_spikes(refd):
     # Smash two spikes
-    w = load_events_monitor('EQSANS_88565')
+    w = load_events_monitor('EQSANS_88565', data_dir=refd.new.eqsans)
     w = smash_monitor_spikes(w)
     assert max(w.dataY(0)) < 1e3
 
     # Monitor data is crap
-    w = load_events_monitor('EQSANS_101595')
+    w = load_events_monitor('EQSANS_101595', data_dir=refd.new.eqsans)
     with pytest.raises(RuntimeError, match='Monitor spectrum is flat'):
         smash_monitor_spikes(w)
 
 
-def test_correct_monitor_frame(serve_events_workspace):
+def test_correct_monitor_frame(refd):
     for k, v in trials.items():
-        w = LoadNexusMonitors(v[0], LoadOnly='Events', OutputWorkspace=uwd())
+        with amend_config(data_dir=refd.new.eqsans):
+            w = LoadNexusMonitors(v[0], LoadOnly='Events', OutputWorkspace=uwd())
         if not bool(k.find('skip')):  # run in skip frame mode
             with pytest.raises(RuntimeError, match='cannot correct monitor'):
                 correct_monitor_frame(w)
@@ -102,7 +104,8 @@ def test_correct_monitor_frame(serve_events_workspace):
 
 def test_convert_to_wavelength(refd):
     with amend_config(data_dir=refd.new.eqsans):
-        for run_number, wavelength_bin, sadd in trials.values():
+        for v in trials.values():
+            run_number, wavelength_bin, sadd = v[0:3]
             wo = Load(Filename=run_number, OutputWorkspace=uwd())
             ws = CloneWorkspace(wo, OutputWorkspace=uwd())
             MoveInstrumentComponent(ws, ComponentName='detector1', Z=sadd)

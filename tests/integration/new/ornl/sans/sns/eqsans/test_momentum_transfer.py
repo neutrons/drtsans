@@ -7,12 +7,13 @@ import numpy as np
 
 import mantid
 from mantid import mtd
-from mantid.simpleapi import (
-    AddSampleLog, ConfigService, ExtractSpectra, Rebin, MaskAngle)
+from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
+                              MaskAngle, Rebin)
 from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
-                                  normalisation, transform_to_wavelength,
-                                  prepare_data)
+                                  normalisation, prepare_data,
+                                  transform_to_wavelength)
 from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer, iq,
+                                                    iq_annular, iq_wedge,
                                                     iqxqy,
                                                     prepare_momentum_transfer)
 
@@ -188,6 +189,23 @@ def test_api(refd):
     q = iq_ws.readX(0)
     q_divide = q[1:] / q[:-1]
     assert np.allclose(q_divide, q_divide[0])
+
+    # TODO: this need some Anisotopic data to tes. See gpsans test.
+    # TODO: Ask BL Scientists.
+    # Test Wedge
+    iq_wedge_ws = iq_wedge(table_ws)
+    assert iq_wedge_ws
+
+    # Tests annulus
+    iq_annular_ws_1 = iq_annular(table_ws, q_min=0.0001, q_max=0.1,
+                                 bins=20, suffix="_annular_iq_1")
+    assert iq_annular_ws_1
+    y_ws_1 = iq_annular_ws_1.extractY().ravel()
+    iq_annular_ws_2 = iq_annular(table_ws, q_min=0.1, q_max=0.3,
+                                 bins=40, suffix="_annular_iq_2")
+    assert iq_annular_ws_2
+    y_ws_2 = iq_annular_ws_2.extractY().ravel()
+    abs(np.log10(y_ws_1.sum())-np.log10(y_ws_2.sum())) > 2  # orders magnitude
 
     iqxqy_ws = iqxqy(table_ws)
     assert iqxqy_ws is not None

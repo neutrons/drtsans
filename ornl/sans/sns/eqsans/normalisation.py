@@ -2,7 +2,7 @@ from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               RebinToWorkspace, NormaliseToUnity, Divide,
                               NormaliseByCurrent, ConvertToDistribution,
                               CloneWorkspace, RemoveSpectra, Multiply, Load,
-                              DeleteWorkspace)
+                              DeleteWorkspace, Integration)
 from ornl import path
 from ornl.settings import (unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
@@ -69,7 +69,7 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    # Normalise by the flux
+    # Normalise by the flux distribution
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux,
            OutputWorkspace=output_workspace)
     # Normalize by Proton charge
@@ -155,6 +155,10 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace,
     RemoveSpectra(monitor, WorkspaceIndices=excess_idx,
                   OutputWorkspace=monitor)
 
+    # The monitor counts will take on the role of proton charge
+    monitor_counts = uwd()
+    Integration(monitor, OutputWorkspace=monitor_counts)
+
     # Elucidate the nature of the flux to monitor input
     flux = uwd()
     if isinstance(flux_to_monitor, str) and path.exists(flux_to_monitor):
@@ -173,9 +177,11 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace,
     # Normalise our input workspace
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux,
            OutputWorkspace=output_workspace)
+    Divide(LHSWorkspace=output_workspace, RHSWorkspace=monitor_counts,
+           OutputWorkspace=output_workspace)
 
     # Clean the dust balls
-    [DeleteWorkspace(name) for name in (flux, monitor)]
+    [DeleteWorkspace(name) for name in (flux, monitor, monitor_counts)]
     return mtd[output_workspace]
 
 

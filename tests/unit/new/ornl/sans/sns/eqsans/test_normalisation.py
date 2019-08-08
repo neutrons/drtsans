@@ -89,7 +89,7 @@ def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     w = normalise_by_monitor(dws, flux_to_monitor, mon,
                              output_workspace=uwd())
     w = SumSpectra(w, OutputWorkspace=w.name())
-    assert min(w.dataY(0)) == approx(1555, abs=1)
+    assert min(w.dataY(0)) * 1e4 == approx(3.4, abs=0.1)
     w.delete()
 
 
@@ -110,7 +110,7 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
     w = normalise_by_flux(dws, flux_to_monitor, method='monitor',
                           monitor_workspace=mon, output_workspace=uwd())
     w = SumSpectra(w, OutputWorkspace=w.name())
-    assert min(w.dataY(0)) == approx(1555, abs=1)
+    assert min(w.dataY(0)) * 1e4 == approx(3.4, abs=0.1)
     w.delete()
 
 

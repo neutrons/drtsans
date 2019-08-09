@@ -11,8 +11,8 @@ def apply_solid_angle_correction(input_workspace):
     return solid_angle_correction(input_workspace, detector_type='VerticalTube')
 
 
-def load(filename, output_workspace=None, wavelength=None, wavelength_spread=None,
-         sample_to_detector_distance=None):
+def load(filename, output_workspace=None, wavelength=None,
+         wavelength_spread=None, sample_to_detector_distance=None):
     """Loads a SANS data file produce by the HFIR instruments at ORNL.
     The instrument geometry is also loaded. The center of the detector is 
     placed at (0,0,D), where D is the sample-to-detector distance.
@@ -40,7 +40,8 @@ def load(filename, output_workspace=None, wavelength=None, wavelength_spread=Non
     if output_workspace is None:
         output_workspace = os.path.basename(filename).split('.')[0]
 
-    ws = LoadHFIRSANS(filename, output_workspace, Wavelength=wavelength,
+    ws = LoadHFIRSANS(Filename=filename, OutputWorkspace=output_workspace,
+                      Wavelength=wavelength,
                       WavelengthSpread=wavelength_spread,
                       SampleDetectorDistance=sample_to_detector_distance)
     return ws

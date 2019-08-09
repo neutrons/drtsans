@@ -8,13 +8,14 @@ def apply_solid_angle_correction(input_workspace):
     """
         Apply solid angle correction
     """
-    return solid_angle_correction(input_workspace, detector_type='VerticalTube')
+    return solid_angle_correction(
+        input_workspace, detector_type='VerticalTube')
 
 
 def load(filename, output_workspace=None, wavelength=None,
          wavelength_spread=None, sample_to_detector_distance=None):
     """Loads a SANS data file produce by the HFIR instruments at ORNL.
-    The instrument geometry is also loaded. The center of the detector is 
+    The instrument geometry is also loaded. The center of the detector is
     placed at (0,0,D), where D is the sample-to-detector distance.
 
     Parameters
@@ -25,7 +26,7 @@ def load(filename, output_workspace=None, wavelength=None,
         The name of the Output workspace. If none is the filename stripped
         of the extension, by default None
     wavelength : float, optional
-        The wavelength value to use when loading the data file (Angstrom). 
+        The wavelength value to use when loading the data file (Angstrom).
         This value will be used instead of the value found in the data file,
         by default None
     wavelength_spread : float, optional

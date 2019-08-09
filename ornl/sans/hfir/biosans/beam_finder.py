@@ -50,7 +50,7 @@ def direct_beam_center(input_workspace, center_x=0, center_y=0,
 
     Parameters
     ----------
-    input_workspace : MatrixWorkspace
+    input_workspace : MatrixWorkspace, str
         The beamcenter workspace
     center_x : int, optional
         Estimate for the X beam center in meters, by default 0
@@ -68,12 +68,15 @@ def direct_beam_center(input_workspace, center_x=0, center_y=0,
         calculating the center of mass of the scattering pattern,
         by default 0.0155
     sdd_wing_detector : float, optional
-        Sample Detector Distance of the wing detector, by default 1.13
+        Sample Detector Distance,  in meters, of the wing detector,
+        by default 1.13
 
     Returns
     -------
     Tuple of 3 ints
         center_x, center_y, center_y corrected for gravity
+        center_y it is usually used to correct BIOSANS wing detector
+        Y position.
     """
 
     center = FindCenterOfMassPosition(

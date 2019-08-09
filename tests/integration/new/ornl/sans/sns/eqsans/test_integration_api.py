@@ -6,7 +6,7 @@ import pytest
 from pytest import approx
 import numpy as np
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import SumSpectra, mtd, LoadNexus
+from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces
 
 # public API
 from ornl.sans.sns import eqsans
@@ -124,6 +124,22 @@ def test_subtract_background(refd):
     assert max(ws_wb.dataY(0)) < 1.e-09
 
 
+def test_prepare_monitors(refd):
+    data_dirs = [refd.new.eqsans, pj(refd.new.eqsans, 'test_integration_api')]
+    with amend_config(data_dir=data_dirs):
+        # Raises for a run in skip frame mode
+        with pytest.raises(RuntimeError, match='cannot correct monitor'):
+            eqsans.prepare_monitors('EQSANS_92353')
+        # Compare for a run in non-skip frame mode
+        w = eqsans.prepare_monitors('EQSANS_88565')
+        assert w.name() == 'EQSANS_88565_monitors'
+        sl = SampleLogs(w)
+        assert sl.wavelength_min.value == approx(9.9, abs=0.1)
+        assert sl.wavelength_max.value == approx(13.6, abs=0.1)
+        v = LoadNexus('EQSANS_88565_monitors_wav.nxs', OutputWorkspace=uwd())
+        assert CompareWorkspaces(w, v).Result is True
+
+
 @pytest.mark.skip(reason="prepare data not yet completed")
 def test_prepared_data(eqsans_f):
     """
@@ -143,9 +159,10 @@ def test_solid_angle(rs):
     assert ws2.getNumberEvents() == rs.num_events
 
 
-@pytest.mark.parametrize('name', ['save_ascii_1D', 'save_xml_1D'])
+@pytest.mark.parametrize('name', ['save_ascii_1D', 'save_xml_1D',
+                                  'save_nist_dat', 'save_nexus'])
 def test_api_contents(name):
-    assert name in dir(eqsans)  # noqa F821
+    assert name in dir(eqsans)
 
 
 if __name__ == '__main__':

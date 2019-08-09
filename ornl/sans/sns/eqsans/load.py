@@ -1,16 +1,59 @@
 
-from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace)
+from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace,
+                              LoadNexusMonitors)
 from ornl.settings import amend_config
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import (source_sample_distance,
                                 sample_detector_distance)
 from ornl.sans.sns.eqsans.geometry import (translate_detector_z,
                                            translate_detector_by_z,
-                                           translate_sample_by_z)
-from ornl.sans.sns.eqsans.correct_frame import correct_detector_frame
+                                           translate_sample_by_z,
+                                           source_monitor_distance)
+from ornl.sans.sns.eqsans.correct_frame import (correct_detector_frame,
+                                                correct_monitor_frame)
 import os
 
-__all__ = ['load_events']
+__all__ = ['load_events', 'load_events_monitor']
+
+
+def load_events_monitor(run, data_dir=None, output_workspace=None):
+    r"""
+    Load monitor events with initial corrections for geometry
+    and time-of-flight
+
+    Parameters
+    ----------
+    run: int, str
+        Examples: 55555 or EQSANS_55555 or file path.
+    data_dir: str, list
+        Additional data search directories
+    output_workspace: str
+        If not specified it will be EQSANS_55555_monitors determined from
+        the supplied value of ``run``
+
+    Returns
+    -------
+    Matrixworkspace
+    """
+    suffix = '_monitors'
+    if output_workspace is None:
+        if isinstance(run, str):
+            output_workspace = os.path.split(run)[-1]
+            output_workspace = '_'.join(output_workspace.split('_')[:2])
+            output_workspace = output_workspace.split('.')[0] + suffix
+        else:
+            output_workspace = 'EQSANS_{}{}'.format(run, suffix)
+
+    with amend_config({'datasearch.searcharchive': 'hfir, sns',
+                       'default.instrument': 'EQSANS'}, data_dir=data_dir):
+        LoadNexusMonitors(Filename=str(run), LoadOnly='Events',
+                          OutputWorkspace=output_workspace)
+
+    smd = source_monitor_distance(output_workspace, unit='mm')
+    SampleLogs(output_workspace).insert('source-monitor-distance', smd,
+                                        unit='mm')
+    correct_monitor_frame(output_workspace)
+    return mtd[output_workspace]
 
 
 def load_events(run, detector_offset=0., sample_offset=0.,
@@ -34,7 +77,7 @@ def load_events(run, detector_offset=0., sample_offset=0.,
         at the origin of coordinates.
     data_dir: str, list
         Additional data search directories
-    output_workspace: workspace reference
+    output_workspace: str
         If not specified it will be EQSANS_55555 determined from the supplied
         value of ``run``
     kwargs: dict
@@ -76,7 +119,7 @@ def load_events(run, detector_offset=0., sample_offset=0.,
               sample_detector_distance(output_workspace, search_logs=False),
               unit='mm')
     #
-    # Correct TOF
+    # Correct TOF of detector
     #
     correct_detector_frame(output_workspace)
     return mtd[output_workspace]

@@ -1,9 +1,10 @@
 import pytest
+from pytest import approx
 import numpy as np
 
 from mantid.simpleapi import (Rebin, SumSpectra)
 from ornl.settings import (amend_config, unique_workspace_name as uwn)
-from ornl.sans.sns.eqsans.load import load_events
+from ornl.sans.sns.eqsans.load import load_events, load_events_monitor
 
 
 def test_load_events(refd):
@@ -23,6 +24,17 @@ def test_load_events(refd):
     ws = Rebin(ws, Params=[10000, 1000, 62000], PreserveEvents=False)
     ws = SumSpectra(ws)
     assert len(np.nonzero(ws.dataY(0))[0]) == 36
+
+
+def test_load_events_monitor(refd):
+    # Raises for a run in skip frame mode
+    with pytest.raises(RuntimeError, match='cannot correct monitor'):
+        load_events_monitor('EQSANS_92353', data_dir=refd.new.eqsans)
+
+    w = load_events_monitor('EQSANS_88901', data_dir=refd.new.eqsans)
+    assert w.name() == 'EQSANS_88901_monitors'
+    assert w.getSpectrum(0).getTofMin() == approx(30680, abs=1)
+    assert w.getSpectrum(0).getTofMax() == approx(47346, abs=1)
 
 
 if __name__ == '__main__':

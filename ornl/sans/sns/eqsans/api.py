@@ -102,6 +102,7 @@ def prepare_data(data,
                  dark_current=None,
                  flux_method=None, flux=None,
                  mask=None, panel=None, btp=dict(),
+                 solid_angle=True,
                  sensitivity_file_path=None,
                  output_workspace=None):
     r"""
@@ -147,6 +148,8 @@ def prepare_data(data,
         Either 'front' or 'back' to mask a whole panel
     mask: mask file path, MaskWorkspace
         Mask to be applied.
+    solid_angle: bool
+        Apply the solid angle correction
     btp: dict
         Additional properties to MaskBTP, if desired
     output_workspace: str
@@ -174,9 +177,10 @@ def prepare_data(data,
             kw['monitor_workspace='] = monitor_workspace
         normalise_by_flux(output_workspace, flux, **kw)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
-    apply_solid_angle_correction(output_workspace)
+    if solid_angle is True:
+        apply_solid_angle_correction(output_workspace)
     if sensitivity_file_path is not None \
             and path_exists(sensitivity_file_path):
-        apply_sensitivity_correction(output_workspace,
-                                     sensitivity_filename=sensitivity_file_path)  # noqa: E501 can't fit in line
+        kw = dict(sensitivity_filename=sensitivity_file_path)
+        apply_sensitivity_correction(output_workspace, **kw)
     return mtd[output_workspace]

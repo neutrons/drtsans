@@ -7,13 +7,15 @@ from ornl.sans import (apply_sensitivity_correction, solid_angle_correction)
 from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
 from ornl.sans.save_2d import save_nist_dat, save_nexus
 # Imports from EQSANS public API
-from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
+from ornl.sans.sns.eqsans import (load_events, load_events_monitor,
+                                  transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
+from ornl.sans.sns.eqsans.correct_frame import smash_monitor_spikes
 from ornl.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
-           'prepare_data', 'save_ascii_1D', 'save_xml_1D',
+           'prepare_monitors', 'prepare_data', 'save_ascii_1D', 'save_xml_1D',
            'save_nist_dat', 'save_nexus']
 
 
@@ -69,12 +71,36 @@ def subtract_background(input_workspace, background, scale=1.0,
     return mtd[output_wokspace]
 
 
+def prepare_monitors(data, bin_width=0.1, output_workspace=None):
+    r"""
+    Loads monitor counts, correct TOF, and transforms to wavelength.
+
+    Parameters
+    ----------
+    data: int, str, EventWorkspace
+        Run number as int or str, file path, EventWorkspace
+    bin_width: float
+        Bin width for the output workspace, in Angstroms.
+    output_workspace: str
+        Name of the output workspace. If None, then it will be
+        EQSANS_XXXXX_monitors with number XXXXX determined from `data`.
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    w = load_events_monitor(data, output_workspace=output_workspace)
+    w = smash_monitor_spikes(w)
+    w = transform_to_wavelength(w, bin_width=bin_width)
+    return w
+
+
 def prepare_data(data,
                  detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  x_center=None, y_center=None,
                  dark_current=None,
-                 flux=None,
+                 flux_method=None, flux=None,
                  mask=None, panel=None, btp=dict(),
                  sensitivity_file_path=None,
                  output_workspace=None):
@@ -88,6 +114,18 @@ def prepare_data(data,
     ----------
     data: int, str, EventWorkspace
         Run number as int or str, file path, EventWorkspace
+    detector_offset: float
+        Additional translation of the detector along Z-axis, in mili-meters.
+    sample_offset: float
+        Additional translation of the sample along the Z-axis, in mili-meters.
+    bin_width: float
+        Bin width for the output workspace, in Angstroms.
+    low_tof_clip: float
+        Ignore events with a time-of-flight (TOF) smaller than the minimal
+        TOF plus this quantity.
+    high_tof_clip: float
+        Ignore events with a time-of-flight (TOF) bigger than the maximal
+        TOF minus this quantity.
     x_center: float
         Move the center of the detector to this X-coordinate. If `None`, the
         detector will be moved such that the X-coordinate of the intersection
@@ -98,15 +136,22 @@ def prepare_data(data,
         point between the neutron beam and the detector array will have `x=0`.
     dark_current: int, str, EventWorkspace
         Run number as int or str, file path, EventWorkspace
+    flux_method: str
+        Method for flux normalization. Either 'proton charge'
+        or 'monitor'.
     flux: str
-        Path to file containing the wavelength distribution
-        of the neutron flux.
+        if `flux_method` is proton charge, then path to file containing the
+        wavelength distribution of the neutron flux. If `flux method` is
+        monitor, then path to file containing the flux-to-monitor ratios.
     panel: str
         Either 'front' or 'back' to mask a whole panel
     mask: mask file path, MaskWorkspace
         Mask to be applied.
     btp: dict
         Additional properties to MaskBTP, if desired
+    output_workspace: str
+        Name of the output workspace. If None, then it will be
+        EQSANS_XXXXX with number XXXXX determined from the supplied `data`.
     """
     # let load_events dictate the name of the workspace
     output_workspace = load_events(data, detector_offset=detector_offset,
@@ -119,8 +164,15 @@ def prepare_data(data,
     center_detector(output_workspace, x=x_center, y=y_center)
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
-    if flux is not None:
-        normalise_by_flux(output_workspace, flux)
+    # Normalization by neutron beam flux
+    if flux_method is not None:
+        kw = dict(method=flux_method)
+        if flux_method is 'monitor':
+            monitor_workspace = output_workspace + '_monitors'
+            prepare_monitors(data, bin_width=bin_width,
+                             output_workspace=monitor_workspace)
+            kw['monitor_workspace='] = monitor_workspace
+        normalise_by_flux(output_workspace, flux, **kw)
     apply_mask(output_workspace, panel=panel, mask=mask, **btp)
     apply_solid_angle_correction(output_workspace)
     if sensitivity_file_path is not None \

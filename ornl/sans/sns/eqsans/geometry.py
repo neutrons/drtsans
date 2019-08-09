@@ -1,7 +1,8 @@
 from mantid.simpleapi import MoveInstrumentComponent
 from ornl.settings import namedtuplefy
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import (detector_name, source_sample_distance)
+from ornl.sans.geometry import (get_instrument, detector_name,
+                                source_sample_distance)
 
 __all__ = ['detector_z_log',
            'translate_sample_by_z', 'translate_detector_by_z',
@@ -55,6 +56,55 @@ def translate_detector_by_z(ws, z, **kwargs):
     Simplified call to translate_detector_z
     """
     return translate_detector_z(ws, z=z, relative=True, **kwargs)
+
+
+def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
+    r"""
+    Report the distance (always positive!) between source and monitor.
+
+    If logs are not used or distance fails to be found in the logs, then
+    calculate the distance using the instrument configuration file.
+
+    Parameters
+    ----------
+    source: PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number
+    unit: str
+        'mm' (millimeters), 'm' (meters)
+    log_key: str
+        Only search for the given string in the logs. Do not use default
+        log keys
+    search_logs: bool
+        Report the value found in the logs.
+
+    Returns
+    -------
+    float
+        distance between source and sample, in selected units
+    """
+    m2units = dict(mm=1e3, m=1.0)
+    mm2units = dict(mm=1.0, m=1e-3)
+    sl = SampleLogs(source)
+
+    # Search the logs for the distance
+    if search_logs is True:
+        lk = 'source-monitor-distance' if log_key is not None else log_key
+        try:
+            return sl.single_value(lk) * mm2units[unit]
+        except Exception:
+            pass
+
+    # Calculate the distance using the instrument definition file
+    instrument = get_instrument(source)
+    monitor = instrument.getComponentByName('monitor1')
+    smd = monitor.getDistance(instrument.getSource())
+
+    # Insert in the logs if not present
+    if 'source-monitor-distance' not in sl.keys():
+        sl.insert('source-monitor-distance', smd * 1.e3, unit='mm')
+
+    return smd * m2units[unit]
 
 
 def sample_aperture_diameter(run, unit='mm'):

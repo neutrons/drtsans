@@ -71,10 +71,14 @@ class EQSANSDiskChopperSet(object):
         -------
         Wbands
         """
+        # Transmission bands of the first chopper
         ch = self._choppers[0]
         wb = ch.transmission_bands(cutoff_wl, delay, pulsed)
+        # Find the common transmitted bands between the first chopper
+        # and the ensuing choppers
         for ch in self._choppers[1:]:
             wb *= ch.transmission_bands(cutoff_wl, delay, pulsed)
+        # We end up with the transmission bands of the chopper set
         return wb
 
     @property

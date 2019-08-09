@@ -1,15 +1,14 @@
-from __future__ import (absolute_import, division, print_function)
-
 import numpy as np
-
+from scipy.signal import find_peaks
+from scipy.stats import zscore
 from mantid.simpleapi import (mtd, ConvertUnits, Rebin, EQSANSCorrectFrame)
-
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
 from ornl.sans.frame_mode import FrameMode
 from ornl.sans import wavelength as wlg
 from ornl.settings import namedtuplefy
 from ornl.sans.geometry import source_detector_distance
+from ornl.sans.sns.eqsans.geometry import source_monitor_distance
 
 
 __all__ = ['transform_to_wavelength', ]
@@ -208,14 +207,8 @@ def correct_frame(input_workspace, source_to_component_distance):
     input_workspace: str, EventsWorkspace
         Data workspace
     source_to_component_distance: float
-        Distance from source to detecting component (detector1, monitor) in
+        Distance from source to detecting component (detector or monitor), in
         meters
-    ltc: float
-        trim neutrons of the leading pulse with a TOF smaller than the
-        minimal TOF plus this value
-    htc: float
-        trim neutrons f the leading pulse with TOF bigger than the maxima
-         TOF minus this value.
 
     Returns
     -------
@@ -230,7 +223,7 @@ def correct_frame(input_workspace, source_to_component_distance):
     sl = SampleLogs(ws)
     pulse_period = 1.e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
-    # The TOF values recorded are never be bigger than the frame width,
+    # The TOF values recorded are never bigger than the frame width,
     # which is also the choppers' rotational period.
     frame_width = ch.period  # either 10^6/60 or 10^6/30 micro-seconds
 
@@ -247,6 +240,91 @@ def correct_frame(input_workspace, source_to_component_distance):
 
 def correct_detector_frame(ws):
     correct_frame(ws, source_detector_distance(ws, unit='m'))
+
+
+def correct_monitor_frame(input_workspace):
+    r"""
+    Assign the correct TOF to each event.
+
+    Parameters
+    ----------
+    input_workspace: EventsWorkspace
+        Monitor events workspace
+
+    Returns
+    -------
+    EventsWorkspace
+    """
+    # check we are not running in skip-frame mode
+    ws = mtd[str(input_workspace)]
+    if EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip:
+        raise RuntimeError('cannot correct monitor frame in "skip" mode')
+    # correct TOF's
+    correct_frame(ws, source_monitor_distance(ws, unit='m'))
+
+
+def smash_monitor_spikes(input_workspace, output_workspace=None):
+    r"""
+    Detect and remove spikes in monitor data TOF between min and max TOF's.
+    These spikes will spoil rebinning to wavelength
+
+    This function will transform to histogram data.
+
+    Parameters
+    ----------
+    input_workspace: EventsWorkspace
+        Monitor events workspace
+    output_workspace : str
+        Name of the normalised workspace. If None, the name of the input
+        workspace is chosen (the input workspace is overwritten).
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    w = mtd[str(input_workspace)]
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
+    # We detect spikes in histogram mode
+    bin_width = 1  # 1 micro second
+    w = Rebin(input_workspace, Params=bin_width, PreserveEvents=False,
+              OutputWorkspace=output_workspace)
+
+    # Find intensities in the range of valid time-of-flight
+    intensity = w.dataY(0)
+    tofs = w.dataX(0)
+    smd = source_monitor_distance(w, unit='m')
+    tof_min, tof_max = limiting_tofs(w, smd).lead
+    valid_idx = np.where(np.logical_and(tofs >= tof_min, tofs <= tof_max))[0]
+    if valid_idx[-1] == len(intensity):
+        valid_idx = valid_idx[:-1]  # dataX is one element longer than dataY
+    intensity = intensity[valid_idx]
+
+    def remove_spikes(y, sigf_zscore=10, minima=False):
+        if minima is True:
+            y *= -1.0
+        while True:
+            peak_indexes, v = find_peaks(y, prominence=0)
+            if peak_indexes.size == 0:
+                raise RuntimeError('Monitor spectrum is flat')
+            prom = zscore(v['prominences'])
+            spike_prom_indexes = np.where(prom > sigf_zscore)[0]
+            if spike_prom_indexes.size == 0:
+                break
+            spike_indexes = peak_indexes[spike_prom_indexes]
+            y[spike_indexes] -= v['prominences'][spike_prom_indexes]
+        if minima is True:
+            y *= -1.0
+
+    # Remove maxima spikes
+    remove_spikes(intensity, sigf_zscore=15)
+    # Remove minima spikes
+    remove_spikes(intensity, sigf_zscore=10, minima=True)
+
+    # Insert intensities free of spikes
+    w.dataY(0)[valid_idx] = intensity
+    return w
 
 
 def band_gap_indexes(input_workspace, bands):
@@ -281,7 +359,7 @@ def band_gap_indexes(input_workspace, bands):
 def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
                           output_workspace=None):
     r"""
-    Convert a time-of-fligth events workspace to a wavelength workspace
+    Convert a time-of-flight events workspace to a wavelength workspace
 
     Parameters
     ----------
@@ -338,14 +416,14 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
                             keep_events=False, zero_uncertainty=1.0,
                             interior_clip=False, output_workspace=None):
     r"""
-    Convert to Wavelength histogram data
+    API function that converts corrected TOF's to Wavelength.
 
     Parameters
     ----------
-    input_workspace: str, EventsWorkspace
+    input_workspace: str, EventsWorkspace, Matrixworkspace
         Events workspace in time-of-flight
     bin_width: float
-        Histogram bin width.
+        Bin width for the output workspace, in Angstroms.
     low_tof_clip: float
         Ignore events with a time-of-flight (TOF) smaller than the minimal
         TOF plus this quantity.
@@ -371,11 +449,12 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     input_workspace = mtd[str(input_workspace)]
     if output_workspace is None:
         output_workspace = str(input_workspace)
-
-    sdd = source_detector_distance(input_workspace, unit='m')
-    bands = transmitted_bands_clipped(input_workspace, sdd,
-                                      low_tof_clip, high_tof_clip,
-                                      interior_clip=interior_clip)
+    if low_tof_clip > 0. or high_tof_clip > 0.:
+        sdd = source_detector_distance(input_workspace, unit='m')
+        bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
+                                          high_tof_clip)
+    else:
+        bands = transmitted_bands(input_workspace)
     convert_to_wavelength(input_workspace, bands, bin_width,
                           events=keep_events,
                           output_workspace=output_workspace)

@@ -18,7 +18,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd=1.13):
         '''
         wavelength *= 1e-10
         neutron_mass = constants.neutron_mass
-        gravity = constants.gravitational_constant
+        gravity = constants.g
         h_planck = constants.Planck
         l_2 = (gravity * neutron_mass**2 /
                (2.0 * h_planck**2)) * path_length**2

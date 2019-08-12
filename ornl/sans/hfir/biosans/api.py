@@ -67,6 +67,11 @@ def load(filename, output_workspace=None, wavelength=None,
     sample_to_detector_distance : float, optional
         Sample to detector distance to use (overrides meta data) in mm,
         by default None
+
+    Returns
+    -------
+    MatrixWorkspace
+        A reference for the workspace created.
     """
 
     if output_workspace is None:

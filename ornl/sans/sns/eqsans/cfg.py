@@ -122,7 +122,14 @@ class ItemMaskMixin(object):
 
 
 class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):
-    r"""Specialization for 'Rectangular Mask' entries"""
+    r"""Specialization for 'Rectangular Mask' entries
+
+    Convention: a 'Rectangular Mask' is of the form 'xs, ys; xe, ye'
+    X-axis for tube ID, from 0 to 191
+    Y-axis for pixel ID, from 0 to 255
+    (xs, ys) defines the lower-left corner of the rectangular mask
+    (xe, ye) defines the upper-right corner of the rectangular mask
+    """
     def __init__(self, *args, **kwargs):
         CfgItemValue.__init__(self, *args, **kwargs)
 

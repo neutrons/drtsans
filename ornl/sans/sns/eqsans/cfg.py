@@ -6,9 +6,12 @@ from __future__ import (absolute_import, division, print_function)
 
 import os
 import re
+from itertools import product as iproduct
 import numpy as np
 from contextlib import contextmanager
 
+
+# default directory for instrument configuration
 cfg_dir = '/SNS/EQSANS/shared/instrument_configuration'
 
 
@@ -54,7 +57,7 @@ def open_source(source, config_dir=cfg_dir):
         One of the following: (1) absolute path or just filename to a
         configuration file; (2) run-number
     config_dir: str
-        Directory containing configuration files
+        Directory containing configuration files.
 
     Yields
     ------
@@ -79,12 +82,12 @@ def open_source(source, config_dir=cfg_dir):
 
 class CfgItemValue(object):
     """
-    Entry value in EQSANS configuration file
+    Entry item in an EQSANS configuration file
 
     Parameters
     ----------
     data: string, or list of strings
-        value of the entry
+        raw value of the entry
     off: bool
         True if the entry was commented in the file
     note: str
@@ -104,11 +107,52 @@ class CfgItemValue(object):
         """Discard note explanatory when comparing two value items"""
         return self.data == other.data and self.off == other.off
 
+    @property
+    def value(self):
+        return self.data
+
+
+class ItemMaskMixin(object):
+    r"""Functionality common to all types of masks items in the config file"""
+    @property
+    def detectors(self):
+        r"""List of masked detector ID's, sorted by increasing ID"""
+        pixels_per_tube = 256
+        return sorted([p[0] * pixels_per_tube + p[1] for p in self.pixels])
+
+
+class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):
+    r"""Specialization for 'Rectangular Mask' entries"""
+    def __init__(self, *args, **kwargs):
+        CfgItemValue.__init__(self, *args, **kwargs)
+
+    @property
+    def pixels(self):
+        r"""
+        List of pixels in (x, y) pixel coordinates, in no particular order
+
+        Returns
+        -------
+        list
+        """
+        pxs = list()
+        recs = [self.data, ] if isinstance(self.data, str) else self.data
+        for rec in recs:
+            # (xs,ys) left-lower corner; (xe,y) upper-right corner
+            xs, ys, xe, ye = [int(n) for n in re.findall(r'\d+', rec)]
+            pxs.extend(iproduct(range(xs, 1+xe), range(ys, 1+ye)))
+        return list(set(pxs))  # remove possible duplicates
+
+    @property
+    def value(self):
+        return self.detectors
+
 
 class Cfg(object):
     """
     Read EQSANS configuration files
     """
+    _item_types = {'Rectangular Mask': CfgItemRectangularMask}
 
     @staticmethod
     def load(source, config_dir=cfg_dir):
@@ -152,8 +196,8 @@ class Cfg(object):
                     if description != '':
                         cfg[key].help = description
                 else:
-                    item = CfgItemValue(data=val, off=commented,
-                                        note=description)
+                    item_type = Cfg._item_types.get(key, CfgItemValue)
+                    item = item_type(data=val, off=commented, note=description)
                     cfg[key] = item
         return cfg
 
@@ -167,9 +211,13 @@ class Cfg(object):
     def __setitem__(self, key, value):
         self._cfg[key] = value
 
+    def keys(self):
+        return self._cfg.keys()
+
     def as_dict(self):
-        """Return all data as a dictionary of key data values"""
-        return {k: v.data for (k, v) in self._cfg.items()}
+        """Dictionary of `(key, val)` values. `val` is not the
+        raw data but the reported value of `CfgItemValue.value`"""
+        return {k: v.value for (k, v) in self._cfg.items()}
 
     def __repr__(self):
         fmt = '"{}" : {}'

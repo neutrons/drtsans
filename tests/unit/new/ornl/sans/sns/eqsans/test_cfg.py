@@ -36,6 +36,24 @@ def test_load(refd):
     c = cfg.Cfg(source=97711, config_dir=config_dir)
     value = cfg.CfgItemValue(data='500 2000', off=False)
     assert c['TOF edge discard'] == value
+    assert isinstance(c['Rectangular Mask'], cfg.CfgItemRectangularMask)
+    d = c.as_dict()
+    assert d['Rectangular Mask'] == c['Rectangular Mask'].detectors
+
+
+def test_rec_mask():
+    # second rectangle is included in the first
+    c = cfg.CfgItemRectangularMask(data=['0, 0; 1, 255', '1 ,250; 1, 255'])
+    px = c.pixels
+    assert (1, 255) in px
+
+
+def test_mask_mixin():
+    c = cfg.CfgItemRectangularMask(data=['1, 0; 2, 255', '1 250 1 255'])
+    dets = c.detectors
+    assert len(dets) == 2 * 256
+    assert dets[-1] == 3 * 256 - 1
+    assert c.value == dets
 
 
 if __name__ == '__main__':

@@ -170,7 +170,7 @@ def prepare_data(data,
     # Normalization by neutron beam flux
     if flux_method is not None:
         kw = dict(method=flux_method)
-        if flux_method is 'monitor':
+        if flux_method == 'monitor':
             monitor_workspace = output_workspace + '_monitors'
             prepare_monitors(data, bin_width=bin_width,
                              output_workspace=monitor_workspace)

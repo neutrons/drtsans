@@ -1,37 +1,51 @@
-#!/usr/bin/env python
+
 from __future__ import print_function
 
 import pytest
 
+from mantid.simpleapi import (FindCenterOfMassPosition, LoadHFIRSANS,
+                              MoveInstrumentComponent)
+from ornl.sans.hfir.biosans import beam_finder
 
-@pytest.mark.offline
+
 def test_beam_finder(biosans_f):
     '''
     Test with the new beam finder
+
+    1. Find the beamcenter x,y
+    2. Move detector1 x,y according to beamcenter x,y
+    3. Find gravity
+    4. Move wing_detector y according to Gravity
+
     '''
 
-    from ornl.sans.hfir.biosans import beam_finder
-    from mantid import mtd
-    from mantid.simpleapi import (
-        MoveInstrumentComponent, FindCenterOfMassPosition, LoadHFIRSANS)
+    ws = LoadHFIRSANS(Filename=biosans_f['beamcenter'])
 
-    ws_name = "__beamcenter"
-    LoadHFIRSANS(Filename=biosans_f['beamcenter'], OutputWorkspace=ws_name)
-    ws = mtd[ws_name]
+    # 0.00144037741238 -0.0243732351545 -0.022044173994
 
     x, y, y_gravity = beam_finder.direct_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
+    print(x, y, y_gravity)
     assert x == pytest.approx(0.0014, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
     assert y_gravity == pytest.approx(-0.0220, abs=1e-3)
 
-    # Let's center the instrument and get the new center: It should be 0 after
-    # the re-centring
+    # Let's center the instrument and get the new center:
+    # Move down and left
     MoveInstrumentComponent(
         Workspace=ws, ComponentName='detector1', X=-x, Y=-y)
-    center = FindCenterOfMassPosition(InputWorkspace=ws)
-    x, y = center
 
+    # Now let's correct the wing detector for the gravity drop
+    # Relative movement up words
+    MoveInstrumentComponent(
+        Workspace=ws, ComponentName='wing_detector', X=0, Y=y_gravity)
+
+    # After the re-centring we should be at (0,0)
+    # Note that to give the same results we need to enter the center
+    # estimates as the previous results!
+    center = FindCenterOfMassPosition(InputWorkspace=ws,
+                                      CenterX=-x, CenterY=-y)
+    x, y = center
     # Tolerance 1e-3 == milimeters
-    assert x == pytest.approx(0.0, abs=1e-2)
+    assert x == pytest.approx(0.0, abs=1e-3)
     assert y == pytest.approx(0.0, abs=1e-3)

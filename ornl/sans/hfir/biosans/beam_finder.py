@@ -1,5 +1,6 @@
-from mantid.simpleapi import (MaskBTP, FindCenterOfMassPosition)
+from mantid.simpleapi import FindCenterOfMassPosition
 from mantid.kernel import logger
+from scipy import constants
 
 
 def _beam_center_gravitational_drop(ws, beam_center_y, sdd=1.13):
@@ -16,9 +17,9 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd=1.13):
         Return the Y drop in meters
         '''
         wavelength *= 1e-10
-        neutron_mass = 1.674927211e-27
-        gravity = 9.80665
-        h_planck = 6.62606896e-34
+        neutron_mass = constants.neutron_mass
+        gravity = constants.g
+        h_planck = constants.Planck
         l_2 = (gravity * neutron_mass**2 /
                (2.0 * h_planck**2)) * path_length**2
         return wavelength**2 * l_2
@@ -43,48 +44,50 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd=1.13):
     return new_beam_center_y
 
 
-def direct_beam_center(input_ws, tubes_to_mask=None, center_x=0, center_y=0,
+def direct_beam_center(input_workspace, center_x=0, center_y=0,
                        tolerance=0.00125, direct_beam=True, beam_radius=0.0155,
                        sdd_wing_detector=1.13):
-    '''Find the beam center
+    """Finds the beam center in a 2D SANS data set.
 
     Parameters
     ----------
-    input_ws : [type]
-        [description]
-    tubes_to_mask : list, optional
-        input of MaskBTP (the default is None, which is none)
+    input_workspace : MatrixWorkspace, str
+        The beamcenter workspace
     center_x : int, optional
-        [description] (the default is 0, which [default_description])
+        Estimate for the X beam center in meters, by default 0
     center_y : int, optional
-        [description] (the default is 0, which [default_description])
+        Estimate for the Y beam center in meters, by default 0
     tolerance : float, optional
-        [description] (the default is 0.00125, which [default_description])
+        Tolerance on the center of mass position between each iteration in m,
+        by default 0.00125
     direct_beam : bool, optional
-        [description] (the default is True, which [default_description])
+        If true, a direct beam calculation will be performed. Otherwise, the
+        center of mass of the scattering data will be computed by excluding
+        the beam area., by default True
     beam_radius : float, optional
-        [description] (the default is 0.0155, which [default_description])
+        Radius of the beam area, in meters, used the exclude the beam when
+        calculating the center of mass of the scattering pattern,
+        by default 0.0155
     sdd_wing_detector : float, optional
-        sdd of wing detector (the default is 1.13, which is the right sdd
-        on 2019/01/01)
+        Sample Detector Distance,  in meters, of the wing detector,
+        by default 1.13
 
     Returns
     -------
-    tuple
-        Returns beam center x, y and y corrected for gravity in meters
-    '''
-
-    if tubes_to_mask is not None:
-        MaskBTP(Workspace=input_ws, Tube=tubes_to_mask)
+    Tuple of 3 ints
+        center_x, center_y, center_y corrected for gravity
+        center_y it is usually used to correct BIOSANS wing detector
+        Y position.
+    """
 
     center = FindCenterOfMassPosition(
-        InputWorkspace=input_ws, CenterX=0, CenterY=0,
+        InputWorkspace=input_workspace, CenterX=center_x, CenterY=center_y,
         Tolerance=tolerance, DirectBeam=True, BeamRadius=beam_radius)
 
     center_x, center_y = center
 
     center_y_gravity = _beam_center_gravitational_drop(
-        input_ws, center_y, sdd_wing_detector)
+        input_workspace, center_y, sdd_wing_detector)
 
     logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}".format(
         center_x, center_y, center_y_gravity))

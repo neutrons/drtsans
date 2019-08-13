@@ -50,6 +50,25 @@ def test_apply_mask_simple(generate_sans_generic_IDF):
     assert ws.extractY().flatten() == approx([0, 15, 30, 15000, 0, 25, 6, 10, 31], abs=1e-6)
 
 
+@pytest.mark.parametrize('generate_sans_generic_IDF',
+                         [{'Nx': 2, 'Ny': 2, 'dx': 0.00425,
+                           'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
+                         indirect=True)
+def test_apply_mask_simple(generate_sans_generic_IDF):
+    wavelength = np.array([1., 2., 3., 4.] * 4)
+    intensities = np.array([9, 10, 11, 3],
+                           [8, 12, 4, 14],
+                           [11, 15, 3, 16]).transpose()
+    ws = CreateWorkspace(DataX=wavelength,
+                         DataY=intensities,
+                         DataE=np.sqrt(intensities),
+                         Nspec=4)
+    LoadInstrument(Workspace=ws, InstrumentXML=generate_sans_generic_IDF,
+                   RewriteSpectraMap=True, InstrumentName='GenericSANS')
+    masked_detectors = [2]
+    apply_mask(ws, mask=masked_detectors)
+    assert ws.readY(masked_detectors) == approx(np.zeros(3), abs=1e-6)
+
 def test_apply_mask():
     w = LoadEmptyInstrument(InstrumentName='EQ-SANS', OutputWorkspace=uwd())
     #

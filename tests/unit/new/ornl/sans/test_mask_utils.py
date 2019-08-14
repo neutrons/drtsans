@@ -1,6 +1,11 @@
 import pytest
 from pytest import approx
 import numpy as np
+"""
+https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
+https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html
+https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html
+"""
 from mantid.simpleapi import (CreateWorkspace, LoadInstrument, SumSpectra)
 from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.mask_utils import apply_mask
@@ -11,7 +16,12 @@ from ornl.sans.mask_utils import apply_mask
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
 def test_apply_mask_single_bin(generate_sans_generic_IDF):
-    r"""Nine histograms, each containing only one bin"""
+    r"""
+    Apply a mask to a simple 3 x 3 detector
+    dev - Jose Borreguero <borreguerojm@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
+    """
+    # Nine histograms, each containing only one bin
     wavelength = np.array([1, 2] * 9)
     intensities = np.array([8, 15, 30, 9, 17, 25, 6, 10, 31])
     ws = CreateWorkspace(DataX=wavelength,
@@ -68,7 +78,12 @@ def test_apply_mask_single_bin(generate_sans_generic_IDF):
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
 def test_apply_mask_simple_histogram(generate_sans_generic_IDF):
-    r"""Four histograms, each containing three bins"""
+    r"""
+    Apply a mask to a  2 x 2 detector with histograms
+    dev - Andrei Savici <asviciat@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
+    """
+    # Four histograms, each containing three bins
     wavelength = np.array([1., 2., 3., 4.] * 4)
     intensities = np.array([[9, 10, 11, 3],
                             [8, 12, 4, 14],

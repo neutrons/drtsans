@@ -81,7 +81,7 @@ def direct_beam_center(input_workspace, center_x=0, center_y=0,
 
     center = FindCenterOfMassPosition(
         InputWorkspace=input_workspace, CenterX=center_x, CenterY=center_y,
-        Tolerance=tolerance, DirectBeam=True, BeamRadius=beam_radius)
+        Tolerance=tolerance, DirectBeam=direct_beam, BeamRadius=beam_radius)
 
     center_x, center_y = center
 

@@ -21,8 +21,11 @@ def test_beam_finder(biosans_f):
 
     ws = LoadHFIRSANS(Filename=biosans_f['beamcenter'])
 
+    # 0.00144037741238 -0.0243732351545 -0.022044173994
+
     x, y, y_gravity = beam_finder.direct_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
+    print(x, y, y_gravity)
     assert x == pytest.approx(0.0014, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
     assert y_gravity == pytest.approx(-0.0220, abs=1e-3)
@@ -38,8 +41,11 @@ def test_beam_finder(biosans_f):
         Workspace=ws, ComponentName='wing_detector', X=0, Y=y_gravity)
 
     # After the re-centring we should be at (0,0)
-    center = FindCenterOfMassPosition(InputWorkspace=ws)
+    # Note that to give the same results we need to enter the center
+    # estimates as the previous results!
+    center = FindCenterOfMassPosition(InputWorkspace=ws,
+                                      CenterX=-x, CenterY=-y)
     x, y = center
     # Tolerance 1e-3 == milimeters
-    assert x == pytest.approx(0.0, abs=1e-2)
+    assert x == pytest.approx(0.0, abs=1e-3)
     assert y == pytest.approx(0.0, abs=1e-3)

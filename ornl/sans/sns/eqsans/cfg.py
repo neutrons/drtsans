@@ -11,7 +11,7 @@ import numpy as np
 from contextlib import contextmanager
 
 
-__all__ = ['load_config',]
+__all__ = ['load_config', ]
 
 
 # default directory for instrument configuration

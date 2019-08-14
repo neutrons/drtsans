@@ -1,9 +1,7 @@
 # flake8: noqa
-from ornl.sans.sns.eqsans.momentum_transfer import (prepare_momentum_transfer,
-                                                    iq, iqxqy)
-from .momentum_transfer import (prepare_momentum_transfer, iq,  # noqa: F401
-                                iqxqy)  # noqa: F401
 from ornl.sans.transmission import apply_transmission_correction
+
+from .momentum_transfer import *
 from .load import *
 from .geometry import *
 from .correct_frame import *
@@ -15,7 +13,8 @@ from .transmission import *
 from .cfg import *
 from .api import *
 
-mods = (
+__mods = (
+    momentum_transfer,
     load,
     geometry,
     correct_frame,
@@ -26,6 +25,5 @@ mods = (
     transmission,
     cfg,
     api)
-
 
 __all__ = [s for m in __mods for s in m.__all__]

@@ -11,6 +11,9 @@ import numpy as np
 from contextlib import contextmanager
 
 
+__all__ = ['load_config',]
+
+
 # default directory for instrument configuration
 cfg_dir = '/SNS/EQSANS/shared/instrument_configuration'
 
@@ -257,3 +260,23 @@ class Cfg(object):
                   ' with the new value.'
             raise ValueError(msg.format(log_name))
         run.addProperty(log_name, self[key].data, replace=replace)
+
+
+def load_config(source, config_dir=cfg_dir):
+    r"""
+    Load the configuration file appropriate to the input source info
+
+    Parameters
+    ----------
+    source: str
+        One of the following: (1) absolute path or just filename to a
+        configuration file; (2) run-number
+    config_dir: str
+        Directory containing configuration files
+
+    Returns
+    -------
+    dict
+        keys are entries in the file
+    """
+    return Cfg(source, config_dir=config_dir).as_dict()

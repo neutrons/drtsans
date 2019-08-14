@@ -12,6 +12,7 @@ from .mask import *
 from .normalisation import *
 from .beam_finder import *
 from .transmission import *
+from .cfg import *
 from .api import *
 
 mods = (
@@ -23,6 +24,7 @@ mods = (
     normalisation,
     beam_finder,
     transmission,
+    cfg,
     api)
 
 

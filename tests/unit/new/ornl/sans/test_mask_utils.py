@@ -14,40 +14,52 @@ from ornl.sans.mask_utils import apply_mask
                          [{'Nx': 3, 'Ny': 3, 'dx': 0.00425,
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
-def test_apply_mask_simple(generate_sans_generic_IDF):
+def test_apply_mask_single_bin(generate_sans_generic_IDF):
+    r"""Nine histograms, each containing only one bin"""
     wavelength = np.array([1, 2] * 9)
     intensities = np.array([8, 15, 30, 9, 17, 25, 6, 10, 31])
     ws = CreateWorkspace(DataX=wavelength,
                          DataY=intensities,
                          DataE=np.sqrt(intensities),
-                         Nspec=9)
+                         Nspec=9,
+                         OutputWorkspace=uwd())
     LoadInstrument(Workspace=ws, InstrumentXML=generate_sans_generic_IDF,
                    RewriteSpectraMap=True, InstrumentName='GenericSANS')
     # detectors to be masked with detector ID's 0 and 3
     masked_detectors = [3, 0]
-    apply_mask(ws, mask=masked_detectors)
-    data = ws.extractY()
-    assert data == approx([0, 15, 30, 0, 17, 25, 6, 10, 31], abs=1e-9)
-    err = np.sqrt(intensities)
-    err[0] = 0
-    err[3] = 0
-    error = ws.extractE()
-    assert error.flatten() == approx(err.flatten(), abs=1e-9)
-    si = ws.spectrumInfo()
-    for i in [3, 0]:
-        assert si.isMasked(i) is True
-    for i in range(9):
-        if i not in [3, 0]:
-            assert si.isMasked(i) is False
-    ws.setY(3, [15000])  # the value of the masked detector is irrelevant
-    ws_sum = SumSpectra(ws)
-    assert ws_sum.dataY(0)[0] == sum(intensities) - intensities[0] - intensities[3]
+    intensities_after_mask = np.copy(intensities)
+    intensities_after_mask[masked_detectors] = 0
 
-    # apply an additional mask mimicking the trap beam
+    # check masked data
+    apply_mask(ws, mask=masked_detectors)
+    assert ws.extractY().flatten() == approx(intensities_after_mask, abs=0.1)
+
+    # errors also set to zero for the masked spectra
+    errors_after_mask = np.sqrt(intensities_after_mask)
+    assert ws.extractE().flatten() == approx(errors_after_mask, abs=1e-9)
+    si = ws.spectrumInfo()
+
+    # check mask-flags
+    mask_flags = [False]*9
+    for i in masked_detectors:
+        mask_flags[i] = True
+    assert [si.isMasked(i) for i in range(9)] == mask_flags
+
+    # check the value of a masked detector is irrelevant when doing
+    # operations on the whole workspace
+    big_value = 1.0e6
+    ws.setY(3, [big_value])
+    ws_sum = SumSpectra(ws, OutputWorkspace=uwd())
+    assert ws_sum.dataY(0)[0] == sum(intensities_after_mask)
+    intensities_after_mask[3] = big_value
+
+    # Now apply an additional mask mimicking the trap beam
     x_c, y_c = (1, 1)  # location of the trap beam, in pixel coordinates
-    trap_detector_id = x_c * 3 + y_c  # each tube has three detectors
-    apply_mask(ws, mask=[trap_detector_id,])
-    assert ws.extractY().flatten() == approx([0, 15, 30, 15000, 0, 25, 6, 10, 31], abs=1e-6)
+    pixels_per_tube = 3
+    trap_detector_id = x_c * pixels_per_tube + y_c
+    apply_mask(ws, mask=[trap_detector_id])
+    intensities_after_mask[trap_detector_id] = 0
+    assert ws.extractY().flatten() == approx(intensities_after_mask, abs=0.1)
 
 
 @pytest.mark.parametrize('generate_sans_generic_IDF',
@@ -68,6 +80,7 @@ def test_apply_mask_simple(generate_sans_generic_IDF):
     masked_detectors = [2]
     apply_mask(ws, mask=masked_detectors)
     assert ws.readY(masked_detectors) == approx(np.zeros(3), abs=1e-6)
+
 
 def test_apply_mask():
     w = LoadEmptyInstrument(InstrumentName='EQ-SANS', OutputWorkspace=uwd())

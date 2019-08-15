@@ -74,7 +74,7 @@ def test_correct_detector_frame(serve_events_workspace):
         wo = serve_events_workspace(run_number)
         ws = serve_events_workspace(run_number)
         MoveInstrumentComponent(ws, ComponentName='detector1', Z=sdd)
-        correct_detector_frame(ws)
+        correct_detector_frame(ws, path_to_pixel=False)
         compare_to_eqsans_load(ws, wo, wavelength_bin, sdd, 500, 2000)
 
 
@@ -110,7 +110,7 @@ def test_convert_to_wavelength(refd):
             wo = Load(Filename=run_number, OutputWorkspace=uwd())
             ws = CloneWorkspace(wo, OutputWorkspace=uwd())
             MoveInstrumentComponent(ws, ComponentName='detector1', Z=sadd)
-            cf.correct_detector_frame(ws)
+            cf.correct_detector_frame(ws,path_to_pixel=False)
             sodd = source_detector_distance(ws, unit='m')
             bands = cf.transmitted_bands_clipped(ws, sodd, 500, 2000,
                                                  interior_clip=True)

@@ -92,3 +92,9 @@ def direct_beam_center(input_workspace, center_x=0, center_y=0,
     logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}".format(
         center_x, center_y, center_y_gravity))
     return center_x, center_y, center_y_gravity
+
+# API
+
+def geometry(beamcenter_workspace, **kwargs):
+
+    direct_beam_center(beamcenter_workspace, **kwargs)

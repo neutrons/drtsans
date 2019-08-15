@@ -1,4 +1,5 @@
 import pytest
+
 from mantid import mtd
 from ornl.sans.hfir.biosans import load
 from ornl.sans.samplelogs import SampleLogs

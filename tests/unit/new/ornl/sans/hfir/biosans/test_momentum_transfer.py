@@ -12,8 +12,8 @@ from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
 from ornl.sans.hfir.momentum_transfer import MomentumTransfer
 
 
-@pytest.mark.skip(reason="It doesn't pass on the build servers. "
-                  "XML lib incompatitibility.")
+# @pytest.mark.skip(reason="It doesn't pass on the build servers. "
+#                          "XML lib incompatibility.")
 def test_momentum_tranfer_serial(biosans_f):
 
     ws = LoadHFIRSANS(

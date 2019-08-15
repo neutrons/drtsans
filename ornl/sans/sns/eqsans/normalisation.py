@@ -2,10 +2,11 @@ from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               RebinToWorkspace, NormaliseToUnity, Divide,
                               NormaliseByCurrent, ConvertToDistribution,
                               CloneWorkspace, RemoveSpectra, Multiply, Load,
-                              DeleteWorkspace, Integration)
+                              DeleteWorkspace, Integration, Scale)
 from ornl import path
 from ornl.settings import (unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.sns.eqsans.dark_current import duration as run_duration
 
 __all__ = ['normalise_by_flux', ]
 
@@ -185,6 +186,35 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace,
     return mtd[output_workspace]
 
 
+def normalise_by_time(input_workspace, log_key=None, output_workspace=None):
+    r"""
+    Divide the counts by the duration of the run
+
+    Parameters
+    ----------
+    input_workspace: str, MatrixWorkspace
+    log_key: str
+        Use this log entry to figure out the run duration. If `None`,
+        logs are sequentially searched for keys `duration`, `start_time`,
+        `proton_charge`, and `timer`, in order to find out the duration.
+    output_workspace : str
+        Name of the normalised workspace. If None, the name of the input
+        workspace is chosen (and the input workspace is overwritten).
+
+    Returns
+    -------
+    MatrixWorkspace
+    """
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+    duration = run_duration(input_workspace, log_key=log_key)
+    Scale(input_workspace, Factor=1./duration.value,
+          Operation='Multiply', OutputWorkspace=output_workspace)
+    SampleLogs(output_workspace).insert('normalizing_duration',
+                                        duration.log_key)
+    return mtd[output_workspace]
+
+
 def normalise_by_flux(input_workspace, flux, method='proton charge',
                       monitor_workspace=None, output_workspace=None):
     r"""
@@ -201,7 +231,9 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
         If `method` is 'proton charge', flux is the path to the file
         containing the wavelength distribution of the neutron flux. If
         `method` is `monitor`, then flux is the path to the file containing
-        a pre-measured flux-to-monitor ratio spectrum
+        a pre-measured flux-to-monitor ratio spectrum. If `flux_method`
+        is `time`, then pass one log entry name such as 'duration' or pass
+        `None` for automatic log search.
     method: str
         Either 'proton charge' or 'monitor'
     monitor_workspace: str, MatrixWorkspace
@@ -216,19 +248,32 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    # Select the flux file
-    flux_loader = {'proton charge': load_beam_flux_file,
-                   'monitor': load_flux_to_monitor_ratio_file}
-    w_flux = flux_loader[method](flux, ws_reference=input_workspace)
+
+    # Load the appropriate flux file
+    if method in ('proton charge', 'monitor'):
+        flux_loader = {'proton charge': load_beam_flux_file,
+                       'monitor': load_flux_to_monitor_ratio_file}
+        w_flux = flux_loader[method](flux, ws_reference=input_workspace)
+    else:
+        w_flux = None
+
     # Select the normalisation function
     normaliser = {'proton charge': normalise_by_proton_charge_and_flux,
-                  'monitor': normalise_by_monitor}
-    # Additional arguments specific to the normaliser
-    args = {'proton charge': list(),
-            'monitor': [monitor_workspace]}
-    normaliser[method](input_workspace, w_flux, *args[method],
-                       output_workspace=output_workspace)
+                  'monitor': normalise_by_monitor,
+                  'time': normalise_by_time}
+
+    # Arguments specific to the normaliser
+    args = {'proton charge': [w_flux],
+            'monitor': [w_flux, monitor_workspace]}
+    args = args.get(method, list())
+    kwargs = {'time': dict(log_key=flux)}
+    kwargs = kwargs.get(method, dict())
+
+    normaliser[method](input_workspace, *args[method],
+                       output_workspace=output_workspace, *kwargs)
+
     # A bit of cleanup
-    w_flux.delete()
+    if w_flux:
+        w_flux.delete()
 
     return mtd[output_workspace]

@@ -1,4 +1,4 @@
-from mantid.api import FileFinder, AnalysisDataService
+from mantid.api import FileFinder
 from mantid.simpleapi import mtd
 
 from os import path as os_path

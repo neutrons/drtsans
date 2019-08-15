@@ -63,6 +63,8 @@ def apply_mask(w, mask=None, output_workspace=None, **btp):
             wm.delete()  # delete temporary workspace
         elif isinstance(mask, MaskWorkspace):
             MaskDetectors(Workspace=w, MaskedWorkspace=mask)
+        elif isinstance(mask, list):
+            MaskDetectors(Workspace=w, DetectorList=mask)
     if bool(btp):
         MaskBTP(Workspace=w, **btp)
     return ExtractMask(InputWorkspace=w,

@@ -1,5 +1,3 @@
-import os
-
 from ornl.sans import solid_angle_correction
 
 

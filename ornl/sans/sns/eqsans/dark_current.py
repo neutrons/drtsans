@@ -7,6 +7,7 @@ from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
 
 from ornl.settings import (namedtuplefy, amend_config,
                            unique_workspace_dundername as uwd)
+from ornl.path import exists
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import correct_frame as cf
 
@@ -223,11 +224,11 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    if isinstance(dark, str) or isinstance(dark, int):
+    if (isinstance(dark, str) and exists(dark)) or isinstance(dark, int):
         with amend_config({'default.instrument': 'EQSANS'}):
             _dark = LoadEventNexus(Filename=dark, OutputWorkspace=uwd())
     else:
-        _dark = dark  # assumed it is an EventWorkspace
+        _dark = dark  # assumed it is an EventWorkspace or its name
     _dark_normal = normalise_to_workspace(_dark, input_workspace,
                                           output_workspace=uwd())
     subtract_normalised_dark_current(input_workspace, _dark_normal,

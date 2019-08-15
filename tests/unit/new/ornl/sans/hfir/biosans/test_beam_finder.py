@@ -46,6 +46,6 @@ def test_beam_finder(biosans_f):
     center = FindCenterOfMassPosition(InputWorkspace=ws,
                                       CenterX=-x, CenterY=-y)
     x, y = center
-    # Tolerance 1e-3 == milimeters
+    # Tolerance 1e-3 == millimeters
     assert x == pytest.approx(0.0, abs=1e-3)
     assert y == pytest.approx(0.0, abs=1e-3)

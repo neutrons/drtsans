@@ -1,7 +1,8 @@
-from ornl.path import abspath, exists
-from ornl.settings import amend_config
-from os.path import exists as os_exists
 import pytest
+from mantid.simpleapi import CreateWorkspace
+from ornl.path import abspath, exists, registered_workspace
+from ornl.settings import amend_config, unique_workspace_dundername as uwd
+from os.path import exists as os_exists
 
 # arbitrarily selected IPTS to see if the mount is in place
 HAVE_EQSANS_MOUNT = os_exists('/SNS/EQSANS/IPTS-23732/')
@@ -61,3 +62,11 @@ def test_exists_with_archivesearch(hint, found, refd):
 def test_exists_without_archivesearch(hint, found, refd):
     with amend_config(SEARCH_OFF, data_dir=refd.new.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
+
+
+def test_registered_workspace():
+    w_name = uwd()
+    assert registered_workspace(w_name) is False
+    w = CreateWorkspace(DataX=[1], Datay=[1], OutputWorkspace=w_name)
+    assert registered_workspace(w_name) is True
+    assert registered_workspace(w) is True

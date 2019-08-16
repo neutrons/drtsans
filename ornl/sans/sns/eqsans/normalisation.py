@@ -8,7 +8,7 @@ from ornl.settings import (unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.dark_current import duration as run_duration
 
-__all__ = ['normalise_by_flux', ]
+__all__ = ['normalise_by_flux', 'normalise_by_time']
 
 
 def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):

@@ -6,6 +6,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import os
 import re
+from copy import deepcopy
 from itertools import product as iproduct
 import numpy as np
 from contextlib import contextmanager
@@ -110,6 +111,15 @@ class CfgItemValue(object):
         """Discard note explanatory when comparing two value items"""
         return self.data == other.data and self.off == other.off
 
+    def __iadd__(self, other):
+        if not isinstance(self.data, list):
+            self.data = [self.data,]
+        if isinstance(other.data, list):
+            self.data.extend(other.data)
+        else:
+            self.data.append(other.data)
+        return self
+
     @property
     def value(self):
         return self.data
@@ -173,6 +183,7 @@ class Cfg(object):
     Read EQSANS configuration files
     """
     _item_types = {'Rectangular Mask': CfgItemRectangularMask,
+                   'Elliptical Mask': CfgItemRectangularMask,
                    'TOF edge discard': CfgTofEdgeDiscard}
 
     @staticmethod
@@ -207,6 +218,7 @@ class Cfg(object):
                     commented = True
                     key = key.split('#')[-1].strip()
                 if key in cfg:
+                    # only append not-commented entries
                     if commented is True:
                         continue
                     old_val = cfg[key].data
@@ -220,6 +232,10 @@ class Cfg(object):
                     item_type = Cfg._item_types.get(key, CfgItemValue)
                     item = item_type(data=val, off=commented, note=description)
                     cfg[key] = item
+        # Old reduction combines the rectangular and elliptical masks
+        cfg['Combined Mask'] = deepcopy(cfg['Rectangular Mask'])
+        if 'Elliptical Mask' in cfg and cfg['Elliptical Mask'].off is False:
+            cfg['Combined Mask'] += cfg['Elliptical Mask']
         return cfg
 
     def __init__(self, source=None, config_dir=cfg_dir):

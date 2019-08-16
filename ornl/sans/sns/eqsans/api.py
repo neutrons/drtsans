@@ -101,7 +101,7 @@ def prepare_data(data,
                  x_center=None, y_center=None,
                  dark_current=None,
                  flux_method=None, flux=None,
-                 mask=None, panel=None, btp=dict(),
+                 mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
                  sensitivity_file_path=None,
                  output_workspace=None):
@@ -146,12 +146,15 @@ def prepare_data(data,
         monitor, then path to file containing the flux-to-monitor ratios.
     panel: str
         Either 'front' or 'back' to mask a whole panel
-    mask: mask file path, MaskWorkspace
-        Mask to be applied.
+    mask_panel: str
+        Either 'front' or 'back' to mask whole front or back panel.
+    mask: mask file path, MaskWorkspace, list
+        Additional mask to be applied. If `list`, it is a list of
+        detector ID's.
+    btp: dict
+        Additional properties to Mantid's MaskBTP algorithm
     solid_angle: bool
         Apply the solid angle correction
-    btp: dict
-        Additional properties to MaskBTP, if desired
     output_workspace: str
         Name of the output workspace. If None, then it will be
         EQSANS_XXXXX with number XXXXX determined from the supplied `data`.
@@ -176,7 +179,7 @@ def prepare_data(data,
                              output_workspace=monitor_workspace)
             kw['monitor_workspace='] = monitor_workspace
         normalise_by_flux(output_workspace, flux, **kw)
-    apply_mask(output_workspace, panel=panel, mask=mask, **btp)
+    apply_mask(output_workspace, panel=mask_panel, mask=mask, **btp)
     if solid_angle is True:
         apply_solid_angle_correction(output_workspace)
     if sensitivity_file_path is not None \

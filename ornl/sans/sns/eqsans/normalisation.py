@@ -269,8 +269,8 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
     kwargs = {'time': dict(log_key=flux)}
     kwargs = kwargs.get(method, dict())
 
-    normaliser[method](input_workspace, *args[method],
-                       output_workspace=output_workspace, *kwargs)
+    normaliser[method](input_workspace, *args,
+                       output_workspace=output_workspace, **kwargs)
 
     # A bit of cleanup
     if w_flux:

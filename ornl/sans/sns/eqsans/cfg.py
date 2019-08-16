@@ -158,11 +158,22 @@ class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):
         return self.detectors
 
 
+class CfgTofEdgeDiscard(CfgItemValue):
+    r"""Specialization for entry 'TOF edge discard' """
+    def __init__(self, *args, **kwargs):
+        CfgItemValue.__init__(self, *args, **kwargs)
+
+    @property
+    def value(self):
+        return tuple([float(t) for t in self.data.split()])
+
+
 class Cfg(object):
     """
     Read EQSANS configuration files
     """
-    _item_types = {'Rectangular Mask': CfgItemRectangularMask}
+    _item_types = {'Rectangular Mask': CfgItemRectangularMask,
+                   'TOF edge discard': CfgTofEdgeDiscard}
 
     @staticmethod
     def load(source, config_dir=cfg_dir):

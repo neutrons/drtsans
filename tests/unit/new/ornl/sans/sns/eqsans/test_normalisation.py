@@ -5,7 +5,8 @@ from mantid.simpleapi import (Integration, SumSpectra)
 
 from ornl.sans.sns.eqsans.normalisation import \
     (load_beam_flux_file, normalise_by_proton_charge_and_flux,
-     load_flux_to_monitor_ratio_file, normalise_by_monitor, normalise_by_flux)
+     load_flux_to_monitor_ratio_file, normalise_by_monitor,
+     normalise_by_time, normalise_by_flux)
 from ornl.settings import amend_config, unique_workspace_dundername as uwd
 from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   prepare_monitors)
@@ -112,6 +113,22 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
     w = SumSpectra(w, OutputWorkspace=w.name())
     assert min(w.dataY(0)) * 1e4 == approx(3.4, abs=0.1)
     w.delete()
+
+
+def test_normalise_by_time(data_ws):
+    dws = data_ws['92353']
+    y, e = dws.readY(42)[5], dws.readE(42)[5]  # some meaningful choice
+
+    w = normalise_by_time(dws, output_workspace=uwd())
+    d = SampleLogs(w).duration.value
+    assert (y/d, e/d) == approx((w.readY(42)[5], w.readE(42)[5]), abs=1e-6)
+    assert SampleLogs(w).normalizing_duration.value == 'duration'
+    w.delete()
+
+    w = normalise_by_time(dws, log_key='proton_charge', output_workspace=uwd())
+    d = SampleLogs(w)['proton_charge'].getStatistics().duration
+    assert (y/d, e/d) == approx((w.readY(42)[5], w.readE(42)[5]), abs=1e-6)
+    assert SampleLogs(w).normalizing_duration.value == 'proton_charge'
 
 
 if __name__ == '__main__':

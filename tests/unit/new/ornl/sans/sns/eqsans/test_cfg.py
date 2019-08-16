@@ -27,6 +27,11 @@ def test_mask_mixin():
     assert c.value == dets
 
 
+def test_tofedgediscard():
+    c = cfg.CfgTofEdgeDiscard(data='500 2000')
+    assert c.value == (500.0, 2000.0)
+
+
 def test_closest_config(refd):
     config_dir = pj(refd.new.eqsans, 'instrument_configuration')
     name = pj(config_dir, 'eqsans_configuration.92474')
@@ -59,6 +64,7 @@ def test_load_config(refd):
     config_dir = pj(refd.new.eqsans, 'instrument_configuration')
     d = cfg.load_config(source=97711, config_dir=config_dir)
     assert len(d['Rectangular Mask']) == 3840
+    assert d['TOF edge discard'] == (500., 2000.)
 
 
 if __name__ == '__main__':

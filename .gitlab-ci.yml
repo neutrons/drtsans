@@ -91,6 +91,8 @@ code-unit-test:
     - docker pull $CONTAINER_URL
     - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
     - popd
+  after_script:
+    - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
   artifacts:
     paths:
       -  unit_test_results.xml
@@ -116,6 +118,8 @@ code-integration-test:
     - docker pull $CONTAINER_URL
     - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
     - popd
+  after_script:
+    - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
   artifacts:
     paths:
       -  integration_test_results.xml

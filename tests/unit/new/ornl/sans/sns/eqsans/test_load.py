@@ -2,7 +2,7 @@ import pytest
 from pytest import approx
 import numpy as np
 
-from mantid.simpleapi import (Rebin, SumSpectra)
+from mantid.simpleapi import (Rebin, SumSpectra, SaveNexus)
 from ornl.settings import (amend_config, unique_workspace_name as uwn)
 from ornl.sans.sns.eqsans.load import load_events, load_events_monitor
 
@@ -19,7 +19,7 @@ def test_load_events(refd):
     assert ws.name() == ws_name
 
     assert ws.getTofMin() == pytest.approx(11410, abs=1)
-    assert ws.getTofMax() == pytest.approx(61412, abs=1)
+    assert ws.getTofMax() == pytest.approx(61439, abs=1)
 
     ws = Rebin(ws, Params=[10000, 1000, 62000], PreserveEvents=False)
     ws = SumSpectra(ws)

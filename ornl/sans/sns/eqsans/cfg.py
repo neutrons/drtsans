@@ -1,9 +1,6 @@
 """
 Reader for EQSANS configuration files in the old format
 """
-
-from __future__ import (absolute_import, division, print_function)
-
 import os
 import re
 from copy import deepcopy
@@ -92,33 +89,34 @@ class CfgItemValue(object):
     ----------
     data: string, or list of strings
         raw value of the entry
-    off: bool
-        True if the entry was commented in the file
     note: str
         Description of the entry
     """
 
-    def __init__(self, name='', data='', off=True, note=''):
+    def __init__(self, name='', data='', note=''):
         self.data = data
-        self.off = off
         self.note = note
 
     def __repr__(self):
-        return 'CfgItemValue(data="{data}", off={off}, note="{note}")'.\
+        return 'CfgItemValue(data="{data}", note="{note}")'.\
             format(**self.__dict__)
 
     def __eq__(self, other):
         """Discard note explanatory when comparing two value items"""
-        return self.data == other.data and self.off == other.off
+        return self.data == other.data
 
     def __iadd__(self, other):
-        if not isinstance(self.data, list):
-            self.data = [self.data,]
+        other_vals = [other.data]
         if isinstance(other.data, list):
-            self.data.extend(other.data)
-        else:
-            self.data.append(other.data)
+            other_vals = other.data
+        [self.insert(val) for val in other_vals]
         return self
+
+    def insert(self, value):
+        if isinstance(self.data, list):
+            self.data.append(value)
+        else:
+            self.data = [self.data, value]
 
     @property
     def value(self):
@@ -146,6 +144,11 @@ class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):
     def __init__(self, *args, **kwargs):
         CfgItemValue.__init__(self, *args, **kwargs)
 
+    def insert(self, value):
+        r"""Additional validation"""
+        if len(re.findall(r'\d+', value)) == 4:
+            super().insert(value)
+
     @property
     def pixels(self):
         r"""
@@ -168,6 +171,9 @@ class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):
         return self.detectors
 
 
+CfgItemEllipticalMask = CfgItemRectangularMask
+
+
 class CfgTofEdgeDiscard(CfgItemValue):
     r"""Specialization for entry 'TOF edge discard' """
     def __init__(self, *args, **kwargs):
@@ -182,14 +188,16 @@ class Cfg(object):
     """
     Read EQSANS configuration files
     """
-    _item_types = {'Rectangular Mask': CfgItemRectangularMask,
-                   'Elliptical Mask': CfgItemRectangularMask,
-                   'TOF edge discard': CfgTofEdgeDiscard}
+    _item_types = {'rectangular mask': CfgItemRectangularMask,
+                   'elliptical mask': CfgItemEllipticalMask,
+                   'tof edge discard': CfgTofEdgeDiscard}
 
     @staticmethod
-    def load(source, config_dir=cfg_dir):
+    def load(source, config_dir=cfg_dir, comment_symbol='#'):
         """
-        Load the configuration file appropriate to the input source info
+        Load the configuration file appropriate to the input source info.
+
+        Ignores commented lines.
 
         Parameters
         ----------
@@ -210,32 +218,26 @@ class Cfg(object):
                 if '=' not in line:
                     continue  # this line contains no valid entries
                 key, val = [x.strip() for x in line.split('=')]
-                commented = False
+                if comment_symbol in key:
+                    continue
+                key = key.lower()  # ignore case
                 description = ''
-                if '#' in val:
+                if comment_symbol in val:
                     val, description = [x.strip() for x in val.split('#')]
-                if '#' in key:
-                    commented = True
-                    key = key.split('#')[-1].strip()
                 if key in cfg:
-                    # only append not-commented entries
-                    if commented is True:
-                        continue
-                    old_val = cfg[key].data
-                    if isinstance(old_val, list):
-                        cfg[key].data.append(val)
-                    else:
-                        cfg[key].data = [old_val, val]
+                    cfg[key].insert(val)
                     if description != '':
                         cfg[key].help = description
                 else:
                     item_type = Cfg._item_types.get(key, CfgItemValue)
-                    item = item_type(data=val, off=commented, note=description)
+                    item = item_type(data=val, note=description)
                     cfg[key] = item
+
         # Old reduction combines the rectangular and elliptical masks
-        cfg['Combined Mask'] = deepcopy(cfg['Rectangular Mask'])
-        if 'Elliptical Mask' in cfg and cfg['Elliptical Mask'].off is False:
-            cfg['Combined Mask'] += cfg['Elliptical Mask']
+        cfg['combined mask'] = deepcopy(cfg['rectangular mask'])
+        if 'elliptical mask' in cfg:
+            cfg['combined mask'] += cfg['elliptical mask']
+
         return cfg
 
     def __init__(self, source=None, config_dir=cfg_dir):

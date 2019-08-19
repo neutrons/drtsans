@@ -7,7 +7,7 @@ from ornl.sans.sns.eqsans import cfg
 
 def test_setitem():
     c = cfg.Cfg()
-    value = cfg.CfgItemValue(data=42, off=False, note='meaning of universe')
+    value = cfg.CfgItemValue(data=42, note='meaning of universe')
     c['k'] = value  # set value
     assert c['k'] == value  # get value
 
@@ -15,6 +15,20 @@ def test_setitem():
 def test_rec_mask():
     # second rectangle is included in the first
     c = cfg.CfgItemRectangularMask(data=['0, 0; 1, 255', '1 ,250; 1, 255'])
+    assert len(c.pixels) == 512
+    assert (1, 255) in c.pixels
+    # adding a mask already in mask `c` doesn't add any pixel
+    d = cfg.CfgItemRectangularMask(data=['1 ,252; 1, 254'])
+    c += d
+    assert len(c.pixels) == 512
+    # adding another tube to the mask
+    d = cfg.CfgItemRectangularMask(data=['2 ,0; 2, 255'])
+    c += d
+    assert len(c.pixels) == 768
+
+
+def test_ell_mask():
+    c = cfg.CfgItemEllipticalMask(data=['1 ,250; 1, 255'])
     px = c.pixels
     assert (1, 255) in px
 
@@ -25,6 +39,9 @@ def test_mask_mixin():
     assert len(dets) == 2 * 256
     assert dets[-1] == 3 * 256 - 1
     assert c.value == dets
+    c = cfg.CfgItemEllipticalMask(data=['1, 250, 1, 255'])
+    assert c.detectors == [506, 507, 508, 509, 510, 511]
+    assert c.value == c.detectors
 
 
 def test_tofedgediscard():
@@ -53,18 +70,24 @@ def test_open_source(refd):
 def test_load(refd):
     config_dir = pj(refd.new.eqsans, 'instrument_configuration')
     c = cfg.Cfg(source=97711, config_dir=config_dir)
-    value = cfg.CfgItemValue(data='500 2000', off=False)
-    assert c['TOF edge discard'] == value
-    assert isinstance(c['Rectangular Mask'], cfg.CfgItemRectangularMask)
+    value = cfg.CfgItemValue(data='500 2000')
+    assert c['tof edge discard'] == value
+    assert isinstance(c['rectangular mask'], cfg.CfgItemRectangularMask)
     d = c.as_dict()
-    assert d['Rectangular Mask'] == c['Rectangular Mask'].detectors
+    assert d['rectangular mask'] == c['rectangular mask'].detectors
 
 
 def test_load_config(refd):
     config_dir = pj(refd.new.eqsans, 'instrument_configuration')
     d = cfg.load_config(source=97711, config_dir=config_dir)
-    assert len(d['Rectangular Mask']) == 3840
-    assert d['TOF edge discard'] == (500., 2000.)
+    assert len(d['rectangular mask']) == 7203
+    assert 'elliptical mask' not in d
+    assert d['tof edge discard'] == (500., 2000.)
+
+    d = cfg.load_config(source=7554, config_dir=config_dir)
+    assert len(d['rectangular mask']) == 7088
+    assert len(d['elliptical mask']) == 270
+    assert len(d['combined mask']) == 7088 + 270
 
 
 if __name__ == '__main__':

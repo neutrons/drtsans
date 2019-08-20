@@ -1,8 +1,14 @@
 from scipy import constants
 
+from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import FindCenterOfMassPosition, MoveInstrumentComponent
 from ornl.sans.samplelogs import SampleLogs
+
+'''
+https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
+https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.htm
+'''
 
 
 def _calculate_neutron_drop(path_length, wavelength):
@@ -31,12 +37,12 @@ def _calculate_neutron_drop(path_length, wavelength):
 
 def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
     """This method is used for correcting for gravitational drop.
-    It is used in the biosans for the correction of the beam cemter
+    It is used in the biosans for the correction of the beam center
     in the wing detector.
 
     Parameters
     ----------
-    ws : Workspace2D
+    ws : Workspace2D, str
         The workspace to get the sample to the main detector distance
     beam_center_y : float
         The Y center coordinate in the main detector in meters
@@ -49,6 +55,9 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
     float
         The new y beam center corrected for distance
     """
+
+    if isinstance(ws, str):
+        ws = mtd[ws]
 
     sl = SampleLogs(ws)
     sdd_main_detector = sl['sample-detector-distance'].value*1e-3  # meters
@@ -77,9 +86,9 @@ def direct_beam_center(input_workspace, center_x_estimate=0,
     ----------
     input_workspace : MatrixWorkspace, str
         The beamcenter workspace
-    center_x_estimate : int, optional
+    center_x_estimate : float, optional
         Estimate for the X beam center in meters, by default 0
-    center_y_estimate : int, optional
+    center_y_estimate : float, optional
         Estimate for the Y beam center in meters, by default 0
     tolerance : float, optional
         Tolerance on the center of mass position between each iteration in m,
@@ -98,7 +107,7 @@ def direct_beam_center(input_workspace, center_x_estimate=0,
 
     Returns
     -------
-    Tuple of 3 integers
+    Tuple of 3 floats
         center_x, center_y, center_y corrected for gravity
         center_y it is usually used to correct BIOSANS wing detector
         Y position.
@@ -122,20 +131,20 @@ def direct_beam_center(input_workspace, center_x_estimate=0,
 def beam_center(center_x, center_y, wavelength, sdd_main_detector,
                 sdd_wing_detector=1.13):
     """Given the coordinates of the beam center calculate the beam center
-    of the Y coordinate in the wind detector.
+    of the Y coordinate in the wing detector.
 
     Parameters
     ----------
     center_x : float
-        beam center X found in the main detector
+        beam center X in meters found in the main detector
     center_y : float
-        beam center y found in the main detector
+        beam center y in meters found in the main detector
     wavelength : float
         in Angstroms
     sdd_main_detector : float
         in meters
     sdd_wing_detector : float, optional
-        in meeters, by default 1.13
+        in meters, by default 1.13
     """
 
     drop = _calculate_neutron_drop(sdd_main_detector - sdd_wing_detector,
@@ -154,7 +163,7 @@ def center_detector(input_workspace, center_x, center_y, center_y_gravity):
 
     Parameters
     ----------
-    input_workspace : Workspace2D
+    input_workspace : Workspace2D, str
         The workspace to be centered
     center_x : float
         in meters
@@ -177,6 +186,6 @@ def center_detector(input_workspace, center_x, center_y, center_y_gravity):
     # Relative movement up words
     MoveInstrumentComponent(
         Workspace=input_workspace, ComponentName='wing_detector',
-        X=0, Y=center_y_gravity)
+        X=0, Y=-center_y_gravity)
 
     return input_workspace

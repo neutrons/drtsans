@@ -7,6 +7,12 @@ from mantid.simpleapi import (FindCenterOfMassPosition, LoadHFIRSANS,
                               MoveInstrumentComponent)
 from ornl.sans.hfir.biosans import beam_finder
 
+'''
+https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
+https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
+https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.htm
+'''
+
 
 def test_beam_finder(biosans_f):
     '''
@@ -38,7 +44,7 @@ def test_beam_finder(biosans_f):
     # Now let's correct the wing detector for the gravity drop
     # Relative movement up words
     MoveInstrumentComponent(
-        Workspace=ws, ComponentName='wing_detector', X=0, Y=y_gravity)
+        Workspace=ws, ComponentName='wing_detector', X=0, Y=-y_gravity)
 
     # After the re-centring we should be at (0,0)
     # Note that to give the same results we need to enter the center
@@ -49,27 +55,3 @@ def test_beam_finder(biosans_f):
     # Tolerance 1e-3 == millimeters
     assert x == pytest.approx(0.0, abs=1e-3)
     assert y == pytest.approx(0.0, abs=1e-3)
-
-
-def test_center_detector(biosans_f):
-
-    ws = LoadHFIRSANS(Filename=biosans_f['beamcenter'])
-
-    instrument = ws.getInstrument()
-    pos_main = instrument.getComponentByName("detector1").getPos()
-    pos_wing = instrument.getComponentByName("wing_detector").getPos()
-
-    center_x = 0.0014
-    center_y = -0.0243
-    center_y_gravity = -0.0220
-
-    ws = beam_finder.center_detector(ws, center_x, center_y, center_y_gravity)
-
-    instrument = ws.getInstrument()
-    pos_main_2 = instrument.getComponentByName("detector1").getPos()
-    pos_wing_2 = instrument.getComponentByName("wing_detector").getPos()
-
-    assert pytest.approx(abs(pos_main[0] - pos_main_2[0]), abs(center_x))
-    assert pytest.approx(abs(pos_main[1] - pos_main_2[1]), abs(center_y))
-    assert pytest.approx(
-        abs(pos_wing[1] - pos_wing_2[1]), abs(center_y_gravity))

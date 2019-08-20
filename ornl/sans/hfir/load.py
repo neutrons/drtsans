@@ -1,11 +1,14 @@
 import os
 
-# https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 from mantid.simpleapi import LoadHFIRSANS
 
+'''
+https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
+'''
 
-def load(filename, output_workspace=None, wavelength=None,
-         wavelength_spread=None, sample_to_detector_distance=None):
+
+def load_histogram(filename, output_workspace=None, wavelength=None,
+                   wavelength_spread=None, sample_to_detector_distance=None):
     """Loads a SANS data file produce by the HFIR instruments at ORNL.
     The instrument geometry is also loaded. The center of the detector is
     placed at (0,0,D), where D is the sample-to-detector distance.

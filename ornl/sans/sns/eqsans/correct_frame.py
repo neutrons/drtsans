@@ -195,7 +195,8 @@ def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
     return ws
 
 
-def correct_frame(input_workspace, source_to_component_distance):
+def correct_frame(input_workspace, source_to_component_distance,
+                  path_to_pixel=True):
     r"""
     Assign the correct TOF to each event.
 
@@ -209,7 +210,11 @@ def correct_frame(input_workspace, source_to_component_distance):
     source_to_component_distance: float
         Distance from source to detecting component (detector or monitor), in
         meters
-
+    path_to_pixel: bool
+        When correcting the recorded time of flight of each neutron, use the
+        path from the moderator to the detector pixel (`True`) or to the center
+        of the detector panel (`False`). The latter for comparison to the
+        old data reduction.
     Returns
     -------
     namedtuple
@@ -232,14 +237,16 @@ def correct_frame(input_workspace, source_to_component_distance):
                        PulsePeriod=pulse_period,
                        MinTOF=tof_min,
                        FrameWidth=frame_width,
-                       FrameSkipping=(ch.frame_mode is FrameMode.skip))
+                       FrameSkipping=(ch.frame_mode is FrameMode.skip),
+                       PathToPixel=path_to_pixel)
     # Amend the logs
     fr_skip = 1 if ch.frame_mode == FrameMode.skip else 0
     sl.insert('is_frame_skipping', fr_skip)
 
 
-def correct_detector_frame(ws):
-    correct_frame(ws, source_detector_distance(ws, unit='m'))
+def correct_detector_frame(ws, path_to_pixel=True):
+    correct_frame(ws, source_detector_distance(ws, unit='m'),
+                  path_to_pixel=path_to_pixel)
 
 
 def correct_monitor_frame(input_workspace):
@@ -260,7 +267,8 @@ def correct_monitor_frame(input_workspace):
     if EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip:
         raise RuntimeError('cannot correct monitor frame in "skip" mode')
     # correct TOF's
-    correct_frame(ws, source_monitor_distance(ws, unit='m'))
+    correct_frame(ws, source_monitor_distance(ws, unit='m'),
+                  path_to_pixel=False)
 
 
 def smash_monitor_spikes(input_workspace, output_workspace=None):

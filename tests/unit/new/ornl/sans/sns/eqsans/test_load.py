@@ -19,7 +19,7 @@ def test_load_events(refd):
     assert ws.name() == ws_name
 
     assert ws.getTofMin() == pytest.approx(11410, abs=1)
-    assert ws.getTofMax() == pytest.approx(61412, abs=1)
+    assert ws.getTofMax() == pytest.approx(61439, abs=1)
 
     ws = Rebin(ws, Params=[10000, 1000, 62000], PreserveEvents=False)
     ws = SumSpectra(ws)

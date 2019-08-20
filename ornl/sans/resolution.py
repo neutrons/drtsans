@@ -40,10 +40,10 @@ def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
     ------
     float
     """
-    dq2 = 0.25 * (L2 / L1 * R1)**2  \
-        + 0.25 * ((L1 + L2) / L1 * R2)**2 + pixel_size**2 / 12.0
-    return dq2 * (2.0 * np.pi * np.cos(theta) *
-                  np.cos(2.0 * theta)**2 / wl / L2)**2
+    dq2 = 0.25 * np.square(L2 / L1 * R1)  \
+        + 0.25 * np.square((L1 + L2) / L1 * R2) + np.square(pixel_size) / 12.0
+    return dq2 * np.square(2.0 * np.pi * np.cos(theta)
+                           * np.square(np.cos(2.0 * theta)) / wl / L2)
 
 
 def dq2_gravity(L1, L2, wl, dwl, theta):
@@ -71,6 +71,7 @@ def dq2_gravity(L1, L2, wl, dwl, theta):
     """
     B = _G_MN2_OVER_H2 * 0.5 * L2 * (L1 + L2)
     dq2 = 2. * np.square(B * wl * dwl) / 3.
-    dq2 *= (2.0 * np.pi * np.cos(theta) * np.cos(2.0 * theta)**2 / wl / L2)**2
+    dq2 *= np.square(2.0 * np.pi * np.cos(theta)
+                     * np.square(np.cos(2.0 * theta)) / wl / L2)
     # Converting from A^2 / m^4 to 1 / A^2
     return dq2 * 1.0e-40

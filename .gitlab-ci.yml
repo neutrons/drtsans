@@ -52,7 +52,7 @@ docker-update-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
+    - bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
     - scse-sans-demo
@@ -68,7 +68,7 @@ docker-no-update-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh || cat SANS_output/*err
+    - bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
     - scse-sans-demo

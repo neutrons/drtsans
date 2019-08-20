@@ -5,8 +5,7 @@ variables:
 stages:
   - flake8
   - dockerbuild
-  - docker-test
-  - code-test
+  - test
   - script-host
 
 flake8:
@@ -43,7 +42,7 @@ dockerbuild:
     - scripts/sans-backend-run.sh
 
 docker-update-test:
-  stage: docker-test
+  stage: test
   dependencies:
     - dockerbuild
   before_script:
@@ -59,7 +58,7 @@ docker-update-test:
     - scse-sans-demo
 
 docker-no-update-test:
-  stage: docker-test
+  stage: test
   dependencies:
     - dockerbuild
   before_script:
@@ -75,7 +74,7 @@ docker-no-update-test:
     - scse-sans-demo
 
 code-unit-test:
-  stage: code-test
+  stage: test
   dependencies:
     - dockerbuild
   allow_failure: true
@@ -103,7 +102,7 @@ code-unit-test:
     - scse-mantid-builder
 
 code-integration-test:
-  stage: code-test
+  stage: test
   dependencies:
     - dockerbuild
   allow_failure: true

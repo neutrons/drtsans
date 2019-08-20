@@ -17,8 +17,9 @@ def apply_mask(w, panel=None, mask=None, output_workspace=None, **btp):
         Workspace to be masked
     panel: str
         Either 'front' or 'back' to mask a whole panel
-    mask: mask file path, MaskWorkspace
-        Mask to be applied
+    mask: mask file path, MaskWorkspace, list
+        Additional mask to be applied. If `list`, it is a list of
+        detector ID's.
     btp: dict
         Options to Mantid algorithm MaskBTP. Will be used if `mask=None`
 

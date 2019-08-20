@@ -5,8 +5,7 @@ variables:
 stages:
   - flake8
   - dockerbuild
-  - docker-test
-  - code-test
+  - test
   - script-host
 
 flake8:
@@ -43,8 +42,8 @@ dockerbuild:
     - scripts/sans-backend-run.sh
 
 docker-update-test:
-  stage: docker-test
-  dependencies: 
+  stage: test
+  dependencies:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
@@ -53,14 +52,14 @@ docker-update-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
+    - bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
     - scse-sans-demo
 
 docker-no-update-test:
-  stage: docker-test
-  dependencies: 
+  stage: test
+  dependencies:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
@@ -69,14 +68,14 @@ docker-no-update-test:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - sh -x scripts/sans-backend-run.sh || cat SANS_output/*err
+    - bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
     - scse-sans-demo
 
 code-unit-test:
-  stage: code-test
-  dependencies: 
+  stage: test
+  dependencies:
     - dockerbuild
   allow_failure: true
   before_script:
@@ -86,17 +85,25 @@ code-unit-test:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
     - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
     - popd
+  after_script:
+    - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
+  artifacts:
+    paths:
+      -  unit_test_results.xml
+    reports:
+      junit: unit_test_results.xml
   tags:
     - scse-mantid-builder
 
 code-integration-test:
-  stage: code-test
-  dependencies: 
+  stage: test
+  dependencies:
     - dockerbuild
   allow_failure: true
   before_script:
@@ -106,17 +113,25 @@ code-integration-test:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
     - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
     - popd
+  after_script:
+    - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
+  artifacts:
+    paths:
+      -  integration_test_results.xml
+    reports:
+      junit: integration_test_results.xml
   tags:
     - scse-mantid-builder
 
 script-host:
   stage: script-host
-  dependencies: 
+  dependencies:
     - dockerbuild
   before_script:
     - sudo yum install -y httpd

@@ -56,7 +56,7 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
     return mtd[output_workspace]
 
 
-def load_events(run, detector_offset=0., sample_offset=0.,
+def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
                 data_dir=None, output_workspace=None, **kwargs):
     r"""
     Load events with initial corrections for geometry and time-of-flight
@@ -75,6 +75,11 @@ def load_events(run, detector_offset=0., sample_offset=0.,
     sample_offset: float
         Additional translation of the sample, in mm. The sample flange remains
         at the origin of coordinates.
+    path_to_pixel: bool
+        When correcting the recorded time of flight of each neutron, use the
+        path from the moderator to the detector pixel (`True`) or to the center
+        of the detector panel (`False`). The latter for comparison to the
+        old data reduction.
     data_dir: str, list
         Additional data search directories
     output_workspace: str
@@ -121,5 +126,5 @@ def load_events(run, detector_offset=0., sample_offset=0.,
     #
     # Correct TOF of detector
     #
-    correct_detector_frame(output_workspace)
+    correct_detector_frame(output_workspace, path_to_pixel=path_to_pixel)
     return mtd[output_workspace]

@@ -40,9 +40,9 @@ def apply_mask(w, mask=None, output_workspace=None, **btp):
     ----------
     w: Workspace
         Workspace to be masked
-    mask: mask file path, MaskWorkspace
-        Mask to be applied. If `None`, it is expected that `maskbtp`
-        is not empty
+    mask: mask file path, MaskWorkspace, list
+        Mask to be applied. If `list`, it is a list of detector ID's. If
+        `None`, it is expected that `maskbtp` is not empty.
     btp: dict
         Options to Mantid algorithm MaskBTP. Will be used if `mask=None`
 

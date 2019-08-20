@@ -10,6 +10,8 @@ from mantid.kernel import logger
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import resolution
 
+__all__ = ['prepare_momentum_transfer', 'iq', 'iqxqy']
+
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 

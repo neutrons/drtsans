@@ -292,7 +292,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
     MatrixWorkspace
     """
 
-    def remove_spikes(y, to_median=10):
+    def remove_spikes(y, to_median=20):
         median = np.median(np.abs(y[1:] - y[:-1]))
         spikes_idx = np.ones(1)
         while np.any(spikes_idx):

@@ -2,13 +2,10 @@ from scipy import constants
 
 from mantid import mtd
 from mantid.kernel import logger
+# https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
+# https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
 from mantid.simpleapi import FindCenterOfMassPosition, MoveInstrumentComponent
 from ornl.sans.samplelogs import SampleLogs
-
-'''
-https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
-https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.htm
-'''
 
 
 def _calculate_neutron_drop(path_length, wavelength):
@@ -38,7 +35,8 @@ def _calculate_neutron_drop(path_length, wavelength):
 def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
     """This method is used for correcting for gravitational drop.
     It is used in the biosans for the correction of the beam center
-    in the wing detector.
+    in the wing detector. The center in the wing detector will be higher
+    because the neutrons fall due to gravity until they hit the main detector.
 
     Parameters
     ----------
@@ -69,8 +67,10 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
     wavelength = r.getProperty("wavelength").value
 
     drop = _calculate_neutron_drop(path_length, wavelength)
-    new_beam_center_y = beam_center_y + drop
-    logger.information("Beam Center Y after: %.2f meters" % new_beam_center_y)
+    new_beam_center_y = beam_center_y - drop
+    logger.information("Beam Center Y before gravity (drop = {:.3}): {:.3}"
+                       " after = {:.3}.".format(
+                            drop, beam_center_y, new_beam_center_y))
 
     return new_beam_center_y
 
@@ -123,7 +123,7 @@ def direct_beam_center(input_workspace, center_x_estimate=0,
     center_y_gravity = _beam_center_gravitational_drop(
         input_workspace, center_y, sdd_wing_detector)
 
-    logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}".format(
+    logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}.".format(
         center_x, center_y, center_y_gravity))
     return center_x, center_y, center_y_gravity
 
@@ -186,6 +186,7 @@ def center_detector(input_workspace, center_x, center_y, center_y_gravity):
     # Relative movement up words
     MoveInstrumentComponent(
         Workspace=input_workspace, ComponentName='wing_detector',
-        X=0, Y=-center_y_gravity)
+        X=-center_x,
+        Y=-center_y_gravity)
 
     return input_workspace

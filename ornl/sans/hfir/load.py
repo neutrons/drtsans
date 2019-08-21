@@ -1,10 +1,7 @@
 import os
 
+# https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 from mantid.simpleapi import LoadHFIRSANS
-
-'''
-https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
-'''
 
 
 def load_histogram(filename, output_workspace=None, wavelength=None,

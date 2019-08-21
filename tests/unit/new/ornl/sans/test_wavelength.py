@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-from numpy.testing import assert_raises
 
 from ornl.sans.wavelength import Wband, Wbands
 
@@ -10,9 +9,15 @@ from ornl.sans.wavelength import Wband, Wbands
 class TestWband(object):
 
     def test_init(self):
-        assert_raises(ValueError, Wband, -1, 0)
-        assert_raises(ValueError, Wband, 0, -1)
-        assert_raises(ValueError, Wband, 1, 0)
+        with pytest.raises(ValueError):
+            Wband(-1, 0)
+            assert False, 'Should have failed "Wband(-1, 0)"'
+        with pytest.raises(ValueError):
+            Wband(0, -1)
+            assert False, 'Should have failed "Wband(0, 1)"'
+        with pytest.raises(ValueError):
+            Wband(1, 0)
+            assert False, 'Should have failed "Wband(1, 0)"'
 
     def test_width(self):
         assert Wband(1, 2).width == 1

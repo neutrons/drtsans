@@ -7,6 +7,7 @@ from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
 
 from ornl.settings import (namedtuplefy, amend_config,
                            unique_workspace_dundername as uwd)
+from ornl.path import exists, registered_workspace
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import correct_frame as cf
 
@@ -14,15 +15,15 @@ __all__ = ['subtract_dark_current', ]
 
 
 @namedtuplefy
-def duration(dark, log_key=None):
+def duration(input_workspace, log_key=None):
     """
     Compute the duration of the workspace by iteratively searching the logs for
     keys 'duration', 'start_time/end_time', 'proton_charge', and 'timer'.
 
     Parameters
     ----------
-    dark: MatrixWorkspace
-        Workspace, usually the dark current workspace
+    input_workspace: str, MatrixWorkspace
+        Usually the dark current workspace
     log_key: str
         If a log entry is passed, only the contents under this log entry are
         searched. No iterative search over the default values is performed.
@@ -35,9 +36,10 @@ def duration(dark, log_key=None):
         - log_key: str, log used to return the duration
 
     """
+    ws = mtd[str(input_workspace)]
     log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if \
         log_key is None else (log_key, )
-    sl = SampleLogs(dark)
+    sl = SampleLogs(ws)
 
     def from_start_time(lk):
         st = parse_date(sl[lk].value)
@@ -57,25 +59,24 @@ def duration(dark, log_key=None):
     raise AttributeError("Could not determine the duration of the run")
 
 
-def counts_in_detector(dark):
+def counts_in_detector(input_workspace):
     r"""
     Fin the total number of neutron counts in each detector pixel.
     By definition, error=1 when zero counts in the detector.
 
     Parameters
     ----------
-    dark: EventsWorkspace
-        Deark current workspace
+    input_workspace: str, EventsWorkspace
+        Usually the dark current workspace
 
     Returns
     -------
     tuple
-        Elements of the tuple
-        - ws: Workspace2D, Single bin histograms, containing the total neutron
-            count per detector
-        - n: numpy.ndarrary, list of counts
+        Two elements in the tuple: (1)numpy.ndarray: counts;
+        (2) numpy.ndarray: error in the counts
     """
-    _wnc = Integration(dark, OutputWorkspace=uwd())
+    ws = mtd[str(input_workspace)]
+    _wnc = Integration(ws, OutputWorkspace=uwd())
     _wnc = Transpose(_wnc, OutputWorkspace=_wnc.name())
     y = np.copy(_wnc.dataY(0))  # counts
     e = np.copy(_wnc.dataE(0))  # errors
@@ -84,7 +85,7 @@ def counts_in_detector(dark):
     return y, e
 
 
-def normalise_to_workspace(dark, data, output_workspace=None):
+def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
     r"""
     Scale and Rebin in wavelength a `dark` current workspace with information
     from a `data` workspace.
@@ -96,14 +97,17 @@ def normalise_to_workspace(dark, data, output_workspace=None):
 
     Parameters
     ----------
-    dark: EventsWorkspace
+    dark_ws: str, EventsWorkspace
         Dark current workspace with units in time-of-flight
-    data: MatrixWorkspace
+    data_ws: str, MatrixWorkspace
         Sample scattering with intensities versus wavelength
     log_key: str
         Log key to search for duration of the runs. if `None`, the function
         does a sequential search for entries 'duration', 'proton_charge',
         and 'timer'
+    output_workspace : str
+        Name of the normalised dark workspace. If None, the name of the input
+        workspace `dark_ws` is chosen (and the input workspace is overwritten).
 
     Returns
     -------
@@ -111,8 +115,9 @@ def normalise_to_workspace(dark, data, output_workspace=None):
         Output workspace, dark current rebinned to wavelength and rescaled
     """
     if output_workspace is None:
-        output_workspace = str(dark)
-
+        output_workspace = str(dark_ws)
+    dark = mtd[str(dark_ws)]
+    data = mtd[str(data_ws)]
     sl = SampleLogs(data)
     # rescale counts by the shorter considered TOF width
     fwr = sl.tof_frame_width_clipped.value / sl.tof_frame_width.value
@@ -154,7 +159,7 @@ def normalise_to_workspace(dark, data, output_workspace=None):
     return _dark
 
 
-def subtract_normalised_dark_current(input_workspace, dark,
+def subtract_normalised_dark_current(input_workspace, dark_ws,
                                      output_workspace=None):
     r"""
     Subtract normalized dark current from data, taking into account
@@ -167,11 +172,15 @@ def subtract_normalised_dark_current(input_workspace, dark,
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: str, MatrixWorkspace
         Sample scattering with intensities versus wavelength
-    dark: MatrixWorkspace
+    dark_ws: str, MatrixWorkspace
         Normalized dark current after being normalized with
         `normalise_to_workspace`
+    output_workspace : str
+        Name of the workspace after dark current subtraction. If None,
+        the name of the input workspace is chosen (and the input workspace
+        is overwritten).
 
     Returns
     -------
@@ -181,9 +190,9 @@ def subtract_normalised_dark_current(input_workspace, dark,
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    duration_log_key = SampleLogs(dark).normalizing_duration.value
+    duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
-    scaled = Scale(InputWorkspace=dark, Factor=-d, OutputWorkspace=uwd())
+    scaled = Scale(InputWorkspace=dark_ws, Factor=-d, OutputWorkspace=uwd())
     Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled,
              OutputWorkspace=output_workspace)
     scaled.delete()
@@ -201,7 +210,12 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
     input_workspace : int, str, EventWorkspace
         The workspace to be normalised
     dark: int, str, EventsWorkspace
-        run number, file path, or workspace for dark current
+        run number, file path, workspace name, or EventsWorkspace
+        for dark current.
+    output_workspace : str
+        Name of the workspace after dark current subtraction. If None,
+        the name of the input workspace is chosen (and the input workspace
+        is overwritten).
 
     Returns
     -------
@@ -210,11 +224,15 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    if isinstance(dark, str) or isinstance(dark, int):
+    if registered_workspace(dark):
+        _dark = dark
+    elif (isinstance(dark, str) and exists(dark)) or isinstance(dark, int):
         with amend_config({'default.instrument': 'EQSANS'}):
             _dark = LoadEventNexus(Filename=dark, OutputWorkspace=uwd())
     else:
-        _dark = dark  # assumed it is an EventWorkspace
+        message = 'Unable to find or load the dark current {}'.format(dark)
+        raise RuntimeError(message)
+
     _dark_normal = normalise_to_workspace(_dark, input_workspace,
                                           output_workspace=uwd())
     subtract_normalised_dark_current(input_workspace, _dark_normal,

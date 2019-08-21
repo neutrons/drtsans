@@ -4,6 +4,9 @@ drt-sans
 For end users go to [next version](http://scse-sans-demo.ornl.gov/)
 [QA version](http://scse-ui.ornl.gov:8080/)
 
+Use [jupyter](https://jupyter.sns.gov/) to have a play with the
+code. The kernel to select is `sans at ...`.
+
 Set-up for development in a virtual environment
 -----------------------------------------------
 

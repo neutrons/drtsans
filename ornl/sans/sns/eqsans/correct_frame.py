@@ -1,4 +1,7 @@
 import numpy as np
+# https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/EQSANSCorrectFrame-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 from mantid.simpleapi import (mtd, ConvertUnits, Rebin, EQSANSCorrectFrame)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet

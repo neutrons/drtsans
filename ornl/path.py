@@ -1,4 +1,6 @@
 from mantid.api import FileFinder
+from mantid.simpleapi import mtd
+
 from os import path as os_path
 
 __all__ = ['abspath', 'exists']
@@ -67,3 +69,23 @@ def exists(path):
         return False  # no suggestions found
 
     return False
+
+
+def registered_workspace(source):
+    r"""
+    Find out if the source is a workspace registered in the Analysis Data
+    Service.
+
+    Parameters
+    ----------
+    source: str, Workspace
+
+    Returns
+    -------
+    bool
+    """
+    try:
+        mtd[str(source)]
+        return True
+    except KeyError:
+        return False

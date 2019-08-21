@@ -138,12 +138,14 @@ def prepare_data(data,
     dark_current: int, str, EventWorkspace
         Run number as int or str, file path, EventWorkspace
     flux_method: str
-        Method for flux normalization. Either 'proton charge'
-        or 'monitor'.
+        Method for flux normalization. Either 'proton charge',
+        'monitor', or 'time'.
     flux: str
         if `flux_method` is proton charge, then path to file containing the
         wavelength distribution of the neutron flux. If `flux method` is
         monitor, then path to file containing the flux-to-monitor ratios.
+        if `flux_method` is time, then pass one log entry name such
+        as `duration` or leave it as `None` for automatic log search.
     panel: str
         Either 'front' or 'back' to mask a whole panel
     mask_panel: str
@@ -170,7 +172,7 @@ def prepare_data(data,
     center_detector(output_workspace, x=x_center, y=y_center)
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
-    # Normalization by neutron beam flux
+    # Normalization by flux
     if flux_method is not None:
         kw = dict(method=flux_method)
         if flux_method == 'monitor':

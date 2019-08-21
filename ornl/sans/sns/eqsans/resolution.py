@@ -49,19 +49,17 @@ def q_resolution_per_pixel(ws):
     s2p = np.zeros_like(wl)
     for i in range(spec_info.size()):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
-            twotheta[i] = spec_info.twoTheta(i)
             s2p[i] = spec_info.l2(i)
-
-            # this is only correct if beam is in z-direction
-            # TODO change to mantid's calculation
-            _x, _y, _z = spec_info.position(i)
-            phi[i] = np.arctan2(_y, _x)
+            twotheta[i] = spec_info.twoTheta(i)
+            phi[i] = spec_info.azimuthal(i)
         else:
             twotheta[i] = np.nan
 
+    mask = np.isnan(twotheta)
     _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
-    _q[np.isnan(twotheta)] = 0.
-    twotheta[np.isnan(twotheta)] = 0.  # do this one last
+    _q[mask] = 0.
+    twotheta[mask] = 0.  # do this one last
+    del mask
 
     qx = np.cos(phi) * _q
     qy = np.sin(phi) * _q

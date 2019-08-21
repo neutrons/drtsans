@@ -7,6 +7,8 @@ For end users go to [next version](http://scse-sans-demo.ornl.gov/)
 Use [jupyter](https://jupyter.sns.gov/) to have a play with the
 code. The kernel to select is `sans at ...`.
 
+**This is a python3 only package.**
+
 Set-up for development in a virtual environment
 -----------------------------------------------
 

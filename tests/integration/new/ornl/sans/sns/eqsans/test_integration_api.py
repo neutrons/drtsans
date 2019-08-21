@@ -9,7 +9,7 @@ from mantid.dataobjects import EventWorkspace
 # https://docs.mantidproject.org/nightly/algorithms/CompareWorkspaces-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html
-from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces, SaveNexus
+from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces
 
 # public API
 from ornl.sans.sns import eqsans

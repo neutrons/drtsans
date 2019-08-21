@@ -1,6 +1,7 @@
 import numpy as np
-from scipy.signal import find_peaks
-from scipy.stats import zscore
+# https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/EQSANSCorrectFrame-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 from mantid.simpleapi import (mtd, ConvertUnits, Rebin, EQSANSCorrectFrame)
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
@@ -290,6 +291,15 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
     -------
     MatrixWorkspace
     """
+
+    def remove_spikes(y, to_median=20):
+        median = np.median(np.abs(y[1:] - y[:-1]))
+        spikes_idx = np.ones(1)
+        while np.any(spikes_idx):
+            diff = y[1:] - y[:-1]
+            spikes_idx = 1 + np.where(diff > median * to_median)[0]
+            y[spikes_idx] = y[spikes_idx - 1]
+
     w = mtd[str(input_workspace)]
     if output_workspace is None:
         output_workspace = str(input_workspace)
@@ -309,28 +319,11 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
         valid_idx = valid_idx[:-1]  # dataX is one element longer than dataY
     intensity = intensity[valid_idx]
 
-    def remove_spikes(y, sigf_zscore=10, minima=False):
-        if minima is True:
-            y *= -1.0
-        while True:
-            peak_indexes, v = find_peaks(y, prominence=0)
-            if peak_indexes.size == 0:
-                raise RuntimeError('Monitor spectrum is flat')
-            prom = zscore(v['prominences'])
-            spike_prom_indexes = np.where(prom > sigf_zscore)[0]
-            if spike_prom_indexes.size == 0:
-                break
-            spike_indexes = peak_indexes[spike_prom_indexes]
-            y[spike_indexes] -= v['prominences'][spike_prom_indexes]
-        if minima is True:
-            y *= -1.0
+    # Is this a flat monitor?
+    if len(np.where(intensity < 1)[0]) > 0.1 * len(intensity):
+        raise RuntimeError('Monitor spectrum is flat')
 
-    # Remove maxima spikes
-    remove_spikes(intensity, sigf_zscore=15)
-    # Remove minima spikes
-    remove_spikes(intensity, sigf_zscore=10, minima=True)
-
-    # Insert intensities free of spikes
+    remove_spikes(intensity)
     w.dataY(0)[valid_idx] = intensity
     return w
 

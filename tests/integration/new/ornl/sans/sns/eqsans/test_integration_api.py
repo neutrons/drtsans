@@ -9,7 +9,7 @@ from mantid.dataobjects import EventWorkspace
 # https://docs.mantidproject.org/nightly/algorithms/CompareWorkspaces-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html
-from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces
+from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces, SaveNexus
 
 # public API
 from ornl.sans.sns import eqsans
@@ -140,7 +140,8 @@ def test_prepare_monitors(refd):
         assert sl.wavelength_min.value == approx(9.9, abs=0.1)
         assert sl.wavelength_max.value == approx(13.6, abs=0.1)
         v = LoadNexus('EQSANS_88565_monitors_wav.nxs', OutputWorkspace=uwd())
-        assert CompareWorkspaces(w, v).Result is True
+        assert CompareWorkspaces(w, v, Tolerance=1e-3,
+                                 ToleranceRelErr=True).Result is True
 
 
 @pytest.mark.skip(reason="prepare data not yet completed")

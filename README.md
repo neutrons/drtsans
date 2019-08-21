@@ -1,6 +1,9 @@
 drt-sans
 ========
 
+For end users go to [next version](http://scse-sans-demo.ornl.gov/)
+[QA version](http://scse-ui.ornl.gov:8080/)
+
 Set-up for development in a virtual environment
 -----------------------------------------------
 
@@ -40,6 +43,10 @@ $ python setup.py develop
 ```python
 import mantid
 import ornl
+```
+Verify you can run the unit tests:
+```sh
+python -m pytest tests/unit/new/
 ```
 
 6. Be done. Deactivate the virtual environment using

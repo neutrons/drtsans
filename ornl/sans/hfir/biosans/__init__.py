@@ -5,3 +5,4 @@ from .solid_angle import (
     apply_solid_angle_correction_main_detector,
     apply_solid_angle_correction_wing_detector,
 )
+from .beam_finder import center_detector

@@ -54,8 +54,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
         The new y beam center corrected for distance
     """
 
-    if isinstance(ws, str):
-        ws = mtd[ws]
+    ws = mtd[str(ws)]
 
     sl = SampleLogs(ws)
     sdd_main_detector = sl['sample-detector-distance'].value*1e-3  # meters

@@ -14,12 +14,9 @@ def load_histogram(filename, output_workspace=None, wavelength=None,
     ----------
     filename : string
         The name of the input xml file to load
-        output_workspace : string, optional
+    output_workspace : string, optional
         The name of the Output workspace. If none is the filename stripped
         of the extension, by default None
-    output_workspace : string
-        The name of the output workspace. If none the name of the input file
-        is used, by default None
     wavelength : float, optional
         The wavelength value to use when loading the data file (Angstrom).
         This value will be used instead of the value found in the data file,

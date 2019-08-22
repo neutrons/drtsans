@@ -55,10 +55,9 @@ def test_shuo(generic_instrument):
     for i in range(4):
         ws.dataX(i)[:] = TOF  # microseconds
         ws.dataY(i)[0] = 1
-
-    ws = ConvertUnits(InputWorkspace=ws, OutputWorkspace=ws,
-                      Target='Wavelength', EMode='Elastic')
     # #### ABOVE THIS POINT WILL BE A TEST FIXTURE
+
+    ws = convert_to_wavelength(input_workspace=ws)
 
     specInfo = ws.spectrumInfo()
     source_sample = specInfo.l1()  # in meters

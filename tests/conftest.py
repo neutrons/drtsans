@@ -6,9 +6,11 @@ import os
 import pytest
 import random
 import string
+from tempfile import gettempdir
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
+from mantid.simpleapi import LoadEmptyInstrument
 from ornl.settings import amend_config
 
 # Resolve the path to the "external data"
@@ -353,6 +355,11 @@ def generate_sans_generic_IDF(request):
 
     Note that we use Mantid convention for the orientation
     '''
+    # try to get the parent in case of sub-requests
+    try:
+        request = request._parent_request
+    except AttributeError:
+        pass
     # get the parameters from the request object
     params = {'l1': float(request.param.get('l1', -11.)),
               'Nx': int(request.param.get('Nx', 3)),
@@ -361,8 +368,7 @@ def generate_sans_generic_IDF(request):
               'dy': float(request.param.get('dy', 1.) * 1000.),
               'xcenter': float(request.param.get('xc', 0.)),
               'ycenter': float(request.param.get('yc', 0.)),
-              'zcenter': float(request.param.get('zc', 5.))
-          }
+              'zcenter': float(request.param.get('zc', 5.))}
 
     # check that nothing is crazy
     assert (params['Nx'] > 1 and params['Nx'] < 300)
@@ -442,6 +448,41 @@ def generate_sans_generic_IDF(request):
 
     # return the completed template
     return template_xml.format(**params)
+
+
+@pytest.fixture(scope='session')
+def generic_instrument(generate_sans_generic_IDF, request):
+    '''
+    generate a test IDF with a rectangular detector
+    with Nx X Ny pixels
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        name: Name of the workspace      (default: GenericSANS)
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
+
+    Note that we use Mantid convention for the orientation
+    '''
+    name = request.param.get('name', 'GenericSANS')  # output workspace
+    filename = os.path.join(gettempdir(), 'GenericSANS_Definition.xml')
+
+    with open(filename, 'w') as tmp:
+        tmp.write(generate_sans_generic_IDF)
+    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name,
+                               OutputWorkspace=name)
+    os.unlink(filename)
+
+    return wksp
 
 
 @pytest.fixture(scope='session')

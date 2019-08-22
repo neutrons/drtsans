@@ -1,24 +1,20 @@
-import os
 import pytest
 from ornl.sans.sns import eqsans
-from mantid.simpleapi import LoadEmptyInstrument, SolidAngle
+from mantid.simpleapi import SolidAngle
 from mantid.kernel import V3D
 import numpy as np
 from copy import deepcopy
 
 
-@pytest.mark.parametrize('generate_sans_generic_IDF',
+@pytest.mark.parametrize('generic_instrument',
                          [{'Nx': 3, 'Ny': 3, 'dx': 0.00425,
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
-def test_solid_angle(generate_sans_generic_IDF):
+def test_solid_angle(generic_instrument):
     # generate a generic SANS instrument with a pixel of
     # the size and position specified in
     # sans-backend/documents/Master_document_022219.pdf
-    tmp = open(r'/tmp/GenericSANS_Definition.xml', 'w')
-    tmp.write(generate_sans_generic_IDF)
-    tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS')
+    ws = generic_instrument  # friendlier name to type
 
     # set intensity and error to match test document
     ws.dataY(4)[0] = 156.
@@ -60,8 +56,6 @@ def test_solid_angle(generate_sans_generic_IDF):
 
     assert ws.dataY(4)[0] == pytest.approx(167784655.70)
     assert ws.dataE(4)[0] == pytest.approx(13433523.577)
-
-    os.remove(r'/tmp/GenericSANS_Definition.xml')
 
 
 if __name__ == '__main__':

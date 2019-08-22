@@ -6,9 +6,11 @@ import os
 import pytest
 import random
 import string
+from tempfile import gettempdir
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
+from mantid.simpleapi import LoadEmptyInstrument
 from ornl.settings import amend_config
 
 # Resolve the path to the "external data"
@@ -342,6 +344,7 @@ def generate_sans_generic_IDF(request):
 
     request is a dictionary containing the following keys:
 
+        name: Name of the instrument     (default: GenericSANS)
         Nx : number of columns                      (default 3)
         Ny : number of rows                         (default 3)
         dx : width of a column in meters            (default 1)
@@ -349,30 +352,42 @@ def generate_sans_generic_IDF(request):
         xc : distance of center along the x axis    (default 0)
         yc : distance of center along the y axis    (default 0)
         zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
 
     Note that we use Mantid convention for the orientation
     '''
+    # try to get the parent in case of sub-requests
+    try:
+        req_params = request.param
+    except AttributeError:
+        req_params = request._parent_request.param
 
-    Nx = request.param.get('Nx', 3)
-    Ny = request.param.get('Ny', 3)
-    dx = request.param.get('dx', 1.)
-    dy = request.param.get('dy', 1.)
-    xc = request.param.get('xc', 0.)
-    yc = request.param.get('yc', 0.)
-    zc = request.param.get('zc', 5.)
-    assert (int(Nx) == Nx and Nx > 1 and Nx < 300)
-    assert (int(Ny) == Ny and Ny > 1 and Ny < 300)
-    assert dx > 0
-    assert dy > 0
-    assert zc > 0
-    half_dx = dx * .5
-    half_dy = dy * .5
-    # parameters
-    # 0:xc 1:yc 2:zc
-    # 3:Nx 2:Ny 3:xstart=-(Nx-1)*half_dx 4:ystart
-    # 5:dx 6:dy 7:half_dx 8:half_dy
+    # get the parameters from the request object
+    params = {'name': req_params.get('name', 'GenericSANS'),
+              'l1': float(req_params.get('l1', -11.)),
+              'Nx': int(req_params.get('Nx', 3)),
+              'Ny': int(req_params.get('Ny', 3)),
+              'dx': float(req_params.get('dx', 1.) * 1000.),
+              'dy': float(req_params.get('dy', 1.) * 1000.),
+              'xcenter': float(req_params.get('xc', 0.)),
+              'ycenter': float(req_params.get('yc', 0.)),
+              'zcenter': float(req_params.get('zc', 5.))}
+
+    # check that nothing is crazy
+    assert (params['Nx'] > 1 and params['Nx'] < 300)
+    assert (params['Ny'] > 1 and params['Ny'] < 300)
+    assert params['dx'] > 0.
+    assert params['dy'] > 0.
+    assert params['zcenter'] > 0.
+
+    # derived parameters
+    params['half_dx'] = params['dx'] * .5
+    params['half_dy'] = params['dy'] * .5
+    params['xstart'] = -(params['Nx']-1) * params['half_dx']
+    params['ystart'] = -(params['Ny']-1) * params['half_dy']
+
     template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
-<instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
+<instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
     <!--DEFAULTS-->
@@ -389,7 +404,7 @@ def generate_sans_generic_IDF(request):
 
     <!--SOURCE-->
     <component type="moderator">
-        <location z="-11.0"/>
+        <location z="{l1}"/>
     </component>
     <type name="moderator" is="Source"/>
 
@@ -400,8 +415,8 @@ def generate_sans_generic_IDF(request):
     <type name="sample-position" is="SamplePos"/>
 
     <!--RectangularDetector-->
-    <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{4}">
-        <location x="{0}" y="{1}" z="{2}"
+    <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{Ny}">
+        <location x="{xcenter}" y="{ycenter}" z="{zcenter}"
             name="detector1"
             rot="0.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
@@ -409,33 +424,69 @@ def generate_sans_generic_IDF(request):
 
     <!-- Rectangular Detector Panel -->
     <type name="panel" is="rectangular_detector" type="pixel"
-        xpixels="{3}" xstart="{5}" xstep="+{7}"
-        ypixels="{4}" ystart="{6}" ystep="+{8}" >
+        xpixels="{Nx}" xstart="{xstart}" xstep="+{dx}"
+        ypixels="{Ny}" ystart="{ystart}" ystep="+{dy}" >
         <properties/>
     </type>
 
     <!-- Pixel for Detectors-->
     <type is="detector" name="pixel">
         <cuboid id="pixel-shape">
-            <left-front-bottom-point y="-{10}" x="-{9}" z="0.0"/>
-            <left-front-top-point y="{10}" x="-{9}" z="0.0"/>
-            <left-back-bottom-point y="-{10}" x="-{9}" z="-0.0001"/>
-            <right-front-bottom-point y="-{10}" x="{9}" z="0.0"/>
+            <left-front-bottom-point y="-{half_dy}" x="-{half_dx}" z="0.0"/>
+            <left-front-top-point y="{half_dy}" x="-{half_dx}" z="0.0"/>
+            <left-back-bottom-point y="-{half_dy}" x="-{half_dx}" z="-0.0001"/>
+            <right-front-bottom-point y="-{half_dy}" x="{half_dx}" z="0.0"/>
         </cuboid>
         <algebra val="pixel-shape"/>
     </type>
 
     <parameter name="x-pixel-size">
-        <value val="{11}"/>
+        <value val="{dx}"/>
     </parameter>
 
     <parameter name="y-pixel-size">
-        <value val="{12}"/>
+        <value val="{dy}"/>
     </parameter>
 </instrument>'''
-    return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
-                               -(Ny-1) * half_dy, dx, dy, half_dx,
-                               half_dy, dx*1000., dy*1000.)
+
+    # return the completed template
+    return template_xml.format(**params)
+
+
+@pytest.fixture(scope='session')
+def generic_instrument(generate_sans_generic_IDF, request):
+    '''
+    generate a test IDF with a rectangular detector
+    with Nx X Ny pixels
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        name: Name of the workspace and instrument
+                                         (default: GenericSANS)
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
+
+    Note that we use Mantid convention for the orientation
+    '''
+    name = request.param.get('name', 'GenericSANS')  # output workspace
+    filename = os.path.join(gettempdir(), '{}_Definition.xml'.format(name))
+
+    with open(filename, 'w') as tmp:
+        tmp.write(generate_sans_generic_IDF)
+    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name,
+                               OutputWorkspace=name)
+    os.unlink(filename)
+
+    return wksp
 
 
 @pytest.fixture(scope='session')

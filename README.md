@@ -7,7 +7,28 @@ For end users go to [next version](http://scse-sans-demo.ornl.gov/)
 Use [jupyter](https://jupyter.sns.gov/) to have a play with the
 code. The kernel to select is `sans at ...`.
 
+
 **This is a python3 only package.**
+
+Using the Docker packaged environment
+-----------------------------------------------
+
+This the instructions for someone who wants to use the Docker container
+created through the automated build pipeline to develop drt-sans, use
+drt-sans to develop reduction scripts, or test existing drt-sans
+functionality. The SNS analysis cluster does not have Docker installed
+and Docker is required to follow these instructions.
+
+1. (If not installed) Install Docker: https://docs.docker.com/install/
+2. Download the latest sans-backend-run.sh script from the feature, release, or master branch for which you are testing: http://scse-mantid-demo.ornl.gov/sans-backend
+3. Run the script with `sudo bash sans-backend-run.sh -h` to see the help menu.
+
+Current options include:
+* -i) launches a bash shell
+* -u) forces an update of the application.
+* -h) prints this message.
+
+You must download the wrapper script from the above link as the build process modifies the copy in version control.
 
 Set-up for development in a virtual environment
 -----------------------------------------------

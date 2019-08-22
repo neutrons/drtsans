@@ -10,7 +10,7 @@ func_help_message() {
   printf "  %s is a wrapper for the ORNL Small Angle Neutron Scattering mantid module.
 
   Usage: %s [-iuh] param.json
-      -i) launches a python terminal rather interactives.
+      -i) launches a bash shell.
       -u) forces an update of the application.
       -h) prints this message.\n" "${VAR_APP_NAME}" "${VAR_APP_NAME}"
 }

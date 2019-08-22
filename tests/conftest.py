@@ -358,19 +358,20 @@ def generate_sans_generic_IDF(request):
     '''
     # try to get the parent in case of sub-requests
     try:
-        request = request._parent_request
+        req_params = request.param
     except AttributeError:
-        pass
+        req_params = request._parent_request.param
+
     # get the parameters from the request object
-    params = {'name': request.param.get('name', 'GenericSANS'),
-              'l1': float(request.param.get('l1', -11.)),
-              'Nx': int(request.param.get('Nx', 3)),
-              'Ny': int(request.param.get('Ny', 3)),
-              'dx': float(request.param.get('dx', 1.) * 1000.),
-              'dy': float(request.param.get('dy', 1.) * 1000.),
-              'xcenter': float(request.param.get('xc', 0.)),
-              'ycenter': float(request.param.get('yc', 0.)),
-              'zcenter': float(request.param.get('zc', 5.))}
+    params = {'name': req_params.get('name', 'GenericSANS'),
+              'l1': float(req_params.get('l1', -11.)),
+              'Nx': int(req_params.get('Nx', 3)),
+              'Ny': int(req_params.get('Ny', 3)),
+              'dx': float(req_params.get('dx', 1.) * 1000.),
+              'dy': float(req_params.get('dy', 1.) * 1000.),
+              'xcenter': float(req_params.get('xc', 0.)),
+              'ycenter': float(req_params.get('yc', 0.)),
+              'zcenter': float(req_params.get('zc', 5.))}
 
     # check that nothing is crazy
     assert (params['Nx'] > 1 and params['Nx'] < 300)

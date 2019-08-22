@@ -37,8 +37,16 @@ class EQSANSDiskChopperSet(object):
         for chopper_index in range(self._n_choppers):
             aperture = self._aperture[chopper_index]
             to_source = self._to_source[chopper_index]
-            speed = sl['Speed{}'.format(1 + chopper_index)].value.mean()
-            sensor_phase = sl['Phase{}'.format(1 + chopper_index)].value.mean()
+            try:
+                name = 'Speed{}'.format(1 + chopper_index)
+                speed = sl[name].value.mean()
+            except AttributeError:
+                speed = 0.
+            try:
+                name = 'Phase{}'.format(1 + chopper_index)
+                sensor_phase = sl[name].value.mean()
+            except AttributeError:
+                sensor_phase = 0.
             ch = DiskChopper(to_source, aperture, speed, sensor_phase)
             ch.pulse_width = self._pulse_width
             ch.cutoff_wl = self._cutoff_wl
@@ -46,7 +54,11 @@ class EQSANSDiskChopperSet(object):
 
         # Determine period and if frame skipping mode from the first chopper
         ch = self._choppers[0]
-        condition = abs(ch.speed - sl.frequency.value.mean()) / 2 > 1
+        try:
+            condition = abs(ch.speed - sl.frequency.value.mean()) / 2 > 1
+        except AttributeError:
+            condition = False  # force into not frame skipping mode
+
         self.frame_mode = FrameMode.skip if condition else FrameMode.not_skip
 
         # Select appropriate offsets

@@ -344,6 +344,7 @@ def generate_sans_generic_IDF(request):
 
     request is a dictionary containing the following keys:
 
+        name: Name of the instrument     (default: GenericSANS)
         Nx : number of columns                      (default 3)
         Ny : number of rows                         (default 3)
         dx : width of a column in meters            (default 1)
@@ -351,7 +352,7 @@ def generate_sans_generic_IDF(request):
         xc : distance of center along the x axis    (default 0)
         yc : distance of center along the y axis    (default 0)
         zc : distance of center along the z axis    (default 5)
-        l1 : distance from source to sample         (default -11)
+        l1 : distance from source to sample       (default -11)
 
     Note that we use Mantid convention for the orientation
     '''
@@ -361,7 +362,8 @@ def generate_sans_generic_IDF(request):
     except AttributeError:
         pass
     # get the parameters from the request object
-    params = {'l1': float(request.param.get('l1', -11.)),
+    params = {'name': request.param.get('name', 'GenericSANS'),
+              'l1': float(request.param.get('l1', -11.)),
               'Nx': int(request.param.get('Nx', 3)),
               'Ny': int(request.param.get('Ny', 3)),
               'dx': float(request.param.get('dx', 1.) * 1000.),
@@ -384,7 +386,7 @@ def generate_sans_generic_IDF(request):
     params['ystart'] = -(params['Ny']-1) * params['half_dy']
 
     template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
-<instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
+<instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
     <!--DEFAULTS-->
@@ -461,7 +463,8 @@ def generic_instrument(generate_sans_generic_IDF, request):
 
     request is a dictionary containing the following keys:
 
-        name: Name of the workspace      (default: GenericSANS)
+        name: Name of the workspace and instrument
+                                         (default: GenericSANS)
         Nx : number of columns                      (default 3)
         Ny : number of rows                         (default 3)
         dx : width of a column in meters            (default 1)
@@ -474,7 +477,7 @@ def generic_instrument(generate_sans_generic_IDF, request):
     Note that we use Mantid convention for the orientation
     '''
     name = request.param.get('name', 'GenericSANS')  # output workspace
-    filename = os.path.join(gettempdir(), 'GenericSANS_Definition.xml')
+    filename = os.path.join(gettempdir(), '{}_Definition.xml'.format(name))
 
     with open(filename, 'w') as tmp:
         tmp.write(generate_sans_generic_IDF)

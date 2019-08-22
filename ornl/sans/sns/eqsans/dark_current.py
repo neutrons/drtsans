@@ -1,11 +1,10 @@
 from __future__ import (absolute_import, division, print_function)
 
-from dateutil.parser import parse as parse_date
 import numpy as np
-from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
-                              ConvertUnits, Subtract, Scale, LoadEventNexus)
+from mantid.simpleapi import (mtd, RebinToWorkspace, ConvertUnits,
+                              Subtract, Scale, LoadEventNexus)
 
-from ornl.settings import (namedtuplefy, amend_config,
+from ornl.settings import (amend_config,
                            unique_workspace_dundername as uwd)
 from ornl.path import exists, registered_workspace
 from ornl.sans.dark_current import duration, counts_in_detector

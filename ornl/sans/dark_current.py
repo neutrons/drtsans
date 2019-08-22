@@ -2,14 +2,10 @@ from __future__ import (absolute_import, division, print_function)
 
 from dateutil.parser import parse as parse_date
 import numpy as np
-from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
-                              ConvertUnits, Subtract, Scale, LoadEventNexus)
-
-from ornl.settings import (namedtuplefy, amend_config,
+from mantid.simpleapi import (mtd, Integration, Transpose)
+from ornl.settings import (namedtuplefy,
                            unique_workspace_dundername as uwd)
-from ornl.path import exists, registered_workspace
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import correct_frame as cf
 
 
 @namedtuplefy

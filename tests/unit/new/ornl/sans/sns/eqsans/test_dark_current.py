@@ -2,9 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 from os.path import join as pjn
 import pytest
-from pytest import approx
 from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces
-
 from ornl.settings import (amend_config, unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
 import ornl.sans.sns.eqsans.dark_current as dkc

@@ -96,8 +96,8 @@ def load_histogram(filename, wavelength=None, wavelength_spread=None,
         This value will be used instead of the value found in the data file,
         by default None
     sample_to_detector_distance : float, optional
-        Sample to detector distance to use (overrides meta data) in mm,
-        by default None
+        Sample to detector distance to use (overrides meta data) in mm. If
+        None, the detector will be placed at the origin of coordinates.
     idf: str
         File path to instrument definition file overriding the loaded one
     output_workspace : string
@@ -121,9 +121,10 @@ def load_histogram(filename, wavelength=None, wavelength_spread=None,
     if idf is not None and exists(idf):
         LoadInstrument(Workspace=output_workspace, Filename=idf,
                        RewriteSpectraMap=True)
-        z = mtd[output_workspace].getInstrument().getSample().getPos()[-1] +\
-            sample_to_detector_distance / 1e3
-        MoveInstrumentComponent(Workspace=output_workspace,
-                                ComponentName='detector1',
-                                Z=z, RelativePosition=False)
+        if sample_to_detector_distance is not None:
+            sample = mtd[output_workspace].getInstrument().getSample()
+            z = sample.getPos()[-1] + sample_to_detector_distance / 1e3
+            MoveInstrumentComponent(Workspace=output_workspace,
+                                    ComponentName='detector1',
+                                    Z=z, RelativePosition=False)
     return mtd[output_workspace]

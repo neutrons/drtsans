@@ -1,11 +1,12 @@
 import pytest
+
 from mantid import mtd
-from ornl.sans.hfir.biosans import load
+from ornl.sans.hfir.biosans import load_histogram
 from ornl.sans.samplelogs import SampleLogs
 
 
 def test_api_load(biosans_f):
-    ws = load(filename=biosans_f['beamcenter'])
+    ws = load_histogram(filename=biosans_f['beamcenter'])
     assert ws.name() == "BioSANS_exp402_scan0006_0001"
 
     # check logs
@@ -19,14 +20,16 @@ def test_api_load(biosans_f):
     assert wavelength_spread_ratio_log == pytest.approx(0.1323, abs=1e-3)
 
     ws_name = "xpto"
-    ws = load(filename=biosans_f['beamcenter'], output_workspace=ws_name)
+    ws = load_histogram(
+        filename=biosans_f['beamcenter'], output_workspace=ws_name)
     assert ws.name() == ws_name
     assert ws_name in mtd.getObjectNames()
 
     ws_name = "xptoxpto"
-    ws = load(filename=biosans_f['beamcenter'], output_workspace=ws_name,
-              wavelength=12, wavelength_spread=1,
-              sample_to_detector_distance=9)
+    ws = load_histogram(
+        filename=biosans_f['beamcenter'], output_workspace=ws_name,
+        wavelength=12, wavelength_spread=1,
+        sample_to_detector_distance=9)
     assert ws_name in mtd.getObjectNames()
 
     # check logs when some parameters don't come directly from the metadata

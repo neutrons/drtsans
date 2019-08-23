@@ -11,6 +11,6 @@ def direct_beam_center(input_ws, tubes_to_mask=None):
 
     center = FindCenterOfMassPosition(InputWorkspace=input_ws.name())
     center_x, center_y = center
-    logger.notice("Found beam position: X={:.3} m, Y={:.3} m.".format(
+    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(
         center_x, center_y))
     return center_x, center_y

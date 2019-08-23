@@ -12,8 +12,8 @@ from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
 from ornl.sans.hfir.momentum_transfer import MomentumTransfer
 
 
-@pytest.mark.skip(reason="It doesn't pass on the build servers. "
-                  "XML lib incompatitibility.")
+# @pytest.mark.skip(reason="It doesn't pass on the build servers. "
+#                          "XML lib incompatibility.")
 def test_momentum_tranfer_serial(biosans_f):
 
     ws = LoadHFIRSANS(
@@ -102,7 +102,7 @@ def test_momentum_tranfer_parallel(biosans_f):
 
     for ret in return_list:
         for ws_name, ws in ret:
-            logger.notice("Testing WS: {}".format(ws_name))
+            logger.information("Testing WS: {}".format(ws_name))
             if ws_name.startswith('wing'):
                 y_shape = (256, 160)
                 x_shape = (256, 161)

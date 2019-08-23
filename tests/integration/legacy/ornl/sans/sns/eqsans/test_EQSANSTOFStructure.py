@@ -8,9 +8,9 @@ from numpy.testing import assert_almost_equal
 from mantid.simpleapi import Load, EQSANSTofStructure, CompareWorkspaces
 
 
-def test_eqsanstofstructure(refd):
+def test_eqsanstofstructure(reference_dir):
     with amend_config({'instrumentName': 'EQSANS'}):
-        ddir = pjn(refd.legacy.eqsans, 'test_eqsanstofstructure')
+        ddir = pjn(reference_dir.legacy.eqsans, 'test_eqsanstofstructure')
         Load(Filename=pjn(ddir, 'EQSANS_92353_event_eqsanstofstr_in.nxs'),
              OutputWorkspace='change_tof_structure')
         alg_out = EQSANSTofStructure(InputWorkspace='change_tof_structure',

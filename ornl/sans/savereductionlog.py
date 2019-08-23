@@ -161,7 +161,7 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
-def savereductionlog(wksp1d, filename, wksp2d=None, **kwargs):
+def savereductionlog(filename, wksp, *args, **kwargs):
     r'''Save the reduction log
 
     There are three ``NXentry``. The first is for the 1d reduced data, second
@@ -170,12 +170,15 @@ def savereductionlog(wksp1d, filename, wksp2d=None, **kwargs):
 
     Parameters
     ----------
-    wksp1d: Workspace2D
-        Workspace containing only one spectru (the I(q) curve)
+    wksp: Workspace2D
+        Workspace containing only one spectru (the I(q) curve). This is the
+        only workspace that metadata is taken from.
     filename: string
         The output filename to write to
-    wksp2d: Workspace2D
-        Workspace containing I(Qx, Qy)
+    args: Workspaces
+        Other workspaces to save to the file. This can be the Workspace
+        containing I(Qx, Qy), or multiple 1d Workspaces for additional frames,
+        or a mixture
     kwargs: dict
         dictionary of optional items:
         - ``python`` the script used to create everything
@@ -194,16 +197,18 @@ def savereductionlog(wksp1d, filename, wksp2d=None, **kwargs):
     '''
     if not filename:
         raise RuntimeError('Cannot write to file "{}"'.format(filename))
-    if not wksp1d or str(wksp1d) not in mtd:
-        raise RuntimeError('Cannot write out 1d workspace "{}"'.format(wksp1d))
+    if not wksp or str(wksp) not in mtd:
+        raise RuntimeError('Cannot write out 1d workspace "{}"'.format(wksp))
     # TODO more checks?
 
     # save the 2 workspaces
-    SaveNexusProcessed(InputWorkspace=str(wksp1d), Filename=filename,
+    SaveNexusProcessed(InputWorkspace=str(wksp), Filename=filename,
                        PreserveEvents=False)
-    if wksp2d:
-        SaveNexusProcessed(InputWorkspace=str(wksp2d), Filename=filename,
-                           PreserveEvents=False, Append=True)
+    for optional_wksp in args:
+        if optional_wksp:
+            SaveNexusProcessed(InputWorkspace=str(optional_wksp),
+                               Filename=filename,
+                               PreserveEvents=False, Append=True)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:
@@ -244,6 +249,6 @@ def savereductionlog(wksp1d, filename, wksp2d=None, **kwargs):
                 nxuser.create_dataset(name='name',
                                       data=[np.string_(username)])
 
-        _savespecialparameters(entry, wksp1d)
+        _savespecialparameters(entry, wksp)
 
         # TODO   - add the logs of stdout and stderr

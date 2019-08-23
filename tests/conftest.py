@@ -6,9 +6,11 @@ import os
 import pytest
 import random
 import string
+from tempfile import NamedTemporaryFile
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
+from mantid.simpleapi import LoadEmptyInstrument
 from ornl.settings import amend_config
 
 # Resolve the path to the "external data"
@@ -98,16 +100,16 @@ def cleanfile():
 
 
 @pytest.fixture(scope='session')
-def refd():
+def reference_dir():
     """A namedtuple with the directory **absolute** paths for test data
 
     Examples:
-        refd.data, topmost data directory data/
-        refd.legacy, data/legacy/ornl/sans/
-        refd.new, data/new/ornl/sans/
-        refd.legacy.biosans, refd.legacy.gpsans, refd.legacy.eqsans, are
+        reference_dir.data, topmost data directory data/
+        reference_dir.legacy, data/legacy/ornl/sans/
+        reference_dir.new, data/new/ornl/sans/
+        reference_dir.legacy.biosans, reference_dir.legacy.gpsans, reference_dir.legacy.eqsans, are
             data/legacy/ornl/sans/hfir/biosans and so on.
-        refd.new.biosans, refd.new.gpsans, refd.new.eqsans, are
+        reference_dir.new.biosans, reference_dir.new.gpsans, reference_dir.new.eqsans, are
             data/new/ornl/sans/hfir/biosans and so on.
 
     Returns
@@ -131,16 +133,16 @@ def refd():
 
 
 @pytest.fixture(scope='session')
-def eqsans_f(refd):
-    return dict(data=pjoin(refd.new.eqsans, 'EQSANS_68168_event.nxs'),
-                beamcenter=pjoin(refd.new.eqsans, 'EQSANS_68183_event.nxs'),
-                darkcurrent=pjoin(refd.new.eqsans, 'EQSANS_68200_event.nxs'))
+def eqsans_f(reference_dir):
+    return dict(data=pjoin(reference_dir.new.eqsans, 'EQSANS_68168_event.nxs'),
+                beamcenter=pjoin(reference_dir.new.eqsans, 'EQSANS_68183_event.nxs'),
+                darkcurrent=pjoin(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'))
 
 
 @pytest.fixture(scope='session')
-def eqsans_w(refd, eqsans_f):
+def eqsans_w(reference_dir, eqsans_f):
     r"""Load EQSANS files into workspaces"""
-    with amend_config(data_dir=refd.new.eqsans):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         return {k: mtds.LoadEventNexus(v, OutputWorkspace=k)
                 for (k, v) in eqsans_f.items()}
 
@@ -234,7 +236,7 @@ def gpsans_sensitivity_dataset():
 
 
 @pytest.fixture(scope='session')
-def frame_skipperF(refd):
+def frame_skipperF(reference_dir):
     """Data and monitor with frame skipping
         """
 
@@ -250,8 +252,8 @@ def frame_skipperF(refd):
              )
 
     # Absolute path to benchmark files
-    f = dict(s=pjoin(refd.new.eqsans, 'EQSANS_92353.nxs.h5'),  # sample
-             mo=pjoin(refd.new.eqsans, 'EQSANS_92353.nxs.h5')  # monitors
+    f = dict(s=pjoin(reference_dir.new.eqsans, 'EQSANS_92353.nxs.h5'),  # sample
+             mo=pjoin(reference_dir.new.eqsans, 'EQSANS_92353.nxs.h5')  # monitors
              )
 
     # Loader algorithms for the benchmark files
@@ -264,7 +266,7 @@ def frame_skipperF(refd):
 
 
 @pytest.fixture(scope='session')
-def porasil_slice1m(refd):
+def porasil_slice1m(reference_dir):
     """EQSANS reduction benchmark. See porasil_slice1m.help
 
     File are loaded only once. For entries pointing to the same file, such as
@@ -303,16 +305,16 @@ def porasil_slice1m(refd):
              )
 
     # Absolute path to benchmark files
-    f = dict(s=pjoin(refd.new.eqsans, 'EQSANS_92164.nxs.h5'),  # sample
-             m=pjoin(refd.new.eqsans, '2017B_mp/beamstop60_mask_4m.nxs'),  # noqa: E501 mask
-             dc=pjoin(refd.new.eqsans, 'EQSANS_89157.nxs.h5'),  # dark current
-             se=pjoin(refd.new.eqsans, 'Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
-             dbc=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct_beam_center
-             dbts=pjoin(refd.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 direct beam transmission sample
-             dbte=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct beam transmission empty
-             b=pjoin(refd.new.eqsans, 'EQSANS_92163.nxs.h5'),  # background
-             bdbts=pjoin(refd.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 background direct beam transmission sample
-             bdbte=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5')  # noqa: E501 background_direct_beam_transmission_empty
+    f = dict(s=pjoin(reference_dir.new.eqsans, 'EQSANS_92164.nxs.h5'),  # sample
+             m=pjoin(reference_dir.new.eqsans, '2017B_mp/beamstop60_mask_4m.nxs'),  # noqa: E501 mask
+             dc=pjoin(reference_dir.new.eqsans, 'EQSANS_89157.nxs.h5'),  # dark current
+             se=pjoin(reference_dir.new.eqsans, 'Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
+             dbc=pjoin(reference_dir.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct_beam_center
+             dbts=pjoin(reference_dir.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 direct beam transmission sample
+             dbte=pjoin(reference_dir.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct beam transmission empty
+             b=pjoin(reference_dir.new.eqsans, 'EQSANS_92163.nxs.h5'),  # background
+             bdbts=pjoin(reference_dir.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 background direct beam transmission sample
+             bdbte=pjoin(reference_dir.new.eqsans, 'EQSANS_92160.nxs.h5')  # noqa: E501 background_direct_beam_transmission_empty
              )
 
     lds = dict(s='Load',  # sample
@@ -342,6 +344,7 @@ def generate_sans_generic_IDF(request):
 
     request is a dictionary containing the following keys:
 
+        name: Name of the instrument     (default: GenericSANS)
         Nx : number of columns                      (default 3)
         Ny : number of rows                         (default 3)
         dx : width of a column in meters            (default 1)
@@ -349,30 +352,42 @@ def generate_sans_generic_IDF(request):
         xc : distance of center along the x axis    (default 0)
         yc : distance of center along the y axis    (default 0)
         zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
 
     Note that we use Mantid convention for the orientation
     '''
+    # try to get the parent in case of sub-requests
+    try:
+        req_params = request.param
+    except AttributeError:
+        req_params = request._parent_request.param
 
-    Nx = request.param.get('Nx', 3)
-    Ny = request.param.get('Ny', 3)
-    dx = request.param.get('dx', 1.)
-    dy = request.param.get('dy', 1.)
-    xc = request.param.get('xc', 0.)
-    yc = request.param.get('yc', 0.)
-    zc = request.param.get('zc', 5.)
-    assert (int(Nx) == Nx and Nx > 1 and Nx < 300)
-    assert (int(Ny) == Ny and Ny > 1 and Ny < 300)
-    assert dx > 0
-    assert dy > 0
-    assert zc > 0
-    half_dx = dx * .5
-    half_dy = dy * .5
-    # parameters
-    # 0:xc 1:yc 2:zc
-    # 3:Nx 2:Ny 3:xstart=-(Nx-1)*half_dx 4:ystart
-    # 5:dx 6:dy 7:half_dx 8:half_dy
+    # get the parameters from the request object
+    params = {'name': req_params.get('name', 'GenericSANS'),
+              'l1': float(req_params.get('l1', -11.)),
+              'Nx': int(req_params.get('Nx', 3)),
+              'Ny': int(req_params.get('Ny', 3)),
+              'dx': float(req_params.get('dx', 1.) * 1000.),
+              'dy': float(req_params.get('dy', 1.) * 1000.),
+              'xcenter': float(req_params.get('xc', 0.)),
+              'ycenter': float(req_params.get('yc', 0.)),
+              'zcenter': float(req_params.get('zc', 5.))}
+
+    # check that nothing is crazy
+    assert (params['Nx'] > 1 and params['Nx'] < 300)
+    assert (params['Ny'] > 1 and params['Ny'] < 300)
+    assert params['dx'] > 0.
+    assert params['dy'] > 0.
+    assert params['zcenter'] > 0.
+
+    # derived parameters
+    params['half_dx'] = params['dx'] * .5
+    params['half_dy'] = params['dy'] * .5
+    params['xstart'] = -(params['Nx']-1) * params['half_dx']
+    params['ystart'] = -(params['Ny']-1) * params['half_dy']
+
     template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
-<instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
+<instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
     <!--DEFAULTS-->
@@ -389,7 +404,7 @@ def generate_sans_generic_IDF(request):
 
     <!--SOURCE-->
     <component type="moderator">
-        <location z="-11.0"/>
+        <location z="{l1}"/>
     </component>
     <type name="moderator" is="Source"/>
 
@@ -400,8 +415,8 @@ def generate_sans_generic_IDF(request):
     <type name="sample-position" is="SamplePos"/>
 
     <!--RectangularDetector-->
-    <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{4}">
-        <location x="{0}" y="{1}" z="{2}"
+    <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{Ny}">
+        <location x="{xcenter}" y="{ycenter}" z="{zcenter}"
             name="detector1"
             rot="0.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
@@ -409,37 +424,73 @@ def generate_sans_generic_IDF(request):
 
     <!-- Rectangular Detector Panel -->
     <type name="panel" is="rectangular_detector" type="pixel"
-        xpixels="{3}" xstart="{5}" xstep="+{7}"
-        ypixels="{4}" ystart="{6}" ystep="+{8}" >
+        xpixels="{Nx}" xstart="{xstart}" xstep="+{dx}"
+        ypixels="{Ny}" ystart="{ystart}" ystep="+{dy}" >
         <properties/>
     </type>
 
     <!-- Pixel for Detectors-->
     <type is="detector" name="pixel">
         <cuboid id="pixel-shape">
-            <left-front-bottom-point y="-{10}" x="-{9}" z="0.0"/>
-            <left-front-top-point y="{10}" x="-{9}" z="0.0"/>
-            <left-back-bottom-point y="-{10}" x="-{9}" z="-0.0001"/>
-            <right-front-bottom-point y="-{10}" x="{9}" z="0.0"/>
+            <left-front-bottom-point y="-{half_dy}" x="-{half_dx}" z="0.0"/>
+            <left-front-top-point y="{half_dy}" x="-{half_dx}" z="0.0"/>
+            <left-back-bottom-point y="-{half_dy}" x="-{half_dx}" z="-0.0001"/>
+            <right-front-bottom-point y="-{half_dy}" x="{half_dx}" z="0.0"/>
         </cuboid>
         <algebra val="pixel-shape"/>
     </type>
 
     <parameter name="x-pixel-size">
-        <value val="{11}"/>
+        <value val="{dx}"/>
     </parameter>
 
     <parameter name="y-pixel-size">
-        <value val="{12}"/>
+        <value val="{dy}"/>
     </parameter>
 </instrument>'''
-    return template_xml.format(xc, yc, zc, Nx, Ny, -(Nx-1) * half_dx,
-                               -(Ny-1) * half_dy, dx, dy, half_dx,
-                               half_dy, dx*1000., dy*1000.)
+
+    # return the completed template
+    return template_xml.format(**params)
 
 
 @pytest.fixture(scope='session')
-def serve_events_workspace(refd):
+def generic_instrument(generate_sans_generic_IDF, request):
+    '''
+    generate a test IDF with a rectangular detector
+    with Nx X Ny pixels
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        name: Name of the workspace and instrument
+                                         (default: GenericSANS)
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
+
+    Note that we use Mantid convention for the orientation
+    '''
+    name = request.param.get('name', 'GenericSANS')  # output workspace
+    filename = NamedTemporaryFile('wt', prefix=name + '_', suffix='.xml').name
+
+    with open(filename, 'w') as tmp:
+        tmp.write(generate_sans_generic_IDF)
+    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name,
+                               OutputWorkspace=name)
+    os.unlink(filename)
+
+    return wksp
+
+
+@pytest.fixture(scope='session')
+def serve_events_workspace(reference_dir):
     r"""
     Load an events workspace and cache it for future requests.
 
@@ -457,7 +508,7 @@ def serve_events_workspace(refd):
     -------
     EventsWorkspace
     """
-    def wrapper(run, dd=refd.new.eqsans):
+    def wrapper(run, dd=reference_dir.new.eqsans):
         cache = wrapper._cache
         names = wrapper._names
 

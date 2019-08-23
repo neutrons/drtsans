@@ -22,7 +22,7 @@ output_dir = tempfile.mkdtemp()
 
 
 @pytest.mark.skip(reason="Mantid master is failing for EQSANS reduction.")
-def test_reduction(refd):
+def test_reduction(reference_dir):
 
     # Set specific configuration
     config = ConfigService.Instance()
@@ -91,7 +91,7 @@ def test_reduction(refd):
         main_cli.Reduce()
 
         # Check reduction agrees with reference data
-        ref_data_dir = pjn(refd.legacy.eqsans, 'test_reduction')
+        ref_data_dir = pjn(reference_dir.legacy.eqsans, 'test_reduction')
         for file in ('92164_0600_Iq.txt',
                      '92164_0600_Iqxy.dat',
                      '92164_0600_transmission_fit.txt',

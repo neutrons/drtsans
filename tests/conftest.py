@@ -483,7 +483,7 @@ def generic_instrument(generate_sans_generic_IDF, request):
     with open(filename, 'w') as tmp:
         tmp.write(generate_sans_generic_IDF)
     wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name,
-                               OutputWorkspace=name)
+                               OutputWorkspace=name, MakeEventWorkspace=True)
     os.unlink(filename)
 
     return wksp

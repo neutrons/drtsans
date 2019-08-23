@@ -367,11 +367,13 @@ def generic_IDF(request):
               'l1': float(req_params.get('l1', -11.)),
               'Nx': int(req_params.get('Nx', 3)),
               'Ny': int(req_params.get('Ny', 3)),
-              'dx': float(req_params.get('dx', 1.)) * 1000.,
-              'dy': float(req_params.get('dy', 1.)) * 1000.,
+              'dx': float(req_params.get('dx', 1.)),
+              'dy': float(req_params.get('dy', 1.)),
               'xcenter': float(req_params.get('xc', 0.)),
               'ycenter': float(req_params.get('yc', 0.)),
               'zcenter': float(req_params.get('zc', 5.))}
+    params['dx_mm'] = params['dx'] * 1000.
+    params['dy_mm'] = params['dy'] * 1000.
 
     # check that nothing is crazy
     assert (params['Nx'] > 1 and params['Nx'] < 300)
@@ -441,11 +443,11 @@ def generic_IDF(request):
     </type>
 
     <parameter name="x-pixel-size">
-        <value val="{dx}"/>
+        <value val="{dx_mm}"/>
     </parameter>
 
     <parameter name="y-pixel-size">
-        <value val="{dy}"/>
+        <value val="{dy_mm}"/>
     </parameter>
 </instrument>'''
 

@@ -66,18 +66,18 @@ def test_generate_IDF(generic_IDF):
 
     <!-- Rectangular Detector Panel -->
     <type name="panel" is="rectangular_detector" type="pixel"
-        xpixels="4" xstart="-1500.0" xstep="+1000.0"
-        ypixels="4" ystart="-1500.0" ystep="+1000.0" >
+        xpixels="4" xstart="-1.5" xstep="+1.0"
+        ypixels="4" ystart="-1.5" ystep="+1.0" >
         <properties/>
     </type>
 
     <!-- Pixel for Detectors-->
     <type is="detector" name="pixel">
         <cuboid id="pixel-shape">
-            <left-front-bottom-point y="-500.0" x="-500.0" z="0.0"/>
-            <left-front-top-point y="500.0" x="-500.0" z="0.0"/>
-            <left-back-bottom-point y="-500.0" x="-500.0" z="-0.0001"/>
-            <right-front-bottom-point y="-500.0" x="500.0" z="0.0"/>
+            <left-front-bottom-point y="-0.5" x="-0.5" z="0.0"/>
+            <left-front-top-point y="0.5" x="-0.5" z="0.0"/>
+            <left-back-bottom-point y="-0.5" x="-0.5" z="-0.0001"/>
+            <right-front-bottom-point y="-0.5" x="0.5" z="0.0"/>
         </cuboid>
         <algebra val="pixel-shape"/>
     </type>

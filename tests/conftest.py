@@ -347,8 +347,8 @@ def generic_IDF(request):
         name: Name of the instrument     (default: GenericSANS)
         Nx : number of columns                      (default 3)
         Ny : number of rows                         (default 3)
-        dx : width of a column in meters            (default 1)
-        dy : height of a row in meters              (default 1)
+        dx : width of a column in kilometers        (default 1)
+        dy : height of a row in kilometers          (default 1)
         xc : distance of center along the x axis    (default 0)
         yc : distance of center along the y axis    (default 0)
         zc : distance of center along the z axis    (default 5)
@@ -367,8 +367,8 @@ def generic_IDF(request):
               'l1': float(req_params.get('l1', -11.)),
               'Nx': int(req_params.get('Nx', 3)),
               'Ny': int(req_params.get('Ny', 3)),
-              'dx': float(req_params.get('dx', 1.)),
-              'dy': float(req_params.get('dy', 1.)),
+              'dx': float(req_params.get('dx', 1.)) * 1000.,
+              'dy': float(req_params.get('dy', 1.)) * 1000.,
               'xcenter': float(req_params.get('xc', 0.)),
               'ycenter': float(req_params.get('yc', 0.)),
               'zcenter': float(req_params.get('zc', 5.))}
@@ -454,7 +454,7 @@ def generic_IDF(request):
 
 
 @pytest.fixture(scope='session')
-def generic_instrument(generic_IDF, request):
+def generic_workspace(generic_IDF, request):
     '''
     generate a test IDF with a rectangular detector
     with Nx X Ny pixels
@@ -468,8 +468,8 @@ def generic_instrument(generic_IDF, request):
                                          (default: GenericSANS)
         Nx : number of columns                      (default 3)
         Ny : number of rows                         (default 3)
-        dx : width of a column in meters            (default 1)
-        dy : height of a row in meters              (default 1)
+        dx : width of a column in kilometers        (default 1)
+        dy : height of a row in kilometers          (default 1)
         xc : distance of center along the x axis    (default 0)
         yc : distance of center along the y axis    (default 0)
         zc : distance of center along the z axis    (default 5)

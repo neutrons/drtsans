@@ -6,7 +6,7 @@ import os
 import pytest
 import random
 import string
-from tempfile import gettempdir
+from tempfile import NamedTemporaryFile
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
@@ -478,7 +478,7 @@ def generic_instrument(generate_sans_generic_IDF, request):
     Note that we use Mantid convention for the orientation
     '''
     name = request.param.get('name', 'GenericSANS')  # output workspace
-    filename = os.path.join(gettempdir(), '{}_Definition.xml'.format(name))
+    filename = NamedTemporaryFile('wt', prefix=name + '_', suffix='.xml').name
 
     with open(filename, 'w') as tmp:
         tmp.write(generate_sans_generic_IDF)

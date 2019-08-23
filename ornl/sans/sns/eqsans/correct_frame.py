@@ -382,18 +382,22 @@ def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
         output_workspace = str(input_workspace)
 
     # is this in frame skipping mode?
-    fm = (EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip)
+    sample_logs = SampleLogs(input_workspace)
+    if 'is_frame_skipping' in sample_logs.keys():
+        frame_mode = bool(sample_logs.is_frame_skipping)
+    else:
+        frame_mode = (EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip)
 
     # Convert to Wavelength and rebin
     ConvertUnits(InputWorkspace=input_workspace, Target='Wavelength',
                  Emode='Elastic', OutputWorkspace=output_workspace)
     w_min = bands.lead.min
-    w_max = bands.lead.max if fm is False else bands.skip.max
+    w_max = bands.lead.max if frame_mode is False else bands.skip.max
     Rebin(InputWorkspace=output_workspace, Params=[w_min, bin_width, w_max],
           PreserveEvents=events, OutputWorkspace=output_workspace)
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
-    if fm is True:
+    if frame_mode is True:
         _ws = mtd[output_workspace]
         to_zero = band_gap_indexes(_ws, bands)
         for i in range(_ws.getNumberHistograms()):
@@ -401,14 +405,14 @@ def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
             _ws.dataE(i)[to_zero] = 1.0
 
     # Insert bands information in the logs
-    sl = SampleLogs(output_workspace)
-    sl.insert('wavelength_min', w_min, unit='Angstrom')
-    sl.insert('wavelength_max', w_max, unit='Angstrom')
-    sl.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
-    sl.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
-    if fm is True:
-        sl.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
-        sl.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
+    sample_logs = SampleLogs(output_workspace)
+    sample_logs.insert('wavelength_min', w_min, unit='Angstrom')
+    sample_logs.insert('wavelength_max', w_max, unit='Angstrom')
+    sample_logs.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
+    sample_logs.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
+    if frame_mode is True:
+        sample_logs.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
+        sample_logs.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
     return mtd[output_workspace]
 
 

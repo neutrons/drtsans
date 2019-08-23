@@ -334,7 +334,7 @@ def porasil_slice1m(reference_dir):
 
 
 @pytest.fixture(scope='session')
-def generate_sans_generic_IDF(request):
+def generic_IDF(request):
     '''
     generate a test IDF with a rectangular detector
     with Nx X Ny pixels
@@ -367,8 +367,8 @@ def generate_sans_generic_IDF(request):
               'l1': float(req_params.get('l1', -11.)),
               'Nx': int(req_params.get('Nx', 3)),
               'Ny': int(req_params.get('Ny', 3)),
-              'dx': float(req_params.get('dx', 1.) * 1000.),
-              'dy': float(req_params.get('dy', 1.) * 1000.),
+              'dx': float(req_params.get('dx', 1.)),
+              'dy': float(req_params.get('dy', 1.)),
               'xcenter': float(req_params.get('xc', 0.)),
               'ycenter': float(req_params.get('yc', 0.)),
               'zcenter': float(req_params.get('zc', 5.))}
@@ -454,7 +454,7 @@ def generate_sans_generic_IDF(request):
 
 
 @pytest.fixture(scope='session')
-def generic_instrument(generate_sans_generic_IDF, request):
+def generic_instrument(generic_IDF, request):
     '''
     generate a test IDF with a rectangular detector
     with Nx X Ny pixels
@@ -481,9 +481,8 @@ def generic_instrument(generate_sans_generic_IDF, request):
     filename = NamedTemporaryFile('wt', prefix=name + '_', suffix='.xml').name
 
     with open(filename, 'w') as tmp:
-        tmp.write(generate_sans_generic_IDF)
-    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name,
-                               OutputWorkspace=name)
+        tmp.write(generic_IDF)
+    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name, OutputWorkspace=name)
     os.unlink(filename)
 
     return wksp

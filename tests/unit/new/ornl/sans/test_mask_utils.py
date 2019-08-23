@@ -11,11 +11,11 @@ from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.mask_utils import apply_mask
 
 
-@pytest.mark.parametrize('generate_sans_generic_IDF',
+@pytest.mark.parametrize('generic_IDF',
                          [{'Nx': 3, 'Ny': 3, 'dx': 0.00425,
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
-def test_apply_mask_single_bin(generate_sans_generic_IDF):
+def test_apply_mask_single_bin(generic_IDF):
     r"""
     Apply a mask to a simple 3 x 3 detector
     dev - Jose Borreguero <borreguerojm@ornl.gov>
@@ -29,7 +29,7 @@ def test_apply_mask_single_bin(generate_sans_generic_IDF):
                          DataE=np.sqrt(intensities),
                          Nspec=9,
                          OutputWorkspace=uwd())
-    LoadInstrument(Workspace=ws, InstrumentXML=generate_sans_generic_IDF,
+    LoadInstrument(Workspace=ws, InstrumentXML=generic_IDF,
                    RewriteSpectraMap=True, InstrumentName='GenericSANS')
 
     # detectors to be masked with detector ID's 0 and 3
@@ -73,11 +73,11 @@ def test_apply_mask_single_bin(generate_sans_generic_IDF):
     ws_sum.delete()
 
 
-@pytest.mark.parametrize('generate_sans_generic_IDF',
+@pytest.mark.parametrize('generic_IDF',
                          [{'Nx': 2, 'Ny': 2, 'dx': 0.00425,
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
-def test_apply_mask_simple_histogram(generate_sans_generic_IDF):
+def test_apply_mask_simple_histogram(generic_IDF):
     r"""
     Apply a mask to a  2 x 2 detector with histograms
     dev - Andrei Savici <asviciat@ornl.gov>
@@ -91,7 +91,7 @@ def test_apply_mask_simple_histogram(generate_sans_generic_IDF):
     ws = CreateWorkspace(DataX=wavelength, DataY=intensities,
                          DataE=np.sqrt(intensities),
                          Nspec=4, OutputWorkspace=uwd())
-    LoadInstrument(Workspace=ws, InstrumentXML=generate_sans_generic_IDF,
+    LoadInstrument(Workspace=ws, InstrumentXML=generic_IDF,
                    RewriteSpectraMap=True, InstrumentName='GenericSANS')
 
     # detector to be masked with detector ID 2

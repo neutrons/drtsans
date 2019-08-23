@@ -18,7 +18,7 @@ from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer, iq,
                                                     prepare_momentum_transfer)
 
 
-def legacy_reduction(refd):
+def legacy_reduction(reference_dir):
 
     from reduction_workflow.command_interface import AppendDataFile, Reduce
     from reduction_workflow.instruments.sans import (sns_command_interface as
@@ -29,7 +29,7 @@ def legacy_reduction(refd):
     configI["facilityName"] = 'SNS'
 
     eqsans.EQSANS()
-    AppendDataFile(os.path.join(refd.new.eqsans, 'EQSANS_68200_event.nxs'))
+    AppendDataFile(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'))
     eqsans.UseConfig(False)
     eqsans.UseConfigTOFTailsCutoff(False)
     eqsans.UseConfigMask(False)
@@ -49,9 +49,9 @@ def legacy_reduction(refd):
     return mtd['EQSANS_68200_event_iq']
 
 
-def test_momentum_tranfer_serial(refd):
+def test_momentum_tranfer_serial(reference_dir):
 
-    ws = load_events(os.path.join(refd.new.eqsans, 'EQSANS_68200_event.nxs'),
+    ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,
                      sample_offset=0)
 
@@ -63,7 +63,7 @@ def test_momentum_tranfer_serial(refd):
     center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
-        refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+        reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
         output_workspace='flux_ws',
         ws_reference=ws)
 
@@ -131,7 +131,7 @@ def test_momentum_tranfer_serial(refd):
     assert ws_sum_q1d.extractY().shape == (1, 100)
     assert ws_sum_q1d.extractX().shape == (1, 101)
 
-    ws_iq_old = legacy_reduction(refd)
+    ws_iq_old = legacy_reduction(reference_dir)
     ws_iq_new = ws_sum_q1d
 
     max_old = ws_iq_old.readY(0).max()
@@ -152,9 +152,9 @@ def test_momentum_tranfer_serial(refd):
     # plt.show()
 
 
-def test_api(refd):
+def test_api(reference_dir):
 
-    ws = load_events(os.path.join(refd.new.eqsans, 'EQSANS_68200_event.nxs'),
+    ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,
                      sample_offset=0)
 
@@ -166,7 +166,7 @@ def test_api(refd):
     center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
-        refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+        reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
         output_workspace='flux_ws',
         ws_reference=ws)
 
@@ -241,12 +241,12 @@ def test_api(refd):
     assert iqxqy_ws_masked.readY(51)[47] == 0
 
 
-def test_api_frame_skipping(refd):
+def test_api_frame_skipping(reference_dir):
 
-    db_ws = load_events(os.path.join(refd.new.eqsans, "EQSANS_88973.nxs.h5"))
+    db_ws = load_events(os.path.join(reference_dir.new.eqsans, "EQSANS_88973.nxs.h5"))
     center = center_detector(db_ws)
 
-    ws = prepare_data(os.path.join(refd.new.eqsans, "EQSANS_88980.nxs.h5"),
+    ws = prepare_data(os.path.join(reference_dir.new.eqsans, "EQSANS_88980.nxs.h5"),
                       x_center=-center[0], y_center=-center[1],
                       # use_config_tof_cuts=True,
                       # use_config=True,

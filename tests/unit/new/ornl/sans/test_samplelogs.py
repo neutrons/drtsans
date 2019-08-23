@@ -11,8 +11,8 @@ from ornl.sans.samplelogs import SampleLogs
 
 @pytest.mark.offline
 class TestSampleLogs(object):
-    def test_init(self, refd):
-        test_file = pjn(refd.new.sans,
+    def test_init(self, reference_dir):
+        test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
         w = Load(test_file, OutputWorkspace='test_init_w')
@@ -21,15 +21,15 @@ class TestSampleLogs(object):
             sl = SampleLogs(other)
             assert isinstance(sl._run, Run)
 
-    def test_getattr(self, refd):
-        test_file = pjn(refd.new.sans,
+    def test_getattr(self, reference_dir):
+        test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
         sl = SampleLogs(test_file)
         assert_almost_equal(sl.Phase1.value.mean(), 22444, decimal=0)
 
-    def test_insert(self, refd):
-        test_file = pjn(refd.new.sans,
+    def test_insert(self, reference_dir):
+        test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
 

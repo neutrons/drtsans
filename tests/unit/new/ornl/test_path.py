@@ -25,11 +25,11 @@ IPTS_23732 = '/SNS/EQSANS/IPTS-23732/nexus/'
                            'DATADIR/EQSANS_88974.nxs.h5')],
                          ids=('EQSANS_106026', 'EQSANS_106026',
                               'EQSANS_88974'))
-def test_abspath_with_archivesearch(hint, fullpath, refd):
+def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
     # set the data directory in the result using the test fixture
-    fullpath = fullpath.replace('DATADIR', refd.new.eqsans)
+    fullpath = fullpath.replace('DATADIR', reference_dir.new.eqsans)
 
-    with amend_config(SEARCH_ON, data_dir=refd.new.eqsans):
+    with amend_config(SEARCH_ON, data_dir=reference_dir.new.eqsans):
         assert abspath(hint) == fullpath
 
 
@@ -50,8 +50,8 @@ def test_abspath_without_archivesearch(hint):
                          [('EQSANS_106026', True),
                           ('EQSANS106027', True),
                           ('EQSANS_88974.nxs.h5', True)])
-def test_exists_with_archivesearch(hint, found, refd):
-    with amend_config(SEARCH_ON, data_dir=refd.new.eqsans):
+def test_exists_with_archivesearch(hint, found, reference_dir):
+    with amend_config(SEARCH_ON, data_dir=reference_dir.new.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 
 
@@ -59,8 +59,8 @@ def test_exists_with_archivesearch(hint, found, refd):
                          [('EQSANS_106026', False),
                           ('EQSANS106027', False),
                           ('EQSANS_88974.nxs.h5', True)])
-def test_exists_without_archivesearch(hint, found, refd):
-    with amend_config(SEARCH_OFF, data_dir=refd.new.eqsans):
+def test_exists_without_archivesearch(hint, found, reference_dir):
+    with amend_config(SEARCH_OFF, data_dir=reference_dir.new.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 
 

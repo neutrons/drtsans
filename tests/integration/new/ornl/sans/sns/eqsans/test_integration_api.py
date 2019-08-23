@@ -42,17 +42,18 @@ run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 
 
 @pytest.fixture(scope='module')
-def flux_file(refd):
-    return pj(refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt')
+def flux_file(reference_dir):
+    return pj(reference_dir.new.eqsans, 'test_normalisation',
+              'beam_profile_flux.txt')
 
 
 @pytest.fixture(scope='module', params=run_sets)
 @namedtuplefy
-def rs(refd, request):
+def rs(reference_dir, request):
     run_set = request.param
     run = run_set['run']
     ws = uwd()
-    with amend_config(data_dir=refd.new.eqsans):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         eqsans.load_events(run, output_workspace=ws)
     kw = dict(low_tof_clip=500, high_tof_clip=2000, output_workspace=uwd())
     wl = eqsans.transform_to_wavelength(ws, **kw)
@@ -86,8 +87,8 @@ class TestLoadEvents(object):
         assert ws.getTofMax() == pytest.approx(rs.max_tof, abs=1)
         assert bool(SampleLogs(ws).is_frame_skipping.value) == rs.skip_frame
 
-    def test_offsets(self, refd):
-        with amend_config(data_dir=refd.new.eqsans):
+    def test_offsets(self, reference_dir):
+        with amend_config(data_dir=reference_dir.new.eqsans):
             ws = eqsans.load_events('EQSANS_86217', output_workspace=uwd(),
                                     detector_offset=42, sample_offset=24)
         sl = SampleLogs(ws)
@@ -117,8 +118,8 @@ def test_normalise_by_flux(rs, flux_file):
     assert np.average(ws.dataY(0)) == approx(rs.flux, abs=1)
 
 
-def test_subtract_background(refd):
-    data_dir = pj(refd.new.eqsans, 'test_subtract_background')
+def test_subtract_background(reference_dir):
+    data_dir = pj(reference_dir.new.eqsans, 'test_subtract_background')
     ws = LoadNexus(pj(data_dir, 'sample.nxs'), OutputWorkspace=uwd())
     ws_name = ws.name()
     wb = LoadNexus(pj(data_dir, 'background.nxs'), OutputWorkspace=uwd())
@@ -127,8 +128,9 @@ def test_subtract_background(refd):
     assert max(ws_wb.dataY(0)) < 1.e-09
 
 
-def test_prepare_monitors(refd):
-    data_dirs = [refd.new.eqsans, pj(refd.new.eqsans, 'test_integration_api')]
+def test_prepare_monitors(reference_dir):
+    data_dirs = [reference_dir.new.eqsans, pj(reference_dir.new.eqsans,
+                                              'test_integration_api')]
     with amend_config(data_dir=data_dirs):
         # Raises for a run in skip frame mode
         with pytest.raises(RuntimeError, match='cannot correct monitor'):

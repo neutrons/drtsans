@@ -11,8 +11,8 @@ from ornl.settings import amend_config, unique_workspace_name
 from ornl.sans.geometry import source_detector_distance
 
 
-def test_transmitted_bands(refd):
-    with amend_config(data_dir=refd.new.eqsans):
+def test_transmitted_bands(reference_dir):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         ws = Load(Filename='EQSANS_86217')
         bands = cf.transmitted_bands(ws)
         assert_almost_equal((bands.lead.min, bands.lead.max),
@@ -21,8 +21,8 @@ def test_transmitted_bands(refd):
                             (10.90, 15.23), decimal=2)
 
 
-def test_transmitted_bands_clipped(refd):
-    with amend_config(data_dir=refd.new.eqsans):
+def test_transmitted_bands_clipped(reference_dir):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         ws = Load(Filename='EQSANS_86217')
         sdd = source_detector_distance(ws, unit='m')
         bands_0 = cf.transmitted_bands_clipped(ws, sdd, 0.0, 0.0)
@@ -50,8 +50,8 @@ def test_transmitted_bands_clipped(refd):
 
 
 @pytest.mark.offline
-def test_log_tof_structure(refd):
-    file_name = pjoin(refd.new.eqsans, 'test_correct_frame',
+def test_log_tof_structure(reference_dir):
+    file_name = pjoin(reference_dir.new.eqsans, 'test_correct_frame',
                       'EQSANS_92353_no_events.nxs')
     for ny, refv in ((False, 30833), (True, 28333)):
         ws = Load(file_name, OutputWorkspace=unique_workspace_name())

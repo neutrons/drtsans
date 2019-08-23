@@ -78,21 +78,21 @@ def test_correct_detector_frame(serve_events_workspace):
         compare_to_eqsans_load(ws, wo, wavelength_bin, sdd, 500, 2000)
 
 
-def test_smash_monitor_spikes(refd):
+def test_smash_monitor_spikes(reference_dir):
     # Smash two spikes
-    w = load_events_monitor('EQSANS_88565', data_dir=refd.new.eqsans)
+    w = load_events_monitor('EQSANS_88565', data_dir=reference_dir.new.eqsans)
     w = smash_monitor_spikes(w)
     assert max(w.dataY(0)) < 1e3
 
     # Monitor data is crap
-    w = load_events_monitor('EQSANS_101595', data_dir=refd.new.eqsans)
+    w = load_events_monitor('EQSANS_101595', data_dir=reference_dir.new.eqsans)
     with pytest.raises(RuntimeError, match='Monitor spectrum is flat'):
         smash_monitor_spikes(w)
 
 
-def test_correct_monitor_frame(refd):
+def test_correct_monitor_frame(reference_dir):
     for k, v in trials.items():
-        with amend_config(data_dir=refd.new.eqsans):
+        with amend_config(data_dir=reference_dir.new.eqsans):
             w = LoadNexusMonitors(v[0], LoadOnly='Events',
                                   OutputWorkspace=uwd())
         if not bool(k.find('skip')):  # run in skip frame mode
@@ -103,8 +103,8 @@ def test_correct_monitor_frame(refd):
             assert w.getSpectrum(0).getTofMin() == approx(v[3], abs=1)
 
 
-def test_convert_to_wavelength(refd):
-    with amend_config(data_dir=refd.new.eqsans):
+def test_convert_to_wavelength(reference_dir):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         for v in trials.values():
             run_number, wavelength_bin, sadd = v[0:3]
             wo = Load(Filename=run_number, OutputWorkspace=uwd())

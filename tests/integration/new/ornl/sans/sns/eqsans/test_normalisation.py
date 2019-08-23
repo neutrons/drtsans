@@ -5,8 +5,8 @@ from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
                                   normalise_by_time)
 
 
-def test_normalise_by_time(refd):
-    w = load_events('EQSANS_68168', data_dir=refd.new.eqsans)
+def test_normalise_by_time(reference_dir):
+    w = load_events('EQSANS_68168', data_dir=reference_dir.new.eqsans)
     d = SampleLogs(w).duration.value
     w = transform_to_wavelength(w)
     y, e = sum(w.readY(42)), sum(w.readE(42))

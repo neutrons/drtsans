@@ -5,9 +5,9 @@ from mantid.simpleapi import LoadNexus, CompareWorkspaces
 import numpy as np
 
 
-def test_save_nist_dat(refd):
-    filename = join(refd.new.eqsans, 'test_save_output/EQSANS_68200_Iqxy.nxs')
-    reference_filename = join(refd.new.eqsans,
+def test_save_nist_dat(reference_dir):
+    filename = join(reference_dir.new.eqsans, 'test_save_output/EQSANS_68200_Iqxy.nxs')
+    reference_filename = join(reference_dir.new.eqsans,
                               'test_save_output/EQSANS_68200_Iqxy.dat')
     ws = LoadNexus(filename)
     with tempfile.NamedTemporaryFile('r+') as tmp:
@@ -25,8 +25,8 @@ def test_save_nist_dat(refd):
         assert np.allclose(output['dI'], reference['dI'], atol=1e-6)
 
 
-def test_save_nexus(refd):
-    filename = join(refd.new.eqsans, 'test_save_output/EQSANS_68200_Iqxy.nxs')
+def test_save_nexus(reference_dir):
+    filename = join(reference_dir.new.eqsans, 'test_save_output/EQSANS_68200_Iqxy.nxs')
     ws = LoadNexus(filename)
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_nexus(ws, 'EQSANS 68200', tmp.name)

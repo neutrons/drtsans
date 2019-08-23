@@ -100,16 +100,16 @@ def cleanfile():
 
 
 @pytest.fixture(scope='session')
-def refd():
+def reference_dir():
     """A namedtuple with the directory **absolute** paths for test data
 
     Examples:
-        refd.data, topmost data directory data/
-        refd.legacy, data/legacy/ornl/sans/
-        refd.new, data/new/ornl/sans/
-        refd.legacy.biosans, refd.legacy.gpsans, refd.legacy.eqsans, are
+        reference_dir.data, topmost data directory data/
+        reference_dir.legacy, data/legacy/ornl/sans/
+        reference_dir.new, data/new/ornl/sans/
+        reference_dir.legacy.biosans, reference_dir.legacy.gpsans, reference_dir.legacy.eqsans, are
             data/legacy/ornl/sans/hfir/biosans and so on.
-        refd.new.biosans, refd.new.gpsans, refd.new.eqsans, are
+        reference_dir.new.biosans, reference_dir.new.gpsans, reference_dir.new.eqsans, are
             data/new/ornl/sans/hfir/biosans and so on.
 
     Returns
@@ -133,16 +133,16 @@ def refd():
 
 
 @pytest.fixture(scope='session')
-def eqsans_f(refd):
-    return dict(data=pjoin(refd.new.eqsans, 'EQSANS_68168_event.nxs'),
-                beamcenter=pjoin(refd.new.eqsans, 'EQSANS_68183_event.nxs'),
-                darkcurrent=pjoin(refd.new.eqsans, 'EQSANS_68200_event.nxs'))
+def eqsans_f(reference_dir):
+    return dict(data=pjoin(reference_dir.new.eqsans, 'EQSANS_68168_event.nxs'),
+                beamcenter=pjoin(reference_dir.new.eqsans, 'EQSANS_68183_event.nxs'),
+                darkcurrent=pjoin(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'))
 
 
 @pytest.fixture(scope='session')
-def eqsans_w(refd, eqsans_f):
+def eqsans_w(reference_dir, eqsans_f):
     r"""Load EQSANS files into workspaces"""
-    with amend_config(data_dir=refd.new.eqsans):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         return {k: mtds.LoadEventNexus(v, OutputWorkspace=k)
                 for (k, v) in eqsans_f.items()}
 
@@ -236,7 +236,7 @@ def gpsans_sensitivity_dataset():
 
 
 @pytest.fixture(scope='session')
-def frame_skipperF(refd):
+def frame_skipperF(reference_dir):
     """Data and monitor with frame skipping
         """
 
@@ -252,8 +252,8 @@ def frame_skipperF(refd):
              )
 
     # Absolute path to benchmark files
-    f = dict(s=pjoin(refd.new.eqsans, 'EQSANS_92353.nxs.h5'),  # sample
-             mo=pjoin(refd.new.eqsans, 'EQSANS_92353.nxs.h5')  # monitors
+    f = dict(s=pjoin(reference_dir.new.eqsans, 'EQSANS_92353.nxs.h5'),  # sample
+             mo=pjoin(reference_dir.new.eqsans, 'EQSANS_92353.nxs.h5')  # monitors
              )
 
     # Loader algorithms for the benchmark files
@@ -266,7 +266,7 @@ def frame_skipperF(refd):
 
 
 @pytest.fixture(scope='session')
-def porasil_slice1m(refd):
+def porasil_slice1m(reference_dir):
     """EQSANS reduction benchmark. See porasil_slice1m.help
 
     File are loaded only once. For entries pointing to the same file, such as
@@ -305,16 +305,16 @@ def porasil_slice1m(refd):
              )
 
     # Absolute path to benchmark files
-    f = dict(s=pjoin(refd.new.eqsans, 'EQSANS_92164.nxs.h5'),  # sample
-             m=pjoin(refd.new.eqsans, '2017B_mp/beamstop60_mask_4m.nxs'),  # noqa: E501 mask
-             dc=pjoin(refd.new.eqsans, 'EQSANS_89157.nxs.h5'),  # dark current
-             se=pjoin(refd.new.eqsans, 'Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
-             dbc=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct_beam_center
-             dbts=pjoin(refd.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 direct beam transmission sample
-             dbte=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct beam transmission empty
-             b=pjoin(refd.new.eqsans, 'EQSANS_92163.nxs.h5'),  # background
-             bdbts=pjoin(refd.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 background direct beam transmission sample
-             bdbte=pjoin(refd.new.eqsans, 'EQSANS_92160.nxs.h5')  # noqa: E501 background_direct_beam_transmission_empty
+    f = dict(s=pjoin(reference_dir.new.eqsans, 'EQSANS_92164.nxs.h5'),  # sample
+             m=pjoin(reference_dir.new.eqsans, '2017B_mp/beamstop60_mask_4m.nxs'),  # noqa: E501 mask
+             dc=pjoin(reference_dir.new.eqsans, 'EQSANS_89157.nxs.h5'),  # dark current
+             se=pjoin(reference_dir.new.eqsans, 'Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs'),  # noqa: E501
+             dbc=pjoin(reference_dir.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct_beam_center
+             dbts=pjoin(reference_dir.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 direct beam transmission sample
+             dbte=pjoin(reference_dir.new.eqsans, 'EQSANS_92160.nxs.h5'),  # noqa: E501 direct beam transmission empty
+             b=pjoin(reference_dir.new.eqsans, 'EQSANS_92163.nxs.h5'),  # background
+             bdbts=pjoin(reference_dir.new.eqsans, 'EQSANS_92161.nxs.h5'),  # noqa: E501 background direct beam transmission sample
+             bdbte=pjoin(reference_dir.new.eqsans, 'EQSANS_92160.nxs.h5')  # noqa: E501 background_direct_beam_transmission_empty
              )
 
     lds = dict(s='Load',  # sample
@@ -490,7 +490,7 @@ def generic_instrument(generate_sans_generic_IDF, request):
 
 
 @pytest.fixture(scope='session')
-def serve_events_workspace(refd):
+def serve_events_workspace(reference_dir):
     r"""
     Load an events workspace and cache it for future requests.
 
@@ -508,7 +508,7 @@ def serve_events_workspace(refd):
     -------
     EventsWorkspace
     """
-    def wrapper(run, dd=refd.new.eqsans):
+    def wrapper(run, dd=reference_dir.new.eqsans):
         cache = wrapper._cache
         names = wrapper._names
 

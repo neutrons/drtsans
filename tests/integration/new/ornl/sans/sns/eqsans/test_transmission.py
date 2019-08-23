@@ -14,8 +14,8 @@ from ornl.sans.sns.eqsans import (calculate_transmission,
 
 @pytest.fixture(scope='module')
 @namedtuplefy
-def trans_fix(refd):
-    data_dir = pjn(refd.new.eqsans, 'test_transmission')
+def trans_fix(reference_dir):
+    data_dir = pjn(reference_dir.new.eqsans, 'test_transmission')
     cmp_dir = pjn(data_dir, 'compare')
 
     def quick_compare(tentative, asset):
@@ -32,10 +32,10 @@ def trans_fix(refd):
                 reference_skip=d, compare=quick_compare)
 
 
-def test_masked_beam_center(refd, trans_fix):
+def test_masked_beam_center(reference_dir, trans_fix):
     r"""Test for an exception raised when the beam centers are masked"""
     mask = pjn(trans_fix.data_dir, 'beam_center_masked.xml')
-    with amend_config(data_dir=refd.new.eqsans):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         s = prepare_data("EQSANS_88975", mask=mask, output_workspace=uwd())
         d = prepare_data("EQSANS_88973", mask=mask, output_workspace=uwd())
     with pytest.raises(RuntimeError, match=r'More than half of the detectors'):

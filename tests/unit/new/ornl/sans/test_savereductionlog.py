@@ -142,20 +142,20 @@ def checkWorkspaces(filename, orig, entry):
                        ('test_save_output/EQSANS_68200_iq.nxs',
                         'test_save_output/EQSANS_68200_iq.nxs')]
 )
-def test_saving(refd, filename1d, filename_other):
+def test_saving(reference_dir, filename1d, filename_other):
     wksp1d = ''
     wksp_other = []
 
     # setup inputs
     if filename1d:
-        filename1d = os.path.join(refd.new.eqsans,
+        filename1d = os.path.join(reference_dir.new.eqsans,
                                   filename1d)
         wksp1d = 'test_save_wksp1d'
         Load(Filename=filename1d, OutputWorkspace=wksp1d)
 
     for i, filename in enumerate(filename_other):
         if filename:
-            filename = os.path.join(refd.new.eqsans,
+            filename = os.path.join(reference_dir.new.eqsans,
                                     filename)
             wksp = 'test_save_wksp_{}'.format(i)
             if filename == filename1d:

@@ -9,8 +9,8 @@ from ornl.sans.sns.eqsans.transmission import fit_band, fit_raw, beam_radius
 
 @pytest.fixture(scope='module')
 @namedtuplefy
-def trasmission_data(refd):
-    data_dir = pjn(refd.new.eqsans, 'test_transmission')
+def trasmission_data(reference_dir):
+    data_dir = pjn(reference_dir.new.eqsans, 'test_transmission')
     a = LoadNexus(pjn(data_dir, 'raw_transmission.nxs'))
     b = LoadNexus(pjn(data_dir, 'sample.nxs'))
     c = LoadNexus(pjn(data_dir, 'raw_transmission_skip.nxs'))

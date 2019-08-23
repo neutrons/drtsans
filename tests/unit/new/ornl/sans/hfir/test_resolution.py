@@ -46,7 +46,7 @@ def azimuthal_average(ws):
     return dq
 
 
-# TO-DO: use fixture refd for accessing data files
+# TO-DO: use fixture reference_dir for accessing data files
 def gpsans_files():
     from tests.conftest import data_dir
     dd = os.path.join(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')

@@ -14,20 +14,20 @@ from ornl.sans.samplelogs import SampleLogs
 
 
 @pytest.fixture(scope='module')
-def beam_flux(refd):
-    return pj(refd.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt')
+def beam_flux(reference_dir):
+    return pj(reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt')
 
 
 @pytest.fixture(scope='module')
-def flux_to_monitor(refd):
-    return pj(refd.new.eqsans,
+def flux_to_monitor(reference_dir):
+    return pj(reference_dir.new.eqsans,
               'test_normalisation', 'flux_to_monitor_ratio.nxs')
 
 
 @pytest.fixture(scope='module')
-def data_ws(refd):
+def data_ws(reference_dir):
     ws = dict()
-    with amend_config(data_dir=refd.new.eqsans):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         for run in ('92353', '88565'):
             w = load_events('EQSANS_{}'.format(run), output_workspace=uwd())
             ws[run] = transform_to_wavelength(w, output_workspace=w.name())
@@ -35,9 +35,9 @@ def data_ws(refd):
 
 
 @pytest.fixture(scope='module')
-def monitor_ws(refd):
+def monitor_ws(reference_dir):
     ws = dict()
-    with amend_config(data_dir=refd.new.eqsans):
+    with amend_config(data_dir=reference_dir.new.eqsans):
         for run in ('88565',):
             ws[run] = prepare_monitors(run)
     return ws

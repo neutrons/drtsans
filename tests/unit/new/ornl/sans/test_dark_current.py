@@ -9,9 +9,9 @@ import ornl.sans.sns.eqsans.dark_current as dkc
 
 
 @pytest.fixture(scope='module')
-def wss(refd):
-    with amend_config(data_dir=refd.new.eqsans):
-        name = pjn(refd.new.eqsans, 'test_dark_current', 'data.nxs')
+def wss(reference_dir):
+    with amend_config(data_dir=reference_dir.new.eqsans):
+        name = pjn(reference_dir.new.eqsans, 'test_dark_current', 'data.nxs')
         # data is a Workspace2D in wavelength
         data = Load(name, OutputWorkspace=uwd())
         # dark is an EventsWorkspace in time-of-flight

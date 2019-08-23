@@ -57,7 +57,7 @@ $ source .venv/bin/activate
 3. Add the built version of mantid to the python path in the virtual
    environment
 ```sh
-$ ~/build/mantid/bin/AddPythonPath.py
+$ python ~/build/mantid/bin/AddPythonPath.py
 ```
 
 4. Install the code in `develop` mode.
@@ -72,7 +72,7 @@ import ornl
 ```
 Verify you can run the unit tests:
 ```sh
-python -m pytest tests/unit/new/
+$ python -m pytest tests/unit/new/
 ```
 
 6. Be done. Deactivate the virtual environment using

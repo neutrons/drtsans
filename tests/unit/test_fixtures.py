@@ -24,10 +24,10 @@ def test_frame_skipper(frame_skipper):
         assert w[k].name() == 'frame_skipper_' + k
 
 
-@pytest.mark.parametrize('generate_sans_generic_IDF',
+@pytest.mark.parametrize('generic_IDF',
                          [{'Nx': 4, 'Ny': 4}],
                          indirect=True)
-def test_generate_IDF(generate_sans_generic_IDF):
+def test_generate_IDF(generic_IDF):
     expected = '''<?xml version=\'1.0\' encoding=\'UTF-8\'?>
 <instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
@@ -59,7 +59,7 @@ def test_generate_IDF(generate_sans_generic_IDF):
     <!--RectangularDetector-->
     <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="4">
         <location x="0.0" y="0.0" z="5.0"
-            name="bank1"
+            name="detector1"
             rot="0.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
     </component>
@@ -82,9 +82,16 @@ def test_generate_IDF(generate_sans_generic_IDF):
         <algebra val="pixel-shape"/>
     </type>
 
+    <parameter name="x-pixel-size">
+        <value val="1000.0"/>
+    </parameter>
+
+    <parameter name="y-pixel-size">
+        <value val="1000.0"/>
+    </parameter>
 </instrument>'''
 
-    assert generate_sans_generic_IDF == expected
+    assert generic_IDF == expected
 
 
 def test_serve_events_workspace(serve_events_workspace):

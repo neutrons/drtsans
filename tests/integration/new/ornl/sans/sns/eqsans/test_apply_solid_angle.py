@@ -6,15 +6,15 @@ import numpy as np
 from copy import deepcopy
 
 
-@pytest.mark.parametrize('generic_instrument',
+@pytest.mark.parametrize('generic_workspace',
                          [{'Nx': 3, 'Ny': 3, 'dx': 0.00425,
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
-def test_solid_angle(generic_instrument):
+def test_solid_angle(generic_workspace):
     # generate a generic SANS instrument with a pixel of
     # the size and position specified in
     # sans-backend/documents/Master_document_022219.pdf
-    ws = generic_instrument  # friendlier name to type
+    ws = generic_workspace  # friendlier name to type
 
     # set intensity and error to match test document
     ws.dataY(4)[0] = 156.

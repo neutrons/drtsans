@@ -334,7 +334,7 @@ def porasil_slice1m(reference_dir):
 
 
 @pytest.fixture(scope='session')
-def generate_sans_generic_IDF(request):
+def generic_IDF(request):
     '''
     generate a test IDF with a rectangular detector
     with Nx X Ny pixels
@@ -367,11 +367,13 @@ def generate_sans_generic_IDF(request):
               'l1': float(req_params.get('l1', -11.)),
               'Nx': int(req_params.get('Nx', 3)),
               'Ny': int(req_params.get('Ny', 3)),
-              'dx': float(req_params.get('dx', 1.) * 1000.),
-              'dy': float(req_params.get('dy', 1.) * 1000.),
+              'dx': float(req_params.get('dx', 1.)),
+              'dy': float(req_params.get('dy', 1.)),
               'xcenter': float(req_params.get('xc', 0.)),
               'ycenter': float(req_params.get('yc', 0.)),
               'zcenter': float(req_params.get('zc', 5.))}
+    params['dx_mm'] = params['dx'] * 1000.
+    params['dy_mm'] = params['dy'] * 1000.
 
     # check that nothing is crazy
     assert (params['Nx'] > 1 and params['Nx'] < 300)
@@ -441,11 +443,11 @@ def generate_sans_generic_IDF(request):
     </type>
 
     <parameter name="x-pixel-size">
-        <value val="{dx}"/>
+        <value val="{dx_mm}"/>
     </parameter>
 
     <parameter name="y-pixel-size">
-        <value val="{dy}"/>
+        <value val="{dy_mm}"/>
     </parameter>
 </instrument>'''
 
@@ -454,7 +456,7 @@ def generate_sans_generic_IDF(request):
 
 
 @pytest.fixture(scope='session')
-def generic_instrument(generate_sans_generic_IDF, request):
+def generic_workspace(generic_IDF, request):
     '''
     generate a test IDF with a rectangular detector
     with Nx X Ny pixels
@@ -481,9 +483,8 @@ def generic_instrument(generate_sans_generic_IDF, request):
     filename = NamedTemporaryFile('wt', prefix=name + '_', suffix='.xml').name
 
     with open(filename, 'w') as tmp:
-        tmp.write(generate_sans_generic_IDF)
-    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name,
-                               OutputWorkspace=name)
+        tmp.write(generic_IDF)
+    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name, OutputWorkspace=name)
     os.unlink(filename)
 
     return wksp

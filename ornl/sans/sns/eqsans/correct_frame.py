@@ -384,20 +384,20 @@ def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
     # is this in frame skipping mode?
     sample_logs = SampleLogs(input_workspace)
     if 'is_frame_skipping' in sample_logs.keys():
-        frame_mode = bool(sample_logs.is_frame_skipping)
+        is_frame_skipping = bool(sample_logs.is_frame_skipping)
     else:
-        frame_mode = (EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip)
+        is_frame_skipping = (EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip)
 
     # Convert to Wavelength and rebin
     ConvertUnits(InputWorkspace=input_workspace, Target='Wavelength',
                  Emode='Elastic', OutputWorkspace=output_workspace)
     w_min = bands.lead.min
-    w_max = bands.lead.max if frame_mode is False else bands.skip.max
+    w_max = bands.lead.max if is_frame_skipping is False else bands.skip.max
     Rebin(InputWorkspace=output_workspace, Params=[w_min, bin_width, w_max],
           PreserveEvents=events, OutputWorkspace=output_workspace)
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
-    if frame_mode is True:
+    if is_frame_skipping is True:
         _ws = mtd[output_workspace]
         to_zero = band_gap_indexes(_ws, bands)
         for i in range(_ws.getNumberHistograms()):
@@ -410,7 +410,7 @@ def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
     sample_logs.insert('wavelength_max', w_max, unit='Angstrom')
     sample_logs.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
     sample_logs.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
-    if frame_mode is True:
+    if is_frame_skipping is True:
         sample_logs.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
         sample_logs.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
     return mtd[output_workspace]

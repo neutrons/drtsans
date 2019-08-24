@@ -384,7 +384,7 @@ def convert_to_wavelength(input_workspace, bands, bin_width, events=False,
     # is this in frame skipping mode?
     sample_logs = SampleLogs(input_workspace)
     if 'is_frame_skipping' in sample_logs.keys():
-        is_frame_skipping = bool(sample_logs.is_frame_skipping)
+        is_frame_skipping = bool(sample_logs.is_frame_skipping.value)
     else:
         is_frame_skipping = (EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip)
 

@@ -256,10 +256,10 @@ def metadata_bands(input_workspace):
             the skipped frame mode
     """
     sample_logs = SampleLogs(input_workspace)
-    lead = wlg.Wbands(sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value)
+    lead = wlg.Wband(sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value)
     skip = None
     if frame_skipping(input_workspace):
-        skip = wlg.Wbands(sample_logs.wavelength_skip_min.value, sample_logs.wavelength_skip_max.value)
+        skip = wlg.Wband(sample_logs.wavelength_skip_min.value, sample_logs.wavelength_skip_max.value)
     return dict(lead=lead, skip=skip)
 
 

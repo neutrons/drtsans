@@ -256,10 +256,17 @@ def metadata_bands(input_workspace):
             the skipped frame mode
     """
     sample_logs = SampleLogs(input_workspace)
-    lead = wlg.Wband(sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value)
+    try:
+        lead = wlg.Wband(sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value)
+    except AttributeError:
+        raise RuntimeError('Band structure not found in the logs')
     skip = None
     if frame_skipping(input_workspace):
-        skip = wlg.Wband(sample_logs.wavelength_skip_min.value, sample_logs.wavelength_skip_max.value)
+        try:
+            skip = wlg.Wband(sample_logs.wavelength_skip_min.value, sample_logs.wavelength_skip_max.value)
+        except AttributeError:
+            raise RuntimeError('Bands from the skipped pulse missing in the logs')
+
     return dict(lead=lead, skip=skip)
 
 

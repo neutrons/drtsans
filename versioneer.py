@@ -28,7 +28,7 @@ system, and maybe making new tarballs.
 ## Quick Install
 
 * `pip install versioneer` to somewhere to your $PATH
-* add a `[versioneer]` section to your setup.cfg (see below)
+* add a `[versioneer]` section to your setup.correct_frame (see below)
 * run `versioneer install` in your source tree, commit the results
 
 ## Version Identifiers
@@ -80,7 +80,7 @@ during the `git archive` command. As a result, generated tarballs will
 contain enough information to get the proper version.
 
 To allow `setup.py` to compute a version too, a `versioneer.py` is added to
-the top level of your source tree, next to `setup.py` and the `setup.cfg`
+the top level of your source tree, next to `setup.py` and the `setup.correct_frame`
 that configures it. This overrides several distutils/setuptools commands to
 compute the version when invoked, and changes `setup.py build` and `setup.py
 sdist` to replace `_version.py` with a small static file that contains just
@@ -138,7 +138,7 @@ version in `YOURPROJECT.__version__`:
 
 ## Styles
 
-The setup.cfg `style=` configuration controls how the VCS information is
+The setup.correct_frame `style=` configuration controls how the VCS information is
 rendered into a version string.
 
 The default style, "pep440", produces a PEP440-compliant string, equal to the
@@ -177,7 +177,7 @@ two common reasons why `setup.py` might not be in the root:
 * Source trees which contain multiple subprojects, such as
   [Buildbot](https://github.com/buildbot/buildbot), which contains both
   "master" and "slave" subprojects, each with their own `setup.py`,
-  `setup.cfg`, and `tox.ini`. Projects like these produce multiple PyPI
+  `setup.correct_frame`, and `tox.ini`. Projects like these produce multiple PyPI
   distributions (and upload multiple independently-installable tarballs).
 * Source trees whose main purpose is to contain a C library, but which also
   provide bindings to Python (and perhaps other langauges) in subdirectories.
@@ -203,7 +203,7 @@ issue from the Versioneer side in more detail.
 pip to let Versioneer work correctly.
 
 Versioneer-0.16 and earlier only looked for a `.git` directory next to the
-`setup.cfg`, so subprojects were completely unsupported with those releases.
+`setup.correct_frame`, so subprojects were completely unsupported with those releases.
 
 ### Editable installs with setuptools <= 18.5
 
@@ -246,7 +246,7 @@ this question.
 To upgrade your project to a new release of Versioneer, do the following:
 
 * install the new Versioneer (`pip install -U versioneer` or equivalent)
-* edit `setup.cfg`, if necessary, to include any new configuration settings
+* edit `setup.correct_frame`, if necessary, to include any new configuration settings
   indicated by the release notes. See [UPGRADING](./UPGRADING.md) for details.
 * re-run `versioneer install` in your source tree, to replace
   `SRC/_version.py`
@@ -297,7 +297,7 @@ def get_root():
     """Get the project root directory.
 
     We require that all commands are run from the project root, i.e. the
-    directory that contains setup.py, setup.cfg, and versioneer.py .
+    directory that contains setup.py, setup.correct_frame, and versioneer.py .
     """
     root = os.path.realpath(os.path.abspath(os.getcwd()))
     setup_py = os.path.join(root, "setup.py")
@@ -333,12 +333,12 @@ def get_root():
 
 
 def get_config_from_root(root):
-    """Read the project setup.cfg file to determine Versioneer config."""
-    # This might raise EnvironmentError (if setup.cfg is missing), or
+    """Read the project setup.correct_frame file to determine Versioneer config."""
+    # This might raise EnvironmentError (if setup.correct_frame is missing), or
     # configparser.NoSectionError (if it lacks a [versioneer] section), or
     # configparser.NoOptionError (if it lacks "VCS="). See the docstring at
-    # the top of versioneer.py for instructions on writing your setup.cfg .
-    setup_cfg = os.path.join(root, "setup.cfg")
+    # the top of versioneer.py for instructions on writing your setup.correct_frame .
+    setup_cfg = os.path.join(root, "setup.correct_frame")
     parser = configparser.SafeConfigParser()
     with open(setup_cfg, "r") as f:
         parser.readfp(f)
@@ -458,14 +458,14 @@ def get_config():
     """Create, populate and return the VersioneerConfig() object."""
     # these strings are filled in when 'setup.py versioneer' creates
     # _version.py
-    cfg = VersioneerConfig()
-    cfg.VCS = "git"
-    cfg.style = "%(STYLE)s"
-    cfg.tag_prefix = "%(TAG_PREFIX)s"
-    cfg.parentdir_prefix = "%(PARENTDIR_PREFIX)s"
-    cfg.versionfile_source = "%(VERSIONFILE_SOURCE)s"
-    cfg.verbose = False
-    return cfg
+    correct_frame = VersioneerConfig()
+    correct_frame.VCS = "git"
+    correct_frame.style = "%(STYLE)s"
+    correct_frame.tag_prefix = "%(TAG_PREFIX)s"
+    correct_frame.parentdir_prefix = "%(PARENTDIR_PREFIX)s"
+    correct_frame.versionfile_source = "%(VERSIONFILE_SOURCE)s"
+    correct_frame.verbose = False
+    return correct_frame
 
 
 class NotThisMethod(Exception):
@@ -901,11 +901,11 @@ def get_versions():
     # py2exe/bbfreeze/non-CPython implementations don't do __file__, in which
     # case we can only use expanded keywords.
 
-    cfg = get_config()
-    verbose = cfg.verbose
+    correct_frame = get_config()
+    verbose = correct_frame.verbose
 
     try:
-        return git_versions_from_keywords(get_keywords(), cfg.tag_prefix,
+        return git_versions_from_keywords(get_keywords(), correct_frame.tag_prefix,
                                           verbose)
     except NotThisMethod:
         pass
@@ -915,7 +915,7 @@ def get_versions():
         # versionfile_source is the relative path from the top of the source
         # tree (where the .git directory might live) to this file. Invert
         # this to find the root from __file__.
-        for i in cfg.versionfile_source.split('/'):
+        for i in correct_frame.versionfile_source.split('/'):
             root = os.path.dirname(root)
     except NameError:
         return {"version": "0+unknown", "full-revisionid": None,
@@ -924,14 +924,14 @@ def get_versions():
                 "date": None}
 
     try:
-        pieces = git_pieces_from_vcs(cfg.tag_prefix, root, verbose)
-        return render(pieces, cfg.style)
+        pieces = git_pieces_from_vcs(correct_frame.tag_prefix, root, verbose)
+        return render(pieces, correct_frame.style)
     except NotThisMethod:
         pass
 
     try:
-        if cfg.parentdir_prefix:
-            return versions_from_parentdir(cfg.parentdir_prefix, root, verbose)
+        if correct_frame.parentdir_prefix:
+            return versions_from_parentdir(correct_frame.parentdir_prefix, root, verbose)
     except NotThisMethod:
         pass
 
@@ -1411,7 +1411,7 @@ def get_versions(verbose=False):
     root = get_root()
     cfg = get_config_from_root(root)
 
-    assert cfg.VCS is not None, "please set [versioneer]VCS= in setup.cfg"
+    assert cfg.VCS is not None, "please set [versioneer]VCS= in setup.correct_frame"
     handlers = HANDLERS.get(cfg.VCS)
     assert handlers, "unrecognized VCS '%s'" % cfg.VCS
     verbose = verbose or cfg.verbose
@@ -1651,7 +1651,7 @@ def get_cmdclass():
 
 
 CONFIG_ERROR = """
-setup.cfg is missing the necessary Versioneer configuration. You need
+setup.correct_frame is missing the necessary Versioneer configuration. You need
 a section like:
 
  [versioneer]
@@ -1669,7 +1669,7 @@ You will also need to edit your setup.py to use the results:
        cmdclass=versioneer.get_cmdclass(), ...)
 
 Please read the docstring in ./versioneer.py for configuration instructions,
-edit setup.cfg, and re-run the installer or 'python versioneer.py setup'.
+edit setup.correct_frame, and re-run the installer or 'python versioneer.py setup'.
 """
 
 SAMPLE_CONFIG = """
@@ -1702,9 +1702,9 @@ def do_setup():
     except (EnvironmentError, configparser.NoSectionError,
             configparser.NoOptionError) as e:
         if isinstance(e, (EnvironmentError, configparser.NoSectionError)):
-            print("Adding sample versioneer config to setup.cfg",
+            print("Adding sample versioneer config to setup.correct_frame",
                   file=sys.stderr)
-            with open(os.path.join(root, "setup.cfg"), "a") as f:
+            with open(os.path.join(root, "setup.correct_frame"), "a") as f:
                 f.write(SAMPLE_CONFIG)
         print(CONFIG_ERROR, file=sys.stderr)
         return 1
@@ -1807,7 +1807,7 @@ def scan_setup_py():
     if setters:
         print("You should remove lines like 'versioneer.VCS = ' and")
         print("'versioneer.versionfile_source = ' . This configuration")
-        print("now lives in setup.cfg, and should be removed from setup.py")
+        print("now lives in setup.correct_frame, and should be removed from setup.py")
         print("")
         errors += 1
     return errors

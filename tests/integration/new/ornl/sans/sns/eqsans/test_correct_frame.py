@@ -10,7 +10,7 @@ from ornl.sans.sns.eqsans.correct_frame import (correct_detector_frame,
                                                 correct_monitor_frame,
                                                 smash_monitor_spikes)
 from ornl.sans.sns.eqsans.load import load_events_monitor
-from ornl.sans.sns.eqsans import correct_frame as cf
+from ornl.sans.sns.eqsans import correct_frame
 from ornl.sans.geometry import source_detector_distance
 
 
@@ -110,11 +110,11 @@ def test_convert_to_wavelength(reference_dir):
             wo = Load(Filename=run_number, OutputWorkspace=uwd())
             ws = CloneWorkspace(wo, OutputWorkspace=uwd())
             MoveInstrumentComponent(ws, ComponentName='detector1', Z=sadd)
-            cf.correct_detector_frame(ws, path_to_pixel=False)
+            correct_frame.correct_detector_frame(ws, path_to_pixel=False)
             sodd = source_detector_distance(ws, unit='m')
-            bands = cf.transmitted_bands_clipped(ws, sodd, 500, 2000,
-                                                 interior_clip=True)
-            ws = cf.convert_to_wavelength(ws, bands, wavelength_bin)
+            bands = correct_frame.transmitted_bands_clipped(ws, sodd, 500, 2000,
+                                                            interior_clip=True)
+            ws = correct_frame.convert_to_wavelength(ws, bands, wavelength_bin)
             compare_to_eqsans_load(ws, wo, wavelength_bin, sadd, 500, 2000)
 
 

@@ -32,9 +32,9 @@ def test_source_monitor_distance(serve_events_workspace):
 
 
 def test_detector_id():
-    pixel_coords=[(1, 0),  # eightpack 0, tube id 4, pixel 0
-                  (42, 42),  # eigtpack 5, tube id 1, pixel 42
-                  (126, 255)]  # eigthpack 15, tube id 3, pixel 255]
+    pixel_coords = [(1, 0),  # eightpack 0, tube id 4, pixel 0
+                    (42, 42),  # eigtpack 5, tube id 1, pixel 42
+                    (126, 255)]  # eigthpack 15, tube id 3, pixel 255]
     assert [detector_id(p) for p in pixel_coords] == [1024, 10538, 31743]
 
 

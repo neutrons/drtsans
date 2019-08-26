@@ -128,7 +128,6 @@ class ItemMaskMixin(object):
     @property
     def detectors(self):
         r"""List of masked detector ID's, sorted by increasing ID"""
-        pixels_per_tube = 256
         return sorted([detector_id(p) for p in self.pixels])
 
 

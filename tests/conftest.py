@@ -333,7 +333,7 @@ def porasil_slice1m(reference_dir):
                    w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def generic_IDF(request):
     '''
     generate a test IDF with a rectangular detector
@@ -455,7 +455,7 @@ def generic_IDF(request):
     return template_xml.format(**params)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def generic_workspace(generic_IDF, request):
     '''
     generate a test IDF with a rectangular detector
@@ -479,7 +479,12 @@ def generic_workspace(generic_IDF, request):
 
     Note that we use Mantid convention for the orientation
     '''
-    name = request.param.get('name', 'GenericSANS')  # output workspace
+    try:
+        req_params = request.param
+    except AttributeError:
+        req_params = request._parent_request.param
+
+    name = req_params.get('name', 'GenericSANS')  # output workspace
     filename = NamedTemporaryFile('wt', prefix=name + '_', suffix='.xml').name
 
     with open(filename, 'w') as tmp:

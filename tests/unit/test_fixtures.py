@@ -164,6 +164,10 @@ def test_generate_IDF_defaults(generic_IDF):
     assert generic_IDF == expected
 
 
+def test_generate_IDF_minimal(generic_IDF):
+    assert generic_IDF
+
+
 def test_serve_events_workspace(serve_events_workspace):
     w1 = serve_events_workspace('EQSANS_92353')
     w2 = serve_events_workspace('EQSANS_92353')

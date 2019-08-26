@@ -360,7 +360,10 @@ def generic_IDF(request):
     try:
         req_params = request.param
     except AttributeError:
-        req_params = request._parent_request.param
+        try:
+            req_params = request._parent_request.param
+        except AttributeError:
+            req_params = dict()
 
     # get the parameters from the request object
     params = {'name': req_params.get('name', 'GenericSANS'),
@@ -482,7 +485,10 @@ def generic_workspace(generic_IDF, request):
     try:
         req_params = request.param
     except AttributeError:
-        req_params = request._parent_request.param
+        try:
+            req_params = request._parent_request.param
+        except AttributeError:
+            req_params = dict()
 
     name = req_params.get('name', 'GenericSANS')  # output workspace
     filename = NamedTemporaryFile('wt', prefix=name + '_', suffix='.xml').name

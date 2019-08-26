@@ -3,7 +3,8 @@ from __future__ import (absolute_import, division, print_function)
 from os.path import join as pjn
 import pytest
 from pytest import approx
-from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces
+import numpy as np
+from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces, CreateWorkspace
 
 from ornl.settings import (amend_config, unique_workspace_dundername as uwd)
 from ornl.sans.samplelogs import SampleLogs
@@ -55,6 +56,23 @@ def test_subtract_normalised_dark(wss, reference_dir):
     _w2 = LoadNexus(name, OutputWorkspace=uwd())
     assert CompareWorkspaces(_w1, _w2)
     [_w.delete() for _w in (_w0, _w1, _w2, _dark_normalised)]
+
+
+def test_flatten_TOF():
+    tof = [1., 2., 3., 4.] * 9  # wavelength boundaries
+    cts = [23, 5, 15, 18, 50, 13, 9, 7, 15,
+           48, 41, 34, 79, 45, 33, 85, 78, 1,
+           50, 20, 105, 53, 23, 45, 47, 30, 45]
+    err = np.sqrt(cts)
+    ws = CreateWorkspace(DataX=tof,
+                         DataY=cts,
+                         DataE=err,
+                         NSpec=9)
+    y, e = dkc.counts_in_detector(ws)
+    expected_counts = [43, 81, 31, 123, 157, 164, 175, 121, 122]
+    expected_errors = np.sqrt(expected_counts)
+    assert np.allclose(y, expected_counts)
+    assert np.allclose(e, expected_errors)
 
 
 if __name__ == '__main__':

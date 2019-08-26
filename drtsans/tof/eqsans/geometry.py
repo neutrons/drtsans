@@ -261,3 +261,57 @@ def insert_aperture_logs(ws):
     if 'source-aperture-sample-distance' not in sl.keys():
         sds = source_aperture(ws, unit='mm').distance_to_sample
         sl.insert('source-aperture-sample-distance', sds, unit='mm')
+
+
+def detector_id(pixel_coordinates, tube_size=256):
+    r"""
+    Find the detector ID given 2D pixel coordinates in the main detector
+
+    Takes into account that the front and back panel are interleaved.
+
+    Parameters
+    ----------
+    pixel_coordinate: tuple
+        (x, y) coordinates in pixels. Coordinate (0, 0) refers to the left-low corner of the detector when viewed
+        from the sample. Similarly, coordinate (191, 255) refers to the right-up corner.
+    tube_size: int
+        Number of pixels in a tube
+    Returns
+    -------
+    int
+    """
+    x, y = pixel_coordinates
+    eightpack_index = x // 8
+    consecutive_tube_index = x % 8  # tube index within the eightpack containing the tube
+    tube_index_permutation = [0, 4, 1, 5, 2, 6, 3, 7]
+    tube_index = tube_index_permutation[consecutive_tube_index]
+    return (eightpack_index * 8 + tube_index) * tube_size + y
+
+
+def pixel_coordinates(detector_id, tube_size=256):
+    r"""
+    Find 2D pixel coordinates in the main detector, given a detector ID.
+
+    Coordinate (0, 0) refers to the left-low corner of the detector when viewed from the sample. Similarly,
+    coordinate (191, 255) refers to the right-up corner.
+    Takes into account that the front and back panel are interleaved.
+
+
+    Parameters
+    ----------
+    detector_id: int
+    tube_size: int
+        Number of pixels in a tube
+    Returns
+
+    Returns
+    -------
+    tuple
+        (x, y) pixel coordinates
+    """
+    y = detector_id % tube_size
+    eithpack_index = detector_id // (8 * tube_size)
+    tube_id = detector_id // tube_size - 8 * eithpack_index   # tube index within the eightpack containing the tube
+    tube_index_permutation = [0, 2, 4, 6, 1, 3, 5, 7]
+    x = eithpack_index * 8 + tube_index_permutation[tube_id]
+    return x, y

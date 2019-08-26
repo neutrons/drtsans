@@ -32,7 +32,8 @@ def test_initial_uncertainty(generic_IDF):
     with open(r'/tmp/GenericSANS_Definition.xml', 'w') as tmp:
         tmp.write(generic_IDF)
         tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS')
+    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
+                             OutputWorkspace='test_uncertainty')
     ws.getAxis(0).setUnit('TOF')
     # assume that the TOF is already frame corrected
     for i in range(4):
@@ -44,7 +45,9 @@ def test_initial_uncertainty(generic_IDF):
     # Set uncertainties
     ws = set_init_uncertainties(ws)
 
-    for ws_index in range(ws.getNumberHistograms()):
+    print('[INFO] Workspace {} has {} spectra'.format(ws, ws.getNumberHistograms()))
+    assert ws.getNumberHistograms() == 4
+    for ws_index in range(4):
         if np.isnan(gold_delta_intensity[ws_index]):
             assert np.isnan(ws.dataE(ws_index)[0])
         else:

@@ -9,7 +9,7 @@ from ornl.settings import (namedtuplefy, amend_config,
                            unique_workspace_dundername as uwd)
 from ornl.path import exists, registered_workspace
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import correct_frame as cf
+from ornl.sans.sns.eqsans import correct_frame
 
 __all__ = ['subtract_dark_current', ]
 
@@ -134,8 +134,8 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
     # If running in frame-skipped mode, there is a wavelength band
     # gap between the lead and skipped bands
     #
-    bands = cf.clipped_bands_from_logs(data)  # lead and pulse bands
-    gap_indexes = cf.band_gap_indexes(data, bands)
+    bands = correct_frame.clipped_bands_from_logs(data)  # lead and pulse bands
+    gap_indexes = correct_frame.band_gap_indexes(data, bands)
     n_gap_bins = len(gap_indexes)
     n_bins = len(_dark.dataY(0))
     n_significant_bins = n_bins - n_gap_bins  # wavelength bins with counts

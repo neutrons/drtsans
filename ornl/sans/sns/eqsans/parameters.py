@@ -19,7 +19,7 @@ def _get_config_file(run_number):
     Given a run number get the respective configuration file
     The numbers are for this run or when the run starts
     '''
-    raise RuntimeError('Deprecated function. Use eqsans.cfg instead')
+    raise RuntimeError('Deprecated function. Use eqsans.correct_frame instead')
     files = glob(os.path.join(CONFIG_DIRECTORY,
                               CONFIG_FILE_PREFIX+"[0-9]*[0-9]"))
     extensions = [int(os.path.splitext(f)[-1][1:]) for f in files]
@@ -43,7 +43,7 @@ def get_parameters(run_number):
     If the same key exist, the value is appended with '\n'
     Returns a dictionary
     '''
-    raise RuntimeError('Deprecated function. Use eqsans.cfg instead')
+    raise RuntimeError('Deprecated function. Use eqsans.correct_frame instead')
     conf_file = _get_config_file(run_number)
     parser = RawConfigParser(
         dict_type=MultiOrderedDict,

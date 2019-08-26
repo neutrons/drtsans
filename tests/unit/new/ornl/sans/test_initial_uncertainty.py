@@ -9,15 +9,15 @@ from ornl.sans.process_uncertainties import set_init_uncertainties
 # in master document section 3.3
 # dev - Pete Peterson <petersonpf@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>
-@pytest.mark.parametrize('generate_sans_generic_IDF',
+@pytest.mark.parametrize('generic_IDF',
                          [{'Nx': 2, 'Ny': 2,
                            'dx': 0.005, 'dy': 0.004, 'zc': 2.5}],
                          indirect=True)
-def test_initial_uncertainty(generate_sans_generic_IDF):
+def test_initial_uncertainty(generic_IDF):
     """
     Test initial uncertainty after histogram data is converted to unit
     wavelength for a TOF instrument
-    :param generate_sans_generic_IDF: IDF to generate
+    :param generic_IDF,: IDF to generate
     :return:i
     """
     # Range of TOF
@@ -30,7 +30,7 @@ def test_initial_uncertainty(generate_sans_generic_IDF):
     # the size and position specified in
     # sans-backend/documents/Master_document_022219.pdf
     with open(r'/tmp/GenericSANS_Definition.xml', 'w') as tmp:
-        tmp.write(generate_sans_generic_IDF)
+        tmp.write(generic_IDF)
         tmp.close()
     ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS')
     ws.getAxis(0).setUnit('TOF')

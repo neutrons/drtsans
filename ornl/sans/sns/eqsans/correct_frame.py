@@ -270,8 +270,8 @@ def metadata_bands(input_workspace):
     return dict(lead=lead, skip=skip)
 
 
-def correct_tofs(input_workspace, source_to_component_distance,
-                 path_to_pixel=True):
+def correct_tof_frame(input_workspace, source_to_component_distance,
+                      path_to_pixel=True):
     r"""
     Assign the correct TOF to each event.
 
@@ -320,8 +320,8 @@ def correct_tofs(input_workspace, source_to_component_distance,
 
 
 def correct_detector_frame(ws, path_to_pixel=True):
-    correct_tofs(ws, source_detector_distance(ws, unit='m'),
-                 path_to_pixel=path_to_pixel)
+    correct_tof_frame(ws, source_detector_distance(ws, unit='m'),
+                      path_to_pixel=path_to_pixel)
 
 
 def correct_monitor_frame(input_workspace):
@@ -342,8 +342,8 @@ def correct_monitor_frame(input_workspace):
     if EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip:
         raise RuntimeError('cannot correct monitor frame in "skip" mode')
     # correct TOF's
-    correct_tofs(ws, source_monitor_distance(ws, unit='m'),
-                 path_to_pixel=False)
+    correct_tof_frame(ws, source_monitor_distance(ws, unit='m'),
+                      path_to_pixel=False)
 
 
 def smash_monitor_spikes(input_workspace, output_workspace=None):

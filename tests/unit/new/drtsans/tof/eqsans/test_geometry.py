@@ -31,5 +31,17 @@ def test_source_monitor_distance(serve_events_workspace):
     assert smd == approx(10122, abs=1)
 
 
+def test_detector_id():
+    pixel_coords=[(1, 0),  # eightpack 0, tube id 4, pixel 0
+                  (42, 42),  # eigtpack 5, tube id 1, pixel 42
+                  (126, 255)]  # eigthpack 15, tube id 3, pixel 255]
+    assert [detector_id(p) for p in pixel_coords] == [1024, 10538, 31743]
+
+
+def test_pixel_coordinates():
+    detector_ids = [1024, 10538, 31743]
+    assert [tuple(pixel_coordinates(det)) for det in detector_ids] == [(1, 0), (42, 42), (126, 255)]
+
+
 if __name__ == '__main__':
     pytest.main()

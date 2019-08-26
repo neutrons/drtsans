@@ -29,10 +29,10 @@ def test_initial_uncertainty(generic_IDF):
     # Generate a generic SANS instrument with a pixel of
     # the size and position specified in
     # sans-backend/documents/Master_document_022219.pdf
-    with open(r'/tmp/GenericSANS_Definition.xml', 'w') as tmp:
+    with open(r'/tmp/GenericSANS2_Definition.xml', 'w') as tmp:
         tmp.write(generic_IDF)
         tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
+    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS2',
                              OutputWorkspace='test_uncertainty')
     ws.getAxis(0).setUnit('TOF')
     # assume that the TOF is already frame corrected

@@ -168,6 +168,16 @@ def test_generate_IDF_minimal(generic_IDF):
     assert generic_IDF
 
 
+def test_generate_workspace_defaults(generic_workspace):
+    ws = generic_workspace  # give it a friendly name
+    assert ws
+    assert ws.getNumberHistograms() == 9
+    for i in range(ws.getNumberHistograms()):
+        assert ws.readX(i).tolist() == [0., 1.]
+        assert ws.readY(i).tolist() == [1.]
+        assert ws.readE(i).tolist() == [1.]
+
+
 def test_serve_events_workspace(serve_events_workspace):
     w1 = serve_events_workspace('EQSANS_92353')
     w2 = serve_events_workspace('EQSANS_92353')

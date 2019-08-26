@@ -34,3 +34,6 @@ def test_normalization_by_monitor():
     flux_sam = 5 * 10**8
     I_samnorm = factor_is / flux_sam * I_sam
 
+
+if __name__ == '__main__':
+    pytest.main()

@@ -14,30 +14,27 @@ z = (x + 5 * y) * 10 + 100
                          indirect=True)
 def test_normalization_by_time(generic_workspace):
     ws = generic_workspace
-    print(ws.getNumberHistograms(), len(ws.dataX(0)), len(ws.dataY(0)))
     I_sam = z  # choose sample data from g or z
-    I_sam_err = np.sqrt(z)
-
     t_sam = 5  # any value
-    t_sam_err = 0.2  # 2 percent error
-
+    SampleLogs(ws).insert('timer', t_sam, 'Second')
     I_samnorm = I_sam / t_sam
-    I_norm_err = np.sqrt((I_sam_err / t_sam)**2 + (I_sam * t_sam_err / t_sam**2)**2)
+    ws_samnorm = time(ws)
+    assert np.allclose(ws_samnorm.extractY().ravel(), I_samnorm.ravel())
 
 
-def test_normalization_by_monitor():
-    x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
-    z = (x*0 + y*0 + 1)  # constant image
-    sigma, mu = 0.3, 0  # gaussian image
-    d = np.sqrt(x*x + y*y)
-    g = np.exp(-((d-mu)**2/(2 * sigma**2)))
-    z = (x + 5 * y) * 10 + 100
-
+@pytest.mark.parametrize('generic_workspace',
+                         [{'axis_values': x.tolist(),
+                          'intensities': z.tolist()}],
+                         indirect=True)
+def test_normalization_by_monitor(generic_workspace):
+    ws = generic_workspace
     I_sam = z  # choose sample data from g or z
-    
     factor_is = 10**8
     flux_sam = 5 * 10**8
+    SampleLogs(ws).insert('monitor', flux_sam)
     I_samnorm = factor_is / flux_sam * I_sam
+    ws_samnorm = monitor(ws)
+    assert np.allclose(ws_samnorm.extractY().ravel(), I_samnorm.ravel())
 
 
 if __name__ == '__main__':

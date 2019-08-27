@@ -15,7 +15,7 @@ def time(input_ws):
     return __time_normalisation
 
 
-def monitor(input_ws):
+def monitor(input_ws, factor_is=10**8):
     """Normalise by the monitor value
 
     Parameters
@@ -23,6 +23,6 @@ def monitor(input_ws):
     input_ws : [Mantid Workspace]
 
     """
-    monitor = SampleLogs(input_ws).monitor.value  # seconds  # counts
+    monitor = SampleLogs(input_ws).monitor.value / factor_is  # seconds  # counts
     __monitor_normalisation = input_ws / monitor
     return __monitor_normalisation

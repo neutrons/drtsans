@@ -265,14 +265,14 @@ def metadata_bands(input_workspace):
     sample_logs = SampleLogs(input_workspace)
     try:
         lead = wlg.Wband(sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value)
-    except AttributeError:
-        raise RuntimeError('Band structure not found in the logs')
+    except AttributeError as e:
+        raise RuntimeError('Band structure not found in the logs') from e
     skip = None
     if frame_skipping(input_workspace):
         try:
             skip = wlg.Wband(sample_logs.wavelength_skip_min.value, sample_logs.wavelength_skip_max.value)
-        except AttributeError:
-            raise RuntimeError('Bands from the skipped pulse missing in the logs')
+        except AttributeError as e:
+            raise RuntimeError('Bands from the skipped pulse missing in the logs') from e
 
     return dict(lead=lead, skip=skip)
 
@@ -467,34 +467,39 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
                  Emode='Elastic', OutputWorkspace=output_workspace)
 
     # Rebin to the clipped bands
-    if bands is None:
-        bands = metadata_bands(input_workspace)
     is_frame_skipping = frame_skipping(input_workspace)
-    w_min = bands.lead.min
-    w_max = bands.lead.max if is_frame_skipping is False else bands.skip.max
+    w_min, w_max = None, None
+    if bands is None:
+        try:
+            bands = metadata_bands(input_workspace)
+        except RuntimeError:
+            # metadata not set get from the workspace
+            pass
+    else:
+        w_min = bands.lead.min
+        w_max = bands.lead.max if is_frame_skipping is False else bands.skip.max
     if bin_width:
+        if w_min is not None and w_max is not None:
+            params = (w_min, bin_width, w_max)
+        else:
+            params = (bin_width)
+
         Rebin(InputWorkspace=output_workspace,
-              Params=(w_min, bin_width, w_max),
+              Params=params,
               PreserveEvents=events,
               OutputWorkspace=output_workspace)
     else:
-        CropWorkspace(InputWorkspace=output_workspace,
-                      XMin=w_min, XMax=w_max,
-                      OutputWorkspace=output_workspace)
-        if mtd[output_workspace].id() == 'EventWorkspace':
-            RebinToWorkspace(WorkspaceToRebin=output_workspace,
-                             WorkspaceToMatch=output_workspace,
-                             OutputWorkspace=output_workspace,
-                             PreserveEvents=False)
-    if bin_width:
-        Rebin(InputWorkspace=output_workspace,
-              Params=(w_min, bin_width, w_max),
-              PreserveEvents=events,
-              OutputWorkspace=output_workspace)
-    else:
-        CropWorkspace(InputWorkspace=output_workspace,
-                      XMin=w_min, XMax=w_max,
-                      OutputWorkspace=output_workspace)
+        # crop the workspace if wavelength range is found
+        kwargs = dict()
+        if w_min is not None:
+            kwargs['XMin'] = w_min
+        if w_max is not None:
+            kwargs['XMax'] = w_max
+        if kwargs:
+            CropWorkspace(InputWorkspace=output_workspace,
+                          OutputWorkspace=output_workspace, **kwargs)
+
+        # convert to a histogram as neccessary
         if mtd[output_workspace].id() == 'EventWorkspace':
             RebinToWorkspace(WorkspaceToRebin=output_workspace,
                              WorkspaceToMatch=output_workspace,

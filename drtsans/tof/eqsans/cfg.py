@@ -128,7 +128,7 @@ class ItemMaskMixin(object):
     @property
     def detectors(self):
         r"""List of masked detector ID's, sorted by increasing ID"""
-        return sorted([detector_id(p) for p in self.pixels])
+        return sorted(detector_id(self.pixels))
 
 
 class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):

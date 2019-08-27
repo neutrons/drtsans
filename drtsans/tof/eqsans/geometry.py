@@ -267,25 +267,31 @@ def detector_id(pixel_coordinates, tube_size=256):
     r"""
     Find the detector ID given 2D pixel coordinates in the main detector
 
+    Coordinate (0, 0) refers to the left-low corner of the detector when viewed
+    from the sample. Similarly, coordinate (191, 255) refers to the right-up corner.
     Takes into account that the front and back panel are interleaved.
 
     Parameters
     ----------
-    pixel_coordinate: tuple
-        (x, y) coordinates in pixels. Coordinate (0, 0) refers to the left-low corner of the detector when viewed
-        from the sample. Similarly, coordinate (191, 255) refers to the right-up corner.
+    pixel_coordinates: tuple, list
+        (x, y) coordinates in pixels, or list of (x, y) coordinates.
     tube_size: int
         Number of pixels in a tube
     Returns
     -------
-    int
+    int, list
+        detector ID or list of detector ID's depending on the input pixel_coordinates
     """
-    x, y = pixel_coordinates
-    eightpack_index = x // 8
-    consecutive_tube_index = x % 8  # tube index within the eightpack containing the tube
-    tube_index_permutation = [0, 4, 1, 5, 2, 6, 3, 7]
-    tube_index = tube_index_permutation[consecutive_tube_index]
-    return (eightpack_index * 8 + tube_index) * tube_size + y
+    pixel_xy_list = [pixel_coordinates] if isinstance(pixel_coordinates[0], int) else pixel_coordinates
+    detector_ids = list()
+    for pixel_xy in pixel_xy_list:
+        x, y = pixel_xy
+        eightpack_index = x // 8
+        consecutive_tube_index = x % 8  # tube index within the eightpack containing the tube
+        tube_index_permutation = [0, 4, 1, 5, 2, 6, 3, 7]
+        tube_index = tube_index_permutation[consecutive_tube_index]
+        detector_ids.append((eightpack_index * 8 + tube_index) * tube_size + y)
+    return detector_ids if len(detector_ids) > 1 else detector_ids[0]
 
 
 def pixel_coordinates(detector_id, tube_size=256):
@@ -299,19 +305,24 @@ def pixel_coordinates(detector_id, tube_size=256):
 
     Parameters
     ----------
-    detector_id: int
+    detector_id: int, list
+        A single detector ID or a list of detector ID's
     tube_size: int
         Number of pixels in a tube
-    Returns
 
     Returns
     -------
     tuple
-        (x, y) pixel coordinates
+        (x, y) pixel coordinates if only one detector, else a list of (x, y) pixel coordinates
     """
-    y = detector_id % tube_size
-    eithpack_index = detector_id // (8 * tube_size)
-    tube_id = detector_id // tube_size - 8 * eithpack_index   # tube index within the eightpack containing the tube
     tube_index_permutation = [0, 2, 4, 6, 1, 3, 5, 7]
-    x = eithpack_index * 8 + tube_index_permutation[tube_id]
-    return x, y
+    detector_ids = [detector_id] if isinstance(detector_id, int) else detector_id  # assume iterable
+    pixel_xy = list()
+    for det_id in detector_ids:
+        y = det_id % tube_size
+        eithpack_index = det_id // (8 * tube_size)
+        tube_id = det_id // tube_size - 8 * eithpack_index   # tube index within the eightpack containing the tube
+        x = eithpack_index * 8 + tube_index_permutation[tube_id]
+        pixel_xy.append((x, y))
+    return pixel_xy if len(pixel_xy) > 1 else pixel_xy[0]
+

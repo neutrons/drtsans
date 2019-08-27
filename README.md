@@ -11,7 +11,7 @@ code. The kernel to select is `sans at ...`.
 **This is a python3 only package.**
 
 Using the Docker packaged environment
------------------------------------------------
+-------------------------------------
 
 This the instructions for someone who wants to use the Docker container
 created through the automated build pipeline to develop drt-sans, use
@@ -98,7 +98,27 @@ $ direnv allow
 Then follow steps 3-5 from above. After this, the virtual environment
 with load when you enter the source tree, and unload when you leave.
 
+Running the tests
+-----------------
 
-# NEXT branch
+The tests for this project are all written using [pytest](https://docs.pytest.org/en/latest).
+The [build pipeline](https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/.gitlab-ci.yml) currently [runs the unit tests and integration tests](https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/test_job.sh) separately using
+```sh
+$ python -m pytest tests/unit/new/
+$ python -m pytest tests/integration/new/
+```
+This is one of the ways [pytest allows for selecting tests](https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests).
+Specifying a directory or file will run all tests within that directory (recursively) or file.
+Specifying a regular expression using `-k` will select all tests that match the regular expression independent of where they are defined
+```sh
+$ python -m pytest -k momentum_transfer
+```
+To run an individual test within an individual file add `::` to the filename to specify the test
+```sh
+$ python -m pytest tests/integration/new/ornl/sans/sns/eqsans/test_momentum_transfer.py::test_api
+```
+
+NEXT branch
+-----------
 
 Branched off of master on June 18, 2019 in preparation for version 1.0

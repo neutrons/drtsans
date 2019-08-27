@@ -4,14 +4,17 @@ import numpy as np
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.hfir.normalisation import time, monitor
 
-def test_normalization_by_time():
-    x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
-    z = (x*0 + y*0 + 1)  # constant image
-    sigma, mu = 0.3, 0  # gaussian image
-    d = np.sqrt(x*x + y*y)
-    g = np.exp(-((d-mu)**2/(2 * sigma**2)))
-    z = (x + 5 * y) * 10 + 100
+x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
+z = (x + 5 * y) * 10 + 100
 
+
+@pytest.mark.parametrize('generic_workspace',
+                         [{'axis_values': x.tolist(),
+                          'intensities': z.tolist()}],
+                         indirect=True)
+def test_normalization_by_time(generic_workspace):
+    ws = generic_workspace
+    print(ws.getNumberHistograms(), len(ws.dataX(0)), len(ws.dataY(0)))
     I_sam = z  # choose sample data from g or z
     I_sam_err = np.sqrt(z)
 

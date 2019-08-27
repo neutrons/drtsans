@@ -104,8 +104,8 @@ Running the tests
 The tests for this project are all written using [pytest](https://docs.pytest.org/en/latest).
 The [build pipeline](https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/.gitlab-ci.yml) currently [runs the unit tests and integration tests](https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/test_job.sh) separately using
 ```sh
-$ python -m pytest tests/unit
-$ python -m pytest tests/integration
+$ python -m pytest tests/unit/new/
+$ python -m pytest tests/integration/new/
 ```
 This is one of the ways [pytest allows for selecting tests](https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests).
 Specifying a directory or file will run all tests within that directory (recursively) or file.

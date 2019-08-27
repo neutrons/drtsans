@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
+from mantid.kernel import V3D
 import pytest
 
 
@@ -166,6 +167,80 @@ def test_generate_IDF_defaults(generic_IDF):
 
 def test_generate_IDF_minimal(generic_IDF):
     assert generic_IDF
+
+
+def test_generate_workspace_defaults(generic_workspace):
+    ws = generic_workspace  # give it a friendly name
+    assert ws
+    assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws.getNumberHistograms() == 9
+    for i in range(ws.getNumberHistograms()):
+        assert ws.readX(i).tolist() == [0.]
+        assert ws.readY(i).tolist() == [0.]
+        assert ws.readE(i).tolist() == [1.]  # SANS default
+
+
+@pytest.mark.parametrize('generic_workspace',
+                         [{'Nx': 2, 'Ny': 3}],
+                         indirect=True)
+def test_generate_workspace_mono_no_data(generic_workspace):
+    ws = generic_workspace  # give it a friendly name
+    assert ws
+    assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws.getNumberHistograms() == 6
+    for i in range(ws.getNumberHistograms()):
+        assert ws.readX(i).tolist() == [0.]
+        assert ws.readY(i).tolist() == [0.]
+        assert ws.readE(i).tolist() == [1.]  # SANS default
+
+
+@pytest.mark.parametrize('generic_workspace',
+                         [{'axis_values': [42.],
+                           'intensities': [[1., 4.], [9., 16.], [25., 36.]]}],
+                         indirect=True)
+def test_generate_workspace_monochromatic(generic_workspace):
+    ws = generic_workspace  # give it a friendly name
+    assert ws
+    assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws.getNumberHistograms() == 6
+    for i in range(ws.getNumberHistograms()):
+        assert ws.readX(i).tolist() == [42.]
+    # supplied y-values
+    assert ws.extractY().ravel().tolist() == [1., 4., 9., 16., 25., 36.]
+    # e-values is sqrt of y
+    assert ws.extractE().ravel().tolist() == [1., 2., 3., 4., 5., 6.]
+
+    # verify particular pixels
+    assert ws.readY(1) == 4.
+    assert ws.readY(3) == 16.
+    specInfo = ws.spectrumInfo()
+    assert specInfo.position(0) == V3D(-1., -.5, 5.)  # row=0, col=0
+    assert specInfo.position(3) == V3D(0., .5, 5.)    # row=1, col=0
+
+
+@pytest.mark.parametrize('generic_workspace',
+                         [{'axis_units': 'tof',
+                           'axis_values': [100., 8000., 16000.],
+                           'intensities': [[[1., 1.], [4., 4.]], [[9., 9.], [16., 16.]], [[25., 25.], [36., 36.]]]}],
+                         indirect=True)
+def test_generate_workspace_tof(generic_workspace):
+    ws = generic_workspace  # give it a friendly name
+    assert ws
+    assert ws.getAxis(0).getUnit().caption() == 'Time-of-flight'
+    assert ws.getNumberHistograms() == 6
+    for i in range(ws.getNumberHistograms()):
+        assert ws.readX(i).tolist() == [100., 8000., 16000.]
+    # supplied y-values
+    assert ws.extractY().ravel().tolist() == [1., 1., 4., 4., 9., 9., 16., 16., 25., 25., 36., 36.]
+    # e-values is sqrt of y
+    assert ws.extractE().ravel().tolist() == [1., 1., 2., 2., 3., 3., 4., 4., 5., 5., 6., 6.]
+
+    # verify particular pixels
+    assert ws.readY(1).tolist() == [4., 4.]
+    assert ws.readY(3).tolist() == [16., 16.]
+    specInfo = ws.spectrumInfo()
+    assert specInfo.position(0) == V3D(-1., -.5, 5.)  # row=0, col=0
+    assert specInfo.position(3) == V3D(0., .5, 5.)    # row=1, col=0
 
 
 def test_serve_events_workspace(serve_events_workspace):

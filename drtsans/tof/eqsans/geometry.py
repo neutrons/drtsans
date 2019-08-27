@@ -325,4 +325,3 @@ def pixel_coordinates(detector_id, tube_size=256):
         x = eithpack_index * 8 + tube_index_permutation[tube_id]
         pixel_xy.append((x, y))
     return pixel_xy if len(pixel_xy) > 1 else pixel_xy[0]
-

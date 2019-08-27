@@ -550,7 +550,7 @@ def generic_workspace(generic_IDF, request):
     x = req_params.get('axis_values', None)
     y = req_params.get('intensities', None)
     e = req_params.get('uncertainties', None)
-    if y:
+    if y is not None:
         try:
             Nx, Ny = y.shape[:2]
         except AttributeError:
@@ -562,12 +562,12 @@ def generic_workspace(generic_IDF, request):
         Ny = req_params.get('Ny', 3)  # must match generic_IDF
         y = np.zeros((Nx, Ny), dtype=float)
     y = y.ravel()
-    if e:
+    if e is not None:
         e = np.array(e).ravel()
     else:
         e = np.sqrt(y)
         e[e == 0.] = 1.  # the default SANS likes
-    if x:
+    if x is not None:
         x = np.array(x).ravel()
     else:
         x = np.zeros(Nx * Ny, dtype=float)

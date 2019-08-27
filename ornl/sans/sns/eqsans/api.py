@@ -6,6 +6,7 @@ from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans import (apply_sensitivity_correction, solid_angle_correction)
 from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
 from ornl.sans.save_2d import save_nist_dat, save_nexus
+from ornl.sans.process_uncertainties import set_init_uncertainties  # noqa: F401
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, load_events_monitor,
                                   transform_to_wavelength,

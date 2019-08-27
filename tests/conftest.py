@@ -6,11 +6,11 @@ import os
 import pytest
 import random
 import string
-from tempfile import NamedTemporaryFile
+import numpy as np
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
-from mantid.simpleapi import LoadEmptyInstrument
+from mantid.simpleapi import CreateWorkspace, LoadInstrument
 from ornl.settings import amend_config
 
 # Resolve the path to the "external data"
@@ -365,11 +365,22 @@ def generic_IDF(request):
         except AttributeError:
             req_params = dict()
 
+    # use hidden attibutes to get data dimension, Nx and Ny can override this
+    intensity = req_params.get('intensities', None)
+    if intensity:
+        try:
+            Nx, Ny = intensity.shape[:2]  # numpy array
+        except AttributeError:
+            Nx = len(intensity)
+            Ny = len(intensity[0])
+    else:
+        Nx, Ny = 3, 3
+
     # get the parameters from the request object
     params = {'name': req_params.get('name', 'GenericSANS'),
               'l1': float(req_params.get('l1', -11.)),
-              'Nx': int(req_params.get('Nx', 3)),
-              'Ny': int(req_params.get('Ny', 3)),
+              'Nx': int(req_params.get('Nx', Nx)),
+              'Ny': int(req_params.get('Ny', Ny)),
               'dx': float(req_params.get('dx', 1.)),
               'dy': float(req_params.get('dy', 1.)),
               'xcenter': float(req_params.get('xc', 0.)),
@@ -471,6 +482,19 @@ def generic_workspace(generic_IDF, request):
 
         name: Name of the workspace and instrument
                                          (default: GenericSANS)
+        axis_values : ndarray or 2d-list of the independent axis for the
+             data. It will be copied across all spectra if only specified
+             for one.               (default 0 for all spectra)
+        intensities : ndarray or 2d/3d list of intensities for the
+             instrument. Detector dimensions are inferred from the
+             dimensionality. This will be linearized using `numpy.ravel`.
+                          (default: zeros of dimension Nx x Ny)
+        uncertainties : ndarray or 2d/3d list of intensities for the
+             instrument. This will be linearized using `numpy.ravel`.
+                                  (default: sqrt(intensities),
+                                   or one if intensity is zero)
+        axis_units : units for the independent axis
+                                           (default wavelength)
         Nx : number of columns                      (default 3)
         Ny : number of rows                         (default 3)
         dx : width of a column in meters            (default 1)
@@ -479,6 +503,34 @@ def generic_workspace(generic_IDF, request):
         yc : distance of center along the y axis    (default 0)
         zc : distance of center along the z axis    (default 5)
         l1 : distance from source to sample       (default -11)
+
+    Example
+    -------
+    For a workspace specified with the parameters (all other parameters are default)
+
+    .. code-block:: python
+       {'axis_values':[42.],
+        'intensities': [[1.,4.],[9.,16.],[25.,36.]]}
+
+    The intensities will be in 2x3 grid
+
+    .. code-block:: python
+       print(wksp.extractY().reshape(3,2)
+
+    .. code-block::
+       [[ 1.  4.]
+       [ 9. 16.]
+       [25. 36.]]
+
+    which is vertically upside-down from how the data is on the detectors.
+    The positions (in x,y) of the pixels (parallel to the previous array)
+
+    .. code-block::
+                y=-1.   y=0.   y=1.
+       x=-0.5  id=0    id=2   id=4
+       x= 0.5  id=1    id=3   id=5
+
+    All z-values are 5
 
     Note that we use Mantid convention for the orientation
     '''
@@ -491,12 +543,42 @@ def generic_workspace(generic_IDF, request):
             req_params = dict()
 
     name = req_params.get('name', 'GenericSANS')  # output workspace
-    filename = NamedTemporaryFile('wt', prefix=name + '_', suffix='.xml').name
+    units = req_params.get('axis_units', 'wavelength')
 
-    with open(filename, 'w') as tmp:
-        tmp.write(generic_IDF)
-    wksp = LoadEmptyInstrument(Filename=tmp.name, InstrumentName=name, OutputWorkspace=name)
-    os.unlink(filename)
+    # get the supplied data
+    x = req_params.get('axis_values', None)
+    y = req_params.get('intensities', None)
+    e = req_params.get('uncertainties', None)
+    if y:
+        try:
+            Nx, Ny = y.shape[:2]
+        except AttributeError:
+            Nx = len(y)
+            Ny = len(y[0])
+            y = np.array(y)
+    else:
+        Nx = req_params.get('Nx', 3)  # must match generic_IDF
+        Ny = req_params.get('Ny', 3)  # must match generic_IDF
+        y = np.zeros((Nx, Ny), dtype=float)
+    y = y.ravel()
+    if e:
+        e = np.array(e).ravel()
+    else:
+        e = np.sqrt(y)
+        e[e == 0.] = 1.  # the default SANS likes
+    if x:
+        x = np.array(x).ravel()
+    else:
+        x = np.zeros(Nx * Ny, dtype=float)
+
+    wksp = CreateWorkspace(DataX=x,
+                           DataY=y,
+                           DataE=e,
+                           Nspec=Nx * Ny,
+                           UnitX=units,
+                           OutputWorkspace=name)
+    LoadInstrument(Workspace=wksp, InstrumentXML=generic_IDF,
+                   RewriteSpectraMap=True, InstrumentName='GenericSANS')
 
     return wksp
 

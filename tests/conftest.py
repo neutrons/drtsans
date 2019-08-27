@@ -530,7 +530,8 @@ def generic_workspace(generic_IDF, request):
        x=-0.5  id=0    id=2   id=4
        x= 0.5  id=1    id=3   id=5
 
-    All z-values are 5
+    All z-values are 5.
+    In the case of time-of-flight data, add more to `axis_values` and `axis_units='tof'`.
 
     Note that we use Mantid convention for the orientation
     '''

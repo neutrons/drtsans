@@ -378,7 +378,7 @@ def generic_IDF(request):
 
     # get the parameters from the request object
     params = {'name': req_params.get('name', 'GenericSANS'),
-              'l1': float(req_params.get('l1', -11.)),
+              'l1': -1. * abs(float(req_params.get('l1', -11.))),
               'Nx': int(req_params.get('Nx', Nx)),
               'Ny': int(req_params.get('Ny', Ny)),
               'dx': float(req_params.get('dx', 1.)),
@@ -579,7 +579,7 @@ def generic_workspace(generic_IDF, request):
                            UnitX=units,
                            OutputWorkspace=name)
     LoadInstrument(Workspace=wksp, InstrumentXML=generic_IDF,
-                   RewriteSpectraMap=True, InstrumentName='GenericSANS')
+                   RewriteSpectraMap=True, InstrumentName=name)
 
     return wksp
 

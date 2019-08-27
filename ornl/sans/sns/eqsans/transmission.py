@@ -5,7 +5,7 @@ from mantid.api import mtd
 from mantid.simpleapi import (Fit, CloneWorkspace, Plus, SaveNexus)
 
 from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwd)
-from ornl.sans.transmission import calculate_transmission as calc_trans
+from ornl.sans.transmission import calculate_transmission as calculate_raw_transmission
 from ornl.sans.sns.eqsans.correct_frame import transmitted_bands
 from ornl.sans.sns.eqsans.geometry import\
     (sample_aperture_diameter, source_aperture_diameter)
@@ -55,12 +55,11 @@ def calculate_transmission(input_sample, input_reference,
     """
     if output_workspace is None:
         output_workspace = uwd()
-    zat = calc_trans(input_sample, input_reference,
-                     radius=radius, radius_unit=radius_unit,
-                     output_workspace=output_workspace)
+    transmission_values = calculate_raw_transmission(input_sample, input_reference, radius=radius,
+                                                     radius_unit=radius_unit, output_workspace=output_workspace)
     if bool(fit_func) is True:
-        zat = fit_raw(zat, func=fit_func).transmission  # overwrites zat
-    return zat
+        transmission_values = fit_raw(transmission_values, func=fit_func).transmission
+    return transmission_values
 
 
 def beam_radius(input_workspace, unit='mm'):

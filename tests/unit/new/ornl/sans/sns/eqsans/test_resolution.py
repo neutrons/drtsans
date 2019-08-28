@@ -59,9 +59,9 @@ class EQSANSResolution(unittest.TestCase):
         self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape)
         self.assertTrue(np.min(np.abs(qx)) < np.max(np.abs(qx)))
         self.assertTrue(np.min(np.abs(qy)) < np.max(np.abs(qy)))
-        self.assertTrue(np.average(dqx) < 0.005)
-        self.assertTrue(np.average(dqy) < 0.005)
-        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 0.0001)
+        self.assertTrue(np.average(dqx) < 0.0055)
+        self.assertTrue(np.average(dqy) < 0.0055)
+        self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 1e-4)
 
 
 if __name__ == '__main__':

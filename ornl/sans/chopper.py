@@ -76,11 +76,7 @@ class DiskChopper(object):
         r"""
         Time required by the chopper for a full spin, in microseconds
         """
-        if self.speed:
-            return 1.0e6 / self.speed
-        else:
-            # just return 60Hz this happens for test files
-            return 1.0e6 / 60.
+        return 1.0e6 / self.speed
 
     @property
     def transmission_duration(self):

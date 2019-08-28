@@ -10,7 +10,6 @@ stages:
 
 flake8:
   stage: flake8
-  allow_failure: true
   before_script:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
@@ -77,7 +76,6 @@ code-unit-test:
   stage: test
   dependencies:
     - dockerbuild
-  allow_failure: true
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
     - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
@@ -105,7 +103,6 @@ code-integration-test:
   stage: test
   dependencies:
     - dockerbuild
-  allow_failure: true
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
     - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true

@@ -13,6 +13,7 @@ from ornl.sans.sns.eqsans import (load_events, load_events_monitor,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
 from ornl.sans.sns.eqsans.correct_frame import smash_monitor_spikes
+from ornl.sans.thickness_normalization import normalize_by_thickness
 from ornl.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',

@@ -1,7 +1,8 @@
 import pytest
 import os, numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_allclose
 from mantid.simpleapi import WorkspaceFactory
+from ornl.sans.sns.eqsans.api import normalize_by_thickness
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -15,7 +16,7 @@ def testdata():
 
 
 @pytest.fixture(scope='module')
-def test_workspaces(testdata):
+def workspaces(testdata):
     I, E, normedI, normedE = testdata
     nrows = 1
     nbins = I.size
@@ -26,7 +27,7 @@ def test_workspaces(testdata):
     inputws.setX(0, np.arange(nbins+1))
     inputws.setY(0, I)
     inputws.setE(0, E)
-    # expected output
+    # expected outputb
     expected_output_ws = WorkspaceFactory.create(
         "Workspace2D", NVectors=nrows, XLength=nbins+1, YLength=nbins
     )
@@ -36,9 +37,13 @@ def test_workspaces(testdata):
     return inputws, expected_output_ws
 
 
-def test_thickness_normalization(test_workspaces):
-    inputws, expected_output_ws = test_workspaces
-    print(expected_output_ws.dataY(0))
+def test_thickness_normalization(workspaces):
+    inputws, expected_output_ws = workspaces
+    thickness = 0.1
+    normed = normalize_by_thickness(inputws, thickness)
+    a1 = normed.dataY(0)
+    a2 = expected_output_ws.dataY(0)
+    assert_allclose(normed.dataY(0), expected_output_ws.dataY(0), rtol=5e-3)
     return
 
 

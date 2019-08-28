@@ -29,7 +29,7 @@ def q_resolution_per_pixel(ws):
     """
     L1 = sans_geometry.source_sample_distance(ws, unit='m',
                                               log_key='source-sample-distance')
-    L2 = sans_geometry.sample_detector_distance(ws)
+    L2 = sans_geometry.sample_detector_distance(ws, unit='m')
     R1 = 0.5 * eqsans_geometry.source_aperture_diameter(ws, unit='m')
     R2 = 0.5 * eqsans_geometry.sample_aperture_diameter(ws, unit='m')
 

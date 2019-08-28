@@ -1,5 +1,5 @@
 import pytest
-import os, numpy as np
+import os, numpy as np          # noqa: E401
 from numpy.testing import assert_allclose
 from mantid.simpleapi import WorkspaceFactory
 from ornl.sans.sns.eqsans.api import normalize_by_thickness
@@ -41,8 +41,6 @@ def test_thickness_normalization(workspaces):
     inputws, expected_output_ws = workspaces
     thickness = 0.1
     normed = normalize_by_thickness(inputws, thickness)
-    a1 = normed.dataY(0)
-    a2 = expected_output_ws.dataY(0)
     assert_allclose(normed.dataY(0), expected_output_ws.dataY(0), rtol=5e-3)
     return
 

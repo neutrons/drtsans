@@ -14,5 +14,4 @@ def normalize_by_thickness(ws, thickness=None):
     """
     if thickness is None:
         raise NotImplementedError
-    from mantid.simpleapi import Divide
     return ws/thickness

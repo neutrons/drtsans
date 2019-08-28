@@ -7,13 +7,13 @@ from ornl.sans import (apply_sensitivity_correction, solid_angle_correction)
 from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
 from ornl.sans.save_2d import save_nist_dat, save_nexus
 from ornl.sans.process_uncertainties import set_init_uncertainties  # noqa: F401
+from ornl.sans.thickness_normalization import normalize_by_thickness  # noqa: F401
 # Imports from EQSANS public API
 from ornl.sans.sns.eqsans import (load_events, load_events_monitor,
                                   transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
 from ornl.sans.sns.eqsans.correct_frame import smash_monitor_spikes
-from ornl.sans.thickness_normalization import normalize_by_thickness
 from ornl.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',

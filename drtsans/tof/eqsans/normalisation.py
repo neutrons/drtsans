@@ -8,7 +8,7 @@ from drtsans.settings import (unique_workspace_dundername as uwd)
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.dark_current import duration as run_duration
 
-__all__ = ['normalise_by_flux', 'normalise_by_time']
+__all__ = ['normalise_by_flux', 'normalise_by_time', 'normalise_by_monitor']
 
 
 def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):

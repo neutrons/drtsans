@@ -1,7 +1,13 @@
 import pytest
 from pytest import approx
+<<<<<<< HEAD:tests/integration/new/drtsans/tof/eqsans/test_normalisation.py
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalise_by_time)
+=======
+from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
+                                  normalise_by_time, normalise_by_monitor)
+>>>>>>> eaf0f67... checkpoint:tests/integration/new/ornl/sans/sns/eqsans/test_normalisation.py
 import numpy as np
 
 
@@ -16,28 +22,41 @@ def test_normalise_by_time(reference_dir):
     w.delete()
 
 
-def test_normalization_by_time():
-    x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
-    z = (x * 0 + y * 0 + 1)  # constant image
-    sigma, mu = 0.3, 0  # gaussian image
-    d = np.sqrt(x * x + y * y)
-    g = np.exp(-((d-mu)**2/(2 * sigma**2)))
-    z = (x + 5 * y) * 10 + 100
+x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
+sigma, mu = 0.3, 0  # gaussian image
+d = np.sqrt(x * x + y * y)
+g = np.exp(-((d - mu) ** 2 / (2 * sigma ** 2)))
 
-    I_sam = z  # choose sample data from g or z
-    I_sam_err = np.sqrt(z)
+@pytest.mark.parametrize('generic_workspace',
+                         [{'axis_values': x,
+                           'intensities': g}],
+                         indirect=True)
+def test_normalization_by_time(generic_workspace):
+    ws = generic_workspace
+    I_sam = g  # choose sample data from g or z
 
     t_sam = 5  # any value
-    t_sam_err = 0.2  # 2 percent error
-
+    SampleLogs(ws).insert('timer', t_sam, 'Second')
     I_samnorm = I_sam / t_sam
-    I_norm_err = np.sqrt((I_sam_err/t_sam)**2 + (I_sam * t_sam_err / t_sam**2)**2)
+    ws_samnorm = normalise_by_time(ws, log_key='timer')
+    assert np.allclose(ws_samnorm.extractY().ravel(), I_samnorm.ravel())
 
 
-def test_normalization_by_monitor_spectrum():
-    x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
-    z = (x*0 + y*0 + 1)  # constant image
+z = (x*0 + y*0 + 1)  # constant image
+z_sam = []
+for i in range(10):
+    z_sam.append(z)
 
+
+@pytest.mark.parametrize('generic_workspace',
+                         [{'axis_values': x,
+                           'intensities': z_sam}],
+                         indirect=True)
+def test_normalization_by_monitor_spectrum(generic_workspace):
+    ws = generic_workspace
+    fm_ws = ws.clone()
+    phi_ws = ws.clone()
+    SampleLogs(ws).insert('is_frame_skipping', False)
     fm = [5, 5, 4, 4, 3, 3, 3, 3, 2, 2]  # flux to monitor ratio
     phi = [20, 40, 30, 25, 20, 10, 5,  5,  5,  5]  # monitor spectrum
     I_sam = []
@@ -47,6 +66,8 @@ def test_normalization_by_monitor_spectrum():
     I_samnorm = []
     for i in range(10):
         I_samnorm.append(I_sam[i] / fm[i] / phi[i])
+
+    out = normalise_by_monitor(ws,fm_ws,phi_ws)
 
 
 if __name__ == '__main__':

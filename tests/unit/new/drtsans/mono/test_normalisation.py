@@ -20,7 +20,7 @@ def test_normalisation_monitor(gpsans_f):
     monitor_counts = sample_logs.monitor.value
     assert monitor_counts == 1284652
     assert output_sample_ws.readY(0)[0] == \
-        pytest.approx(input_sample_ws.readY(0)[0] / monitor_counts)
+        pytest.approx(input_sample_ws.readY(0)[0] * 10**8 / monitor_counts)
 
 
 @pytest.mark.offline

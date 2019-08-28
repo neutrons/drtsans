@@ -586,7 +586,35 @@ def generic_workspace(generic_IDF, request):
 
 @pytest.fixture(scope='function')
 def workspace_with_instrument(generic_IDF, request):
+    r"""
+    Workspace factory with a given instrument.
 
+    The fixture is used by passing arguments to the `generic_IDF` fixture as a dictionary. For instance:
+    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
+    Full list of arguments:
+        name: Name of the instrument     (default: GenericSANS)
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
+
+    Once inside the test function, the factory is called with the following optional arguments:
+        name: Name of the workspace and instrument (default: random name prefixed with '__')
+        axis_values : ndarray or 2d-list of the independent axis for the data. It will be copied across
+            all spectra if only specified for one. (default 0 for all spectra)
+        intensities : ndarray or 2d/3d list of intensities for the instrument. Detector dimensions are inferred
+            from the dimensionality. This will be linearized using `numpy.ravel`. (default: zeros of dimension Nx x Ny)
+        uncertainties : ndarray or 2d/3d list of intensities for the instrument. This will be linearized using
+            `numpy.ravel`. (default: sqrt(intensities), or one if intensity is zero)
+        axis_units : units for the independent axis
+    Example:
+        ws2 = workspace_with_instrument(axis_values=[42.], intensities=[[1., 4.], [9., 16.], [25., 36.]])
+    For more examples of use, look within testing class `test_fixtures.py::TestWorkspaceWithInstrument`
+    """
     try:
         instrument_params = request.param
     except AttributeError:

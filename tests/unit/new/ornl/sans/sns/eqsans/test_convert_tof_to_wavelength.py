@@ -9,7 +9,7 @@ def add_frame_skipping_log(ws):
     samplelog.insert('is_frame_skipping', False)
 
 
-# TODO expand on the next statement
+# Test the conversion of time-of-flight to wavelength
 # in master document section 3.3
 # dev - Pete Peterson <petersonpf@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>
@@ -20,6 +20,11 @@ def add_frame_skipping_log(ws):
                            'axis_values': [15432.]}],
                          indirect=True)
 def test_william(generic_workspace):
+    '''Test the conversion of time-of-flight to wavelength
+in master document section 3.3
+dev - Pete Peterson <petersonpf@ornl.gov>
+SME - William Heller <hellerwt@ornl.gov>
+'''
     ws = generic_workspace  # friendly name
     add_frame_skipping_log(ws)
 
@@ -42,10 +47,6 @@ def test_william(generic_workspace):
 TOF = [12345., 12346.]
 
 
-# TODO expand on the next statement
-# in master document section 3.3
-# dev - Pete Peterson <petersonpf@ornl.gov>
-# SME - Shuo Qian
 @pytest.mark.parametrize('generic_workspace',
                          [{'dx': .005, 'dy': .004,
                            'zc': 2.5, 'l1': 10.1,
@@ -53,6 +54,11 @@ TOF = [12345., 12346.]
                            'axis_values': TOF}],
                          indirect=True)
 def test_shuo(generic_workspace):
+    '''Test the conversion of time-of-flight to wavelength
+in master document section 3.3
+dev - Pete Peterson <petersonpf@ornl.gov>
+SME - Shuo Qian
+'''
     ws = generic_workspace  # friendly name
     add_frame_skipping_log(ws)
 

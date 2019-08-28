@@ -37,16 +37,8 @@ class EQSANSDiskChopperSet(object):
         for chopper_index in range(self._n_choppers):
             aperture = self._aperture[chopper_index]
             to_source = self._to_source[chopper_index]
-            try:
-                name = 'Speed{}'.format(1 + chopper_index)
-                speed = sl[name].value.mean()
-            except AttributeError:
-                speed = 0.
-            try:
-                name = 'Phase{}'.format(1 + chopper_index)
-                sensor_phase = sl[name].value.mean()
-            except AttributeError:
-                sensor_phase = 0.
+            speed = sl['Speed{}'.format(1 + chopper_index)].value.mean()
+            sensor_phase = sl['Phase{}'.format(1 + chopper_index)].value.mean()
             ch = DiskChopper(to_source, aperture, speed, sensor_phase)
             ch.pulse_width = self._pulse_width
             ch.cutoff_wl = self._cutoff_wl

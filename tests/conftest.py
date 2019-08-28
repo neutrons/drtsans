@@ -590,6 +590,7 @@ def generic_workspace(generic_IDF, request):
     y = req_params.get('intensities', None)
     e = req_params.get('uncertainties', None)
 
+
     Nx, Ny, Naxis = _getDataDimensions(req_params)
     if y is not None:
         # force it to be a numpy array
@@ -609,6 +610,7 @@ def generic_workspace(generic_IDF, request):
         x = np.array(x).ravel()
     else:
         x = np.zeros(Nx * Ny, dtype=float)
+    print(x.shape,y.shape,e.shape)
     wksp = CreateWorkspace(DataX=x,
                            DataY=y,
                            DataE=e,

@@ -46,7 +46,7 @@ z = (x*0 + y*0 + 1)  # constant image
 z_sam = []
 for i in range(10):
     z_sam.append(z)
-
+z_sam = np.array(z_sam)
 
 @pytest.mark.parametrize('generic_workspace',
                          [{'axis_values': x,

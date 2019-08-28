@@ -10,7 +10,7 @@ import numpy as np
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
-from mantid.simpleapi import CreateWorkspace, LoadInstrument
+from mantid.simpleapi import CreateWorkspace, LoadInstrument, DeleteWorkspace
 from ornl.settings import amend_config, unique_workspace_dundername
 
 # Resolve the path to the "external data"
@@ -595,6 +595,8 @@ def workspace_with_instrument(generic_IDF, request):
         except AttributeError:
             instrument_params = dict()
 
+    workspace_inventory = list()  # holds created workspaces
+
     def factory(name=None, axis_units='wavelength',
                 axis_values=None, intensities=None, uncertainties=None,
                 number_x_pixels=instrument_params.get('Nx', 3),
@@ -620,18 +622,22 @@ def workspace_with_instrument(generic_IDF, request):
             axis_values = np.array(axis_values).ravel()
         else:
             axis_values = np.zeros(number_x_pixels * number_y_pixels, dtype=float)
-
+        workspace_inventory.append(name)
         wksp = CreateWorkspace(DataX=axis_values,
                                DataY=intensities,
                                DataE=uncertainties,
                                Nspec=number_x_pixels * number_y_pixels,
                                UnitX=axis_units,
                                OutputWorkspace=name)
+
         LoadInstrument(Workspace=wksp, InstrumentXML=generic_IDF,
                        RewriteSpectraMap=True, InstrumentName=name)
         return wksp
 
-    return factory
+    yield factory
+    # Teardown
+    for workspace_name in workspace_inventory:
+        DeleteWorkspace(workspace_name)
 
 
 @pytest.fixture(scope='session')

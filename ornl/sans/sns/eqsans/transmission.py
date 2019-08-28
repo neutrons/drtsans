@@ -82,11 +82,12 @@ def beam_radius(input_workspace, unit='mm'):
     float
         Estimated beam radius
     """
-    sa_ad = sample_aperture_diameter(input_workspace, unit=unit)
-    so_ad = source_aperture_diameter(input_workspace, unit=unit)
-    ssd = source_sample_distance(input_workspace)
-    sdd = sample_detector_distance(input_workspace)
-    return sa_ad + sdd * (sa_ad + so_ad) / (2 * ssd)
+    sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
+    source_aperture_diam = source_aperture_diameter(input_workspace, unit=unit)
+    source_sample_dist = source_sample_distance(input_workspace)
+    sample_detector_dist = sample_detector_distance(input_workspace)
+    return sample_aperture_diam +\
+        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_sample_dist)
 
 
 @namedtuplefy
@@ -124,8 +125,8 @@ def fit_band(input_workspace, band, func='name=UserFunction,Formula=a*x+b',
     # Carry out the fit only over the wavelength band with sensible intensities
     x = ws.dataX(0)
     y = ws.dataY(0)
-    bi = np.where((x >= band.min) & (x < band.max))[0]
-    min_y = 1e-3 * np.mean(y[bi[:-1]])  # 1e-3 pure heuristics
+    band_indexes = np.where((x >= band.min) & (x < band.max))[0]
+    min_y = 1e-3 * np.mean(y[band_indexes[:-1]])  # 1e-3 pure heuristics
 
     # Find wavelength range with non-zero intensities. Care with boundaries
     # that have intensities largely deviating from the expected intensities

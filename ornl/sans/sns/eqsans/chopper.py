@@ -54,10 +54,7 @@ class EQSANSDiskChopperSet(object):
 
         # Determine period and if frame skipping mode from the first chopper
         ch = self._choppers[0]
-        try:
-            condition = abs(ch.speed - sl.frequency.value.mean()) / 2 > 1
-        except AttributeError:
-            condition = False  # force into not frame skipping mode
+        condition = abs(ch.speed - sl.frequency.value.mean()) / 2 > 1
 
         self.frame_mode = FrameMode.skip if condition else FrameMode.not_skip
 

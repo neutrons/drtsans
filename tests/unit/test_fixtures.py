@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
+import numpy as np
 from mantid.kernel import V3D
 import pytest
 
@@ -250,6 +251,26 @@ def test_serve_events_workspace(serve_events_workspace):
     originals = [w.name() for w in serve_events_workspace._cache.values()]
     assert w1.name() not in originals
     assert w2.name() not in originals
+
+
+def test_workspace_with_instrument_defaults(workspace_with_instrument):
+    ws = workspace_with_instrument()
+    assert ws
+    assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws.getNumberHistograms() == 9
+    for i in range(ws.getNumberHistograms()):
+        assert ws.readX(i).tolist() == [0.]
+        assert ws.readY(i).tolist() == [0.]
+        assert ws.readE(i).tolist() == [1.]  # SANS default
+
+    x, y = np.arange(9).reshape((3, 3)), np.abs(np.random.random((3, 3)))
+    ws2 = workspace_with_instrument(axis_values=x, intensities=y)
+    assert ws != ws2
+    x, y = x.flatten(), y.flatten()
+    for i in range(ws.getNumberHistograms()):
+        assert ws2.readX(i).tolist() == x[i]
+        assert ws2.readY(i).tolist() == y[i]
+        assert ws2.readE(i).tolist() == np.sqrt(y[i])
 
 
 if __name__ == '__main__':

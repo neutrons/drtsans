@@ -1,7 +1,7 @@
 import pytest
 import os, numpy as np
 from numpy.testing import assert_almost_equal
-from mantid.simpleapi import LoadNexus
+from mantid.simpleapi import WorkspaceFactory
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -15,12 +15,30 @@ def testdata():
 
 
 @pytest.fixture(scope='module')
-def histogram_workspace(testdata):
+def test_workspaces(testdata):
     I, E, normedI, normedE = testdata
-    return
+    nrows = 1
+    nbins = I.size
+    # input
+    inputws = WorkspaceFactory.create(
+        "Workspace2D", NVectors=nrows, XLength=nbins+1, YLength=nbins
+    )
+    inputws.setX(0, np.arange(nbins+1))
+    inputws.setY(0, I)
+    inputws.setE(0, E)
+    # expected output
+    expected_output_ws = WorkspaceFactory.create(
+        "Workspace2D", NVectors=nrows, XLength=nbins+1, YLength=nbins
+    )
+    expected_output_ws.setX(0, np.arange(nbins+1))
+    expected_output_ws.setY(0, normedI)
+    expected_output_ws.setE(0, normedE)
+    return inputws, expected_output_ws
 
 
-def test_thickness_normalization(histogram_workspace):
+def test_thickness_normalization(test_workspaces):
+    inputws, expected_output_ws = test_workspaces
+    print(expected_output_ws.dataY(0))
     return
 
 

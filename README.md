@@ -60,12 +60,17 @@ $ source .venv/bin/activate
 $ python ~/build/mantid/bin/AddPythonPath.py
 ```
 
-4. Install the code in `develop` mode.
+4. Install the requirements for running the code
+```sh
+$ pip install -r requirements.txt -r requirements_dev.txt
+```
+
+5. Install the code in `develop` mode.
 ```sh
 $ python setup.py develop
 ```
 
-5. Try it out. Start `python` and try
+6. Try it out. Start `python` and try
 ```python
 import mantid
 import ornl
@@ -75,7 +80,7 @@ Verify you can run the unit tests:
 $ python -m pytest tests/unit/new/
 ```
 
-6. Be done. Deactivate the virtual environment using
+7. Be done. Deactivate the virtual environment using
 ```
 $ deactivate
 ```
@@ -95,7 +100,7 @@ Finally, tell direnv that you want it to work in this directory
 ```sh
 $ direnv allow
 ```
-Then follow steps 3-5 from above. After this, the virtual environment
+Then follow steps 3-6 from above. After this, the virtual environment
 with load when you enter the source tree, and unload when you leave.
 
 Running the tests

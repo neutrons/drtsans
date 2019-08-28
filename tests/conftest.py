@@ -333,7 +333,7 @@ def porasil_slice1m(reference_dir):
                    w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)
 
 
-@pytest.fixture()
+@pytest.fixture(scope='function')
 def generic_IDF(request):
     '''
     generate a test IDF with a rectangular detector
@@ -584,7 +584,7 @@ def generic_workspace(generic_IDF, request):
     return wksp
 
 
-@pytest.fixture()
+@pytest.fixture(scope='function')
 def workspace_with_instrument(generic_IDF, request):
 
     try:
@@ -599,10 +599,16 @@ def workspace_with_instrument(generic_IDF, request):
 
     def factory(name=None, axis_units='wavelength',
                 axis_values=None, intensities=None, uncertainties=None,
-                number_x_pixels=instrument_params.get('Nx', 3),
-                number_y_pixels=instrument_params.get('Nx', 3)):
+                number_x_pixels=None, number_y_pixels=None):
+        # Initialization of these options within the function signature results in the interpreter assigning a
+        # function signature preserved through function call.
         if name is None:
             name = unique_workspace_dundername()
+        if number_x_pixels is None:
+            number_x_pixels = instrument_params.get('Nx', 3)
+        if number_y_pixels is None:
+            number_y_pixels = instrument_params.get('Ny', 3)
+
         if intensities is not None:
             try:
                 number_x_pixels, number_y_pixels = intensities.shape[:2]
@@ -622,16 +628,16 @@ def workspace_with_instrument(generic_IDF, request):
             axis_values = np.array(axis_values).ravel()
         else:
             axis_values = np.zeros(number_x_pixels * number_y_pixels, dtype=float)
-        workspace_inventory.append(name)
+
         wksp = CreateWorkspace(DataX=axis_values,
                                DataY=intensities,
                                DataE=uncertainties,
                                Nspec=number_x_pixels * number_y_pixels,
                                UnitX=axis_units,
                                OutputWorkspace=name)
-
         LoadInstrument(Workspace=wksp, InstrumentXML=generic_IDF,
                        RewriteSpectraMap=True, InstrumentName=name)
+        workspace_inventory.append(name)
         return wksp
 
     yield factory

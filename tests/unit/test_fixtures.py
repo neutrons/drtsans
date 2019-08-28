@@ -253,24 +253,77 @@ def test_serve_events_workspace(serve_events_workspace):
     assert w2.name() not in originals
 
 
-def test_workspace_with_instrument_defaults(workspace_with_instrument):
-    ws = workspace_with_instrument()
-    assert ws
-    assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
-    assert ws.getNumberHistograms() == 9
-    for i in range(ws.getNumberHistograms()):
-        assert ws.readX(i).tolist() == [0.]
-        assert ws.readY(i).tolist() == [0.]
-        assert ws.readE(i).tolist() == [1.]  # SANS default
+class TestWorkspaceWithInstrument(object):
 
-    x, y = np.arange(9).reshape((3, 3)), np.abs(np.random.random((3, 3)))
-    ws2 = workspace_with_instrument(axis_values=x, intensities=y)
-    assert ws != ws2
-    x, y = x.flatten(), y.flatten()
-    for i in range(ws.getNumberHistograms()):
-        assert ws2.readX(i).tolist() == x[i]
-        assert ws2.readY(i).tolist() == y[i]
-        assert ws2.readE(i).tolist() == np.sqrt(y[i])
+    def test_workspace_with_instrument_defaults(self, workspace_with_instrument):
+        ws = workspace_with_instrument()
+        assert ws
+        assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+        assert ws.getNumberHistograms() == 9
+        for i in range(ws.getNumberHistograms()):
+            assert ws.readX(i).tolist() == [0.]
+            assert ws.readY(i).tolist() == [0.]
+            assert ws.readE(i).tolist() == [1.]  # SANS default
+
+        x, y = np.arange(9).reshape((3, 3)), np.abs(np.random.random((3, 3)))
+        ws2 = workspace_with_instrument(axis_values=x, intensities=y)
+        assert ws != ws2
+        x, y = x.flatten(), y.flatten()
+        for i in range(ws.getNumberHistograms()):
+            assert ws2.readX(i).tolist() == x[i]
+            assert ws2.readY(i).tolist() == y[i]
+            assert ws2.readE(i).tolist() == np.sqrt(y[i])
+
+    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
+    def test_generate_workspace_mono(self, workspace_with_instrument):
+        ws = workspace_with_instrument()  # give it a friendly name
+        assert ws
+        assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+        assert ws.getNumberHistograms() == 6
+        for i in range(ws.getNumberHistograms()):
+            assert ws.readX(i).tolist() == [0.]
+            assert ws.readY(i).tolist() == [0.]
+            assert ws.readE(i).tolist() == [1.]  # SANS default
+
+        ws2 = workspace_with_instrument(axis_values=[42.], intensities=[[1., 4.], [9., 16.], [25., 36.]])
+        assert ws2
+        assert ws2.getAxis(0).getUnit().caption() == 'Wavelength'
+        assert ws2.getNumberHistograms() == 6
+        for i in range(ws2.getNumberHistograms()):
+            assert ws2.readX(i).tolist() == [42.]
+        # supplied y-values
+        assert ws2.extractY().ravel().tolist() == [1., 4., 9., 16., 25., 36.]
+        # e-values is sqrt of y
+        assert ws2.extractE().ravel().tolist() == [1., 2., 3., 4., 5., 6.]
+
+        # verify particular pixels
+        assert ws2.readY(1) == 4.
+        assert ws2.readY(3) == 16.
+        spectum_info = ws.spectrumInfo()
+        assert spectum_info.position(0) == V3D(-1., -.5, 5.)  # row=0, col=0
+        assert spectum_info.position(3) == V3D(0., .5, 5.)  # row=1, col=0
+
+    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
+    def test_generate_workspace_tof(self, workspace_with_instrument):
+        ws = workspace_with_instrument(axis_units='tof', axis_values=[100., 8000., 16000.],
+                                       intensities=[[[1., 1.], [4., 4.]], [[9., 9.], [16., 16.]],
+                                                    [[25., 25.], [36., 36.]]])
+        assert ws
+        assert ws.getAxis(0).getUnit().caption() == 'Time-of-flight'
+        assert ws.getNumberHistograms() == 6
+        for i in range(ws.getNumberHistograms()):
+            assert ws.readX(i).tolist() == [100., 8000., 16000.]
+        # supplied y-values
+        assert ws.extractY().ravel().tolist() == [1., 1., 4., 4., 9., 9., 16., 16., 25., 25., 36., 36.]
+        # e-values is sqrt of y
+        assert ws.extractE().ravel().tolist() == [1., 1., 2., 2., 3., 3., 4., 4., 5., 5., 6., 6.]
+
+        # verify particular pixels
+        assert ws.readY(1).tolist() == [4., 4.]
+        assert ws.readY(3).tolist() == [16., 16.]
+        spectrum_info = ws.spectrumInfo()
+        assert spectrum_info.position(0) == V3D(-1., -.5, 5.)  # row=0, col=0
+        assert spectrum_info.position(3) == V3D(0., .5, 5.)  # row=1, col=0
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
 from mantid.simpleapi import CreateWorkspace, LoadInstrument
-from ornl.settings import amend_config
+from ornl.settings import amend_config, unique_workspace_dundername
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
@@ -582,6 +582,56 @@ def generic_workspace(generic_IDF, request):
                    RewriteSpectraMap=True, InstrumentName=name)
 
     return wksp
+
+
+@pytest.fixture()
+def workspace_with_instrument(generic_IDF, request):
+
+    try:
+        instrument_params = request.param
+    except AttributeError:
+        try:
+            instrument_params = request._parent_request.param
+        except AttributeError:
+            instrument_params = dict()
+
+    def factory(name=None, axis_units='wavelength',
+                axis_values=None, intensities=None, uncertainties=None,
+                number_x_pixels=instrument_params.get('Nx', 3),
+                number_y_pixels=instrument_params.get('Nx', 3)):
+        if name is None:
+            name = unique_workspace_dundername()
+        if intensities is not None:
+            try:
+                number_x_pixels, number_y_pixels = intensities.shape[:2]
+            except AttributeError:
+                number_x_pixels = len(intensities)
+                number_y_pixels = len(intensities[0])
+                intensities = np.array(intensities)
+        else:
+            intensities = np.zeros((number_x_pixels, number_y_pixels), dtype=float)
+        intensities = intensities.ravel()
+        if uncertainties is not None:
+            uncertainties = np.array(uncertainties).ravel()
+        else:
+            uncertainties = np.sqrt(intensities)
+            uncertainties[uncertainties == 0.] = 1.  # the default SANS likes
+        if axis_values is not None:
+            axis_values = np.array(axis_values).ravel()
+        else:
+            axis_values = np.zeros(number_x_pixels * number_y_pixels, dtype=float)
+
+        wksp = CreateWorkspace(DataX=axis_values,
+                               DataY=intensities,
+                               DataE=uncertainties,
+                               Nspec=number_x_pixels * number_y_pixels,
+                               UnitX=axis_units,
+                               OutputWorkspace=name)
+        LoadInstrument(Workspace=wksp, InstrumentXML=generic_IDF,
+                       RewriteSpectraMap=True, InstrumentName=name)
+        return wksp
+
+    return factory
 
 
 @pytest.fixture(scope='session')

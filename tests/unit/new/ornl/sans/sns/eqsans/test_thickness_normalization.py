@@ -42,6 +42,7 @@ def test_thickness_normalization(workspaces):
     thickness = 0.1
     normed = normalize_by_thickness(inputws, thickness)
     assert_allclose(normed.dataY(0), expected_output_ws.dataY(0), rtol=5e-3)
+    assert_allclose(normed.dataE(0), expected_output_ws.dataE(0), rtol=1e-7)
     return
 
 

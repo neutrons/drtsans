@@ -1,4 +1,4 @@
--r requirements.txt
+# INSTALL THE requirements.txt AS WELL
 
 pytest >= 3.2
 pytest-xdist

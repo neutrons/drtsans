@@ -9,10 +9,6 @@ def add_frame_skipping_log(ws):
     samplelog.insert('is_frame_skipping', False)
 
 
-# Test the conversion of time-of-flight to wavelength
-# in master document section 3.3
-# dev - Pete Peterson <petersonpf@ornl.gov>
-# SME - William Heller <hellerwt@ornl.gov>
 @pytest.mark.parametrize('generic_workspace',
                          [{'dx': .005, 'dy': .004,
                            'zc': 5., 'l1': 14.,

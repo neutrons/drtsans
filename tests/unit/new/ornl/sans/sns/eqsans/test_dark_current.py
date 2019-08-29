@@ -59,6 +59,18 @@ def test_subtract_normalised_dark(wss, reference_dir):
 
 
 def test_flatten_TOF():
+    '''
+    Check that the counts are added together in each spectra
+
+    Function tested: ornl.sans.sns.eqsans.dark_current.counts_in_detector
+    Undelying Mantid algorithms:
+        Integration https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
+        Transpose   https://docs.mantidproject.org/nightly/algorithms/Transpose-v1.html
+
+    dev - Andrei Savici <saviciat@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
+    '''
+    # create the workspace
     tof = [1., 2., 3., 4.] * 9  # wavelength boundaries
     cts = [23, 5, 15, 18, 50, 13, 9, 7, 15,
            48, 41, 34, 79, 45, 33, 85, 78, 1,
@@ -68,7 +80,9 @@ def test_flatten_TOF():
                          DataY=cts,
                          DataE=err,
                          NSpec=9)
+    # run the function
     y, e = dkc.counts_in_detector(ws)
+    # check the results
     expected_counts = [43, 81, 31, 123, 157, 164, 175, 121, 122]
     expected_errors = np.sqrt(expected_counts)
     assert np.allclose(y, expected_counts)

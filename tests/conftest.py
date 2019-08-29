@@ -10,8 +10,8 @@ import numpy as np
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
-from mantid.simpleapi import CreateWorkspace, LoadInstrument
-from ornl.settings import amend_config
+from mantid.simpleapi import CreateWorkspace, LoadInstrument, DeleteWorkspace
+from ornl.settings import amend_config, unique_workspace_dundername
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
@@ -333,7 +333,7 @@ def porasil_slice1m(reference_dir):
                    w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)
 
 
-@pytest.fixture()
+@pytest.fixture(scope='function')
 def generic_IDF(request):
     '''
     generate a test IDF with a rectangular detector
@@ -582,6 +582,96 @@ def generic_workspace(generic_IDF, request):
                    RewriteSpectraMap=True, InstrumentName=name)
 
     return wksp
+
+
+@pytest.fixture(scope='function')
+def workspace_with_instrument(generic_IDF, request):
+    r"""
+    Workspace factory with a given instrument.
+
+    The fixture is used by passing arguments to the `generic_IDF` fixture as a dictionary. For instance:
+    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
+    Full list of arguments:
+        name: Name of the instrument     (default: GenericSANS)
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
+
+    Once inside the test function, the factory is called with the following optional arguments:
+        name: Name of the workspace and instrument (default: random name prefixed with '__')
+        axis_values : ndarray or 2d-list of the independent axis for the data. It will be copied across
+            all spectra if only specified for one. (default 0 for all spectra)
+        intensities : ndarray or 2d/3d list of intensities for the instrument. Detector dimensions are inferred
+            from the dimensionality. This will be linearized using `numpy.ravel`. (default: zeros of dimension Nx x Ny)
+        uncertainties : ndarray or 2d/3d list of intensities for the instrument. This will be linearized using
+            `numpy.ravel`. (default: sqrt(intensities), or one if intensity is zero)
+        axis_units : units for the independent axis
+    Example:
+        ws2 = workspace_with_instrument(axis_values=[42.], intensities=[[1., 4.], [9., 16.], [25., 36.]])
+    For more examples of use, look within testing class `test_fixtures.py::TestWorkspaceWithInstrument`
+    """
+    try:
+        instrument_params = request.param
+    except AttributeError:
+        try:
+            instrument_params = request._parent_request.param
+        except AttributeError:
+            instrument_params = dict()
+
+    workspace_inventory = list()  # holds created workspaces
+
+    def factory(name=None, axis_units='wavelength',
+                axis_values=None, intensities=None, uncertainties=None,
+                number_x_pixels=None, number_y_pixels=None):
+        # Initialization of these options within the function signature results in the interpreter assigning a
+        # function signature preserved through function call.
+        if name is None:
+            name = unique_workspace_dundername()
+        if number_x_pixels is None:
+            number_x_pixels = instrument_params.get('Nx', 3)
+        if number_y_pixels is None:
+            number_y_pixels = instrument_params.get('Ny', 3)
+
+        if intensities is not None:
+            try:
+                number_x_pixels, number_y_pixels = intensities.shape[:2]
+            except AttributeError:
+                number_x_pixels = len(intensities)
+                number_y_pixels = len(intensities[0])
+                intensities = np.array(intensities)
+        else:
+            intensities = np.zeros((number_x_pixels, number_y_pixels), dtype=float)
+        intensities = intensities.ravel()
+        if uncertainties is not None:
+            uncertainties = np.array(uncertainties).ravel()
+        else:
+            uncertainties = np.sqrt(intensities)
+            uncertainties[uncertainties == 0.] = 1.  # the default SANS likes
+        if axis_values is not None:
+            axis_values = np.array(axis_values).ravel()
+        else:
+            axis_values = np.zeros(number_x_pixels * number_y_pixels, dtype=float)
+
+        wksp = CreateWorkspace(DataX=axis_values,
+                               DataY=intensities,
+                               DataE=uncertainties,
+                               Nspec=number_x_pixels * number_y_pixels,
+                               UnitX=axis_units,
+                               OutputWorkspace=name)
+        LoadInstrument(Workspace=wksp, InstrumentXML=generic_IDF,
+                       RewriteSpectraMap=True, InstrumentName=name)
+        workspace_inventory.append(name)
+        return wksp
+
+    yield factory
+    # Teardown
+    for workspace_name in workspace_inventory:
+        DeleteWorkspace(workspace_name)
 
 
 @pytest.fixture(scope='session')

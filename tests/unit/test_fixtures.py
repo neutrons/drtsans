@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 from mantid.kernel import V3D
 import pytest
+from pytest import approx
 
 
 @pytest.mark.skip(reason="only for debugging")
@@ -292,9 +293,9 @@ class TestWorkspaceWithInstrument(object):
         for i in range(ws2.getNumberHistograms()):
             assert ws2.readX(i).tolist() == [42.]
         # supplied y-values
-        assert ws2.extractY().ravel().tolist() == [1., 4., 9., 16., 25., 36.]
+        assert ws2.extractY().ravel() == approx([1., 4., 9., 16., 25., 36.])
         # e-values is sqrt of y
-        assert ws2.extractE().ravel().tolist() == [1., 2., 3., 4., 5., 6.]
+        assert ws2.extractE().ravel() == approx([1., 2., 3., 4., 5., 6.])
 
         # verify particular pixels
         assert ws2.readY(1) == 4.
@@ -314,9 +315,9 @@ class TestWorkspaceWithInstrument(object):
         for i in range(ws.getNumberHistograms()):
             assert ws.readX(i).tolist() == [100., 8000., 16000.]
         # supplied y-values
-        assert ws.extractY().ravel().tolist() == [1., 1., 4., 4., 9., 9., 16., 16., 25., 25., 36., 36.]
+        assert ws.extractY().ravel() == approx([1., 1., 4., 4., 9., 9., 16., 16., 25., 25., 36., 36.])
         # e-values is sqrt of y
-        assert ws.extractE().ravel().tolist() == [1., 1., 2., 2., 3., 3., 4., 4., 5., 5., 6., 6.]
+        assert ws.extractE().ravel() == approx([1., 1., 2., 2., 3., 3., 4., 4., 5., 5., 6., 6.])
 
         # verify particular pixels
         assert ws.readY(1).tolist() == [4., 4.]

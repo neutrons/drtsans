@@ -1,6 +1,9 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
+# https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/SolidAngle-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
 from mantid.simpleapi import (DeleteWorkspace, Divide, mtd, SolidAngle,
                               ReplaceSpecialValues)
 from ornl.settings import (unique_workspace_dundername as uwd)

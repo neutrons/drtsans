@@ -11,6 +11,12 @@ from copy import deepcopy
                            'dy': 0.0055, 'xc': 0.32, 'yc': -0.16}],
                          indirect=True)
 def test_solid_angle(generic_workspace):
+    '''Tests calculating and applying the correction for
+       the solid angle of a pixel as described in the master
+       document section 3.5
+       dev - Steven Hahn <hahnse@ornl.gov>
+       SME - William Heller <hellerwt@ornl.gov>
+    '''
     # generate a generic SANS instrument with a pixel of
     # the size and position specified in
     # sans-backend/documents/Master_document_022219.pdf

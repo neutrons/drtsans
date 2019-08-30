@@ -6,7 +6,7 @@ from ornl.settings import unique_workspace_dundername as uwd
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.geometry import (detector_name, sample_detector_distance)
 from ornl.sans.sns.eqsans.mask import apply_mask
-
+from ornl.sans.sns.eqsans.transmission import beam_radius as beam_radius_from_apertures
 
 __all__ = ['center_detector', 'find_beam_center']
 
@@ -45,14 +45,18 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
     method: str
         Method to estimate the center of the beam. `None` for no method
     x: float
-        Final position or translation along the X-axis
+        Final position or translation along the X-axis. Units must be those of option `unit`, which
+        defaults to meters.
     y: float
-        Final position or translation along the Y-axis
+        Final position or translation along the Y-axis. Units must be those of option `unit`, which
+        defaults to meters.
     unit: str
         units of `x` and `y`. Either meters 'm' or mili-meters 'mm'
     relative: Bool
         Values of `x` and `y` are either absolute coordinates or a
         translation.
+    method: str
+        Method to estimate the center of the beam. Default is `center_of_mass` and use `None` for no method.
     move_detector: bool
         Only calculate the final position if this is False
     kwargs: dict
@@ -61,45 +65,45 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
     Returns
     -------
     numpy.ndarray
-        Coordinates of the detector center
+        Final position of the detector's center, always in meters.
     """
-    ws = mtd[str(input_workspace)]
-    i = ws.getInstrument()
-    rs = i.getComponentByName(detector_name(i)).getPos()
-    rf = np.zeros(3)
+    method_to_algorithm = dict(center_of_mass=FindCenterOfMassPosition)  # in case we add more methods later
+    unit_to_meters = dict(m=1., mm=1.e-3)
+    workspace = mtd[str(input_workspace)]
+    instrument = workspace.getInstrument()
+    starting_position = instrument.getComponentByName(detector_name(instrument)).getPos()
+    final_position = np.zeros(3)  # this has to be determined
 
-    # Use `method` when we are not passing absolute coordinates
-    abs_xy = x is not None and y is not None and relative is False
-    if method is not None and abs_xy is False:
-        method_to_alg = dict(center_of_mass=FindCenterOfMassPosition)
-        ws_flattened = Integration(InputWorkspace=ws, OutputWorkspace=uwd())
+    # Use `method` is necessary when we are not passing absolute coordinates
+    xy_are_absolute_coordinates = x is not None and y is not None and relative is False
+    if method is not None and xy_are_absolute_coordinates is False:
+        workspace_flattened = Integration(InputWorkspace=workspace, OutputWorkspace=uwd())
         if mask is not None:
-            fmsk = apply_mask(ws_flattened, mask=mask)
-            fmsk.delete()
-        # (t_x, t_y) is the intersection point of the neutron beam with the
-        # detector
-        t_x, t_y = list(method_to_alg[method](InputWorkspace=ws_flattened, **kwargs))
-        ws_flattened.delete()
-        rs = np.array([-t_x, -t_y, rs[-1]])
-        rf = rs
+            mask_workspace = apply_mask(workspace_flattened, mask=mask)
+            mask_workspace.delete()  # we don't need the mask workspace so keep it clean
+        algorithm = method_to_algorithm[method]
+        # (t_x, t_y) is the intersection point of the neutron beam with the detector
+        t_x, t_y = list(algorithm(InputWorkspace=workspace_flattened, **kwargs))
+        workspace_flattened.delete()
+        starting_position = np.array([-t_x, -t_y, starting_position[-1]])
+        final_position = starting_position
 
     if x is not None and y is not None:
-        t_x = x if unit == 'm' else x / 1.e3
-        t_y = y if unit == 'm' else y / 1.e3
+        t_x = x * unit_to_meters[unit]
+        t_y = y * unit_to_meters[unit]
         if relative is True:
-            rf = rs + np.array([t_x, t_y, 0.0])
+            final_position = starting_position + np.array([t_x, t_y, 0.0])
         else:
-            rf = np.array([t_x, t_y, rs[-1]])
+            final_position = np.array([t_x, t_y, starting_position[-1]])
 
     # Recalculate distance from sample to detector
     if move_detector is True:
-        MoveInstrumentComponent(ws, X=rf[0], Y=rf[1], Z=rf[2],
-                                ComponentName=detector_name(ws),
-                                RelativePosition=False)
-        sdd = sample_detector_distance(ws, unit='mm', search_logs=False)
-        SampleLogs(ws).insert('sample-detector-distance', sdd, unit='mm')
+        final_xyz = dict(zip(('X', 'Y', 'Z'), final_position))
+        MoveInstrumentComponent(workspace, ComponentName=detector_name(workspace), RelativePosition=False, **final_xyz)
+        sdd = sample_detector_distance(workspace, unit='mm', search_logs=False)
+        SampleLogs(workspace).insert('sample-detector-distance', sdd, unit='mm')
 
-    return rf
+    return final_position
 
 
 def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwargs):
@@ -121,13 +125,14 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwar
     Returns
     -------
     tuple
-        (X, Y) coordinates of the beam center (units in meters)
+        (X, Y) coordinates of the beam center, always in meters.
     """
     # `r` below is the position that the center of the detector would adopt
     # such that the coordinates of the neutron beam impinging on the
     # detector has coordinates (0, 0, z)
     if method != 'center_of_mass':
         raise NotImplementedError('{} is not implemented'.format(method))
-    r = center_detector(input_workspace, mask=mask, method=method,
-                        move_detector=False, **kwargs)
-    return -r[0], -r[1]
+     detector_coordinates = center_detector(input_workspace, mask=mask, method=method,
+                                            move_detector=False, **kwargs)
+    return -detector_coordinates[0], -detector_coordinates[1]
+

@@ -590,8 +590,8 @@ def workspace_with_instrument(generic_IDF, request):
     @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
     Full list of arguments:
         name: Name of the instrument     (default: GenericSANS)
-        Nx : number of columns                      (default 3)
-        Ny : number of rows                         (default 3)
+        Nx : number of columns (a.k.a number of tubes) (default 3)
+        Ny : number of rows (a.k.a tube length)     (default 3)
         dx : width of a column in meters            (default 1)
         dy : height of a row in meters              (default 1)
         xc : distance of center along the x axis    (default 0)
@@ -607,6 +607,9 @@ def workspace_with_instrument(generic_IDF, request):
             from the dimensionality. This will be linearized using `numpy.ravel`. (default: zeros of dimension Nx x Ny)
         uncertainties : ndarray or 2d/3d list of intensities for the instrument. This will be linearized using
             `numpy.ravel`. (default: sqrt(intensities), or one if intensity is zero)
+        view: either 'array' or 'pixel'. In array-view the first index of the input data arrays travels each tube
+            from top to bottom, and the second index travels across tubes. In pixel-view the first index travels
+            across tubes and the second index travels each tube from bottom to top. Default is 'array'.
         axis_units : units for the independent axis
     Example:
         ws2 = workspace_with_instrument(axis_values=[42.], intensities=[[1., 4.], [9., 16.], [25., 36.]])
@@ -623,7 +626,7 @@ def workspace_with_instrument(generic_IDF, request):
     workspace_inventory = list()  # holds created workspaces
 
     def factory(name=None, axis_units='wavelength',
-                axis_values=None, intensities=None, uncertainties=None,
+                axis_values=None, intensities=None, uncertainties=None, view='array',
                 number_x_pixels=None, number_y_pixels=None):
         # Initialization of these options within the function signature results in the interpreter assigning a
         # function signature preserved through function call.
@@ -636,19 +639,25 @@ def workspace_with_instrument(generic_IDF, request):
 
         if intensities is not None:
             try:
-                number_x_pixels, number_y_pixels = intensities.shape[:2]
+                intensities.shape[:2]
             except AttributeError:
-                number_x_pixels = len(intensities)
-                number_y_pixels = len(intensities[0])
                 intensities = np.array(intensities)
+            if view == 'array':
+                intensities = intensities.transpose()[:, ::-1]
+            number_x_pixels, number_y_pixels = intensities.shape[:2]
         else:
             intensities = np.zeros((number_x_pixels, number_y_pixels), dtype=float)
         intensities = intensities.ravel()
+
         if uncertainties is not None:
-            uncertainties = np.array(uncertainties).ravel()
+            uncertainties = np.array(uncertainties)
+            if view == 'array':
+                uncertainties = uncertainties.transpose()[:, ::-1]
+            uncertainties = uncertainties.ravel()
         else:
             uncertainties = np.sqrt(intensities)
             uncertainties[uncertainties == 0.] = 1.  # the default SANS likes
+
         if axis_values is not None:
             axis_values = np.array(axis_values).ravel()
         else:

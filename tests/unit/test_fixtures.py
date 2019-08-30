@@ -326,6 +326,20 @@ class TestWorkspaceWithInstrument(object):
         assert spectrum_info.position(0) == V3D(-1., -.5, 5.)  # row=0, col=0
         assert spectrum_info.position(3) == V3D(0., .5, 5.)  # row=1, col=0
 
+    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 4}], indirect=True)
+    def test_correct_pixel_id(self, workspace_with_instrument):
+        intensities = np.array([[3,  7, 11],
+                                [2,  6, 10],
+                                [1,  5,  9],
+                                [0,  4,  8]])  # three tubes, intensities are pixel id's
+        ws = workspace_with_instrument(axis_values=[1.], intensities=intensities, view='array')
+        assert ws.extractY().ravel().tolist() == list(range(12))
+        intensities = np.array([[0, 1, 2, 3],
+                                [4, 5, 6, 7],
+                                [8, 9, 10, 11]])  # pixel view, each tube along the column axis
+        ws = workspace_with_instrument(axis_values=[1.], intensities=intensities, view='pixel')
+        assert ws.extractY().ravel().tolist() == list(range(12))
+
 
 if __name__ == '__main__':
     pytest.main()

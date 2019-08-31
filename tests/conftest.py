@@ -644,9 +644,9 @@ def workspace_with_instrument(generic_IDF, request):
                 if intensities.ndim == 2:
                     # reverse first index to increase tube ID along decreasing values on the X-axis
                     # reverse second index to increase pixel ID along each tube and along increasing values on Y-axis
-                    intensities = np.transpose(intensities)[::-1, ::-1]
+                    intensities = np.transpose(intensities)[:, ::-1]
                 elif intensities.ndim == 3:
-                    intensities = np.transpose(intensities, axes=(1, 0, 2))[::-1, ::-1, :]
+                    intensities = np.transpose(intensities, axes=(1, 0, 2))[:, ::-1, :]
             number_x_pixels, number_y_pixels = intensities.shape[:2]
         else:
             intensities = np.zeros((number_x_pixels, number_y_pixels), dtype=float)

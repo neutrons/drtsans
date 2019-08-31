@@ -601,8 +601,8 @@ def workspace_with_instrument(generic_IDF, request):
 
     Once inside the test function, the factory is called with the following optional arguments:
         name: Name of the workspace and instrument (default: random name prefixed with '__')
-        axis_values : ndarray or 2d-list of the independent axis for the data. It will be copied across
-            all spectra if only specified for one. (default 0 for all spectra)
+        axis_values : 1D array or list of the independent axis for the data. It will be copied across
+            all spectra (default 0 for all spectra)
         intensities : ndarray or 2d/3d list of intensities for the instrument. Detector dimensions are inferred
             from the dimensionality. This will be linearized using `numpy.ravel`. (default: zeros of dimension Nx x Ny)
         uncertainties : ndarray or 2d/3d list of intensities for the instrument. This will be linearized using
@@ -638,12 +638,13 @@ def workspace_with_instrument(generic_IDF, request):
             number_y_pixels = instrument_params.get('Ny', 3)
 
         if intensities is not None:
-            try:
-                intensities.shape[:2]
-            except AttributeError:
+            if isinstance(intensities, np.ndarray) is False:
                 intensities = np.array(intensities)
             if view == 'array':
-                intensities = intensities.transpose()[:, ::-1]
+                if intensities.ndim == 2:
+                    intensities = np.transpose(intensities)[:, ::-1]
+                elif intensities.ndim == 3:
+                    intensities = np.transpose(intensities, axes=(1, 0, 2))[:, ::-1, :]
             number_x_pixels, number_y_pixels = intensities.shape[:2]
         else:
             intensities = np.zeros((number_x_pixels, number_y_pixels), dtype=float)
@@ -659,20 +660,16 @@ def workspace_with_instrument(generic_IDF, request):
             uncertainties[uncertainties == 0.] = 1.  # the default SANS likes
 
         if axis_values is not None:
-            axis_values = np.array(axis_values).ravel()
+            axis_values = np.array(axis_values)
         else:
-            axis_values = np.zeros(number_x_pixels * number_y_pixels, dtype=float)
+            axis_values = np.zeros(1, dtype=float)
 
-        wksp = CreateWorkspace(DataX=axis_values,
-                               DataY=intensities,
-                               DataE=uncertainties,
-                               Nspec=number_x_pixels * number_y_pixels,
-                               UnitX=axis_units,
-                               OutputWorkspace=name)
-        LoadInstrument(Workspace=wksp, InstrumentXML=generic_IDF,
-                       RewriteSpectraMap=True, InstrumentName=name)
+        n_pixels = number_x_pixels * number_y_pixels
+        workspace = CreateWorkspace(DataX=axis_values, DataY=intensities, DataE=uncertainties, Nspec=n_pixels,
+                                    UnitX=axis_units, OutputWorkspace=name)
+        LoadInstrument(Workspace=workspace, InstrumentXML=generic_IDF, RewriteSpectraMap=True, InstrumentName=name)
         workspace_inventory.append(name)
-        return wksp
+        return workspace
 
     yield factory
     # Teardown

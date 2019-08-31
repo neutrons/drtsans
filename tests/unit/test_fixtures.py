@@ -286,7 +286,7 @@ class TestWorkspaceWithInstrument(object):
             assert ws.readY(i).tolist() == [0.]
             assert ws.readE(i).tolist() == [1.]  # SANS default
 
-        ws2 = workspace_with_instrument(axis_values=[42.], intensities=[[1., 4.], [9., 16.], [25., 36.]])
+        ws2 = workspace_with_instrument(axis_values=[42.], view='pixel', intensities=[[1., 4.], [9., 16.], [25., 36.]])
         assert ws2
         assert ws2.getAxis(0).getUnit().caption() == 'Wavelength'
         assert ws2.getNumberHistograms() == 6
@@ -306,7 +306,7 @@ class TestWorkspaceWithInstrument(object):
 
     @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
     def test_generate_workspace_tof(self, workspace_with_instrument):
-        ws = workspace_with_instrument(axis_units='tof', axis_values=[100., 8000., 16000.],
+        ws = workspace_with_instrument(axis_units='tof', axis_values=[100., 8000., 16000.], view='pixel',
                                        intensities=[[[1., 1.], [4., 4.]], [[9., 9.], [16., 16.]],
                                                     [[25., 25.], [36., 36.]]])
         assert ws

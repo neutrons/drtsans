@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import sys
 import os
-
+import re
 import pytest
 import random
 import string
@@ -667,7 +667,9 @@ def workspace_with_instrument(generic_IDF, request):
         n_pixels = number_x_pixels * number_y_pixels
         workspace = CreateWorkspace(DataX=axis_values, DataY=intensities, DataE=uncertainties, Nspec=n_pixels,
                                     UnitX=axis_units, OutputWorkspace=name)
-        LoadInstrument(Workspace=workspace, InstrumentXML=generic_IDF, RewriteSpectraMap=True, InstrumentName=name)
+        instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', generic_IDF).groups()[0]
+        LoadInstrument(Workspace=workspace, InstrumentXML=generic_IDF, RewriteSpectraMap=True,
+                       InstrumentName=instrument_name)
         workspace_inventory.append(name)
         return workspace
 

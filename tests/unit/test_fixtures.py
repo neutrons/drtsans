@@ -340,6 +340,11 @@ class TestWorkspaceWithInstrument(object):
         ws = workspace_with_instrument(axis_values=[1.], intensities=intensities, view='pixel')
         assert ws.extractY().ravel().tolist() == list(range(12))
 
+    @pytest.mark.parametrize('workspace_with_instrument', [dict(name='Theod-osius_IV4')], indirect=True)
+    def test_instrument_name(self, workspace_with_instrument):
+        ws = workspace_with_instrument()
+        assert ws.getInstrument().getName() == 'Theod-osius_IV4'
+
 
 if __name__ == '__main__':
     pytest.main()

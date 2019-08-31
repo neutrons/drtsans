@@ -391,12 +391,12 @@ def generic_IDF(request):
     assert (params['Ny'] > 1 and params['Ny'] < 300)
     assert params['dx'] > 0.
     assert params['dy'] > 0.
-    assert params['zcenter'] > 0.
+    assert params['zcenter'] >= 0.
 
     # derived parameters
     params['half_dx'] = params['dx'] * .5
     params['half_dy'] = params['dy'] * .5
-    params['xstart'] = -(params['Nx']-1) * params['half_dx']
+    params['xstart'] = (params['Nx']-1) * params['half_dx']
     params['ystart'] = -(params['Ny']-1) * params['half_dy']
 
     template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
@@ -437,7 +437,7 @@ def generic_IDF(request):
 
     <!-- Rectangular Detector Panel -->
     <type name="panel" is="rectangular_detector" type="pixel"
-        xpixels="{Nx}" xstart="{xstart}" xstep="+{dx}"
+        xpixels="{Nx}" xstart="{xstart}" xstep="-{dx}"
         ypixels="{Ny}" ystart="{ystart}" ystep="+{dy}" >
         <properties/>
     </type>
@@ -642,9 +642,11 @@ def workspace_with_instrument(generic_IDF, request):
                 intensities = np.array(intensities)
             if view == 'array':
                 if intensities.ndim == 2:
-                    intensities = np.transpose(intensities)[:, ::-1]
+                    # reverse first index to increase tube ID along decreasing values on the X-axis
+                    # reverse second index to increase pixel ID along each tube and along increasing values on Y-axis
+                    intensities = np.transpose(intensities)[::-1, ::-1]
                 elif intensities.ndim == 3:
-                    intensities = np.transpose(intensities, axes=(1, 0, 2))[:, ::-1, :]
+                    intensities = np.transpose(intensities, axes=(1, 0, 2))[::-1, ::-1, :]
             number_x_pixels, number_y_pixels = intensities.shape[:2]
         else:
             intensities = np.zeros((number_x_pixels, number_y_pixels), dtype=float)

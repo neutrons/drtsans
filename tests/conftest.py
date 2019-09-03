@@ -396,7 +396,7 @@ def generic_IDF(request):
     # derived parameters
     params['half_dx'] = params['dx'] * .5
     params['half_dy'] = params['dy'] * .5
-    params['xstart'] = (params['Nx']-1) * params['half_dx']
+    params['xstart'] = -(params['Nx']-1) * params['half_dx']
     params['ystart'] = -(params['Ny']-1) * params['half_dy']
 
     template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
@@ -431,13 +431,13 @@ def generic_IDF(request):
     <component type="panel" idstart="0" idfillbyfirst="y" idstepbyrow="{Ny}">
         <location x="{xcenter}" y="{ycenter}" z="{zcenter}"
             name="detector1"
-            rot="0.0" axis-x="0" axis-y="1" axis-z="0">
+            rot="180.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
     </component>
 
     <!-- Rectangular Detector Panel -->
     <type name="panel" is="rectangular_detector" type="pixel"
-        xpixels="{Nx}" xstart="{xstart}" xstep="-{dx}"
+        xpixels="{Nx}" xstart="{xstart}" xstep="+{dx}"
         ypixels="{Ny}" ystart="{ystart}" ystep="+{dy}" >
         <properties/>
     </type>

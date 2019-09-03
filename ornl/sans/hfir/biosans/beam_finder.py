@@ -57,7 +57,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
     ws = mtd[str(ws)]
 
     sl = SampleLogs(ws)
-    sdd_main_detector = sl['sample-detector-distance'].value*1e-3  # meters
+    sdd_main_detector = ws.getInstrument().getComponentByName('detector1').getPos().Z()
     path_length = sdd_main_detector - sdd_wing_detector
 
     wavelength = sl.wavelength.value
@@ -74,35 +74,24 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
     return new_beam_center_y
 
 
-def direct_beam_center(input_workspace, center_x_estimate=0,
-                       center_y_estimate=0, tolerance=0.00125,
-                       direct_beam=True, beam_radius=0.0155,
-                       sdd_wing_detector=1.13):
+def find_beam_center(input_workspace, method='center_of_mass', mask=None,
+                     sdd_wing_detector=1.13, **kwargs):
     """Finds the beam center in a 2D SANS data set.
     Developer: Ricardo Ferraz Leal <rhf@ornl.gov>
 
     Parameters
     ----------
-    input_workspace : MatrixWorkspace, str
-        The beamcenter workspace
-    center_x_estimate : float, optional
-        Estimate for the X beam center in meters, by default 0
-    center_y_estimate : float, optional
-        Estimate for the Y beam center in meters, by default 0
-    tolerance : float, optional
-        Tolerance on the center of mass position between each iteration in m,
-        by default 0.00125
-    direct_beam : bool, optional
-        If true, a direct beam calculation will be performed. Otherwise, the
-        center of mass of the scattering data will be computed by excluding
-        the beam area., by default True
-    beam_radius : float, optional
-        Radius of the beam area, in meters, used the exclude the beam when
-        calculating the center of mass of the scattering pattern,
-        by default 0.0155
+    input_workspace: str, Workspace
+    method: str
+        Method to calculate the beam center( only 'center_of_mass' is
+        implemented)
+    mask: str or list
+        Tubes to be masked
     sdd_wing_detector : float, optional
         Sample Detector Distance,  in meters, of the wing detector,
         by default 1.13
+    kwargs: dict
+        Parameters to be passed to the method to calculate the center
 
     Returns
     -------
@@ -111,11 +100,12 @@ def direct_beam_center(input_workspace, center_x_estimate=0,
         center_y it is usually used to correct BIOSANS wing detector
         Y position.
     """
-
-    center = FindCenterOfMassPosition(
-        InputWorkspace=input_workspace, CenterX=center_x_estimate,
-        CenterY=center_y_estimate, Tolerance=tolerance, DirectBeam=direct_beam,
-        BeamRadius=beam_radius)
+    if method != 'center_of_mass':
+        raise NotImplementedError(f'{method} is not implemented')
+    # TODO: apply mask
+    if mask is not None:
+        logger.warning('mask is currently ignored')
+    center = FindCenterOfMassPosition(InputWorkspace=input_workspace, **kwargs)
 
     center_x, center_y = center
 

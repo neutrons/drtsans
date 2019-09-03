@@ -10,7 +10,7 @@ from mantid.simpleapi import (CalculateEfficiency, ClearMaskFlag,
                               LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent,
                               ReplaceSpecialValues, SolidAngle, SaveNexus)
-from ornl.sans.hfir.gpsans.beam_finder import direct_beam_center
+from ornl.sans.hfir.gpsans.beam_finder import find_beam_center
 from ornl.sans.hfir.normalisation import monitor
 from ornl.sans.sensitivity import inf_value_to_mask
 
@@ -53,7 +53,7 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
                                  RefWorkspace=flood_ws.name())
         #
         # Find the beam center
-        x, y = direct_beam_center(flood_beamcenter_ws)
+        x, y = find_beam_center(flood_beamcenter_ws)
         print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
 
         # Since the Loader translates the X the values are almost the same

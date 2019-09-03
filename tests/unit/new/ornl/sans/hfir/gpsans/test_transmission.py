@@ -37,7 +37,7 @@ def dataset_center(gpsans_full_dataset):
 
     __beamcenter = LoadHFIRSANS(
         Filename=gpsans_full_dataset['beamcenter'])
-    x, y = beam_finder.direct_beam_center(__beamcenter)
+    x, y = beam_finder.find_beam_center(__beamcenter)
     return x, y
 
 

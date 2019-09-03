@@ -25,7 +25,7 @@ def test_beam_finder(biosans_f):
     ws = LoadHFIRSANS(Filename=biosans_f['beamcenter'])
 
     # 0.00144037741238 -0.0243732351545 -0.0267
-    x, y, y_gravity = beam_finder.direct_beam_center(ws)
+    x, y, y_gravity = beam_finder.find_beam_center(ws)
 
     assert x == pytest.approx(0.0014, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
@@ -69,8 +69,8 @@ def test_beam_finder(biosans_f):
     assert y1 == pytest.approx(0.0, abs=1e-3)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_gravity2 = beam_finder.direct_beam_center(
-        ws, center_x_estimate=-x, center_y_estimate=-y)
+    x2, y2, y_gravity2 = beam_finder.find_beam_center(
+        ws, CenterX=-x, CenterY=-y)
 
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-3) == y1

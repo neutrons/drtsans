@@ -19,7 +19,7 @@ def test_beam_finder(gpsans_f):
     LoadHFIRSANS(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws_name)
     ws = mtd[ws_name]
 
-    x, y = beam_finder.direct_beam_center(ws)
+    x, y = beam_finder.find_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
 
     assert x == pytest.approx(-0.02185, abs=1e-3)

@@ -34,7 +34,7 @@ def test_initial_uncertainty(generic_IDF):
         tmp.close()
     ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS2',
                              OutputWorkspace='test_uncertainty')
-    ws.getAxis(0).setUnit('TOF')
+    ws.getAxis(0).setUnit('Wavelength')
     # assume that the TOF is already frame corrected
     for i in range(4):
         ws.dataX(i)[:] = TOF  # microseconds
@@ -52,7 +52,35 @@ def test_initial_uncertainty(generic_IDF):
         else:
             assert abs(ws.dataE(ws_index)[0] -
                        gold_delta_intensity[ws_index]) < 1.E-10
+        # END-IF
+    # END-FOR
 
+    # TODO - reuse the workspace to test with 'band gap'
+    band_gap_test(ws)
+
+    return
+
+
+def band_gap_test(ws):
+
+    # 1. Rebin to 2.5, 0.1, 6.5
+
+    # 2. add sample logs
+
+    # 3. Set uncertainties
+
+    # 4. Check bins with wave length inside gap shall have uncertainties ZERO
+
+    return
+
+
+def _set_eqsans_ws(ws):
+    """
+    Set properties to workspace including ...
+    :param ws:
+    :return:
+    """
+    # TODO - Implement!!!
 
 if __name__ == '__main__':
     pytest.main()

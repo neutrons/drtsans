@@ -1,55 +1,32 @@
-from os.path import join as pj
+from pathlib import Path
 import pytest
-import re
 import numpy as np
-from ornl.path import exists
 from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.hfir.gpsans.load import (permute_contents, serve_data_file,
-                                        load_histogram)
+from ornl.sans.samplelogs import SampleLogs
+from ornl.sans.hfir.gpsans.load import load_histogram
 
 
-@pytest.fixture(scope='module')
-def tfs(refd):
-    return dict(original=pj(refd.new.gpsans, 'CG2_exp206_scan0016_0001.xml'),
-                idf=pj(refd.new.gpsans, 'instrument',
-                       'GPSANS_Definition_2019_2100.xml'))
+def test_load_histogram(reference_dir):
+    filename = str(Path(reference_dir.new.gpsans) / 'CG2_exp206_scan0016_0001.xml')
 
-
-def test_permute_contents(tfs):
-    xml = permute_contents(tfs['original'])
-    # location in the XML file of the fourth pixel containing two counts
-    assert [m.regs[0][0] for m in list(re.finditer('2\t', xml))][4] == 29800
-
-
-def test_serve_data_file(tfs):
-    with serve_data_file(tfs['original']) as data_file:
-        assert data_file == tfs['original']
-    with serve_data_file(tfs['original'], tfs['idf']) as data_file:
-        assert exists(data_file) is True
-        assert data_file != tfs['original']
-    assert exists(data_file) is False
-
-
-def test_load_histogram(tfs):
     name = uwd()
-    w = load_histogram(tfs['original'], wavelength=4.2, wavelength_spread=0.42,
-                       sample_to_detector_distance=1042, idf=None,
-                       output_workspace=name)
+    w = load_histogram(filename, wavelength=4.2, wavelength_spread=0.42, output_workspace=name)
     assert w.name() == name
     z = w.getInstrument().getComponentByName('detector1').getPos()[-1]
-    assert z == 1.042
+    assert z == 6.055
     max_id = np.argmax(w.extractY()[2:].flatten())
     tube_id, pixel_id = max_id // 256, max_id % 256
-    assert (tube_id, pixel_id) == (92, 120)
-    # Load with the new IDF
-    w = load_histogram(tfs['original'], wavelength=4.2, wavelength_spread=0.42,
-                       sample_to_detector_distance=1042, idf=tfs['idf'],
-                       output_workspace=name)
+    assert (tube_id, pixel_id) == (90, 120)
+    assert SampleLogs(w)['sample-detector-distance'].value == pytest.approx(6055.0, abs=0.1)
+
+    # override the the sample-to-detector-distance. Should not affect the detector with maximum intensity
+    w = load_histogram(filename, wavelength=4.2, wavelength_spread=0.42,
+                       sample_to_detector_distance=1.042, unit='m',  output_workspace=name)
     z = w.getInstrument().getComponentByName('detector1').getPos()[-1]
     assert z == 1.042
     max_id = np.argmax(w.extractY()[2:].flatten())
-    assert max_id // 256 == 90
-    assert max_id % 256 == pixel_id
+    assert (max_id // 256, max_id % 256) == (tube_id, pixel_id)
+    assert SampleLogs(w)['sample-detector-distance'].value == pytest.approx(1042.0, abs=0.1)
 
 
 if __name__ == '__main__':

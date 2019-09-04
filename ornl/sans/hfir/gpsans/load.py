@@ -40,7 +40,9 @@ def load_histogram(filename, wavelength=None, wavelength_spread=None, sample_to_
     MatrixWorkspace
         A reference to the workspace created.
     """
-    unit_to_m = dict(m=1., mm=1.e-3)
+    unit_to_mm = dict(m=1.e3, mm=1.)
+    if sample_to_detector_distance is not None:
+        sample_to_detector_distance *= unit_to_mm[unit]
     if output_workspace is None:
         output_workspace = os.path.basename(filename).split('.')[0]
     LoadHFIRSANS(Filename=filename,
@@ -48,10 +50,4 @@ def load_histogram(filename, wavelength=None, wavelength_spread=None, sample_to_
                  WavelengthSpread=wavelength_spread,
                  SampleDetectorDistance=sample_to_detector_distance,
                  OutputWorkspace=output_workspace)
-    if sample_to_detector_distance is not None:
-        sample = mtd[output_workspace].getInstrument().getSample()
-        z = sample.getPos()[-1] + sample_to_detector_distance * unit_to_m[unit]
-        MoveInstrumentComponent(Workspace=output_workspace,
-                                ComponentName='detector1',
-                                Z=z, RelativePosition=False)
     return mtd[output_workspace]

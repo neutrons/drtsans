@@ -1,11 +1,5 @@
 import os
-import re
-import numpy as np
-from contextlib import contextmanager
-from tempfile import NamedTemporaryFile
-from mantid.simpleapi import (mtd, LoadHFIRSANS, LoadInstrument,
-                              MoveInstrumentComponent)
-from ornl.path import exists
+from mantid.simpleapi import mtd, LoadHFIRSANS
 
 # Functions exposed to the general user (public) API
 __all__ = ['load_histogram']

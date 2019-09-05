@@ -41,6 +41,7 @@ def dataset_center(gpsans_full_dataset):
     return x, y
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
                                 dataset_center):
     x, y = dataset_center[0], dataset_center[1]
@@ -60,6 +61,7 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws,
     assert trans.readE(0)[0] == approx(0.01267, abs=1e-4)
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_apply_transmission_correction(gpsans_full_dataset,
                                        sample_scattering_sum_ws,
                                        dataset_center):
@@ -84,6 +86,7 @@ def test_apply_transmission_correction(gpsans_full_dataset,
     assert ws_c.readY(9100)[0] == approx(20.0 / trans_value, abs=1e-3)
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center,
                                         sample_scattering_sum_ws):
     trans_value = 0.5191
@@ -103,6 +106,7 @@ def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center,
     assert ws_c.readY(9100)[0] == approx(20.0 / trans_value, abs=1e-3)
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center,
                                           sample_scattering_sum_ws):
     ws = sample_scattering_sum_ws
@@ -120,6 +124,7 @@ def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center,
     assert ws_c.readE(9100)[0] == approx(58.312, abs=1e-2)
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_apply_transmission_correction_value(gpsans_full_dataset,
                                              sample_scattering_sum_ws):
     ws = sample_scattering_sum_ws

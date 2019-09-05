@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
+import pytest
 from mantid.simpleapi import LoadEmptyInstrument, MaskBTP
 from ornl.sans.detector import Component
 from ornl.settings import unique_workspace_name

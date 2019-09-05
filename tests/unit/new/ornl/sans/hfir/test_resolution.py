@@ -94,7 +94,6 @@ class HFIRResolution(unittest.TestCase):
         summed_ref = dq_ref.sum()
         self.assertTrue(np.fabs(np.log10(summed)-np.log10(summed_ref)) < 1.0)
 
-
     @pytest.mark.skip(reason='skip test until issue #140 resolved')
     def test_2d(self):
         """

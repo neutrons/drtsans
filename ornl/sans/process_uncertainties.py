@@ -26,8 +26,10 @@ def set_init_uncertainties(input_ws, output_ws=None, mask_band_gap=True):
     # Set output workspace
     if output_ws is None:
         output_ws_name = str(input_ws)
+        in_out_same = True
     else:
         output_ws_name = str(output_ws).strip()
+        in_out_same = False
         if output_ws_name == '':
             raise RuntimeError('Output workspace name cannot be an empty '
                                'string')
@@ -51,6 +53,8 @@ def set_init_uncertainties(input_ws, output_ws=None, mask_band_gap=True):
     # END-FOR (spectra)
 
     # Set band gap
+    if in_out_same:
+        input_ws = output_ws
     if mask_band_gap and input_ws.getAxis(0).getUnit().unitID() == 'Wavelength':
         output_ws = _mask_bins_in_band_gap(input_ws, output_ws)
 
@@ -65,23 +69,23 @@ def _mask_bins_in_band_gap(original_ws, output_ws):
     :param output_ws:
     :return:
     """
-    # Check instrument name and chopper
-    if original_ws.instrument().getFullName() !='EQ-SANS':
-        # not EQ-SANS: no touch
-        return output_ws
-
-    # Use BL6:Chop:Skf1:SpeedUserReq to get chopper frequency to check only applied to chopper @ 30 Hz
-    chopper_frequency = original_ws.run().getProperty('BL6:Chop:Skf1:SpeedUserReq').value.mean()
-    if abs(chopper_frequency - 30) > 5.:
-        # if chopper is not 30 Hz
-        return output_ws
-
-    # Check sample logs
     try:
+        # Use BL6:Chop:Skf1:SpeedUserReq to get chopper frequency to check only applied to chopper @ 30 Hz
+        chopper_frequency = original_ws.run().getProperty('BL6:Chop:Skf1:SpeedUserReq').value.mean()
+        if abs(chopper_frequency - 30) > 5.:
+            # if chopper is not 30 Hz
+            return output_ws
+
+        # Check sample logs
         lead_max_wl = original_ws.run().getProperty('lead_max').value
         skip_min_wl = original_ws.run().getProperty('skip_min').value
-    except KeyError as key_err:
-        raise RuntimeError('Either lead_max or skip_min is not in workspace: {}'.format(key_err))
+    except RuntimeError as run_err:
+        if original_ws.getInstrument().getFullName() != 'EQ-SANS':
+            raise RuntimeError('Either lead_max or skip_min is not in workspace: {}'.format(run_err))
+        else:
+            # workspace other than EQ-SANS does not necessarily to have these sample logs
+            return output_ws
+    # END-TRY
 
     # Mask a range of X-values
     output_ws = MaskBins(output_ws, XMin=lead_max_wl, XMax=skip_min_wl)

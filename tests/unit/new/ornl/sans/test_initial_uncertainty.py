@@ -45,7 +45,7 @@ def test_initial_uncertainty(generic_IDF):
     # Set uncertainties
     ws = set_init_uncertainties(ws, mask_band_gap=False)
 
-    print('[INFO] Workspace {} has {} spectra'.format(ws, ws.getNumberHistograms()))
+    print('[TEST INFO] Workspace {} has {} spectra'.format(ws, ws.getNumberHistograms()))
     for ws_index in range(4):
         if np.isnan(gold_delta_intensity[ws_index]):
             assert np.isnan(ws.dataE(ws_index)[0])
@@ -55,7 +55,7 @@ def test_initial_uncertainty(generic_IDF):
         # END-IF
     # END-FOR
 
-    # TODO - reuse the workspace to test with 'band gap'
+    # reuse the workspace to test with 'band gap'
     band_gap_test(ws)
 
     return
@@ -75,7 +75,7 @@ def band_gap_test(ws):
         vec_y_i = abs(np.random.randn(num_bins)) * 100
         vec_y_i[1] = 0
         vec_y_i[2] = np.nan
-        ws.dataY[iws] = vec_y_i[:]
+        ws.dataY(iws)[:] = vec_y_i[:]
     # END-FOR
 
     # add sample logs: chopper, lead_max, and skip_min
@@ -86,13 +86,13 @@ def band_gap_test(ws):
     AddSampleLog(Workspace=ws, LogName='skip_min', LogText='5.5', LogType='Number')
 
     # Set uncertainties
-    set_init_uncertainties(ws, mask_band_gap=True)
+    ws = set_init_uncertainties(ws, mask_band_gap=True)
 
     # Check bins with wave length inside gap shall have uncertainties ZERO
-    for iws in range(ws.getNumberHistograms):
+    for iws in range(ws.getNumberHistograms()):
         assert ws.readE(iws)[1] == 1.
         assert np.isnan(ws.readE(iws)[2])
-        assert np.allclose(ws.readE[iws][10:30], np.zeros(20))
+        assert np.allclose(ws.readE(iws)[10:30], np.zeros(20))
     # END-FOR
 
     return

@@ -1,5 +1,8 @@
--r requirements.txt
+# INSTALL THE requirements.txt AS WELL
 
-# for linting and formatting 
-autopep8==1.3.5
-flake8==3.5.0
+pytest >= 3.2
+pytest-xdist
+
+# for linting and formatting
+autopep8
+flake8

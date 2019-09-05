@@ -16,7 +16,6 @@ def numbers_in_line(line, numbers):
         [x == approx(n, rel=1.E-03) or x < 0.02 for x, n in zip(xyz, numbers)])
 
 
-@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_save_ascii(gpsans_f):
 
     ws = LoadHFIRSANS(Filename=gpsans_f['sample_transmission'],
@@ -34,7 +33,7 @@ def test_save_ascii(gpsans_f):
     with tempfile.NamedTemporaryFile('r+') as tmp:
         save_ascii_1D(ws_iq, 'Test GPSANS', tmp.name)
         output_lines = tmp.readlines()
-        numbers = (0.158771, 0.000000, 140.542940, 0.025318)
+        numbers = (0.156581, 0.000000, 135.788748, 0.025075)
         assert numbers_in_line(output_lines[101], numbers) is True
 
     with tempfile.NamedTemporaryFile('r+') as tmp:

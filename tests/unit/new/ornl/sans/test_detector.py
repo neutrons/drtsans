@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
+import pytest
 from mantid.simpleapi import LoadEmptyInstrument, MaskBTP
 from ornl.sans.detector import Component
 from ornl.settings import unique_workspace_name
@@ -50,6 +50,7 @@ def test_detector_eqsans():
     assert 1 == d.first_index
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_detector_masked_gpsans():
     # flake8: noqa E712
     ws = LoadEmptyInstrument(InstrumentName='cg2',

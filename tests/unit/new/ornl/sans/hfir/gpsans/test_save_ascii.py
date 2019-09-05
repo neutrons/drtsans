@@ -16,6 +16,7 @@ def numbers_in_line(line, numbers):
         [x == approx(n, rel=1.E-03) or x < 0.02 for x, n in zip(xyz, numbers)])
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_save_ascii(gpsans_f):
 
     ws = LoadHFIRSANS(Filename=gpsans_f['sample_transmission'],

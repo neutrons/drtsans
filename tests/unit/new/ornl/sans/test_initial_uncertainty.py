@@ -21,7 +21,7 @@ def test_initial_uncertainty(generic_IDF):
     :return:i
     """
     # Range of TOF
-    wave_length_range = np.array([2.5., 6.5])  # A
+    wave_length_range = np.array([2.5, 6.5])  # A
     intensity = np.array([0., 187., 1., np.nan])
     init_delta_intensity = np.random.randn(intensity.shape[0], )
     gold_delta_intensity = np.array([1., np.sqrt(187.), 1., np.nan])

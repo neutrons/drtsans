@@ -50,6 +50,7 @@ def test_detector_eqsans():
     assert 1 == d.first_index
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_detector_masked_gpsans():
     # flake8: noqa E712
     ws = LoadEmptyInstrument(InstrumentName='cg2',

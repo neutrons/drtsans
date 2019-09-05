@@ -4,6 +4,7 @@ import pytest
 from mantid.simpleapi import LoadEmptyInstrument, Rebin
 from ornl.sans.momentum_transfer import calculate_momentum_transfer
 
+
 # This implements Issue #210
 # dev - Wenduo Zhou <wzz@ornl.gov>
 @pytest.mark.parametrize('generic_IDF',

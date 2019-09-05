@@ -15,6 +15,7 @@ from reduction_workflow.instruments.sans.hfir_command_interface import (
     GPSANS, AzimuthalAverage, IQxQy, OutputPath, SetBeamCenter)
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     '''
     Tests the basic for momentum transfer:
@@ -86,6 +87,7 @@ def test_momentum_tranfer_cross_check(gpsans_f):
     assert np.allclose(legacy_iq, new_iq)
 
 
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_momentum_tranfer_with_and_without_mask(gpsans_f):
     '''
     Test Iq, Iqxqy with the ends of the detector tubes masked

@@ -1,29 +1,25 @@
 #!/usr/bin/env python
-from __future__ import print_function
-
 import pytest
+from mantid import mtd
+from mantid.simpleapi import MoveInstrumentComponent, FindCenterOfMassPosition, LoadHFIRSANS
+from ornl.settings import unique_workspace_dundername
+from ornl.sans.hfir.gpsans import beam_finder
 
 
-@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_beam_finder(gpsans_f):
     '''
     Test with the new beam finder
     '''
 
-    from ornl.sans.hfir.gpsans import beam_finder
-    from mantid import mtd
-    from mantid.simpleapi import (
-        MoveInstrumentComponent, FindCenterOfMassPosition, LoadHFIRSANS)
-
-    ws_name = "__beamcenter"
+    ws_name = unique_workspace_dundername()
     LoadHFIRSANS(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws_name)
     ws = mtd[ws_name]
 
     x, y = beam_finder.find_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
 
-    assert x == pytest.approx(-0.02185, abs=1e-3)
-    assert y == pytest.approx(-0.020307, abs=1e-3)
+    assert x == pytest.approx(0.02185, abs=1e-4)
+    assert y == pytest.approx(-0.0193, abs=1e-4)
 
     # Let's center the instrument and get the new center: It should be 0 after
     # the re-centring
@@ -33,5 +29,7 @@ def test_beam_finder(gpsans_f):
     x, y = center
 
     # Tolerance 1e-3 == milimeters
-    assert x == pytest.approx(0.0, abs=1e-3)
-    assert y == pytest.approx(0.0, abs=1e-3)
+    assert x == pytest.approx(0.0, abs=1e-4)
+    assert y == pytest.approx(0.0, abs=1e-4)
+
+    ws.delete()

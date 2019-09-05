@@ -65,13 +65,16 @@ def _mask_bins_in_band_gap(original_ws, output_ws):
     :param output_ws:
     :return:
     """
-    # Check chopper
     # Check instrument name and chopper
-    # ins.getFullName() =='EQ-SANS'
-    # BL6:Chop:Skf1:SpeedUserReq
-    # ws.run().getProperty('BL6:Chop:Skf1:SpeedUserReq').value.mean() - 60. < 1.E-2
-    if original_ws.run().getProperty('chopper').value != '30':
-        return output_ws  # only applied to chopper @ 30 Hz
+    if original_ws.instrument().getFullName() !='EQ-SANS':
+        # not EQ-SANS: no touch
+        return output_ws
+
+    # Use BL6:Chop:Skf1:SpeedUserReq to get chopper frequency to check only applied to chopper @ 30 Hz
+    chopper_frequency = original_ws.run().getProperty('BL6:Chop:Skf1:SpeedUserReq').value.mean()
+    if abs(chopper_frequency - 30) > 5.:
+        # if chopper is not 30 Hz
+        return output_ws
 
     # Check sample logs
     try:

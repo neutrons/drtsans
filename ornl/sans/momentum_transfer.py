@@ -4,6 +4,7 @@ from ast import literal_eval
 from string import Template
 
 import numpy as np
+from numpy import linalg
 from scipy import stats
 
 import mantid
@@ -465,3 +466,58 @@ class MomentumTransfer:
         return MomentumTransfer._bin_into_q1d(q, dq, i, i_sigma,
                                               self.prefix, bins,
                                               statistic, suffix)
+
+
+def calculate_momentum_transfer(ws):
+    """ Calculate momentum transfer in vector by operating on source, sample and detector positions,
+    i.e., vec{q} = 2 pi (vec{k_out} - vec{k_in}) / lambda
+    :param ws: workspace instance with unit Wavelength
+    :return: 4-tuple of N x M array for Q, Qx, Qy, Qz, where N is the number of spectra and M is number of bins
+    """
+    # Check inputs and unit
+    if ws is None:
+        raise RuntimeError('Workspace cannot be None')
+    elif ws.getAxis(0).getUnit().unitID() != 'Wavelength':
+        raise RuntimeError('Input workspace {} for calculate Q resolution must be in unit Wavelength but not {}'
+                           ''.format(ws, ws.getAxis(0).getUni().unitID()))
+
+    # Obtain wave length
+    wavelength_bin_boundary_matrix = ws.extractX()
+    wavelength_bin_center_matrix = (wavelength_bin_boundary_matrix[:, 1:] +
+                                    wavelength_bin_boundary_matrix[:, :-1]) / 2.0
+
+    # Get instrument information
+    spec_info = ws.spectrumInfo()
+    num_spec = spec_info.size()
+
+    # sample and moderator information: get K_i
+    sample_pos = ws.getInstrument().getSample().getPos()
+    source_pos = ws.getInstrument().getSource().getPos()
+    k_in = sample_pos - source_pos
+    k_in /= linalg.norm(k_in)
+
+    unit_q_vector = np.zeros(shape=(num_spec, 3), dtype='float')
+
+    for iws in range(num_spec):
+        if spec_info.hasDetectors(iws) and not spec_info.isMonitor(iws):
+            # calculate Qx, Qy, Qz
+            det_i_pos = ws.getDetector(iws).getPos()
+            k_out = det_i_pos - sample_pos
+            k_out /= linalg.norm(k_out)
+            unit_q_vector[iws] = k_out - k_in
+        # otherwise, unit_q_vector[iws] is zero
+    # END-FOR
+
+    # Calculate Q from unit Q vector and 2pi/lambda
+    qx_matrix = 2.*np.pi*unit_q_vector[:, 0].reshape((num_spec, 1)) / wavelength_bin_center_matrix
+    qy_matrix = 2.*np.pi*unit_q_vector[:, 1].reshape((num_spec, 1)) / wavelength_bin_center_matrix
+    qz_matrix = 2.*np.pi*unit_q_vector[:, 2].reshape((num_spec, 1)) / wavelength_bin_center_matrix
+
+    q_matrix = np.sqrt(qx_matrix**2 + qy_matrix**2 + qz_matrix**2)
+
+    # print('[DEBUG] Q  matrix: shape={}\n{}'.format(q_matrix.shape, q_matrix))
+    # print('[DEBUG] Qx matrix: shape={}\n{}'.format(qx_matrix.shape, qx_matrix))
+    # print('[DEBUG] Qy matrix: shape={}\n{}'.format(qy_matrix.shape, qy_matrix))
+    # print('[DEBUG] Qz matrix: shape={}\n{}'.format(qz_matrix.shape, qz_matrix))
+
+    return q_matrix, qx_matrix, qy_matrix, qz_matrix

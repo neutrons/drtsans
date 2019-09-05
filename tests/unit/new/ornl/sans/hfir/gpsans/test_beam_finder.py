@@ -4,7 +4,7 @@ from __future__ import print_function
 import pytest
 
 
-@pytest.mark.offline
+@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_beam_finder(gpsans_f):
     '''
     Test with the new beam finder

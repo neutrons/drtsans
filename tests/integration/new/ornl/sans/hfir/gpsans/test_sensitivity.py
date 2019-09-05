@@ -33,7 +33,7 @@ Save file as nexus
 '''
 
 
-@pytest.mark.skip(reason='skip test until GPSANS instrument updated)
+@pytest.mark.skip(reason='skip test until GPSANS instrument updated')
 def test_sensitivity_procedural(gpsans_sensitivity_dataset):
     dark_current_ws = LoadHFIRSANS(
         Filename=gpsans_sensitivity_dataset['dark_current'])

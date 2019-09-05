@@ -41,10 +41,8 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
     for trans in [0, 200, 400]:
         # Get the file names
         flood_file = gpsans_sensitivity_dataset["flood_trans_{}".format(trans)]
-        flood_beamcenter_file = gpsans_sensitivity_dataset[
-            "flood_trans_{}_beamcenter".format(trans)]
-        flood_mask_file = gpsans_sensitivity_dataset[
-            "flood_trans_{}_mask".format(trans)]
+        flood_beamcenter_file = gpsans_sensitivity_dataset["flood_trans_{}_beamcenter".format(trans)]
+        flood_mask_file = gpsans_sensitivity_dataset["flood_trans_{}_mask".format(trans)]
         #
         # Load the files into WS
         flood_ws = LoadHFIRSANS(Filename=flood_file)
@@ -58,8 +56,8 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
 
         # Since the Loader translates the X the values are almost the same
         # Test if it's right!
-        assert x == pytest.approx(-0.021, abs=1e-3)
-        assert y == pytest.approx(-0.03, abs=1e-2)
+        assert x == pytest.approx(-0.0244, abs=1e-4)
+        assert y == pytest.approx(-0.0317, abs=1e-4)
         #
         # Get the right geometry
         MoveInstrumentComponent(Workspace=flood_ws.name(),

@@ -1,3 +1,5 @@
+# project specific things to ignore
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -109,4 +111,3 @@ testenv2.7
 # PyCharm
 .idea
 .vscode
-

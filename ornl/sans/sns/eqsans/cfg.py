@@ -298,8 +298,7 @@ def load_config(source, config_dir=cfg_dir):
     Parameters
     ----------
     source: str
-        One of the following: (1) absolute path or just filename to a
-        configuration file; (2) run-number
+        The filename (absolute path or relative) to a configuration file or a run-number
     config_dir: str
         Directory containing configuration files
 

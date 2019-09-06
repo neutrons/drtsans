@@ -192,18 +192,18 @@ def normalise_by_time(input_workspace, log_key=None, output_workspace=None):
 
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
     log_key: str
-        Use this log entry to figure out the run duration. If `None`,
-        logs are sequentially searched for keys `duration`, `start_time`,
-        `proton_charge`, and `timer`, in order to find out the duration.
+        Use this log entry to figure out the run duration. If :py:obj:`None`,
+        logs are sequentially searched for keys ``duration``, ``start_time``,
+        ``proton_charge``, and ``timer``, in order to find out the duration.
     output_workspace : str
-        Name of the normalised workspace. If None, the name of the input
+        Name of the normalised workspace. If :py:obj:`None`, the name of the input
         workspace is chosen (and the input workspace is overwritten).
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
@@ -225,26 +225,26 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: ~mantid.api.MatrixWorkspace
         Input workspace, binned in wavelength
     flux: str
-        If `method` is 'proton charge', flux is the path to the file
+        If ``method`` is 'proton charge', flux is the path to the file
         containing the wavelength distribution of the neutron flux. If
-        `method` is `monitor`, then flux is the path to the file containing
-        a pre-measured flux-to-monitor ratio spectrum. If `flux_method`
-        is `time`, then pass one log entry name such as 'duration' or pass
-        `None` for automatic log search.
+        ``method`` is 'monitor', then flux is the path to the file containing
+        a pre-measured flux-to-monitor ratio spectrum. If ``flux_method``
+        is 'time', then pass one log entry name such as 'duration' or pass
+        :py:obj:`None` for automatic log search.
     method: str
         Either 'proton charge' or 'monitor'
-    monitor_workspace: str, MatrixWorkspace
+    monitor_workspace: str, ~mantid.api.MatrixWorkspace
         Prepared monitor workspace
     output_workspace : str
-        Name of the normalised workspace. If None, the name of the input
+        Name of the normalised workspace. If :py:obj:`None`, the name of the input
         workspace is chosen (the input workspace is overwritten).
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)

@@ -9,7 +9,7 @@ def save_ascii_1D(wksp, title, filename):
 
     Parameters
     ----------
-    wksp : Workspace2D
+    wksp : ~mantid.api.MatrixWorkspace
         Workspace containing only one spectrum (the I(q) curve)
     title : string
         first line of the ascii file
@@ -34,7 +34,7 @@ def save_xml_1D(wksp, title, filename):
 
     Parameters
     ----------
-    wksp : Workspace2D
+    wksp : ~mantid.api.MatrixWorkspace
         Workspace containing only one spectrum (the I(q) curve)
     title : string
         Text to append to Process section

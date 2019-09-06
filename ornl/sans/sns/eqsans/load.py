@@ -24,16 +24,16 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
     Parameters
     ----------
     run: int, str
-        Examples: 55555 or EQSANS_55555 or file path.
+        Examples: ``55555`` or ``EQSANS_55555`` or file path.
     data_dir: str, list
         Additional data search directories
     output_workspace: str
-        If not specified it will be EQSANS_55555_monitors determined from
+        If not specified it will be ``EQSANS_55555_monitors`` determined from
         the supplied value of ``run``
 
     Returns
     -------
-    Matrixworkspace
+    ~mantid.api.MatrixWorkspace
     """
     suffix = '_monitors'
     if output_workspace is None:
@@ -62,14 +62,14 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     Load events with initial corrections for geometry and time-of-flight
 
     Note: Detector is translated along the Z-axis by the value
-    specified in keyword "detectorZ" of the logs
+    specified in keyword ``detectorZ`` of the logs
 
     This function contains a call to mantid algorithm LoadEventNexus.
 
     Parameters
     ----------
     run: int, str
-        Examples: 55555 or EQSANS_55555 or file path.
+        Examples: ``55555`` or ``EQSANS_55555`` or file path.
     detector_offset: float
         Additional translation of the detector along the Z-axis, in mm.
     sample_offset: float
@@ -83,14 +83,14 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     data_dir: str, list
         Additional data search directories
     output_workspace: str
-        If not specified it will be EQSANS_55555 determined from the supplied
+        If not specified it will be ``EQSANS_55555`` determined from the supplied
         value of ``run``
     kwargs: dict
-        Additional positional arguments for LoadEventNexus.
+        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
     Returns
     -------
-    EventWorkspace
+    ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
     if output_workspace is None:

@@ -6,10 +6,10 @@ def save_nist_dat(input_workspace, filename):
 
     Parameters
     ----------
-    input_workspace : Workspace2D
+    input_workspace : ~mantid.api.MatrixWorkspace
         Workspace to be saved
     filename : string
-        Filename of the output text file. Allowed extensions: ['.dat']
+        Filename of the output text file. Allowed extensions: [``.dat``]
     """
     SaveNISTDAT(InputWorkspace=input_workspace, Filename=filename)
 
@@ -19,12 +19,12 @@ def save_nexus(input_workspace, title, filename):
 
     Parameters
     ----------
-    input_workspace : Workspace2D
+    input_workspace : ~mantid.api.MatrixWorkspace
         Name of the workspace to be saved
     title : string
         Title to describe the saved worksapce
     filename : string
         The bame of the NeXus file to write, as a full or relative path.
-        Allowed extensions: ['.nxs','.nx5','.xml']
+        Allowed extensions: [``.nxs``, ``.nx5``, ``.xml``]
     """
     SaveNexus(InputWorkspace=input_workspace, Title=title, Filename=filename)

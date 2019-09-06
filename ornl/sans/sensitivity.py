@@ -333,16 +333,23 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
                                  output_workspace=None):
     '''Apply a previously calculated sensitivity correction
 
+    **Mantid algorithms used:**
+    :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`,
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
+    :ref:`Divide <algm-Divide-v1>`,
+    :ref:`LoadNexusProcessed <algm-LoadNexusProcessed-v1>`,
+    :ref:`MaskDetectors <algm-MaskDetectors-v1>`
+
     Parameters
-    ==========
-    input_workspace: Workspace2D
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         workspace to apply the correction to
-    sensitivity_filename:
+    sensitivity_filename: str
         file containing previously calculated sensitivity correction
-    sensitivity_workspace:
+    sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
-    output_workspace: Workspace2D
+    output_workspace:  ~mantid.api.MatrixWorkspace
         corrected workspace. This is the input workspace by default
     '''
     if output_workspace is None:
@@ -380,6 +387,28 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
 def calculate_sensitivity_correction(input_workspace, min_threashold,
                                      max_threshold, filename,
                                      output_workspace=None):
+    '''
+    Calculate the detector sensitivity
+
+    **Mantid algorithms used:**
+    :ref:`CalculateEfficiency <algm-CalculateEfficiency-v1>`,
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
+    :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
+
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace
+        Workspace to calculate the sensitivity from
+    min_threashold: float
+        Minimum threshold for sensitivity value
+    max_threashold: float
+        Maximum threshold for sensitivity value
+    filename: str
+        Name of the file to save the sensitivity calculation to
+    output_workspace: ~mantid.api.MatrixWorkspace
+        The calculated sensitivity workspace
+    '''
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 

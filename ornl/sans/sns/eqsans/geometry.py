@@ -17,7 +17,7 @@ def translate_sample_by_z(ws, z):
 
     Parameters
     ----------
-    ws: Workspace
+    ws: ~mantid.api.MatrixWorkspace
         Input workspace containing instrument file
     z: float
         Translation to be applied
@@ -34,13 +34,13 @@ def translate_detector_z(ws, z=None, relative=True):
 
     Parameters
     ----------
-    ws: Workspace
+    ws: ~mantid.api.MatrixWorkspace
         Input workspace containing instrument file
     z: float
-        Translation to be applied, in units of meters. If `None`, log_key
-        stored in `detector_z_log` is used
+        Translation to be applied, in units of meters. If :py:obj:`None`, log_key
+        stored in ``detector_z_log`` is used
     relative: bool
-        If True, add to the current z-coordinate. If False, substitute
+        If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
         the current z-coordinate with the new value.
     """
     if z is None:
@@ -53,7 +53,7 @@ def translate_detector_z(ws, z=None, relative=True):
 
 def translate_detector_by_z(ws, z, **kwargs):
     r"""
-    Simplified call to translate_detector_z
+    Simplified call to :func:`.translate_detector_z`
     """
     return translate_detector_z(ws, z=z, relative=True, **kwargs)
 
@@ -115,7 +115,7 @@ def sample_aperture_diameter(run, unit='mm'):
 
     Parameters
     ----------
-    run: Mantid Run instance, MatrixWorkspace, file name, run number
+    run: Mantid Run instance, :py:obj:`~mantid.api.MatrixWorkspace`, file name, run number
         Input from which to find the aperture
     unit: str
         return aperture in requested length unit, either 'm' or 'mm'

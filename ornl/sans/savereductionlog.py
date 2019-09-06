@@ -168,6 +168,8 @@ def savereductionlog(filename, wksp, *args, **kwargs):
     is for the 2d reduced data, and the third is for the extra information
     about how the data was processed.
 
+    The options read from the ``kwargs`` parameter are listed with the other parameters.
+
     Parameters
     ----------
     wksp: Workspace2D
@@ -179,21 +181,25 @@ def savereductionlog(filename, wksp, *args, **kwargs):
         Other workspaces to save to the file. This can be the Workspace
         containing I(Qx, Qy), or multiple 1d Workspaces for additional frames,
         or a mixture
-    kwargs: dict
-        dictionary of optional items:
-        - ``python`` the script used to create everything
-        - `pythonfile`` the name of the file containing the python script.
-          Will be read into ``python`` argument if not already supplied
-        - ``reductionparams`` is the parameters supplied to the reduction
-          script
-        - ``starttime`` when the original script was started
-        - ``hostname`` name of the computer used. If not provided, will be
-          gotten from the system environment ``HOSTNAME``
-        - ``user`` user-id of who reduced the data (as in xcamms). If not
-          provided will be gotten from the system environment ``USER``
-        - ``username`` username of who reduced the data (as in actual name).
-          If not provided will be gotten from the system environment
-          ``USERNAME``
+    python: string
+        The script used to create everything (optional)
+    pythonfile: string
+        The name of the file containing the python script.
+        Will be read into ``python`` argument if not already supplied (optional)
+    reductionparams: str, dict
+        The parameters supplied to the reduction script as either a nested :py:obj:`dict`
+        or a json formatted :py:obj:`str` (optional)
+    starttime: str
+        When the original script was started (optional, default: now)
+    hostname: str
+        Name of the computer used. If not provided, will be gotten from the system
+        environment ``HOSTNAME`` (optional)
+    user: str
+        User-id of who reduced the data (as in xcamms). If not provided will be
+        gotten from the system environment ``USER`` (optional)
+    username: str
+        Username of who reduced the data (as in actual name). If not provided
+        will be gotten from the system environment ``USERNAME`` (optional)
     '''
     if not filename:
         raise RuntimeError('Cannot write to file "{}"'.format(filename))

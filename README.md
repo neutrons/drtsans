@@ -123,6 +123,18 @@ To run an individual test within an individual file add `::` to the filename to 
 $ python -m pytest tests/integration/new/ornl/sans/sns/eqsans/test_momentum_transfer.py::test_api
 ```
 
+Building the documentation
+--------------------------
+
+The site can be build directly using
+```sh
+$ sphinx-build -b html docs/source/ build/sphinx/html
+```
+or
+```sh
+$ python setup.py build_sphinx
+```
+
 NEXT branch
 -----------
 

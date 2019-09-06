@@ -18,28 +18,29 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
     Move the detector on the XY plane to center the beam location
 
     An estimation of the center of the detector is carried out
-    according to `method`, unless `x` and `y` absolute coordinates
-    are provided (`relative=False`) in which case `x` and `y` are used.
-    If `x` and `y` are a translation (`relative=False`) then both
-    `method` and the translation will be applied.
+    according to ``method``, unless ``x`` and ``y`` absolute coordinates
+    are provided (``relative=False``) in which case ``x`` and ``y`` are used.
+    If ``x`` and ``y`` are a translation (``relative=False``) then both
+    ``method`` and the translation will be applied.
 
-    case 1: position detector after a center of mass estimation. The
-        intersection between the neutron beam and the detector array will
-        have coordinates (0, 0, Z).
-        center_detector(ws)
-    case 2: position detector at absolute coordinates (x0,y0)
-        center_detector(ws, x=x0, y=y0)
-    case 3: translate the detector by (x0, y0)
-        enter_detector(ws, method=None, x=x0, y=y0, relative=True)
-    case 4: position detector after a center of mass estimation followed
-            by a translation (x0, y0)
-         center_detector(ws, x=x0, y=y0, relative=True)
+    case 1: ``center_detector(ws)`` position detector after a center of mass estimation.
+    The intersection between the neutron beam and the detector array will have
+    coordinates (0, 0, Z).
+
+    case 2: ``center_detector(ws, x=x0, y=y0)`` position detector at absolute
+    coordinates (x0,y0)
+
+    case 3: ``enter_detector(ws, method=None, x=x0, y=y0, relative=True)`` translate the
+    detector by (x0, y0)
+
+    case 4: ``center_detector(ws, x=x0, y=y0, relative=True)`` position detector after a
+    center of mass estimation followed by a translation (x0, y0)
 
     Parameters
     ----------
-    input_workspace: str, Workspace
+    input_workspace: str, ~mantid.api.Workspace
         Input workspace containing the instrument
-    mask: str, MaskWorkspace
+    mask: str, ``MaskWorkspace``
         Use a mask in conjuction with `method` to find the beam center
     method: str
         Method to estimate the center of the beam. `None` for no method
@@ -58,7 +59,7 @@ def center_detector(input_workspace, mask=None, method='center_of_mass',
         Parameters to be passed to FindCenterOfMassPosition
 
     Returns
-    =======
+    -------
     numpy.ndarray
         Coordinates of the detector center
     """
@@ -108,12 +109,12 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwar
 
     Parameters
     ----------
-    input_workspace: str, Workspace
+    input_workspace: str, ~mantid.api.Workspace
     method: str
         Method to calculate the beam center( only 'center_of_mass' is
         implemented)
-    mask: str, MaskWorkspace
-        Path to mask file, or MaskWorkspace object
+    mask: str, ``MaskWorkspace``
+        Path to mask file, or ``MaskWorkspace`` object
     kwargs: dict
         Parameters to be passed to the method to calculate the center
 

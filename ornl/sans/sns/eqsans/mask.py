@@ -9,24 +9,24 @@ def apply_mask(w, panel=None, mask=None, output_workspace=None, **btp):
     Apply a mask or region-of-interest to a workspace.
 
     The function accepts a path to a mask file, a MaskWorkspace, or options
-    to algorithm MaskBTP.
+    to algorithm :ref:`MaskBTP <algm-MaskBTP-v1>`.
 
     Parameters
     ----------
-    w: Workspace
+    w: ~mantid.api.IEventWorkspace
         Workspace to be masked
     panel: str
         Either 'front' or 'back' to mask a whole panel
-    mask: mask file path, MaskWorkspace, list
-        Additional mask to be applied. If `list`, it is a list of
+    mask: mask file path, ``MaskWorkspace``, :py:obj:`list`
+        Additional mask to be applied. If :py:obj:`list`, it is a list of
         detector ID's.
     btp: dict
-        Options to Mantid algorithm MaskBTP. Will be used if `mask=None`
+        Options to Mantid algorithm :ref:`MaskBTP <algm-MaskBTP-v1>`. Will be used if ``mask=None``
 
     Returns
     -------
     MaskWorkspace
-        Combination of panel, mask, and MaskBTP masks
+        Combination of panel, mask, and :ref:`MaskBTP <algm-MaskBTP-v1>` masks
     """
     if panel:
         MaskBTP(Workspace=w, instrument='EQ-SANS', Components=panel + '-panel')

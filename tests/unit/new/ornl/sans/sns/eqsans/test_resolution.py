@@ -65,11 +65,10 @@ class EQSANSResolution(unittest.TestCase):
 
     def test_moderator_time_error(self):
         from ornl.sans.sns.eqsans.resolution import _moderator_time_error
-        out = _moderator_time_error(np.array([1.5]))
-        self.assertTrue(np.isclose(out[0], 214.74671875))
-        out = _moderator_time_error(np.array([3.0]))
-        wl = 3.
-        self.assertTrue(np.isclose(out[0], 0.0148*wl**3-0.5233*wl**2+6.4797*wl+231.99))
+        wavelengths = [1.5, 9.3]
+        expected = [214.74671875, 258.8954766]
+        out = _moderator_time_error(np.array(wavelengths))
+        self.assertTrue(np.allclose(out, expected))
         return
 
 

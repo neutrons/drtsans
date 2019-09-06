@@ -86,8 +86,8 @@ def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
         w = normalise_by_monitor(dws, flux_to_monitor, mon,
                                  output_workspace=uwd())
     dws, mon = data_ws['88565'], monitor_ws['88565']
-    print(dws.extractX().shape,dws.extractY().shape)
-    print(mon.extractX().shape,mon.extractY().shape)
+    print(dws.extractX().shape, dws.extractY().shape)
+    print(mon.extractX().shape, mon.extractY().shape)
     w = normalise_by_monitor(dws, flux_to_monitor, mon,
                              output_workspace=uwd())
     w = SumSpectra(w, OutputWorkspace=w.name())
@@ -132,7 +132,7 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
     assert min(w.readY(0)) * 1e4 == approx(3.4, abs=0.1)
     w.delete()
 
-    # Normalize by run duration
+    # Normalize by run durationa
     dws = data_ws['92353']
     d = SampleLogs(dws).duration.value
     y, e = sum(dws.readY(42)), sum(dws.readE(42))

@@ -27,6 +27,7 @@ sigma, mu = 0.3, 0  # gaussian image
 d = np.sqrt(x * x + y * y)
 g = np.exp(-((d - mu) ** 2 / (2 * sigma ** 2)))
 
+
 @pytest.mark.parametrize('generic_workspace',
                          [{'axis_values': x,
                            'intensities': g}],
@@ -48,6 +49,7 @@ for i in range(10):
     z_sam.append(z)
 z_sam = np.array(z_sam)
 
+
 @pytest.mark.parametrize('generic_workspace',
                          [{'axis_values': x,
                            'intensities': z_sam}],
@@ -67,7 +69,7 @@ def test_normalization_by_monitor_spectrum(generic_workspace):
     for i in range(10):
         I_samnorm.append(I_sam[i] / fm[i] / phi[i])
 
-    out = normalise_by_monitor(ws,fm_ws,phi_ws)
+    out = normalise_by_monitor(ws, fm_ws, phi_ws)
 
 
 if __name__ == '__main__':

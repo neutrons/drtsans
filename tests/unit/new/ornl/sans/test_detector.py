@@ -50,18 +50,16 @@ def test_detector_eqsans():
     assert 1 == d.first_index
 
 
-@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_detector_masked_gpsans():
     # flake8: noqa E712
-    ws = LoadEmptyInstrument(InstrumentName='cg2',
-                             OutputWorkspace=unique_workspace_name())
+    ws = LoadEmptyInstrument(InstrumentName='cg2', OutputWorkspace=unique_workspace_name())
     d = Component(ws, "detector1")
     masked_array = d.masked_ws_indices()
     # No Masks applied yet, all should be false
     assert (masked_array == False).all()
 
     # Let's mask the detector ends
-    MaskBTP(ws, Components='detector1', Pixel='0-19,236-255')
+    MaskBTP(ws, Tube='1-4', Pixel='0-19,236-255')
 
     masked_array = d.masked_ws_indices()
     assert (masked_array == False).all() == False

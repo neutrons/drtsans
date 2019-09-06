@@ -5,7 +5,6 @@
 # sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
 import os
 import tempfile
-import unittest
 import pytest
 
 import numpy as np
@@ -47,10 +46,9 @@ def azimuthal_average(ws):
     return dq
 
 
-# TO-DO: use fixture reference_dir for accessing data files
-def gpsans_files():
-    from tests.conftest import data_dir
-    dd = os.path.join(data_dir, 'new', 'ornl', 'sans', 'hfir', 'gpsans')
+@pytest.fixture(scope='module')
+def gpsans_files(reference_dir):
+    dd = reference_dir.new.gpsans
     return dict(
         beamcenter=os.path.join(dd, 'CG2_exp325_scan0020_0001.xml'),
         beamcenter_off_setted=os.path.join(dd, 'CG2_exp245_scan0007_0001.xml'),
@@ -60,12 +58,13 @@ def gpsans_files():
     )
 
 
-def _create_reduced_ws():
-    data_files = gpsans_files()
+@pytest.fixture(scope='module')
+def _create_reduced_ws(gpsans_files):
+    data_files = gpsans_files
 
     configI = api.ConfigService.Instance()
     configI["facilityName"] = 'HFIR'
-    hfir.BIOSANS()
+    hfir.GPSANS()
     hfir.DirectBeamCenter(data_files['beamcenter'])
     AppendDataFile(data_files['sample_scattering'])
     hfir.AzimuthalAverage(binning="0.01,0.001,0.11")
@@ -77,62 +76,57 @@ def _create_reduced_ws():
     return ws, ws_iq, ws_iqxy
 
 
-class HFIRResolution(unittest.TestCase):
+class TestHFIRResolution(object):
 
-    @pytest.mark.skip(reason='skip test until issue #140 resolved')
-    def test_1d(self):
+    def test_1d(self, _create_reduced_ws):
         """
         Test the Q resolution for a 1D distribution
         """
-        _, ws_iq, _ = _create_reduced_ws()
+        _, ws_iq, _ = _create_reduced_ws
         dq = resolution.q_resolution(ws_iq)
         dq_ref = ws_iq.readDx(0)
-        self.assertTrue(dq.shape == dq_ref.shape == (100,))
+        assert dq.shape == dq_ref.shape == (100,)
         # Check that the results are the same order of magnitude
         # Note: they do differ...
         summed = dq.sum()
         summed_ref = dq_ref.sum()
-        self.assertTrue(np.fabs(np.log10(summed)-np.log10(summed_ref)) < 1.0)
+        assert np.fabs(np.log10(summed)-np.log10(summed_ref)) < 1.0
 
-    @pytest.mark.skip(reason='skip test until issue #140 resolved')
-    def test_2d(self):
+    def test_2d(self, _create_reduced_ws):
         """
         Test the Q resolution for a 2D distribution
         """
-        _, _, ws_iqxy = _create_reduced_ws()
+        _, _, ws_iqxy = _create_reduced_ws
         dqx, dqy = resolution.q_resolution(ws_iqxy)
-        self.assertTrue(dqx.shape == dqy.shape == (200, 200))
-        self.assertTrue(np.average(dqx) < 0.03)
-        self.assertTrue(np.average(dqy) < 0.03)
+        assert dqx.shape == dqy.shape == (200, 200)
+        assert np.average(dqx) < 0.03
+        assert np.average(dqy) < 0.03
 
-    @pytest.mark.skip(reason='skip test until issue #140 resolved')
-    def test_pixels(self):
+    def test_pixels(self, _create_reduced_ws):
         """
         Test the Q resolution for a 2D distribution
         """
-        ws, _, _ = _create_reduced_ws()
+        ws, _, _ = _create_reduced_ws
         qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
 
-        self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape ==
-                        (192*256+2,))
-        self.assertTrue(np.min(np.abs(qx)) < np.max(np.abs(qx)))
-        self.assertTrue(np.min(np.abs(qy)) < np.max(np.abs(qy)))
+        assert qx.shape == qy.shape == dqx.shape == dqy.shape == (192*256+2,)
+        assert np.min(np.abs(qx)) < np.max(np.abs(qx))
+        assert np.min(np.abs(qy)) < np.max(np.abs(qy))
 
-        self.assertTrue(np.average(dqx) < 0.03)
-        self.assertTrue(np.average(dqy) < 0.03)
+        assert np.average(dqx) < 0.03
+        assert np.average(dqy) < 0.03
 
-    @pytest.mark.skip(reason='skip test until issue #140 resolved')
-    def test_compare_Iq(self):
+    def test_compare_iq(self, _create_reduced_ws):
         """
             Test whether the averaged dq is similar to the reference.
         """
         # To ignore warning: "invalid value encountered in true_divide"
         np.seterr(divide='ignore', invalid='ignore')
-        ws, ws_iq, _ = _create_reduced_ws()
+        ws, ws_iq, _ = _create_reduced_ws
         dq = resolution.q_resolution(ws_iq)
         dq_test = azimuthal_average(ws)
-        self.assertTrue(np.fabs(np.average(dq) - np.average(dq_test)) < 0.002)
+        assert np.fabs(np.average(dq) - np.average(dq_test)) < 0.002
 
 
 if __name__ == '__main__':
-    unittest.main()
+    pytest.main()

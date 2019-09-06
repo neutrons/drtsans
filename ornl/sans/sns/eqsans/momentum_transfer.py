@@ -58,14 +58,13 @@ def prepare_momentum_transfer(input_workspace,
                               sample_aperture=10.0,
                               prefix=None,
                               suffix="_table"):
-    """Generates the table workspace necessary for the binning.
-    This table contains unbinned Qx Qy.
-    It is named `prefix + suffix`, by default:
-        `input_workspace.name() + "_iqxqy_table"`
+    """Generates the table workspace necessary for the binning. This table contains
+    unbinned Qx Qy. It is named ``prefix + suffix``, by default:
+    ``input_workspace.name() + "_iqxqy_table"``
 
     Parameters
     ----------
-    input_workspace : Workspace2D
+    input_workspace : ~mantid.api.MatrixWorkspace
         The corrected Workspace
     wavelength_binning : list, optional
         This is the binning used to calculate independent I(Qi).
@@ -76,15 +75,15 @@ def prepare_momentum_transfer(input_workspace,
     sample_aperture : float, optional
         Sample aperture diameter, by default 10.0
     prefix : string, optional
-        if None uses `input_workspace.name()`, by default None
+        if None uses ``input_workspace.name()``, by default None
     suffix : str, optional
         The suffix for the table workspace, by default "_iqxqy_table"
 
     Returns
     -------
-        Workspace2D
-        or
-        (Workspace2D, Workspace2D) in case of frame skipping datset
+    ~mantid.api.MatrixWorkspace
+        or a :py:obj:`tuple` (:py:obj:`~mantid.api.MatrixWorkspace`, :py:obj:`~mantid.api.MatrixWorkspace`) in case
+        of frame skipping datset
     """
 
     assert len(wavelength_binning) == 1 or len(wavelength_binning) == 3, \
@@ -167,14 +166,15 @@ def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
 
     Parameters
     ----------
-    input_table_workspace : TableWorkspace
+    input_table_workspace : ~mantid.api.ITableWorkspace
 
     bins : int or sequence of scalars, optional
-        See `scipy.stats.binned_statistic`.
-        If `bins` is an int, it defines the number of equal-width bins in
-        the given range (10 by default).  If `bins` is a sequence, it
+        See `scipy.stats.binned_statistic
+        <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.binned_statistic.html>`_.
+        If ``bins`` is an int, it defines the number of equal-width bins in
+        the given range (10 by default).  If ``bins`` is a sequence, it
         defines the bin edges, including the rightmost edge, allowing for
-        non-uniform bin widths.  Values in `x` that are smaller than lowest
+        non-uniform bin widths.  Values in ``x`` that are smaller than lowest
         bin edge areassigned to bin number 0, values beyond the highest bin
         are assigned to ``bins[-1]``.  If the bin edges are specified,
         the number of bins will be, (nx = len(bins)-1).
@@ -182,7 +182,7 @@ def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
         if True bins must be an integer, by default False
     Returns
     -------
-        Workspace2D
+    ~mantid.api.MatrixWorkspace
         Only a WS with a single spectra
     """
 
@@ -238,30 +238,26 @@ def _linear_log_array(arr, n_bins):
 def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
     """
     Only used to visulize Qx vs Qy.
-    Creates a WS named: input_table_workspace.name() + "_iqxqy"
+    Creates a WS named: ``str(input_table_workspace) + '_iqxqy'``
 
     Parameters
     ----------
-    input_table_workspace : TableWorkspace
+    input_table_workspace : ~mantid.api.ITableWorkspace
 
     bins : int or array_like or [int, int] or [array, array], optional
         The bin specification:
-            - If int, the number of bins for the two dimensions
-            (nx=ny=bins).
-            - If array_like, the bin edges for the two dimensions
-            (x_edges=y_edges=bins).
-            - If [int, int], the number of bins in each dimension
-            (nx, ny = bins).
-            - If [array, array], the bin edges in each dimension
-            (x_edges, y_edges = bins).
-            - A combination [int, array] or [array, int], where int is the
-            number of bins and array is the bin edges.
-        If None the detector dimensions are given:
+            - If int, the number of bins for the two dimensions (nx=ny=bins).
+            - If array_like, the bin edges for the two dimensions (x_edges=y_edges=bins).
+            - If [int, int], the number of bins in each dimension (nx, ny = bins).
+            - If [array, array], the bin edges in each dimension (x_edges, y_edges = bins).
+            - A combination [int, array] or [array, int], where int is the number of bins and array is the bin edges.
+
+        If :py:obj:`None` the detector dimensions are given:
         bins = [det.dim_x, det.dim_y]
 
     Returns
     -------
-        Workspace2D
+    ~mantid.api.MatrixWorkspace
         For visualization only.
     """
 

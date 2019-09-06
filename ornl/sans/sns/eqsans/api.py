@@ -22,15 +22,13 @@ __all__ = ['apply_solid_angle_correction', 'subtract_background',
 
 
 def apply_solid_angle_correction(input_workspace):
-    """
-        Apply solid angle correction
-    """
+    """Apply solid angle correction. This uses :func:`ornl.sans.solid_angle_correction`."""
     return solid_angle_correction(input_workspace,
                                   detector_type='VerticalTube')
 
 
 def normalize(ws, normalization_type):
-    """ Normalize to time, monitor, or proton charge """
+    """Normalize to time, monitor, or proton charge"""
     raise NotImplementedError()
 
 
@@ -43,20 +41,20 @@ def subtract_background(input_workspace, background, scale=1.0,
 
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Sample workspace.
-    background: str, MatrixWorkspace
+    background: str, ~mantid.api.MatrixWorkspace
         Background workspace.
     scale: float
         Rescale background intensities by this multiplicative factor before
         subtraction from the sample.
     output_wokspace: str
-        Name of the sample corrected by the background. If None, then
-        `input_workspace` will be overwritten.
+        Name of the sample corrected by the background. If :py:obj:`None`, then
+        ``input_workspace`` will be overwritten.
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
     """
     if output_wokspace is None:
         output_wokspace = str(input_workspace)
@@ -79,17 +77,17 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
 
     Parameters
     ----------
-    data: int, str, EventWorkspace
-        Run number as int or str, file path, EventWorkspace
+    data: int, str, ~mantid.api.IEventWorkspace
+        Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
     bin_width: float
         Bin width for the output workspace, in Angstroms.
     output_workspace: str
         Name of the output workspace. If None, then it will be
-        EQSANS_XXXXX_monitors with number XXXXX determined from `data`.
+        ``EQSANS_XXXXX_monitors`` with number XXXXX determined from ``data``.
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
     """
     w = load_events_monitor(data, output_workspace=output_workspace)
     w = smash_monitor_spikes(w)
@@ -115,8 +113,8 @@ def prepare_data(data,
 
     Parameters
     ----------
-    data: int, str, EventWorkspace
-        Run number as int or str, file path, EventWorkspace
+    data: int, str, ~mantid.api.IEventWorkspace
+        Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
     detector_offset: float
         Additional translation of the detector along Z-axis, in mili-meters.
     sample_offset: float
@@ -130,24 +128,24 @@ def prepare_data(data,
         Ignore events with a time-of-flight (TOF) bigger than the maximal
         TOF minus this quantity.
     x_center: float
-        Move the center of the detector to this X-coordinate. If `None`, the
+        Move the center of the detector to this X-coordinate. If :py:obj:`None`, the
         detector will be moved such that the X-coordinate of the intersection
-        point between the neutron beam and the detector array will have `x=0`.
+        point between the neutron beam and the detector array will have ``x=0``.
     y_center: float
-        Move the center of the detector to this X-coordinate. If `None`, the
+        Move the center of the detector to this X-coordinate. If :py:obj:`None`, the
         detector will be moved such that the X-coordinate of the intersection
-        point between the neutron beam and the detector array will have `x=0`.
-    dark_current: int, str, EventWorkspace
-        Run number as int or str, file path, EventWorkspace
+        point between the neutron beam and the detector array will have ``y=0``.
+    dark_current: int, str, ~mantid.api.IEventWorkspace
+        Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
     flux_method: str
         Method for flux normalization. Either 'proton charge',
         'monitor', or 'time'.
     flux: str
-        if `flux_method` is proton charge, then path to file containing the
-        wavelength distribution of the neutron flux. If `flux method` is
+        if ``flux_method`` is proton charge, then path to file containing the
+        wavelength distribution of the neutron flux. If ``flux method`` is
         monitor, then path to file containing the flux-to-monitor ratios.
-        if `flux_method` is time, then pass one log entry name such
-        as `duration` or leave it as `None` for automatic log search.
+        if ``flux_method`` is time, then pass one log entry name such
+        as ``duration`` or leave it as :py:obj:`None` for automatic log search.
     panel: str
         Either 'front' or 'back' to mask a whole panel
     mask_panel: str
@@ -161,7 +159,7 @@ def prepare_data(data,
         Apply the solid angle correction
     output_workspace: str
         Name of the output workspace. If None, then it will be
-        EQSANS_XXXXX with number XXXXX determined from the supplied `data`.
+        ``EQSANS_XXXXX`` with number XXXXX determined from the supplied ``data``.
     """
     # let load_events dictate the name of the workspace
     output_workspace = load_events(data, detector_offset=detector_offset,

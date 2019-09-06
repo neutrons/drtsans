@@ -29,24 +29,24 @@ def calculate_transmission(input_sample, input_reference,
 
     Parameters
     ----------
-    input_sample: MatrixWorkspace
+    input_sample: ~mantid.api.MatrixWorkspace
         Prepared sample workspace (possibly obtained with an attenuated beam)
-    input_reference: MatrixWorkspace
+    input_reference: ~mantid.api.MatrixWorkspace
         Prepared direct beam workspace (possibly obtained with an attenuated
         beam)
     radius: float
         Radius around the bean center for pixel integration, in millimeters.
-        If None, radius will be obtained or calculated using `input_reference`.
+        If None, radius will be obtained or calculated using ``input_reference``.
     radius_unit: str
-        Either 'mm' or 'm', and only used in conjunction with option `radius`.
+        Either 'mm' or 'm', and only used in conjunction with option ``radius``.
     fit_func: str
         String representation of the fit function. See Mantid's
-        `UserFunction` or any of Mantid's built-in functions.
-        The default value represents a linear model. If `None` or empty
+        :ref:`UserFunction <func-UserFunction>` or any of Mantid's built-in functions.
+        The default value represents a linear model. If :py:obj:`None` or empty
         string, no fitting is performed.
     output_workspace: str
         Name of the output workspace containing the raw transmission values.
-        If None, an anonymous hidden name will be automatically provided.
+        If :py:obj:`None`, an anonymous hidden name will be automatically provided.
 
     Returns
     -------
@@ -67,11 +67,13 @@ def beam_radius(input_workspace, unit='mm'):
     r"""
     Calculate the beam radius impinging on the detector bank.
 
-    R_beam = R_sampleAp + SDD * (R_sampleAp + R_sourceAp) / SSD
+    .. math::
+
+           R_{beam} = R_{sampleAp} + SDD * (R_{sampleAp} + R_{sourceAp}) / SSD
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace, str
+    input_workspace: ~mantid.api.MatrixWorkspace, str
         Input workspace, contains all necessary info in the logs
     unit: str
         Either 'mm' or 'm'

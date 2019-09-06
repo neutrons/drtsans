@@ -16,19 +16,26 @@ def solid_angle_correction(input_workspace, detector_type='VerticalTube',
     the input workspace for all of the spectra selected. The output workspace
     is the input divided by the solid angle.
 
+    **Mantid algorithms used:**
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
+    :ref:`Divide <algm-Divide-v1>`,
+    :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
+    :ref:`SolidAngle <algm-SolidAngle-v1>`
+
     Parameters
-    __________
-
-    input_workspace: MatrixWorkspace
-
-    detector_type: Select the method to calculate the Solid Angle. Allowed
-    values: [‘GenericShape’, ‘Rectangle’, ‘VerticalTube’, ‘HorizontalTube’,
-    ‘VerticalWing’, ‘HorizontalWing’]
+    ----------
+    input_workspace: ~mantid.api.MatrixWorkspace
+        Workspace to use the geometry from
+    detector_type: str
+        Select the method to calculate the Solid Angle. Allowed values: [‘GenericShape’,
+        ‘Rectangle’, ‘VerticalTube’, ‘HorizontalTube’, ‘VerticalWing’, ‘HorizontalWing’]
+    output_workspace: str
+        Optional name of the output workspace. Default is replace the input worspace
 
     Returns
-    _______
-    MatrixWorkspace with the solid angle correction applied.
-
+    -------
+    ~mantid.api.MatrixWorkspace
+        with the solid angle correction applied.
     """
     input_workspace = str(input_workspace)
     solid_angle_ws = uwd()  # temporary workspace

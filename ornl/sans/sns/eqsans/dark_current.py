@@ -163,29 +163,29 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
                                      output_workspace=None):
     r"""
     Subtract normalized dark current from data, taking into account
-    the duration of both `data` and `dark` runs.
+    the duration of both 'data' and 'dark' runs.
 
     Entry 'normalizing_duration' is added to the logs of the output workspace
     to annotate what log entry was used to find the duration of both
-    `data` and `dark` runs. Log entry 'normalizing_duration' must be
-    present in the logs of workspace `dark`.
+    'data' and 'dark' runs. Log entry 'normalizing_duration' must be
+    present in the logs of workspace 'dark'.
 
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Sample scattering with intensities versus wavelength
-    dark_ws: str, MatrixWorkspace
+    dark_ws: str, ~mantid.api.MatrixWorkspace
         Normalized dark current after being normalized with
         `normalise_to_workspace`
     output_workspace : str
-        Name of the workspace after dark current subtraction. If None,
+        Name of the workspace after dark current subtraction. If :py:obj:`None`,
         the name of the input workspace is chosen (and the input workspace
         is overwritten).
 
     Returns
     -------
-    MatrixWorkspace
-        `data` minus `dark` current
+    ~mantid.api.MatrixWorkspace
+        'data' minus 'dark' current
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
@@ -207,10 +207,10 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
 
     Parameters
     ----------
-    input_workspace : int, str, EventWorkspace
+    input_workspace : int, str, ~mantid.api.IEventWorkspace
         The workspace to be normalised
-    dark: int, str, EventsWorkspace
-        run number, file path, workspace name, or EventsWorkspace
+    dark: int, str, ~mantid.api.IEventWorkspace
+        run number, file path, workspace name, or :py:obj:`~mantid.api.IEventWorkspace`
         for dark current.
     output_workspace : str
         Name of the workspace after dark current subtraction. If None,
@@ -219,7 +219,7 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)

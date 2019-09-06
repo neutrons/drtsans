@@ -530,7 +530,7 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
 
     Parameters
     ----------
-    input_workspace: str, EventsWorkspace, Matrixworkspace
+    input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
         Events workspace in time-of-flight
     bin_width: float
         Bin width for the output workspace, in Angstroms.
@@ -546,15 +546,15 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
         Assign this error to histogram bins having no counts.
     interior_clip: False
         If True, trim slow neutrons from the lead pulse (using
-        `high_tof_clip`) and fast neutrons from the skip pulse (using
-         `low_tof_clip`)
+        ``high_tof_clip``) and fast neutrons from the skip pulse (using
+        ``low_tof_clip``)
     output_workspace: str
         Name of the output workspace. If None, the input_workspace will be
         overwritten.
 
     Returns
     -------
-    MatrixWorkspace, EventsWorkspace
+    ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
     """
     input_workspace = mtd[str(input_workspace)]
     if output_workspace is None:

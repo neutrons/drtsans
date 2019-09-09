@@ -26,9 +26,12 @@ def fake_events():
 
 
 def test_linear(fake_events):
-    ws = fake_events([1., 2.])
+    ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
     from mantid.simpleapi import Rebin
-    ws = Rebin(InputWorkspace=ws, Params='.1')
+    ws = Rebin(InputWorkspace=ws, Params='2.5,.1,3.2')
+    import numpy as np
+    assert np.allclose(ws.readX(0), np.arange(2.5, 3.21, .1))
+    assert np.allclose(ws.readY(0), [1., 0., 1., 1., 0., 1., 1.])
     return
 
 

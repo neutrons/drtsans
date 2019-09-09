@@ -2,12 +2,13 @@ from __future__ import (absolute_import, division, print_function)
 
 import pytest
 
+
 @pytest.fixture
 def fake_events():
     def _(wavelengths):
         from mantid.simpleapi import CreateSampleWorkspace
         import mantid.kernel
-        ws=CreateSampleWorkspace(
+        ws = CreateSampleWorkspace(
             WorkspaceType='Event',
             Function='Flat background',
             NumBanks=1,
@@ -16,19 +17,18 @@ def fake_events():
             XUnit='Wavelength',
             XMax=10,
             BinWidth=1)
-        sp0=ws.getSpectrum(0)
-        date=mantid.kernel.DateAndTime("2019-09-09T00:00")
+        sp0 = ws.getSpectrum(0)
+        date = mantid.kernel.DateAndTime("2019-09-09T00:00")
         for lam in wavelengths:
-            sp0.addEventQuickly(lam,date)
+            sp0.addEventQuickly(lam, date)
         return ws
     return _
-
 
 
 def test_linear(fake_events):
     ws = fake_events([1., 2.])
     from mantid.simpleapi import Rebin
-    ws=Rebin(InputWorkspace=ws, Params='.1')
+    ws = Rebin(InputWorkspace=ws, Params='.1')
     return
 
 

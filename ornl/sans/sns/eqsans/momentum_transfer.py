@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
-from ornl.sans.resolution import dq2_geometry, dq2_gravity
+from ornl.sans.momentum_transfer import dq2_geometry, dq2_gravity
 from ornl.sans import geometry as sans_geometry
 from ornl.sans.sns.eqsans import geometry as eqsans_geometry
 

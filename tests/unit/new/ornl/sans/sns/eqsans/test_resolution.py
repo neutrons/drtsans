@@ -13,7 +13,7 @@ import unittest
 import numpy as np
 
 from mantid import simpleapi as api
-from ornl.sans.sns.eqsans import resolution
+from ornl.sans.sns.eqsans import momentum_transfer
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans import sns_command_interface as eqsans
 
@@ -54,7 +54,7 @@ class EQSANSResolution(unittest.TestCase):
         Test the Q and Q resolution for a 1D distribution
         """
         ws = _create_reduced_ws()
-        qx, qy, dqx, dqy = resolution.q_resolution_per_pixel(ws)
+        qx, qy, dqx, dqy = momentum_transfer.q_resolution_per_pixel(ws)
 
         self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape)
         self.assertTrue(np.min(np.abs(qx)) < np.max(np.abs(qx)))
@@ -64,7 +64,7 @@ class EQSANSResolution(unittest.TestCase):
         self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 1e-4)
 
     def test_moderator_time_error(self):
-        from ornl.sans.sns.eqsans.resolution import _moderator_time_error
+        from ornl.sans.sns.eqsans.momentum_transfer import _moderator_time_error
         wavelengths = [1.5, 9.3]
         expected = [214.74671875, 258.8954766]
         out = _moderator_time_error(np.array(wavelengths))

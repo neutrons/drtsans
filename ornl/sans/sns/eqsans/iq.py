@@ -8,7 +8,7 @@ from ornl.sans.iq import \
 from ornl.sans.sns.eqsans import geometry
 from mantid.kernel import logger
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import resolution
+from ornl.sans.sns.eqsans import momentum_transfer
 
 __all__ = ['prepare_momentum_transfer', 'cal_iq', 'iqxqy']
 
@@ -21,7 +21,7 @@ class MomentumTransfer(MomentumTransferMain):
                  input_workspace=None,
                  component_name="detector1",
                  out_ws_prefix="ws"):
-        super(MomentumTransfer, self).__init__(resolution, input_workspace,
+        super(MomentumTransfer, self).__init__(momentum_transfer, input_workspace,
                                                component_name=component_name,
                                                out_ws_prefix=out_ws_prefix)
 

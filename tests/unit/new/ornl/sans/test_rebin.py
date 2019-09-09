@@ -26,9 +26,13 @@ def fake_events():
 
 
 def test_linear(fake_events):
+    "test linear binning"
+    # create a workspace with fake events
     ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
+    # binning the events to linear bins 2.5, 2.6, ..., 3.2
     from mantid.simpleapi import Rebin
-    ws = Rebin(InputWorkspace=ws, Params='2.5,.1,3.2')
+    ws = Rebin(InputWorkspace=ws, Params='2.5, .1, 3.2')  # start, step, end of bin edges
+    # verify
     import numpy as np
     assert np.allclose(ws.readX(0), np.arange(2.5, 3.21, .1))
     assert np.allclose(ws.readY(0), [1., 0., 1., 1., 0., 1., 1.])

@@ -1,7 +1,7 @@
 # flake8: noqa
 from ornl.sans.transmission import apply_transmission_correction
 
-from .momentum_transfer import *
+from .iq import *
 from .load import *
 from .geometry import *
 from .correct_frame import *
@@ -14,7 +14,7 @@ from .cfg import *
 from .api import *
 
 __mods = (
-    momentum_transfer,
+    iq,
     load,
     geometry,
     correct_frame,

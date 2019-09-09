@@ -5,7 +5,7 @@ import pytest
 from pytest import approx
 
 from mantid.simpleapi import LoadHFIRSANS
-from ornl.sans.hfir.momentum_transfer import MomentumTransfer
+from ornl.sans.hfir.iq import MomentumTransfer
 from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
 from ornl.settings import unique_workspace_name
 

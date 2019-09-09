@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 
 from ornl.sans.hfir import resolution
-from ornl.sans.momentum_transfer import \
+from ornl.sans.iq import \
     MomentumTransfer as MomentumTransferMain
 
 

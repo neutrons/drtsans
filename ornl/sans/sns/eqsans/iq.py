@@ -3,14 +3,14 @@ from __future__ import print_function
 import numpy as np
 
 from mantid.simpleapi import (ExtractSpectra, Rebin, DeleteWorkspace)
-from ornl.sans.momentum_transfer import \
+from ornl.sans.iq import \
     MomentumTransfer as MomentumTransferMain
 from ornl.sans.sns.eqsans import geometry
 from mantid.kernel import logger
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import resolution
 
-__all__ = ['prepare_momentum_transfer', 'iq', 'iqxqy']
+__all__ = ['prepare_momentum_transfer', 'cal_iq', 'iqxqy']
 
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
@@ -160,7 +160,7 @@ def prepare_momentum_transfer(input_workspace,
     return result_wss
 
 
-def iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
+def cal_iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
     """
     Creates a WS named: input_workspace.name() + "_iq"
 

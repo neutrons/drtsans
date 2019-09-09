@@ -7,7 +7,7 @@ import scipy
 import mantid
 from mantid import mtd
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS, MaskBTP
-from ornl.sans.hfir.momentum_transfer import MomentumTransfer
+from ornl.sans.hfir.iq import MomentumTransfer
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans.hfir_command_interface import (
     GPSANS, AzimuthalAverage, IQxQy, OutputPath, SetBeamCenter)

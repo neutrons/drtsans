@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from ornl.sans.hfir import resolution
+from ornl.sans.hfir import momentum_transfer
 from ornl.sans.iq import \
     MomentumTransfer as MomentumTransferMain
 
@@ -16,6 +16,6 @@ class MomentumTransfer(MomentumTransferMain):
                  input_workspace=None,
                  component_name="detector1",
                  out_ws_prefix="ws"):
-        super(MomentumTransfer, self).__init__(resolution, input_workspace,
+        super(MomentumTransfer, self).__init__(momentum_transfer, input_workspace,
                                                component_name=component_name,
                                                out_ws_prefix=out_ws_prefix)

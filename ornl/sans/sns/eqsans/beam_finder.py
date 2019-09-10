@@ -127,7 +127,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwar
     # such that the coordinates of the neutron beam impinging on the
     # detector has coordinates (0, 0, z)
     if method != 'center_of_mass':
-        raise NotImplementedError(f'{method} is not implemented')
+        raise NotImplementedError('{} is not implemented'.format(method))
     r = center_detector(input_workspace, mask=mask, method=method,
                         move_detector=False, **kwargs)
     return -r[0], -r[1]

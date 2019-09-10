@@ -2,8 +2,18 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.resolution import dq2_geometry, dq2_gravity
+from ornl.sans.momentum_transfer import dq2_geometry, dq2_gravity
 from ornl.sans import geometry as sans_geometry
+
+
+def calculate_q_dq(ws):
+    """
+    Calculate momentum transfer and momentum transfer resolution
+    :param ws:
+    :return: 2D arrays for Q, Qx, dQx, Qy, dQy
+    """
+    raise NotImplementedError('Method calculate_q_dq() in ornl.sans.gpsans.momentum_transfer will be '
+                              'used to replace q_resolution_per_pixel')
 
 
 def q_resolution_per_pixel(ws):

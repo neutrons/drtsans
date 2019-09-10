@@ -14,13 +14,13 @@ from scipy import constants
 _G_MN2_OVER_H2 = constants.G * np.square(constants.neutron_mass / constants.h)
 
 
-
 def calculate_q_dq(ws):
     """
     Calculate momentum transfer and momentum transfer resolution
     :param ws:
     :return: 2D arrays for Q, Qx, dQx, Qy, dQy
     """
+    print(ws)
     raise NotImplementedError('Method calculate_q_dq() in ornl.sans.momentum_transfer is "virtual"')
 
 
@@ -77,7 +77,6 @@ def calculate_momentum_transfer(ws):
     # print('[DEBUG] Qz matrix: shape={}\n{}'.format(qz_matrix.shape, qz_matrix))
 
     return q_matrix, qx_matrix, qy_matrix, qz_matrix
-
 
 
 def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):

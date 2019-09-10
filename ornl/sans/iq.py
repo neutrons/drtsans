@@ -465,4 +465,3 @@ class MomentumTransfer:
         return MomentumTransfer._bin_into_q1d(q, dq, i, i_sigma,
                                               self.prefix, bins,
                                               statistic, suffix)
-

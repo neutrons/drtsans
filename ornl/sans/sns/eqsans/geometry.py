@@ -107,11 +107,11 @@ def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
     return smd * m2units[unit]
 
 
-def sample_aperture_diameter(run, unit='mm'):
+def sample_aperture_diameter(run, unit='m'):
     r"""
     Find the sample aperture diameter from the logs.
 
-    Log keys searched are 'sample-aperture-diameter' and 'beamslit4'.
+    Log keys searched are 'sample-aperture-diameter' (override beamslit4) and 'beamslit4'.
 
     Parameters
     ----------
@@ -138,7 +138,7 @@ def sample_aperture_diameter(run, unit='mm'):
 
 
 @namedtuplefy
-def source_aperture(other, unit='mm'):
+def source_aperture(other, unit='m'):
     r"""
     Find the source aperture diameter and position
 
@@ -231,6 +231,7 @@ def source_aperture_diameter(run, unit='mm'):
         sl.insert(log_key, sad, unit='mm')
     if unit == 'm':
         sad /= 1000.0
+
     return sad
 
 

@@ -110,7 +110,20 @@ class SampleLogs(object):
 
         dispatch = {Run: from_run, MatrixWorkspace: from_ws, int: from_integer,
                     str: from_string}
-        finder = [v for k, v in dispatch.items() if isinstance(other, k)][0]
+        # finder = [v for k, v in dispatch.items() if isinstance(other, k)][0]
+
+        # If others is not None: raise exception
+        if other is None:
+            a = ('[DEBUG 187] dispatch: {}'.format(dispatch.items()))
+            b = ('[DEBUG 187] other: {}'.format(other))
+            raise NotImplementedError('{}\n{}'.format(a, b))
+	
+	finders = [v for k, v in dispatch.items() if isinstance(other, k)]
+        if len(finders) == 0:
+            # In case no items found
+            raise RuntimeError('Input "other" of value {} is not supported to retrieve Mantid "run" object'.format(other))
+	finder = finders[0]
+
         return finder(other)
 
     def find_log_with_units(self, log_key, unit=None):

@@ -19,7 +19,8 @@ def detector_name(ipt):
     -------
     str
     """
-    inst_to_det = {'EQSANS': 'detector1', 'EQ-SANS': 'detector1',
+    inst_to_det = {'EQSANS': 'detector1',
+                   'EQ-SANS': 'detector1',
                    'BIOSANS': 'detector1',
                    'GPSANS': 'detector1'}
     if isinstance(ipt, str):

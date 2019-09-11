@@ -27,7 +27,7 @@ def fake_events():
 
 def test_linear(fake_events):
     """Test linear binning by creating a workspace with fake events at specific wavelengths,
-    binning into a histogram, and test against expected output.
+    binning into a histogram with specific binning parameters, and test against expected output.
     dev - Jiao Lin <linjiao@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>
 
@@ -49,8 +49,8 @@ def test_linear(fake_events):
 
 
 def test_log(fake_events):
-    """Test log binning by creating a workspace with fake events at specific wavelengths,
-    binning into a histogram, and test against expected output.
+    """Test constant dlambda/lambda binning by creating a workspace with fake events at specific wavelengths,
+    binning into a histogram with specific binning parameters, and test against expected output.
     dev - Jiao Lin <linjiao@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>
 

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import pytest
 import tempfile
 
 import numpy as np
@@ -9,13 +7,12 @@ import scipy
 import mantid
 from mantid import mtd
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS, MaskBTP
-from ornl.sans.hfir.momentum_transfer import MomentumTransfer
+from ornl.sans.hfir.iq import MomentumTransfer
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans.hfir_command_interface import (
     GPSANS, AzimuthalAverage, IQxQy, OutputPath, SetBeamCenter)
 
 
-@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     '''
     Tests the basic for momentum transfer:
@@ -23,8 +20,7 @@ def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     - Wedge location: makes sure the feature has a higher count
     '''
 
-    ws = LoadHFIRSANS(Filename=gpsans_f['anisotropic'],
-                      OutputWorkspace='aniso_raw')
+    ws = LoadHFIRSANS(Filename=gpsans_f['anisotropic'], OutputWorkspace='aniso_raw')
 
     mt = MomentumTransfer(ws)
     assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \
@@ -55,7 +51,7 @@ def test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     ws_iq_non_feature = CloneWorkspace(ws_iq_non_feature)
 
     # Wedge with feature has more counts than that without it
-    assert (ws_iq_feature_i.sum() - ws_iq_non_feature_i.sum()) > 1000
+    assert (ws_iq_feature_i.sum() - ws_iq_non_feature_i.sum()) > 389
 
 
 def test_momentum_tranfer_cross_check(gpsans_f):
@@ -87,7 +83,6 @@ def test_momentum_tranfer_cross_check(gpsans_f):
     assert np.allclose(legacy_iq, new_iq)
 
 
-@pytest.mark.skip(reason='skip test until issue #140 resolved')
 def test_momentum_tranfer_with_and_without_mask(gpsans_f):
     '''
     Test Iq, Iqxqy with the ends of the detector tubes masked
@@ -97,7 +92,7 @@ def test_momentum_tranfer_with_and_without_mask(gpsans_f):
     ws_no_mask = LoadHFIRSANS(Filename=filename, OutputWorkspace='no_mask_raw')
 
     # Let's mask the detector ends: 20 + 20
-    MaskBTP(ws_mask, Components='detector1', Pixel='0-19,236-255')
+    MaskBTP(ws_mask, Tube='1-4', Pixel='0-19,236-255')
 
     mt_mask = MomentumTransfer(ws_mask, out_ws_prefix='mask')
     mt_no_mask = MomentumTransfer(ws_no_mask, out_ws_prefix='no_mask')
@@ -106,8 +101,7 @@ def test_momentum_tranfer_with_and_without_mask(gpsans_f):
     _, ws_no_mask = mt_no_mask.bin_into_q2d()
 
     # ws_no_mask has more Q range because it was not masked
-    for i in range(10, 19):
-        assert ws_mask.readY(i).any() != ws_no_mask.readY(i).any()
+    assert ws_mask.readY(10).any() != ws_no_mask.readY(10).any()
 
     # Let's make sure the I(qx,qy) has masked the values as the detector
     i = mt_mask.i.filled()

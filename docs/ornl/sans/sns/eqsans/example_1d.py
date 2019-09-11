@@ -54,7 +54,7 @@ for index, table_ws in enumerate(table_ws_list):
     # TODO check the configuration-numQbins and configuration_QbinType
     numQBins = 100
 
-    iq_ws = eqsans.iq(table_ws, bins=numQBins, log_binning=False)
+    iq_ws = eqsans.cal_iq(table_ws, bins=numQBins, log_binning=False)
 
     suffix = '.txt'
     if len(table_ws_list) > 1:

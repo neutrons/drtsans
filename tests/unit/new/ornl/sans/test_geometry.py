@@ -1,8 +1,7 @@
-from __future__ import (absolute_import, division, print_function)
-
+import numpy as np
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument, MoveInstrumentComponent
-
+from ornl.settings import unique_workspace_dundername
 from ornl.sans import geometry as geo
 
 
@@ -46,6 +45,25 @@ def test_source_detector_distance(wss):
         if v is not None:
             assert geo.source_detector_distance(v['ws']) == \
                    pytest.approx(v['ssd'] + v['sdd'], rel=0.01)
+
+
+def test_detector_translation():
+    r"""Ascertain sub-components are moved when main detector is moved"""
+    translation = np.array([0.01, 0.1, 1.0])
+    detector_name = 'detector1'
+    for instrument_name in ('EQ-SANS', 'CG2'):
+        workspace = LoadEmptyInstrument(InstrumentName=instrument_name, OutputWorkspace=unique_workspace_dundername())
+        instrument = workspace.getInstrument()
+        component_detector = instrument.getComponentByName(detector_name)
+        component_bank = instrument.getComponentByName('bank42')
+        component_detector = instrument.getDetector(42)
+        initial_positions = [c.getPos() for c in (component_detector, component_bank, component_detector)]
+        MoveInstrumentComponent(workspace, ComponentName=detector_name,
+                                RelativePosition=True, **dict(zip(('X', 'Y', 'Z'), translation)))
+        final_positions = [c.getPos() for c in (component_detector, component_bank, component_detector)]
+        for i, final_position in enumerate(final_positions):
+            assert final_position == pytest.approx(np.array(initial_positions[i]) + translation, abs=1e-4)
+        workspace.delete()
 
 
 if __name__ == '__main__':

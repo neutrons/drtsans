@@ -12,10 +12,10 @@ from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
 from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
                                   normalisation, prepare_data,
                                   transform_to_wavelength)
-from ornl.sans.sns.eqsans.momentum_transfer import (MomentumTransfer, iq,
-                                                    iq_annular, iq_wedge,
-                                                    iqxqy,
-                                                    prepare_momentum_transfer)
+from ornl.sans.sns.eqsans.iq import (MomentumTransfer, cal_iq,
+                                     iq_annular, iq_wedge,
+                                     iqxqy,
+                                     prepare_momentum_transfer)
 
 
 def legacy_reduction(reference_dir):
@@ -179,10 +179,10 @@ def test_api(reference_dir):
 
     table_ws = table_ws[0]
 
-    iq_ws = iq(table_ws)
+    iq_ws = cal_iq(table_ws)
     assert mtd.doesExist(ws.name() + "_iq")
 
-    iq_ws = iq(table_ws, bins=100, log_binning=True)
+    iq_ws = cal_iq(table_ws, bins=100, log_binning=True)
     assert mtd[ws.name() + "_iq"] is not None
 
     # check if it is log binning:
@@ -231,7 +231,7 @@ def test_api(reference_dir):
 
     table_ws_masked = table_ws_masked[0]
 
-    iq_ws_masked = iq(table_ws_masked, bins=100, log_binning=True)
+    iq_ws_masked = cal_iq(table_ws_masked, bins=100, log_binning=True)
     assert np.all(
         iq_ws_masked.extractY()[0][:5] < iq_ws.extractY()[0][:5])
 
@@ -260,8 +260,8 @@ def test_api_frame_skipping(reference_dir):
 
     ws_frame1, ws_frame2 = prepare_momentum_transfer(ws)
 
-    ws_frame1_iq = iq(ws_frame1, bins=150, log_binning=True)
-    ws_frame2_iq = iq(ws_frame2, bins=150, log_binning=True)
+    ws_frame1_iq = cal_iq(ws_frame1, bins=150, log_binning=True)
+    ws_frame2_iq = cal_iq(ws_frame2, bins=150, log_binning=True)
     assert ws_frame1_iq is not None
     assert ws_frame2_iq is not None
     assert not np.allclose(ws_frame1_iq.extractX(), ws_frame2_iq.extractX())

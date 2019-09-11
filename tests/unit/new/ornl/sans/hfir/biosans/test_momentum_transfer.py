@@ -9,7 +9,7 @@ import mantid
 from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
-from ornl.sans.hfir.momentum_transfer import MomentumTransfer
+from ornl.sans.hfir.iq import MomentumTransfer
 
 
 # @pytest.mark.skip(reason="It doesn't pass on the build servers. "

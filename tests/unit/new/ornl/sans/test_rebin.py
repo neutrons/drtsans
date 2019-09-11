@@ -26,7 +26,11 @@ def fake_events():
 
 
 def test_linear(fake_events):
-    "test linear binning"
+    """Test linear binning by creating a workspace with fake events at specific wavelengths,
+    binning into a histogram, and test against expected output.
+
+    For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/208
+    """
     # create a workspace with fake events
     ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
     # binning the events to linear bins 2.5, 2.6, ..., 3.2

@@ -28,14 +28,19 @@ def fake_events():
 def test_linear(fake_events):
     """Test linear binning by creating a workspace with fake events at specific wavelengths,
     binning into a histogram, and test against expected output.
+    dev - Jiao Lin <linjiao@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
 
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/208
     """
-    # create a workspace with fake events
+    # create a workspace with fake events with the given wavelengths
     ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
-    # binning the events to linear bins 2.5, 2.6, ..., 3.2
+    # binning the events to linear bins 2.5, 2.6, 2.7, ..., 3.2
     from mantid.simpleapi import Rebin
-    ws = Rebin(InputWorkspace=ws, Params='2.5, .1, 3.2')  # start, step, end of bin edges
+    # start, step, end of bin edges
+    start, step, end = 2.5, 0.1, 3.2
+    # rebin
+    ws = Rebin(InputWorkspace=ws, Params='{}, {}, {}'.format(start, step, end))
     # verify
     import numpy as np
     assert np.allclose(ws.readX(0), np.arange(2.5, 3.21, .1))

@@ -5,7 +5,6 @@ import numpy as np
 from mantid.simpleapi import (ExtractSpectra, Rebin, DeleteWorkspace)
 from ornl.sans.iq import \
     MomentumTransfer as MomentumTransferMain
-from ornl.sans.sns.eqsans import geometry
 from mantid.kernel import logger
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import momentum_transfer
@@ -58,6 +57,18 @@ def prepare_momentum_transfer(input_workspace,
                               sample_aperture=10.0,
                               prefix=None,
                               suffix="_table"):
+    """
+
+    :exception AssertionError: specified wave length binning parameters size is not 1 or 3
+    :exception RuntimeError: wave length binni
+
+    :param input_workspace:
+    :param wavelength_binning:
+    :param sample_aperture:
+    :param prefix:
+    :param suffix:
+    :return:
+    """
     """Generates the table workspace necessary for the binning. This table contains
     unbinned Qx Qy. It is named ``prefix + suffix``, by default:
     ``input_workspace.name() + "_iqxqy_table"``
@@ -85,18 +96,22 @@ def prepare_momentum_transfer(input_workspace,
         or a :py:obj:`tuple` (:py:obj:`~mantid.api.MatrixWorkspace`, :py:obj:`~mantid.api.MatrixWorkspace`) in case
         of frame skipping datset
     """
-
+    # Check input
     assert len(wavelength_binning) == 1 or len(wavelength_binning) == 3, \
         "wavelength_binning must be a list of 1 or 3 elements"
+    # TODO - check input workspace unit
 
+    # Add sample logs if required...
+    # TODO - 214: sample-aperture-diameter shall be calculated from sample logs (Refer to momentum resolution)
     input_workspace.mutableRun().addProperty('sample-aperture-diameter',
                                              sample_aperture, 'mm', True)
-    geometry.source_aperture_diameter(input_workspace)
+    # TODO - FIXME : disabled as USELESS: geometry.source_aperture_diameter(input_workspace)
 
+    # Identify run is 1 frame or 2 frame (skip frame)
     sl = SampleLogs(input_workspace)
     frames = []
-    if bool(sl.is_frame_skipping.value) is True:
-
+    if bool(sl.is_frame_skipping.value):
+        # case: skip frame -> 2 frames
         logger.information("This is a frame skipping data set.")
         frame1_wavelength_min = sl.wavelength_skip_min.value
         frame1_wavelength_max = sl.wavelength_skip_max.value
@@ -107,27 +122,32 @@ def prepare_momentum_transfer(input_workspace,
         frames.append((frame1_wavelength_min, frame1_wavelength_max))
         frames.append((frame2_wavelength_min, frame2_wavelength_max))
     else:
+        # case: single frame
         frame1_wavelength_min = sl.wavelength_min.value
         frame1_wavelength_max = sl.wavelength_max.value
         frames.append((frame1_wavelength_min, frame1_wavelength_max))
 
+    # Sanity check
     if len(wavelength_binning) > 1 and \
-            bool(sl.is_frame_skipping.value) is True:
-        logger.error("The WS is frame skipping, use only the step in "
-                     "the wavelength_binning")
-        return
+            bool(sl.is_frame_skipping.value):
+        error_message = "The WS is frame skipping, use only the step in the wavelength_binning"
+        logger.error(error_message)
+        raise RuntimeError(error_message)
 
+    # Rebin the workspace in wave length
     if prefix is None:
         prefix = input_workspace.name()
-    result_wss = []
+    result_wss = list()
     for index, (wavelength_min, wavelength_max) in enumerate(frames):
-
+        # For each frame
+        # set min, step, max for wave length
         if len(wavelength_binning) == 1:
             wavelength_rebinning = [wavelength_min,
                                     wavelength_binning[0], wavelength_max]
         else:
             wavelength_rebinning = wavelength_binning
 
+        # Rebin
         ws_rebin = Rebin(InputWorkspace=input_workspace,
                          OutputWorkspace="ws_rebin",
                          Params=wavelength_rebinning)
@@ -137,25 +157,37 @@ def prepare_momentum_transfer(input_workspace,
         else:
             this_prefix = prefix
 
+        # Initialize a MomentumTransfer object
         mt_sum = MomentumTransfer(out_ws_prefix=this_prefix)
 
+        # Calculate momentum transfer and set up the I(Q)-TableWorkspace
         bins = ws_rebin.readX(0)
         for bin_index in range(len(bins)-1):
+            # Calculate Q for a single bin of wave length
             ws_extracted = ExtractSpectra(InputWorkspace=ws_rebin,
                                           XMin=bins[bin_index],
                                           XMax=bins[bin_index+1])
-            wavelength_mean = (bins[bin_index] + bins[bin_index+1]) / 2.0
 
-            runObj = ws_extracted.mutableRun()
-            runObj.addProperty('wavelength', float(wavelength_mean),
-                               'Angstrom', True)
-            runObj.addProperty('wavelength-spread', 0.2, 'Angstrom', True)
+            # TODO FIXME #214: The commented codes seem going nowhere
+            # wavelength_mean = (bins[bin_index] + bins[bin_index+1]) / 2.0
+            # runObj = ws_extracted.mutableRun()
+            # runObj.addProperty('wavelength', float(wavelength_mean),
+            #                    'Angstrom', True)
+            # runObj.addProperty('wavelength-spread', 0.2, 'Angstrom', True)
 
+            # core calculation:
             mt_extracted = MomentumTransfer(ws_extracted)
+            # Append to final Momentum
             mt_sum += mt_extracted
+        # END-FOR
+
+        # Create Q2D table workspace and add to return TableWorkspace list
         result_wss.append(mt_sum.q2d(suffix=suffix))
+
+        # Clean
         DeleteWorkspace(ws_rebin)
         DeleteWorkspace(ws_extracted)
+    # END-FOR (frame)
 
     return result_wss
 

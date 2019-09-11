@@ -51,20 +51,27 @@ def test_linear(fake_events):
 def test_log(fake_events):
     """Test log binning by creating a workspace with fake events at specific wavelengths,
     binning into a histogram, and test against expected output.
+    dev - Jiao Lin <linjiao@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
 
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/207
     """
     # create a workspace with fake events
     ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
     # binning the events to loglinear bins 2.5, 2.625, 2.75625, 2.894063, 3.038, 3.1907
-    from mantid.simpleapi import Rebin
+    # this is the constant dlambda/lambda
     dlambda_over_lambda = 0.125/2.5
-    ws = Rebin(InputWorkspace=ws, Params='2.5, -%s, 3.36' % dlambda_over_lambda)  # start, step, end of bin edges
+    # start, step, end of bin edges. negative means loglinear!
+    start, step, end = 2.5, -dlambda_over_lambda, 3.36
+    # rebin
+    from mantid.simpleapi import Rebin
+    ws = Rebin(InputWorkspace=ws, Params='{}, {}, {}'.format(start, step, end))
     # verify
     import numpy as np
     assert np.allclose(
         ws.readX(0),
-        [2.5, 2.625, 2.75625, 2.894063, 3.038766, 3.190704, 3.36])
+        [2.5, 2.625, 2.75625, 2.894063, 3.038766, 3.190704, 3.36]
+    )
     assert np.allclose(ws.readY(0), [1., 0., 2., 0., 2., 0.])
     return
 

@@ -54,7 +54,7 @@ class MomentumTransfer(MomentumTransferMain):
 
 def prepare_momentum_transfer(input_workspace,
                               wavelength_binning=[0.5],
-                              sample_aperture=10.0,
+                              sample_aperture=None,
                               prefix=None,
                               suffix="_table"):
     """
@@ -64,7 +64,7 @@ def prepare_momentum_transfer(input_workspace,
 
     :param input_workspace:
     :param wavelength_binning:
-    :param sample_aperture:
+    :param sample_aperture: Sample aperture diameter in mm.  It will override beamslit4 value for this aperature
     :param prefix:
     :param suffix:
     :return:
@@ -102,9 +102,11 @@ def prepare_momentum_transfer(input_workspace,
     # TODO - check input workspace unit
 
     # Add sample logs if required...
-    # TODO - 214: sample-aperture-diameter shall be calculated from sample logs (Refer to momentum resolution)
-    input_workspace.mutableRun().addProperty('sample-aperture-diameter',
-                                             sample_aperture, 'mm', True)
+    # William: beamslit4 may not be correct. user specified sample-aperture-diameter shall override it in resolution
+    #          calculation
+    if sample_aperture is not None:
+        input_workspace.mutableRun().addProperty('sample-aperture-diameter',
+                                                 sample_aperture, 'mm', True)
     # TODO - FIXME : disabled as USELESS: geometry.source_aperture_diameter(input_workspace)
 
     # Identify run is 1 frame or 2 frame (skip frame)

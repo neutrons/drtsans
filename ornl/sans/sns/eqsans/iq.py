@@ -54,11 +54,10 @@ class MomentumTransfer(MomentumTransferMain):
 
 def prepare_momentum_transfer(input_workspace,
                               wavelength_binning=[0.5],
-                              sample_aperture=None,
+                              sample_aperture=10.0,
                               prefix=None,
                               suffix="_table"):
-    """
-
+    """ Prepare momentum transfer calculation
     :exception AssertionError: specified wave length binning parameters size is not 1 or 3
     :exception RuntimeError: wave length binni
 

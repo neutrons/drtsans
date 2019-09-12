@@ -132,7 +132,7 @@ def sample_aperture_diameter(run, unit='m'):
             sad = sl.single_value(log_key)
             break
     if sad is None:
-        pnames = [p.name for p in run.getProperties()]
+        pnames = [p.name for p in run.run().getProperties()]
         raise RuntimeError('Unable to retrieve sample aperture diameter as neither log "sample-aperture-diameter" '
                            'nor "beamslit4" is in the sample logs.  Available logs are {}'
                            ''.format(pnames))

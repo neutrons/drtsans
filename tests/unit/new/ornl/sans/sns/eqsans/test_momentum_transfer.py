@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, AddTimeSeriesLog, Rebin, ConvertUnits
-from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_dq, calculate_pixel_positions, retrieve_instrument_setup
+from ornl.sans.sns.eqsans.momentum_transfer import q_resolution_per_pixel, calculate_pixel_positions, retrieve_instrument_setup
 from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_resolution, moderator_time_uncertainty
 from ornl.sans.sns.eqsans import load_events
 
@@ -225,7 +225,7 @@ def test_q_resolution_per_pixel(generic_IDF):
     check_pixels_position(ws)
 
     # Set uncertainties
-    qx_matrix, qy_matrix, dqx_matrix, dqy_matrix = calculate_q_dq(ws)
+    qx_matrix, qy_matrix, dqx_matrix, dqy_matrix = q_resolution_per_pixel(ws)
 
     # Qx and Qy shall be already tested in sans.momentum_transfer
 

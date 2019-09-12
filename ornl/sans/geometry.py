@@ -22,7 +22,8 @@ def detector_name(ipt):
     inst_to_det = {'EQSANS': 'detector1',
                    'EQ-SANS': 'detector1',
                    'BIOSANS': 'detector1',
-                   'GPSANS': 'detector1'}
+                   'GPSANS': 'detector1',
+                   'GenericSANS': 'detector1'}
     if isinstance(ipt, str):
         if ipt in mtd:
             instrument_name = mtd[ipt].getInstrument().getName()

@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, AddTimeSeriesLog, Rebin, ConvertUnits
-from ornl.sans.sns.eqsans.momentum_transfer import q_resolution_per_pixel, calculate_pixel_positions, retrieve_instrument_setup
-from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_resolution, calculate_moderator_time_error
+from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_dq, calculate_pixel_positions, retrieve_instrument_setup
+from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_resolution, moderator_time_uncertainty
 from ornl.sans.sns.eqsans import load_events
 
 
@@ -119,7 +119,7 @@ def check_pixels_position(ws):
 
     # Get pixel positions
     outputs = calculate_pixel_positions(ws, ws.getNumberHistograms())
-    pixel_2theta_vec, pixel_sample_distance_vec, q_x_ratio_vec, q_y_ratio_vec = outputs
+    pixel_2theta_vec, pixel_sample_distance_vec = outputs
 
     # Verify 2theta (diffraction angle) in radians: 2 corners with 2theta and pixel sample distance
     # 2theta = np.atan(np.sqrt(pos_0**2 + pos_1**2) / pos_2**2))  pos_2 == L2 = 1.25
@@ -132,15 +132,6 @@ def check_pixels_position(ws):
     assert_delta(pixel_sample_distance_vec[0], 1.2500467991239368, 1.E-10, 'Sample-to-lower left corner (0)')
     assert_delta(pixel_sample_distance_vec[6], 1.2500051999891841, 1.E-10, 'Sample-to-left-upper middle (6)')
     assert_delta(pixel_sample_distance_vec[15], 1.2500467991239368, 1.E-10, 'Sample-to-upper right corner (15)')
-
-    # Verify pixels' phi angle:
-    gold_q_x_ratio_vec = np.array([-0.0047999631365096, 0.001599998634668764, 0.0047999631365096])
-    test_q_x_ratio_vec = np.array([q_x_ratio_vec[0], q_x_ratio_vec[6], q_x_ratio_vec[15]])
-    assert np.allclose(gold_q_x_ratio_vec, test_q_x_ratio_vec)
-
-    gold_q_y_ratio_vec = np.array([-0.0047999631365096, 0.001599998634668764, 0.0047999631365096])
-    test_q_y_ratio_vec = np.array([q_y_ratio_vec[0], q_y_ratio_vec[6], q_y_ratio_vec[15]])
-    assert np.allclose(gold_q_y_ratio_vec, test_q_y_ratio_vec)
 
     return
 
@@ -158,35 +149,18 @@ def test_info_retrieve_real_nexus():
     eqsans_ws = Rebin(eqsans_ws, Params='-0.001')
 
     # Get L1, L2, R1 and R2
-    setup_dict = retrieve_instrument_setup(eqsans_ws, pixel_sizes={'x': 0.001, 'y': 0.001})
+    setup_dict = retrieve_instrument_setup(eqsans_ws, pixel_sizes=None)
 
     # {'R1': 0.01, 'R2': 0.005, 'L2': 1.3, 'L1': 14.122}
     assert_delta(setup_dict['L1'], 14.122, 1.E-7, 'L1')
     assert_delta(setup_dict['L2'], 1.30, 1.E-7, 'L2')
     assert_delta(setup_dict['R1'], 0.0075, 1.E-7, 'R1 (source aperture)')  # 0.5 * (0.005 + 0.005 + 0.005)
     assert_delta(setup_dict['R2'], 0.005, 1.E-7, 'R2 (sample aperture')  # 0.5 * 10 mm
-
-    return
-
-
-def test_emission_error():
-    """
-    Test neutron emission TOF error
-    :return:
-    """
-    wl_array = np.array([1.5, 2.0, 2.5, 3.5, 7.0])
-
-    error_array = calculate_moderator_time_error(wl_array)
-
-    print('[TEST] TOF emission error:')
-    print('[TEST] INPUT  : {}'.format(wl_array))
-    print('[TEST] OUTPUT : {}'.format(error_array))
-
-    """ TODO: Need to confirm with IS
-    [TEST] TOF emission error:
-    [TEST] INPUT  : [ 1.5           2.            2.5           3.5           7. ]
-    [TEST] OUTPUT : [ 214.74671875  253.94        245.149875    248.893075    256.7826    ]
-    """
+    # '<ns1:radius val="0.0055"/>\n      <ns1:height val="0.004296875"/>\n
+    #    </ns1:cylinder>\n
+    assert_delta(setup_dict['pixel_size_x'], 0.011, 1.E-7, 'Pixel X size')  # 0.006 meter
+    assert_delta(setup_dict['pixel_size_y'], 0.004296875, 1.E-6, 'Pixel Y size')
+    # bound box on height (0.0042972564697265625 is slightly larger)
 
     return
 
@@ -250,20 +224,10 @@ def test_q_resolution_per_pixel(generic_IDF):
     # Check pixel's positions
     check_pixels_position(ws)
 
-    # test the corner pixel (start and end) and thus center pixel position
-
     # Set uncertainties
-    pixel_sizes = {'x': 0.006, 'y': 0.004}
-    qx_matrix, qy_matrix, dqx_matrix, dqy_matrix = q_resolution_per_pixel(ws, pixel_sizes)
+    qx_matrix, qy_matrix, dqx_matrix, dqy_matrix = calculate_q_dq(ws)
 
-    # Test Qx
-    """
-    Qx: [[ 0.02718414  0.01553395]  : corner
-         [ 0.00906161  0.00517811]]
-    Qy: [[ -1.30483870e-04   2.48543251e-05] : corner
-         [
-    """
-    assert_delta(qx_matrix[0, 0], 0.01553395, 1.E-7, 'Qx[0, lambda=3.5]')
+    # Qx and Qy shall be already tested in sans.momentum_transfer
 
     return
 

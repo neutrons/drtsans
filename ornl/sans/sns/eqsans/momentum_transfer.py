@@ -4,16 +4,81 @@ import numpy as np
 from ornl.sans.momentum_transfer import dq2_geometry, dq2_gravity
 from ornl.sans import geometry as sans_geometry
 from ornl.sans.sns.eqsans import geometry as eqsans_geometry
+from ornl.sans.momentum_transfer import calculate_momentum_transfer
+from ornl.sans.momentum_transfer import _G_MN2_OVER_H2 as b_factor
 
 
-def calculate_q_dq(ws):
+def calculate_q_dq(ws, pixel_sizes):
     """
-    Calculate momentum transfer and momentum transfer resolution
-    :param ws:
-    :return: 2D arrays for Q, Qx, dQx, Qy, dQy
+    Calculate momentum transfer and momentum transfer resolution for each pixel in each wavelength bin
+
+    The resolution can be computed by giving a binned
+    workspace to this function:
+
+    qx, qy, dqx, dqy = calculate_q_dq(ws_2d)
+
+    The returned numpy arrays are of the same dimensions
+    as the input array.
+
+    Note:
+    1. pixel sizes: the auto-retrieved value of detector pixel size comes from det.boundBox(), which may be slightly
+                    larger than the real pixel size.  For example: 0.0042972564697265625 vs. 0.004296875 for height.
+                    User can specify the pixel sizes to override.
+
+
+    :param ws: MatrixWorkspace in unit of wave length.
+               It must be histogram data for bin step (point data does not have this information)
+    :param pixel_sizes: 2-tuple for size x and size y of each pixel or None (default)
+    :return: numpy array (shape = (n, m) n = ws.getNumberHistograms(), m = number of wave length bins) for Qx, Qy,
+             dQx, dQy
     """
-    raise NotImplementedError('Method calculate_q_dq() in ornl.sans.sns.eqsans.momentum_transfer will be '
-                              'used to replace q_resolution_per_pixel')
+    # Check inputs and unit
+    if ws is None:
+        raise RuntimeError('Workspace cannot be None')
+    elif ws.getAxis(0).getUnit().unitID() != 'Wavelength':
+        raise RuntimeError('Input workspace {} for calculate Q resolution must be in unit Wavelength but not {}'
+                           ''.format(ws, ws.getAxis(0).getUni().unitID()))
+    elif not ws.isHistogramData():
+        raise RuntimeError('Input workspace {} must be Point Data but not histogram data.'.format(ws))
+
+    # Get instrument setup parameters to calculate Q resolution
+    exp_setup_dict = retrieve_instrument_setup(ws, pixel_sizes)
+
+    # From histogram to get wave length at center of each bin. The output is a 2D array for pixel number and
+    # wave length bin
+    # FIXME - This is only good for constant binning
+    wavelength_bin_boundary_matrix = ws.extractX()
+    wavelength_bin_center_matrix = 0.5 * (wavelength_bin_boundary_matrix[:, 1:] +
+                                          wavelength_bin_boundary_matrix[:, :-1])
+    wavelength_bin_step_matrix = wavelength_bin_boundary_matrix[:, 1:] - wavelength_bin_boundary_matrix[:, :-1]
+
+    print('[DEBUG.........] wave length matrix: {}, {}, {}'.format(wavelength_bin_boundary_matrix.shape,
+                                                                   wavelength_bin_center_matrix.shape,
+                                                                   wavelength_bin_step_matrix.shape))
+
+    # Calculate detector pixel information
+    # TODO - late in the issue: move this part to calculate_momentum_transfer() to reduce loop
+    vectors = calculate_pixel_positions(ws)
+    pixel_2theta_vec, pixel_sample_distance_vec = vectors
+    # pixel_phi_vec
+    print('[DEBUG.........] s2p, 2theta: {}, {}'.format(pixel_sample_distance_vec .shape, pixel_2theta_vec.shape))
+
+    # Calculate momentum transfer Q
+    returns = calculate_momentum_transfer(ws)
+    qx_matrix = returns[1]
+    qy_matrix = returns[2]
+
+    # Calculate neutron emission time according to wave length value
+    tof_error_matrix = moderator_time_uncertainty(wavelength_bin_center_matrix)
+
+    # Calculate dQx and dQy, both as 2D arrays
+    dqx_matrix, dqy_matrix = calculate_q_resolution(qx_matrix, qy_matrix,
+                                                    wavelength_bin_center_matrix, wavelength_bin_step_matrix,
+                                                    0.5 * pixel_2theta_vec, pixel_2theta_vec,
+                                                    pixel_sample_distance_vec,
+                                                    tof_error_matrix, exp_setup_dict)
+
+    return qx_matrix, qy_matrix, dqx_matrix, dqy_matrix
 
 
 def q_resolution_per_pixel_to_mod(ws):
@@ -75,33 +140,28 @@ def q_resolution_per_pixel_to_mod(ws):
     qy = np.sin(phi) * _q
     del _q, phi
 
-    dtof = _moderator_time_error(wl)
+    dtof = cal_moderator_time_error(wl)
     theta = 0.5 * twotheta
     dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
     dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
     return qx, qy, dqx, dqy
 
 
-def _moderator_time_error(wl):
-    """
-    Relative Q uncertainty due to emission time jitter
+def moderator_time_uncertainty(wl):
+    """ Relative Q uncertainty due to emission time jitter
     in the neutron moderator.
-
-    Parameters
-    ----------
-    wl: float
-        wavelength [Angstrom]
-
-    Returns
-    float
+    :param wl: float (or ndarray) wavelength [Angstrom]
+    :return: float or ndarray (same shape to wave_length_array) of emission error time
     """
     time_error = np.zeros_like(wl)
 
+    # lambda > 2 case
     mask = wl > 2.0
     time_error[mask] = 0.0148 * wl[mask]**3 \
         - 0.5233 * wl[mask]**2 \
         + 6.4797 * wl[mask] + 231.99
 
+    # lambda < 2 case
     mask = wl <= 2.0
     time_error[mask] = 392.31 * wl[mask]**6 \
         - 3169.3 * wl[mask]**5 \
@@ -110,88 +170,17 @@ def _moderator_time_error(wl):
         + 16509 * wl[mask]**2 \
         - 7448.4 * wl[mask] + 1280.5
 
+    # clean up memory
     del mask
+
+    # convert from zero-dimensional nparray to float
+    if isinstance(wl, float):
+        time_error = float(time_error)
+
     return time_error
 
-from __future__ import (absolute_import, division, print_function)
-import numpy as np
 
-from ornl.sans.resolution import dq2_geometry, dq2_gravity
-from ornl.sans import geometry as sans_geometry
-from ornl.sans.momentum_transfer import calculate_momentum_transfer
-from ornl.sans.sns.eqsans import geometry as eqsans_geometry
-from ornl.sans.resolution import _G_MN2_OVER_H2 as b_factor
-
-
-def q_resolution_per_pixel(ws, pixel_sizes):
-    """
-    Compute q resolution for each pixel, in each wavelength bin.
-
-    The resolution can be computed by giving a binned
-    workspace to this function:
-
-    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
-
-    The returned numpy arrays are of the same dimensions
-    as the input array.
-
-    Parameters
-    ----------
-    ws: MatrixWorkspace in unit of wave length
-        Input workspace
-
-    pixel_sizes: dictionary for pixel size in X and Y dimension
-
-    Returns
-    ------
-    numpy array (shape = (n, m) n = ws.getNumberHistograms(), m = number of wave length bins) for Qx, Qy, dQx, dQy
-    """
-    # Check inputs and unit
-    if ws is None:
-        raise RuntimeError('Workspace cannot be None')
-    elif ws.getAxis(0).getUnit().unitID() != 'Wavelength':
-        raise RuntimeError('Input workspace {} for calculate Q resolution must be in unit Wavelength but not {}'
-                           ''.format(ws, ws.getAxis(0).getUni().unitID()))
-
-    # Get instrument setup parameters to calculate Q resolution
-    exp_setup_dict = retrieve_instrument_setup(ws, pixel_sizes)
-
-    # From histogram to get wave length at center of each bin. The output is a 2D array for pixel number and
-    # wave length bin
-    wavelength_bin_boundary_matrix = ws.extractX()
-    wavelength_bin_center_matrix = (wavelength_bin_boundary_matrix[:, 1:] +
-                                    wavelength_bin_boundary_matrix[:, :-1]) / 2.0
-    wavelength_bin_step_matrix = wavelength_bin_boundary_matrix[:, 1:] - wavelength_bin_boundary_matrix[:, :-1]
-
-    print('[DEBUG.........] wave length matrix: {}, {}, {}'.format(wavelength_bin_boundary_matrix.shape,
-                                                                   wavelength_bin_center_matrix.shape,
-                                                                   wavelength_bin_step_matrix.shape))
-
-    # Calculate detector pixel information
-    vectors = calculate_pixel_positions(ws)
-    pixel_2theta_vec, pixel_sample_distance_vec = vectors
-    # pixel_phi_vec
-    print('[DEBUG.........] s2p, 2theta: {}, {}'.format(pixel_sample_distance_vec .shape, pixel_2theta_vec.shape))
-
-    # Calculate momentum transfer Q
-    q_matrices = calculate_momentum_transfer(ws)
-    qx_matrix = q_matrices[1]
-    qy_matrix = q_matrices[2]
-
-    # Calculate neutron emission time according to wave length value
-    tof_error_matrix = calculate_moderator_time_error(wavelength_bin_center_matrix)
-
-    # Calculate dQx and dQy, both as 2D arrays
-    dqx_matrix, dqy_matrix = calculate_q_resolution(qx_matrix, qy_matrix,
-                                                    wavelength_bin_center_matrix, wavelength_bin_step_matrix,
-                                                    0.5 * pixel_2theta_vec, pixel_2theta_vec,
-                                                    pixel_sample_distance_vec,
-                                                    tof_error_matrix, exp_setup_dict)
-
-    return qx_matrix, qy_matrix, dqx_matrix, dqy_matrix
-
-
-def retrieve_instrument_setup(ws):
+def retrieve_instrument_setup(ws, pixel_sizes=None):
     """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
     :param ws:
     :param pixel_sizes: dictionary for pixel sizes
@@ -205,15 +194,16 @@ def retrieve_instrument_setup(ws):
     r1 = 0.5 * eqsans_geometry.source_aperture_diameter(ws, unit='m')
     r2 = 0.5 * eqsans_geometry.sample_aperture_diameter(ws, unit='m')
 
-    # TODO - det0.shape().getBoundingBox().width() : size X, Y and Z (confirmed)
-
     # form dictionary
     setup_dict = {'L1': l1, 'L2': l2, 'R1': r1, 'R2': r2}
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy
-        raise NotImplementedError('Pixel sizes obtained from instrument is not supported yet')
+        det_shape = ws.getDetector(0).shape().getBoundingBox().width()  # 3 values
+        size_x = det_shape[0]
+        size_y = det_shape[1]
     else:
+        # User specified, overriding values from intrument directly
         size_x = pixel_sizes['x']
         size_y = pixel_sizes['y']
     setup_dict['pixel_size_x'] = size_x
@@ -229,10 +219,6 @@ def calculate_pixel_positions(ws, num_spec=None):
     :param num_spec: number of spectra
     :return: 2 vectors of pixels' (2theta, distance to sample)
     """
-    # Initialize arrays
-    pixel_2theta_vec = np.zeros(shape=(num_spec, 1), dtype='float')
-    pixel_sample_distance_vec = np.zeros_like(pixel_2theta_vec)
-
     # Get each spectrum
     spec_info = ws.spectrumInfo()
 
@@ -241,6 +227,10 @@ def calculate_pixel_positions(ws, num_spec=None):
         num_spec = spec_info.size()
     elif num_spec != spec_info.size():
         raise RuntimeError('Number of spectra do not match!')
+
+    # Initialize arrays
+    pixel_2theta_vec = np.zeros(shape=(num_spec, 1), dtype='float')
+    pixel_sample_distance_vec = np.zeros_like(pixel_2theta_vec)
 
     # Calculate theta/2theta and will be very slow!
     for i in range(num_spec):
@@ -306,118 +296,6 @@ def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, two_th
     print('[DEBUG INFO] Geom dQy = {}, Wave dQy = {}'.format(qy_geom_resolution, qy_wave_resolution))
 
     return dqx, dqy
-
-
-def calculate_moderator_time_error(wave_length_array):
-    """ Relative Q uncertainty due to emission time jitter
-    in the neutron moderator.
-    :param wave_length_array: ndarray of neutron wave length, float,  [Angstrom]
-    :return: ndarray (same shape to wave_length_array) of emission error time
-    """
-    time_error_array = np.zeros_like(wave_length_array)
-
-    # lambda > 2 case
-    mask = wave_length_array > 2.0
-    print('[DB...BAT...] wl > 2.0 mask shape = {}'.format(mask.shape))
-    time_error_array[mask] = 0.0148 * wave_length_array[mask] ** 3 \
-                             - 0.5233 * wave_length_array[mask] ** 2 \
-                             + 6.4797 * wave_length_array[mask] + 231.99
-    print('[DB...BAT...] Emission: {}'.format(time_error_array))
-
-    # lambda < 2 case
-    mask = wave_length_array <= 2.0
-    time_error_array[mask] = 392.31 * wave_length_array[mask] ** 6 \
-                             - 3169.3 * wave_length_array[mask] ** 5 \
-                             + 10445. * wave_length_array[mask] ** 4 \
-                             - 17872. * wave_length_array[mask] ** 3 \
-                             + 16509. * wave_length_array[mask] ** 2 \
-                             - 7448.4 * wave_length_array[mask] + 1280.5
-
-    return time_error_array
-
-
-def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055, dtof=0.):
-    """
-    Q resolution in the horizontal direction.
-
-    Parameters
-    ----------
-    qx: float
-        value of q_x (1/Angstrom)
-    L1: float
-        source-to-sample distance (m)
-    L2: float
-        sample-to-detector distance (m)
-    R1: float
-        source aperture radius (m)
-    R2: float
-        sample aperture radius (m)
-    wl: float
-        wavelength mid-point (Angstrom)
-    dwl: float
-        wavelength-spread (Angstrom)
-    theta: float
-        scattering angle (rad)
-    s2p: float
-        sample-to-pixel (m)
-    pixel_size: float
-        dimension of the pixel (m)
-
-    Returns
-    ------
-    float
-    """
-    # If theta is not supplied, compute it from qx
-    # This simplifies the calculation for I(Q) in 1D.
-    if theta is None:
-        theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
-    dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
-    return dq2_geo + np.fabs(qx) * (dq_tof_term + (dwl / wl)**2) / 12.0
-
-
-def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043, dtof=0.):
-    """
-    Q resolution in vertical direction.
-
-    Parameters
-    ----------
-    qy: float
-        value of q_y (1/Angstrom)
-    L1: float
-        source-to-sample distance (m)
-    L2: float
-        sample-to-detector distance (m)
-    R1: float
-        source aperture radius (m)
-    R2: float
-        sample aperture radius (m)
-    wl: float
-        wavelength mid-point (Angstrom)
-    dwl: float
-        wavelength-spread (Angstrom)
-    theta: float
-        scattering angle (rad)
-    s2p: float
-        sample-to-pixel (m)
-    pixel_size: float
-        dimension of the pixel (m)
-
-    Returns
-    ------
-    float
-    """
-    # If theta is not supplied, compute it from qx
-    # This simplifies the calculation for I(Q) in 1D.
-    if theta is None:
-        theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
-    dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
-    dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
-    dq2 = dq2_geo + dq2_grav
-    dq2 += np.fabs(qy) * (dq_tof_term + (dwl / wl)**2) / 12.0
-    return dq2
-
 
 
 def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055, dtof=0.):

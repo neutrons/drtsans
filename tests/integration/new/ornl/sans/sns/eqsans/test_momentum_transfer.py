@@ -49,7 +49,7 @@ def legacy_reduction(reference_dir):
     return mtd['EQSANS_68200_event_iq']
 
 
-def test_momentum_tranfer_serial(reference_dir):
+def test_momentum_transfer_serial(reference_dir):
 
     ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,

@@ -64,10 +64,21 @@ class EQSANSResolution(unittest.TestCase):
         self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 1e-4)
 
     def test_moderator_time_error(self):
-        from ornl.sans.sns.eqsans.momentum_transfer import _moderator_time_error
+        """Test moderator time uncertainty function using two wavelengths above and below 2 Angstroms
+        and verify the output with expected results.
+        dev - Jiao Lin <linjiao@ornl.gov>
+        SME - William Heller <hellerwt@ornl.gov>
+
+        For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/168
+        """
+        # the wavelengths to test
         wavelengths = [1.5, 9.3]
+        # expected output
         expected = [214.74671875, 258.8954766]
+        # calculate
+        from ornl.sans.sns.eqsans.momentum_transfer import _moderator_time_error
         out = _moderator_time_error(np.array(wavelengths))
+        # verify
         self.assertTrue(np.allclose(out, expected))
         return
 

@@ -95,13 +95,14 @@ def _moderator_time_error(wl):
     Returns
     float
     """
+    # init output array to zeros
     time_error = np.zeros_like(wl)
-
+    # formula for lambda>2
     mask = wl > 2.0
     time_error[mask] = 0.0148 * wl[mask]**3 \
         - 0.5233 * wl[mask]**2 \
         + 6.4797 * wl[mask] + 231.99
-
+    # formula for lambda<=2
     mask = wl <= 2.0
     time_error[mask] = 392.31 * wl[mask]**6 \
         - 3169.3 * wl[mask]**5 \

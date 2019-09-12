@@ -64,10 +64,10 @@ class EQSANSResolution(unittest.TestCase):
         self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 1e-4)
 
     def test_moderator_time_error(self):
-        from ornl.sans.sns.eqsans.momentum_transfer import cal_moderator_time_error
+        from ornl.sans.sns.eqsans.momentum_transfer import moderator_time_uncertainty
         wavelengths = [1.5, 9.3]
         expected = [214.74671875, 258.8954766]
-        out = cal_moderator_time_error(np.array(wavelengths))
+        out = moderator_time_uncertainty(np.array(wavelengths))
         self.assertTrue(np.allclose(out, expected))
         return
 

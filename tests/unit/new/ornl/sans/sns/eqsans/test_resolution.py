@@ -68,7 +68,7 @@ class EQSANSResolution(unittest.TestCase):
         and verify the output with expected results.
         dev - Jiao Lin <linjiao@ornl.gov>
         SME - William Heller <hellerwt@ornl.gov>
-        
+
         For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/168
         """
         # the wavelengths to test

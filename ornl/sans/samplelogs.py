@@ -121,7 +121,8 @@ class SampleLogs(object):
         finders = [v for k, v in dispatch.items() if isinstance(other, k)]
         if len(finders) == 0:
             # In case no items found
-            raise RuntimeError('Input "other" of value {} is not supported to retrieve Mantid "run" object'.format(other))
+            raise RuntimeError('Input "other" of value {} is not supported to retrieve Mantid '
+                               '"run" object'.format(other))
         finder = finders[0]
 
         return finder(other)

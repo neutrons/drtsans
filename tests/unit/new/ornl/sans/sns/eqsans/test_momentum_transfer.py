@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, AddTimeSeriesLog, Rebin, ConvertUnits
-from ornl.sans.sns.eqsans.momentum_transfer import q_resolution_per_pixel, calculate_pixel_positions, retrieve_instrument_setup
-from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_resolution, moderator_time_uncertainty
+from ornl.sans.sns.eqsans.momentum_transfer import q_resolution_per_pixel, calculate_pixel_positions,\
+    retrieve_instrument_setup
+from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_resolution
 from ornl.sans.sns.eqsans import load_events
 
 
@@ -71,14 +72,12 @@ def _set_apertures_log(input_ws):
     :return:
     """
     # Add logs for source aperture (3) and Sample aperture (1)
-    log_names = ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3', 'beamslit4']  #, 'sample-aperture-diameter']
-    log_values = [5., 5., 5., 10.]  # [10]]
-    #log_units = ['mm', 'mm', 'mm', 'mm']
+    log_names = ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3', 'beamslit4']
+    log_values = [5., 5., 5., 10.]  # all in unit mm
     input_ws_name = input_ws.name()
     for ilog in range(len(log_names)):
         log_name = log_names[ilog]
         log_value = log_values[ilog]
-        # log_unit = log_units[ilog]
         AddTimeSeriesLog(input_ws, Name=log_name, Time="2010-01-01T00:00:00", Value=log_value)
 
     if input_ws is None:
@@ -232,37 +231,37 @@ def test_q_resolution_per_pixel(generic_IDF):
     return
 
 
-def sigma_neutron(wave_length, delta_wave_length, Qx, Qy, theta, L1, L2, R1, R2, x3, y3, s2p, m2s, sig_emission):
-    """ Modified from Wei-ren's script
-    :param wave_length: netron wavelength
-    :param delta_wave_length: wavelength width
-    :param Qx: momentum transfer in x direction, respectively
-    :param Qy: momentum transfer in y direction, respectively
-    :param theta: scattering angle (half of 2theta??? of the pixel???)
-    :param L1: the flight path lengths
-    :param L2: the flight path lengths
-    :param R1: sample apertures
-    :param R2: source apertures
-    :param x3: detector pixel dimensions
-    :param y3: detector pixel dimensions
-    :param s2p: sample to pixel distance
-    :param m2s: moderator to sample distance
-    :param sig_emission: neutron emission time
-    :return:
-    """
-    # For EQ-SANS
-    h = 6.62607004e-34
-    mn = 1.674929e-27
-    g = 6.67408e-11
-    B = 0.5 * g * mn**2 * L2 * (L1+L2)/h**2
-    B = B/(10**10)
-    r = (delta_wave_length/wave_length)**2
-    sigma_x = (2. * np.pi * np.cos(theta) * np.cos(2.*theta)**2 / wave_length/L2)**2
-    sigma_x = sigma_x* ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + x3**2/12 )
-    sigma_x = sigma_x + Qx/12 * (r +  (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2 )
-    sigma_y = (2. * np.pi * np.cos(theta)*np.cos(2*theta)**2/wave_length/L2)**2
-    sigma_y = sigma_y* ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + y3**2/12 + 2*B**2*wave_length^4*r/3 )\
-              + Qy/12*(r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2 )
-    print('sigma_x = {.9f} sigma_y = {.9f} sigma = {.9f}\n'.format(sigma_x, sigma_y, sigma_x+sigma_y))
-
-    return sigma_x, sigma_y
+# def sigma_neutron(wave_length, delta_wave_length, Qx, Qy, theta, L1, L2, R1, R2, x3, y3, s2p, m2s, sig_emission):
+#     """ Modified from Wei-ren's script
+#     :param wave_length: netron wavelength
+#     :param delta_wave_length: wavelength width
+#     :param Qx: momentum transfer in x direction, respectively
+#     :param Qy: momentum transfer in y direction, respectively
+#     :param theta: scattering angle (half of 2theta??? of the pixel???)
+#     :param L1: the flight path lengths
+#     :param L2: the flight path lengths
+#     :param R1: sample apertures
+#     :param R2: source apertures
+#     :param x3: detector pixel dimensions
+#     :param y3: detector pixel dimensions
+#     :param s2p: sample to pixel distance
+#     :param m2s: moderator to sample distance
+#     :param sig_emission: neutron emission time
+#     :return:
+#     """
+#     # For EQ-SANS
+#     h = 6.62607004e-34
+#     mn = 1.674929e-27
+#     g = 6.67408e-11
+#     B = 0.5 * g * mn**2 * L2 * (L1+L2)/h**2
+#     B = B/(10**10)
+#     r = (delta_wave_length/wave_length)**2
+#     sigma_x = (2. * np.pi * np.cos(theta) * np.cos(2.*theta)**2 / wave_length/L2)**2
+#     sigma_x = sigma_x* ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + x3**2/12 )
+#     sigma_x = sigma_x + Qx/12 * (r +  (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2 )
+#     sigma_y = (2. * np.pi * np.cos(theta)*np.cos(2*theta)**2/wave_length/L2)**2
+#     sigma_y = sigma_y * ((L2/L1)**2 * R1**2*0.25 + (1+L2/L1)**2 * R2**2 * 0.25 + y3**2/12 + 2*B**2*wave_length^4*r/3)\
+#               + Qy/12*(r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)
+#     print('sigma_x = {.9f} sigma_y = {.9f} sigma = {.9f}\n'.format(sigma_x, sigma_y, sigma_x+sigma_y))
+#
+#     return sigma_x, sigma_y

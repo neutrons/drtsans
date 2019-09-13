@@ -260,7 +260,7 @@ def test_q_resolution_per_pixel(generic_IDF):
 #     sigma_x = sigma_x* ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + x3**2/12 )
 #     sigma_x = sigma_x + Qx/12 * (r +  (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2 )
 #     sigma_y = (2. * np.pi * np.cos(theta)*np.cos(2*theta)**2/wave_length/L2)**2
-#     sigma_y = sigma_y * ((L2/L1)**2 * R1**2*0.25 + (1+L2/L1)**2 * R2**2 * 0.25 + y3**2/12 + 2*B**2*wave_length^4*r/3)\
+#     sigma_y = sigma_y * ((L2/L1)**2 * R1**2*0.25 + (1+L2/L1)**2 * R2**2 * 0.25 + y3**2/12 + 2*B**2*wave_length^4*r/3)
 #               + Qy/12*(r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)
 #     print('sigma_x = {.9f} sigma_y = {.9f} sigma = {.9f}\n'.format(sigma_x, sigma_y, sigma_x+sigma_y))
 #

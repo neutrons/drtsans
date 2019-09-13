@@ -142,7 +142,7 @@ def q_resolution_per_pixel_to_mod(ws):
     qy = np.sin(phi) * _q
     del _q, phi
 
-    dtof = cal_moderator_time_error(wl)
+    dtof = moderator_time_uncertainty(wl)
     theta = 0.5 * twotheta
     dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
     dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))

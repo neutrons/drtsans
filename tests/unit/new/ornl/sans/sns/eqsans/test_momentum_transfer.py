@@ -168,17 +168,29 @@ def test_single_value_resolution():
     """ Test method calculate Q resolution mostly from Generic SANS
     :return:
     """
-    l1 = 14.122
-    l2 = 1.30
-    source_aperture = 0.0075  # source aperture
-    sample_aperture = 0.0050  # sample aperture
-    qx = 0.01553395  # lambda 3.5 corner pixel  (0, 1)
-    qy = 2.48543251e-05  # lambda 3.5  corner pixel (1, 1)
-    wave_length = 3.5
-    wl_resolution = 0.5
-    two_theta = 0.008653107083873311  # radian (corner pixel)
+    # l1 = 14.122
+    # l2 = 1.30
+    # source_aperture = 0.0075  # source aperture
+    # sample_aperture = 0.0050  # sample aperture
+    # qx = 0.01553395  # lambda 3.5 corner pixel  (0, 1)
+    # qy = 2.48543251e-05  # lambda 3.5  corner pixel (1, 1)
+    # wave_length = 3.5
+    # wl_resolution = 0.5
+    # two_theta = 0.008653107083873311  # radian (corner pixel)
+    # sample_pixel_distance = 1.2500467991239368  # radian (corner pixel)
+    # emission_error = 248.893075  # wave length = 3.5 A
+
+    l1 = 15.5
+    l2 = 15.0
+    source_aperture = 0.02  # source aperture
+    sample_aperture = 0.007  # sample aperture
+    qx = -5.93411755e-04
+    qy = -7.67944624e-04
+    wave_length = 6.0
+    wl_resolution = 0.15
+    two_theta = 0.00092676  # radian (corner pixel)
     sample_pixel_distance = 1.2500467991239368  # radian (corner pixel)
-    emission_error = 248.893075  # wave length = 3.5 A
+    emission_error = 0.  # wave length = 3.5 A
 
     q_x_res, q_y_res = calculate_q_resolution(qx=qx, qy=qy, wave_length=wave_length, delta_wave_length=wl_resolution,
                                               theta=0.5*two_theta, two_theta=two_theta,

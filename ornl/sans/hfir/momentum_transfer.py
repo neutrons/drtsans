@@ -45,13 +45,13 @@ def q_resolution_per_pixel(ws):
     L1 = sans_geometry.source_sample_distance(ws, unit='m',
                                               log_key='source-sample-distance')
     L2 = sans_geometry.sample_detector_distance(ws, unit='m')
-    R1 = 0.5 * sl.find_log_with_units('source-aperture-diameter', 'm')
-    R2 = 0.5 * sl.find_log_with_units('sample-aperture-diameter', 'm')
+    R1 = 0.5 * sl.find_log_with_units('source-aperture-diameter', 'mm') * 0.001
+    R2 = 0.5 * sl.find_log_with_units('sample-aperture-diameter', 'mm') * 0.001
     wl = sl.find_log_with_units('wavelength')
     dwl = sl.find_log_with_units('wavelength-spread')
 
     # FIXME - Remove after testing
-    print ('Inputs: ')
+    print('Inputs: ')
     print("r1", R1)
     print("r2", R2)
     print("wl", wl)
@@ -79,6 +79,16 @@ def q_resolution_per_pixel(ws):
     qx = np.cos(phi) * _q
     qy = np.sin(phi) * _q
     del _q, phi
+
+    print('Qx: {}'.format(qx))
+    print('Qy: {}'.format(qy))
+    print('L1: {}'.format(L1))
+    print('L2: {}'.format(L2))
+    print('R1: {}'.format(R1))
+    print('R2: {}'.format(R2))
+    print('WL: {}'.format(wl))
+    print('dW: {}'.format(dwl))
+    print('2T: {}'.format(twotheta))
 
     dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, twotheta))
     dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, twotheta))

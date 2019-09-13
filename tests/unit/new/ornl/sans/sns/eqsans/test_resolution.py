@@ -16,6 +16,7 @@ from mantid import simpleapi as api
 from ornl.sans.sns.eqsans import momentum_transfer
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans import sns_command_interface as eqsans
+from ornl.sans.sns.eqsans.momentum_transfer import moderator_time_uncertainty
 
 
 def eqsans_files():
@@ -63,11 +64,21 @@ class EQSANSResolution(unittest.TestCase):
         self.assertTrue(np.average(dqy) < 0.0055)
         self.assertTrue(np.fabs(np.average(dqx) - np.average(dqy)) < 1e-4)
 
-    def test_moderator_time_error(self):
-        from ornl.sans.sns.eqsans.momentum_transfer import moderator_time_uncertainty
+    def test_moderator_time_uncertainty(self):
+        """Test moderator time uncertainty function using two wavelengths above and below 2 Angstroms
+        and verify the output with expected results.
+        dev - Jiao Lin <linjiao@ornl.gov>
+        SME - William Heller <hellerwt@ornl.gov>
+
+        For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/168
+        """
+        # the wavelengths to test
         wavelengths = [1.5, 9.3]
+        # expected output
         expected = [214.74671875, 258.8954766]
+        # calculate
         out = moderator_time_uncertainty(np.array(wavelengths))
+        # verify
         self.assertTrue(np.allclose(out, expected))
         return
 

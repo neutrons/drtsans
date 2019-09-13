@@ -155,15 +155,16 @@ def moderator_time_uncertainty(wl):
     :param wl: float (or ndarray) wavelength [Angstrom]
     :return: float or ndarray (same shape to wave_length_array) of emission error time
     """
+    # init output array to zeros
     time_error = np.zeros_like(wl)
 
-    # lambda > 2 case
+    # formula for lambda>2
     mask = wl > 2.0
     time_error[mask] = 0.0148 * wl[mask]**3 \
         - 0.5233 * wl[mask]**2 \
         + 6.4797 * wl[mask] + 231.99
 
-    # lambda < 2 case
+    # formula for lambda<=2
     mask = wl <= 2.0
     time_error[mask] = 392.31 * wl[mask]**6 \
         - 3169.3 * wl[mask]**5 \

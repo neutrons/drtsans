@@ -140,4 +140,3 @@ def find_beam_center(input_workspace, mask=None, method='center_of_mass', **meth
     detector_coordinates = center_detector(input_workspace, mask=mask, method=method, move_detector=False,
                                            **method_kwargs)
     return -detector_coordinates[0], -detector_coordinates[1]
-

@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 from mantid.api import mtd
 from mantid.dataobjects import MaskWorkspace
-from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, ExtractMask)
+from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, ExtractMask, MaskSpectra)
 from ornl.settings import unique_workspace_dundername as uwd
 
 
@@ -69,3 +69,36 @@ def apply_mask(w, mask=None, output_workspace=None, **btp):
         MaskBTP(Workspace=w, **btp)
     return ExtractMask(InputWorkspace=w,
                        OutputWorkspace=output_workspace).OutputWorkspace
+
+
+def mask_spectra_with_special_values(input_workspace, output_workspace=None):
+    r"""
+    Mask spectra in a workspace containing non-finite values.
+
+    Non-finite values are evaluated with `numpy.isfinite`
+
+    Parameters
+    ----------
+    input_workspace: str, MatrixWorkspace
+    special_values: list
+        List of string representations for special `float` values. The special value can be obtained by applying
+        `float` to the string, e.g. float('nan').
+    output_workspace : str
+        Name of the normalised workspace. If None, the name of the input
+        workspace is chosen (the input workspace is overwritten).
+
+    Returns
+    -------
+    list
+        Workspace indexes masked. Returns zero if no spectra are masked.
+    """
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+    workspace = mtd[str(input_workspace)]
+    intensities = workspace.extractY()
+    non_finite_indexes = np.argwhere(np.isfinite(np.sum(intensities, axis=-1)) == False)  # noqa: E712
+    non_finite_indexes = non_finite_indexes.flatten().tolist()
+    if len(non_finite_indexes) > 0:
+        MaskSpectra(InputWorkspace=input_workspace, InputWorkspaceIndexType='WorkspaceIndex',
+                    InputWorkspaceIndexSet=non_finite_indexes, OutputWorkspace=output_workspace)
+    return len(non_finite_indexes)

@@ -96,10 +96,10 @@ def check_pixels_position(ws):
                              ''.format(ws, ws.getNumberHistograms()))
 
     # Golden position value
-    gold_pos_dict = {0: np.array([-0.009, -0.006, 1.25]),  # lower_left_pos
-                     6: np.array([-0.003,  0.002, 1.24]),  # middle (left and upper)
-                     12: np.array([0.009, -0.006, 1.25]),  # lower_right_pos
-                     15:  np.array([0.009, 0.006, 1.25])   # upper_right_pos
+    gold_pos_dict = {0: np.array([0.009, -0.006, 1.25]),  # lower_left_pos
+                     6: np.array([0.003,  0.002, 1.24]),  # middle (left and upper)
+                     12: np.array([-0.009, -0.006, 1.25]),  # lower_right_pos
+                     15:  np.array([-0.009, 0.006, 1.25])   # upper_right_pos
                      }
 
     # Check 3 corners

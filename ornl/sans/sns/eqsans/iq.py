@@ -4,7 +4,7 @@ import numpy as np
 
 from mantid.simpleapi import (ExtractSpectra, Rebin, DeleteWorkspace)
 from ornl.sans.iq import \
-    MomentumTransfer as MomentumTransferMain
+    IofQCalculator as MomentumTransferMain
 from mantid.kernel import logger
 from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.sns.eqsans import momentum_transfer

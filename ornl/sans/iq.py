@@ -15,13 +15,36 @@ from ornl.sans.detector import Component
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
+"""
+Proposed API
 
-class MomentumTransfer:
-    '''
+- binning Q to 1D:               q_vector, dq_vector = bin_into_q1d(wl_ws, bins, statistic)
+- binning Q to 2D:               qx_vector, dqx_vector, qy_vector, dqy_vector = bin_into_q2d(wl_ws, bins, statistic)
+- binning Q to 1D with annular:  q_vector, dq_vector = bin_annular_into_q1d(wl_ws, bins, statistic)
+- binning Q to 1D with wedge:    q_vector, dq_vector = bin_wedge_into_q1d(wl_ws, bins, statistic)
+- exporting result to table:     tables = export_to_tables(q_vectors, dq_vectors)
+"""
+
+
+def bin_into_q1d(wl_ws, bins, statistic):
+    """
+    Binning a workspace (in wave length unit) to Q (1D scaler)
+    :param wl_ws:
+    :param bins:
+    :param statistic:
+    :return:
+    """
+    calculator = IofQCalculator(None, wl_ws)
+
+    return calculator.bin_into_q1d(bins, statistic)
+
+
+class IofQCalculator(object):
+    """
     Momentum Transfer class
     Olds arrays for qx, qy, dqx, dqy, i, i_sigma
     q1d and q2d are calculated from there arrays
-    '''
+    """
 
     # For now the detector dims in Table Workspace will be in the comment
     # as below (there is no other form of adding key=value to table WS)
@@ -269,9 +292,9 @@ class MomentumTransfer:
         q = np.sqrt(np.square(self.qx) + np.square(self.qy))
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
 
-        return MomentumTransfer._bin_into_q1d(q, dq, self.i, self.i_sigma,
-                                              self.prefix, bins, statistic,
-                                              suffix)
+        return IofQCalculator._bin_into_q1d(q, dq, self.i, self.i_sigma,
+                                            self.prefix, bins, statistic,
+                                            suffix)
 
     def bin_wedge_into_q1d(self, phi_0=0, phi_aperture=30, bins=100,
                            statistic='mean', suffix="_wedge_iq"):
@@ -388,9 +411,9 @@ class MomentumTransfer:
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
         dq = dq[condition]
 
-        return MomentumTransfer._bin_into_q1d(q, dq, i, i_sigma,
-                                              self.prefix, bins,
-                                              statistic, suffix)
+        return IofQCalculator._bin_into_q1d(q, dq, i, i_sigma,
+                                            self.prefix, bins,
+                                            statistic, suffix)
 
     def bin_annular_into_q1d(self,
                              q_min=0.001,
@@ -462,6 +485,6 @@ class MomentumTransfer:
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
         dq = dq[condition]
 
-        return MomentumTransfer._bin_into_q1d(q, dq, i, i_sigma,
-                                              self.prefix, bins,
-                                              statistic, suffix)
+        return IofQCalculator._bin_into_q1d(q, dq, i, i_sigma,
+                                            self.prefix, bins,
+                                            statistic, suffix)

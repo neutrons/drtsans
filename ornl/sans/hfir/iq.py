@@ -4,7 +4,7 @@ import numpy as np
 
 from ornl.sans.hfir import momentum_transfer
 from ornl.sans.iq import \
-    MomentumTransfer as MomentumTransferMain
+    IofQCalculator as MomentumTransferMain
 
 
 # To ignore warning:   invalid value encountered in true_divide

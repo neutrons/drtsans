@@ -241,7 +241,7 @@ def test_generate_workspace_tof(generic_workspace):
     assert ws.readY(1).tolist() == [4., 4.]
     assert ws.readY(3).tolist() == [16., 16.]
     specInfo = ws.spectrumInfo()
-    assert specInfo.position(0) == V3D(-1., -.5, 5.)  # row=0, col=0
+    assert specInfo.position(0) == V3D(1., -.5, 5.)  # row=0, col=0
     assert specInfo.position(3) == V3D(0., .5, 5.)    # row=1, col=0
 
 

@@ -101,13 +101,13 @@ class MomentumTransferResolutionParameters(object):
         return self._pixel_size_y
 
 
-def calculate_q_dq(ws):
+def calculate_q_dq(ws, pixel_sizes=None):
     """
     Calculate momentum transfer and momentum transfer resolution
     :param ws:
+    :param pixel_sizes
     :return: 2D arrays for Q, Qx, dQx, Qy, dQy
     """
-    print(ws)
     raise NotImplementedError('Method calculate_q_dq() in ornl.sans.momentum_transfer is "virtual"')
 
 

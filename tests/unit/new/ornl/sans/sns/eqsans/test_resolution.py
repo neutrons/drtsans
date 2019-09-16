@@ -55,7 +55,7 @@ class EQSANSResolution(unittest.TestCase):
         Test the Q and Q resolution for a 1D distribution
         """
         ws = _create_reduced_ws()
-        qx, qy, dqx, dqy = momentum_transfer.q_resolution_per_pixel(ws)
+        qx, qy, dqx, dqy = momentum_transfer.calculate_q_dq(ws)
 
         self.assertTrue(qx.shape == qy.shape == dqx.shape == dqy.shape)
         self.assertTrue(np.min(np.abs(qx)) < np.max(np.abs(qx)))

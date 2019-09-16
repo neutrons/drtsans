@@ -82,7 +82,7 @@ class MomentumTransfer:
 
         # 1D arrays
         self.qx, self.qy, self.dqx, self.dqy = \
-            self.resolution.q_resolution_per_pixel(input_workspace)
+            self.resolution.calculate_q_dq(input_workspace)
         self.i = input_workspace.extractY().ravel()
         self.i_sigma = input_workspace.extractE().ravel()
         # Ravel just in case! For EQSANS for example is needed!

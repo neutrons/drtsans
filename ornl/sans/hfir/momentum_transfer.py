@@ -10,24 +10,14 @@ HFIR Momentum transfer and resolution calculation
 """
 
 
-def calculate_q_dq(ws):
-    """
-    Calculate momentum transfer and momentum transfer resolution
-    :param ws:
-    :return: 2D arrays for Q, Qx, dQx, Qy, dQy
-    """
-    raise NotImplementedError('Method calculate_q_dq() in ornl.sans.gpsans.momentum_transfer will be '
-                              'used to replace q_resolution_per_pixel')
-
-
-def q_resolution_per_pixel(ws):
+def calculate_q_dq(ws, pixel_sizes=None):
     r"""
     Compute q resolution for each pixel, in each wavelength bin.
 
     The resolution can be computed by giving a binned
     workspace to this function:
 
-    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
+    qx, qy, dqx, dqy = calculate_q_dq(ws_2d)
 
     The returned numpy arrays are of the same dimensions
     as the input array.
@@ -36,10 +26,11 @@ def q_resolution_per_pixel(ws):
     ----------
     ws: MatrixWorkspace
         Input workspace
+    pixel_sizes: None (use default) or dictionary of pixel size
 
     Returns
     ------
-    numpy array of the same dimension as the data
+    2D arrays for Q, Qx, dQx, Qy, dQy, which are of the same dimension as the data
     """
     sl = SampleLogs(ws)
     L1 = sans_geometry.source_sample_distance(ws, unit='m',

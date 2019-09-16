@@ -20,6 +20,7 @@ def test_source_aperture_diameter(serve_events_workspace):
     # ISSUE187 TODO Enable assert sad == approx(20)
     sad = SampleLogs(ws).single_value('source-aperture-diameter')
     # ISSUE187 TODO Enable assert sad == approx(20)
+    assert sad > 0
 
 
 def test_source_monitor_distance(serve_events_workspace):

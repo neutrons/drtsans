@@ -11,7 +11,94 @@ from scipy import constants
 # h = 6.626e-34    # m^2 kg s^-1
 # m_n = 1.675e-27  # kg
 # g = 9.8          # m s^-2
-_G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)
+_G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  # FIXME - Affect HFIR test * 0.5
+
+
+class MomentumTransferResolutionParameters(object):
+    """
+    Class to contain the parameters used to calculate Q resolution
+    """
+    def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius,
+                 pixel_size_x, pixel_size_y):
+        """
+        Initialization to set all the parameters (6) to calculate momentrum transfer resolution
+        :param l1: L1 (source to sample)
+        :param sample_det_center_dist: sample detector (bank) center distance
+        :param source_aperture_radius: source aperture radius (meter)
+        :param sample_aperture_radius: sample aperture radius (meter)
+        :param pixel_size_x: pixel linear size along X direction (meter)
+        :param pixel_size_y: pixel linear size along Y direction (meter)
+        """
+        self._l1 = l1
+        self._sample_det_center_dist = sample_det_center_dist
+        self._source_aperture = source_aperture_radius
+        self._sample_aperture = sample_aperture_radius
+        self._pixel_size_x = pixel_size_x
+        self._pixel_size_y = pixel_size_y
+
+        return
+
+    def __str__(self):
+        """
+        Nice output string
+        :return:
+        """
+        out = 'L1 = {} (m)\nSample-Detector-Center-Distance (L2)= {} (m)\n' \
+              ''.format(self.l1, self._sample_det_center_dist)
+        out += 'Source aperture radius (R1) = {} (m)\n'.format(self._source_aperture)
+        out += 'Sample aperture radius (R2) = {} (m)\n'.format(self._sample_det_center_dist)
+        out += 'Pixel size = {}, {} (m, m)'.format(self._pixel_size_x, self._pixel_size_y)
+
+        return out
+
+    @property
+    def l1(self):
+        """
+        Get L1 value
+        :return: L1 (meter)
+        """
+        return self._l1
+
+    @property
+    def sample_det_center_distance(self):
+        """
+        Distance from sample to detector bank center,
+        which is L2 in the SANS master document
+        :return: sample detector center distance, aka SANS L2 (meter)
+        """
+        return self._sample_det_center_dist
+
+    @property
+    def source_aperture_radius(self):
+        """
+        Source aperture radius, which is R1 in SANS master document
+        :return: source aperture radius (R1) in meter
+        """
+        return self._source_aperture
+
+    @property
+    def sample_aperture_radius(self):
+        """
+        Sample aperture radius, which is R2 in SANS master document
+        :return: sample aperture radius (R2) in meter
+        """
+        return self._sample_aperture
+
+    @property
+    def pixel_size_x(self):
+        """
+        Detector pixel size along X direction
+        :return: detector size along X direction in meter
+        """
+        return self._pixel_size_x
+
+    @property
+    def pixel_size_y(self):
+        """
+        Detector pixel size along Y direction
+        :return: detector size along Y direction in meter
+        """
+        return self._pixel_size_y
 
 
 def calculate_q_dq(ws):
@@ -135,7 +222,7 @@ def dq2_gravity(L1, L2, wl, dwl, theta):
     ------
     float
     """
-    B = _G_MN2_OVER_H2 * 0.5 * L2 * (L1 + L2)
+    B = _G_MN2_OVER_H2 * L2 * (L1 + L2)
     dq2 = 2. * np.square(B * wl * dwl) / 3.
     dq2 *= np.square(2.0 * np.pi * np.cos(theta)
                      * np.square(np.cos(2.0 * theta)) / wl / L2)

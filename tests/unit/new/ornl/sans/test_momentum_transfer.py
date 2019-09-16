@@ -12,7 +12,7 @@ from ornl.sans.momentum_transfer import calculate_momentum_transfer
                            'dx': 0.006, 'dy': 0.004, 'zc': 1.25,  # TODO - it is best to use close to real L1 and L2
                            'l1': -5.}],
                          indirect=True)
-def test_q_resolution_per_pixel(generic_IDF):
+def test_calculate_momentum_transfer(generic_IDF):
     """
     Create a generic (SANS) instrument and test for main()
     :param generic_IDF:

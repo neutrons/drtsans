@@ -153,8 +153,10 @@ def test_info_retrieve_real_nexus():
     # {'R1': 0.01, 'R2': 0.005, 'L2': 1.3, 'L1': 14.122}
     assert_delta(setup_dict.l1, 14.122, 1.E-7, 'L1')
     assert_delta(setup_dict.sample_det_center_distance, 1.30, 1.E-7, 'L2')
-    assert_delta(setup_dict.source_aperture_radius, 0.0075, 1.E-7, 'R1 (source aperture)')  # 0.5 * (0.005 + 0.005 + 0.005)
-    assert_delta(setup_dict.sample_aperture_radius, 0.005, 1.E-7, 'R2 (sample aperture')  # 0.5 * 10 mm
+    assert_delta(setup_dict.source_aperture_radius, 0.0075, 1.E-7, 'R1 (source aperture)')
+    # 0.5 * (0.005 + 0.005 + 0.005)
+    assert_delta(setup_dict.sample_aperture_radius, 0.005, 1.E-7, 'R2 (sample aperture')
+    # 0.5 * 10 mm
     # '<ns1:radius val="0.0055"/>\n      <ns1:height val="0.004296875"/>\n
     #    </ns1:cylinder>\n
     assert_delta(setup_dict.pixel_size_x, 0.011, 1.E-7, 'Pixel X size')  # 0.006 meter

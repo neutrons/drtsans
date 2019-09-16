@@ -43,7 +43,8 @@ class MomentumTransferResolutionParameters(object):
         Nice output string
         :return:
         """
-        out = 'L1 = {} (m)\nSample-Detector-Center-Distance (L2)= {} (m)\n'.format(self.l1, self._sample_det_center_dist)
+        out = 'L1 = {} (m)\nSample-Detector-Center-Distance (L2)= {} (m)\n' \
+              ''.format(self.l1, self._sample_det_center_dist)
         out += 'Source aperture radius (R1) = {} (m)\n'.format(self._source_aperture)
         out += 'Sample aperture radius (R2) = {} (m)\n'.format(self._sample_det_center_dist)
         out += 'Pixel size = {}, {} (m, m)'.format(self._pixel_size_x, self._pixel_size_y)

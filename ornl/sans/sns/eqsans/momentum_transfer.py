@@ -44,7 +44,7 @@ def q_resolution_per_pixel(ws, pixel_sizes=None):
         raise RuntimeError('Input workspace {} must be Point Data but not histogram data.'.format(ws))
 
     # Get instrument setup parameters to calculate Q resolution
-    exp_setup_dict = retrieve_instrument_setup(ws, pixel_sizes)
+    setup_params = retrieve_instrument_setup(ws, pixel_sizes)
 
     # From histogram to get wave length at center of each bin. The output is a 2D array for pixel number and
     # wave length bin
@@ -78,7 +78,7 @@ def q_resolution_per_pixel(ws, pixel_sizes=None):
                                                     wavelength_bin_center_matrix, wavelength_bin_step_matrix,
                                                     0.5 * pixel_2theta_vec, pixel_2theta_vec,
                                                     pixel_sample_distance_vec,
-                                                    tof_error_matrix, exp_setup_dict)
+                                                    tof_error_matrix, setup_params)
 
     return qx_matrix, qy_matrix, dqx_matrix, dqy_matrix
 
@@ -187,7 +187,7 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
     :param ws:
     :param pixel_sizes: dictionary for pixel sizes
-    :return: dictionary of L1, L2, R1, R2
+    :return: MomentumTransferResolutionParameters instance
     """
     # Retrieve L1 and L2 from instrument geometry
     l1 = sans_geometry.source_sample_distance(ws, unit='m',
@@ -196,9 +196,6 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
                                                 search_logs=False)
     r1 = 0.5 * eqsans_geometry.source_aperture_diameter(ws, unit='m')
     r2 = 0.5 * eqsans_geometry.sample_aperture_diameter(ws, unit='m')
-
-    # form dictionary
-    setup_dict = {'L1': l1, 'L2': l2, 'R1': r1, 'R2': r2}
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy
@@ -209,10 +206,16 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
         # User specified, overriding values from intrument directly
         size_x = pixel_sizes['x']
         size_y = pixel_sizes['y']
-    setup_dict['pixel_size_x'] = size_x
-    setup_dict['pixel_size_y'] = size_y
 
-    return setup_dict
+    # Set up the parameter class
+    setup_params = MomentumTransferResolutionParameters(l1=l1,
+                                                        sample_det_center_dist=l2,
+                                                        source_aperture_radius=r1,
+                                                        sample_aperture_radius=r2,
+                                                        pixel_size_x=size_x,
+                                                        pixel_size_y=size_y)
+
+    return setup_params
 
 
 def calculate_pixel_positions(ws, num_spec=None):

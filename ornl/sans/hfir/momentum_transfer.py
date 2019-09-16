@@ -5,6 +5,10 @@ from ornl.sans.samplelogs import SampleLogs
 from ornl.sans.momentum_transfer import dq2_geometry, dq2_gravity
 from ornl.sans import geometry as sans_geometry
 
+"""
+HFIR Momentum transfer and resolution calculation
+"""
+
 
 def calculate_q_dq(ws):
     """
@@ -40,11 +44,18 @@ def q_resolution_per_pixel(ws):
     sl = SampleLogs(ws)
     L1 = sans_geometry.source_sample_distance(ws, unit='m',
                                               log_key='source-sample-distance')
-    L2 = sans_geometry.sample_detector_distance(ws)
-    R1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter')
-    R2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter')
+    L2 = sans_geometry.sample_detector_distance(ws, unit='m')
+    R1 = 0.5 * sl.find_log_with_units('source-aperture-diameter', 'mm') * 0.001
+    R2 = 0.5 * sl.find_log_with_units('sample-aperture-diameter', 'mm') * 0.001
     wl = sl.find_log_with_units('wavelength')
     dwl = sl.find_log_with_units('wavelength-spread')
+
+    # FIXME - Remove after testing
+    print('Inputs: ')
+    print("r1", R1)
+    print("r2", R2)
+    print("wl", wl)
+    print("dwl", dwl)
 
     spec_info = ws.spectrumInfo()
 
@@ -68,6 +79,16 @@ def q_resolution_per_pixel(ws):
     qx = np.cos(phi) * _q
     qy = np.sin(phi) * _q
     del _q, phi
+
+    print('Qx: {}'.format(qx))
+    print('Qy: {}'.format(qy))
+    print('L1: {}'.format(L1))
+    print('L2: {}'.format(L2))
+    print('R1: {}'.format(R1))
+    print('R2: {}'.format(R2))
+    print('WL: {}'.format(wl))
+    print('dW: {}'.format(dwl))
+    print('2T: {}'.format(twotheta))
 
     dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, twotheta))
     dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, twotheta))
@@ -166,7 +187,7 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0055):
     if theta is None:
         theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    return dq2_geo + np.fabs(qx) * (dwl / wl)**2 / 6.0
+    return dq2_geo + qx**2 * (dwl / wl)**2 / 6.0
 
 
 def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0043):

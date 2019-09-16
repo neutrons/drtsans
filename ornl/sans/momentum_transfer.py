@@ -11,7 +11,7 @@ from scipy import constants
 # h = 6.626e-34    # m^2 kg s^-1
 # m_n = 1.675e-27  # kg
 # g = 9.8          # m s^-2
-_G_MN2_OVER_H2 = constants.G * np.square(constants.neutron_mass / constants.h)
+_G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)
 
 
 def calculate_q_dq(ws):

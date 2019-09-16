@@ -4,7 +4,7 @@ import numpy as np
 from ornl.sans.momentum_transfer import dq2_geometry, dq2_gravity
 from ornl.sans import geometry as sans_geometry
 from ornl.sans.sns.eqsans import geometry as eqsans_geometry
-from ornl.sans.momentum_transfer import calculate_momentum_transfer
+from ornl.sans.momentum_transfer import calculate_momentum_transfer, MomentumTransferResolutionParameters
 from ornl.sans.momentum_transfer import _G_MN2_OVER_H2 as b_factor
 
 
@@ -253,29 +253,43 @@ def calculate_pixel_positions(ws, num_spec=None):
 
 
 def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, two_theta, sample_pixel_distance,
-                           tof_error, exp_setup_dict):
-
-    """"
-    qx_matrix, qy_matrix, wavelength_bin_center_matrix,
-                           wavelength_bin_step_matrix, theta_vector, pixel_sample_distance_vec,
-                                                    tof_error_matrix,
+                           tof_error, q_resolution_params):
+    """ Atomic function to calculate Q resolution for EQ-SANS
+    :param qx: Qx
+    :param qy: Qy
+    :param wave_length: neutron wave length (bin center) in Angstrom
+    :param delta_wave_length: neutron wave length (bin size) in Angstrom
+    :param theta: half neutron diffraction angle (half of 2theta) (unit: rad)
+    :param two_theta: neutron diffraction angle (unit: rad)
+    :param sample_pixel_distance: distance from sample to pixel center (meter)
+    :param tof_error: neutron emission uncertainty
+    :param q_resolution_params: MomentumTransferResolutionParameters parameters
+    :return:
     """
-    # Get setup value
-    l1 = exp_setup_dict['L1']
-    l2 = exp_setup_dict['L2']
-    r1 = exp_setup_dict['R1']
-    r2 = exp_setup_dict['R2']
-    dx3 = exp_setup_dict['pixel_size_x']
-    dy3 = exp_setup_dict['pixel_size_y']
-    print('[INFO] R1 = {}, R2 = {}'.format(r1, r2))
+    assert isinstance(q_resolution_params, MomentumTransferResolutionParameters)
+    print('Input Q resolution parameter:\n{}'.format(q_resolution_params))
+    print('Q = {}, {}'.format(qx, qy))
+    print('Wavelength = {}, Delta Wavelength = {}'.format(wave_length, delta_wave_length))
+    print('Theta = {}, 2Theta = {}'.format(theta, two_theta))
+    print('TOF uncertainty = {}'.format(tof_error))
+    # Get setup value (for better)
 
-    # Geometry resolution/uncertainty
+    l1 = q_resolution_params.l1
+    l2 = q_resolution_params.sample_det_center_distance
+    r1 = q_resolution_params.source_aperture_radius
+    r2 = q_resolution_params.sample_aperture_radius
+    dx = q_resolution_params.pixel_size_x
+    dy = q_resolution_params.pixel_size_y
+
+    # Geometry resolution/uncertainty:
     apertures_const = (l2*r1*0.5/l1)**2 + (0.5 * r2 * (l1 + l2) / l1)**2
-    const_x = dx3**2 / 12.
-    const_y = dy3**2 / 12.
+    const_x = dx**2 / 12.
+    const_y = dy**2 / 12.
 
+    # factor 1 with ....
     factor1 = (2.*np.pi*np.cos(theta)*(np.cos(two_theta)**2)/(wave_length*l2))**2
 
+    # gravity part of Y ....
     gravity_y = (2./3.) * (b_factor * wave_length * delta_wave_length)**2
 
     # wave length resolution/uncertainties
@@ -286,11 +300,14 @@ def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, two_th
 
     print('[DEBUG INFO] factor 1 shape = {}'.format(factor1.shape))
 
-    # Put together
+    # Q(x) resolution
     qx_geom_resolution = factor1 * (apertures_const + const_x)
     qx_wave_resolution = qx**2 * (wl_part + emission_part) / 12.
     dqx = qx_wave_resolution + qx_wave_resolution
 
+    print('Resolution X = {}'.format(apertures_const + const_x))
+
+    # Q(y) resolution
     qy_geom_resolution = factor1 * (apertures_const + const_y + gravity_y)
     qy_wave_resolution = qy**2 * (wl_part + emission_part) / 12.
     dqy = qy_geom_resolution + qy_wave_resolution
@@ -338,7 +355,7 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055, dtof=0.):
         theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
-    return dq2_geo + np.fabs(qx) * (dq_tof_term + (dwl / wl)**2) / 12.0
+    return dq2_geo + qx**2 * (dq_tof_term + (dwl / wl)**2) / 12.0
 
 
 def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043, dtof=0.):
@@ -380,5 +397,5 @@ def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043, dtof=0.):
     dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
     dq2 = dq2_geo + dq2_grav
-    dq2 += np.fabs(qy) * (dq_tof_term + (dwl / wl)**2) / 12.0
+    dq2 += qy**2 * (dq_tof_term + (dwl / wl)**2) / 12.0
     return dq2

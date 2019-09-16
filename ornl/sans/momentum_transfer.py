@@ -14,6 +14,92 @@ from scipy import constants
 _G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h) * 0.5
 
 
+class MomentumTransferResolutionParameters(object):
+    """
+    Class to contain the parameters used to calculate Q resolution
+    """
+    def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius,
+                 pixel_size_x, pixel_size_y):
+        """
+        Initialization to set all the parameters (6) to calculate momentrum transfer resolution
+        :param l1: L1 (source to sample)
+        :param sample_det_center_dist: sample detector (bank) center distance
+        :param source_aperture_radius: source aperture radius (meter)
+        :param sample_aperture_radius: sample aperture radius (meter)
+        :param pixel_size_x: pixel linear size along X direction (meter)
+        :param pixel_size_y: pixel linear size along Y direction (meter)
+        """
+        self._l1 = l1
+        self._sample_det_center_dist = sample_det_center_dist
+        self._source_aperture = source_aperture_radius
+        self._sample_aperture = sample_aperture_radius
+        self._pixel_size_x = pixel_size_x
+        self._pixel_size_y = pixel_size_y
+
+        return
+
+    def __str__(self):
+        """
+        Nice output string
+        :return:
+        """
+        out = 'L1 = {} (m)\nSample-Detector-Center-Distance (L2)= {} (m)\n'.format(self.l1, self._sample_det_center_dist)
+        out += 'Source aperture radius (R1) = {} (m)\n'.format(self._source_aperture)
+        out += 'Sample aperture radius (R2) = {} (m)\n'.format(self._sample_det_center_dist)
+        out += 'Pixel size = {}, {} (m, m)'.format(self._pixel_size_x, self._pixel_size_y)
+
+        return out
+
+    @property
+    def l1(self):
+        """
+        Get L1 value
+        :return: L1 (meter)
+        """
+        return self._l1
+
+    @property
+    def sample_det_center_distance(self):
+        """
+        Distance from sample to detector bank center,
+        which is L2 in the SANS master document
+        :return: sample detector center distance, aka SANS L2 (meter)
+        """
+        return self._sample_det_center_dist
+
+    @property
+    def source_aperture_radius(self):
+        """
+        Source aperture radius, which is R1 in SANS master document
+        :return: source aperture radius (R1) in meter
+        """
+        return self._source_aperture
+
+    @property
+    def sample_aperture_radius(self):
+        """
+        Sample aperture radius, which is R2 in SANS master document
+        :return: sample aperture radius (R2) in meter
+        """
+        return self._sample_aperture
+
+    @property
+    def pixel_size_x(self):
+        """
+        Detector pixel size along X direction
+        :return: detector size along X direction in meter
+        """
+        return self._pixel_size_x
+
+    @property
+    def pixel_size_y(self):
+        """
+        Detector pixel size along Y direction
+        :return: detector size along Y direction in meter
+        """
+        return self._pixel_size_y
+
+
 def calculate_q_dq(ws):
     """
     Calculate momentum transfer and momentum transfer resolution

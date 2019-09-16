@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from mantid.simpleapi import LoadHFIRSANS, AddSampleLog
-from ornl.sans.hfir.momentum_transfer import q_resolution_per_pixel
+from ornl.sans.hfir.momentum_transfer import calculate_q_dq
 from ornl.sans.samplelogs import SampleLogs
 import scipy
 import scipy.constants
@@ -154,7 +154,7 @@ def next_test_q_resolution_weiren_generic(generic_workspace):
     L2 = 15.5
 
     # Those are ordered by workspace index.
-    qx_arr, qy_arr, dqx_arr, dqy_arr = q_resolution_per_pixel(ws)
+    qx_arr, qy_arr, dqx_arr, dqy_arr = calculate_q_dq(ws)
 
     spec_info = ws.spectrumInfo()
     for i in range(spec_info.size()):
@@ -199,7 +199,7 @@ def next_test_q_resolution_weiren(gpsans_f):
     pixel_size_y = 0.0043  # m
 
     # Those are ordered by workspace index.
-    qx_arr, qy_arr, dqx_arr, dqy_arr = q_resolution_per_pixel(ws)
+    qx_arr, qy_arr, dqx_arr, dqy_arr = calculate_q_dq(ws)
 
     spec_info = ws.spectrumInfo()
     l1 = spec_info.l1()

@@ -8,9 +8,7 @@ from ornl.sans.momentum_transfer import calculate_momentum_transfer, MomentumTra
 from ornl.sans.momentum_transfer import _G_MN2_OVER_H2 as b_factor
 
 
-# FIXME - name of this method cannot be changed unless hfir.momentum_trasfer.q_resolution_per_pixel is changed
-#         simultaneously
-def q_resolution_per_pixel(ws, pixel_sizes=None):
+def calculate_q_dq(ws, pixel_sizes=None):
     """
     Calculate momentum transfer and momentum transfer resolution for each pixel in each wavelength bin
 

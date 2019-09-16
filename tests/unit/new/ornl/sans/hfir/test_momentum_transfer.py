@@ -26,13 +26,12 @@ def sigma_neutron_weiren(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2
 
     """
     h = 6.62607004e-34
-    h = scipy.constants.h
+    # h = scipy.constants.h
     mn = 1.674929e-27
-    mn = scipy.constants.neutron_mass
+    # mn = scipy.constants.neutron_mass
     g = scipy.constants.g  # 6.67408e-11
     B = 0.5*g*mn**2*L2*(L1+L2)/h**2
     B = B /10**20
-    print('B = {}'.format(B))
     r = (delta_lambda/wavelength)**2
     sigma_x = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2 / wavelength/L2)**2
     sigma_x = sigma_x * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 * R2**2/4 + x3**2 / 12)
@@ -43,12 +42,11 @@ def sigma_neutron_weiren(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2
                          * r/3) + Qy**2/6*r
     sigma_x = np.sqrt(sigma_x)
     sigma_y = np.sqrt(sigma_y)
-    # print('sigma_x = {:.2e}; sigma_y = {:.2e}; sigma = {:.2e}'.format(
-    #     sigma_x, sigma_y, sigma_x+sigma_y))
+
     return sigma_x, sigma_y
 
 
-def sigma_neutron_rewrite(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3):
+def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3):
     """
     Function given by Wei-Ren and rewritten by WZZ for detailed comparison
 
@@ -70,7 +68,6 @@ def sigma_neutron_rewrite(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R
     g = scipy.constants.g  # 6.67408e-11
     B = 0.5*g*mn**2*L2*(L1+L2)/h**2
     B = B /10**20
-    print('B = {}'.format(B))
     r = (delta_lambda/wavelength)**2
 
     print('Q = {}, {}'.format(Qx, Qy))
@@ -79,25 +76,26 @@ def sigma_neutron_rewrite(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R
     print('Pixel size = {}, {}'.format(x3, y3))
     print('R1 = {}, R2 = {}'.format(R1, R2))
     print('L1 = {}, L2 = {}'.format(L1, L2))
-    
+    print('B = {}'.format(B))
+
     # Qy resolution
     sigma_x = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2 / wavelength/L2)**2
     resolution_x = ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 * R2**2/4 + x3**2 / 12)
-    print('X: factor = {}, resolution = {}'.format(sigma_x, resolution_x)
+    # print('X: factor = {}, resolution = {}'.format(sigma_x, resolution_x))
     sigma_x = sigma_x * resolution_x
     sigma_x = sigma_x + Qx**2/6*r
+    sigma_x = np.sqrt(sigma_x)
 
     # Qy resolution
     sigma_y = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2/wavelength/L2)**2
     resolution_y = ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 *
                          R2**2/4 + y3**2/12 + 2*B**2*wavelength**4
-                         * r/3) + Qy**2/6*r
-    print('Y: factor = {}, resolution = {}'.format(sigma_y, resolution_y)
-    sigma_y = sigma_y * resolution_y
-    sigma_x = np.sqrt(sigma_x)
+                         * r/3)
+    sigma_y = sigma_y * resolution_y + Qy**2/6*r
     sigma_y = np.sqrt(sigma_y)
     # print('sigma_x = {:.2e}; sigma_y = {:.2e}; sigma = {:.2e}'.format(
     #     sigma_x, sigma_y, sigma_x+sigma_y))
+
     return sigma_x, sigma_y
 
 
@@ -111,6 +109,15 @@ def test_sigma_neutron():
     y3 = 0.0043
     L1 = 15
     L2 = 15.5
+
+    wavelength = 6.0
+    delta_lambda = 0.15
+
+    Qx = -5.93411755e-04
+    Qy = -7.67944624e-04
+
+    # two_theta = 0.00092676    # radian (corner pixel)
+    theta = 0.00092676 * 0.5  # radian (corner pixel)
 
     dqx, dqy = sigma_neutron_weiren(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3)
     
@@ -129,7 +136,7 @@ def test_sigma_neutron():
     'xc': 0.0, 'yc': 0.0, 'zc': 15, 'l1': 15.5,
     'axis_values': [5.925, 6.075],
 }], indirect=True)
-def test_q_resolution_weiren_generic(generic_workspace):
+def next_test_q_resolution_weiren_generic(generic_workspace):
 
     ws = generic_workspace
 
@@ -172,6 +179,10 @@ def test_q_resolution_weiren_generic(generic_workspace):
             # TODO - Diabled temporarily
             # assert sigma_x == pytest.approx(dqx_arr[i], 1.E-9)
             # assert sigma_y == pytest.approx(dqy_arr[i], 1.E-9)
+        # END-IF
+    # END-FOR
+
+    return
 
 
 def next_test_q_resolution_weiren(gpsans_f):

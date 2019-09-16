@@ -69,7 +69,7 @@ def center_detector(input_workspace, mask=None, x=None, y=None, unit='m', relati
         raise RuntimeError('Not implemented method')
     unit_to_meters = dict(m=1., mm=1.e-3)
     method_to_algorithm = dict(center_of_mass=FindCenterOfMassPosition)  # in case we add more methods later
-    method_to_algorithm_options = dict(center_of_mass=dict(DirectBeam=True))  # default options of method
+    method_to_algorithm_options = {'center_of_mass': dict(DirectBeam=True)}  # default options of method
     workspace = mtd[str(input_workspace)]
     instrument = workspace.getInstrument()
     starting_position = instrument.getComponentByName(detector_name(instrument)).getPos()
@@ -84,7 +84,8 @@ def center_detector(input_workspace, mask=None, x=None, y=None, unit='m', relati
             mask_workspace.delete()  # we don't need the mask workspace so keep it clean
         mask_spectra_with_special_values(workspace_flattened)
         algorithm = method_to_algorithm[method]
-        algorithm_options = method_to_algorithm_options[method].update(method_kwargs)
+        algorithm_options = method_to_algorithm_options[method]
+        algorithm_options.update(method_kwargs)
         # (t_x, t_y) is the intersection point of the neutron beam with the detector
         t_x, t_y = list(algorithm(InputWorkspace=workspace_flattened, **algorithm_options))
         workspace_flattened.delete()
@@ -136,7 +137,7 @@ def find_beam_center(input_workspace, mask=None, method='center_of_mass', **meth
     # detector has coordinates (0, 0, z)
     if method != 'center_of_mass':
         raise NotImplementedError('{} is not implemented'.format(method))
-    detector_coordinates = center_detector(input_workspace, mask=mask, method=method,
-                                           move_detector=False, **method_kwargs)
+    detector_coordinates = center_detector(input_workspace, mask=mask, method=method, move_detector=False,
+                                           **method_kwargs)
     return -detector_coordinates[0], -detector_coordinates[1]
 

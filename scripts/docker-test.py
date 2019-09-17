@@ -1,4 +1,4 @@
 import mantid
-import ornl
+import drtsans
 print(mantid.__version__)
-print(ornl.__file__)
+print(drtsans.__file__)

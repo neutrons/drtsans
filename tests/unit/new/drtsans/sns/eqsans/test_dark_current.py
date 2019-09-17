@@ -6,9 +6,9 @@ from pytest import approx
 import numpy as np
 from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces, CreateWorkspace
 
-from ornl.settings import (amend_config, unique_workspace_dundername as uwd)
-from ornl.sans.samplelogs import SampleLogs
-import ornl.sans.sns.eqsans.dark_current as dkc
+from drtsans.settings import (amend_config, unique_workspace_dundername as uwd)
+from drtsans.samplelogs import SampleLogs
+import drtsans.sns.eqsans.dark_current as dkc
 
 
 @pytest.fixture(scope='module')
@@ -62,7 +62,7 @@ def test_flatten_TOF():
     '''
     Check that the counts are added together in each spectra
 
-    Function tested: ornl.sans.sns.eqsans.dark_current.counts_in_detector
+    Function tested: drtsans.sns.eqsans.dark_current.counts_in_detector
     Undelying Mantid algorithms:
         Integration https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
         Transpose   https://docs.mantidproject.org/nightly/algorithms/Transpose-v1.html

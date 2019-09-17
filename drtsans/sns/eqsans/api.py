@@ -1,20 +1,20 @@
 """ Top-level API for EQSANS """
 from mantid.api import mtd
 from mantid import simpleapi as sapi
-from ornl.settings import unique_workspace_dundername as uwd
+from drtsans.settings import unique_workspace_dundername as uwd
 # Import rolled up to complete a single top-level API
-from ornl.sans import (apply_sensitivity_correction, solid_angle_correction)
-from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
-from ornl.sans.save_2d import save_nist_dat, save_nexus
-from ornl.sans.process_uncertainties import set_init_uncertainties  # noqa: F401
-from ornl.sans.thickness_normalization import normalize_by_thickness  # noqa: F401
+from drtsans import (apply_sensitivity_correction, solid_angle_correction)
+from drtsans.save_ascii import save_ascii_1D, save_xml_1D
+from drtsans.save_2d import save_nist_dat, save_nexus
+from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
+from drtsans.thickness_normalization import normalize_by_thickness  # noqa: F401
 # Imports from EQSANS public API
-from ornl.sans.sns.eqsans import (load_events, load_events_monitor,
+from drtsans.sns.eqsans import (load_events, load_events_monitor,
                                   transform_to_wavelength,
                                   center_detector, subtract_dark_current,
                                   normalise_by_flux, apply_mask)
-from ornl.sans.sns.eqsans.correct_frame import smash_monitor_spikes
-from ornl.path import exists as path_exists
+from drtsans.sns.eqsans.correct_frame import smash_monitor_spikes
+from drtsans.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_monitors', 'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -22,7 +22,7 @@ __all__ = ['apply_solid_angle_correction', 'subtract_background',
 
 
 def apply_solid_angle_correction(input_workspace):
-    """Apply solid angle correction. This uses :func:`ornl.sans.solid_angle_correction`."""
+    """Apply solid angle correction. This uses :func:`drtsans.solid_angle_correction`."""
     return solid_angle_correction(input_workspace,
                                   detector_type='VerticalTube')
 

@@ -5,7 +5,7 @@ import socket
 from mantid import __version__ as mantid_version
 from mantid.simpleapi import mtd, SaveNexusProcessed
 import numpy as np
-from ornl import __version__ as sangria_version
+from drtsans import __version__ as drtsans_version
 from os import environ
 
 
@@ -239,7 +239,7 @@ def savereductionlog(filename, wksp, *args, **kwargs):
 
         # software involved
         _savenxprocess(entry, 'mantid', mantid_version)
-        _savenxprocess(entry, 'sangria', sangria_version)
+        _savenxprocess(entry, 'drtsans', drtsans_version)
 
         # user information
         user = environ.get('USER', '')

@@ -1,5 +1,5 @@
 # flake8: noqa
-from ornl.sans.transmission import apply_transmission_correction
+from drtsans.transmission import apply_transmission_correction
 
 from .iq import *
 from .load import *

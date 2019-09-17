@@ -6,7 +6,7 @@ import pytest
 from mantid.simpleapi import (CompareWorkspaces, Load,
                               LoadEmptyInstrument,
                               MoveInstrumentComponent)
-from ornl.sans import solid_angle_correction
+from drtsans import solid_angle_correction
 
 
 def test_solid_angle(reference_dir):

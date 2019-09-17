@@ -3,11 +3,11 @@ from __future__ import print_function
 import numpy as np
 
 from mantid.simpleapi import (ExtractSpectra, Rebin, DeleteWorkspace)
-from ornl.sans.iq import \
+from drtsans.iq import \
     MomentumTransfer as MomentumTransferMain
 from mantid.kernel import logger
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import momentum_transfer
+from drtsans.samplelogs import SampleLogs
+from drtsans.sns.eqsans import momentum_transfer
 
 __all__ = ['prepare_momentum_transfer', 'cal_iq', 'iqxqy']
 

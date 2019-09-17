@@ -2,7 +2,7 @@ import pytest
 import os, numpy as np          # noqa: E401
 from numpy.testing import assert_allclose
 from mantid.simpleapi import WorkspaceFactory
-from ornl.sans.sns.eqsans.api import normalize_by_thickness
+from drtsans.sns.eqsans.api import normalize_by_thickness
 here = os.path.abspath(os.path.dirname(__file__))
 
 

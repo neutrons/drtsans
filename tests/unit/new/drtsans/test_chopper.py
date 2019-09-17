@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 import pytest
 from numpy.testing import assert_almost_equal
 
-from ornl.sans.chopper import DiskChopper
+from drtsans.chopper import DiskChopper
 
 
 @pytest.mark.offline

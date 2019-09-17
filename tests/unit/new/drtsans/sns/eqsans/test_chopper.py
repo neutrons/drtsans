@@ -4,7 +4,7 @@ import pytest
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 
-from ornl.sans.sns.eqsans.chopper import FrameMode, EQSANSDiskChopperSet
+from drtsans.sns.eqsans.chopper import FrameMode, EQSANSDiskChopperSet
 
 
 @pytest.mark.offline

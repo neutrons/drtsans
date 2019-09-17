@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument, MoveInstrumentComponent
-from ornl.settings import unique_workspace_dundername
-from ornl.sans import geometry as geo
+from drtsans.settings import unique_workspace_dundername
+from drtsans import geometry as geo
 
 
 @pytest.fixture(scope='module')

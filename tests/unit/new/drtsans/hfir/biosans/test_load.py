@@ -1,8 +1,8 @@
 import pytest
 
 from mantid import mtd
-from ornl.sans.hfir.biosans import load_histogram
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.hfir.biosans import load_histogram
+from drtsans.samplelogs import SampleLogs
 
 
 def test_api_load(biosans_f):

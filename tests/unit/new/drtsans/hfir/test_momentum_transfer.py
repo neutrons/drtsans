@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from mantid.simpleapi import LoadHFIRSANS, AddSampleLog
-from ornl.sans.hfir.momentum_transfer import calculate_q_dq
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.hfir.momentum_transfer import calculate_q_dq
+from drtsans.samplelogs import SampleLogs
 import scipy
 import scipy.constants
 

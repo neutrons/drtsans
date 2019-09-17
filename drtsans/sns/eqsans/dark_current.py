@@ -5,11 +5,11 @@ import numpy as np
 from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
                               ConvertUnits, Subtract, Scale, LoadEventNexus)
 
-from ornl.settings import (namedtuplefy, amend_config,
+from drtsans.settings import (namedtuplefy, amend_config,
                            unique_workspace_dundername as uwd)
-from ornl.path import exists, registered_workspace
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import correct_frame
+from drtsans.path import exists, registered_workspace
+from drtsans.samplelogs import SampleLogs
+from drtsans.sns.eqsans import correct_frame
 
 __all__ = ['subtract_dark_current', ]
 

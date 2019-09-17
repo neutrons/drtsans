@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans.correct_frame import convert_to_wavelength
+from drtsans.samplelogs import SampleLogs
+from drtsans.sns.eqsans.correct_frame import convert_to_wavelength
 
 
 def add_frame_skipping_log(ws):

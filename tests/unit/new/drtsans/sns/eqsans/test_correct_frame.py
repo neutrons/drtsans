@@ -4,11 +4,11 @@ import pytest
 from pytest import approx
 from numpy.testing import assert_almost_equal
 from mantid.simpleapi import Load, CreateWorkspace
-from ornl.sans import wavelength as sans_wavelength
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import correct_frame
-from ornl.settings import amend_config, unique_workspace_name
-from ornl.sans.geometry import source_detector_distance
+from drtsans import wavelength as sans_wavelength
+from drtsans.samplelogs import SampleLogs
+from drtsans.sns.eqsans import correct_frame
+from drtsans.settings import amend_config, unique_workspace_name
+from drtsans.geometry import source_detector_distance
 
 BandsTuple = namedtuple('BandsTuple', 'lead skip')
 

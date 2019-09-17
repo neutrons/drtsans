@@ -3,8 +3,8 @@ from pytest import approx
 import numpy as np
 
 from mantid.simpleapi import (Rebin, SumSpectra)
-from ornl.settings import (amend_config, unique_workspace_name as uwn)
-from ornl.sans.sns.eqsans.load import load_events, load_events_monitor
+from drtsans.settings import (amend_config, unique_workspace_name as uwn)
+from drtsans.sns.eqsans.load import load_events, load_events_monitor
 
 
 def test_load_events(reference_dir):

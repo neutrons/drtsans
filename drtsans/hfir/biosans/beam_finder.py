@@ -5,7 +5,7 @@ from mantid.kernel import logger
 # https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
 # https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
 from mantid.simpleapi import FindCenterOfMassPosition, MoveInstrumentComponent
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs
 
 
 def _calculate_neutron_drop(path_length, wavelength):

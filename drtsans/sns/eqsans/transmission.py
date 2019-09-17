@@ -4,12 +4,12 @@ import numpy as np
 from mantid.api import mtd
 from mantid.simpleapi import (Fit, CloneWorkspace, Plus, SaveNexus)
 
-from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwd)
-from ornl.sans.transmission import calculate_transmission as calculate_raw_transmission
-from ornl.sans.sns.eqsans.correct_frame import transmitted_bands
-from ornl.sans.sns.eqsans.geometry import\
+from drtsans.settings import (namedtuplefy, unique_workspace_dundername as uwd)
+from drtsans.transmission import calculate_transmission as calculate_raw_transmission
+from drtsans.sns.eqsans.correct_frame import transmitted_bands
+from drtsans.sns.eqsans.geometry import\
     (sample_aperture_diameter, source_aperture_diameter)
-from ornl.sans.geometry import\
+from drtsans.geometry import\
     (sample_detector_distance, source_sample_distance)
 
 

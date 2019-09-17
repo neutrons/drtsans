@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import pytest
 from os.path import join as pj
-from ornl.sans.sns.eqsans import cfg
+from drtsans.sns.eqsans import cfg
 
 
 def test_setitem():

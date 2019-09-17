@@ -1,9 +1,9 @@
 from pathlib import Path
 import pytest
 import numpy as np
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.hfir.gpsans.load import load_histogram
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.samplelogs import SampleLogs
+from drtsans.hfir.gpsans.load import load_histogram
 
 
 def test_load_histogram(reference_dir):

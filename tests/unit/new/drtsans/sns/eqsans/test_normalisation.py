@@ -3,14 +3,14 @@ from pytest import approx
 from os.path import join as pj
 from mantid.simpleapi import (Integration, SumSpectra)
 
-from ornl.sans.sns.eqsans.normalisation import \
+from drtsans.sns.eqsans.normalisation import \
     (load_beam_flux_file, normalise_by_proton_charge_and_flux,
      load_flux_to_monitor_ratio_file, normalise_by_monitor,
      normalise_by_time, normalise_by_flux)
-from ornl.settings import amend_config, unique_workspace_dundername as uwd
-from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
+from drtsans.settings import amend_config, unique_workspace_dundername as uwd
+from drtsans.sns.eqsans import (load_events, transform_to_wavelength,
                                   prepare_monitors)
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs
 
 
 @pytest.fixture(scope='module')

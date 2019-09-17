@@ -7,8 +7,8 @@ import pytest
 @pytest.mark.offline
 def test_normalisation_monitor(gpsans_f):
 
-    from ornl.sans.hfir.normalisation import monitor
-    from ornl.sans.samplelogs import SampleLogs
+    from drtsans.hfir.normalisation import monitor
+    from drtsans.samplelogs import SampleLogs
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 
@@ -29,8 +29,8 @@ def test_normalisation_monitor(gpsans_f):
 @pytest.mark.offline
 def test_normalisation_time(gpsans_f):
 
-    from ornl.sans.hfir.normalisation import time
-    from ornl.sans.samplelogs import SampleLogs
+    from drtsans.hfir.normalisation import time
+    from drtsans.samplelogs import SampleLogs
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 

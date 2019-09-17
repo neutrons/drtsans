@@ -13,10 +13,10 @@ import unittest
 import numpy as np
 
 from mantid import simpleapi as api
-from ornl.sans.sns.eqsans import momentum_transfer
+from drtsans.sns.eqsans import momentum_transfer
 from reduction_workflow.command_interface import AppendDataFile, Reduce
 from reduction_workflow.instruments.sans import sns_command_interface as eqsans
-from ornl.sans.sns.eqsans.momentum_transfer import moderator_time_uncertainty
+from drtsans.sns.eqsans.momentum_transfer import moderator_time_uncertainty
 
 
 def eqsans_files():

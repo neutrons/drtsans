@@ -9,7 +9,7 @@ from scipy import stats
 import mantid
 from mantid.kernel import logger
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
-from ornl.sans.detector import Component
+from drtsans.detector import Component
 
 
 # To ignore warning:   invalid value encountered in true_divide

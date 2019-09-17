@@ -3,10 +3,10 @@ from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               NormaliseByCurrent, ConvertToDistribution,
                               CloneWorkspace, RemoveSpectra, Multiply, Load,
                               DeleteWorkspace, Integration, Scale)
-from ornl import path
-from ornl.settings import (unique_workspace_dundername as uwd)
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans.dark_current import duration as run_duration
+from drtsans import path
+from drtsans.settings import (unique_workspace_dundername as uwd)
+from drtsans.samplelogs import SampleLogs
+from drtsans.sns.eqsans.dark_current import duration as run_duration
 
 __all__ = ['normalise_by_flux', 'normalise_by_time']
 

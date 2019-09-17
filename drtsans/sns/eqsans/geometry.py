@@ -1,7 +1,7 @@
 from mantid.simpleapi import MoveInstrumentComponent
-from ornl.settings import namedtuplefy
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import (get_instrument, detector_name,
+from drtsans.settings import namedtuplefy
+from drtsans.samplelogs import SampleLogs
+from drtsans.geometry import (get_instrument, detector_name,
                                 source_sample_distance)
 
 __all__ = ['detector_z_log',

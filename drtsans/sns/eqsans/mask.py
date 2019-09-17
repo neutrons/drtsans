@@ -1,5 +1,5 @@
 from mantid.simpleapi import MaskBTP
-from ornl.sans import mask_utils
+from drtsans import mask_utils
 
 __all__ = ['apply_mask']
 

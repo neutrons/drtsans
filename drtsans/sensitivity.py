@@ -9,8 +9,8 @@ from mantid.kernel import Property, logger
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
     MaskDetectorsIf, SaveNexusProcessed
-from ornl.path import exists as path_exists
-from ornl.settings import unique_workspace_name
+from drtsans.path import exists as path_exists
+from drtsans.settings import unique_workspace_name
 
 
 class Detector(object):

@@ -1,6 +1,6 @@
 import tempfile
 from os.path import join
-from ornl.sans.save_2d import save_nist_dat, save_nexus
+from drtsans.save_2d import save_nist_dat, save_nexus
 from mantid.simpleapi import LoadNexus, CompareWorkspaces
 import numpy as np
 

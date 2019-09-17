@@ -1,7 +1,7 @@
 import pytest
 from mantid.simpleapi import CreateWorkspace
-from ornl.path import abspath, exists, registered_workspace
-from ornl.settings import amend_config, unique_workspace_dundername as uwd
+from drtsans.path import abspath, exists, registered_workspace
+from drtsans.settings import amend_config, unique_workspace_dundername as uwd
 from os.path import exists as os_exists
 
 # arbitrarily selected IPTS to see if the mount is in place

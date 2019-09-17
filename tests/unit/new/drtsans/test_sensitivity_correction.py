@@ -1,8 +1,8 @@
 import pytest
 from mantid.kernel import Property
 import numpy as np
-from ornl.settings import unique_workspace_name as uwn
-from ornl.sans.sensitivity import apply_sensitivity_correction,\
+from drtsans.settings import unique_workspace_name as uwn
+from drtsans.sensitivity import apply_sensitivity_correction,\
     calculate_sensitivity_correction
 import os
 from mantid.simpleapi import (mtd, DeleteWorkspace, LoadNexusProcessed)

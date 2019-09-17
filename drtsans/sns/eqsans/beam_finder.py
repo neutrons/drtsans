@@ -1,11 +1,11 @@
 import numpy as np
 from mantid.api import mtd
 from mantid.simpleapi import Integration, FindCenterOfMassPosition, MoveInstrumentComponent
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import (detector_name, sample_detector_distance)
-from ornl.sans.mask_utils import mask_spectra_with_special_values
-from ornl.sans.sns.eqsans.mask import apply_mask
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.samplelogs import SampleLogs
+from drtsans.geometry import (detector_name, sample_detector_distance)
+from drtsans.mask_utils import mask_spectra_with_special_values
+from drtsans.sns.eqsans.mask import apply_mask
 
 __all__ = ['center_detector', 'find_beam_center']
 

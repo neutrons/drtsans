@@ -1,7 +1,7 @@
 import h5py
 from mantid.simpleapi import mtd, CompareWorkspaces, Load, LoadNexusProcessed
 import numpy as np
-from ornl.sans import savereductionlog
+from drtsans import savereductionlog
 import os
 import pytest
 from tempfile import gettempdir
@@ -114,7 +114,7 @@ def checkProcessingEntry(handle, **kwargs):
     param_names = ['beam_center_x', 'beam_center_y']
     checkNXcollection(entry, 'derived_parameters', param_names)
     checkNXprocess(entry, 'mantid')
-    checkNXprocess(entry, 'sangria')
+    checkNXprocess(entry, 'drtsans')
 
 
 def checkWorkspaces(filename, orig, entry):

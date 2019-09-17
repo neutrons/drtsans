@@ -6,7 +6,7 @@ from __future__ import (absolute_import, division, print_function,
 # https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
 from mantid.simpleapi import (DeleteWorkspace, Divide, mtd, SolidAngle,
                               ReplaceSpecialValues)
-from ornl.settings import (unique_workspace_dundername as uwd)
+from drtsans.settings import (unique_workspace_dundername as uwd)
 
 
 def solid_angle_correction(input_workspace, detector_type='VerticalTube',

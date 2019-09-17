@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import pytest
 
-from ornl.sans.wavelength import Wband, Wbands
+from drtsans.wavelength import Wband, Wbands
 
 
 @pytest.mark.offline

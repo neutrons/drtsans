@@ -8,7 +8,7 @@ import pytest
 # https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.htm
 from mantid.simpleapi import (FindCenterOfMassPosition, LoadHFIRSANS,
                               MoveInstrumentComponent)
-from ornl.sans.hfir.biosans import beam_finder
+from drtsans.hfir.biosans import beam_finder
 
 
 def test_beam_finder(biosans_f):

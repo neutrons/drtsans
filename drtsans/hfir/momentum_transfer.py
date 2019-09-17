@@ -1,9 +1,9 @@
 from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.momentum_transfer import dq2_geometry, dq2_gravity
-from ornl.sans import geometry as sans_geometry
+from drtsans.samplelogs import SampleLogs
+from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
+from drtsans import geometry as sans_geometry
 
 """
 HFIR Momentum transfer and resolution calculation

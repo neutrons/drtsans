@@ -1,8 +1,8 @@
 from __future__ import (absolute_import, division, print_function)
 
-from ornl.sans.chopper import DiskChopper
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.frame_mode import FrameMode
+from drtsans.chopper import DiskChopper
+from drtsans.samplelogs import SampleLogs
+from drtsans.frame_mode import FrameMode
 
 
 class EQSANSDiskChopperSet(object):

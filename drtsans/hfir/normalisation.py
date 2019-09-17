@@ -1,5 +1,5 @@
 from __future__ import print_function
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs
 
 
 def time(input_ws):

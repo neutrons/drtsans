@@ -1,5 +1,5 @@
 from __future__ import (absolute_import, division, print_function)
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs
 
 
 def subtract_normalised_dark(data_ws, dark_current_ws):

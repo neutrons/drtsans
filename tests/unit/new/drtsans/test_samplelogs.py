@@ -6,7 +6,7 @@ from os.path import join as pjn
 from mantid.simpleapi import Load
 from mantid.api import Run
 
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs
 
 
 @pytest.mark.offline

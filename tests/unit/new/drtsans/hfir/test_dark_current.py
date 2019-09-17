@@ -5,9 +5,9 @@ import pytest
 
 @pytest.mark.offline
 def test_dark_current(gpsans_f):
-    from ornl.sans.hfir.normalisation import time
-    from ornl.sans.hfir.dark_current import subtract_normalised_dark
-    from ornl.sans.samplelogs import SampleLogs
+    from drtsans.hfir.normalisation import time
+    from drtsans.hfir.dark_current import subtract_normalised_dark
+    from drtsans.samplelogs import SampleLogs
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
 

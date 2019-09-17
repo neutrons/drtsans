@@ -1,4 +1,4 @@
-from ornl.sans import solid_angle_correction
+from drtsans import solid_angle_correction
 
 
 def apply_solid_angle_correction_main_detector(input_workspace):

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, Rebin, AddTimeSeriesLog, AddSampleLog
-from ornl.sans.process_uncertainties import set_init_uncertainties
+from drtsans.process_uncertainties import set_init_uncertainties
 
 
 # This implements Issue #163

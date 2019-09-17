@@ -6,13 +6,13 @@ import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
 from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace,
                               EQSANSCorrectFrame, Rebin, RebinToWorkspace)
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans.chopper import EQSANSDiskChopperSet
-from ornl.sans.frame_mode import FrameMode
-from ornl.sans import wavelength as wlg
-from ornl.settings import namedtuplefy
-from ornl.sans.geometry import source_detector_distance
-from ornl.sans.sns.eqsans.geometry import source_monitor_distance
+from drtsans.samplelogs import SampleLogs
+from drtsans.sns.eqsans.chopper import EQSANSDiskChopperSet
+from drtsans.frame_mode import FrameMode
+from drtsans import wavelength as wlg
+from drtsans.settings import namedtuplefy
+from drtsans.geometry import source_detector_distance
+from drtsans.sns.eqsans.geometry import source_monitor_distance
 
 
 __all__ = ['transform_to_wavelength', ]

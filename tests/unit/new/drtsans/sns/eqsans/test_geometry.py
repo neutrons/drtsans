@@ -1,9 +1,9 @@
 import pytest
 from pytest import approx
-from ornl.sans.sns.eqsans.geometry import (sample_aperture_diameter,
+from drtsans.sns.eqsans.geometry import (sample_aperture_diameter,
                                            source_aperture_diameter,
                                            source_monitor_distance)
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs
 
 
 def test_sample_aperture_diameter(serve_events_workspace):

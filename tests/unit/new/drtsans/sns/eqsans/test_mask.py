@@ -2,8 +2,8 @@ import pytest
 from mantid.dataobjects import MaskWorkspace
 from mantid.simpleapi import (LoadEmptyInstrument, ClearMaskFlag, MaskBTP,
                               CompareWorkspaces, ExtractMask)
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.sns.eqsans.mask import apply_mask
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.sns.eqsans.mask import apply_mask
 
 
 def test_apply_mask():

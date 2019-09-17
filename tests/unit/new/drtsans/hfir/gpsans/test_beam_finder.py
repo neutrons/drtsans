@@ -2,8 +2,8 @@
 import pytest
 from mantid import mtd
 from mantid.simpleapi import MoveInstrumentComponent, FindCenterOfMassPosition, LoadHFIRSANS
-from ornl.settings import unique_workspace_dundername
-from ornl.sans.hfir.gpsans import beam_finder
+from drtsans.settings import unique_workspace_dundername
+from drtsans.hfir.gpsans import beam_finder
 
 
 def test_beam_finder(gpsans_f):

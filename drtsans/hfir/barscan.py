@@ -1,5 +1,5 @@
 import numpy as np
-from ornl.settings import namedtuplefy
+from drtsans.settings import namedtuplefy
 
 
 @namedtuplefy

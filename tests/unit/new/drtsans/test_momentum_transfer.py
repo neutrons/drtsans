@@ -2,7 +2,7 @@ import numpy as np
 from numpy import linalg
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument, Rebin
-from ornl.sans.momentum_transfer import calculate_momentum_transfer
+from drtsans.momentum_transfer import calculate_momentum_transfer
 
 
 # This implements Issue #210

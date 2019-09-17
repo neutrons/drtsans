@@ -3,7 +3,7 @@ from configparser import RawConfigParser
 from itertools import chain
 from glob import glob
 
-from ornl.settings import MultiOrderedDict
+from drtsans.settings import MultiOrderedDict
 
 CONFIG_DIRECTORY = "/SNS/EQSANS/shared/instrument_configuration"
 CONFIG_FILE_PREFIX = "eqsans_configuration."

@@ -3,10 +3,10 @@ import pytest
 from pytest import approx
 from mantid.simpleapi import (LoadEventNexus, MoveInstrumentComponent)
 
-from ornl.settings import amend_config, unique_workspace_name as uwd
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import detector_name
-from ornl.sans.sns.eqsans.beam_finder import center_detector, find_beam_center
+from drtsans.settings import amend_config, unique_workspace_name as uwd
+from drtsans.samplelogs import SampleLogs
+from drtsans.geometry import detector_name
+from drtsans.sns.eqsans.beam_finder import center_detector, find_beam_center
 
 
 def test_find_beam_center(reference_dir):

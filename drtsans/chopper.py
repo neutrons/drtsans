@@ -1,6 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
-from ornl.sans.wavelength import Wband, Wbands
+from drtsans.wavelength import Wband, Wbands
 
 
 class DiskChopper(object):

@@ -2,10 +2,10 @@ from __future__ import (absolute_import, division, print_function)
 
 from mantid.simpleapi import mtd, Load
 
-from ornl.settings import (amend_config,
+from drtsans.settings import (amend_config,
                            unique_workspace_dundername as uwd)
-from ornl.sans import geometry
-from ornl.sans.sns.eqsans import geometry as e_geometry, correct_frame
+from drtsans import geometry
+from drtsans.sns.eqsans import geometry as e_geometry, correct_frame
 
 
 def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1,

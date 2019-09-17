@@ -5,9 +5,9 @@ from mantid.kernel import logger
 from mantid.simpleapi import (ApplyTransmissionCorrection, Divide,
                               FindDetectorsInShape, GroupDetectors,
                               ReplaceSpecialValues, RebinToWorkspace)
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import masked_detectors
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.samplelogs import SampleLogs
+from drtsans.geometry import masked_detectors
 
 
 # To-do. This should be substituted with a function similar to
@@ -42,7 +42,7 @@ def beam_radius(input_workspace, unit='mm',
     float
         Radius, in millimeters
     """
-    from ornl.sans.sns.eqsans import beam_radius as eqsans_beam_radius
+    from drtsans.sns.eqsans import beam_radius as eqsans_beam_radius
     ws = mtd[str(input_workspace)]
     if ws.getInstrument().getName() == 'EQ-SANS':
         return eqsans_beam_radius(ws, unit='mm')

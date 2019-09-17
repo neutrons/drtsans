@@ -1,9 +1,9 @@
 import pytest
 from pytest import approx
 from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent, CreateWorkspace
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.transmission import calculate_transmission, apply_transmission_correction
-from ornl.sans.hfir.gpsans import beam_finder
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.transmission import calculate_transmission, apply_transmission_correction
+from drtsans.hfir.gpsans import beam_finder
 
 
 @pytest.fixture(scope='module')

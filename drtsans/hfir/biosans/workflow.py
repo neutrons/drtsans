@@ -1,5 +1,4 @@
-
-from ornl.sans.hfir.biosans.beam_finder import center_detector
+from drtsans.hfir.biosans.beam_finder import center_detector
 
 
 def prepare_data(input_workspace,

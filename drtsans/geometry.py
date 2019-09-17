@@ -2,8 +2,8 @@ import os
 from mantid.api import mtd, MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.simpleapi import Load, ExtractMask
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.samplelogs import SampleLogs
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.samplelogs import SampleLogs
 
 
 def detector_name(ipt):

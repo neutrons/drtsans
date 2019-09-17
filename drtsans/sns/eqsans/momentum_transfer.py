@@ -1,11 +1,11 @@
 from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
-from ornl.sans.momentum_transfer import dq2_geometry, dq2_gravity
-from ornl.sans import geometry as sans_geometry
-from ornl.sans.sns.eqsans import geometry as eqsans_geometry
-from ornl.sans.momentum_transfer import calculate_momentum_transfer, MomentumTransferResolutionParameters
-from ornl.sans.momentum_transfer import _G_MN2_OVER_H2 as b_factor
+from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
+from drtsans import geometry as sans_geometry
+from drtsans.sns.eqsans import geometry as eqsans_geometry
+from drtsans.momentum_transfer import calculate_momentum_transfer, MomentumTransferResolutionParameters
+from drtsans.momentum_transfer import _G_MN2_OVER_H2 as b_factor
 
 
 def calculate_q_dq(ws, pixel_sizes=None):

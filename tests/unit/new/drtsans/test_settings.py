@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-from ornl.settings import (namedtuplefy, amend_config)
+from drtsans.settings import (namedtuplefy, amend_config)
 from mantid.kernel import ConfigService
 
 

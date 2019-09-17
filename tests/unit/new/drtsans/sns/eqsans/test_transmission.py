@@ -2,9 +2,9 @@ import pytest
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 from mantid.simpleapi import LoadNexus
-from ornl.settings import (namedtuplefy, unique_workspace_dundername as uwd)
-from ornl.sans.sns.eqsans.correct_frame import transmitted_bands
-from ornl.sans.sns.eqsans.transmission import fit_band, fit_raw, beam_radius
+from drtsans.settings import (namedtuplefy, unique_workspace_dundername as uwd)
+from drtsans.sns.eqsans.correct_frame import transmitted_bands
+from drtsans.sns.eqsans.transmission import fit_band, fit_raw, beam_radius
 
 
 @pytest.fixture(scope='module')

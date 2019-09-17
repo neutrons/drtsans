@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, AddTimeSeriesLog, Rebin, ConvertUnits
-from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_dq, calculate_pixel_positions,\
+from drtsans.sns.eqsans.momentum_transfer import calculate_q_dq, calculate_pixel_positions,\
     retrieve_instrument_setup
-from ornl.sans.sns.eqsans.momentum_transfer import calculate_q_resolution, MomentumTransferResolutionParameters
-from ornl.sans.sns.eqsans import load_events
+from drtsans.sns.eqsans.momentum_transfer import calculate_q_resolution, MomentumTransferResolutionParameters
+from drtsans.sns.eqsans import load_events
 
 
 # This test implements issue #187 to verify methods working for q_resolution_per_pixel

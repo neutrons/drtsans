@@ -5,9 +5,9 @@ import pytest
 from pytest import approx
 
 from mantid.simpleapi import LoadHFIRSANS
-from ornl.sans.hfir.iq import MomentumTransfer
-from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
-from ornl.settings import unique_workspace_name
+from drtsans.hfir.iq import MomentumTransfer
+from drtsans.save_ascii import save_ascii_1D, save_xml_1D
+from drtsans.settings import unique_workspace_name
 
 
 def numbers_in_line(line, numbers):

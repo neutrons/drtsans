@@ -2,7 +2,7 @@ import pytest
 
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 from mantid.simpleapi import LoadHFIRSANS
-from ornl.sans.hfir.biosans.beam_finder import center_detector
+from drtsans.hfir.biosans.beam_finder import center_detector
 
 
 def test_api_geometry(biosans_f):

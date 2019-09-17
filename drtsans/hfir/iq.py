@@ -2,8 +2,8 @@ from __future__ import print_function
 
 import numpy as np
 
-from ornl.sans.hfir import momentum_transfer
-from ornl.sans.iq import \
+from drtsans.hfir import momentum_transfer
+from drtsans.iq import \
     MomentumTransfer as MomentumTransferMain
 
 

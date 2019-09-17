@@ -7,8 +7,8 @@ https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html
 """
 from mantid.simpleapi import (CreateWorkspace, LoadInstrument, SumSpectra)
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.mask_utils import apply_mask
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.mask_utils import apply_mask
 
 
 @pytest.mark.parametrize('generic_IDF',

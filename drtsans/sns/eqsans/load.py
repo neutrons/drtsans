@@ -1,15 +1,15 @@
 
 from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace,
                               LoadNexusMonitors)
-from ornl.settings import amend_config
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import (source_sample_distance,
+from drtsans.settings import amend_config
+from drtsans.samplelogs import SampleLogs
+from drtsans.geometry import (source_sample_distance,
                                 sample_detector_distance)
-from ornl.sans.sns.eqsans.geometry import (translate_detector_z,
+from drtsans.sns.eqsans.geometry import (translate_detector_z,
                                            translate_detector_by_z,
                                            translate_sample_by_z,
                                            source_monitor_distance)
-from ornl.sans.sns.eqsans.correct_frame import (correct_detector_frame,
+from drtsans.sns.eqsans.correct_frame import (correct_detector_frame,
                                                 correct_monitor_frame)
 import os
 

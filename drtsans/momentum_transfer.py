@@ -108,7 +108,7 @@ def calculate_q_dq(ws, pixel_sizes=None):
     :param pixel_sizes
     :return: 2D arrays for Q, Qx, dQx, Qy, dQy
     """
-    raise NotImplementedError('Method calculate_q_dq() in ornl.sans.momentum_transfer is "virtual"')
+    raise NotImplementedError('Method calculate_q_dq() in drtsans.momentum_transfer is "virtual"')
 
 
 def calculate_momentum_transfer(ws):

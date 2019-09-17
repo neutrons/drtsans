@@ -1,8 +1,7 @@
 import numpy as np
 
 from drtsans.mono import momentum_transfer
-from drtsans.iq import \
-    MomentumTransfer as MomentumTransferMain
+from drtsans.iq import IofQCalculator as MomentumTransferMain
 
 
 # To ignore warning:   invalid value encountered in true_divide

@@ -1,8 +1,7 @@
 import numpy as np
 
 from mantid.simpleapi import (ExtractSpectra, Rebin, DeleteWorkspace)
-from drtsans.iq import \
-    MomentumTransfer as MomentumTransferMain
+from drtsans.iq import IofQCalculator as MomentumTransferMain
 from mantid.kernel import logger
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import momentum_transfer

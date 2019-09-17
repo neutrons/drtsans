@@ -9,10 +9,8 @@ from drtsans.save_2d import save_nist_dat, save_nexus
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa: F401
 # Imports from EQSANS public API
-from drtsans.tof.eqsans import (load_events, load_events_monitor,
-                                  transform_to_wavelength,
-                                  center_detector, subtract_dark_current,
-                                  normalise_by_flux, apply_mask)
+from drtsans.tof.eqsans import (load_events, load_events_monitor, transform_to_wavelength,
+                                center_detector, subtract_dark_current, normalise_by_flux, apply_mask)
 from drtsans.tof.eqsans.correct_frame import smash_monitor_spikes
 from drtsans.path import exists as path_exists
 

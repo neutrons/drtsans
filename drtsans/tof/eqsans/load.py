@@ -1,16 +1,11 @@
 
-from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace,
-                              LoadNexusMonitors)
+from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace, LoadNexusMonitors)
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import (source_sample_distance,
-                                sample_detector_distance)
-from drtsans.tof.eqsans.geometry import (translate_detector_z,
-                                           translate_detector_by_z,
-                                           translate_sample_by_z,
-                                           source_monitor_distance)
-from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
-                                                correct_monitor_frame)
+from drtsans.geometry import (source_sample_distance, sample_detector_distance)
+from drtsans.tof.eqsans.geometry import (translate_detector_z, translate_detector_by_z,
+                                         translate_sample_by_z, source_monitor_distance)
+from drtsans.tof.eqsans.correct_frame import (correct_detector_frame, correct_monitor_frame)
 import os
 
 __all__ = ['load_events', 'load_events_monitor']

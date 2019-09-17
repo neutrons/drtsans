@@ -3,7 +3,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 from .sensitivity import (apply_sensitivity_correction,  # noqa: F401
-    calculate_sensitivity_correction)
+                          calculate_sensitivity_correction)
 from .solid_angle_correction import *  # noqa: F403, F401
 from .savereductionlog import *  # noqa: F401, F403
 

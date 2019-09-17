@@ -6,7 +6,7 @@ from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
                               ConvertUnits, Subtract, Scale, LoadEventNexus)
 
 from drtsans.settings import (namedtuplefy, amend_config,
-                           unique_workspace_dundername as uwd)
+                              unique_workspace_dundername as uwd)
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame

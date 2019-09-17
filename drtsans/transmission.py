@@ -42,7 +42,7 @@ def beam_radius(input_workspace, unit='mm',
     float
         Radius, in millimeters
     """
-    from drtsans.sns.eqsans import beam_radius as eqsans_beam_radius
+    from drtsans.tof.eqsans import beam_radius as eqsans_beam_radius
     ws = mtd[str(input_workspace)]
     if ws.getInstrument().getName() == 'EQ-SANS':
         return eqsans_beam_radius(ws, unit='mm')

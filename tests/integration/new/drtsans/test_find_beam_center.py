@@ -1,8 +1,8 @@
 import pytest
 from pytest import approx
-import drtsans.hfir.biosans.beam_finder as biosans_bf
-import drtsans.hfir.gpsans.beam_finder as gpsans_bf
-import drtsans.sns.eqsans.beam_finder as eqsans_bf
+import drtsans.mono.biosans.beam_finder as biosans_bf
+import drtsans.mono.gpsans.beam_finder as gpsans_bf
+import drtsans.tof.eqsans.beam_finder as eqsans_bf
 from drtsans.settings import unique_workspace_dundername as uwd
 from mantid.simpleapi import CreateWorkspace, LoadInstrument, AddSampleLog, MaskDetectors
 import numpy as np
@@ -21,7 +21,7 @@ def test_beam_finder_trivial(generic_IDF):
     r"""
     Testing section 3.1 in the master document
     Find beam center of a simple 2 x 2 detector
-    Functions to test: drtsans.sns.eqsans.beam_finder.find_beam_center
+    Functions to test: drtsans.tof.eqsans.beam_finder.find_beam_center
     Underlying Mantid algorithms:
         FindCenterOfMassPosition https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
     dev - Andrei Savici <saviciat@ornl.gov>
@@ -74,7 +74,7 @@ def test_beam_finder_larger_workspace(generic_workspace):
     r"""
     Testing section 3.1 in the master document
     Find beam center of a larger 10(+2) x 10(+2) detector
-    Functions to test: drtsans.sns.eqsans.beam_finder.find_beam_center
+    Functions to test: drtsans.tof.eqsans.beam_finder.find_beam_center
     Underlying Mantid algorithms:
         FindCenterOfMassPosition https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
     dev - Andrei Savici <saviciat@ornl.gov>

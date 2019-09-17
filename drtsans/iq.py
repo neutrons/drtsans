@@ -13,9 +13,7 @@ from drtsans.detector import Component
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
-"""
-Proposed API
-
+"""Proposed API
 - binning Q to 1D:               q_vector, dq_vector = bin_into_q1d(wl_ws, bins, statistic)
 - binning Q to 2D:               qx_vector, dqx_vector, qy_vector, dqy_vector = bin_into_q2d(wl_ws, bins, statistic)
 - binning Q to 1D with annular:  q_vector, dq_vector = bin_annular_into_q1d(wl_ws, bins, statistic)
@@ -24,17 +22,151 @@ Proposed API
 """
 
 
-def bin_into_q1d(wl_ws, bins, statistic):
-    """
-    Binning a workspace (in wave length unit) to Q (1D scaler)
-    :param wl_ws:
-    :param bins:
+def bin_into_q1d(wl_ws, q_bin, statistic):
+    """Binning a workspace (in wave length unit) to Q (1D scaler)
+    :param wl_ws: List of workspaces (names) in binned wave length space
+    :param q_bin: range and bi size for Q
     :param statistic:
     :return:
     """
     calculator = IofQCalculator(None, wl_ws)
 
-    return calculator.bin_into_q1d(bins, statistic)
+    return calculator.bin_into_q1d(q_bin, statistic)
+
+
+def bin_into_q2d(wl_ws, bins, suffix):
+    """ Bin the data into Q in 2D (Qx, Qy)
+    :param wl_ws: List of workspaces (names) in binned wave length space
+    :param bins: Iterable for range and bin size of Qx and Qy
+    :param suffix: suffix for output workspace
+    :return:
+    """
+    calculator = IofQCalculator(None, wl_ws)
+
+    return calculator.bin_into_q2d(bins=bins, suffix=suffix)
+
+
+def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,
+                       statistic='mean', suffix="_wedge_iq"):
+    """
+    Wedge calculation and integration
+
+        Calculates: I(Q) and Dq
+        The ws_* input parameters are the output workspaces from bin_into_q2d
+
+        Parameters
+        ----------
+        phi_0 : int, optional
+            Where to start the wedge, by default 0
+        phi_aperture : int, optional
+            Aperture of the wedge, by default 30
+        bins : int or sequence of scalars, optional
+            See `scipy.stats.binned_statistic`.
+            If `bins` is an int, it defines the number of equal-width bins in
+            the given range (10 by default).  If `bins` is a sequence, it
+            defines the bin edges, including the rightmost edge, allowing for
+            non-uniform bin widths.  Values in `x` that are smaller than lowest
+            bin edge areassigned to bin number 0, values beyond the highest bin
+            are assigned to ``bins[-1]``.  If the bin edges are specified,
+            the number of bins will be, (nx = len(bins)-1).
+        statistic : str, optional
+            See `scipy.stats.binned_statistic`.
+            The statistic to compute, by default 'mean'
+            The following statistics are available:
+            * 'mean' : compute the mean of values for points within each bin.
+                Empty bins will be represented by NaN.
+            * 'std' : compute the standard deviation within each bin. This
+                is implicitly calculated with ddof=0.
+            * 'median' : compute the median of values for points within each
+                bin. Empty bins will be represented by NaN.
+            * 'count' : compute the count of points within each bin.  This is
+                identical to an unweighted histogram.  `values` array is not
+                referenced.
+            * 'sum' : compute the sum of values for points within each bin.
+                This is identical to a weighted histogram.
+            * 'min' : compute the minimum of values for points within each bin.
+                Empty bins will be represented by NaN.
+            * 'max' : compute the maximum of values for point within each bin.
+                Empty bins will be represented by NaN.
+            * function : a user-defined function which takes a 1D array of
+                values, and outputs a single numerical statistic. This function
+                will be called on the values in each bin.  Empty bins will be
+                represented by function([]), or NaN if this returns an error.
+        suffix : str, optional
+            The prefix of the workspace created in Mantid, by default "ws"
+
+        Returns
+        -------
+        workspaces list
+    """
+    calculator = IofQCalculator(None, wl_ws)
+
+    return calculator.bin_wedge_into_q1d(phi_0, phi_aperture, bins, statistic, suffix)
+
+
+def bin_annular_into_q1d(wl_ws,
+                         q_min=0.001,
+                         q_max=0.4,
+                         bins=100,
+                         statistic='mean',
+                         suffix="_annular_iq"):
+    """
+    Wedge calculation and integration
+
+    Calculates: I(Q) and Dq
+    The ws_* input parameters are the output workspaces from bin_into_q2d
+
+    Parameters
+    ----------
+    wl_ws : list of workspaces (reference or string as name)
+    q_min : float, optional
+        , by default
+    q_max : float, optional
+        , by default
+    bins : int or sequence of scalars, optional
+        See `scipy.stats.binned_statistic`.
+        If `bins` is an int, it defines the number of equal-width bins in
+        the given range (10 by default).  If `bins` is a sequence, it
+        defines the bin edges, including the rightmost edge, allowing for
+        non-uniform bin widths.  Values in `x` that are smaller than lowest
+        bin edge areassigned to bin number 0, values beyond the highest bin
+        are assigned to ``bins[-1]``.  If the bin edges are specified,
+        the number of bins will be, (nx = len(bins)-1).
+    statistic : str, optional
+        See `scipy.stats.binned_statistic`.
+        The statistic to compute, by default 'mean'
+        The following statistics are available:
+        * 'mean' : compute the mean of values for points within each bin.
+            Empty bins will be represented by NaN.
+        * 'std' : compute the standard deviation within each bin. This
+            is implicitly calculated with ddof=0.
+        * 'median' : compute the median of values for points within each
+            bin. Empty bins will be represented by NaN.
+        * 'count' : compute the count of points within each bin.  This is
+            identical to an unweighted histogram.  `values` array is not
+            referenced.
+        * 'sum' : compute the sum of values for points within each bin.
+            This is identical to a weighted histogram.
+        * 'min' : compute the minimum of values for points within each bin.
+            Empty bins will be represented by NaN.
+        * 'max' : compute the maximum of values for point within each bin.
+            Empty bins will be represented by NaN.
+        * function : a user-defined function which takes a 1D array of
+            values, and outputs a single numerical statistic. This function
+            will be called on the values in each bin.  Empty bins will be
+            represented by function([]), or NaN if this returns an error.
+    suffix : str, optional
+        The prefix of the workspace created in Mantid, by default "ws"
+
+    Returns
+    -------
+    tuple
+        (workspace name, workspace)
+
+    """
+    calculator = IofQCalculator(None, wl_ws)
+
+    return calculator.bin_annular_into_q1d(q_min, q_max, bins, statistic, suffix)
 
 
 class IofQCalculator(object):

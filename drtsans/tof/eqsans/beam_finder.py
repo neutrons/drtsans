@@ -52,9 +52,8 @@ def center_detector(input_workspace, mask=None, x=None, y=None, unit='m', relati
         Values of `x` and `y` are either absolute coordinates or a
         translation.
     method: str
-        Method to estimate the center of the beam. Default is `center_of_mass` and use `None` for no method.
-            Method     -->     Mantid algorithm
-        center_of_mass --> FindCenterOfMassPosition
+        Method to estimate the center of the beam. Default is ``center_of_mass`` and use py:obj:`None` for no method.
+        Method --> Mantid algorithm, center_of_mass--> FindCenterOfMassPosition
     move_detector: bool
         Only calculate the final position if this is False
     method_kwargs: dict
@@ -124,8 +123,7 @@ def find_beam_center(input_workspace, mask=None, method='center_of_mass', **meth
         Path to mask file, or MaskWorkspace object
     method_kwargs: dict
         Additional keyword arguments to be passed to the method to calculate the center
-            Method     -->     Mantid algorithm
-        center_of_mass --> FindCenterOfMassPosition
+        Method --> Mantid algorithm, center_of_mass --> FindCenterOfMassPosition
 
     Returns
     -------

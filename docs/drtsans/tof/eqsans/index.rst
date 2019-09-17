@@ -1,6 +1,6 @@
-===========================
-:mod:`ornl.sans.sns.eqsans`
-===========================
+=========================
+:mod:`drtsans.tof.eqsans`
+=========================
 
 An example of processing 1d data using the API modified from the script used from `shaman <http://shaman.ornl.gov/>`_.
 
@@ -10,6 +10,6 @@ An example of processing 1d data using the API modified from the script used fro
 API Documentation
 =================
 
-.. automodule:: ornl.sans.sns.eqsans
+.. automodule:: drtsans.tof.eqsans
    :members:
    :undoc-members:

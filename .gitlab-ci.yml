@@ -94,9 +94,6 @@ docs-feature:
   allow_failure: true
   dependencies:
     - dockerbuild
-  before_script:
-    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -117,9 +114,6 @@ docs-next:
   stage: test
   dependencies:
     - dockerbuild
-  before_script:
-    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend

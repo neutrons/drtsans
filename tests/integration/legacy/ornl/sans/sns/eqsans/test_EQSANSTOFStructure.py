@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import pytest
-from ornl.settings import amend_config
+from drtsans.settings import amend_config
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 

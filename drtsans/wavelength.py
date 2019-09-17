@@ -1,5 +1,3 @@
-from __future__ import (absolute_import, division, print_function)
-
 from sortedcontainers import SortedList
 
 sigma = 3.9560346e-03  # plank constant divided by neutron mass

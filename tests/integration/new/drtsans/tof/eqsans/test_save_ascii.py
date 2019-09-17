@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-from __future__ import print_function
-
 import tempfile
 from os.path import join
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D

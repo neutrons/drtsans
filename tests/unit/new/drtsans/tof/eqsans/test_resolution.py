@@ -1,10 +1,6 @@
 """
     Test EQSANS resolution. Requires Mantid nightly
 """
-# import sys
-# sys.path.insert(0, '/opt/mantidnightly/bin')  # noqa: E402
-from __future__ import (absolute_import, division, print_function)
-
 import os
 from os.path import join as pj
 import tempfile

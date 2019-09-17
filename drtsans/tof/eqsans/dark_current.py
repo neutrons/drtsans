@@ -1,5 +1,3 @@
-from __future__ import (absolute_import, division, print_function)
-
 from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,

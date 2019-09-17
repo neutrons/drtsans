@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-from __future__ import print_function
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument, MaskBTP
 from drtsans.detector import Component

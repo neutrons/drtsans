@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from mantid.plots.helperfunctions import get_spectrum
 from mantid.simpleapi import SaveCanSAS1D
 

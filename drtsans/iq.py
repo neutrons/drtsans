@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from ast import literal_eval
 from string import Template
 

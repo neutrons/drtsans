@@ -1,5 +1,3 @@
-from __future__ import (absolute_import, division, print_function)
-
 import pytest
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal

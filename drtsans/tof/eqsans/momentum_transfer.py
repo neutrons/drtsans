@@ -1,4 +1,3 @@
-from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 from drtsans.momentum_transfer import dq2_geometry, dq2_gravity

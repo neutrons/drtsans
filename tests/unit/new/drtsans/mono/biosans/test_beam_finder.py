@@ -1,6 +1,3 @@
-
-from __future__ import print_function
-
 import pytest
 
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html

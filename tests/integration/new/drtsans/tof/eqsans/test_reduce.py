@@ -1,5 +1,3 @@
-from __future__ import (absolute_import, division, print_function)
-
 import pytest
 from os.path import join as pj
 from mantid.simpleapi import LoadNexus, SumSpectra, CompareWorkspaces

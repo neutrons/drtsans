@@ -1,8 +1,6 @@
 """
-    Resolution calculations common to all SANS
+Resolution calculations common to all SANS
 """
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from numpy import linalg
 from scipy import constants

@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from os.path import join
 import pytest
 from mantid.simpleapi import (CompareWorkspaces, Load,

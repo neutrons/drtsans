@@ -9,13 +9,10 @@ import mantid
 from mantid import mtd
 from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
                               MaskAngle, Rebin)
-from drtsans.tof.eqsans import (center_detector, geometry, load_events,
-                                  normalisation, prepare_data,
-                                  transform_to_wavelength)
-from drtsans.tof.eqsans.iq import (MomentumTransfer, cal_iq,
-                                     iq_annular, iq_wedge,
-                                     iqxqy,
-                                     prepare_momentum_transfer)
+from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, prepare_data,
+                                transform_to_wavelength)
+from drtsans.tof.eqsans.iq import (MomentumTransfer, cal_iq, iq_annular, iq_wedge, iqxqy,
+                                   prepare_momentum_transfer)
 
 
 def legacy_reduction(reference_dir):

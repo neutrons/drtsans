@@ -1,8 +1,7 @@
 import pytest
 from pytest import approx
-from drtsans.tof.eqsans.geometry import (sample_aperture_diameter,
-                                           source_aperture_diameter,
-                                           source_monitor_distance)
+from drtsans.tof.eqsans.geometry import (sample_aperture_diameter, source_aperture_diameter,
+                                         source_monitor_distance)
 from drtsans.samplelogs import SampleLogs
 
 

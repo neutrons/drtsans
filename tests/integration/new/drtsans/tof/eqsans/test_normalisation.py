@@ -1,8 +1,7 @@
 import pytest
 from pytest import approx
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans import (load_events, transform_to_wavelength,
-                                  normalise_by_time)
+from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalise_by_time)
 
 
 def test_normalise_by_time(reference_dir):

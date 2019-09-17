@@ -17,7 +17,7 @@ from drtsans import solid_angle_correction
 
 # protected API
 from drtsans.settings import (amend_config, namedtuplefy,
-                           unique_workspace_dundername as uwd)
+                              unique_workspace_dundername as uwd)
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import detector_name
 

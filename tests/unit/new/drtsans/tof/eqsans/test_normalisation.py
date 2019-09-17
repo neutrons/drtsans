@@ -8,8 +8,7 @@ from drtsans.tof.eqsans.normalisation import \
      load_flux_to_monitor_ratio_file, normalise_by_monitor,
      normalise_by_time, normalise_by_flux)
 from drtsans.settings import amend_config, unique_workspace_dundername as uwd
-from drtsans.tof.eqsans import (load_events, transform_to_wavelength,
-                                  prepare_monitors)
+from drtsans.tof.eqsans import (load_events, transform_to_wavelength, prepare_monitors)
 from drtsans.samplelogs import SampleLogs
 
 

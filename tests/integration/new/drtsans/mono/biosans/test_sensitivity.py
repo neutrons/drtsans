@@ -35,8 +35,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     from drtsans.mono.dark_current import subtract_normalised_dark
     from drtsans.mono.normalisation import time
     from drtsans.sensitivity import inf_value_to_mask, interpolate_mask
-    from drtsans.transmission import (apply_transmission_correction,
-                                        calculate_transmission)
+    from drtsans.transmission import (apply_transmission_correction, calculate_transmission)
     # Load the files into WS
     dark_current_ws = LoadHFIRSANS(
         Filename=biosans_sensitivity_dataset['dark_current'])

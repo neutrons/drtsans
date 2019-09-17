@@ -6,6 +6,7 @@ USER snsdata
 COPY ornl /opt/sans-backend/ornl
 COPY tests /opt/sans-backend/tests
 COPY scripts /opt/sans-backend/scripts
+COPY docs /opt/sans-backend/docs
 COPY .gitattributes MANIFEST.in pytest.ini setup.cfg setup.py test_job.sh versioneer.py /opt/sans-backend/
 
 ENV PYTHONPATH $PYTHONPATH:/opt/conda/lib/python3.6/site-packages:/opt/conda/envs/mantid/bin/:/opt/conda/bin:/opt/sans-backend

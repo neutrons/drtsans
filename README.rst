@@ -80,7 +80,7 @@ used in the virtual environment
 .. code-block:: python
 
    import mantid
-   import ornl
+   import drtsans
 
 Verify you can run the unit tests:
 
@@ -141,7 +141,7 @@ To run an individual test within an individual file add ``::`` to the filename t
 
 .. code-block:: shell
 
-   $ python -m pytest tests/integration/new/ornl/sans/sns/eqsans/test_momentum_transfer.py::test_api
+   $ python -m pytest tests/integration/new/drtsans/tof/eqsans/test_momentum_transfer.py::test_api
 
 
 Building the documentation
@@ -151,7 +151,7 @@ The site can be build directly using
 
 .. code-block:: shell
 
-   $ sphinx-build -b html docs/source/ build/sphinx/html
+   $ sphinx-build -b html docs/ build/sphinx/html
 
 or
 

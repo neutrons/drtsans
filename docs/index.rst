@@ -9,10 +9,10 @@ Welcome to drt-sans's documentation!
 .. toctree::
    :maxdepth: 1
 
-   ornl/sans/index
-   ornl/sans/hfir/biosans/index
-   ornl/sans/hfir/gpsans/index
-   ornl/sans/sns/eqsans/index
+   drtsans/index
+   drtsans/mono/biosans/index
+   drtsans/mono/gpsans/index
+   drtsans/tof/eqsans/index
 
 
 Indices and tables

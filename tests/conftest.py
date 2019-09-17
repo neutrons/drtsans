@@ -1,5 +1,3 @@
-from __future__ import (absolute_import, division, print_function)
-
 import sys
 import os
 import re
@@ -11,7 +9,7 @@ from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
 from mantid.simpleapi import CreateWorkspace, LoadInstrument, DeleteWorkspace
-from ornl.settings import amend_config, unique_workspace_dundername
+from drtsans.settings import amend_config, unique_workspace_dundername
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__

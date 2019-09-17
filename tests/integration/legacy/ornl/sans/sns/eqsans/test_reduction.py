@@ -1,6 +1,5 @@
 """EQSANS reduction script
 """
-from __future__ import absolute_import, division, print_function
 
 import shutil
 import tempfile

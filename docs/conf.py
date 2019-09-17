@@ -21,7 +21,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 # The full version, including alpha/beta/rc tags.
-from ornl import __version__ as release
+from drtsans import __version__ as release
 
 # -- General configuration ------------------------------------------------
 

@@ -24,10 +24,10 @@ install_requires = read_requirements_from_file(os.path.join(THIS_DIR, 'requireme
 test_requires = read_requirements_from_file(os.path.join(THIS_DIR, 'requirements_dev.txt'))
 
 
-setup(name="ornl",
+setup(name="drtsans",
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
-      description="ORNL SANS reduction",
+      description="Data Reduction Toolkit SANS reduction",
       url="https://http://www.mantidproject.org",
       long_description="""ORNL SANS reduction""",
       license="Apache License 2.0",

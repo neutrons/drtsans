@@ -21,21 +21,28 @@ in master document section 3.3
 dev - Pete Peterson <petersonpf@ornl.gov>
 SME - William Heller <hellerwt@ornl.gov>
 '''
+    # set up input workspace in the first frame
     ws = generic_workspace  # friendly name
     add_frame_skipping_log(ws)
 
+    # run the drt-sans version
     ws = convert_to_wavelength(input_workspace=generic_workspace)
-
-    specInfo = ws.spectrumInfo()
-    source_sample = specInfo.l1()  # in meters
 
     # make sure the unit is wavelength
     assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+
+    # get information for detector pixel positions
+    specInfo = ws.spectrumInfo()
+    source_sample = specInfo.l1()  # in meters
+
     # verify the individual wavelength values
     for i in range(4):
-        sample_detector = specInfo.l2(i)  # to detector pixel in meters
-        # equation taken
+        # distance to detector pixel in meters
+        sample_detector = specInfo.l2(i)
+        # equation supplied by SME applied to time-of-flight
         lambda_exp = 3.9560346e-3 * np.array([15432.]) / (source_sample + sample_detector)
+
+        # verify the results
         assert ws.dataX(i)[0] == pytest.approx(lambda_exp[0])
         assert ws.dataX(i)[0] == pytest.approx(3.2131329446)
 
@@ -55,21 +62,28 @@ in master document section 3.3
 dev - Pete Peterson <petersonpf@ornl.gov>
 SME - Shuo Qian
 '''
+    # set up input workspace in the first frame
     ws = generic_workspace  # friendly name
     add_frame_skipping_log(ws)
 
+    # run the drt-sans version
     ws = convert_to_wavelength(input_workspace=generic_workspace)
-
-    specInfo = ws.spectrumInfo()
-    source_sample = specInfo.l1()  # in meters
 
     # make sure the unit is wavelength
     assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
+
+    # get information for detector pixel positions
+    specInfo = ws.spectrumInfo()
+    source_sample = specInfo.l1()  # in meters
+
     # verify the individual wavelength values
     for i in range(4):
-        sample_detector = specInfo.l2(i)  # to detector pixel in meters
-        # equation taken
+        # distance to detector pixel in meters
+        sample_detector = specInfo.l2(i)
+        # equation supplied by SME applied to time-of-flight
         lambda_exp = 3.9560346e-3 * np.array(TOF) / (source_sample + sample_detector)
+
+        # verify the results
         assert ws.dataX(i)[0] == pytest.approx(lambda_exp[0])
         assert ws.dataX(i)[1] == pytest.approx(lambda_exp[1])
         assert ws.dataX(i)[0] == pytest.approx(3.875969)  # Shuo asked for 3.8760

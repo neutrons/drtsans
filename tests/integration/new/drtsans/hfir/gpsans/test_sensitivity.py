@@ -8,9 +8,9 @@ from mantid import mtd
 from mantid.kernel import Property
 from mantid.simpleapi import (CalculateEfficiency, ClearMaskFlag, LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent, ReplaceSpecialValues, SolidAngle, SaveNexus)
-from ornl.sans.hfir.gpsans.beam_finder import find_beam_center
-from ornl.sans.hfir.normalisation import monitor
-from ornl.sans.sensitivity import inf_value_to_mask
+from drtsans.hfir.gpsans.beam_finder import find_beam_center
+from drtsans.hfir.normalisation import monitor
+from drtsans.sensitivity import inf_value_to_mask
 
 
 '''

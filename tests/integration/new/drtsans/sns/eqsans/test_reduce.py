@@ -4,8 +4,8 @@ import pytest
 from os.path import join as pj
 from mantid.simpleapi import LoadNexus, SumSpectra, CompareWorkspaces
 
-from ornl.sans.sns.eqsans import reduce
-from ornl.settings import (amend_config,
+from drtsans.sns.eqsans import reduce
+from drtsans.settings import (amend_config,
                            unique_workspace_dundername as uwd)
 
 

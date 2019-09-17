@@ -5,13 +5,13 @@ from mantid.simpleapi import (Load, EQSANSLoad, SumSpectra, RebinToWorkspace,
                               MoveInstrumentComponent, ConvertUnits,
                               CloneWorkspace, LoadNexusMonitors)
 from mantid.api import AnalysisDataService
-from ornl.settings import amend_config, unique_workspace_dundername as uwd
-from ornl.sans.sns.eqsans.correct_frame import (correct_detector_frame,
+from drtsans.settings import amend_config, unique_workspace_dundername as uwd
+from drtsans.sns.eqsans.correct_frame import (correct_detector_frame,
                                                 correct_monitor_frame,
                                                 smash_monitor_spikes)
-from ornl.sans.sns.eqsans.load import load_events_monitor
-from ornl.sans.sns.eqsans import correct_frame
-from ornl.sans.geometry import source_detector_distance
+from drtsans.sns.eqsans.load import load_events_monitor
+from drtsans.sns.eqsans import correct_frame
+from drtsans.geometry import source_detector_distance
 
 
 trials = dict(  # configurations with frame skipped

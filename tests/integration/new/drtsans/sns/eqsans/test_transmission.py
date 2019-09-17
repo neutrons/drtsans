@@ -7,11 +7,11 @@ from pathlib import Path
 from os.path import join as pjn
 from mantid.simpleapi import LoadNexus, CompareWorkspaces, SumSpectra
 
-from ornl.settings import (amend_config, namedtuplefy,
+from drtsans.settings import (amend_config, namedtuplefy,
                            unique_workspace_dundername as uwd)
-from ornl.sans.sns.eqsans.geometry import insert_aperture_logs
-from ornl.sans.sns.eqsans.api import prepare_data
-from ornl.sans.sns.eqsans import (calculate_transmission, apply_transmission_correction, find_beam_center,
+from drtsans.sns.eqsans.geometry import insert_aperture_logs
+from drtsans.sns.eqsans.api import prepare_data
+from drtsans.sns.eqsans import (calculate_transmission, apply_transmission_correction, find_beam_center,
                                   center_detector)
 
 

@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import tempfile
 from os.path import join
-from ornl.sans.save_ascii import save_ascii_1D, save_xml_1D
+from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 
 from mantid.simpleapi import Load
 import numpy as np
@@ -14,7 +14,7 @@ def test_save_ascii_1d(reference_dir):
     '''
     For now let's skip this test. it does not run as part of multiple tests
     It runs as a single test though:
-    pytest tests/unit/new/ornl/sans/hfir/biosans/test_momentum_transfer.py::\
+    pytest tests/unit/new/drtsans/hfir/biosans/test_momentum_transfer.py::\
         test_momentum_tranfer_parallel
     '''
 

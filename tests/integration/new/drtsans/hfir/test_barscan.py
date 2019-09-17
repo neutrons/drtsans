@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from ornl.sans.hfir.barscan import find_edges
+from drtsans.hfir.barscan import find_edges
 
 r"""Finding the edges of the barscan in a single tube
 devs - Andrei Savici <saviciat@ornl.gov>,

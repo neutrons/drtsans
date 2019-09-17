@@ -3,8 +3,8 @@ import pytest
 from pytest import approx
 from mantid.simpleapi import (LoadEventNexus, ClearMaskFlag, ExtractMask,
                               SaveMask)
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.sns import eqsans
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.sns import eqsans
 
 
 def test_find_beam_center(eqsans_f, eqsans_p):

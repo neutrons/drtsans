@@ -3,8 +3,8 @@ from tempfile import NamedTemporaryFile
 from mantid.dataobjects import MaskWorkspace
 from mantid.simpleapi import (LoadEmptyInstrument, ClearMaskFlag, MaskBTP,
                               CompareWorkspaces, SaveMask, ExtractMask)
-from ornl.settings import unique_workspace_dundername as uwd
-from ornl.sans.mask_utils import apply_mask
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.mask_utils import apply_mask
 
 
 def test_apply_mask():

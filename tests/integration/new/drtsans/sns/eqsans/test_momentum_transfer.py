@@ -9,10 +9,10 @@ import mantid
 from mantid import mtd
 from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
                               MaskAngle, Rebin)
-from ornl.sans.sns.eqsans import (center_detector, geometry, load_events,
+from drtsans.sns.eqsans import (center_detector, geometry, load_events,
                                   normalisation, prepare_data,
                                   transform_to_wavelength)
-from ornl.sans.sns.eqsans.iq import (MomentumTransfer, cal_iq,
+from drtsans.sns.eqsans.iq import (MomentumTransfer, cal_iq,
                                      iq_annular, iq_wedge,
                                      iqxqy,
                                      prepare_momentum_transfer)

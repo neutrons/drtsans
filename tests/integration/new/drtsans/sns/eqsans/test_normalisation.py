@@ -1,7 +1,7 @@
 import pytest
 from pytest import approx
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
+from drtsans.samplelogs import SampleLogs
+from drtsans.sns.eqsans import (load_events, transform_to_wavelength,
                                   normalise_by_time)
 
 

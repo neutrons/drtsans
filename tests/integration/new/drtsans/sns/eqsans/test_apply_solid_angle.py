@@ -1,5 +1,5 @@
 import pytest
-from ornl.sans.sns import eqsans
+from drtsans.sns import eqsans
 from mantid.simpleapi import SolidAngle
 from mantid.kernel import V3D
 import numpy as np

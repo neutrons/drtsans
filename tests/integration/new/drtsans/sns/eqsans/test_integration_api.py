@@ -12,14 +12,14 @@ from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces
 
 # public API
-from ornl.sans.sns import eqsans
-from ornl.sans import solid_angle_correction
+from drtsans.sns import eqsans
+from drtsans import solid_angle_correction
 
 # protected API
-from ornl.settings import (amend_config, namedtuplefy,
+from drtsans.settings import (amend_config, namedtuplefy,
                            unique_workspace_dundername as uwd)
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.geometry import detector_name
+from drtsans.samplelogs import SampleLogs
+from drtsans.geometry import detector_name
 
 
 keys = ('run', 'num_events', 'sdd', 'ssd', 'min_tof', 'max_tof',

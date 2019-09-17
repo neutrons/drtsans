@@ -31,11 +31,11 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
                                   MaskDetectors, MoveInstrumentComponent,
                                   RenameWorkspace, ReplaceSpecialValues,
                                   MaskBTP, SolidAngle, SaveNexus)
-    from ornl.sans.hfir.biosans.beam_finder import find_beam_center
-    from ornl.sans.hfir.dark_current import subtract_normalised_dark
-    from ornl.sans.hfir.normalisation import time
-    from ornl.sans.sensitivity import inf_value_to_mask, interpolate_mask
-    from ornl.sans.transmission import (apply_transmission_correction,
+    from drtsans.hfir.biosans.beam_finder import find_beam_center
+    from drtsans.hfir.dark_current import subtract_normalised_dark
+    from drtsans.hfir.normalisation import time
+    from drtsans.sensitivity import inf_value_to_mask, interpolate_mask
+    from drtsans.transmission import (apply_transmission_correction,
                                         calculate_transmission)
     # Load the files into WS
     dark_current_ws = LoadHFIRSANS(
@@ -234,10 +234,10 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
 @pytest.mark.offline
 def test_sensitivity_detector(biosans_sensitivity_dataset):
-    '''This tests the ornl.sans.sensitivity.Detector with data from BioSANS
+    '''This tests the drtsans.sensitivity.Detector with data from BioSANS
     '''
 
-    from ornl.sans.sensitivity import Detector
+    from drtsans.sensitivity import Detector
     from mantid.simpleapi import LoadHFIRSANS, MaskBTP
     from mantid.kernel import Property
     import numpy as np

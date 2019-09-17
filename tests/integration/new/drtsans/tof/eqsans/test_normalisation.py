@@ -1,13 +1,8 @@
 import pytest
 from pytest import approx
-<<<<<<< HEAD:tests/integration/new/drtsans/tof/eqsans/test_normalisation.py
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalise_by_time)
-=======
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.sns.eqsans import (load_events, transform_to_wavelength,
+from drtsans.tof.eqsans import (load_events, transform_to_wavelength,
                                   normalise_by_time, normalise_by_monitor)
->>>>>>> eaf0f67... checkpoint:tests/integration/new/ornl/sans/sns/eqsans/test_normalisation.py
 import numpy as np
 
 

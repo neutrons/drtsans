@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 
-from ornl.sans.samplelogs import SampleLogs
-from ornl.sans.hfir.normalisation import time, monitor
+from drtsans.samplelogs import SampleLogs
+from drtsans.mono.normalisation import time, monitor
 
 # sample data for integration tests
 x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))

@@ -105,7 +105,7 @@ docs-feature:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "python /opt/sans-backend/setup.py build_sphinx"
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "sphinx-build -b html /opt/sans-backend/docs/ ./"
     - popd
   tags:
     - scse-mantid-builder
@@ -128,7 +128,7 @@ docs-next:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "python /opt/sans-backend/setup.py build_sphinx"
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "sphinx-build -b html /opt/sans-backend/docs/ ./"
     - popd
   tags:
     - scse-mantid-builder

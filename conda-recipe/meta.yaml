@@ -1,0 +1,31 @@
+package:
+  name: drtsans
+  version: "0.1.0"
+
+source:
+  git_rev: next
+  git_url: git@code.ornl.gov:sns-hfir-scse/sans/sans-backend.git
+#  git_url: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend.git
+
+build:
+  number: 0
+  script: python -m pip install --no-deps --ignore-installed .
+  skip: True # [win]
+
+requirements:
+  build:
+    - python
+
+  run:
+    - python
+    - mantid-framework
+
+build:
+
+test:
+  imports:
+
+about:
+  home: 
+  license:
+  license_file:

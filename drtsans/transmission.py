@@ -2,8 +2,7 @@ import numpy as np
 
 from mantid import mtd
 from mantid.kernel import logger
-from mantid.simpleapi import (ApplyTransmissionCorrection, Divide,
-                              FindDetectorsInShape, GroupDetectors,
+from mantid.simpleapi import (ApplyTransmissionCorrection, Divide, FindDetectorsInShape, GroupDetectors,
                               ReplaceSpecialValues, RebinToWorkspace)
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.samplelogs import SampleLogs
@@ -166,8 +165,7 @@ def calculate_transmission(input_sample, input_reference,
     return zat
 
 
-def apply_transmission_correction(input_workspace, trans_workspace=None,
-                                  trans_value=None, trans_error=0.0,
+def apply_transmission_correction(input_workspace, trans_workspace=None, trans_value=None, trans_error=0.0,
                                   theta_dependent=True, output_workspace=None):
     r"""
     Correct the intensities with transmission coefficient(s).
@@ -177,17 +175,15 @@ def apply_transmission_correction(input_workspace, trans_workspace=None,
     input_workspace: MatrixWorkspace, str
         Input workspace to correct its intensities
     trans_workspace: MatrixWorkspace, str
-        Workspace containing the transmission coefficient(s). The result
-        of applying `calculate_transmission` to the input workspace.
-        If None, `trans_value` will be used.
+        Workspace containing the transmission coefficient(s). The result of applying `calculate_transmission`
+        to the input workspace. If None, `trans_value` will be used.
     trans_value: float
-        A single transmission coefficient to correct the intensities.
-        If None, `trans_workspace` will be used.
+        A single transmission coefficient to correct the intensities. If None, `trans_workspace` will be used.
     trans_error: float
         Error associated to `trans_value`.
     output_workspace: str
-        Name of the workspace containing the corrected intensities.
-        If None, the `input_workspace` will be overwritten.
+        Name of the workspace containing the corrected intensities. If None, the `input_workspace`
+        will be overwritten.
 
     Returns
     -------
@@ -195,25 +191,18 @@ def apply_transmission_correction(input_workspace, trans_workspace=None,
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    kwargs = dict(InputWorkspace=input_workspace,
-                  ThetaDependent=theta_dependent,
-                  OutputWorkspace=output_workspace)
+    kwargs = dict(InputWorkspace=input_workspace, ThetaDependent=theta_dependent, OutputWorkspace=output_workspace)
     if trans_workspace is not None:
-        # EQ-SANS transmissions in skip-frame mode have transmission values
-        # of zero in the wavelength gap. Need to be replaced with one to
-        # avoid division of intensities by zero.
-        tw = ReplaceSpecialValues(InputWorkspace=trans_workspace,
-                                  SmallNumberThreshold=1.0e-6,
-                                  SmallNumberValue=1.0,
-                                  OutputWorkspace=uwd())
-        kwargs['TransmissionWorkspace'] = tw
+        # EQ-SANS transmissions in skip-frame mode have transmission values of zero in the wavelength gap.
+        # Need to be replaced with one to avoid division of intensities by zero.
+        clean_trans_workspace = ReplaceSpecialValues(InputWorkspace=trans_workspace, SmallNumberThreshold=1.0e-6,
+                                                     SmallNumberValue=1.0, OutputWorkspace=uwd())
+        kwargs['TransmissionWorkspace'] = clean_trans_workspace
     elif trans_value is not None:
-        kwargs.update(dict(TransmissionValue=trans_value,
-                           TransmissionError=trans_error))
+        kwargs.update(dict(TransmissionValue=trans_value, TransmissionError=trans_error))
     else:
         raise RuntimeError('Provide either trans_workspace or trans_value')
     ApplyTransmissionCorrection(**kwargs)
-    # Clean up and return
     if trans_workspace is not None:
-        tw.delete()
+        clean_trans_workspace.delete()
     return mtd[output_workspace]

@@ -9,7 +9,7 @@ def test_calculate_theta_dependent_transmission_single_value(workspace_with_inst
     r"""
     This implements Issue #176, addressing master document section 7
     dev - Jose Borreguero <borreguerojm@ornl.gov>
-    SME - Changwoo Do <doc1@ornl.gov>
+    SME - Lilin He <hel3@ornl.gov>
 
     The instrument is made up of 9 tubes, each tube containing only one square pixel of side 10cm.
     The instrument is positioned 30cm away from the sample. These specifications result in two_theta

@@ -7,7 +7,7 @@ from copy import deepcopy
 from itertools import product as iproduct
 import numpy as np
 from contextlib import contextmanager
-from ornl.sans.sns.eqsans.geometry import detector_id
+from drtsans.tof.eqsans.geometry import detector_id
 
 __all__ = ['load_config', ]
 

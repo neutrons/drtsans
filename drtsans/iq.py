@@ -7,8 +7,9 @@ from scipy import stats
 import mantid
 from mantid.kernel import logger
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
-from drtsans.detector import Component
+from drtsans.momentum_transfer_factory import calculate_q_dq
 
+from drtsans.detector import Component
 
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
@@ -189,7 +190,7 @@ class IofQCalculator(object):
     def __init__(self, resolution, input_workspace=None,
                  component_name="detector1", out_ws_prefix="ws"):
 
-        self.resolution = resolution
+        # self.resolution = resolution
         self.prefix = out_ws_prefix
 
         if isinstance(input_workspace, mantid.dataobjects.TableWorkspace):
@@ -199,6 +200,8 @@ class IofQCalculator(object):
             self.component = Component(input_workspace, component_name)
             self.detector_dims = (self.component.dim_x, self.component.dim_y)
             self._initialize_qs(input_workspace)
+
+        return
 
     def _load_table_workspace(self, input_workspace):
         data = input_workspace.toDict()
@@ -234,8 +237,11 @@ class IofQCalculator(object):
         masked_pixels = self.component.masked_ws_indices()
 
         # 1D arrays
-        self.qx, self.qy, self.dqx, self.dqy = \
-            self.resolution.calculate_q_dq(input_workspace)
+        # self.qx, self.qy, self.dqx, self.dqy = \
+        #     self.resolution.calculate_q_dq(input_workspace)
+
+        self._q_dq = calculate_q_dq(input_workspace)
+
         self.i = input_workspace.extractY().ravel()
         self.i_sigma = input_workspace.extractE().ravel()
         # Ravel just in case! For EQSANS for example is needed!

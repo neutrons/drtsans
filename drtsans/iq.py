@@ -7,6 +7,7 @@ from scipy import stats
 import mantid
 from mantid.kernel import logger
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
+from mantid.api import AnalysisDataService
 from drtsans.momentum_transfer_factory import calculate_q_dq
 
 from drtsans.detector import Component
@@ -170,6 +171,32 @@ def bin_annular_into_q1d(wl_ws,
     return calculator.bin_annular_into_q1d(q_min, q_max, bins, statistic, suffix)
 
 
+def export_i_q_to_table():
+    """
+    Export binned I(Q) to table (workspace)
+    Returns
+    -------
+
+    """
+    # data = input_workspace.toDict()
+    # self.qx = np.array(data['Qx'])
+    # self.qy = np.array(data['Qy'])
+    # self.dqx = np.array(data['dQx'])
+    # self.dqy = np.array(data['dQy'])
+    # self.i = np.array(data["I"])
+    # self.i_sigma = np.array(data["Sigma(I)"])
+    #
+    # # Gets the detector dimensions: "detector_dimensions=($dim_x,$dim_y)"
+    # if self.DETECTOR_DIMENSIONS_TEMPLATE.split("=")[0] != \
+    #         input_workspace.getComment().split("=")[0]:
+    #     logger.error("Can not get the detector dimensions!")
+    # else:
+    #     self.detector_dims = literal_eval(
+    #         input_workspace.getComment().split("=")[1])
+
+    return None
+
+
 class IofQCalculator(object):
     """
     Momentum Transfer class
@@ -187,78 +214,102 @@ class IofQCalculator(object):
     component = None
     detector_dims = None
 
-    def __init__(self, resolution, input_workspace=None,
-                 component_name="detector1", out_ws_prefix="ws"):
+    def __init__(self, input_workspace=None, component_name="detector1", out_ws_prefix="ws"):
+        """
 
-        # self.resolution = resolution
-        self.prefix = out_ws_prefix
+        Parameters
+        ----------
+        input_workspace : String or mantid.dataobjects.Workspace2D
+            Name or reference of Workspace in unit of wave length
+        component_name
+        out_ws_prefix : String
+            Prefix for output workspace such as ....
+        """
+        # Set up class variable
+        # input wave length workspace
+        if not isinstance(input_workspace, mantid.api.MatrixWorkspace):
+            raise RuntimeError('Input workspace {} must be a MatrixWorkspace'.format(input_workspace))
+        self._wl_ws = AnalysisDataService.retrieve(str(input_workspace))
+        # output workspace's prefix
+        self._prefix = out_ws_prefix
 
-        if isinstance(input_workspace, mantid.dataobjects.TableWorkspace):
-            self._load_table_workspace(input_workspace)
+        # get detector dimension
+        component = Component(input_workspace, component_name)
+        self._detector_dims = component.dim_x, component.dim_y
 
-        elif isinstance(input_workspace, mantid.dataobjects.Workspace2D):
-            self.component = Component(input_workspace, component_name)
-            self.detector_dims = (self.component.dim_x, self.component.dim_y)
-            self._initialize_qs(input_workspace)
+        # calculate momentum transfer and Q resolution
+        self._initialize_qs(input_workspace, component)
 
         return
 
-    def _load_table_workspace(self, input_workspace):
-        data = input_workspace.toDict()
-        self.qx = np.array(data['Qx'])
-        self.qy = np.array(data['Qy'])
-        self.dqx = np.array(data['dQx'])
-        self.dqy = np.array(data['dQy'])
-        self.i = np.array(data["I"])
-        self.i_sigma = np.array(data["Sigma(I)"])
+    def _initialize_qs(self, input_workspace):
 
-        # Gets the detector dimensions: "detector_dimensions=($dim_x,$dim_y)"
-        if self.DETECTOR_DIMENSIONS_TEMPLATE.split("=")[0] != \
-                input_workspace.getComment().split("=")[0]:
-            logger.error("Can not get the detector dimensions!")
-        else:
-            self.detector_dims = literal_eval(
-                input_workspace.getComment().split("=")[1])
+        # Calculate q, qx, qy, dqx, dqy: N x M array where N is number of histograms in input workspace
+        # It is not necessary to consider monitor or masked detectors (pixels) for Q and dQ
+        self._q_dq = calculate_q_dq(input_workspace)
 
-    def _remove_monitors(self, data):
+        # Extract I(Q) from input workspace: N x M array
+        # such that self._i_q[n, m] corresponds to self._q_dq[n, m]
+        self._i_q = input_workspace.extractY().ravel()
+        self._i_q_sigma = input_workspace.extractE().ravel()
+
+        # Mask monitors and detectors pixels
+        masked_pixels = self.component.masked_ws_indices()
+        monitor_pixels = self.component.get_monitor_indeces()
+        self._mask_pixels(masked_pixels, monitor_pixels)
+
+        return
+
+        # 1D arrays
+        # self.qx, self.qy, self.dqx, self.dqy = \
+        #     self.resolution.calculate_q_dq(input_workspace)
+        # # Ravel just in case! For EQSANS for example is needed!
+        # self.qx, self.qy, self.dqx, self.dqy = \
+        #     self.qx.ravel(), self.qy.ravel(), self.dqx.ravel(), \
+        #     self.dqy.ravel()
+        # # Get rid of the monitors; from 49154 to 49152 spectra
+        # self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
+        #     self._remove_monitors(d) for d in
+        #     [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
+        # ]
+        #
+        # # Create numpy mask arrays with the masked pixels
+        # self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
+        #     self._mask_pixels(d, masked_pixels) for d in
+        #     [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
+        # ]
+
+    def _mask_monitors(self, component, data):
+        """ Mask I(Q) for spectra of monitor
+        Parameters
+        ----------
+        data
+
+        Returns
+        -------
+
+        """
         return data[self.component.first_index:self.component.first_index +
                     self.component.dims]
 
-    def _mask_pixels(self, data, masked_pixels):
+    def _mask_pixels(self, masked_pixels, monitor_pixels):
+        """
+        Mask pixels
+        Parameters
+        ----------
+        data
+        masked_pixels
+
+        Returns
+        -------
+
+        """
         return np.ma.MaskedArray(data,
                                  masked_pixels,
                                  dtype=np.float,
                                  fill_value=np.nan)
 
-    def _initialize_qs(self, input_workspace):
 
-        assert input_workspace.blocksize() == 1  # sanity check: only 1 bin
-
-        masked_pixels = self.component.masked_ws_indices()
-
-        # 1D arrays
-        # self.qx, self.qy, self.dqx, self.dqy = \
-        #     self.resolution.calculate_q_dq(input_workspace)
-
-        self._q_dq = calculate_q_dq(input_workspace)
-
-        self.i = input_workspace.extractY().ravel()
-        self.i_sigma = input_workspace.extractE().ravel()
-        # Ravel just in case! For EQSANS for example is needed!
-        self.qx, self.qy, self.dqx, self.dqy = \
-            self.qx.ravel(), self.qy.ravel(), self.dqx.ravel(), \
-            self.dqy.ravel()
-        # Get rid of the monitors; from 49154 to 49152 spectra
-        self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
-            self._remove_monitors(d) for d in
-            [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
-        ]
-
-        # Create numpy mask arrays with the masked pixels
-        self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
-            self._mask_pixels(d, masked_pixels) for d in
-            [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
-        ]
 
     def _create_table_ws(self, suffix):
         table_iq = CreateEmptyTableWorkspace(OutputWorkspace=self.prefix +

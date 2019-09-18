@@ -1,4 +1,6 @@
 # flake8: noqa
+from drtsans.transmission import apply_transmission_correction
+
 from .load import *
 from .api import *
 

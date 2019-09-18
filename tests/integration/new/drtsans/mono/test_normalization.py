@@ -4,6 +4,7 @@ import numpy as np
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.normalisation import time, monitor
 
+
 # sample data for integration tests
 x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
 I_sam = (x + 5 * y) * 10 + 100
@@ -21,7 +22,7 @@ def test_normalization_by_time(generic_workspace):
     I_samnorm = I_sam / t_sam
     # Calculate using API function
     ws_samnorm = time(ws)
-    # Check results from both caluclations  match
+    # Check results from both calculations  match
     assert np.allclose(ws_samnorm.extractY().ravel(), I_samnorm.ravel())
 
 

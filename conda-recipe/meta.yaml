@@ -1,9 +1,9 @@
 package:
   name: drtsans
-  version: "0.1.0"
+  version: "0.1"
 
 source:
-  git_rev: next
+  git_rev: v0.1
   git_url: git@code.ornl.gov:sns-hfir-scse/sans/sans-backend.git
 #  git_url: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend.git
 

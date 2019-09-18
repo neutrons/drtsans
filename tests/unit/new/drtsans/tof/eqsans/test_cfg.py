@@ -35,10 +35,10 @@ def test_mask_mixin():
     c = cfg.CfgItemRectangularMask(data=['1, 0; 2, 255', '1 250 1 255'])
     dets = c.detectors
     assert len(dets) == 2 * 256
-    assert dets[-1] == 3 * 256 - 1
+    assert dets[-1] == 5 * 256 - 1  # x=1 corresponds to tube_index=4, thus five detectors.
     assert c.value == dets
     c = cfg.CfgItemEllipticalMask(data=['1, 250, 1, 255'])
-    assert c.detectors == [506, 507, 508, 509, 510, 511]
+    assert c.detectors == [1274, 1275, 1276, 1277, 1278, 1279]
     assert c.value == c.detectors
 
 

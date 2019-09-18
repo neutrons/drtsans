@@ -7,7 +7,7 @@ from copy import deepcopy
 from itertools import product as iproduct
 import numpy as np
 from contextlib import contextmanager
-
+from drtsans.tof.eqsans.geometry import detector_id
 
 __all__ = ['load_config', ]
 
@@ -128,8 +128,7 @@ class ItemMaskMixin(object):
     @property
     def detectors(self):
         r"""List of masked detector ID's, sorted by increasing ID"""
-        pixels_per_tube = 256
-        return sorted([p[0] * pixels_per_tube + p[1] for p in self.pixels])
+        return sorted(detector_id(self.pixels))
 
 
 class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):

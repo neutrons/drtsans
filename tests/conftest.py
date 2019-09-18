@@ -386,7 +386,7 @@ def generic_IDF(request):
 
     # check that nothing is crazy
     assert (params['Nx'] > 1 and params['Nx'] < 300)
-    assert (params['Ny'] > 1 and params['Ny'] < 300)
+    assert (params['Ny'] >= 1 and params['Ny'] < 300)
     assert params['dx'] > 0.
     assert params['dy'] > 0.
     assert params['zcenter'] >= 0.

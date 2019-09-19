@@ -6,7 +6,7 @@ stages:
   - flake8
   - dockerbuild
   - test
-  - script-host
+  - web-host
   - analysis-update
 
 flake8-feature:
@@ -89,6 +89,30 @@ docker-no-update-test:
     - sudo chown -R gitlab-runner .
   tags:
     - scse-sans-demo
+
+docs-next:
+  stage: test
+  dependencies:
+    - dockerbuild
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx --build-dir ./"
+    - popd
+  after_script:
+    - cp -r /tmp/sans-backend/docs .
+  tags:
+    - scse-mantid-builder
+  only:
+    - build_docs
+  artifacts:
+    paths:
+      -  docs
 
 code-unit-test-feature:
   stage: test
@@ -212,7 +236,7 @@ code-integration-test-next:
     - next
 
 script-host:
-  stage: script-host
+  stage: web-host
   dependencies:
     - dockerbuild
   before_script:
@@ -230,6 +254,28 @@ script-host:
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-demo
+
+docs-next-host:
+  stage: web-host
+  dependencies:
+    - docs-next
+  before_script:
+    - sudo yum install -y httpd
+    - sudo rm -f /etc/httpd/conf.d/welcome.conf
+    - sudo systemctl restart httpd
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+  script:
+    - sudo mkdir -p /var/www/html/
+    - sudo ls -la /var/www/html/
+    - sudo cp -rf docs/* /var/www/html/
+    - sudo chmod -R 755 /var/www/html/
+    - curl http://localhost/index.html
+    - sudo chown -R gitlab-runner .
+  tags:
+    - docs
+  only:
+    - build_docs
 
 analysis-update:
   stage: analysis-update

@@ -1,6 +1,5 @@
 from drtsans import solid_angle_correction
 from drtsans.mono.normalisation import (time, monitor)
-from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
 
 # Functions exposed to the general user (public) API
 __all__ = ['apply_solid_angle_correction', 'normalize']

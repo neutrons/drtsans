@@ -2,7 +2,7 @@ import pytest
 from pytest import approx
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (load_events, transform_to_wavelength,
-                                  normalise_by_time, normalise_by_monitor)
+                                normalise_by_time, normalise_by_monitor)
 import numpy as np
 
 
@@ -38,7 +38,7 @@ def test_normalization_by_time(generic_workspace):
     assert np.allclose(ws_samnorm.extractY().ravel(), I_samnorm.ravel())
 
 
-z = (x*0 + y*0 + 1)  # constant image
+z = (x * 0 + y * 0 + 1)  # constant image
 z_sam = []
 for i in range(10):
     z_sam.append(z)
@@ -55,7 +55,7 @@ def test_normalization_by_monitor_spectrum(generic_workspace):
     phi_ws = ws.clone()
     SampleLogs(ws).insert('is_frame_skipping', False)
     fm = [5, 5, 4, 4, 3, 3, 3, 3, 2, 2]  # flux to monitor ratio
-    phi = [20, 40, 30, 25, 20, 10, 5,  5,  5,  5]  # monitor spectrum
+    phi = [20, 40, 30, 25, 20, 10, 5, 5, 5, 5]  # monitor spectrum
     I_sam = []
     for i in range(10):
         I_sam.append(z)  #
@@ -65,6 +65,7 @@ def test_normalization_by_monitor_spectrum(generic_workspace):
         I_samnorm.append(I_sam[i] / fm[i] / phi[i])
 
     out = normalise_by_monitor(ws, fm_ws, phi_ws)
+    assert out  # FIXME
 
 
 if __name__ == '__main__':

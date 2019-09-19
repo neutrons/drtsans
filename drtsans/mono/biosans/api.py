@@ -1,6 +1,7 @@
 from drtsans.mono.normalisation import (time, monitor)
+
 # Functions exposed to the general user (public) API
-__all__ = ['apply_solid_angle_correction', 'normalize']
+__all__ = ['normalize']
 
 
 def normalize(ws, normalization_type):

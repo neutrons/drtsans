@@ -122,7 +122,7 @@ docs-next:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "python /opt/sans-backend/setup.py build_sphinx --build-dir ./"
+    - docker run -v /SNS:/SNS -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "python /opt/sans-backend/setup.py build_sphinx --build-dir ./"
     - popd
   after_script:
     - cp -r /tmp/sans-backend/docs .

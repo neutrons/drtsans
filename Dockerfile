@@ -13,4 +13,3 @@ ENV PYTHONPATH $PYTHONPATH:/opt/conda/lib/python3.6/site-packages:/opt/conda/env
 ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/opt/conda/lib/mantid/plugins/
 
 RUN conda install --yes --file /opt/sans-backend/requirements.txt
-RUN conda install --yes --file /opt/sans-backend/requirements_dev.txt

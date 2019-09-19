@@ -289,7 +289,7 @@ docs-next-host:
   script:
     - sudo mkdir -p /var/www/html/
     - sudo ls -la /var/www/html/
-    - sudo cp -f docs/* /var/www/html/
+    - sudo cp -rf docs/* /var/www/html/
     - sudo chmod -R 755 /var/www/html/
     - curl http://localhost/index.html
     - sudo chown -R gitlab-runner .

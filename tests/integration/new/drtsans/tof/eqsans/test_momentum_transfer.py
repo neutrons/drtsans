@@ -9,6 +9,12 @@ from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalis
                                 transform_to_wavelength)
 
 
+# This integration test is to verify the workflow to calculate Q and dQ
+# q_resolution_per_pixel() is tested in test_resolution
+# DEV - Wenduo Zhou <petersonpf@ornl.gov>
+# SME - William Heller <hellerwt@ornl.gov>
+
+
 def test_momentum_transfer_serial(reference_dir):
 
     ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),

@@ -86,7 +86,8 @@ def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y
     # Qy resolution
     sigma_x = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2 / wavelength/L2)**2
     resolution_x = ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 * R2**2/4 + x3**2 / 12)
-    # print('X: factor = {}, resolution = {}'.format(sigma_x, resolution_x))
+
+    print('X: factor1 = {}, resolution = {}'.format(sigma_x, resolution_x))
     sigma_x = sigma_x * resolution_x
     sigma_x = sigma_x + Qx**2/6*r
     sigma_x = np.sqrt(sigma_x)
@@ -94,6 +95,7 @@ def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y
     # Qy resolution
     sigma_y = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2/wavelength/L2)**2
     resolution_y = ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 * R2**2/4 + y3**2/12 + 2*B**2*wavelength**4 * r/3)
+    print('Y gravity part = {}'.format(2*B**2*wavelength**4 * r/3))
     sigma_y = sigma_y * resolution_y + Qy**2/6*r
     sigma_y = np.sqrt(sigma_y)
     # print('sigma_x = {:.2e}; sigma_y = {:.2e}; sigma = {:.2e}'.format(
@@ -126,8 +128,10 @@ def test_sigma_neutron():
 
     dqx2, dqy2 = sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3)
 
-    assert dqx == pytest.approx(dqx2, 1.E-10)
-    assert dqy == pytest.approx(dqy2, 1.E-10)
+    assert dqx == pytest.approx(dqx2, 1.E-12)
+    assert dqy == pytest.approx(dqy2, 1.E-12)
+
+    # assert 'Helping EQSANS Test' == 'Pass'
 
     return
 

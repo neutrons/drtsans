@@ -4,7 +4,7 @@ from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
 from drtsans import geometry as sans_geometry
 from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
 from drtsans.momentum_transfer import calculate_momentum_transfer, MomentumTransferResolutionParameters
-from drtsans.momentum_transfer import _G_MN2_OVER_H2 as b_factor
+from drtsans.momentum_transfer import G_MN2_OVER_H2
 
 
 def calculate_q_dq(ws, pixel_sizes=None):
@@ -286,9 +286,18 @@ def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, two_th
 
     # factor 1 with ....
     factor1 = (2.*np.pi*np.cos(theta)*(np.cos(two_theta)**2)/(wave_length*l2))**2
+    print('[EQ Res] Factor1 = {}'.format(factor1))
+    print('[EQ Res] Resolution X = {}'.format(apertures_const + const_x))
+    # FIXME - Good so far
 
     # gravity part of Y ....
-    gravity_y = (2./3.) * (b_factor * wave_length * delta_wave_length)**2
+    b_factor = 0.5 * G_MN2_OVER_H2 * (l1 + l2) * l2
+    gravity_y = 2./3. * (b_factor * wave_length * delta_wave_length * 1.E-20)**2  # convert to meter
+
+    print('[EQ Res] B = {}'.format(b_factor))
+    print('[EQ Res] Resolution Y (gravity) = {}'.format(gravity_y))
+
+    # FIXME - Good so far
 
     # wave length resolution/uncertainties
     wl_part = (delta_wave_length/wave_length)**2

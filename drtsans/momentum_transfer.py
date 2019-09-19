@@ -10,7 +10,7 @@ import collections
 # h = 6.626e-34    # m^2 kg s^-1
 # m_n = 1.675e-27  # kg
 # g = 9.8          # m s^-2
-_G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  # FIXME - Affect HFIR test * 0.5
+G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  # Unit as m, s, Kg
 
 """ Named tuple for momentum transfer and Q resolution
 """
@@ -49,7 +49,7 @@ class MomentumTransferResolutionParameters(object):
         out = 'L1 = {} (m)\nSample-Detector-Center-Distance (L2)= {} (m)\n' \
               ''.format(self.l1, self._sample_det_center_dist)
         out += 'Source aperture radius (R1) = {} (m)\n'.format(self._source_aperture)
-        out += 'Sample aperture radius (R2) = {} (m)\n'.format(self._sample_det_center_dist)
+        out += 'Sample aperture radius (R2) = {} (m)\n'.format(self._sample_aperture)
         out += 'Pixel size = {}, {} (m, m)'.format(self._pixel_size_x, self._pixel_size_y)
 
         return out
@@ -215,7 +215,7 @@ def dq2_gravity(L1, L2, wl, dwl, theta):
     ------
     float
     """
-    B = _G_MN2_OVER_H2 * L2 * (L1 + L2)
+    B = G_MN2_OVER_H2 * L2 * (L1 + L2)
     dq2 = 2. * np.square(B * wl * dwl) / 3.
     dq2 *= np.square(2.0 * np.pi * np.cos(theta)
                      * np.square(np.cos(2.0 * theta)) / wl / L2)

@@ -2,10 +2,9 @@ import os
 
 import numpy as np
 
-import mantid
+# import mantid
 from mantid import mtd
-from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
-                              MaskAngle, Rebin)
+from mantid.simpleapi import AddSampleLog, ConfigService, MaskAngle, Rebin  # ExtractSpectra
 from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, prepare_data,
                                 transform_to_wavelength)
 from drtsans.tof.eqsans.iq import (cal_iq, iq_annular, iq_wedge, iqxqy,
@@ -80,7 +79,7 @@ def skip_test_momentum_transfer_serial(reference_dir):
                Params="{:.2f},{:.2f},{:.2f}".format(rebin_start, rebin_step,
                                                     rebin_end))
 
-    bins = np.arange(rebin_start, rebin_end, rebin_step)
+    # bins = np.arange(rebin_start, rebin_end, rebin_step)
 
     # TODO - The following test shall be removed with new API
     # mt_sum = sfer()

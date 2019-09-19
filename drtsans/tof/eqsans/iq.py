@@ -1,6 +1,6 @@
 import numpy as np
 
-from mantid.simpleapi import (ExtractSpectra, Rebin, DeleteWorkspace)
+from mantid.simpleapi import Rebin  # (ExtractSpectra, Rebin, DeleteWorkspace)
 from mantid.kernel import logger
 from drtsans.samplelogs import SampleLogs
 
@@ -98,6 +98,8 @@ def prepare_momentum_transfer(input_workspace,
         "wavelength_binning must be a list of 1 or 3 elements"
     # TODO - check input workspace unit
 
+    assert suffix
+
     # Add sample logs if required...
     # William: beamslit4 may not be correct. user specified sample-aperture-diameter shall override it in resolution
     #          calculation
@@ -150,11 +152,12 @@ def prepare_momentum_transfer(input_workspace,
         ws_rebin = Rebin(InputWorkspace=input_workspace,
                          OutputWorkspace="ws_rebin",
                          Params=wavelength_rebinning)
+        assert ws_rebin is not None
 
-        if len(frames) > 1:
-            this_prefix = prefix + "_frame{}".format(index+1)
-        else:
-            this_prefix = prefix
+        # if len(frames) > 1:
+        #     this_prefix = prefix + "_frame{}".format(index+1)
+        # else:
+        #     this_prefix = prefix
 
         # FIXME - The following will be reviewed
         # # Initialize a MomentumTransfer object
@@ -293,9 +296,7 @@ def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
     ~mantid.api.MatrixWorkspace
         For visualization only.
     """
-
     ws = None
-    
     # TODO - The following method will be reviewed
 
     # mt = MomentumTransfer(

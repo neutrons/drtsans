@@ -23,6 +23,7 @@ class SampleLogs(object):
     def __getitem__(self, item):
         if item in self._run.keys():
             return self._run[item]
+        raise KeyError('"{}" not found in sample logs'.format(item))
 
     def __getattr__(self, item):
         _run = self.__dict__['_run']
@@ -31,6 +32,8 @@ class SampleLogs(object):
         except AttributeError:
             if item in _run.keys():
                 return _run.getProperty(item)
+            else:
+                raise AttributeError('"{}" not found in sample logs'.format(item))
 
     def insert(self, name, value, unit=None):
         r"""

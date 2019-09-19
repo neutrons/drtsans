@@ -124,6 +124,8 @@ docs-next:
     - docker pull $CONTAINER_URL
     - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "python /opt/sans-backend/setup.py build_sphinx --build-dir ./"
     - popd
+  after_script:
+    - cp -r /tmp/sans-backend/docs .
   tags:
     - scse-mantid-builder
   only:

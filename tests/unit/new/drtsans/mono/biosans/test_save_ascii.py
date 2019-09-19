@@ -19,6 +19,7 @@ def test_save_ascii(biosans_sensitivity_dataset):
 
     ws = LoadHFIRSANS(Filename=biosans_sensitivity_dataset['flood'],
                       OutputWorkspace=unique_workspace_name())
+    assert ws is not None
 
     # TODO - will review and rewrite with I(Q) binning rewrite
 

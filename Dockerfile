@@ -12,4 +12,4 @@ COPY .gitattributes MANIFEST.in pytest.ini setup.cfg setup.py test_job.sh versio
 ENV PYTHONPATH $PYTHONPATH:/opt/conda/lib/python3.6/site-packages:/opt/conda/envs/mantid/bin/:/opt/conda/bin:/opt/sans-backend
 ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/opt/conda/lib/mantid/plugins/
 
-RUN conda install --yes --file /opt/sans-backend/requirements.txt
+RUN bash /opt/scripts/conda-setup.sh

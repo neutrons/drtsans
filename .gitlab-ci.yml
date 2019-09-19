@@ -90,27 +90,6 @@ docker-no-update-test:
   tags:
     - scse-sans-demo
 
-docs-feature:
-  stage: test
-  allow_failure: true
-  dependencies:
-    - dockerbuild
-  script:
-    - sudo rm -rf /tmp/sans-backend || true
-    - sudo mkdir -p /tmp/sans-backend
-    - sudo cp -r . /tmp/sans-backend
-    - sudo chmod 777 /tmp/sans-backend
-    - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "python /opt/sans-backend/setup.py build_sphinx --build-dir ./"
-    - popd
-  tags:
-    - scse-mantid-builder
-  except:
-    - next
-    - master
-
 docs-next:
   stage: test
   dependencies:

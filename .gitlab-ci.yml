@@ -294,7 +294,7 @@ docs-next-host:
     - curl http://localhost/index.html
     - sudo chown -R gitlab-runner .
   tags:
-    - docs-drt-sans
+    - docs
   only:
     - build_docs
 

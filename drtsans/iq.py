@@ -1,17 +1,16 @@
-from ast import literal_eval
 from string import Template
 
 import numpy as np
 from scipy import stats
 
 import mantid
-from mantid.kernel import logger
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
 from mantid.api import AnalysisDataService
 from drtsans.momentum_transfer_factory import calculate_q_dq
-
 from drtsans.detector import Component
 
+# from mantid.kernel import logger
+# from ast import literal_eval
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -178,7 +177,7 @@ def export_i_q_to_table(i_of_q, table_ws_name, DETECTOR_DIMENSIONS_TEMPLATE):
     -------
 
     """
-    def _create_table_ws(table_ws_name):
+    def _create_table_ws(table_ws_name, detector_dim):
         """
         Create a Mantid TableWorkspace containing raw Qx, Qy, dQx, dQy, I(Q) and Sigma(Q)
         Parameters
@@ -194,7 +193,7 @@ def export_i_q_to_table(i_of_q, table_ws_name, DETECTOR_DIMENSIONS_TEMPLATE):
             TableWorkspace containing Qx, Qy, dQx, dQy, I and sigma(I)s
         """
         # Create empty table
-        table_iq = CreateEmptyTableWorkspace(OutputWorkspace=prefix + suffix)
+        table_iq = CreateEmptyTableWorkspace(OutputWorkspace=table_ws_name)
         # Add columns for Q (2D)
         table_iq.addColumn(type="float", name="Qx")
         table_iq.addColumn(type="float", name="Qy")
@@ -225,8 +224,8 @@ def export_i_q_to_table(i_of_q, table_ws_name, DETECTOR_DIMENSIONS_TEMPLATE):
     # Add comment
     template = Template(DETECTOR_DIMENSIONS_TEMPLATE)
     table_iq.setComment(
-            template.substitute(dim_x=self.detector_dims[0],
-                                dim_y=self.detector_dims[1]))
+            template.substitute(dim_x=detector_dims[0],
+                                dim_y=detector_dims[1]))
 
     return table_iq
     # data = input_workspace.toDict()
@@ -379,7 +378,6 @@ class IofQCalculator(object):
         # TODO - confirm component.dim_x and component.dim_y is the Qx, Qy binning range
         if bins is None:
             bins = self._detector_dims
-
 
         # TODO - Need to verify the Nan (masked) I(Q) can do its job
         # Number of bins in Qx Qy is the number of pixels in X and Y

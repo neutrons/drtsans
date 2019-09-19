@@ -48,4 +48,3 @@ def calculate_q_dq(ws, pixel_sizes=None, instrument_type=None):
 
     return q_list
 
-

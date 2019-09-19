@@ -156,36 +156,37 @@ def prepare_momentum_transfer(input_workspace,
         else:
             this_prefix = prefix
 
-        # Initialize a MomentumTransfer object
-        mt_sum = MomentumTransfer(out_ws_prefix=this_prefix)
+        # FIXME - The following will be reviewed
+        # # Initialize a MomentumTransfer object
+        # mt_sum = MomentumTransfer(out_ws_prefix=this_prefix)
 
-        # Calculate momentum transfer and set up the I(Q)-TableWorkspace
-        bins = ws_rebin.readX(0)
-        for bin_index in range(len(bins)-1):
-            # Calculate Q for a single bin of wave length
-            ws_extracted = ExtractSpectra(InputWorkspace=ws_rebin,
-                                          XMin=bins[bin_index],
-                                          XMax=bins[bin_index+1])
+        # # Calculate momentum transfer and set up the I(Q)-TableWorkspace
+        # bins = ws_rebin.readX(0)
+        # for bin_index in range(len(bins)-1):
+        #     # Calculate Q for a single bin of wave length
+        #     ws_extracted = ExtractSpectra(InputWorkspace=ws_rebin,
+        #                                   XMin=bins[bin_index],
+        #                                   XMax=bins[bin_index+1])
 
-            # TODO FIXME #214: The commented codes seem going nowhere
-            # wavelength_mean = (bins[bin_index] + bins[bin_index+1]) / 2.0
-            # runObj = ws_extracted.mutableRun()
-            # runObj.addProperty('wavelength', float(wavelength_mean),
-            #                    'Angstrom', True)
-            # runObj.addProperty('wavelength-spread', 0.2, 'Angstrom', True)
+        #     # TODO FIXME #214: The commented codes seem going nowhere
+        #     # wavelength_mean = (bins[bin_index] + bins[bin_index+1]) / 2.0
+        #     # runObj = ws_extracted.mutableRun()
+        #     # runObj.addProperty('wavelength', float(wavelength_mean),
+        #     #                    'Angstrom', True)
+        #     # runObj.addProperty('wavelength-spread', 0.2, 'Angstrom', True)
 
-            # core calculation:
-            mt_extracted = MomentumTransfer(ws_extracted)
-            # Append to final Momentum
-            mt_sum += mt_extracted
-        # END-FOR
+        #     # core calculation:
+        #     mt_extracted = MomentumTransfer(ws_extracted)
+        #     # Append to final Momentum
+        #     mt_sum += mt_extracted
+        # # END-FOR
 
-        # Create Q2D table workspace and add to return TableWorkspace list
-        result_wss.append(mt_sum.q2d(suffix=suffix))
+        # # Create Q2D table workspace and add to return TableWorkspace list
+        # result_wss.append(mt_sum.q2d(suffix=suffix))
 
-        # Clean
-        DeleteWorkspace(ws_rebin)
-        DeleteWorkspace(ws_extracted)
+        # # Clean
+        # DeleteWorkspace(ws_rebin)
+        # DeleteWorkspace(ws_extracted)
     # END-FOR (frame)
 
     return result_wss
@@ -216,16 +217,17 @@ def cal_iq(input_table_workspace, bins=100, log_binning=False, suffix="_iq"):
     ~mantid.api.MatrixWorkspace
         Only a WS with a single spectra
     """
+    ws = None
+    # TODO - The following algorithm will be reviewed
+    # mt = MomentumTransfer(
+    #     input_table_workspace,
+    #     out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
-    mt = MomentumTransfer(
-        input_table_workspace,
-        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
+    # if log_binning and isinstance(bins, int):
+    #     q = np.sqrt(np.square(mt.qx) + np.square(mt.qy))
+    #     bins = np.logspace(np.log10(np.min(q)), np.log10(np.max(q)), num=bins)
 
-    if log_binning and isinstance(bins, int):
-        q = np.sqrt(np.square(mt.qx) + np.square(mt.qy))
-        bins = np.logspace(np.log10(np.min(q)), np.log10(np.max(q)), num=bins)
-
-    _, ws = mt.bin_into_q1d(bins=bins, suffix=suffix)
+    # _, ws = mt.bin_into_q1d(bins=bins, suffix=suffix)
     return ws
 
 
@@ -292,32 +294,36 @@ def iqxqy(input_table_workspace, bins=100, log_binning=False, suffix='_iqxqy'):
         For visualization only.
     """
 
-    mt = MomentumTransfer(
-        input_table_workspace,
-        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
+    ws = None
+    
+    # TODO - The following method will be reviewed
 
-    if log_binning:
-        # number of bins
-        num_x = None
-        num_y = None
-        if isinstance(bins, int):
-            num_x = bins
-            num_y = bins
-        elif isinstance(bins, list) and len(bins) == 2:
-            num_x = bins[0]
-            num_y = bins[1]
-        else:
-            logger.error("Please use bins as an int or a list with two "
-                         "arguments. E.g.: bins=100 or bins=[120, 80]")
-            return
+    # mt = MomentumTransfer(
+    #     input_table_workspace,
+    #     out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
-        if num_x is not None and num_y is not None:
-            # first let's find where the negatives start and end
-            bins_qx = _linear_log_array(sorted(mt.qx), num_x)
-            bins_qy = _linear_log_array(sorted(mt.qy), num_y)
-            bins = [bins_qx, bins_qy]
+    # if log_binning:
+    #     # number of bins
+    #     num_x = None
+    #     num_y = None
+    #     if isinstance(bins, int):
+    #         num_x = bins
+    #         num_y = bins
+    #     elif isinstance(bins, list) and len(bins) == 2:
+    #         num_x = bins[0]
+    #         num_y = bins[1]
+    #     else:
+    #         logger.error("Please use bins as an int or a list with two "
+    #                      "arguments. E.g.: bins=100 or bins=[120, 80]")
+    #         return
 
-    _, ws = mt.bin_into_q2d(bins=bins, suffix=suffix)
+    #     if num_x is not None and num_y is not None:
+    #         # first let's find where the negatives start and end
+    #         bins_qx = _linear_log_array(sorted(mt.qx), num_x)
+    #         bins_qy = _linear_log_array(sorted(mt.qy), num_y)
+    #         bins = [bins_qx, bins_qy]
+
+    # _, ws = mt.bin_into_q2d(bins=bins, suffix=suffix)
 
     return ws
 
@@ -379,14 +385,15 @@ def iq_wedge(input_table_workspace,  phi_0=0,
         Workspace2D with one spectrum: I(q)
 
     """
+    ws = None
+    # TODO - To be reivewed ASAP
+    # mt = MomentumTransfer(
+    #     input_table_workspace,
+    #     out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
-    mt = MomentumTransfer(
-        input_table_workspace,
-        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
-
-    _, ws = mt.bin_wedge_into_q1d(phi_0=phi_0, phi_aperture=phi_aperture,
-                                  bins=bins, statistic=statistic,
-                                  suffix=suffix)
+    # _, ws = mt.bin_wedge_into_q1d(phi_0=phi_0, phi_aperture=phi_aperture,
+    #                               bins=bins, statistic=statistic,
+    #                               suffix=suffix)
     return ws
 
 
@@ -447,11 +454,12 @@ def iq_annular(input_table_workspace, q_min=0.001, q_max=0.4,
         Workspace2D with one spectrum: I(q)
 
     """
+    ws = None
+    # TODO - To be reivewed ASAP
+    # mt = MomentumTransfer(
+    #     input_table_workspace,
+    #     out_ws_prefix=input_table_workspace.name().rstrip('_table'))
 
-    mt = MomentumTransfer(
-        input_table_workspace,
-        out_ws_prefix=input_table_workspace.name().rstrip('_table'))
-
-    _, ws = mt.bin_annular_into_q1d(q_min=q_min, q_max=q_max, bins=bins,
-                                    statistic=statistic, suffix=suffix)
+    # _, ws = mt.bin_annular_into_q1d(q_min=q_min, q_max=q_max, bins=bins,
+    #                                 statistic=statistic, suffix=suffix)
     return ws

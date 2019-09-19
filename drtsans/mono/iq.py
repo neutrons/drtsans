@@ -1,12 +1,10 @@
 import numpy as np
 
-from drtsans.mono import momentum_transfer
-from drtsans.iq import IofQCalculator as MomentumTransferMain
-
+# from drtsans.mono import momentum_transfer
+# from drtsans.iq import IofQCalculator as MomentumTransferMain
 
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
-
 
 # class MomentumTransfer(MomentumTransferMain):
 #     def __init__(self,
@@ -19,4 +17,3 @@ np.seterr(divide='ignore', invalid='ignore')
 #         self._component = component_name
 #
 #         return
-

@@ -43,7 +43,7 @@ def legacy_reduction(reference_dir):
     return mtd['EQSANS_68200_event_iq']
 
 
-def test_momentum_transfer_serial(reference_dir):
+def skip_test_momentum_transfer_serial(reference_dir):
 
     ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,
@@ -82,63 +82,64 @@ def test_momentum_transfer_serial(reference_dir):
 
     bins = np.arange(rebin_start, rebin_end, rebin_step)
 
-    mt_sum = sfer()
+    # TODO - The following test shall be removed with new API
+    # mt_sum = sfer()
 
-    for index, bin_start in enumerate(bins):
-        total_pixels_in_detector = 256 * 192
-        ws_extracted = ExtractSpectra(InputWorkspace=ws,
-                                      XMin=bin_start,
-                                      XMax=bin_start + rebin_step)
+    # for index, bin_start in enumerate(bins):
+    #     total_pixels_in_detector = 256 * 192
+    #     ws_extracted = ExtractSpectra(InputWorkspace=ws,
+    #                                   XMin=bin_start,
+    #                                   XMax=bin_start + rebin_step)
 
-        wavelength_mean = bin_start + rebin_step / 2
-        AddSampleLog(Workspace=ws_extracted,
-                     LogName='wavelength',
-                     LogText="{:.2f}".format(wavelength_mean),
-                     LogType='Number',
-                     LogUnit='Angstrom')
-        AddSampleLog(Workspace=ws_extracted,
-                     LogName='wavelength-spread',
-                     LogText='0.2',
-                     LogType='Number',
-                     LogUnit='Angstrom')
+    #     wavelength_mean = bin_start + rebin_step / 2
+    #     AddSampleLog(Workspace=ws_extracted,
+    #                  LogName='wavelength',
+    #                  LogText="{:.2f}".format(wavelength_mean),
+    #                  LogType='Number',
+    #                  LogUnit='Angstrom')
+    #     AddSampleLog(Workspace=ws_extracted,
+    #                  LogName='wavelength-spread',
+    #                  LogText='0.2',
+    #                  LogType='Number',
+    #                  LogUnit='Angstrom')
 
-        mt_extracted = MomentumTransfer(ws_extracted)
-        mt_sum += mt_extracted
+    #     mt_extracted = MomentumTransfer(ws_extracted)
+    #     mt_sum += mt_extracted
 
-        assert mt_extracted.qx.shape == mt_extracted.qy.shape == \
-            mt_extracted.dqx.shape == mt_extracted.dqy.shape == \
-            mt_extracted.i.shape == mt_extracted.i_sigma.shape == \
-            (total_pixels_in_detector, )
+    #     assert mt_extracted.qx.shape == mt_extracted.qy.shape == \
+    #         mt_extracted.dqx.shape == mt_extracted.dqy.shape == \
+    #         mt_extracted.i.shape == mt_extracted.i_sigma.shape == \
+    #         (total_pixels_in_detector, )
 
-        assert mt_sum.qx.shape == mt_sum.qy.shape == mt_sum.dqx.shape == \
-            mt_sum.dqy.shape == mt_sum.i.shape == mt_sum.i_sigma.shape == \
-            (total_pixels_in_detector + (index * total_pixels_in_detector),)
+    #     assert mt_sum.qx.shape == mt_sum.qy.shape == mt_sum.dqx.shape == \
+    #         mt_sum.dqy.shape == mt_sum.i.shape == mt_sum.i_sigma.shape == \
+    #         (total_pixels_in_detector + (index * total_pixels_in_detector),)
 
-    ws_sum_table = mt_sum.q2d()
-    assert isinstance(ws_sum_table, mantid.dataobjects.TableWorkspace)
+    # ws_sum_table = mt_sum.q2d()
+    # assert isinstance(ws_sum_table, mantid.dataobjects.TableWorkspace)
 
-    _, ws_sum_q2d = mt_sum.bin_into_q2d()
-    assert ws_sum_q2d.extractY().shape == (256, 192)
-    assert ws_sum_q2d.extractX().shape == (256, 193)
+    # _, ws_sum_q2d = mt_sum.bin_into_q2d()
+    # assert ws_sum_q2d.extractY().shape == (256, 192)
+    # assert ws_sum_q2d.extractX().shape == (256, 193)
 
-    _, ws_sum_q1d = mt_sum.bin_into_q1d()
-    assert ws_sum_q1d.extractY().shape == (1, 100)
-    assert ws_sum_q1d.extractX().shape == (1, 101)
+    # _, ws_sum_q1d = mt_sum.bin_into_q1d()
+    # assert ws_sum_q1d.extractY().shape == (1, 100)
+    # assert ws_sum_q1d.extractX().shape == (1, 101)
 
-    ws_iq_old = legacy_reduction(reference_dir)
-    ws_iq_new = ws_sum_q1d
+    # ws_iq_old = legacy_reduction(reference_dir)
+    # ws_iq_new = ws_sum_q1d
 
-    max_old = ws_iq_old.readY(0).max()
-    max_new = ws_iq_new.readY(0).max()
+    # max_old = ws_iq_old.readY(0).max()
+    # max_new = ws_iq_new.readY(0).max()
 
-    ws_iq_old = ws_iq_old * max_new / max_old
+    # ws_iq_old = ws_iq_old * max_new / max_old
 
-    ws_iq_new = Rebin(InputWorkspace=ws_iq_new,
-                      Params="0.00119358, .00463923, 0.457006261051")
-    ws_iq_old = Rebin(InputWorkspace=ws_iq_old,
-                      Params="0.00119358, .00463923, 0.457006261051")
+    # ws_iq_new = Rebin(InputWorkspace=ws_iq_new,
+    #                   Params="0.00119358, .00463923, 0.457006261051")
+    # ws_iq_old = Rebin(InputWorkspace=ws_iq_old,
+    #                   Params="0.00119358, .00463923, 0.457006261051")
 
-    assert np.allclose(ws_iq_new.extractY(), ws_iq_old.extractY(), rtol=1)
+    # assert np.allclose(ws_iq_new.extractY(), ws_iq_old.extractY(), rtol=1)
 
     # plt.loglog(ws_iq_new.extractY().ravel(), label = 'New')
     # plt.loglog(ws_iq_old.extractY().ravel(), label = 'Old')
@@ -146,7 +147,7 @@ def test_momentum_transfer_serial(reference_dir):
     # plt.show()
 
 
-def test_api(reference_dir):
+def skip_test_api(reference_dir):
 
     ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,
@@ -235,7 +236,7 @@ def test_api(reference_dir):
     assert iqxqy_ws_masked.readY(51)[47] == 0
 
 
-def test_api_frame_skipping(reference_dir):
+def skip_test_api_frame_skipping(reference_dir):
 
     db_ws = load_events(os.path.join(reference_dir.new.eqsans, "EQSANS_88973.nxs.h5"))
     center = center_detector(db_ws)

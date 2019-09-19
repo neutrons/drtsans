@@ -101,8 +101,7 @@ def q_resolution_per_pixel_to_mod(ws):
     ------
     numpy array of the same dimension as the data
     """
-    L1 = source_sample_distance(ws, unit='m',
-                                              log_key='source-sample-distance')
+    L1 = source_sample_distance(ws, unit='m', log_key='source-sample-distance')
     L2 = sans_geometry.sample_detector_distance(ws, unit='m')
     R1 = 0.5 * source_aperture_diameter(ws, unit='m')
     R2 = 0.5 * sample_aperture_diameter(ws, unit='m')
@@ -187,8 +186,7 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     :return: MomentumTransferResolutionParameters instance
     """
     # Retrieve L1 and L2 from instrument geometry
-    l1 = source_sample_distance(ws, unit='m',
-                                              search_logs=False)
+    l1 = source_sample_distance(ws, unit='m', search_logs=False)
     l2 = sans_geometry.sample_detector_distance(ws, unit='m',
                                                 search_logs=False)
     r1 = 0.5 * source_aperture_diameter(ws, unit='m')

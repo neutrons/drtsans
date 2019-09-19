@@ -4,7 +4,7 @@ import sys
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
-from ornl.sans.sns import eqsans  # noqa E402
+from drtsans.sns import eqsans  # noqa E402
 
 
 if __name__ == '__main__':

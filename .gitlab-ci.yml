@@ -7,6 +7,7 @@ stages:
   - dockerbuild
   - test
   - web-host
+  - analysis-update
 
 flake8-feature:
   stage: flake8
@@ -296,3 +297,19 @@ docs-next-host:
     - docs-drt-sans
   only:
     - build_docs
+
+analysis-update:
+  stage: analysis-update
+  before_script:
+    - sudo yum install -y nfs-utils
+    - sudo mkdir -p /SNS/software
+    - sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" 128.219.164.43:/volumes/datapool/sfw-rhel7-prod /SNS/software || true
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - ls /SNS/software/miniconda2
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
+  only:
+    - next

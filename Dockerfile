@@ -3,7 +3,7 @@ FROM code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly
 WORKDIR /tmp/input
 USER snsdata
 
-COPY ornl /opt/sans-backend/ornl
+COPY drtsans /opt/sans-backend/drtsans
 COPY tests /opt/sans-backend/tests
 COPY scripts /opt/sans-backend/scripts
 COPY docs /opt/sans-backend/docs

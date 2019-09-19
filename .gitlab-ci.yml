@@ -6,7 +6,7 @@ stages:
   - flake8
   - dockerbuild
   - test
-  - script-host
+  - web-host
 
 flake8-feature:
   stage: flake8
@@ -256,7 +256,7 @@ code-integration-test-next:
     - next
 
 script-host:
-  stage: script-host
+  stage: web-host
   dependencies:
     - dockerbuild
   before_script:
@@ -276,7 +276,7 @@ script-host:
     - scse-mantid-demo
 
 docs-next-host:
-  stage: docs-next-host
+  stage: web-host
   dependencies:
     - docs-next
   before_script:

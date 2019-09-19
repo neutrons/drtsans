@@ -8,7 +8,7 @@ from mantid.simpleapi import (AddSampleLog, ConfigService, ExtractSpectra,
                               MaskAngle, Rebin)
 from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, prepare_data,
                                 transform_to_wavelength)
-from drtsans.tof.eqsans.iq import (MomentumTransfer, cal_iq, iq_annular, iq_wedge, iqxqy,
+from drtsans.tof.eqsans.iq import (cal_iq, iq_annular, iq_wedge, iqxqy,
                                    prepare_momentum_transfer)
 
 
@@ -82,7 +82,7 @@ def test_momentum_transfer_serial(reference_dir):
 
     bins = np.arange(rebin_start, rebin_end, rebin_step)
 
-    mt_sum = MomentumTransfer()
+    mt_sum = sfer()
 
     for index, bin_start in enumerate(bins):
         total_pixels_in_detector = 256 * 192

@@ -6,6 +6,7 @@ import mantid
 from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
+from drtsans.momentum_transfer import calculate_momentum_transfer
 
 
 # @pytest.mark.skip(reason="It doesn't pass on the build servers. "
@@ -18,9 +19,7 @@ def skip_test_momentum_tranfer_serial(biosans_f):
         Filename=biosans_f['anisotropic'],
         OutputWorkspace="ws")
 
-
-
-    mt = MomentumTransfer(ws)
+    mt = calculate_momentum_transfer(ws)
     assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \
         mt.i.shape == mt.i_sigma.shape == (256*192, )
 
@@ -66,11 +65,11 @@ def bin_in_parallel(params):
         Mantid loses `ws.name()`. We passing a list of ws_name amd WSs.
     """
 
-    component_name, out_ws_prefix = params
+    # Temp disable: component_name, out_ws_prefix = params
     ws = mtd["ws_data_raw"]
-    mt = MomentumTransfer(ws,
-                          component_name=component_name,
-                          out_ws_prefix=out_ws_prefix)
+    mt = calculate_momentum_transfer(ws)
+    # component_name=component_name,
+    # out_ws_prefix=out_ws_prefix)
 
     table_iq = mt.q2d()
     ws_q2d_name, ws_q2d = mt.bin_into_q2d()

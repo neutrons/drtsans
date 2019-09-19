@@ -14,7 +14,7 @@ _G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  
 
 """ Named tuple for momentum transfer and Q resolution
 """
-Momentum_Transfer = collections.namedtuple('MomentumTransfer', 'q qx qy qz dqx dqy')
+MomentumTransfer = collections.namedtuple('MomentumTransfer', 'q qx qy qz dqx dqy')
 
 
 class MomentumTransferResolutionParameters(object):

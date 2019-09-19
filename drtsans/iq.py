@@ -1,15 +1,16 @@
-from ast import literal_eval
 from string import Template
 
 import numpy as np
 from scipy import stats
 
 import mantid
-from mantid.kernel import logger
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
+from mantid.api import AnalysisDataService
+from drtsans.momentum_transfer_factory import calculate_q_dq
 from drtsans.detector import Component
 
-
+# from mantid.kernel import logger
+# from ast import literal_eval
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -169,6 +170,81 @@ def bin_annular_into_q1d(wl_ws,
     return calculator.bin_annular_into_q1d(q_min, q_max, bins, statistic, suffix)
 
 
+def export_i_q_to_table(i_of_q, table_ws_name, detector_dims, DETECTOR_DIMENSIONS_TEMPLATE):
+    """
+    Export binned I(Q) to table (workspace)
+    Returns
+    -------
+
+    """
+    def _create_table_ws(table_ws_name, detector_dim):
+        """
+        Create a Mantid TableWorkspace containing raw Qx, Qy, dQx, dQy, I(Q) and Sigma(Q)
+        Parameters
+        ----------
+        prefix: String
+            prefix of the output TableWorkspace
+        suffix: String
+            suffix of the output TableWorkspace
+
+        Returns
+        -------
+        mantid.api.ITableWorkspace
+            TableWorkspace containing Qx, Qy, dQx, dQy, I and sigma(I)s
+        """
+        # Create empty table
+        table_iq = CreateEmptyTableWorkspace(OutputWorkspace=table_ws_name)
+        # Add columns for Q (2D)
+        table_iq.addColumn(type="float", name="Qx")
+        table_iq.addColumn(type="float", name="Qy")
+        table_iq.addColumn(type="float", name="dQx")
+        table_iq.addColumn(type="float", name="dQy")
+        table_iq.addColumn(type="float", name="I")
+        table_iq.addColumn(type="float", name="Sigma(I)")
+
+        return table_iq
+
+    # Create workspace
+    table_iq = _create_table_ws(table_ws_name)
+
+    # Add each (Qx, Qy, I(Qx, Qy)) to table workspace
+    for qx_i, qy_i, dqx_i, dqy_i, i_i, i_sigma_i in zip(i_of_q.qx.tolist(), i_of_q.qy.tolist(),
+                                                        i_of_q.dqx.tolist(), i_of_q.dqy.tolist(),
+                                                        i_of_q.i_q.tolist(), i_of_q.sigma_i_q.tolist()):
+        new_row = {'Qx': qx_i,
+                   'Qy': qy_i,
+                   'dQx': dqx_i,
+                   'dQy': dqy_i,
+                   "I": i_i,
+                   "Sigma(I)": i_sigma_i
+                   }
+        table_iq.addRow(new_row)
+    # END-FOR
+
+    # Add comment
+    template = Template(DETECTOR_DIMENSIONS_TEMPLATE)
+    table_iq.setComment(
+            template.substitute(dim_x=detector_dims[0],
+                                dim_y=detector_dims[1]))
+
+    return table_iq
+    # data = input_workspace.toDict()
+    # self.qx = np.array(data['Qx'])
+    # self.qy = np.array(data['Qy'])
+    # self.dqx = np.array(data['dQx'])
+    # self.dqy = np.array(data['dQy'])
+    # self.i = np.array(data["I"])
+    # self.i_sigma = np.array(data["Sigma(I)"])
+    #
+    # # Gets the detector dimensions: "detector_dimensions=($dim_x,$dim_y)"
+    # if self.DETECTOR_DIMENSIONS_TEMPLATE.split("=")[0] != \
+    #         input_workspace.getComment().split("=")[0]:
+    #     logger.error("Can not get the detector dimensions!")
+    # else:
+    #     self.detector_dims = literal_eval(
+    #         input_workspace.getComment().split("=")[1])
+
+
 class IofQCalculator(object):
     """
     Momentum Transfer class
@@ -186,106 +262,89 @@ class IofQCalculator(object):
     component = None
     detector_dims = None
 
-    def __init__(self, resolution, input_workspace=None,
-                 component_name="detector1", out_ws_prefix="ws"):
+    def __init__(self, input_workspace=None, component_name="detector1", out_ws_prefix="ws"):
+        """
 
-        self.resolution = resolution
-        self.prefix = out_ws_prefix
+        Parameters
+        ----------
+        input_workspace : String or mantid.dataobjects.Workspace2D
+            Name or reference of Workspace in unit of wave length
+        component_name
+        out_ws_prefix : String
+            Prefix for output workspace such as ....
+        """
+        # Set up class variable
+        # input wave length workspace
+        if not isinstance(input_workspace, mantid.api.MatrixWorkspace):
+            raise RuntimeError('Input workspace {} must be a MatrixWorkspace'.format(input_workspace))
+        self._wl_ws = AnalysisDataService.retrieve(str(input_workspace))
+        # output workspace's prefix
+        self._prefix = out_ws_prefix
 
-        if isinstance(input_workspace, mantid.dataobjects.TableWorkspace):
-            self._load_table_workspace(input_workspace)
+        # get detector dimension
+        component = Component(input_workspace, component_name)
+        self._detector_dims = component.dim_x, component.dim_y
 
-        elif isinstance(input_workspace, mantid.dataobjects.Workspace2D):
-            self.component = Component(input_workspace, component_name)
-            self.detector_dims = (self.component.dim_x, self.component.dim_y)
-            self._initialize_qs(input_workspace)
+        # Calculate q, qx, qy, dqx, dqy: N x M array where N is number of histograms in input workspace
+        # It is not necessary to consider monitor or masked detectors (pixels) for Q and dQ
+        self._q_dq = calculate_q_dq(input_workspace)
 
-    def _load_table_workspace(self, input_workspace):
-        data = input_workspace.toDict()
-        self.qx = np.array(data['Qx'])
-        self.qy = np.array(data['Qy'])
-        self.dqx = np.array(data['dQx'])
-        self.dqy = np.array(data['dQy'])
-        self.i = np.array(data["I"])
-        self.i_sigma = np.array(data["Sigma(I)"])
+        # Extract I(Q) from input workspace: N x M array
+        # such that self._i_q[n, m] corresponds to self._q_dq[n, m]
+        self._i_q = input_workspace.extractY().ravel()
+        self._i_q_sigma = input_workspace.extractE().ravel()
 
-        # Gets the detector dimensions: "detector_dimensions=($dim_x,$dim_y)"
-        if self.DETECTOR_DIMENSIONS_TEMPLATE.split("=")[0] != \
-                input_workspace.getComment().split("=")[0]:
-            logger.error("Can not get the detector dimensions!")
-        else:
-            self.detector_dims = literal_eval(
-                input_workspace.getComment().split("=")[1])
-
-    def _remove_monitors(self, data):
-        return data[self.component.first_index:self.component.first_index +
-                    self.component.dims]
-
-    def _mask_pixels(self, data, masked_pixels):
-        return np.ma.MaskedArray(data,
-                                 masked_pixels,
-                                 dtype=np.float,
-                                 fill_value=np.nan)
-
-    def _initialize_qs(self, input_workspace):
-
-        assert input_workspace.blocksize() == 1  # sanity check: only 1 bin
-
+        # Mask monitors and detectors pixels
         masked_pixels = self.component.masked_ws_indices()
+        monitor_pixels = self.component.monitor_indeces()
+        self._mask_pixels(masked_pixels, monitor_pixels)
+
+        return
 
         # 1D arrays
-        self.qx, self.qy, self.dqx, self.dqy = \
-            self.resolution.calculate_q_dq(input_workspace)
-        self.i = input_workspace.extractY().ravel()
-        self.i_sigma = input_workspace.extractE().ravel()
-        # Ravel just in case! For EQSANS for example is needed!
-        self.qx, self.qy, self.dqx, self.dqy = \
-            self.qx.ravel(), self.qy.ravel(), self.dqx.ravel(), \
-            self.dqy.ravel()
-        # Get rid of the monitors; from 49154 to 49152 spectra
-        self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
-            self._remove_monitors(d) for d in
-            [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
-        ]
+        # self.qx, self.qy, self.dqx, self.dqy = \
+        #     self.resolution.calculate_q_dq(input_workspace)
+        # # Ravel just in case! For EQSANS for example is needed!
+        # self.qx, self.qy, self.dqx, self.dqy = \
+        #     self.qx.ravel(), self.qy.ravel(), self.dqx.ravel(), \
+        #     self.dqy.ravel()
+        # # Get rid of the monitors; from 49154 to 49152 spectra
+        # self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
+        #     self._remove_monitors(d) for d in
+        #     [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
+        # ]
+        #
+        # # Create numpy mask arrays with the masked pixels
+        # self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
+        #     self._mask_pixels(d, masked_pixels) for d in
+        #     [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
+        # ]
 
-        # Create numpy mask arrays with the masked pixels
-        self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma = [
-            self._mask_pixels(d, masked_pixels) for d in
-            [self.qx, self.qy, self.dqx, self.dqy, self.i, self.i_sigma]
-        ]
+    def _mask_pixels(self, masked_pixels, monitor_pixels):
+        """
+        Mask pixels
+        Parameters
+        ----------
+        data
+        masked_pixels
 
-    def _create_table_ws(self, suffix):
-        table_iq = CreateEmptyTableWorkspace(OutputWorkspace=self.prefix +
-                                             suffix)
-        table_iq.addColumn(type="float", name="Qx")
-        table_iq.addColumn(type="float", name="Qy")
-        table_iq.addColumn(type="float", name="dQx")
-        table_iq.addColumn(type="float", name="dQy")
-        table_iq.addColumn(type="float", name="I")
-        table_iq.addColumn(type="float", name="Sigma(I)")
+        Returns
+        -------
 
-        for qx_i, qy_i, dqx_i, dqy_i, i_i, i_sigma_i in zip(
-                self.qx.tolist(), self.qy.tolist(), self.dqx.tolist(),
-                self.dqy.tolist(), self.i.tolist(), self.i_sigma.tolist()):
-            nextRow = {
-                'Qx': qx_i,
-                'Qy': qy_i,
-                'dQx': dqx_i,
-                'dQy': dqy_i,
-                "I": i_i,
-                "Sigma(I)": i_sigma_i,
-            }
-            table_iq.addRow(nextRow)
+        """
+        # Mask I(Q)
+        self._i_q = np.ma.MaskedArray(self._i_q,
+                                      masked_pixels,
+                                      dtype=np.float,
+                                      fill_value=np.nan)
 
-        template = Template(self.DETECTOR_DIMENSIONS_TEMPLATE)
-        table_iq.setComment(
-            template.substitute(dim_x=self.detector_dims[0],
-                                dim_y=self.detector_dims[1]))
+        # Mask sigma I(Q)
+        self._i_q_sigma = np.ma.MaskedArray(self._i_q_sigma,
+                                            masked_pixels,
+                                            dtype=np.float,
+                                            fill_value=np.nan)
 
-        return table_iq
-
-    def q2d(self, suffix="_iqxqy_table"):
-        return self._create_table_ws(suffix)
+        return
 
     def bin_into_q2d(self, bins=None, suffix="_iqxqy"):
         """Bin the data into Q 2D for visualization only!
@@ -312,19 +371,23 @@ class IofQCalculator(object):
         Returns
         -------
         string, Workspace2D
+            workspace name, workspace reference
 
         """
-
+        # Set up default bins:
+        # TODO - confirm component.dim_x and component.dim_y is the Qx, Qy binning range
         if bins is None:
-            bins = [self.component.dim_x, self.component.dim_y]
+            bins = self._detector_dims
 
+        # TODO - Need to verify the Nan (masked) I(Q) can do its job
         # Number of bins in Qx Qy is the number of pixels in X and Y
-        counts_qx_qy_weights, qx_bin_edges, qy_bin_edges = np.histogram2d(
-            self.qx, self.qy, bins=bins)
-        counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(
-            self.qx, self.qy, bins=bins, weights=self.i)
+        # Bin for number of pixels in each bin
+        counts_qx_qy_weights, qx_bin_edges, qy_bin_edges = np.histogram2d(self._q_dq.qx, self._q_dq.qy, bins=bins)
+        # Bin for I(Q)
+        counts_qx_qy, qx_bin_edges, qy_bin_edges = np.histogram2d(self.qx, self.qy, bins=bins, weights=self.i)
+        # Normalize
         counts_qx_qy /= counts_qx_qy_weights
-
+        # Convert from bin edgets to bin centers
         qy_bin_centers = (qy_bin_edges[1:] + qy_bin_edges[:-1]) / 2.0
 
         # When doing histogram2d the masks are gone
@@ -339,25 +402,47 @@ class IofQCalculator(object):
 
         return iqxqy_ws.name(), iqxqy_ws
 
+    # TODO - need to verify whether NaN can work for masked pixels
     @staticmethod
-    def _bin_into_q1d(q, dq, i, i_sigma, prefix, bins=100,
-                      statistic='mean', suffix="_iq"):
+    def _bin_intensity_into_q1d(q, dq, i, i_sigma, prefix, bins=100,
+                                statistic='mean', suffix="_iq"):
+        """
+        Bin I(Q) by scaler Q (1D) with given number of bins
+        Parameters
+        ----------
+        q
+        dq
+        i
+        i_sigma
+        prefix
+        bins
+        statistic
+        suffix
 
+        Returns
+        -------
+
+        """
+        # Bin I(Q)
         intensity_statistic, q_bin_edges, _ = stats.binned_statistic(
-            q, i, statistic=statistic, bins=bins)
+            q, i,
+            statistic=statistic, bins=bins)
 
+        # Bin Sigma(I)
         sigma_statistic, q_bin_edges, _ = stats.binned_statistic(
-            q,
-            i_sigma,
+            q, i_sigma,
             statistic=lambda array_1d: np.sqrt(np.sum(np.square(array_1d))
                                                ) / len(array_1d),
             bins=bins)
 
+        # Bin for weight (pixels in each bin)
         _, dq_bin_edges, _ = \
             stats.binned_statistic(dq, i, statistic=statistic, bins=bins)
 
+        # d(Q) for bin center
         dq_bin_centers = (dq_bin_edges[1:] + dq_bin_edges[:-1]) / 2.0
 
+        # Create MomentumTransfer Workspace2D
         iq = CreateWorkspace(
             DataX=np.array([q_bin_edges]),
             DataY=np.array([intensity_statistic]),
@@ -422,9 +507,9 @@ class IofQCalculator(object):
         q = np.sqrt(np.square(self.qx) + np.square(self.qy))
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
 
-        return IofQCalculator._bin_into_q1d(q, dq, self.i, self.i_sigma,
-                                            self.prefix, bins, statistic,
-                                            suffix)
+        return IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
+                                                      self.prefix, bins, statistic,
+                                                      suffix)
 
     def bin_wedge_into_q1d(self, phi_0=0, phi_aperture=30, bins=100,
                            statistic='mean', suffix="_wedge_iq"):
@@ -541,9 +626,9 @@ class IofQCalculator(object):
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
         dq = dq[condition]
 
-        return IofQCalculator._bin_into_q1d(q, dq, i, i_sigma,
-                                            self.prefix, bins,
-                                            statistic, suffix)
+        return IofQCalculator._bin_intensity_into_q1d(q, dq, i, i_sigma,
+                                                      self.prefix, bins,
+                                                      statistic, suffix)
 
     def bin_annular_into_q1d(self,
                              q_min=0.001,
@@ -615,6 +700,6 @@ class IofQCalculator(object):
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
         dq = dq[condition]
 
-        return IofQCalculator._bin_into_q1d(q, dq, i, i_sigma,
-                                            self.prefix, bins,
-                                            statistic, suffix)
+        return IofQCalculator._bin_intensity_into_q1d(q, dq, i, i_sigma,
+                                                      self.prefix, bins,
+                                                      statistic, suffix)

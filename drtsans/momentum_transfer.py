@@ -4,12 +4,17 @@ Resolution calculations common to all SANS
 import numpy as np
 from numpy import linalg
 from scipy import constants
+import collections
 
 # derived constant where:
 # h = 6.626e-34    # m^2 kg s^-1
 # m_n = 1.675e-27  # kg
 # g = 9.8          # m s^-2
 _G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  # FIXME - Affect HFIR test * 0.5
+
+""" Named tuple for momentum transfer and Q resolution
+"""
+MomentumTransfer = collections.namedtuple('MomentumTransfer', 'q qx qy qz dqx dqy')
 
 
 class MomentumTransferResolutionParameters(object):
@@ -97,16 +102,6 @@ class MomentumTransferResolutionParameters(object):
         :return: detector size along Y direction in meter
         """
         return self._pixel_size_y
-
-
-def calculate_q_dq(ws, pixel_sizes=None):
-    """
-    Calculate momentum transfer and momentum transfer resolution
-    :param ws:
-    :param pixel_sizes
-    :return: 2D arrays for Q, Qx, dQx, Qy, dQy
-    """
-    raise NotImplementedError('Method calculate_q_dq() in drtsans.momentum_transfer is "virtual"')
 
 
 def calculate_momentum_transfer(ws):

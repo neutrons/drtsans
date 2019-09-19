@@ -2,7 +2,7 @@ import numpy as np
 
 from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
 from drtsans import geometry as sans_geometry
-from drtsans.tof.eqsans import geometry as eqsans_geometry
+from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
 from drtsans.momentum_transfer import calculate_momentum_transfer, MomentumTransferResolutionParameters
 from drtsans.momentum_transfer import _G_MN2_OVER_H2 as b_factor
 
@@ -101,11 +101,10 @@ def q_resolution_per_pixel_to_mod(ws):
     ------
     numpy array of the same dimension as the data
     """
-    L1 = sans_geometry.source_sample_distance(ws, unit='m',
-                                              log_key='source-sample-distance')
+    L1 = source_sample_distance(ws, unit='m', log_key='source-sample-distance')
     L2 = sans_geometry.sample_detector_distance(ws, unit='m')
-    R1 = 0.5 * eqsans_geometry.source_aperture_diameter(ws, unit='m')
-    R2 = 0.5 * eqsans_geometry.sample_aperture_diameter(ws, unit='m')
+    R1 = 0.5 * source_aperture_diameter(ws, unit='m')
+    R2 = 0.5 * sample_aperture_diameter(ws, unit='m')
 
     wl_bounds = ws.extractX()
     wl = (wl_bounds[:, 1:] + wl_bounds[:, :-1]) / 2.0
@@ -187,12 +186,11 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     :return: MomentumTransferResolutionParameters instance
     """
     # Retrieve L1 and L2 from instrument geometry
-    l1 = sans_geometry.source_sample_distance(ws, unit='m',
-                                              search_logs=False)
+    l1 = source_sample_distance(ws, unit='m', search_logs=False)
     l2 = sans_geometry.sample_detector_distance(ws, unit='m',
                                                 search_logs=False)
-    r1 = 0.5 * eqsans_geometry.source_aperture_diameter(ws, unit='m')
-    r2 = 0.5 * eqsans_geometry.sample_aperture_diameter(ws, unit='m')
+    r1 = 0.5 * source_aperture_diameter(ws, unit='m')
+    r2 = 0.5 * sample_aperture_diameter(ws, unit='m')
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy

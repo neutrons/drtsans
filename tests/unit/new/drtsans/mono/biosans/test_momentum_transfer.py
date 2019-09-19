@@ -6,18 +6,19 @@ import mantid
 from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
-from drtsans.mono.iq import MomentumTransfer
 
 
 # @pytest.mark.skip(reason="It doesn't pass on the build servers. "
 #                          "XML lib incompatibility.")
-def test_momentum_tranfer_serial(biosans_f):
+def skip_test_momentum_tranfer_serial(biosans_f):
 
     ws = LoadHFIRSANS(
         # Filename='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/'\
         #      'biosans/BioSANS_exp440_scan0022_0006.xml',
         Filename=biosans_f['anisotropic'],
         OutputWorkspace="ws")
+
+
 
     mt = MomentumTransfer(ws)
     assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \
@@ -80,7 +81,7 @@ def bin_in_parallel(params):
 
 
 @pytest.mark.skip(reason="Only works as standalone test.")
-def test_momentum_tranfer_parallel(biosans_f):
+def skip_test_momentum_tranfer_parallel(biosans_f):
     '''
     Note that we are using `pathos`. That's the only way to serialize
     Mantid WSs back to python.

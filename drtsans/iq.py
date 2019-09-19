@@ -170,7 +170,7 @@ def bin_annular_into_q1d(wl_ws,
     return calculator.bin_annular_into_q1d(q_min, q_max, bins, statistic, suffix)
 
 
-def export_i_q_to_table(i_of_q, table_ws_name, DETECTOR_DIMENSIONS_TEMPLATE):
+def export_i_q_to_table(i_of_q, table_ws_name, detector_dims, DETECTOR_DIMENSIONS_TEMPLATE):
     """
     Export binned I(Q) to table (workspace)
     Returns

@@ -45,24 +45,19 @@ def beam_radius(input_workspace, unit='mm',
     ws = mtd[str(input_workspace)]
     if ws.getInstrument().getName() == 'EQ-SANS':
         return eqsans_beam_radius(ws, unit='mm')
-    try:
-        # Apertures, assumed to be in mili-meters
-        sample_logs = SampleLogs(ws)
-        radius_sample_aperture = sample_logs[
-            sample_aperture_diameter_log].value / 2.
-        radius_source_aperture = sample_logs[
-            source_aperture_diameter_log].value / 2.
-        # Distances
-        ssd = sample_logs[ssd_log].value
-        sdd = sample_logs[sdd_log].value
-        # Calculate beam radius
-        radius = radius_sample_aperture + sdd * \
-            (radius_sample_aperture + radius_source_aperture) / ssd
-    except ValueError as error:
-        logger.error(
-            "Some of the properties are likely to not exist in the WS")
-        logger.error(error)
-        raise
+
+    # Apertures, assumed to be in mili-meters
+    sample_logs = SampleLogs(ws)
+    radius_sample_aperture = sample_logs[sample_aperture_diameter_log].value / 2.
+    radius_source_aperture = sample_logs[source_aperture_diameter_log].value / 2.
+
+    # Distances
+    ssd = sample_logs[ssd_log].value
+    sdd = sample_logs[sdd_log].value
+
+    # Calculate beam radius
+    radius = radius_sample_aperture + sdd * (radius_sample_aperture + radius_source_aperture) / ssd
+
     logger.notice("Radius calculated from the WS = {:.2} mm".format(radius))
     return radius if unit == 'mm' else 1e-3 * radius
 
@@ -85,7 +80,7 @@ def detector_ids(input_workspace, radius, unit='mm'):
     numpy.ndarray
         List of detector ID's
     """
-    r = radius * 1e-3 if unit == 'mm' else radius
+    radius = radius * 1e-3 if unit == 'mm' else float(radius)
 
     cylinder = r"""
     <infinite-cylinder id="shape">
@@ -94,9 +89,10 @@ def detector_ids(input_workspace, radius, unit='mm'):
         <radius val="{}" />
     </infinite-cylinder>
     <algebra val="shape" />
-    """.format(r)
+    """.format(radius)
+
     det_ids = FindDetectorsInShape(Workspace=input_workspace,
-                                   ShapeXML=cylinder)
+                                   ShapeXML=cylinder, IncludeMonitors=False)
     return det_ids
 
 
@@ -133,15 +129,22 @@ def calculate_transmission(input_sample, input_reference,
     """
     if output_workspace is None:
         output_workspace = uwd()
+
     if radius is None:
-        r = beam_radius(input_reference, unit='mm')
+        logger.information('Calculating beam radius from sample logs')
+        radius = beam_radius(input_reference, unit='mm')
     else:
-        r = radius if radius_unit == 'mm' else 1.e3 * radius  # to mm
-    det_ids = detector_ids(input_reference, r, unit='mm')
+        radius = float(radius) if radius_unit == 'mm' else 1.e3 * radius  # to mm
+    if radius <= 0.:
+        raise ValueError('Encountered negative beam radius={}mm'.format(radius))
+
+    det_ids = detector_ids(input_reference, radius, unit='mm')
+    if not det_ids:
+        raise RuntimeError('No pixels in beam with radius of {:.2f} mm'.format(radius))
 
     # Avoid pitfall of masking many pixels around the beam center
     msg = 'More than half of the detectors ' +\
-          'within a radius of {:.2f} mm '.format(r) +\
+          'within a radius of {:.2f} mm '.format(radius) +\
           'from the beam center are masked in the input {0}'
     for k, v in dict(sample=input_sample, reference=input_reference).items():
         if len(masked_detectors(v, det_ids)) > len(det_ids) / 2:
@@ -154,6 +157,7 @@ def calculate_transmission(input_sample, input_reference,
                          OutputWorkspace=uwd())
     gir = RebinToWorkspace(WorkspaceToRebin=gir, WorkspaceToMatch=gis,
                            OutputWorkspace=gir.name())
+
     # calculate zero angle transmission coefficient(s)
     zat = Divide(LHSWorkspace=gis, RHSWorkspace=gir,
                  OutputWorkspace=output_workspace)

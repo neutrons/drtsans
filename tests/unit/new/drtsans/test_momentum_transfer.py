@@ -5,11 +5,11 @@ from mantid.simpleapi import LoadEmptyInstrument, Rebin
 from drtsans.momentum_transfer import calculate_momentum_transfer
 
 
-# This implements Issue #210
+# This implements Issue #210: calculate general algorithm to calculate Q, Qx and Qy
 # dev - Wenduo Zhou <wzz@ornl.gov>
 @pytest.mark.parametrize('generic_IDF',
                          [{'Nx': 4, 'Ny': 4,
-                           'dx': 0.006, 'dy': 0.004, 'zc': 1.25,  # TODO - it is best to use close to real L1 and L2
+                           'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
                            'l1': -5.}],
                          indirect=True)
 def test_calculate_momentum_transfer(generic_IDF):
@@ -40,6 +40,7 @@ def test_calculate_momentum_transfer(generic_IDF):
         ws.dataY(i)[0] = intensity[i]
         ws.dataE(i)[0] = init_delta_intensity[i]
 
+    # TODO FIXME - Need to review because Qx and Qy are redefined
     q, qx, qy, qz = calculate_momentum_transfer(ws)
     verify_q(ws, q, qx, qy)
 

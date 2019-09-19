@@ -8,6 +8,11 @@ import scipy
 import scipy.constants
 
 
+# This implements Issue #168: calculate dQx and dQy
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - William Heller <hellerwt@ornl.gov>, Wei-Ren Chen
+
+
 def sigma_neutron_weiren(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3):
     """
     Function given by Wei-Ren

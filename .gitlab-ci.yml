@@ -128,7 +128,7 @@ docs-next:
     - ls .
     - popd
   after_script:
-    - cp -r /tmp/sans-backend/html .
+    - cp -r /tmp/sans-backend/build/sphinx/html .
   tags:
     - scse-mantid-builder
   only:

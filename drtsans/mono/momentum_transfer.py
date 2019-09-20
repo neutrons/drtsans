@@ -143,7 +143,42 @@ def q_resolution(ws):
         return dqx, dqy
 
 
-def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0055):
+def calculate_q_resolution(qx, qy, l1, l2, r1, r2, wl, dwl, theta, pixel_size_x, pixel_size_y):
+    """ Calculate Q resolution
+    Parameters
+    ----------
+    qx : float
+    qy : float
+    l1
+    l2
+    r1
+    r2
+    wl
+    dwl
+    theta
+    pixel_size_x
+    pixel_size_y
+
+    Returns
+    -------
+    (Float, Float) or (numpy.array, numpy.array)
+        Qx, Qy
+    """
+    # If theta is not supplied, compute it from qx
+    # This simplifies the calculation for I(Q) in 1D.
+    if theta is None:
+        # FIXME - one of it must be wrong!
+        thetax = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
+        thetay = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
+        assert thetax == thetay
+
+    qx = _dqx2(qx, l1, l2, r1, r2, wl, dwl, theta, pixel_size_x)
+    qy = _dqy2(qy, l1, l2, r1, r2, wl, dwl, theta, pixel_size_y)
+
+    return qx, qy
+
+
+def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0055):
     r"""
     Q resolution in the horizontal direction.
 
@@ -172,15 +207,11 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0055):
     ------
     float
     """
-    # If theta is not supplied, compute it from qx
-    # This simplifies the calculation for I(Q) in 1D.
-    if theta is None:
-        theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     return dq2_geo + qx**2 * (dwl / wl)**2 / 6.0
 
 
-def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0043):
+def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0043):
     r"""
     Q resolution in vertical direction.
 
@@ -209,10 +240,6 @@ def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta=None, pixel_size=0.0043):
     ------
     float
     """
-    # If theta is not supplied, compute it from qx
-    # This simplifies the calculation for I(Q) in 1D.
-    if theta is None:
-        theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
     return dq2_geo + dq2_grav + np.fabs(qy) * (dwl / wl)**2 / 6.0

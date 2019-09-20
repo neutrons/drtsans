@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from mantid.simpleapi import LoadHFIRSANS, AddSampleLog
-from drtsans.mono.momentum_transfer import calculate_q_dq
+from drtsans.mono.momentum_transfer import calculate_q_dq, calculate_q_resolution
 from drtsans.samplelogs import SampleLogs
 import scipy
 import scipy.constants
@@ -130,6 +130,13 @@ def test_sigma_neutron():
 
     assert dqx == pytest.approx(dqx2, 1.E-12)
     assert dqy == pytest.approx(dqy2, 1.E-12)
+
+    # Calculate by drtsans.mono method
+    dqx3, dqy3 = calculate_q_resolution(Qx, Qy, L1, L2, R1, R2, wavelength, delta_lambda, theta, x3, y3)
+
+    # Check
+    assert dqx == pytest.approx(dqx3, 1E-12)
+    assert dqy == pytest.approx(dqy3, 1E-12)
 
     # assert 'Helping EQSANS Test' == 'Pass'
 

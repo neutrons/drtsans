@@ -9,6 +9,8 @@ from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalis
                                 transform_to_wavelength)
 from drtsans.tof.eqsans.iq import (cal_iq, iq_annular, iq_wedge, iqxqy,
                                    prepare_momentum_transfer)
+from drtsans.iq import bin_into_q1d
+
 
 # Integration test on I(Q) binning algorithms for EQ-SANS
 
@@ -44,17 +46,29 @@ def legacy_reduction(reference_dir):
     return mtd['EQSANS_68200_event_iq']
 
 
-def skip_test_momentum_transfer_serial(reference_dir):
+def test_iq_binning_serial(reference_dir):
+    """
+    Integration test workflow for binning I(Q)
+    Parameters
+    ----------
+    reference_dir
 
+    Returns
+    -------
+
+    """
+    # Load event data
     ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,
                      sample_offset=0)
 
+    # Convert to wave length
     ws = transform_to_wavelength(ws,
                                  bin_width=0.1,
                                  low_tof_clip=500,
                                  high_tof_clip=2000)
 
+    # Calibration in the next few steps
     center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
@@ -64,22 +78,28 @@ def skip_test_momentum_transfer_serial(reference_dir):
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
-    # geometry.sample_aperture_diameter is not working: slit4 missing
+    # NOTE: geometry.sample_aperture_diameter is not working: slit4 missing in EQSANS_68200_event.nxs
     # We hard code the sample_aperture_diameter instead
     AddSampleLog(Workspace=ws,
                  LogName='sample-aperture-diameter',
                  LogText='10.',
                  LogType='Number',
                  LogUnit='mm')
-
     geometry.source_aperture_diameter(ws)
 
+    # Rebin the workspace ... TODO FIXME - will this rebin reduce the resolution of I(wl) and thus I(Q)
     rebin_start, rebin_end, rebin_step = 2.6, 5.6, 0.2
 
     ws = Rebin(InputWorkspace=ws,
                OutputWorkspace="ws_rebin",
                Params="{:.2f},{:.2f},{:.2f}".format(rebin_start, rebin_step,
                                                     rebin_end))
+
+    # Convert I(wl) to I(Q) and then histogram I(Q)
+    i_of_q = bin_into_q1d(ws, q_bin=100, statistic='mean')
+
+    assert i_of_q.iq.shape == (256, 192)
+    assert i_of_q.q.shape == (256, 193)
 
     # bins = np.arange(rebin_start, rebin_end, rebin_step)
 

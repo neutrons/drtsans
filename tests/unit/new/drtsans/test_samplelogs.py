@@ -19,12 +19,27 @@ class TestSampleLogs(object):
             sl = SampleLogs(other)
             assert isinstance(sl._run, Run)
 
+    def test_getitem(self, reference_dir):
+        test_file = pjn(reference_dir.new.sans,
+                        'test_samplelogs',
+                        'EQSANS_92353_no_events.nxs')
+        sl = SampleLogs(test_file)
+        assert_almost_equal(sl['Phase1'].value.mean(), 22444, decimal=0)
+
+        with pytest.raises(KeyError):
+            sl['nonexistantlog'].value
+            assert False, 'Should have failed "sl[\'nonexistantlog\'].value"'
+
     def test_getattr(self, reference_dir):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
         sl = SampleLogs(test_file)
         assert_almost_equal(sl.Phase1.value.mean(), 22444, decimal=0)
+
+        with pytest.raises(AttributeError):
+            sl.nonexistantlog.value
+            assert False, 'Should have failed "sl.nonexistantlog.value"'
 
     def test_insert(self, reference_dir):
         test_file = pjn(reference_dir.new.sans,

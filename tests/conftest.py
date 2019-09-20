@@ -362,14 +362,14 @@ def generic_IDF(request):
 
     # use hidden attibutes to get data dimension, Nx and Ny can override this
     intensity = req_params.get('intensities', None)
-    if intensity:
+    if intensity is None:  # checking ndarray against bool gives an exception
+        Nx, Ny = 3, 3
+    else:
         try:
             Nx, Ny = intensity.shape[:2]  # numpy array
         except AttributeError:
             Nx = len(intensity)
             Ny = len(intensity[0])
-    else:
-        Nx, Ny = 3, 3
 
     # get the parameters from the request object
     params = {'name': req_params.get('name', 'GenericSANS'),

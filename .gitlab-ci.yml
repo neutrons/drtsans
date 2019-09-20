@@ -90,7 +90,7 @@ docker-no-update-test:
   tags:
     - scse-sans-demo
 
-docs-next:
+docs-feature:
   stage: test
   dependencies:
     - dockerbuild
@@ -102,7 +102,29 @@ docs-next:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx --build-dir ./"
+    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - ls .
+    - popd
+  tags:
+    - scse-mantid-builder
+  except:
+    - next
+    - master
+
+docs-next:
+  stage: test
+  allow_failure: true
+  dependencies:
+    - dockerbuild
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
     - ls .
     - popd
   after_script:

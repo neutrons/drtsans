@@ -172,8 +172,8 @@ def calculate_q_resolution(qx, qy, l1, l2, r1, r2, wl, dwl, theta, pixel_size_x,
         thetay = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
         assert thetax == thetay
 
-    qx = _dqx2(qx, l1, l2, r1, r2, wl, dwl, theta, pixel_size_x)
-    qy = _dqy2(qy, l1, l2, r1, r2, wl, dwl, theta, pixel_size_y)
+    qx = np.sqrt(_dqx2(qx, l1, l2, r1, r2, wl, dwl, theta, pixel_size_x))
+    qy = np.sqrt(_dqy2(qy, l1, l2, r1, r2, wl, dwl, theta, pixel_size_y))
 
     return qx, qy
 
@@ -242,4 +242,6 @@ def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0043):
     """
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
-    return dq2_geo + dq2_grav + np.fabs(qy) * (dwl / wl)**2 / 6.0
+    print('[DEBUG] Resolution Y = {}'.format(dq2_geo + dq2_grav))
+
+    return dq2_geo + dq2_grav + qy**2 * (dwl / wl)**2 / 6.0

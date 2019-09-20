@@ -96,6 +96,7 @@ def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y
     sigma_y = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2/wavelength/L2)**2
     resolution_y = ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 * R2**2/4 + y3**2/12 + 2*B**2*wavelength**4 * r/3)
     print('Y gravity part = {}'.format(2*B**2*wavelength**4 * r/3))
+    print('Y parr1 = {}'.format(sigma_y*resolution_y))
     sigma_y = sigma_y * resolution_y + Qy**2/6*r
     sigma_y = np.sqrt(sigma_y)
     # print('sigma_x = {:.2e}; sigma_y = {:.2e}; sigma = {:.2e}'.format(

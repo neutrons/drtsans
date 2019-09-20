@@ -30,7 +30,7 @@ def bin_into_q1d(wl_ws, q_bin, statistic):
     :param statistic:
     :return:
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_into_q1d(q_bin, statistic)
 
@@ -42,7 +42,7 @@ def bin_into_q2d(wl_ws, bins, suffix):
     :param suffix: suffix for output workspace
     :return:
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_into_q2d(bins=bins, suffix=suffix)
 
@@ -100,7 +100,7 @@ def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,
         -------
         workspaces list
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_wedge_into_q1d(phi_0, phi_aperture, bins, statistic, suffix)
 
@@ -165,7 +165,7 @@ def bin_annular_into_q1d(wl_ws,
         (workspace name, workspace)
 
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_annular_into_q1d(q_min, q_max, bins, statistic, suffix)
 

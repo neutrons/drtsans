@@ -188,6 +188,11 @@ def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
     """
     dq2 = 0.25 * np.square(L2 / L1 * R1)  \
         + 0.25 * np.square((L1 + L2) / L1 * R2) + np.square(pixel_size) / 12.0
+
+    print('[DEBUG RES] factor1 = {},  dq2 = {}'
+          ''.format(np.square(2.0 * np.pi * np.cos(theta)
+                           * np.square(np.cos(2.0 * theta)) / wl / L2),  dq2))
+
     return dq2 * np.square(2.0 * np.pi * np.cos(theta)
                            * np.square(np.cos(2.0 * theta)) / wl / L2)
 
@@ -208,15 +213,14 @@ def dq2_gravity(L1, L2, wl, dwl, theta):
         wavelength-spread (Angstrom)
     theta: float
         scattering angle (rad)
-    pixel_size: float
-        dimension of the pixel (m)
 
     Returns
     ------
     float
     """
-    B = G_MN2_OVER_H2 * L2 * (L1 + L2)
+    B = 0.5 * G_MN2_OVER_H2 * L2 * (L1 + L2)
     dq2 = 2. * np.square(B * wl * dwl) / 3.
+    print('[RICARDO] B = {}, Gravity = {}'.format(B, dq2))
     dq2 *= np.square(2.0 * np.pi * np.cos(theta)
                      * np.square(np.cos(2.0 * theta)) / wl / L2)
     # Converting from A^2 / m^4 to 1 / A^2

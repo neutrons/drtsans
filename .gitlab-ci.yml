@@ -113,7 +113,7 @@ docs-next:
     - build_docs
   artifacts:
     paths:
-      -  docs
+      -  html
 
 code-unit-test-feature:
   stage: test

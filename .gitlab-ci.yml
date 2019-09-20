@@ -103,16 +103,17 @@ docs-next:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx --build-dir ./"
+    - ls .
     - popd
   after_script:
-    - cp -r /tmp/sans-backend/docs .
+    - cp -r /tmp/sans-backend/html .
   tags:
     - scse-mantid-builder
   only:
     - next
   artifacts:
     paths:
-      -  docs
+      -  html
 
 code-unit-test-feature:
   stage: test
@@ -268,7 +269,7 @@ docs-next-host:
   script:
     - sudo mkdir -p /var/www/html/
     - sudo ls -la /var/www/html/
-    - sudo cp -rf docs/* /var/www/html/
+    - sudo cp -rf html/* /var/www/html/
     - sudo chmod -R 755 /var/www/html/
     - curl http://localhost/index.html
     - sudo chown -R gitlab-runner .

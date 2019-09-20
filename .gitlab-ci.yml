@@ -109,7 +109,7 @@ docs-next:
   tags:
     - scse-mantid-builder
   only:
-    - build_docs
+    - next
   artifacts:
     paths:
       -  docs
@@ -275,7 +275,7 @@ docs-next-host:
   tags:
     - docs
   only:
-    - build_docs
+    - next
 
 analysis-update:
   stage: analysis-update

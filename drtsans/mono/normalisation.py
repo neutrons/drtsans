@@ -11,8 +11,9 @@ def time(input_workspace, output_workspace=None):
 
     Parameters
     ----------
-    input_workspace : [Mantid Workspace]
-
+    input_workspace : ~mantid.api.MatrixWorkspace
+    output_workspace: str
+        Optional name of the output workspace. Default is to replace the input workspace
     """
     input_workspace = str(input_workspace)
     if output_workspace is None:

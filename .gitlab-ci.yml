@@ -106,7 +106,7 @@ docs-next:
     - ls .
     - popd
   after_script:
-    - cp -r /tmp/sans-backend/build .
+    - cp -r /tmp/sans-backend/html .
   tags:
     - scse-mantid-builder
   only:
@@ -269,7 +269,7 @@ docs-next-host:
   script:
     - sudo mkdir -p /var/www/html/
     - sudo ls -la /var/www/html/
-    - sudo cp -rf build/sphinx/html/* /var/www/html/
+    - sudo cp -rf html/* /var/www/html/
     - sudo chmod -R 755 /var/www/html/
     - curl http://localhost/index.html
     - sudo chown -R gitlab-runner .

@@ -4,7 +4,7 @@ import pytest
 from mantid.simpleapi import LoadEmptyInstrument, AddTimeSeriesLog, Rebin, ConvertUnits
 from drtsans.tof.eqsans.momentum_transfer import calculate_q_dq, calculate_pixel_positions,\
     retrieve_instrument_setup
-from drtsans.tof.eqsans.momentum_transfer import calculate_q_resolution, MomentumTransferResolutionParameters
+from drtsans.tof.eqsans.momentum_transfer import calculate_q_resolution, InstrumentSetupParameters
 from drtsans.tof.eqsans import load_events
 
 
@@ -205,18 +205,18 @@ def test_single_value_resolution():
     sample_pixel_distance = l2 + 0.1  # radian (corner pixel)
     emission_error = 0.  # wave length = 3.5 A
 
-    params = MomentumTransferResolutionParameters(l1=l1,
-                                                  sample_det_center_dist=l2,
-                                                  source_aperture_radius=source_aperture,
-                                                  sample_aperture_radius=sample_aperture,
-                                                  pixel_size_x=0.0055,
-                                                  pixel_size_y=0.0043)
+    params = InstrumentSetupParameters(l1=l1,
+                                       sample_det_center_dist=l2,
+                                       source_aperture_radius=source_aperture,
+                                       sample_aperture_radius=sample_aperture,
+                                       pixel_size_x=0.0055,
+                                       pixel_size_y=0.0043)
 
     q_x_res, q_y_res = calculate_q_resolution(qx=qx, qy=qy, wave_length=wave_length, delta_wave_length=wl_resolution,
                                               theta=0.5*two_theta, two_theta=two_theta,
                                               sample_pixel_distance=sample_pixel_distance,
                                               tof_error=emission_error,
-                                              q_resolution_params=params)
+                                              instrument_setup_params=params)
 
     # backend dQx = 8.34291403107089e-07
     golden_dqx, golden_dqy = 0.000854463465864, 0.000851888156594

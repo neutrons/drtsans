@@ -151,55 +151,111 @@ def test_sigma_neutron():
     'xc': 0.0, 'yc': 0.0, 'zc': 15, 'l1': 15.5,
     'axis_values': [5.925, 6.075],
 }], indirect=True)
-def next_test_q_resolution_weiren_generic(generic_workspace):
+def test_q_resolution_generic(generic_workspace):
+    """
+    Test Q resolution method against Wei-ren and Ricardo's early implementation
+    Parameters
+    ----------
+    generic_workspace : Workspace instance
+        A generic workspace with 5 x 5 instrument
 
-    ws = generic_workspace
+    Returns
+    -------
 
-    AddSampleLog(Workspace=ws, LogName='wavelength', LogText='6', LogType='Number', LogUnit='A')
-    AddSampleLog(Workspace=ws, LogName='wavelength-spread', LogText='0.15', LogType='Number', LogUnit='A')
+    """
+    # Define constants
     wavelength = 6
     delta_lambda = 0.15
+    R1 = 0.02  # source aperture radius
+    R2 = 0.007  # sample aperture radius
+    x3 = 0.0055  # pixel X size (meter)
+    y3 = 0.0043  # pixel Y size (meter)
+    L1 = 15  # meter
+    L2 = 15.5  # meter (sample to detetor center distance)
 
-    AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter', LogText='14', LogType='Number', LogUnit='mm')
-    AddSampleLog(Workspace=ws, LogName='source-aperture-diameter', LogText='40', LogType='Number', LogUnit='mm')
-    R1 = 0.02
-    R2 = 0.007
+    # Get workspace and add sample logs as wave length, wave length spread,
+    ws = generic_workspace
+    AddSampleLog(Workspace=ws, LogName='wavelength', LogText='{}'.format(wavelength), LogType='Number', LogUnit='A')
+    AddSampleLog(Workspace=ws, LogName='wavelength-spread', LogText='{}'.format(delta_lambda),
+                 LogType='Number', LogUnit='A')
+    AddSampleLog(Workspace=ws, LogName='source-aperture-diameter', LogText='{}'.format(R1*0.5*1000),
+                 LogType='Number', LogUnit='mm')
+    AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter', LogText='{}'.format(R2*0.5*1000),
+                 LogType='Number', LogUnit='mm')
 
-    x3 = 0.0055
-    y3 = 0.0043
-    L1 = 15
-    L2 = 15.5
 
-    # Those are ordered by workspace index.
+    # Calculate Q and dQ
     qx_arr, qy_arr, dqx_arr, dqy_arr = calculate_q_dq(ws)
 
+    # Calculate Q and 2theta (arrays)
+    ver_qx_array, ver_qy_array, two_theta_array = calculate_momentum_transfer(ws, wavelength)
+
+    # Check by another approach!
     spec_info = ws.spectrumInfo()
     for i in range(spec_info.size()):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
-            theta = spec_info.twoTheta(i)
+            # compare Qx and Qy
             qx = qx_arr[i]
             qy = qy_arr[i]
 
-            # theta = np.arcsin(np.sqrt(qx**2+qy**2)*wavelength/np.pi/4)
+            qx_check = ver_qx_array[i]
+            qy_check = ver_qy_array[i]
 
-            sigma_x, sigma_y = sigma_neutron_weiren(wavelength, delta_lambda, qx, qy, theta, L1, L2, R1, R2, x3, y3)
+            assert qx == pytest.approx(qx_check, 1E-10)
+            assert qy == pytest.approx(qy_check, 1E-10)
 
-            print('Spectrum {} of {}'
-                  ''.format(i, spec_info.size()))
-            print('  x:  Ricardo = {} Weiren = {} --> Diff = {}'
-                  ''.format(dqx_arr[i], sigma_x, dqx_arr[i] - sigma_x))
-            print('  y:  Ricardo = {} Weiren = {} --> Diff = {}'
-                  ''.format(dqy_arr[i], sigma_y, dqy_arr[i] - sigma_y))
+            # calculate resolution
+            sigma_x, sigma_y = sigma_neutron_weiren(wavelength, delta_lambda, qx, qy, two_theta_array[i],
+                                                    L1, L2, R1, R2, x3, y3)
 
-            # TODO - Diabled temporarily
-            # assert sigma_x == pytest.approx(dqx_arr[i], 1.E-9)
-            # assert sigma_y == pytest.approx(dqy_arr[i], 1.E-9)
+            assert sigma_x == pytest.approx(dqx_arr[i], 1.E-9)
+            assert sigma_y == pytest.approx(dqy_arr[i], 1.E-9)
         # END-IF
     # END-FOR
 
     return
 
 
+def calculate_momentum_transfer(ws, wl):
+    """Previous implementation for calculating Q by using Phi and Theta
+    Parameters
+    ----------
+    ws : workspace instance
+        Workspace where Q is calculated from
+    wl:  float
+        (constant) wave length
+
+    Returns
+    -------
+    ndarray, ndarray, ndarray
+        Qx, Qy, 2theta
+    """
+    spec_info = ws.spectrumInfo()
+    twotheta = np.zeros(spec_info.size())
+    phi = np.zeros(spec_info.size())
+    for i in range(spec_info.size()):
+        if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
+            twotheta[i] = spec_info.twoTheta(i)
+            # assumes sample is at zero and orientation is McStas style
+            _x, _y, _ = spec_info.position(i)
+            phi[i] = np.arctan2(_y, _x)
+        else:
+            twotheta[i] = np.nan
+
+    _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
+
+    # convert things that are masked to zero
+    _q[np.isnan(twotheta)] = 0.
+    twotheta[np.isnan(twotheta)] = 0.  # do this one last
+
+    qx = np.cos(phi) * _q
+    qy = np.sin(phi) * _q
+    del _q, phi
+
+    return qx, qy, twotheta
+
+
+# TODO FIXME - Review and remove
 def next_test_q_resolution_weiren(gpsans_f):
 
     filename = gpsans_f['sample_scattering_2']

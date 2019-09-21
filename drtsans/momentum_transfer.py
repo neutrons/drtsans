@@ -17,7 +17,7 @@ G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  #
 MomentumTransfer = collections.namedtuple('MomentumTransfer', 'q qx qy qz dqx dqy')
 
 
-class MomentumTransferResolutionParameters(object):
+class InstrumentSetupParameters(object):
     """
     Class to contain the parameters used to calculate Q resolution
     """
@@ -105,10 +105,24 @@ class MomentumTransferResolutionParameters(object):
 
 
 def calculate_momentum_transfer(ws):
-    """ Calculate momentum transfer in vector by operating on source, sample and detector positions,
+    """Calculate momentum transfer in vector by operating on source, sample and detector positions,
     i.e., vec{q} = 2 pi (vec{k_out} - vec{k_in}) / lambda
-    :param ws: workspace instance with unit Wavelength
-    :return: 4-tuple of N x M array for Q, Qx, Qy, Qz, where N is the number of spectra and M is number of bins
+
+    Note:
+    - N: number of spectra
+    - M: number of wave length bins
+    - Qx: Q component at X-Z plane
+    - Qy: Q component at Y plane
+
+    Parameters
+    ----------
+    ws : MatrixWorkspace
+        Wavelength workspace to calculate momentum transfer from
+    Returns
+    -------
+    ndarray, ndarray, ndarray, ndarray
+        N x M matrix for Q, N x M matrix for Qx, N x M matrix for Qy, N array for 2theta,
+
     """
     # Check inputs and unit
     if ws is None:
@@ -125,6 +139,7 @@ def calculate_momentum_transfer(ws):
     # Get instrument information
     spec_info = ws.spectrumInfo()
     num_spec = spec_info.size()
+    two_theta_array = np.zeros(spec_info.size())
 
     # sample and moderator information: get K_i
     sample_pos = ws.getInstrument().getSample().getPos()
@@ -141,6 +156,9 @@ def calculate_momentum_transfer(ws):
             k_out = det_i_pos - sample_pos
             k_out /= linalg.norm(k_out)
             unit_q_vector[iws] = k_out - k_in
+
+            # 2theta
+            two_theta_array[iws] = spec_info.twoTheta(iws)
         # otherwise, unit_q_vector[iws] is zero
     # END-FOR
 
@@ -150,13 +168,14 @@ def calculate_momentum_transfer(ws):
     qz_matrix = 2.*np.pi*unit_q_vector[:, 2].reshape((num_spec, 1)) / wavelength_bin_center_matrix
 
     q_matrix = np.sqrt(qx_matrix**2 + qy_matrix**2 + qz_matrix**2)
+    q_theta_matrix = np.sqrt(qx_matrix**2 + qz_matrix**2)
 
     # print('[DEBUG] Q  matrix: shape={}\n{}'.format(q_matrix.shape, q_matrix))
     # print('[DEBUG] Qx matrix: shape={}\n{}'.format(qx_matrix.shape, qx_matrix))
     # print('[DEBUG] Qy matrix: shape={}\n{}'.format(qy_matrix.shape, qy_matrix))
     # print('[DEBUG] Qz matrix: shape={}\n{}'.format(qz_matrix.shape, qz_matrix))
 
-    return q_matrix, qx_matrix, qy_matrix, qz_matrix
+    return q_matrix, q_theta_matrix, qy_matrix, two_theta_array
 
 
 def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):

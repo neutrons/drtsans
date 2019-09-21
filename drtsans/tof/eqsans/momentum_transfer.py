@@ -3,8 +3,82 @@ import numpy as np
 from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
 from drtsans import geometry as sans_geometry
 from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
-from drtsans.momentum_transfer import calculate_momentum_transfer, MomentumTransferResolutionParameters
+from drtsans.momentum_transfer import calculate_momentum_transfer, InstrumentSetupParameters
 from drtsans.momentum_transfer import G_MN2_OVER_H2
+
+
+def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, sample_pixel_distance,
+                           tof_error, instrument_setup_params):
+    """ Atomic function to calculate Q resolution for EQ-SANS
+    :param qx: Qx
+    :param qy: Qy
+    :param wave_length: neutron wave length (bin center) in Angstrom
+    :param delta_wave_length: neutron wave length (bin size) in Angstrom
+    :param theta: half neutron diffraction angle (half of 2theta) (unit: rad)
+    :param sample_pixel_distance: distance from sample to pixel center (meter)
+    :param tof_error: neutron emission uncertainty
+    :param instrument_setup_params: MomentumTransferResolutionParameters parameters
+    :return:
+    """
+    assert isinstance(instrument_setup_params, InstrumentSetupParameters)
+    print('Input Q resolution parameter:\n{}'.format(instrument_setup_params))
+    print('Q = {}, {}'.format(qx, qy))
+    print('Wavelength = {}, Delta Wavelength = {}'.format(wave_length, delta_wave_length))
+    print('Theta = {}, 2Theta = {}'.format(theta, two_theta))
+    print('TOF uncertainty = {}'.format(tof_error))
+    # Get setup value (for better)
+
+    l1 = instrument_setup_params.l1
+    l2 = instrument_setup_params.sample_det_center_distance
+    r1 = instrument_setup_params.source_aperture_radius
+    r2 = instrument_setup_params.sample_aperture_radius
+    dx = instrument_setup_params.pixel_size_x
+    dy = instrument_setup_params.pixel_size_y
+
+    # Geometry resolution/uncertainty:
+    apertures_const = (l2*r1*0.5/l1)**2 + (0.5 * r2 * (l1 + l2) / l1)**2
+    const_x = dx**2 / 12.
+    const_y = dy**2 / 12.
+
+    # factor 1 with ....
+    factor1 = (2.*np.pi*np.cos(theta)*(np.cos(two_theta)**2)/(wave_length*l2))**2
+    print('[EQ Res] Factor1 = {}'.format(factor1))
+    print('[EQ Res] Resolution X = {}'.format(apertures_const + const_x))
+    # FIXME - Good so far
+
+    # gravity part of Y ....
+    b_factor = 0.5 * G_MN2_OVER_H2 * (l1 + l2) * l2
+    gravity_y = 2./3. * (b_factor * wave_length * delta_wave_length * 1.E-20)**2  # convert to meter
+
+    print('[EQ Res] B = {}'.format(b_factor))
+    print('[EQ Res] Resolution Y (gravity) = {}'.format(gravity_y))
+
+    # FIXME - Good so far
+
+    # wave length resolution/uncertainties
+    wl_part = (delta_wave_length/wave_length)**2
+    emission_part = (3.9650*0.001*tof_error / (wave_length*(l1+sample_pixel_distance)))**2
+    print('[DEBUG INFO] wave length uncertainty square = {}; emission time uncertainty square = {}'
+          ''.format(wl_part, emission_part))
+
+    print('[DEBUG INFO] factor 1 shape = {}'.format(factor1.shape))
+
+    # Q(x) resolution
+    qx_geom_resolution = factor1 * (apertures_const + const_x)
+    qx_wave_resolution = qx**2 * (wl_part + emission_part) / 12.
+    dqx = qx_wave_resolution + qx_wave_resolution
+
+    print('Resolution X = {}'.format(apertures_const + const_x))
+
+    # Q(y) resolution
+    qy_geom_resolution = factor1 * (apertures_const + const_y + gravity_y)
+    qy_wave_resolution = qy**2 * (wl_part + emission_part) / 12.
+    dqy = qy_geom_resolution + qy_wave_resolution
+
+    print('[DEBUG INFO] Geom dQx = {}, Wave dQx = {}'.format(qx_geom_resolution, qx_wave_resolution))
+    print('[DEBUG INFO] Geom dQy = {}, Wave dQy = {}'.format(qy_geom_resolution, qy_wave_resolution))
+
+    return dqx, dqy
 
 
 def calculate_q_dq(ws, pixel_sizes=None):
@@ -73,76 +147,11 @@ def calculate_q_dq(ws, pixel_sizes=None):
     # Calculate dQx and dQy, both as 2D arrays
     dqx_matrix, dqy_matrix = calculate_q_resolution(qx_matrix, qy_matrix,
                                                     wavelength_bin_center_matrix, wavelength_bin_step_matrix,
-                                                    0.5 * pixel_2theta_vec, pixel_2theta_vec,
+                                                    0.5 * pixel_2theta_vec,
                                                     pixel_sample_distance_vec,
                                                     tof_error_matrix, setup_params)
 
     return qx_matrix, qy_matrix, dqx_matrix, dqy_matrix
-
-
-def q_resolution_per_pixel_to_mod(ws):
-    """
-    Compute q resolution for each pixel, in each wavelength bin.
-
-    The resolution can be computed by giving a binned
-    workspace to this function:
-
-    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
-
-    The returned numpy arrays are of the same dimensions
-    as the input array.
-
-    Parameters
-    ----------
-    ws: MatrixWorkspace
-        Input workspace
-
-    Returns
-    ------
-    numpy array of the same dimension as the data
-    """
-    L1 = source_sample_distance(ws, unit='m', log_key='source-sample-distance')
-    L2 = sans_geometry.sample_detector_distance(ws, unit='m')
-    R1 = 0.5 * source_aperture_diameter(ws, unit='m')
-    R2 = 0.5 * sample_aperture_diameter(ws, unit='m')
-
-    wl_bounds = ws.extractX()
-    wl = (wl_bounds[:, 1:] + wl_bounds[:, :-1]) / 2.0
-    dwl = wl_bounds[:, 1:] - wl_bounds[:, :-1]
-
-    spec_info = ws.spectrumInfo()
-
-    # Sanity check
-    if not spec_info.size() == wl.shape[0]:
-        raise RuntimeError("X size mismatch: %s %s" %
-                           (spec_info.size(), wl.shape[0]))
-
-    twotheta = np.zeros_like(wl)
-    phi = np.zeros_like(wl)
-    s2p = np.zeros_like(wl)
-    for i in range(spec_info.size()):
-        if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
-            s2p[i] = spec_info.l2(i)
-            twotheta[i] = spec_info.twoTheta(i)
-            phi[i] = spec_info.azimuthal(i)
-        else:
-            twotheta[i] = np.nan
-
-    mask = np.isnan(twotheta)
-    _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
-    _q[mask] = 0.
-    twotheta[mask] = 0.  # do this one last
-    del mask
-
-    qx = np.cos(phi) * _q
-    qy = np.sin(phi) * _q
-    del _q, phi
-
-    dtof = moderator_time_uncertainty(wl)
-    theta = 0.5 * twotheta
-    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
-    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
-    return qx, qy, dqx, dqy
 
 
 def moderator_time_uncertainty(wl):
@@ -203,12 +212,12 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
         size_y = pixel_sizes['y']
 
     # Set up the parameter class
-    setup_params = MomentumTransferResolutionParameters(l1=l1,
-                                                        sample_det_center_dist=l2,
-                                                        source_aperture_radius=r1,
-                                                        sample_aperture_radius=r2,
-                                                        pixel_size_x=size_x,
-                                                        pixel_size_y=size_y)
+    setup_params = InstrumentSetupParameters(l1=l1,
+                                             sample_det_center_dist=l2,
+                                             source_aperture_radius=r1,
+                                             sample_aperture_radius=r2,
+                                             pixel_size_x=size_x,
+                                             pixel_size_y=size_y)
 
     return setup_params
 
@@ -248,81 +257,6 @@ def calculate_pixel_positions(ws, num_spec=None):
     # END-FOR
 
     return pixel_2theta_vec, pixel_sample_distance_vec
-
-
-def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, two_theta, sample_pixel_distance,
-                           tof_error, q_resolution_params):
-    """ Atomic function to calculate Q resolution for EQ-SANS
-    :param qx: Qx
-    :param qy: Qy
-    :param wave_length: neutron wave length (bin center) in Angstrom
-    :param delta_wave_length: neutron wave length (bin size) in Angstrom
-    :param theta: half neutron diffraction angle (half of 2theta) (unit: rad)
-    :param two_theta: neutron diffraction angle (unit: rad)
-    :param sample_pixel_distance: distance from sample to pixel center (meter)
-    :param tof_error: neutron emission uncertainty
-    :param q_resolution_params: MomentumTransferResolutionParameters parameters
-    :return:
-    """
-    assert isinstance(q_resolution_params, MomentumTransferResolutionParameters)
-    print('Input Q resolution parameter:\n{}'.format(q_resolution_params))
-    print('Q = {}, {}'.format(qx, qy))
-    print('Wavelength = {}, Delta Wavelength = {}'.format(wave_length, delta_wave_length))
-    print('Theta = {}, 2Theta = {}'.format(theta, two_theta))
-    print('TOF uncertainty = {}'.format(tof_error))
-    # Get setup value (for better)
-
-    l1 = q_resolution_params.l1
-    l2 = q_resolution_params.sample_det_center_distance
-    r1 = q_resolution_params.source_aperture_radius
-    r2 = q_resolution_params.sample_aperture_radius
-    dx = q_resolution_params.pixel_size_x
-    dy = q_resolution_params.pixel_size_y
-
-    # Geometry resolution/uncertainty:
-    apertures_const = (l2*r1*0.5/l1)**2 + (0.5 * r2 * (l1 + l2) / l1)**2
-    const_x = dx**2 / 12.
-    const_y = dy**2 / 12.
-
-    # factor 1 with ....
-    factor1 = (2.*np.pi*np.cos(theta)*(np.cos(two_theta)**2)/(wave_length*l2))**2
-    print('[EQ Res] Factor1 = {}'.format(factor1))
-    print('[EQ Res] Resolution X = {}'.format(apertures_const + const_x))
-    # FIXME - Good so far
-
-    # gravity part of Y ....
-    b_factor = 0.5 * G_MN2_OVER_H2 * (l1 + l2) * l2
-    gravity_y = 2./3. * (b_factor * wave_length * delta_wave_length * 1.E-20)**2  # convert to meter
-
-    print('[EQ Res] B = {}'.format(b_factor))
-    print('[EQ Res] Resolution Y (gravity) = {}'.format(gravity_y))
-
-    # FIXME - Good so far
-
-    # wave length resolution/uncertainties
-    wl_part = (delta_wave_length/wave_length)**2
-    emission_part = (3.9650*0.001*tof_error / (wave_length*(l1+sample_pixel_distance)))**2
-    print('[DEBUG INFO] wave length uncertainty square = {}; emission time uncertainty square = {}'
-          ''.format(wl_part, emission_part))
-
-    print('[DEBUG INFO] factor 1 shape = {}'.format(factor1.shape))
-
-    # Q(x) resolution
-    qx_geom_resolution = factor1 * (apertures_const + const_x)
-    qx_wave_resolution = qx**2 * (wl_part + emission_part) / 12.
-    dqx = qx_wave_resolution + qx_wave_resolution
-
-    print('Resolution X = {}'.format(apertures_const + const_x))
-
-    # Q(y) resolution
-    qy_geom_resolution = factor1 * (apertures_const + const_y + gravity_y)
-    qy_wave_resolution = qy**2 * (wl_part + emission_part) / 12.
-    dqy = qy_geom_resolution + qy_wave_resolution
-
-    print('[DEBUG INFO] Geom dQx = {}, Wave dQx = {}'.format(qx_geom_resolution, qx_wave_resolution))
-    print('[DEBUG INFO] Geom dQy = {}, Wave dQy = {}'.format(qy_geom_resolution, qy_wave_resolution))
-
-    return dqx, dqy
 
 
 def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055, dtof=0.):

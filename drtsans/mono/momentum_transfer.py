@@ -1,12 +1,61 @@
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
-from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
+from drtsans.momentum_transfer import dq2_geometry, dq2_gravity, InstrumentSetupParameters, calculate_momentum_transfer
 from drtsans import geometry as sans_geometry
 
 """
 HFIR Momentum transfer and resolution calculation
 """
+
+
+def calculate_q_resolution(qx, qy,  wave_length, delta_wave_length, theta, instrument_setup_params):
+    """ Calculate Q resolution
+    Parameters
+    ----------
+    qx : float or float array
+        Qx or float array
+    qy : float
+        Qy
+    wave_length : float or float array
+        wave length in A
+    delta_wave_length : float or float array
+        wave length in A
+    theta : float or float array
+        theta value
+    instrument_setup_params : InstrumentSetupParameters
+        collection of instrument setup related parameters including     l1, l2, r1, r2, pixel_size_x, pixel_size_y
+
+    Returns
+    -------
+    (Float, Float) or (numpy.array, numpy.array)
+        dQx, dQy
+    """
+    # # If theta is not supplied, compute it from qx
+    # # This simplifies the calculation for I(Q) in 1D.
+    # if theta is None:
+    #     # FIXME - one of it must be wrong!
+    #     thetax = 2.0 * np.arcsin(wave_length * np.fabs(qx) / 4.0 / np.pi)
+    #     thetay = 2.0 * np.arcsin(wave_length * np.fabs(qy) / 4.0 / np.pi)
+    #     assert thetax == thetay
+
+    # Calculate dQx
+    dqx = np.sqrt(_dqx2(qx,
+                        instrument_setup_params.l1,
+                        instrument_setup_params.sample_det_center_distance,
+                        instrument_setup_params.source_aperture_radius,
+                        instrument_setup_params.sample_aperture_radius,
+                        wave_length, delta_wave_length, theta,
+                        instrument_setup_params.pixel_size_x))
+
+    dqy = np.sqrt(_dqy2(qy, instrument_setup_params.l1,
+                        instrument_setup_params.sample_det_center_distance,
+                        instrument_setup_params.source_aperture_radius,
+                        instrument_setup_params.sample_aperture_radius,
+                        wave_length, delta_wave_length, theta,
+                        instrument_setup_params.pixel_size_y))
+
+    return dqx, dqy
 
 
 def calculate_q_dq(ws, pixel_sizes=None):
@@ -31,59 +80,81 @@ def calculate_q_dq(ws, pixel_sizes=None):
     ------
     2D arrays for Q, Qx, dQx, Qy, dQy, which are of the same dimension as the data
     """
+    # Check inputs and unit
+    if ws is None:
+        raise RuntimeError('Workspace cannot be None')
+    elif ws.getAxis(0).getUnit().unitID() != 'Wavelength':
+        raise RuntimeError('Input workspace {} for calculate Q resolution must be in unit Wavelength but not {}'
+                           ''.format(ws, ws.getAxis(0).getUni().unitID()))
+    elif not ws.isHistogramData():
+        raise RuntimeError('Input workspace {} must be Point Data but not histogram data.'.format(ws))
+
+    # Get instrument setup parameters to calculate Q resolution
+    wl, dwl, setup_params = retrieve_instrument_setup(ws, pixel_sizes)
+
+    # Calculate momentum_transfer Q
+    q, qx, qy, two_theta = calculate_momentum_transfer(ws)
+
+    # Calculate Q resolution
+    dqx, dqy = calculate_q_resolution(qx, qy, wl, dwl, two_theta*0.5, setup_params)
+
+    return qx, qy, dqx, dqy
+
+
+def retrieve_instrument_setup(ws, pixel_sizes):
+    """
+
+    Parameters
+    ----------
+    ws
+    pixel_sizes
+
+    Returns
+    -------
+    Float, Float, InstrumentSetupParameters
+        wave length, delta wave length, InstrumentSetupParameters instance (L1, L2, ...)
+
+    """
+    # Retrieve sample logs
     sl = SampleLogs(ws)
-    L1 = sans_geometry.source_sample_distance(ws, unit='m',
+
+    # L1
+    l1 = sans_geometry.source_sample_distance(ws, unit='m',
                                               log_key='source-sample-distance')
-    L2 = sans_geometry.sample_detector_distance(ws, unit='m')
-    R1 = 0.5 * sl.find_log_with_units('source-aperture-diameter', 'mm') * 0.001
-    R2 = 0.5 * sl.find_log_with_units('sample-aperture-diameter', 'mm') * 0.001
+    # L2
+    l2 = sans_geometry.sample_detector_distance(ws, unit='m')
+    # R1: source aperture in meter
+    r1 = 0.5 * sl.find_log_with_units('source-aperture-diameter', 'mm') * 0.001
+    # R2: sample aperture in meter
+    r2 = 0.5 * sl.find_log_with_units('sample-aperture-diameter', 'mm') * 0.001
+    # Constant wave length and uncertainties are recorded as sample logs in HFIR SANS
     wl = sl.find_log_with_units('wavelength')
     dwl = sl.find_log_with_units('wavelength-spread')
 
-    # FIXME - Remove after testing
-    print('Inputs: ')
-    print("r1", R1)
-    print("r2", R2)
-    print("wl", wl)
-    print("dwl", dwl)
+    # Pixel sizes
+    if pixel_sizes is None:
+        # Retrieve from workspace but not easy
+        det_shape = ws.getDetector(0).shape().getBoundingBox().width()  # 3 values
+        size_x = det_shape[0]
+        size_y = det_shape[1]
+    else:
+        # User specified, overriding values from intrument directly
+        size_x = pixel_sizes['x']
+        size_y = pixel_sizes['y']
 
-    spec_info = ws.spectrumInfo()
 
-    twotheta = np.zeros(spec_info.size())
-    phi = np.zeros(spec_info.size())
-    for i in range(spec_info.size()):
-        if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
-            twotheta[i] = spec_info.twoTheta(i)
-            # assumes sample is at zero and orientation is McStas style
-            _x, _y, _ = spec_info.position(i)
-            phi[i] = np.arctan2(_y, _x)
-        else:
-            twotheta[i] = np.nan
+    # Set up the parameter class
+    setup_params = InstrumentSetupParameters(l1=l1,
+                                             sample_det_center_dist=l2,
+                                             source_aperture_radius=r1,
+                                             sample_aperture_radius=r2,
+                                             pixel_size_x=size_x,
+                                             pixel_size_y=size_y)
 
-    _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
+    print('[DEBUG INFO] Instrument parameters:\nlambda = {} +/- {}\n{}'
+          ''.format(wl, dwl, setup_params))
 
-    # convert things that are masked to zero
-    _q[np.isnan(twotheta)] = 0.
-    twotheta[np.isnan(twotheta)] = 0.  # do this one last
-
-    qx = np.cos(phi) * _q
-    qy = np.sin(phi) * _q
-    del _q, phi
-
-    print('Qx: {}'.format(qx))
-    print('Qy: {}'.format(qy))
-    print('L1: {}'.format(L1))
-    print('L2: {}'.format(L2))
-    print('R1: {}'.format(R1))
-    print('R2: {}'.format(R2))
-    print('WL: {}'.format(wl))
-    print('dW: {}'.format(dwl))
-    print('2T: {}'.format(twotheta))
-
-    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, twotheta))
-    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, twotheta))
-
-    return qx, qy, dqx, dqy
+    return wl, dwl, setup_params
 
 
 def q_resolution(ws):
@@ -141,41 +212,6 @@ def q_resolution(ws):
             dqy[i] = np.sqrt(_dqy2(qy_mid[i], L1, L2,
                                    R1, R2, wl, dwl, theta))
         return dqx, dqy
-
-
-def calculate_q_resolution(qx, qy, l1, l2, r1, r2, wl, dwl, theta, pixel_size_x, pixel_size_y):
-    """ Calculate Q resolution
-    Parameters
-    ----------
-    qx : float
-    qy : float
-    l1
-    l2
-    r1
-    r2
-    wl
-    dwl
-    theta
-    pixel_size_x
-    pixel_size_y
-
-    Returns
-    -------
-    (Float, Float) or (numpy.array, numpy.array)
-        Qx, Qy
-    """
-    # If theta is not supplied, compute it from qx
-    # This simplifies the calculation for I(Q) in 1D.
-    if theta is None:
-        # FIXME - one of it must be wrong!
-        thetax = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
-        thetay = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
-        assert thetax == thetay
-
-    qx = np.sqrt(_dqx2(qx, l1, l2, r1, r2, wl, dwl, theta, pixel_size_x))
-    qy = np.sqrt(_dqy2(qy, l1, l2, r1, r2, wl, dwl, theta, pixel_size_y))
-
-    return qx, qy
 
 
 def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0055):

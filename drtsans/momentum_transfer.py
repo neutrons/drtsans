@@ -139,7 +139,7 @@ def calculate_momentum_transfer(ws):
     # Get instrument information
     spec_info = ws.spectrumInfo()
     num_spec = spec_info.size()
-    two_theta_array = np.zeros(spec_info.size())
+    two_theta_array = np.zeros((spec_info.size(), 1))  # 2-theta array is 2D (N x 1)
 
     # sample and moderator information: get K_i
     sample_pos = ws.getInstrument().getSample().getPos()
@@ -159,7 +159,7 @@ def calculate_momentum_transfer(ws):
             unit_q_vector[iws] = k_out - k_in
 
             # 2theta
-            two_theta_array[iws] = spec_info.twoTheta(iws)
+            two_theta_array[iws][0] = spec_info.twoTheta(iws)
         # otherwise, unit_q_vector[iws] is zero
     # END-FOR
 
@@ -197,7 +197,7 @@ def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
         sample aperture radius (m)
     wl: float
         wavelength mid-point (Angstrom)
-    theta: float
+    theta: float or ndarray(dtype=float)
         scattering angle (rad)
     pixel_size: float
         dimension of the pixel (m)
@@ -208,10 +208,6 @@ def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):
     """
     dq2 = 0.25 * np.square(L2 / L1 * R1)  \
         + 0.25 * np.square((L1 + L2) / L1 * R2) + np.square(pixel_size) / 12.0
-
-    print('[DEBUG RES] factor1 = {},  dq2 = {}'
-          ''.format(np.square(2.0 * np.pi * np.cos(theta)
-                           * np.square(np.cos(2.0 * theta)) / wl / L2),  dq2))
 
     return dq2 * np.square(2.0 * np.pi * np.cos(theta)
                            * np.square(np.cos(2.0 * theta)) / wl / L2)

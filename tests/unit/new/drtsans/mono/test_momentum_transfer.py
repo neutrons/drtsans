@@ -188,9 +188,6 @@ def test_q_resolution_generic(generic_workspace):
     # Calculate Q and dQ
     qx_arr, qy_arr, dqx_arr, dqy_arr = calculate_q_dq(ws)
     # Check dimension
-    print(ws.readX(0))
-    print(qx_arr.shape, qy_arr.shape, dqx_arr.shape, dqy_arr.shape)
-    print(dqx_arr[0])
     assert qx_arr.shape == (25, 1)
     assert dqy_arr.shape == (25, 1)
 
@@ -208,11 +205,13 @@ def test_q_resolution_generic(generic_workspace):
             qx_check = ver_qx_array[i]
             qy_check = ver_qy_array[i]
 
-            assert qx == pytest.approx(qx_check, 1E-10)
-            assert qy == pytest.approx(qy_check, 1E-10)
+            print(qx, qx_check, qx-qx_check)
+            print(qy, qy_check, qy-qy_check)
+            assert qx == pytest.approx(qx_check, 1.E-6)
+            assert qy == pytest.approx(qy_check, 1.E-6)
 
             # calculate resolution
-            sigma_x, sigma_y = sigma_neutron_weiren(wavelength, delta_lambda, qx, qy, two_theta_array[i],
+            sigma_x, sigma_y = sigma_neutron_weiren(wavelength, delta_lambda, qx, qy, 0.5*two_theta_array[i],
                                                     L1, L2, R1, R2, x3, y3)
 
             assert sigma_x == pytest.approx(dqx_arr[i], 1.E-9)

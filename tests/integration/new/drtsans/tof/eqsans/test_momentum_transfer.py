@@ -17,6 +17,11 @@ from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalis
 
 def test_momentum_transfer_serial(reference_dir):
 
+    print(mtd)
+    print(mantid.simpleapi.ConfigService)
+    print(mantid.simpleapi.MaskAngle)
+    print(drtsans.tof.eqsans.prepare_data)
+
     ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,
                      sample_offset=0)
@@ -60,5 +65,4 @@ def test_momentum_transfer_serial(reference_dir):
     # Check: total_pixels_in_detector = 256 * 192 with number of wave length
 
     return
-
 

@@ -247,12 +247,6 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0055):
     """
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
 
-    # Test shape
-    shape_test = qx**2 * (dwl / wl)**2 / 6.0
-    if isinstance(qx, np.ndarray):
-        print('[DEBUG SHAPE] dQ2_geo: {}, Part2: {}'.format(dq2_geo.shape, shape_test.shape))
-    # --- END DEBUG TEST ---
-
     return dq2_geo + qx**2 * (dwl / wl)**2 / 6.0
 
 
@@ -287,6 +281,5 @@ def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0043):
     """
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
-    print('[DEBUG] Resolution Y = {}'.format(dq2_geo + dq2_grav))
 
     return dq2_geo + dq2_grav + qy**2 * (dwl / wl)**2 / 6.0

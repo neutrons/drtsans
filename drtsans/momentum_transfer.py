@@ -149,6 +149,7 @@ def calculate_momentum_transfer(ws):
 
     unit_q_vector = np.zeros(shape=(num_spec, 3), dtype='float')
 
+    # TODO - k_out can be calculated in the vector operation by recording det_i_pos, the l2 is almost "free"
     for iws in range(num_spec):
         if spec_info.hasDetectors(iws) and not spec_info.isMonitor(iws):
             # calculate Qx, Qy, Qz

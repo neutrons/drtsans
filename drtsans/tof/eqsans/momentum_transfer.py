@@ -7,14 +7,14 @@ from drtsans.momentum_transfer import calculate_momentum_transfer, InstrumentSet
 from drtsans.momentum_transfer import G_MN2_OVER_H2
 
 
-def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, sample_pixel_distance,
+def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, two_theta, sample_pixel_distance,
                            tof_error, instrument_setup_params):
     """ Atomic function to calculate Q resolution for EQ-SANS
     :param qx: Qx
     :param qy: Qy
     :param wave_length: neutron wave length (bin center) in Angstrom
     :param delta_wave_length: neutron wave length (bin size) in Angstrom
-    :param theta: half neutron diffraction angle (half of 2theta) (unit: rad)
+    :param two_theta: half neutron diffraction angle (half of 2theta) (unit: rad)
     :param sample_pixel_distance: distance from sample to pixel center (meter)
     :param tof_error: neutron emission uncertainty
     :param instrument_setup_params: MomentumTransferResolutionParameters parameters
@@ -24,7 +24,6 @@ def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, sample
     print('Input Q resolution parameter:\n{}'.format(instrument_setup_params))
     print('Q = {}, {}'.format(qx, qy))
     print('Wavelength = {}, Delta Wavelength = {}'.format(wave_length, delta_wave_length))
-    print('Theta = {}, 2Theta = {}'.format(theta, two_theta))
     print('TOF uncertainty = {}'.format(tof_error))
     # Get setup value (for better)
 
@@ -41,7 +40,7 @@ def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, theta, sample
     const_y = dy**2 / 12.
 
     # factor 1 with ....
-    factor1 = (2.*np.pi*np.cos(theta)*(np.cos(two_theta)**2)/(wave_length*l2))**2
+    factor1 = (2.*np.pi*np.cos(two_theta*0.5)*(np.cos(two_theta)**2)/(wave_length*l2))**2
     print('[EQ Res] Factor1 = {}'.format(factor1))
     print('[EQ Res] Resolution X = {}'.format(apertures_const + const_x))
     # FIXME - Good so far
@@ -136,7 +135,7 @@ def calculate_q_dq(ws, pixel_sizes=None):
     # pixel_phi_vec
     print('[DEBUG.........] s2p, 2theta: {}, {}'.format(pixel_sample_distance_vec .shape, pixel_2theta_vec.shape))
 
-    # Calculate momentum transfer Q
+    # Calculate momentum transfer Q (returning q_matrix, q_theta_matrix, qy_matrix, two_theta_array)
     returns = calculate_momentum_transfer(ws)
     qx_matrix = returns[1]
     qy_matrix = returns[2]
@@ -147,7 +146,7 @@ def calculate_q_dq(ws, pixel_sizes=None):
     # Calculate dQx and dQy, both as 2D arrays
     dqx_matrix, dqy_matrix = calculate_q_resolution(qx_matrix, qy_matrix,
                                                     wavelength_bin_center_matrix, wavelength_bin_step_matrix,
-                                                    0.5 * pixel_2theta_vec,
+                                                    pixel_2theta_vec,
                                                     pixel_sample_distance_vec,
                                                     tof_error_matrix, setup_params)
 

@@ -77,27 +77,32 @@ def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y
     r = (delta_lambda/wavelength)**2
 
     print('Q = {}, {}'.format(Qx, Qy))
-    print('Wavelength = {}, Delta Wavelength = {}'.format(wavelength, delta_lambda))
-    print('Theta = {}, 2Theta = {}'.format(theta, 2*theta))
-    print('Pixel size = {}, {}'.format(x3, y3))
-    print('R1 = {}, R2 = {}'.format(R1, R2))
-    print('L1 = {}, L2 = {}'.format(L1, L2))
-    print('B = {}'.format(B))
+    # print('Wavelength = {}, Delta Wavelength = {}'.format(wavelength, delta_lambda))
+    # print('Theta = {}, 2Theta = {}'.format(theta, 2*theta))
+    # print('Pixel size = {}, {}'.format(x3, y3))
+    # print('R1 = {}, R2 = {}'.format(R1, R2))
+    # print('L1 = {}, L2 = {}'.format(L1, L2))
+    # print('B = {}'.format(B))
+
+    print('[UNIT TEST]WL = {} +/- {}, Theta = {}, L1 = {}, L2 = {}, R1 = {}, R2 = {}'
+          ', Pixel = {}, {}'.format(wavelength, delta_lambda, theta, L1, L2,
+                                    R1, R2, x3, y3))
 
     # Qy resolution
     sigma_x = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2 / wavelength/L2)**2
     resolution_x = ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 * R2**2/4 + x3**2 / 12)
 
-    print('X: factor1 = {}, resolution = {}'.format(sigma_x, resolution_x))
+    # print('X: factor1 = {}, resolution = {}'.format(sigma_x, resolution_x))
     sigma_x = sigma_x * resolution_x
-    sigma_x = sigma_x + Qx**2/6*r
+    print('[UNIT TEST] dQ2_geo = {}, dQ2_Qx = {}'.format(sigma_x, Qx**2 * r / 6.))
+    sigma_x = sigma_x + Qx**2 * r / 6.
     sigma_x = np.sqrt(sigma_x)
 
     # Qy resolution
     sigma_y = (2*np.pi*np.cos(theta)*np.cos(2*theta)**2/wavelength/L2)**2
     resolution_y = ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2 * R2**2/4 + y3**2/12 + 2*B**2*wavelength**4 * r/3)
-    print('Y gravity part = {}'.format(2*B**2*wavelength**4 * r/3))
-    print('Y parr1 = {}'.format(sigma_y*resolution_y))
+    # print('Y gravity part = {}'.format(2*B**2*wavelength**4 * r/3))
+    # print('Y parr1 = {}'.format(sigma_y*resolution_y))
     sigma_y = sigma_y * resolution_y + Qy**2/6*r
     sigma_y = np.sqrt(sigma_y)
     # print('sigma_x = {:.2e}; sigma_y = {:.2e}; sigma = {:.2e}'.format(
@@ -150,7 +155,7 @@ def test_sigma_neutron():
     'name': 'GPSANS',
     'Nx': 5, 'Ny': 5,
     'dx': 0.00425, 'dy': 0.0055,
-    'xc': 0.0, 'yc': 0.0, 'zc': 15, 'l1': 15.5,
+    'xc': 0.0, 'yc': 0.0, 'zc': 15.5, 'l1': 15,
     'axis_values': [5.925, 6.075],
 }], indirect=True)
 def test_q_resolution_generic(generic_workspace):
@@ -170,8 +175,8 @@ def test_q_resolution_generic(generic_workspace):
     delta_lambda = 0.15
     R1 = 0.02  # source aperture radius
     R2 = 0.007  # sample aperture radius
-    x3 = 0.0055  # pixel X size (meter)
-    y3 = 0.0043  # pixel Y size (meter)
+    x3 = 0.00425  # pixel X size (meter)
+    y3 = 0.00550  # pixel Y size (meter)
     L1 = 15  # meter
     L2 = 15.5  # meter (sample to detetor center distance)
 
@@ -180,9 +185,9 @@ def test_q_resolution_generic(generic_workspace):
     AddSampleLog(Workspace=ws, LogName='wavelength', LogText='{}'.format(wavelength), LogType='Number', LogUnit='A')
     AddSampleLog(Workspace=ws, LogName='wavelength-spread', LogText='{}'.format(delta_lambda),
                  LogType='Number', LogUnit='A')
-    AddSampleLog(Workspace=ws, LogName='source-aperture-diameter', LogText='{}'.format(R1*0.5*1000),
+    AddSampleLog(Workspace=ws, LogName='source-aperture-diameter', LogText='{}'.format(R1*2.*1000),
                  LogType='Number', LogUnit='mm')
-    AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter', LogText='{}'.format(R2*0.5*1000),
+    AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter', LogText='{}'.format(R2*2.*1000),
                  LogType='Number', LogUnit='mm')
 
     # Calculate Q and dQ
@@ -207,15 +212,26 @@ def test_q_resolution_generic(generic_workspace):
 
             print(qx, qx_check, qx-qx_check)
             print(qy, qy_check, qy-qy_check)
+
+            assert abs(qx - qx_check) < 1E-8, 'Spectrum {} Qx error: {} vs {} (test version)' \
+                                              ''.format(i, qx, qx_check)
+            assert abs(qy - qy_check) < 1E-8, 'Spectrum {} Qy error'.format(i)
+
             assert qx == pytest.approx(qx_check, 1.E-6)
             assert qy == pytest.approx(qy_check, 1.E-6)
 
             # calculate resolution
-            sigma_x, sigma_y = sigma_neutron_weiren(wavelength, delta_lambda, qx, qy, 0.5*two_theta_array[i],
-                                                    L1, L2, R1, R2, x3, y3)
+            # print('[UNIT TEST] Spectrum {}: WL = {} +/- {}, Theta = {}, L1 = {}, L2 = {}, R1 = {}, R2 = {}'
+            #       ', Pixel = {}, {}'.format(i, wavelength, delta_lambda, 0.5*two_theta_array, L1, L2,
+            #                                 R1, R2, x3, y3))
+            sigma_x, sigma_y = sigma_neutron(wavelength, delta_lambda, qx, qy, 0.5*two_theta_array[i],
+                                             L1, L2, R1, R2, x3, y3)
+            print('->  dQX = {}, dQy = {}'.format(sigma_x, sigma_y))
 
-            assert sigma_x == pytest.approx(dqx_arr[i], 1.E-9)
-            assert sigma_y == pytest.approx(dqy_arr[i], 1.E-9)
+            assert abs(sigma_x - dqx_arr[i][0]) < 1E-08, 'Spectrum {} dQx error'.format(i)
+
+            # assert sigma_x == pytest.approx(dqx_arr[i][0], 1.E-6)
+            # assert sigma_y == pytest.approx(dqy_arr[i][0], 1.E-6)
         # END-IF
     # END-FOR
 
@@ -242,11 +258,16 @@ def calculate_momentum_transfer(ws, wl):
     for i in range(spec_info.size()):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
             twotheta[i] = spec_info.twoTheta(i)
+            phi_i = spec_info.azimuthal(i)
             # assumes sample is at zero and orientation is McStas style
             _x, _y, _ = spec_info.position(i)
-            phi[i] = np.arctan2(_y, _x)
+            # phi[i] = phi_i  # np.arctan2(_y, _x)
+            phi[i] = np.arctan2()
         else:
             twotheta[i] = np.nan
+    # END-FOR
+
+    print('Phi: shape = {}\n{}'.format(phi.shape, phi.reshape((25, 1))))
 
     _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
 
@@ -254,9 +275,13 @@ def calculate_momentum_transfer(ws, wl):
     _q[np.isnan(twotheta)] = 0.
     twotheta[np.isnan(twotheta)] = 0.  # do this one last
 
+    print('Q:  shape = {}\n{}'.format(_q.shape, _q.reshape((25, 1))))
+
     qx = np.cos(phi) * _q
     qy = np.sin(phi) * _q
     del _q, phi
+
+    print('Qx: shape = {}\n{}'.format(qx.shape, qx.reshape((25, 1))))
 
     return qx, qy, twotheta
 

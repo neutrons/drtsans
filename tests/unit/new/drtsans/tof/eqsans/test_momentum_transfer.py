@@ -300,3 +300,71 @@ def skip_test_q_resolution_per_pixel(generic_IDF):
 #     print('sigma_x = {.9f} sigma_y = {.9f} sigma = {.9f}\n'.format(sigma_x, sigma_y, sigma_x+sigma_y))
 #
 #     return sigma_x, sigma_y
+
+# FIXME TODO - put this to 2 parts...
+#              1. Qx and Qy calculation
+#              2. Q resolution calculation
+def q_resolution_per_pixel_to_mod(ws):
+    """
+    Compute q resolution for each pixel, in each wavelength bin.
+
+    The resolution can be computed by giving a binned
+    workspace to this function:
+
+    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
+
+    The returned numpy arrays are of the same dimensions
+    as the input array.
+
+    Parameters
+    ----------
+    ws: MatrixWorkspace
+        Input workspace
+
+    Returns
+    ------
+    numpy array of the same dimension as the data
+    """
+    L1 = source_sample_distance(ws, unit='m', log_key='source-sample-distance')
+    L2 = sans_geometry.sample_detector_distance(ws, unit='m')
+    R1 = 0.5 * source_aperture_diameter(ws, unit='m')
+    R2 = 0.5 * sample_aperture_diameter(ws, unit='m')
+
+    wl_bounds = ws.extractX()
+    wl = (wl_bounds[:, 1:] + wl_bounds[:, :-1]) / 2.0
+    dwl = wl_bounds[:, 1:] - wl_bounds[:, :-1]
+
+    spec_info = ws.spectrumInfo()
+
+    # Sanity check
+    if not spec_info.size() == wl.shape[0]:
+        raise RuntimeError("X size mismatch: %s %s" %
+                           (spec_info.size(), wl.shape[0]))
+
+    twotheta = np.zeros_like(wl)
+    phi = np.zeros_like(wl)
+    s2p = np.zeros_like(wl)
+    for i in range(spec_info.size()):
+        if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
+            s2p[i] = spec_info.l2(i)
+            twotheta[i] = spec_info.twoTheta(i)
+            phi[i] = spec_info.azimuthal(i)
+        else:
+            twotheta[i] = np.nan
+
+    mask = np.isnan(twotheta)
+    _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
+    _q[mask] = 0.
+    twotheta[mask] = 0.  # do this one last
+    del mask
+
+    qx = np.cos(phi) * _q
+    qy = np.sin(phi) * _q
+    del _q, phi
+
+    dtof = moderator_time_uncertainty(wl)
+    theta = 0.5 * twotheta
+    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
+    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
+    return qx, qy, dqx, dqy
+

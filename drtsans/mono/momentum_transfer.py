@@ -39,6 +39,9 @@ def calculate_q_resolution(qx, qy,  wave_length, delta_wave_length, theta, instr
     #     thetay = 2.0 * np.arcsin(wave_length * np.fabs(qy) / 4.0 / np.pi)
     #     assert thetax == thetay
 
+    print('[DEBUG] WL = {} +/- {}\nTheta = {}\n{}'.format(wave_length, delta_wave_length,
+                                                          theta, instrument_setup_params))
+
     # Calculate dQx
     dqx = np.sqrt(_dqx2(qx,
                         instrument_setup_params.l1,
@@ -54,6 +57,8 @@ def calculate_q_resolution(qx, qy,  wave_length, delta_wave_length, theta, instr
                         instrument_setup_params.sample_aperture_radius,
                         wave_length, delta_wave_length, theta,
                         instrument_setup_params.pixel_size_y))
+
+    print('----> dQx = {}, dQy = {}'.format(dqx, dqy))
 
     return dqx, dqy
 
@@ -143,7 +148,6 @@ def retrieve_instrument_setup(ws, pixel_sizes):
         # User specified, overriding values from intrument directly
         size_x = pixel_sizes['x']
         size_y = pixel_sizes['y']
-
 
     # Set up the parameter class
     setup_params = InstrumentSetupParameters(l1=l1,
@@ -246,8 +250,17 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0055):
     float
     """
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
+    dq2_wl = qx**2 * (dwl / wl)**2 / 6.0
 
-    return dq2_geo + qx**2 * (dwl / wl)**2 / 6.0
+    if isinstance(qx, np.ndarray):
+        print('[DEBUG....SPECIAL] Qx   : shape = {} value = \n{}'
+              ''.format(qx.shape, qx))
+        print('[DEBUG....SPECIAL] Dq2_geo: shape = {} value = \n{}'
+              ''.format(dq2_geo.shape, dq2_geo))
+        print('[DEBUG....SPECIAL] Dq2_wl:  shape = {} value = \n{}'
+              ''.format(dq2_wl.shape, dq2_wl))
+
+    return dq2_geo + dq2_wl
 
 
 def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0043):

@@ -300,7 +300,7 @@ docs-next-host:
   only:
     - next
 
-scse-web-next:
+scse-web-next-dev1:
   stage: web-host
   dependencies:
     - docs-next
@@ -309,7 +309,33 @@ scse-web-next:
     - sudo mkdir -p /tmp/scse-web/docs/drt/sans
     - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
   tags:
-    - scse-web
+    - scse-web-dev1
+  only:
+    - next
+
+scse-web-next1:
+  stage: web-host
+  dependencies:
+    - docs-next
+  script:
+    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
+    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
+    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
+  tags:
+    - scse-web1
+  only:
+    - next
+
+scse-web-next2:
+  stage: web-host
+  dependencies:
+    - docs-next
+  script:
+    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
+    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
+    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
+  tags:
+    - scse-web2
   only:
     - next
 

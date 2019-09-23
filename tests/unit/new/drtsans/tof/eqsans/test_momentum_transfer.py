@@ -213,7 +213,7 @@ def test_single_value_resolution():
                                        pixel_size_y=0.0043)
 
     q_x_res, q_y_res = calculate_q_resolution(qx=qx, qy=qy, wave_length=wave_length, delta_wave_length=wl_resolution,
-                                              theta=0.5*two_theta, two_theta=two_theta,
+                                              two_theta=two_theta,
                                               sample_pixel_distance=sample_pixel_distance,
                                               tof_error=emission_error,
                                               instrument_setup_params=params)

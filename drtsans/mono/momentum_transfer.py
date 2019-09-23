@@ -78,7 +78,9 @@ def calculate_q_dq(ws, pixel_sizes=None):
 
     Returns
     ------
-    2D arrays for Q, Qx, dQx, Qy, dQy, which are of the same dimension as the data
+    ndarray, ndarray, ndarray, ndarry
+        Qx, Qy, dQx, dQy
+        2D arrays for Qx, dQx, Qy, dQy, which are of the same dimension as the data
     """
     # Check inputs and unit
     if ws is None:

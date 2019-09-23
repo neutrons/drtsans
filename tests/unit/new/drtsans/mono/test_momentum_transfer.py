@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from mantid.simpleapi import LoadHFIRSANS, AddSampleLog
+from drtsans.momentum_transfer import InstrumentSetupParameters
 from drtsans.mono.momentum_transfer import calculate_q_dq, calculate_q_resolution
 from drtsans.samplelogs import SampleLogs
 import scipy
@@ -133,7 +134,8 @@ def test_sigma_neutron():
     assert dqy == pytest.approx(dqy2, 1.E-12)
 
     # Calculate by drtsans.mono method
-    dqx3, dqy3 = calculate_q_resolution(Qx, Qy, L1, L2, R1, R2, wavelength, delta_lambda, theta, x3, y3)
+    setup = InstrumentSetupParameters(L1, L2, R1, R2, x3, y3)
+    dqx3, dqy3 = calculate_q_resolution(Qx, Qy, wavelength, delta_lambda, theta, setup)
 
     # Check
     assert dqx == pytest.approx(dqx3, 1E-12)
@@ -183,9 +185,11 @@ def test_q_resolution_generic(generic_workspace):
     AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter', LogText='{}'.format(R2*0.5*1000),
                  LogType='Number', LogUnit='mm')
 
-
     # Calculate Q and dQ
     qx_arr, qy_arr, dqx_arr, dqy_arr = calculate_q_dq(ws)
+    # Check dimension
+    assert qx_arr.shape == (25, 1)
+    assert dqy_arr.shape == (25, 1)
 
     # Calculate Q and 2theta (arrays)
     ver_qx_array, ver_qy_array, two_theta_array = calculate_momentum_transfer(ws, wavelength)
@@ -195,8 +199,8 @@ def test_q_resolution_generic(generic_workspace):
     for i in range(spec_info.size()):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
             # compare Qx and Qy
-            qx = qx_arr[i]
-            qy = qy_arr[i]
+            qx = qx_arr[i][0]
+            qy = qy_arr[i][0]
 
             qx_check = ver_qx_array[i]
             qy_check = ver_qy_array[i]

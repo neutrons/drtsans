@@ -4,7 +4,7 @@ import sys
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
-from ornl.sans.sns import eqsans  # noqa E402
+from drtsans.sns import eqsans  # noqa E402
 
 
 if __name__ == '__main__':
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         numQBins = int(json_params["binning"]["size"])
         log_binning = json_params["binning"]["useLog"]
 
-        iq_ws = eqsans.iq(table_ws, bins=numQBins, log_binning=log_binning)
+        iq_ws = eqsans.cal_iq(table_ws, bins=numQBins, log_binning=log_binning)
 
         suffix = ""
         if len(table_ws_list) > 1:

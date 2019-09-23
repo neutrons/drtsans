@@ -11,18 +11,18 @@ PYTHONPATH=. pytest -v -s tests/test_eqsansload.py
 '''
 
 
-@pytest.mark.skip(reason="Deprecated by eqsans.cfg")
+@pytest.mark.skip(reason="Deprecated by eqsans.correct_frame")
 def test_get_config_file():
-    from ornl.sans.sns.eqsans.parameters import _get_config_file
+    from drtsans.tof.eqsans.parameters import _get_config_file
     fn = '/SNS/EQSANS/shared/instrument_configuration/eqsans_configuration.{}'
     assert _get_config_file(71820) == fn.format(71820)
     assert _get_config_file(71821) == fn.format(71820)
     assert _get_config_file(72001) == fn.format(71820)
 
 
-@pytest.mark.skip(reason="Deprecated by eqsans.cfg")
+@pytest.mark.skip(reason="Deprecated by eqsans.correct_frame")
 def test_get_parameters():
-    from ornl.sans.sns.eqsans.parameters import get_parameters
+    from drtsans.tof.eqsans.parameters import get_parameters
     params = get_parameters(68200)
     assert params['detector pixel sizes'] == '5.5, 5.5'
     assert params['rectangular mask'].split('\n')[0] == '0 0;7 255'

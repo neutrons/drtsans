@@ -6,9 +6,10 @@ stages:
   - flake8
   - dockerbuild
   - test
-  - script-host
+  - web-host
+  - analysis-update
 
-flake8:
+flake8-feature:
   stage: flake8
   allow_failure: true
   before_script:
@@ -20,6 +21,22 @@ flake8:
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder
+  except:
+    - next
+
+flake8-next:
+  stage: flake8
+  before_script:
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 /opt/sans-backend"
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
+  only:
+    - next
 
 dockerbuild:
   stage: dockerbuild
@@ -73,11 +90,58 @@ docker-no-update-test:
   tags:
     - scse-sans-demo
 
-code-unit-test:
+docs-feature:
   stage: test
   dependencies:
     - dockerbuild
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - ls .
+    - popd
+  tags:
+    - scse-mantid-builder
+  except:
+    - next
+    - master
+
+docs-next:
+  stage: test
   allow_failure: true
+  dependencies:
+    - dockerbuild
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - ls .
+    - popd
+  after_script:
+    - cp -r /tmp/sans-backend/build/sphinx/html .
+  tags:
+    - scse-mantid-builder
+  only:
+    - next
+  artifacts:
+    paths:
+      -  html
+
+code-unit-test-feature:
+  stage: test
+  allow_failure: true
+  dependencies:
+    - dockerbuild
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
     - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
@@ -100,12 +164,15 @@ code-unit-test:
       junit: unit_test_results.xml
   tags:
     - scse-mantid-builder
+  except:
+    - next
+    - master
 
-code-integration-test:
+code-integration-test-feature:
   stage: test
+  allow_failure: true
   dependencies:
     - dockerbuild
-  allow_failure: true
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
     - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
@@ -128,9 +195,71 @@ code-integration-test:
       junit: integration_test_results.xml
   tags:
     - scse-mantid-builder
+  except:
+    - next
+    - master
+
+
+code-unit-test-next:
+  stage: test
+  dependencies:
+    - dockerbuild
+  before_script:
+    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
+    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
+    - popd
+  after_script:
+    - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
+  artifacts:
+    paths:
+      -  unit_test_results.xml
+    reports:
+      junit: unit_test_results.xml
+  tags:
+    - scse-mantid-builder
+  only:
+    - next
+
+code-integration-test-next:
+  stage: test
+  dependencies:
+    - dockerbuild
+  before_script:
+    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
+    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
+  script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
+    - pushd /tmp/sans-backend
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
+    - popd
+  after_script:
+    - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
+  artifacts:
+    paths:
+      -  integration_test_results.xml
+    reports:
+      junit: integration_test_results.xml
+  tags:
+    - scse-mantid-builder
+  only:
+    - next
 
 script-host:
-  stage: script-host
+  stage: web-host
   dependencies:
     - dockerbuild
   before_script:
@@ -148,3 +277,80 @@ script-host:
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-demo
+
+docs-next-host:
+  stage: web-host
+  dependencies:
+    - docs-next
+  before_script:
+    - sudo yum install -y httpd
+    - sudo rm -f /etc/httpd/conf.d/welcome.conf
+    - sudo systemctl restart httpd
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+  script:
+    - sudo mkdir -p /var/www/html/
+    - sudo ls -la /var/www/html/
+    - sudo cp -rf html/* /var/www/html/
+    - sudo chmod -R 755 /var/www/html/
+    - curl http://localhost/index.html
+    - sudo chown -R gitlab-runner .
+  tags:
+    - docs
+  only:
+    - next
+
+scse-web-next-dev1:
+  stage: web-host
+  dependencies:
+    - docs-next
+  script:
+    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
+    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
+    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
+  tags:
+    - scse-web-dev1
+  only:
+    - next
+
+scse-web-next1:
+  stage: web-host
+  dependencies:
+    - docs-next
+  script:
+    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
+    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
+    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
+  tags:
+    - scse-web1
+  only:
+    - next
+
+scse-web-next2:
+  stage: web-host
+  dependencies:
+    - docs-next
+  script:
+    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
+    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
+    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
+  tags:
+    - scse-web2
+  only:
+    - next
+
+analysis-update:
+  stage: analysis-update
+  before_script:
+    - sudo yum install -y nfs-utils
+    - sudo mkdir -p /SNS/software
+    - sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" 128.219.164.43:/volumes/datapool/sfw-rhel7-prod /SNS/software || true
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CONTAINER_URL
+    - ls /SNS/software/miniconda2
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-mantid-builder
+  only:
+    - next

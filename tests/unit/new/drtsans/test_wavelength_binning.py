@@ -1,4 +1,7 @@
+# https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 import pytest
+import numpy as np
+from mantid.simpleapi import Rebin
 
 
 @pytest.fixture
@@ -24,33 +27,37 @@ def fake_events():
 
 
 def test_linear(fake_events):
-    """Test linear binning by creating a workspace with fake events at specific wavelengths,
+    r"""Test linear binning by creating a workspace with fake events at specific wavelengths,
     binning into a histogram with specific binning parameters, and test against expected output.
     dev - Jiao Lin <linjiao@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>
+
+    **Mantid algorithms used:**
+    :ref:`Rebin <algm-Rebin-v1>`
 
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/208
     """
     # create a workspace with fake events with the given wavelengths
     ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
     # binning the events to linear bins 2.5, 2.6, 2.7, ..., 3.2
-    from mantid.simpleapi import Rebin
     # start, step, end of bin edges
     start, step, end = 2.5, 0.1, 3.2
-    # rebin
+    # rebin using Mantid algorithm Rebin
     ws = Rebin(InputWorkspace=ws, Params='{}, {}, {}'.format(start, step, end))
     # verify
-    import numpy as np
     assert np.allclose(ws.readX(0), np.arange(2.5, 3.21, .1))
     assert np.allclose(ws.readY(0), [1., 0., 1., 1., 0., 1., 1.])
     return
 
 
 def test_log(fake_events):
-    """Test constant dlambda/lambda binning by creating a workspace with fake events at specific wavelengths,
+    r"""Test constant dlambda/lambda binning by creating a workspace with fake events at specific wavelengths,
     binning into a histogram with specific binning parameters, and test against expected output.
     dev - Jiao Lin <linjiao@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>
+
+    **Mantid algorithms used:**
+    :ref:`Rebin <algm-Rebin-v1>`
 
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/207
     """
@@ -61,11 +68,9 @@ def test_log(fake_events):
     dlambda_over_lambda = 0.125/2.5
     # start, step, end of bin edges. negative means loglinear!
     start, step, end = 2.5, -dlambda_over_lambda, 3.36
-    # rebin
-    from mantid.simpleapi import Rebin
+    # rebin using Mantid algorithm Rebin
     ws = Rebin(InputWorkspace=ws, Params='{}, {}, {}'.format(start, step, end))
     # verify
-    import numpy as np
     assert np.allclose(
         ws.readX(0),
         [2.5, 2.625, 2.75625, 2.894063, 3.038766, 3.190704, 3.36]

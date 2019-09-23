@@ -295,8 +295,8 @@ class IofQCalculator(object):
         self._i_q_sigma = input_workspace.extractE().ravel()
 
         # Mask monitors and detectors pixels
-        masked_pixels = self.component.masked_ws_indices()
-        monitor_pixels = self.component.monitor_indeces()
+        masked_pixels = component.masked_ws_indices()
+        monitor_pixels = component.monitor_indices()  # TODO FIXME - check monitor_indices implemented?
         self._mask_pixels(masked_pixels, monitor_pixels)
 
         return

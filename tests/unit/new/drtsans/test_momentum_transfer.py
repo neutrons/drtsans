@@ -75,6 +75,7 @@ def verify_q(ws, q_matrix, qx_matrix, qy_matrix):
     # Arrays
     ratio_x_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
     ratio_y_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
+    ratio_z_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
     pixel_2theta_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
 
     # sample and moderator information: get K_i
@@ -95,13 +96,16 @@ def verify_q(ws, q_matrix, qx_matrix, qy_matrix):
         unit_q = k_out - k_in
         ratio_x_vec[iws] = unit_q[0] / linalg.norm(unit_q)
         ratio_y_vec[iws] = unit_q[1] / linalg.norm(unit_q)
+        ratio_z_vec[iws] = unit_q[2] / linalg.norm(unit_q)
     # END
 
     # Calculate Q = 4 pi sin(theta)/lambda
     prove_q_matrix = 4.0 * np.pi * np.sin(0.5 * pixel_2theta_vec) / wavelength_bin_center_matrix
+    # Note that Qx (used by SANS) is actually Q's component in X-Z plane
+    q_theta_matrix = np.sqrt((q_matrix * ratio_x_vec)**2 + (q_matrix * ratio_z_vec)**2)
 
     assert np.allclose(q_matrix, prove_q_matrix, rtol=1.E-10)
-    assert np.allclose(q_matrix * ratio_x_vec, qx_matrix, rtol=1.E-10)
+    assert np.allclose(q_theta_matrix, qx_matrix, rtol=1.E-10)
     assert np.allclose(q_matrix * ratio_y_vec, qy_matrix, rtol=1.E-10)
 
     return

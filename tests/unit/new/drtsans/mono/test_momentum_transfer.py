@@ -188,6 +188,9 @@ def test_q_resolution_generic(generic_workspace):
     # Calculate Q and dQ
     qx_arr, qy_arr, dqx_arr, dqy_arr = calculate_q_dq(ws)
     # Check dimension
+    print(ws.readX(0))
+    print(qx_arr.shape, qy_arr.shape, dqx_arr.shape, dqy_arr.shape)
+    print(dqx_arr[0])
     assert qx_arr.shape == (25, 1)
     assert dqy_arr.shape == (25, 1)
 

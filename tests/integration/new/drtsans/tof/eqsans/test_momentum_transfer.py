@@ -53,6 +53,7 @@ def test_momentum_transfer_serial(reference_dir):
                                                     rebin_end))
 
     bins = np.arange(rebin_start, rebin_end, rebin_step)
+    print(bins)
 
     # TODO - calculate q and dq
 

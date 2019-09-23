@@ -300,6 +300,19 @@ docs-next-host:
   only:
     - next
 
+scse-web-next:
+  stage: web-host
+  dependencies:
+    - docs-next
+  script:
+    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
+    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
+    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
+  tags:
+    - scse-web
+  only:
+    - next
+
 analysis-update:
   stage: analysis-update
   before_script:

@@ -13,6 +13,11 @@ from reduction_workflow.instruments.sans.hfir_command_interface import (
 from drtsans.momentum_transfer import calculate_momentum_transfer
 
 
+# This test implements issue #??? to verify methods to bin I(Q) for GP-SANS
+# DEV - Wenduo Zhou <petersonpf@ornl.gov>
+# SME - William Heller <hellerwt@ornl.gov>, Lisa???
+
+
 def skip_test_momentum_tranfer_wedge_anisotropic(gpsans_f):
     '''
     Tests the basic for momentum transfer:

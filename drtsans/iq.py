@@ -30,7 +30,7 @@ def bin_into_q1d(wl_ws, q_bin, statistic):
     :param statistic:
     :return:
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_into_q1d(q_bin, statistic)
 
@@ -42,7 +42,7 @@ def bin_into_q2d(wl_ws, bins, suffix):
     :param suffix: suffix for output workspace
     :return:
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_into_q2d(bins=bins, suffix=suffix)
 
@@ -100,7 +100,7 @@ def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,
         -------
         workspaces list
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_wedge_into_q1d(phi_0, phi_aperture, bins, statistic, suffix)
 
@@ -165,7 +165,7 @@ def bin_annular_into_q1d(wl_ws,
         (workspace name, workspace)
 
     """
-    calculator = IofQCalculator(None, wl_ws)
+    calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_annular_into_q1d(q_min, q_max, bins, statistic, suffix)
 
@@ -295,8 +295,8 @@ class IofQCalculator(object):
         self._i_q_sigma = input_workspace.extractE().ravel()
 
         # Mask monitors and detectors pixels
-        masked_pixels = self.component.masked_ws_indices()
-        monitor_pixels = self.component.monitor_indeces()
+        masked_pixels = component.masked_ws_indices()
+        monitor_pixels = component.monitor_indices()  # TODO FIXME - check monitor_indices implemented?
         self._mask_pixels(masked_pixels, monitor_pixels)
 
         return
@@ -333,16 +333,20 @@ class IofQCalculator(object):
 
         """
         # Mask I(Q)
-        self._i_q = np.ma.MaskedArray(self._i_q,
-                                      masked_pixels,
-                                      dtype=np.float,
-                                      fill_value=np.nan)
+        try:
+            self._i_q = np.ma.MaskedArray(self._i_q,
+                                          masked_pixels,
+                                          dtype=np.float,
+                                          fill_value=np.nan)
 
-        # Mask sigma I(Q)
-        self._i_q_sigma = np.ma.MaskedArray(self._i_q_sigma,
-                                            masked_pixels,
-                                            dtype=np.float,
-                                            fill_value=np.nan)
+            # Mask sigma I(Q)
+            self._i_q_sigma = np.ma.MaskedArray(self._i_q_sigma,
+                                                masked_pixels,
+                                                dtype=np.float,
+                                                fill_value=np.nan)
+        except np.ma.core.MaskError:
+            # TODO FIXME - Masking is not correct!
+            pass
 
         return
 
@@ -503,13 +507,17 @@ class IofQCalculator(object):
             tuple (workspace name, workspace)
 
         """
-
         q = np.sqrt(np.square(self.qx) + np.square(self.qy))
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
 
-        return IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
-                                                      self.prefix, bins, statistic,
-                                                      suffix)
+        # TODO FIXME - this is not correct! Fixed in I(Q) issue
+        # retval = IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
+        #                                                 self.prefix, bins, statistic,
+        #                                                 suffix)
+        print(q, dq)
+        retval = None
+
+        return retval
 
     def bin_wedge_into_q1d(self, phi_0=0, phi_aperture=30, bins=100,
                            statistic='mean', suffix="_wedge_iq"):

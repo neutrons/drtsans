@@ -9,6 +9,11 @@ from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
 from drtsans.momentum_transfer import calculate_momentum_transfer
 
 
+# This test implements issue #??? to verify methods to bin I(Q) for BIO-SANS
+# DEV - Wenduo Zhou <petersonpf@ornl.gov>
+# SME - William Heller <hellerwt@ornl.gov>, Lisa???
+
+
 # @pytest.mark.skip(reason="It doesn't pass on the build servers. "
 #                          "XML lib incompatibility.")
 def skip_test_momentum_tranfer_serial(biosans_f):

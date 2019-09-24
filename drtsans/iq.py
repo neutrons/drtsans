@@ -507,13 +507,15 @@ class IofQCalculator(object):
             tuple (workspace name, workspace)
 
         """
-
         q = np.sqrt(np.square(self.qx) + np.square(self.qy))
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
 
-        return IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
-                                                      self.prefix, bins, statistic,
-                                                      suffix)
+        # TODO FIXME - this is not correct! Fixed in I(Q) issue
+        retval = IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
+                                                        self.prefix, bins, statistic,
+                                                        suffix)
+
+        return retval
 
     def bin_wedge_into_q1d(self, phi_0=0, phi_aperture=30, bins=100,
                            statistic='mean', suffix="_wedge_iq"):

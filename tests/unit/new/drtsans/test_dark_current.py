@@ -3,7 +3,7 @@ import pytest
 from pytest import approx
 from mantid.simpleapi import Load
 from drtsans.settings import (amend_config, unique_workspace_dundername as uwd)
-import drtsans.sns.eqsans.dark_current as dkc
+import drtsans.tof.eqsans.dark_current as dkc
 
 
 @pytest.fixture(scope='module')

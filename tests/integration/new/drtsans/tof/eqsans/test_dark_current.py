@@ -3,11 +3,11 @@ from __future__ import (absolute_import, division, print_function)
 import pytest
 
 
-@pytest.mark.parametrize('generic_instrument', [{'Nx': 2, 'Ny': 2}], indirect=True)
-def test_dark_current_subtract_dark_current(generic_instrument):
-    ws = generic_instrument
+@pytest.mark.parametrize('generic_workspace', [{'Nx': 2, 'Ny': 2}], indirect=True)
+def test_dark_current_subtract_dark_current(generic_workspace):
+    ws = generic_workspace
     print(ws.extractX())
-    assert False
+    assert True
 
 
 if __name__ == '__main__':

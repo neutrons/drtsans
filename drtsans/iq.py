@@ -514,6 +514,7 @@ class IofQCalculator(object):
         # retval = IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
         #                                                 self.prefix, bins, statistic,
         #                                                 suffix)
+        print(q, dq)
         retval = None
 
         return retval

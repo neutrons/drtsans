@@ -2,8 +2,8 @@ from os.path import join as pjn
 import pytest
 from pytest import approx
 from mantid.simpleapi import Load
-from ornl.settings import (amend_config, unique_workspace_dundername as uwd)
-import ornl.sans.sns.eqsans.dark_current as dkc
+from drtsans.settings import (amend_config, unique_workspace_dundername as uwd)
+import drtsans.sns.eqsans.dark_current as dkc
 
 
 @pytest.fixture(scope='module')

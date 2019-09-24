@@ -100,7 +100,7 @@ def calculate_q_dq(ws, pixel_sizes=None):
     wl, dwl, setup_params = retrieve_instrument_setup(ws, pixel_sizes)
 
     # Calculate momentum_transfer Q
-    q, qx, qy, two_theta = calculate_momentum_transfer(ws)
+    q, qx, qy, two_theta, s2p = calculate_momentum_transfer(ws)
 
     # Calculate Q resolution
     dqx, dqy = calculate_q_resolution(qx, qy, wl, dwl, two_theta*0.5, setup_params)

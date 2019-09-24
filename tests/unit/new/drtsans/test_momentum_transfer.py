@@ -64,7 +64,7 @@ def verify_q(ws, q_matrix, qx_matrix, qy_matrix):
     """
     # Check dimension
     num_spec = ws.getNumberHistograms()
-    num_bins = ws.readY(0)[0]
+    num_bins = ws.readY(0).shape[0]
 
     assert q_matrix.shape == (num_spec, num_bins)
     assert qx_matrix.shape == (num_spec, num_bins)

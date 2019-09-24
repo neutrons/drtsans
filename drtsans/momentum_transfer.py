@@ -137,7 +137,7 @@ def calculate_momentum_transfer(ws):
 
     # Get instrument information
     spec_info = ws.spectrumInfo()
-    two_theta_array = np.zeros((spec_info.size(),))  # 2-theta array is 2D (N, ) left to mask
+    two_theta_array = np.zeros((spec_info.size(), 1))  # 2-theta array is 2D (N, ) left to mask
     phi_array = np.zeros((spec_info.size(), 1))  # phi array is 2D (N x 1)
     sample_pixel_distance_array = np.zeros((spec_info.size(), 1))  # s2p array is 2D (N x 1)
 
@@ -154,16 +154,13 @@ def calculate_momentum_transfer(ws):
     # END-FOR
 
     # Calculate momentum transfer
-    mask = np.isnan(two_theta_array)
+    mask = np.isnan(two_theta_array.reshape((spec_info.size(),)))  # mask must use a (N,) array to act one a 2D
     q_array = 4.0 * np.pi * np.sin(0.5 * two_theta_array) / wavelength_bin_center_matrix
     q_array[mask] = 0.
 
     # Calculate Qx and Qy
     qx_array = np.cos(phi_array) * q_array
     qy_array = np.sin(phi_array) * q_array
-
-    # set 2theta vector to (N, 1)
-    two_theta_array = two_theta_array.reshape((spec_info.size(), 1))
 
     # Clean memory
     del mask, phi_array

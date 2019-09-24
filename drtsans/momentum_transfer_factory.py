@@ -22,28 +22,23 @@ def calculate_q_dq(ws, pixel_sizes=None, instrument_type=None):
     -------
         2D arrays for Q, Qx, dQx, Qy, dQy
     """
-    if not isinstance(ws, list):
-        raise RuntimeError('Calculate Q dQ only accept workspace(s) as list but not {}'.format(type(ws)))
+    if isinstance(ws, list):
+        raise RuntimeError('Calculate Q dQ cannot accept workspace {} ({}) as a list.'
+                           ''.format(ws, type(ws)))
 
-    q_list = list()
+    # Identify the instrument
+    ws = AnalysisDataService.retrieve(str(ws))
 
-    for ws_i in ws:
-        # Identify the instrument
-        ws_i = AnalysisDataService.retrieve(str(ws_i))
+    if instrument_type == 'tof' or ws.getInstrument().getName() in TofSANS:
+        # TOF workspace (EQ-SANS or Generic)
+        q_set = tof_cal_q_dq(ws, pixel_sizes)
+    elif instrument_type == 'mono' or ws.getInstrument.getName() in MonoSANS:
+        # HFIR mono wavelength reactor
+        q_set = mono_cal_q_dq(ws, pixel_sizes)
+    else:
+        # Unsupported case
+        raise RuntimeError('Instrument {} is not supported without instrument type ({})is not specified'
+                           'or not supported'
+                           ''.format(ws.getInstrument().getName(), instrument_type))
 
-        if instrument_type == 'tof' or ws_i.getInstrument().getName() == TofSANS:
-            # TOF workspace (EQ-SANS or Generic)
-            q_set = tof_cal_q_dq(ws, pixel_sizes)
-        elif instrument_type == 'mono' or ws_i.getInstrument.getName() in MonoSANS:
-            # HFIR mono wavelength reactor
-            q_set = mono_cal_q_dq(ws, pixel_sizes)
-        else:
-            # Unsupported case
-            raise RuntimeError('Instrument {} is not supported without instrument type ({})is not specified'
-                               'or not supported'
-                               ''.format(ws_i.getInstrument().getName(), instrument_type))
-
-        q_list.append(q_set)
-    # END-FOR
-
-    return q_list
+    return q_set

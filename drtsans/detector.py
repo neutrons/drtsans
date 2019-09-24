@@ -78,6 +78,16 @@ class Component:
             self.first_index, self.first_index+self.dim_x*self.dim_y)]
         return np.array(mask_array)
 
+    # TODO - Implement!
+    def monitor_indices(self):
+        """
+
+        Returns
+        -------
+
+        """
+        return np.array([])
+
     def __str__(self):
         return "Component: {} with {} pixels (dim x={}, dim y={})." \
             " First index = {}.".format(

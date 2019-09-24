@@ -511,9 +511,10 @@ class IofQCalculator(object):
         dq = np.sqrt(np.square(self.dqx) + np.square(self.dqy))
 
         # TODO FIXME - this is not correct! Fixed in I(Q) issue
-        retval = IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
-                                                        self.prefix, bins, statistic,
-                                                        suffix)
+        # retval = IofQCalculator._bin_intensity_into_q1d(q, dq, self.i, self.i_sigma,
+        #                                                 self.prefix, bins, statistic,
+        #                                                 suffix)
+        retval = None
 
         return retval
 

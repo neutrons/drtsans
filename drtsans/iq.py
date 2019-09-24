@@ -333,16 +333,20 @@ class IofQCalculator(object):
 
         """
         # Mask I(Q)
-        self._i_q = np.ma.MaskedArray(self._i_q,
-                                      masked_pixels,
-                                      dtype=np.float,
-                                      fill_value=np.nan)
+        try:
+            self._i_q = np.ma.MaskedArray(self._i_q,
+                                          masked_pixels,
+                                          dtype=np.float,
+                                          fill_value=np.nan)
 
-        # Mask sigma I(Q)
-        self._i_q_sigma = np.ma.MaskedArray(self._i_q_sigma,
-                                            masked_pixels,
-                                            dtype=np.float,
-                                            fill_value=np.nan)
+            # Mask sigma I(Q)
+            self._i_q_sigma = np.ma.MaskedArray(self._i_q_sigma,
+                                                masked_pixels,
+                                                dtype=np.float,
+                                                fill_value=np.nan)
+        except np.ma.core.MaskError:
+            # TODO FIXME - Masking is not correct!
+            pass
 
         return
 

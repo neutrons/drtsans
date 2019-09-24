@@ -259,10 +259,7 @@ def calculate_momentum_transfer(ws, wl):
         if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
             twotheta[i] = spec_info.twoTheta(i)
             phi_i = spec_info.azimuthal(i)
-            # assumes sample is at zero and orientation is McStas style
-            _x, _y, _ = spec_info.position(i)
-            # phi[i] = phi_i  # np.arctan2(_y, _x)
-            phi[i] = np.arctan2()
+            phi[i] = np.arctan2(phi_i)
         else:
             twotheta[i] = np.nan
     # END-FOR

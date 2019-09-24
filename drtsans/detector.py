@@ -88,7 +88,6 @@ class Component:
         """
         return np.array([])
 
-
     def __str__(self):
         return "Component: {} with {} pixels (dim x={}, dim y={})." \
             " First index = {}.".format(

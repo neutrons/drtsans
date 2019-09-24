@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import linalg
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument, Rebin
 from drtsans.momentum_transfer import calculate_momentum_transfer

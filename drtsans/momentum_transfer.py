@@ -138,7 +138,6 @@ def calculate_momentum_transfer(ws):
 
     # Get instrument information
     spec_info = ws.spectrumInfo()
-    num_spec = spec_info.size()
     two_theta_array = np.zeros((spec_info.size(), 1))  # 2-theta array is 2D (N x 1)
     phi_array = np.zeros((spec_info.size(), 1))  # phi array is 2D (N x 1)
     sample_pixel_distance_array = np.zeros((spec_info.size(), 1))  # s2p array is 2D (N x 1)
@@ -158,6 +157,9 @@ def calculate_momentum_transfer(ws):
     mask = np.isnan(two_theta_array)
     q_array = 4.0 * np.pi * np.sin(0.5 * two_theta_array) / wavelength_bin_center_matrix
 
+    # TODO FIXME - broken here
+    print('[DEBUG SHAPE] two_theta_array: {}, q_array: {}, mask: {}'.format(two_theta_array.shape,
+                                                                            q_array.shape, mask))
     q_array[mask] = 0.
 
     # Calculate Qx and Qy

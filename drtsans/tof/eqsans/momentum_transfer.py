@@ -1,6 +1,6 @@
 import numpy as np
 
-from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
+# from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
 from drtsans import geometry as sans_geometry
 from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
 from drtsans.momentum_transfer import calculate_momentum_transfer, InstrumentSetupParameters

@@ -1,9 +1,9 @@
-from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (mtd, RebinToWorkspace, ConvertUnits,
                               Subtract, Scale, LoadEventNexus)
 
-from drtsans.settings import (namedtuplefy, amend_config,
+from drtsans.dark_current import counts_in_detector, duration
+from drtsans.settings import (amend_config,
                               unique_workspace_dundername as uwd)
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs

@@ -2,7 +2,7 @@ from dateutil.parser import parse as parse_date
 import numpy as np
 from mantid.simpleapi import (mtd, Integration, Transpose)
 from drtsans.settings import (namedtuplefy,
-                           unique_workspace_dundername as uwd)
+                              unique_workspace_dundername as uwd)
 from drtsans.samplelogs import SampleLogs
 
 

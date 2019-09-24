@@ -1,6 +1,5 @@
 from os.path import join as pjn
 import pytest
-from pytest import approx
 import numpy as np
 from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces, CreateWorkspace
 

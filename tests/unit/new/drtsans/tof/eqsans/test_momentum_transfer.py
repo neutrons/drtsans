@@ -1,10 +1,14 @@
 import numpy as np
+from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
+from drtsans import geometry as sans_geometry
+from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, AddTimeSeriesLog, Rebin, ConvertUnits
 from drtsans.tof.eqsans.momentum_transfer import calculate_q_dq, calculate_pixel_positions,\
     retrieve_instrument_setup
-from drtsans.tof.eqsans.momentum_transfer import calculate_q_resolution, InstrumentSetupParameters
+from drtsans.tof.eqsans.momentum_transfer import calculate_q_resolution, InstrumentSetupParameters,\
+    moderator_time_uncertainty
 from drtsans.tof.eqsans import load_events
 
 
@@ -368,3 +372,85 @@ def q_resolution_per_pixel_to_mod(ws):
     dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
     return qx, qy, dqx, dqy
 
+
+def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055, dtof=0.):
+    """
+    Q resolution in the horizontal direction.
+
+    Parameters
+    ----------
+    qx: float
+        value of q_x (1/Angstrom)
+    L1: float
+        source-to-sample distance (m)
+    L2: float
+        sample-to-detector distance (m)
+    R1: float
+        source aperture radius (m)
+    R2: float
+        sample aperture radius (m)
+    wl: float
+        wavelength mid-point (Angstrom)
+    dwl: float
+        wavelength-spread (Angstrom)
+    theta: float
+        scattering angle (rad)
+    s2p: float
+        sample-to-pixel (m)
+    pixel_size: float
+        dimension of the pixel (m)
+
+    Returns
+    ------
+    float
+    """
+    # If theta is not supplied, compute it from qx
+    # This simplifies the calculation for I(Q) in 1D.
+    if theta is None:
+        theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
+    dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
+    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
+    return dq2_geo + qx**2 * (dq_tof_term + (dwl / wl)**2) / 12.0
+
+
+def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043, dtof=0.):
+    """
+    Q resolution in vertical direction.
+
+    Parameters
+    ----------
+    qy: float
+        value of q_y (1/Angstrom)
+    L1: float
+        source-to-sample distance (m)
+    L2: float
+        sample-to-detector distance (m)
+    R1: float
+        source aperture radius (m)
+    R2: float
+        sample aperture radius (m)
+    wl: float
+        wavelength mid-point (Angstrom)
+    dwl: float
+        wavelength-spread (Angstrom)
+    theta: float
+        scattering angle (rad)
+    s2p: float
+        sample-to-pixel (m)
+    pixel_size: float
+        dimension of the pixel (m)
+
+    Returns
+    ------
+    float
+    """
+    # If theta is not supplied, compute it from qx
+    # This simplifies the calculation for I(Q) in 1D.
+    if theta is None:
+        theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
+    dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
+    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
+    dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
+    dq2 = dq2_geo + dq2_grav
+    dq2 += qy**2 * (dq_tof_term + (dwl / wl)**2) / 12.0
+    return dq2

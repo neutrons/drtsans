@@ -41,13 +41,13 @@ def test_calculate_momentum_transfer(generic_IDF):
         ws.dataE(i)[0] = init_delta_intensity[i]
 
     # TODO FIXME - Need to review because Qx and Qy are redefined
-    q, qx, qy, qz = calculate_momentum_transfer(ws)
+    q, qx, qy, two_theta, s2p = calculate_momentum_transfer(ws)
     verify_q(ws, q, qx, qy)
 
     # Test for multiple bins (wave lengths)
     ws = Rebin(InputWorkspace=ws, Params='2.5, 0.5, 4.5')
 
-    q, qx, qy, qz = calculate_momentum_transfer(ws)
+    q, qx, qy, qz, s2p = calculate_momentum_transfer(ws)
     verify_q(ws, q, qx, qy)
 
     return
@@ -63,49 +63,15 @@ def verify_q(ws, q_matrix, qx_matrix, qy_matrix):
     :param qy_matrix: N x M array (N is number of histogram, M is number of Q values)
     :return:
     """
-    # Obtain wave length
-    wavelength_bin_boundary_matrix = ws.extractX()
-    wavelength_bin_center_matrix = (wavelength_bin_boundary_matrix[:, 1:] +
-                                    wavelength_bin_boundary_matrix[:, :-1]) / 2.0
+    # Check dimension
+    num_spec = ws.getNumberHistograms()
+    num_bins = ws.readY(0)[0]
 
-    # Get instrument information
-    spec_info = ws.spectrumInfo()
-    num_spec = spec_info.size()
+    assert q_matrix.shape == (num_spec, num_bins)
+    assert qx_matrix.shape == (num_spec, num_bins)
+    assert qy_matrix.shape == (num_spec, num_bins)
 
-    # Arrays
-    ratio_x_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
-    ratio_y_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
-    ratio_z_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
-    pixel_2theta_vec = np.ndarray(shape=(num_spec, 1), dtype='float')
-
-    # sample and moderator information: get K_i
-    sample_pos = ws.getInstrument().getSample().getPos()
-    source_pos = ws.getInstrument().getSource().getPos()
-    k_in = sample_pos - source_pos
-    k_in /= linalg.norm(k_in)
-
-    for iws in range(num_spec):
-        # get 2theta
-        pixel_2theta_vec[iws, 0] = spec_info.twoTheta(iws)  # unit = radians
-
-        # calculate Qx, Qy, Qz
-        det_i_pos = ws.getDetector(iws).getPos()
-        k_out = det_i_pos - sample_pos
-        k_out /= linalg.norm(k_out)
-
-        unit_q = k_out - k_in
-        ratio_x_vec[iws] = unit_q[0] / linalg.norm(unit_q)
-        ratio_y_vec[iws] = unit_q[1] / linalg.norm(unit_q)
-        ratio_z_vec[iws] = unit_q[2] / linalg.norm(unit_q)
-    # END
-
-    # Calculate Q = 4 pi sin(theta)/lambda
-    prove_q_matrix = 4.0 * np.pi * np.sin(0.5 * pixel_2theta_vec) / wavelength_bin_center_matrix
-    # Note that Qx (used by SANS) is actually Q's component in X-Z plane
-    q_theta_matrix = np.sqrt((q_matrix * ratio_x_vec)**2 + (q_matrix * ratio_z_vec)**2)
-
-    assert np.allclose(q_matrix, prove_q_matrix, rtol=1.E-10)
-    assert np.allclose(q_theta_matrix, qx_matrix, rtol=1.E-10)
-    assert np.allclose(q_matrix * ratio_y_vec, qy_matrix, rtol=1.E-10)
+    # Test value
+    assert np.allclose(q_matrix**2, qx_matrix**2 + qy_matrix**2, rtol=1.E-10)
 
     return

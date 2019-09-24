@@ -105,14 +105,13 @@ class InstrumentSetupParameters(object):
 
 
 def calculate_momentum_transfer(ws):
-    """Calculate momentum transfer in vector by operating on source, sample and detector positions,
-    i.e., vec{q} = 2 pi (vec{k_out} - vec{k_in}) / lambda
+    """Calculate momentum transfer including scaler momentum transfer Q, azimuthal projection (Qx) and Qy
 
     Note:
     - N: number of spectra
     - M: number of wave length bins
-    - Qx: Q component at X-Z plane
-    - Qy: Q component at Y plane
+    - Qx: Azimuthal projection, as Q's projection to detector plane and then to X-axis (Q cos(phi))
+    - Qy: Orthogonal to azimuthal projection, i.e., Q sin (phi)
 
     Parameters
     ----------
@@ -120,8 +119,9 @@ def calculate_momentum_transfer(ws):
         Wavelength workspace to calculate momentum transfer from
     Returns
     -------
-    ndarray, ndarray, ndarray, ndarray
-        N x M matrix for Q, N x M matrix for Qx, N x M matrix for Qy, N array for 2theta,
+    ndarray, ndarray, ndarray, ndarray, ndarray
+        N x M matrix for Q, N x M matrix for Qx, N x M matrix for Qy, (N, 1) array for 2theta,
+        (N, 1) for sample pixel distance
 
     """
     # Check inputs and unit
@@ -140,43 +140,34 @@ def calculate_momentum_transfer(ws):
     spec_info = ws.spectrumInfo()
     num_spec = spec_info.size()
     two_theta_array = np.zeros((spec_info.size(), 1))  # 2-theta array is 2D (N x 1)
+    phi_array = np.zeros((spec_info.size(), 1))  # phi array is 2D (N x 1)
+    sample_pixel_distance_array = np.zeros((spec_info.size(), 1))  # s2p array is 2D (N x 1)
 
-    # sample and moderator information: get K_i
-    sample_pos = ws.getInstrument().getSample().getPos()
-    source_pos = ws.getInstrument().getSource().getPos()
-    k_in = sample_pos - source_pos
-    k_in /= linalg.norm(k_in)
-
-    unit_q_vector = np.zeros(shape=(num_spec, 3), dtype='float')
-
-    # TODO - k_out can be calculated in the vector operation by recording det_i_pos, the l2 is almost "free"
-    for iws in range(num_spec):
-        if spec_info.hasDetectors(iws) and not spec_info.isMonitor(iws):
-            # calculate Qx, Qy, Qz
-            det_i_pos = ws.getDetector(iws).getPos()
-            k_out = det_i_pos - sample_pos
-            k_out /= linalg.norm(k_out)
-            unit_q_vector[iws] = k_out - k_in
-
-            # 2theta
-            two_theta_array[iws][0] = spec_info.twoTheta(iws)
-        # otherwise, unit_q_vector[iws] is zero
+    # Get instrument geometry information
+    for i in range(spec_info.size()):
+        if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
+            sample_pixel_distance_array[i] = spec_info.l2(i)
+            two_theta_array[i] = spec_info.twoTheta(i)
+            phi_array[i] = spec_info.azimuthal(i)
+        else:
+            two_theta_array[i] = np.nan
     # END-FOR
 
-    # Calculate Q from unit Q vector and 2pi/lambda
-    qx_matrix = 2.*np.pi*unit_q_vector[:, 0].reshape((num_spec, 1)) / wavelength_bin_center_matrix
-    qy_matrix = 2.*np.pi*unit_q_vector[:, 1].reshape((num_spec, 1)) / wavelength_bin_center_matrix
-    qz_matrix = 2.*np.pi*unit_q_vector[:, 2].reshape((num_spec, 1)) / wavelength_bin_center_matrix
+    # Calculate momentum transfer
+    # Get mask
+    mask = np.isnan(two_theta_array)
+    q_array = 4.0 * np.pi * np.sin(0.5 * two_theta_array) / wavelength_bin_center_matrix
 
-    q_matrix = np.sqrt(qx_matrix**2 + qy_matrix**2 + qz_matrix**2)
-    q_theta_matrix = np.sqrt(qx_matrix**2 + qz_matrix**2)
+    q_array[mask] = 0.
 
-    # print('[DEBUG] Q  matrix: shape={}\n{}'.format(q_matrix.shape, q_matrix))
-    # print('[DEBUG] Qx matrix: shape={}\n{}'.format(qx_matrix.shape, qx_matrix))
-    # print('[DEBUG] Qy matrix: shape={}\n{}'.format(qy_matrix.shape, qy_matrix))
-    # print('[DEBUG] Qz matrix: shape={}\n{}'.format(qz_matrix.shape, qz_matrix))
+    # Calculate Qx and Qy
+    qx_array = np.cos(phi_array) * q_array
+    qy_array = np.sin(phi_array) * q_array
 
-    return q_matrix, q_theta_matrix, qy_matrix, two_theta_array
+    # Clean memory
+    del mask, phi_array
+
+    return q_array, qx_array, qy_array, two_theta_array, sample_pixel_distance_array
 
 
 def dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size=0.007):

@@ -1,3 +1,4 @@
+from drtsans import subtract_background
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
 from drtsans.settings import unique_workspace_dundername as uwd
 # https://docs.mantidproject.org/nightly/algorithms/CompareWorkspaces-v1.html
@@ -78,7 +79,7 @@ def test_subtract_background():
     expected = create_workspace('custom', I_output, Sig_output)
 
     # do the calculation using the framework
-    observed = data - scale * background
+    observed = subtract_background(data, background, scale=scale_factor, scale_error=Sig_scale)
 
     # check the results
     np.testing.assert_equal(observed.extractY(), expected.extractY())

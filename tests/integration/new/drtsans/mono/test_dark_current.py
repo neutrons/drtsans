@@ -1,20 +1,25 @@
 import pytest
 import numpy as np
 
+from drtsans.mono.dark_current import normalise_to_workspace
+from drtsans.samplelogs import SampleLogs
+
 x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
 I_dc = (x + y) * 2. + 5.
-t_sam = 5  # sample measure for 100s
-t_dc = 3600  # dark current collected for 1 hr.
-np.set_printoptions(precision=4, suppress=True)
+t_sam = 5.  # sample measure for 100s
+t_dc = 3600.  # dark current collected for 1 hr.
 
 
-@pytest.mark.parametrize('generic_workspace', [{'Nx': 5, 'Ny': 5}], indirect=True)
-def test_dark_current_subtract_dark_current(generic_workspace):
-    ws = generic_workspace
+@pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 5, 'Ny': 5}], indirect=True)
+def test_dark_current_normalize_to_workspace(workspace_with_instrument):
+    data_ws = workspace_with_instrument(intensities=np.zeros((5, 5)), view='pixel')
+    SampleLogs(data_ws).insert('duration', t_sam, 'second')
+    dark_ws = workspace_with_instrument(intensities=np.array(I_dc),
+                                        view='pixel')
+    SampleLogs(dark_ws).insert('duration', t_dc, 'second')
+    normalise_to_workspace(dark_ws, data_ws)
     I_dcnorm_step = t_sam / t_dc * I_dc
-    print(I_dcnorm_step)
-    assert False
-    #assert np.allclose(ws.extractY().ravel(), I_dcnorm_step.ravel())
+    assert np.allclose(dark_ws.extractY().ravel(), I_dcnorm_step.ravel())
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ np.set_printoptions(precision=4, suppress=True)
 def test_normalize_dark_current(workspace_with_instrument):
     wavelength_bin = [l_min, l_max]
 
-    data_ws = workspace_with_instrument(axis_values=wavelength_bin, intensities=np.zeros((5, 5, 1)),view='array')
+    data_ws = workspace_with_instrument(axis_values=wavelength_bin, intensities=np.zeros((5, 5, 1)), view='array')
 
     dark_ws = workspace_with_instrument(axis_values=wavelength_bin, intensities=np.array(I_dc).reshape((5, 5, 1)),
                                         view='array')
@@ -47,10 +47,10 @@ def test_normalize_dark_current(workspace_with_instrument):
     # note: the l_max - l_min should be same size(but different unit) as the t_frame - t_low - t_high
     I_dcnorm_step = t_sam / t_dc * ((t_frame - t_low - t_high) / t_frame) * (l_step / (l_max - l_min)) * I_dc
     print(I_dcnorm_step)
-    result = normalise_to_workspace(dark_ws, data_ws).extractY().reshape(5,5)
+    result = normalise_to_workspace(dark_ws, data_ws).extractY().reshape(5, 5)
     print(result/I_dcnorm_step)
-    #subtract_dark_current(data_ws, dark_ws)
-    #print(data_ws.extractY().reshape(5, 5)/I_dcnorm_step)
+    # subtract_dark_current(data_ws, dark_ws)
+    # print(data_ws.extractY().reshape(5, 5)/I_dcnorm_step)
     assert False
     # assert np.allclose(dark_ws.extractY().ravel(), I_dcnorm_step.ravel())
 

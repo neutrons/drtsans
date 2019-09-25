@@ -1,6 +1,8 @@
-from mantid.simpleapi import Multiply, Subtract
-
+from mantid.simpleapi import Multiply, Subtract, mtd, CreateSingleValuedWorkspace
+from drtsans.settings import (unique_workspace_dundername as uwd)
 from drtsans.dark_current import duration
+
+__all__ = ['subtract_dark_current', 'normalise_to_workspace']
 
 
 def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
@@ -40,7 +42,7 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
     return mtd[output_workspace]
 
 
-def subtract_normalised_dark(data_ws, dark_current_ws, output_workspace=None):
+def subtract_dark_current(data_ws, dark_current_ws, output_workspace=None):
     r"""
     Subtract normalized dark from data, taking into account the duration
     of both `data` and `dark` runs.
@@ -64,7 +66,6 @@ def subtract_normalised_dark(data_ws, dark_current_ws, output_workspace=None):
     """
 
     normalise_to_workspace(data_ws, dark_current_ws, output_workspace=str(dark_current_ws))
-    time_workspace = CreateSingleValuedWorkspace(t_sam/t_data, OutputWorkspace=uwd())
     Subtract(LHSWorkspace=data_ws,
              RHSWorkspace=dark_current_ws,
              OutputWorkspace=output_workspace)

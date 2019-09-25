@@ -28,10 +28,6 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
         Dark current workspace with units in time-of-flight
     data_ws: str, MatrixWorkspace
         Sample scattering with intensities versus wavelength
-    log_key: str
-        Log key to search for duration of the runs. if `None`, the function
-        does a sequential search for entries 'duration', 'proton_charge',
-        and 'timer'
     output_workspace : str
         Name of the normalised dark workspace. If None, the name of the input
         workspace `dark_ws` is chosen (and the input workspace is overwritten).

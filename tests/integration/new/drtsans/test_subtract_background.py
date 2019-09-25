@@ -75,10 +75,9 @@ def test_subtract_background():
     # create workspaces with the input data
     data = create_workspace('data')
     background = create_workspace('background')
-    scale = create_workspace('custom', scale_factor, Sig_scale, x=42.)  # only workspaces can carry errors
     expected = create_workspace('custom', I_output, Sig_output)
 
-    # do the calculation using the framework
+    # do the calculation using the framework in-place
     observed = subtract_background(data, background, scale=scale_factor, scale_error=Sig_scale)
 
     # check the results
@@ -86,11 +85,8 @@ def test_subtract_background():
     np.testing.assert_almost_equal(observed.extractE(), expected.extractE())  # sqrts aren't quite the same
 
     # cleanup workspaces that were created
-    DeleteWorkspace(data)
-    DeleteWorkspace(background)
-    DeleteWorkspace(scale)
-    DeleteWorkspace(expected)
-    DeleteWorkspace(observed)
+    for wksp in [data, background, expected]:
+        DeleteWorkspace(wksp)
 
 
 if __name__ == '__main__':

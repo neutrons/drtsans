@@ -1,7 +1,7 @@
 import numpy as np
 from mantid.api import mtd
 from mantid.dataobjects import MaskWorkspace
-from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, ExtractMask, MaskSpectra)
+from mantid.simpleapi import (LoadMask, MaskDetectors, MaskBTP, ExtractMask, MaskSpectra, FindDetectorsInShape)
 from drtsans.settings import unique_workspace_dundername as uwd
 
 
@@ -100,3 +100,35 @@ def mask_spectra_with_special_values(input_workspace, output_workspace=None):
         MaskSpectra(InputWorkspace=input_workspace, InputWorkspaceIndexType='WorkspaceIndex',
                     InputWorkspaceIndexSet=non_finite_indexes, OutputWorkspace=output_workspace)
     return len(non_finite_indexes)
+
+
+def circular_mask_from_beam_center(input_workspace, radius, unit='mm'):
+    """
+    Find the detectors ID's within a certain radius from the beam center
+
+    Parameters
+    ----------
+    input_workspace: MatrixWorkspace
+        Workspace containing the detector already beam-centered
+    radius: float
+        Radius of the circle encompassing the detectors of interest.
+    unit: str
+        Either 'mm' or 'm', unit of the `radius` option.
+
+    Returns
+    -------
+    numpy.ndarray
+        List of detector ID's
+    """
+    r = radius * 1e-3 if unit == 'mm' else radius
+
+    cylinder = r"""
+    <infinite-cylinder id="shape">
+        <centre x="0.0" y="0.0" z="0.0" />
+        <axis x="0.0" y="0.0" z="1" />
+        <radius val="{}" />
+    </infinite-cylinder>
+    <algebra val="shape" />
+    """.format(r)
+    det_ids = FindDetectorsInShape(Workspace=input_workspace, ShapeXML=cylinder)
+    return det_ids

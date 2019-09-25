@@ -105,3 +105,48 @@ def find_edges(intensities, tube_threshold=0.2, shadow_threshold=0.3,
     return dict(bottom_pixel=bottom_pixel, top_pixel=top_pixel,
                 bottom_shadow_pixel=bottom_shadow_pixel,
                 above_shadow_pixel=above_shadow_pixel)
+
+
+@namedtuplefy
+def fit_positions(edge_pixels, bar_positions, tube_pixels=256):
+    r"""
+    Fit the position and heights of the pixels in a tube. The bar_positions as a function of
+    edge pixels are fitted to a 5th degree polynomial. The positions of the pixels along the
+    tube are the values of the polynomial at integer points, while the heights are the derivatives.
+
+    Description from the master requirements document, section A2.1
+
+    All pixel indexes start from the bottom of the tube, with the first
+    index being zero.
+
+    Uses :ref:`~numpy.polynomial.polynomial.polyfit`.
+
+    Parameters
+    ----------
+    edge_pixels: list (or numpy array)
+        the bottom pixel for each bar position, as found in `find_edges` function
+    bar_positions: list (or numpy array)
+        the bar position from the logs for each file in the bar scan
+    tube_pixels: integer
+        number of pixels for which to calculate positions and heights
+
+    Returns
+    -------
+    namedtuple
+        the fields of the name tuple are:
+        - calculated_positions: calculated positions of the pixels
+        - calculated_heights: calculated pixel heights
+    """
+    message_len = 'The positions of the bar and edge pixels have to be the same length'
+    assert len(edge_pixels == bar_positions), message_len
+
+    # fit the bar positions to a 5th degree polynomial in edge_pixels
+    coefficients = np.polynomial.polynomial.polyfit(edge_pixels, bar_positions, 5)
+    # calculate the coefficients of the derivative
+    deriv_coefficients = np.polynomial.polynomial.polyder(coefficients)
+    # evalutae the positions
+    calculated_positions = np.polynomial.polynomial.polyval(np.arange(tube_pixels), coefficients)
+    # evaluate the heights
+    calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
+
+    return dict(calculated_positions=calculated_positions, calculated_heights=calculated_heights)

@@ -9,7 +9,7 @@ from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
 
-__all__ = ['subtract_dark_current', ]
+__all__ = ['subtract_dark_current', 'normalise_to_workspace']
 
 
 def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):

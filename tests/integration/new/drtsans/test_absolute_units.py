@@ -87,4 +87,3 @@ def test_empty_beam_intensity(workspace_with_instrument):
     normalized_intensity = Divide(LHSWorkspace='sample_intensity', RHSWorkspace='empty_beam_intensity')
     assert normalized_intensity.readY(0)[0] == pytest.approx(0.04229, abs=1e-05)
     assert normalized_intensity.readE(0)[0] == pytest.approx(0.00046, abs=1e-05)
-

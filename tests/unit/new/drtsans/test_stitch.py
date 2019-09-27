@@ -27,17 +27,20 @@ def test_stitch(reference_dir):
         # plot
         from matplotlib import pyplot as plt
         fig, ax = plt.subplots()
-        ax.plot(expected_q, expected_y, '+', label='expected')
-        ax.plot(q1, y1, 'v', label='low q')
-        ax.plot(q2, y2*scale, 'o', label='high q scaled')
-        ax.plot(qout, yout, label='stitched')
+        ax.loglog(expected_q, expected_y, '+', label='expected')
+        ax.loglog(q1, y1, 'v', label='low q')
+        ax.loglog(q2, y2*scale, 'o', label='high q scaled')
+        ax.loglog(qout, yout, label='stitched')
+        ax.plot([startoverlap, startoverlap], [0, np.max(yout)*10], 'k-')
+        ax.plot([stopoverlap, stopoverlap], [0, np.max(yout)*10], 'k-')
+        ax.set_ylim(0, np.max(yout)*1.1)
         ax.legend()
-        plt.savefig("stitch.pdf")
+        plt.savefig("stitch.png")
     # check
-    assert np.allclose(qout, expected_q)
-    assert np.allclose(yout, expected_y, rtol=2e-4)
-    assert np.allclose(erryout, expected_err, rtol=2e-4)
-    assert np.allclose(errqout, expected_errq, rtol=2e-4)
+    np.testing.assert_almost_equal(qout, expected_q)
+    np.testing.assert_almost_equal(yout, expected_y, decimal=4)
+    np.testing.assert_almost_equal(erryout, expected_err, decimal=4)
+    np.testing.assert_almost_equal(errqout, expected_errq, decimal=7)
     return
 
 

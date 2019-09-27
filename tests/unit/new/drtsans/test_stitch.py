@@ -1,10 +1,6 @@
 import os, numpy as np
 import pytest
-from mantid.simpleapi import (CompareWorkspaces, Load,
-                              LoadEmptyInstrument,
-                              MoveInstrumentComponent)
-from mantid.simpleapi import CreateWorkspace, WorkspaceFactory, Stitch1D
-from drtsans import solid_angle_correction
+from mantid.simpleapi import Load, CreateWorkspace, WorkspaceFactory, Stitch1D
 
 
 def test_stitch(reference_dir):

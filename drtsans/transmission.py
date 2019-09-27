@@ -2,11 +2,12 @@ import numpy as np
 
 from mantid import mtd
 from mantid.kernel import logger
-from mantid.simpleapi import (ApplyTransmissionCorrection, Divide, FindDetectorsInShape, GroupDetectors,
-                              ReplaceSpecialValues, RebinToWorkspace)
+from mantid.simpleapi import (ApplyTransmissionCorrection, Divide, GroupDetectors, ReplaceSpecialValues,
+                              RebinToWorkspace)
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import masked_detectors
+from drtsans.mask_utils import circular_mask_from_beam_center
 
 
 # To-do. This should be substituted with a function similar to
@@ -62,40 +63,6 @@ def beam_radius(input_workspace, unit='mm',
     return radius if unit == 'mm' else 1e-3 * radius
 
 
-def detector_ids(input_workspace, radius, unit='mm'):
-    """
-    Find the detectors ID's within a certain radius from the beam center
-
-    Parameters
-    ----------
-    input_workspace: MatrixWorkspace
-        Workspace containing the detector already beam-centered
-    radius: float
-        Radius of the circle encompassing the detectors of interest.
-    unit: str
-        Either 'mm' or 'm', unit of the `radius` option.
-
-    Returns
-    -------
-    numpy.ndarray
-        List of detector ID's
-    """
-    radius = radius * 1e-3 if unit == 'mm' else float(radius)
-
-    cylinder = r"""
-    <infinite-cylinder id="shape">
-        <centre x="0.0" y="0.0" z="0.0" />
-        <axis x="0.0" y="0.0" z="1" />
-        <radius val="{}" />
-    </infinite-cylinder>
-    <algebra val="shape" />
-    """.format(radius)
-
-    det_ids = FindDetectorsInShape(Workspace=input_workspace,
-                                   ShapeXML=cylinder, IncludeMonitors=False)
-    return det_ids
-
-
 def calculate_transmission(input_sample, input_reference,
                            radius=None, radius_unit='mm',
                            output_workspace=None):
@@ -134,11 +101,12 @@ def calculate_transmission(input_sample, input_reference,
         logger.information('Calculating beam radius from sample logs')
         radius = beam_radius(input_reference, unit='mm')
     else:
+
         radius = float(radius) if radius_unit == 'mm' else 1.e3 * radius  # to mm
     if radius <= 0.:
         raise ValueError('Encountered negative beam radius={}mm'.format(radius))
 
-    det_ids = detector_ids(input_reference, radius, unit='mm')
+    det_ids = circular_mask_from_beam_center(input_reference, radius, unit='mm')
     if not det_ids:
         raise RuntimeError('No pixels in beam with radius of {:.2f} mm'.format(radius))
 

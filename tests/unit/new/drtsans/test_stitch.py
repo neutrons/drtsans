@@ -5,14 +5,16 @@ from drtsans.stitch import stitch
 
 
 def test_stitch(reference_dir):
+    # function to load test data
     def loadData(filename):
         datadir = os.path.join(reference_dir.new.eqsans, "test_stitch")
         data = os.path.join(datadir, filename)
         x,y,erry,errx = np.loadtxt(data, skiprows=2).T
         return x,y,erry,errx
-    # load data
+    # load test data
     (x1, y1, erry1, errx1) = loadData("sMCM_cc_4m_Iq.txt")
     (x2, y2, erry2, errx2) = loadData("sMCM_cc_hq_Iq.txt")
+    # parameters for stitching
     startoverlap, stopoverlap = 0.04, 0.08
     # stitch
     xout, yout, erryout, errxout, scale = stitch(x1,y1,erry1,errx1, x2,y2,erry2,errx2, startoverlap, stopoverlap)
@@ -21,7 +23,6 @@ def test_stitch(reference_dir):
     fig, ax = plt.subplots()
     expected_x,expected_y,expected_err,expected_errx = loadData("sMCM_cc_stitched.txt")
     ax.plot(expected_x, expected_y, '+', label='expected')
-    # ax.errorbar(stitched)
     ax.plot(x1, y1, 'v', label='low q')
     ax.plot(x2, y2*scale, 'o', label='high q scaled')
     ax.plot(xout, yout, label='stitched')

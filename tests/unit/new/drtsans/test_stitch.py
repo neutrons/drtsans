@@ -12,30 +12,32 @@ def test_stitch(reference_dir):
     def loadData(filename):
         datadir = os.path.join(reference_dir.new.eqsans, "test_stitch")
         data = os.path.join(datadir, filename)
-        x,y,erry,errx = np.loadtxt(data, skiprows=2).T
-        return x,y,erry,errx
+        q,y,erry,errq = np.loadtxt(data, skiprows=2).T
+        return q,y,erry,errq
     # load test data
-    (x1, y1, erry1, errx1) = loadData("sMCM_cc_4m_Iq.txt")
-    (x2, y2, erry2, errx2) = loadData("sMCM_cc_hq_Iq.txt")
+    (q1, y1, erry1, errq1) = loadData("sMCM_cc_4m_Iq.txt")
+    (q2, y2, erry2, errq2) = loadData("sMCM_cc_hq_Iq.txt")
     # parameters for stitching
     startoverlap, stopoverlap = 0.04, 0.08
     # stitch
-    xout, yout, erryout, errxout, scale = stitch(x1,y1,erry1,errx1, x2,y2,erry2,errx2, startoverlap, stopoverlap)
-    # expected result
-    expected_x,expected_y,expected_err,expected_errx = loadData("sMCM_cc_stitched.txt")
+    qout, yout, erryout, errqout, scale = stitch(q1,y1,erry1,errq1, q2,y2,erry2,errq2, startoverlap, stopoverlap)
+    # expected results
+    expected_q,expected_y,expected_err,expected_errq = loadData("sMCM_cc_stitched.txt")
     if not headless:
         # plot
         from matplotlib import pyplot as plt
         fig, ax = plt.subplots()
-        ax.plot(expected_x, expected_y, '+', label='expected')
-        ax.plot(x1, y1, 'v', label='low q')
-        ax.plot(x2, y2*scale, 'o', label='high q scaled')
-        ax.plot(xout, yout, label='stitched')
+        ax.plot(expected_q, expected_y, '+', label='expected')
+        ax.plot(q1, y1, 'v', label='low q')
+        ax.plot(q2, y2*scale, 'o', label='high q scaled')
+        ax.plot(qout, yout, label='stitched')
         ax.legend()
         plt.savefig("stitch.pdf")
     # check
-    assert np.allclose(xout, expected_x)
+    assert np.allclose(qout, expected_q)
     assert np.allclose(yout, expected_y, rtol=2e-4)
+    assert np.allclose(erryout, expected_err, rtol=2e-4)
+    assert np.allclose(errqout, expected_errq, rtol=2e-4)
     return
 
 

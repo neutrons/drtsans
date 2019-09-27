@@ -349,7 +349,7 @@ analysis-update:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - ls /SNS/software/miniconda2
-    - docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -u 13972:52321 -w /tmp $CONTAINER_URL bash -c "export PATH=/SNS/software/miniconda2/bin:$PATH; source activate sans; conda install -q -y  -c mantid/label/nightly mantid-framework; pip install https://$CI_USER:$CI_PASS@code.ornl.gov/sns-hfir-scse/sans/sans-backend.git"
+    - docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -w /tmp $CONTAINER_URL bash -c "scripts/analysis-update-user.sh"
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder

@@ -1,6 +1,7 @@
-import os, numpy as np
+# flake8: noqa
+import os
+import numpy as np
 import pytest
-from mantid.simpleapi import Load, CreateWorkspace, WorkspaceFactory, Stitch1D
 from drtsans.stitch import stitch
 
 headless = 'DISPLAY' not in os.environ or not os.environ['DISPLAY']
@@ -20,11 +21,12 @@ def test_stitch(reference_dir):
     startoverlap, stopoverlap = 0.04, 0.08
     # stitch
     xout, yout, erryout, errxout, scale = stitch(x1,y1,erry1,errx1, x2,y2,erry2,errx2, startoverlap, stopoverlap)
+    # expected result
+    expected_x,expected_y,expected_err,expected_errx = loadData("sMCM_cc_stitched.txt")
     if not headless:
         # plot
         from matplotlib import pyplot as plt
         fig, ax = plt.subplots()
-        expected_x,expected_y,expected_err,expected_errx = loadData("sMCM_cc_stitched.txt")
         ax.plot(expected_x, expected_y, '+', label='expected')
         ax.plot(x1, y1, 'v', label='low q')
         ax.plot(x2, y2*scale, 'o', label='high q scaled')

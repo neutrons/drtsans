@@ -1,3 +1,4 @@
+# flake8: noqa
 # https://docs.mantidproject.org/nightly/algorithms/Stitch1D-v3.html
 import os, numpy as np
 from mantid.simpleapi import WorkspaceFactory, Stitch1D

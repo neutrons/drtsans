@@ -106,3 +106,22 @@ def empty_beam_scaling(input_workspace, empty_beam_workspace, beam_radius=None, 
 
     DeleteWorkspace(Workspace=beam_intensity)  # the temporary workspace is not needed anymore
     return str(output_workspace)
+
+def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
+    r"""
+    Parameters
+    ----------
+    input_workspace: str, MatrixWorkspace
+        Workspace to be normalized
+    f: SingleValueWorkspace
+    f_std: SingleValueWorkspace
+    output_workspace: MatrixWorkspace
+    Returns
+    -------
+        MatrixWorkspace
+    """
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+    scaling_factor = Divide(LHSWorkspace=f_std,RHSWorkspace=f)
+    output_workspace = Multiply(LHSWorkspace=input_workspace,RHSWorkspace=scaling_factor)
+    return output_workspace

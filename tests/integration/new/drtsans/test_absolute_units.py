@@ -87,3 +87,27 @@ def test_empty_beam_intensity(workspace_with_instrument):
     normalized_intensity = Divide(LHSWorkspace='sample_intensity', RHSWorkspace='empty_beam_intensity')
     assert normalized_intensity.readY(0)[0] == pytest.approx(0.04229, abs=1e-05)
     assert normalized_intensity.readE(0)[0] == pytest.approx(0.00046, abs=1e-05)
+
+def test_standard_sample_measurement():
+    F_std = 450
+    F_std_err = 10
+    print('when standard is known to have I(0) = F_std', F_std)
+    print('with error, F_std_err', F_std_err)
+    F=10
+    F_err = 2
+    print('I(0) from the standard sample is measured to be F = ', F)
+    print('and with error dF = ', F_err)
+    Iq = 100
+    Iq_err = np.sqrt(Iq)
+    Iq_abs = Iq / F *F_std
+    err1 = F_std**2 / F**4 * F_err**2  * Iq**2
+    err2 = F_std_err**2 / F**2 * Iq**2
+    err3 = F_std**2 / F**2 * Iq_err*2
+    # print(err1, err2, err3)
+    #Iq_abs_err = np.sqrt((F_std/F * ((F_err/F)**2 + (F_std_err/F_std)**2)**0.5 * Iq)**2 +  (F_std * Iq_err / F)**2 )
+    Iq_abs_err = np.sqrt(err1 + err2 + err3)
+    print('before absolute scaling, Iq = ', Iq)
+    print('scaled intensity (eq 12.11) is ', Iq_abs)
+    print('scaled intensity error (eq 12.12) is ', Iq_abs_err)
+    assert False
+

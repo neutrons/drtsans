@@ -28,8 +28,8 @@ def test_stitch(reference_dir):
         from matplotlib import pyplot as plt
         fig, ax = plt.subplots()
         ax.loglog(expected_q, expected_y, '+', label='expected')
-        ax.loglog(q1, y1, 'v', label='low q')
-        ax.loglog(q2, y2*scale, 'o', label='high q scaled')
+        ax.loglog(q1, y1, 'v', mfc='none', label='low q')
+        ax.loglog(q2, y2*scale, 'o', mfc='none', label='high q scaled')
         ax.loglog(qout, yout, label='stitched')
         ax.plot([startoverlap, startoverlap], [0, np.max(yout)*10], 'k-')
         ax.plot([stopoverlap, stopoverlap], [0, np.max(yout)*10], 'k-')

@@ -349,7 +349,7 @@ analysis-update:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - ls /SNS/software/miniconda2
-    - docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -w /tmp $CONTAINER_URL bash -c "scripts/analysis-update-user.sh"
+    - docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 $CONTAINER_URL bash -c "/opt/sans-backend/scripts/analysis-update-user.sh"
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder

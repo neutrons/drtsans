@@ -21,6 +21,8 @@ def integrate_detector_roi(workspace, roi_det_list):
     # Get Y array
     counts_array = workspace.extractY()
 
+    print('Counts Array:\n{}')
+
     # Get the sum
     roi_intensity = counts_array[roi_det_list]
     print('DDD:', roi_intensity)

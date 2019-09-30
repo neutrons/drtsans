@@ -43,7 +43,7 @@ def test_integrate_detector_roi(generic_IDF):
     ws.getAxis(0).setUnit('Wavelength')
 
     # Set the detector counts
-    data_y = counts_array.flatten()
+    data_y = counts_array.transpose().flatten()
     for iws in range(data_y.shape[0]):
         ws.dataY(iws)[0] = data_y[iws]
     assert counts_array.shape == (9, 9)

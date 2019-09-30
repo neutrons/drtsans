@@ -1,9 +1,10 @@
 from mantid.simpleapi import (mtd, CreateSingleValuedWorkspace, GroupDetectors, Divide, RebinToWorkspace,
-                              DeleteWorkspace)
+                              DeleteWorkspace, Multiply, DeleteWorkspace)
 from drtsans.settings import unique_workspace_dundername
 from drtsans.geometry import masked_detectors
 from drtsans import transmission
 from drtsans.mask_utils import circular_mask_from_beam_center
+from drtsans.settings import unique_workspace_dundername as uwd
 
 
 def empty_beam_intensity(empty_beam_workspace, beam_radius=None, unit='mm', roi=None,
@@ -111,17 +112,18 @@ def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
     r"""
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to be normalized
-    f: SingleValueWorkspace
-    f_std: SingleValueWorkspace
-    output_workspace: MatrixWorkspace
+    f: ~mantid.api.WorkspaceSingleValue
+    f_std: mantid.api.SingleValueWorkspace
+    output_workspace: ~mantid.api.MatrixWorkspace
     Returns
     -------
-        MatrixWorkspace
+        ~mantid.api.MatrixWorkspace
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    scaling_factor = Divide(LHSWorkspace=f_std,RHSWorkspace=f)
-    output_workspace = Multiply(LHSWorkspace=input_workspace,RHSWorkspace=scaling_factor)
+    scaling_factor = Divide(LHSWorkspace=f_std, RHSWorkspace=f, OutputWorkspace=uwd())
+    output_workspace = Multiply(LHSWorkspace=input_workspace, RHSWorkspace=scaling_factor)
+    DeleteWorkspace(Workspace=scaling_factor)
     return output_workspace

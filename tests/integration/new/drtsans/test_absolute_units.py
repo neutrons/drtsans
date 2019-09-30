@@ -91,6 +91,12 @@ def test_empty_beam_intensity(workspace_with_instrument):
 
 
 def test_standard_sample_measurement():
+    '''
+        Tests normalization with a calibrated standard sample as described in the master document
+        section 12.3
+        dev - Steven Hahn <hahnse@ornl.gov>
+        SME - Changwoo Do <doc1@ornl.gov>
+    '''
     F_std = 450.  # value from supplied test
     F_std_err = 10.  # value from supplied test
     F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=uwn())

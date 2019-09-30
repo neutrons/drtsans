@@ -56,9 +56,6 @@ def test_integrate_detector_roi(generic_IDF):
 
     roi_counts = integrate_detector_roi(ws, pid_list)
 
-    print(roi_counts)
-    assert roi_counts == 566
+    assert abs(roi_counts - 566) < 1E-10
 
-
-def test_x():
-    counts_array
+    return

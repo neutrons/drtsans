@@ -1,5 +1,5 @@
 from mantid.simpleapi import (mtd, CreateSingleValuedWorkspace, GroupDetectors, Divide, RebinToWorkspace,
-                              DeleteWorkspace, Multiply, DeleteWorkspace)
+                              Multiply, DeleteWorkspace)
 from drtsans.settings import unique_workspace_dundername
 from drtsans.geometry import masked_detectors
 from drtsans import transmission
@@ -107,6 +107,7 @@ def empty_beam_scaling(input_workspace, empty_beam_workspace, beam_radius=None, 
 
     DeleteWorkspace(Workspace=beam_intensity)  # the temporary workspace is not needed anymore
     return str(output_workspace)
+
 
 def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
     r"""

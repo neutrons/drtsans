@@ -6,6 +6,7 @@ from drtsans.tof.eqsans import center_detector
 from drtsans.absolute_units import empty_beam_intensity, standard_sample_scaling
 from drtsans.settings import unique_workspace_name as uwn
 
+
 @pytest.mark.parametrize('workspace_with_instrument',
                          [dict(name='EQSANS', Nx=17, Ny=15, dx=0.01, dy=0.01, zc=1.0)], indirect=True)
 def test_empty_beam_intensity(workspace_with_instrument):
@@ -88,27 +89,32 @@ def test_empty_beam_intensity(workspace_with_instrument):
     assert normalized_intensity.readY(0)[0] == pytest.approx(0.04229, abs=1e-05)
     assert normalized_intensity.readE(0)[0] == pytest.approx(0.00046, abs=1e-05)
 
+
 def test_standard_sample_measurement():
-    F_std = 450.
-    F_std_err = 10.
+    F_std = 450.  # value from supplied test
+    F_std_err = 10.  # value from supplied test
     F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=uwn())
-    F = 10.
-    F_err = 2.
+    F = 10.  # value from supplied test
+    F_err = 2.  # value from supplied test
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=uwn())
-    Iq = 100.
+    Iq = 100.  # value from supplied test
     Iq_err = np.sqrt(Iq)
     Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=uwn())
+    # perform calculation done by function standard_sample_scaling
     Iq_abs = Iq / F * F_std
-    #err1 = F_std**2 / F**4 * F_err**2 * Iq**2
-    #err2 = F_std_err**2 / F**2 * Iq**2
-    #err3 = F_std**2 / F**2 * Iq_err*2
-    #Iq_abs_err = np.sqrt(err1 + err2 + err3)
+    # calculate uncertainty as described in the supplied test. Symbolically this is identical to the calculation below,
+    # but, due to numerical error, differs both the calculation below and Mantid's result by ~10%
+    # err1 = F_std**2 / F**4 * F_err**2 * Iq**2
+    # err2 = F_std_err**2 / F**2 * Iq**2
+    # err3 = F_std**2 / F**2 * Iq_err*2
+    # Iq_abs_err = np.sqrt(err1 + err2 + err3)
     err1 = F_err**2 / F**2
     err2 = F_std_err**2 / F_std**2
     err3 = Iq_err**2 / Iq**2
     Iq_abs_err = Iq / F * F_std * np.sqrt(err1 + err2 + err3)
+    # run absolute_units.standard_sample_scaling
     Iq_abs_ws = standard_sample_scaling(Iq_ws, F_ws, F_std_ws)
+    # check results
     assert Iq_ws.dataY(0)[0] == pytest.approx(Iq)
     assert Iq_abs_ws.dataY(0)[0] == pytest.approx(Iq_abs)
     assert Iq_abs_ws.dataE(0)[0] == pytest.approx(Iq_abs_err)
-

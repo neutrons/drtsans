@@ -110,13 +110,19 @@ def empty_beam_scaling(input_workspace, empty_beam_workspace, beam_radius=None, 
 
 def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
     r"""
+    Normalize input workspace using a calibrated standard sample
+
     Parameters
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to be normalized
     f: ~mantid.api.WorkspaceSingleValue
+        Level of flat scattering
     f_std: mantid.api.SingleValueWorkspace
+        Known value of the scattering level of the material
     output_workspace: ~mantid.api.MatrixWorkspace
+        Name of the normalized workspace. If ``None``, then the name of ``input_workspace`` will be used,
+        thus overwriting ``input_workspace``.
     Returns
     -------
         ~mantid.api.MatrixWorkspace

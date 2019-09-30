@@ -119,7 +119,7 @@ def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
         Workspace to be normalized
     f: ~mantid.api.WorkspaceSingleValue
         Level of flat scattering
-    f_std: mantid.api.SingleValueWorkspace
+    f_std: ~mantid.api.SingleValueWorkspace
         Known value of the scattering level of the material
     output_workspace: ~mantid.api.MatrixWorkspace
         Name of the normalized workspace. If ``None``, then the name of ``input_workspace`` will be used,

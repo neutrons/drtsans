@@ -119,10 +119,12 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
     # create workspaces
     data_ws = workspace_with_instrument(axis_values=[6.],  # fake wavelength
                                         intensities=data,
-                                        uncertainties=data_error)
+                                        uncertainties=data_error,
+                                        view='pixel')
     sensitivity_ws = workspace_with_instrument(axis_values=[6.],  # fake wavelength
                                                intensities=sensitivity,
-                                               uncertainties=sensitivity_error)
+                                               uncertainties=sensitivity_error,
+                                               view='pixel')
     # this is done by calculate sensitivity
     sensitivity_ws = MaskDetectorsIf(InputWorkspace=sensitivity_ws,
                                      Operator='LessEqual',

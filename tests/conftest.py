@@ -585,17 +585,10 @@ def workspace_with_instrument(generic_IDF, request):
     Workspace factory with a given instrument.
 
     The fixture is used by passing arguments to the `generic_IDF` fixture as a dictionary. For instance:
-    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
-    Full list of arguments:
-        name: Name of the instrument     (default: GenericSANS)
-        Nx : number of columns (a.k.a number of tubes) (default 3)
-        Ny : number of rows (a.k.a tube length)     (default 3)
-        dx : width of a column in meters            (default 1)
-        dy : height of a row in meters              (default 1)
-        xc : distance of center along the x axis    (default 0)
-        yc : distance of center along the y axis    (default 0)
-        zc : distance of center along the z axis    (default 5)
-        l1 : distance from source to sample       (default -11)
+
+    .. :code:block:
+
+       @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
 
     Once inside the test function, the factory is called with the following optional arguments:
         name: Name of the workspace and instrument (default: random name prefixed with '__')
@@ -607,11 +600,31 @@ def workspace_with_instrument(generic_IDF, request):
             `numpy.ravel`. (default: sqrt(intensities), or one if intensity is zero)
         view: either 'array' or 'pixel'. In array-view the first index of the input data arrays travels each tube
             from top to bottom, and the second index travels across tubes. In pixel-view the first index travels
-            across tubes and the second index travels each tube from bottom to top. Default is 'array'.
-        axis_units : units for the independent axis
+            across tubes and the second index travels each tube from bottom to top. (default 'pixel').
+        axis_units : units for the independent axis (default 'wavelength')
+
     Example:
         ws2 = workspace_with_instrument(axis_values=[42.], intensities=[[1., 4.], [9., 16.], [25., 36.]])
     For more examples of use, look within testing class `test_fixtures.py::TestWorkspaceWithInstrument`
+
+    Parameters
+    ----------
+    request: str
+        A dictionary containing the following keys:
+            name: Name of the instrument     (default: GenericSANS)
+            Nx : number of columns (a.k.a number of tubes) (default 3)
+            Ny : number of rows (a.k.a tube length)     (default 3)
+            dx : width of a column in meters            (default 1)
+            dy : height of a row in meters              (default 1)
+            xc : distance of center along the x axis    (default 0)
+            yc : distance of center along the y axis    (default 0)
+            zc : distance of center along the z axis    (default 5)
+            l1 : distance from source to sample       (default -11)
+
+    Returns
+    -------
+    A function that can be used to generate multiple workspaces with the same instrument
+
     """
     try:
         instrument_params = request.param
@@ -621,19 +634,18 @@ def workspace_with_instrument(generic_IDF, request):
         except AttributeError:
             instrument_params = dict()
 
+    # set up the default 'view' for the factory
+    view = instrument_params.pop('view', 'pixel')
+
     workspace_inventory = list()  # holds created workspaces
 
     def factory(name=None, axis_units='wavelength',
-                axis_values=None, intensities=None, uncertainties=None, view='array',
-                number_x_pixels=None, number_y_pixels=None):
+                axis_values=None, intensities=None, uncertainties=None, view=view,
+                number_x_pixels=instrument_params.get('Nx', 3), number_y_pixels=instrument_params.get('Ny', 3)):
         # Initialization of these options within the function signature results in the interpreter assigning a
         # function signature preserved through function call.
         if name is None:
             name = unique_workspace_dundername()
-        if number_x_pixels is None:
-            number_x_pixels = instrument_params.get('Nx', 3)
-        if number_y_pixels is None:
-            number_y_pixels = instrument_params.get('Ny', 3)
 
         if intensities is not None:
             if isinstance(intensities, np.ndarray) is False:

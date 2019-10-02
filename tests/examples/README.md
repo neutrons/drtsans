@@ -1,16 +1,17 @@
 # Example reduction scripts
 
-The scripts are written as simple unit tests to move the discussion in that direction.
-I chose to use python's `unittest` for simplicity.
+To use the example Jupyter notebook:
+  - Download an example notebook from this repo.
+  - Go to https://jupyter.sns.gov
+  - Once on there, click `Open...` from the `File menu and navigate to where you downloaded the notebook to open it.
+  - You will now be able to hit `Ctrl-Enter` in each cell to execute the cide.
+  - The comparison cell at the end plots the results. If you want to compare to the old EQSANS reduction, execute the `EQSANS_porasil.py` script on one of the analysis computers. This will create the reference data in your home directory.
 
-The tests should come in pairs, one for the old API and a corresponding one for the mock API.
-Both should give the same result.
 
-The goal is to be able to import from the real new API and run the same scripts.
-More details on that will come as the new API is made available.
-
-To run the tests, simply do:
+To write your own example scripts and run them from the command line, you can use the save conda environment used by the Jupyter notebook.
+Just do the following before calling python.
 
 ```
-python test_mock_api.py
+export PATH="/SNS/software/miniconda2/bin:$PATH"
+source activate sans
 ```

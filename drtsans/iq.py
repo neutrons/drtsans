@@ -866,14 +866,11 @@ class IofQCalculator(object):
         delta = np.power(10., 1. / step_per_decade)
 
         # Align q_min to power of 10 as q0
-        q0 = np.power(delta, np.floor(step_per_decade * np.log(q_min) / np.log(10)))
-        # make sure that q0 is exactly power of 10
-        log_q0 = np.rint(np.log(q0)/np.log(10))
-        q0 = np.power(10, log_q0)
+        q0 = np.power(10, np.floor(np.log10(q_min)))
         # print('[DEBUG OUTPUT: q0 = {}'.format(q0))
 
         # Determine number of bins
-        num_bins = 1 + int(np.ceil(step_per_decade * np.log(q_max/q_min)/np.log(10)))
+        num_bins = 1 + int(np.ceil(step_per_decade * np.log(q_max/q0)/np.log(10)))
         # print('[DEBUG OUTPUT: number of bins = {}'.format(num_bins))
 
         # Calculate bin centers

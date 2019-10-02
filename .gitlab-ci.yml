@@ -85,10 +85,15 @@ docker-no-update-test:
     - sudo yum install -y nfs-utils
     - sudo mkdir -p /SNS/EQSANS
     - sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS || true
+    - sudo mkdir -p /SNS/software
+    - sudo mount -t nfs -o "tcp,noatime,rsize=32768,wsize=32768" 128.219.164.43:/volumes/datapool/sfw-rhel7-prod /SNS/software || true
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
     - ls -la /SNS/EQSANS
+    - ls -la /SNS/software/miniconda2
+    - ls -la /SNS/software/miniconda2/envs
+    - ls -la /SNS/software/miniconda2/envs/sans
     - bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:

@@ -11,7 +11,6 @@ stages:
 
 flake8-feature:
   stage: flake8
-  allow_failure: true
   before_script:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
@@ -113,7 +112,6 @@ docs-feature:
 
 docs-next:
   stage: test
-  allow_failure: true
   dependencies:
     - dockerbuild
   script:
@@ -137,70 +135,7 @@ docs-next:
     paths:
       -  html
 
-code-unit-test-feature:
-  stage: test
-  allow_failure: true
-  dependencies:
-    - dockerbuild
-  before_script:
-    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
-  script:
-    - sudo rm -rf /tmp/sans-backend || true
-    - sudo mkdir -p /tmp/sans-backend
-    - sudo cp -r . /tmp/sans-backend
-    - sudo chmod 777 /tmp/sans-backend
-    - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
-    - popd
-  after_script:
-    - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
-  artifacts:
-    paths:
-      -  unit_test_results.xml
-    reports:
-      junit: unit_test_results.xml
-  tags:
-    - scse-mantid-builder
-  except:
-    - next
-    - master
-
-code-integration-test-feature:
-  stage: test
-  allow_failure: true
-  dependencies:
-    - dockerbuild
-  before_script:
-    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - sudo mount -t nfs snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS/shared/sans-backend/ /SNS/EQSANS/shared/sans-backend || true
-  script:
-    - sudo rm -rf /tmp/sans-backend || true
-    - sudo mkdir -p /tmp/sans-backend
-    - sudo cp -r . /tmp/sans-backend
-    - sudo chmod 777 /tmp/sans-backend
-    - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
-    - popd
-  after_script:
-    - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
-  artifacts:
-    paths:
-      -  integration_test_results.xml
-    reports:
-      junit: integration_test_results.xml
-  tags:
-    - scse-mantid-builder
-  except:
-    - next
-    - master
-
-
-code-unit-test-next:
+code-unit-test:
   stage: test
   dependencies:
     - dockerbuild
@@ -226,8 +161,6 @@ code-unit-test-next:
       junit: unit_test_results.xml
   tags:
     - scse-mantid-builder
-  only:
-    - next
 
 code-integration-test-next:
   stage: test
@@ -255,8 +188,6 @@ code-integration-test-next:
       junit: integration_test_results.xml
   tags:
     - scse-mantid-builder
-  only:
-    - next
 
 script-host:
   stage: web-host

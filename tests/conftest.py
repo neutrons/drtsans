@@ -647,6 +647,9 @@ def workspace_with_instrument(generic_IDF, request):
         if name is None:
             name = unique_workspace_dundername()
 
+        if view not in ['array', 'pixel']:
+            raise RuntimeError('Invalid value of view="{}". Must be "array" or "pixel"'.format(view))
+
         if intensities is not None:
             if isinstance(intensities, np.ndarray) is False:
                 intensities = np.array(intensities)

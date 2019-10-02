@@ -9,7 +9,7 @@ from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalis
                                 transform_to_wavelength)
 from drtsans.tof.eqsans.iq import (cal_iq, iq_annular, iq_wedge, iqxqy,
                                    prepare_momentum_transfer)
-from drtsans.iq import bin_into_q1d
+from drtsans.iq import bin_iq_into_linear_q1d
 
 
 # Integration test on I(Q) binning algorithms for EQ-SANS
@@ -78,6 +78,7 @@ def test_iq_binning_serial(reference_dir):
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
+    # Prepare to calculate Q, dQ and bin I(Q)
     # NOTE: geometry.sample_aperture_diameter is not working: slit4 missing in EQSANS_68200_event.nxs
     # We hard code the sample_aperture_diameter instead
     AddSampleLog(Workspace=ws,
@@ -87,16 +88,16 @@ def test_iq_binning_serial(reference_dir):
                  LogUnit='mm')
     geometry.source_aperture_diameter(ws)
 
-    # Rebin the workspace ... TODO FIXME - will this rebin reduce the resolution of I(wl) and thus I(Q)
+    # Rebin the workspace: rebin to a coarse binning of wave length matching to final resolution I(Q)
     rebin_start, rebin_end, rebin_step = 2.6, 5.6, 0.2
-
     ws = Rebin(InputWorkspace=ws,
                OutputWorkspace="ws_rebin",
                Params="{:.2f},{:.2f},{:.2f}".format(rebin_start, rebin_step,
                                                     rebin_end))
 
-    # Convert I(wl) to I(Q) and then histogram I(Q)
-    i_of_q = bin_into_q1d(ws, q_bin=100, statistic='mean')
+    # Bin I(Q)
+    final_q_min = 0
+    i_of_q = bin_iq_into_linear_q1d(ws, bins=10, q_min=final_q_min, q_max=None)
 
     # TODO - continue from here
     print(i_of_q)

@@ -225,7 +225,6 @@ def dq2_gravity(L1, L2, wl, dwl, theta):
     """
     B = 0.5 * G_MN2_OVER_H2 * L2 * (L1 + L2)
     dq2 = 2. * np.square(B * wl * dwl) / 3.
-    print('[RICARDO] B = {}, Gravity = {}'.format(B, dq2))
     dq2 *= np.square(2.0 * np.pi * np.cos(theta)
                      * np.square(np.cos(2.0 * theta)) / wl / L2)
     # Converting from A^2 / m^4 to 1 / A^2

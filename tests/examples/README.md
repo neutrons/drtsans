@@ -1,16 +1,13 @@
 # Example reduction scripts
 
-The scripts are written as simple unit tests to move the discussion in that direction.
-I chose to use python's `unittest` for simplicity.
+To use the example Jupyter notebook:
+  - Download the example notebook from here: `https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/next/tests/examples`
+  - Go to `https://jupyter.sns.gov`
+  - Navigate to where you downloaded the notebook to open it.
 
-The tests should come in pairs, one for the old API and a corresponding one for the mock API.
-Both should give the same result.
-
-The goal is to be able to import from the real new API and run the same scripts.
-More details on that will come as the new API is made available.
-
-To run the tests, simply do:
+To use the example scripts on the analysis computers, do the following:
 
 ```
-python test_mock_api.py
+export PATH="/SNS/software/miniconda2/bin:$PATH"
+source activate sans
 ```

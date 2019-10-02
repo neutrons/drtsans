@@ -1,5 +1,6 @@
 FROM code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
 
+USER root
 RUN apt-get install -y sssd
 COPY sssd.conf /etc/sssd/sssd.conf
 RUN chmod 600 /etc/sssd/sssd.conf

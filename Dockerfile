@@ -1,5 +1,12 @@
 FROM code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
 
+RUN apt-get install -y sssd
+COPY sssd.conf /etc/sssd/sssd.conf
+RUN chmod 600 /etc/sssd/sssd.conf
+RUN chown root:root /etc/sssd/sssd.conf
+COPY nsswitch.conf /etc/nsswitch.conf
+COPY SNSCA.cert.pem /etc/pki/tls/certs/
+
 WORKDIR /tmp/input
 USER snsdata
 

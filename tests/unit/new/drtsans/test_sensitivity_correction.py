@@ -5,7 +5,7 @@ from drtsans.settings import unique_workspace_name as uwn
 from drtsans.sensitivity import apply_sensitivity_correction,\
     calculate_sensitivity_correction
 import os
-from mantid.simpleapi import (mtd, DeleteWorkspace, LoadNexusProcessed, MaskDetectorsIf)
+from mantid.simpleapi import (mtd, DeleteWorkspace, LoadNexusProcessed)
 import tempfile
 from tests.conftest import data_dir
 
@@ -125,13 +125,10 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
                                                intensities=sensitivity,
                                                uncertainties=sensitivity_error,
                                                view='pixel')
-    # this is done by calculate sensitivity
-    sensitivity_ws = MaskDetectorsIf(InputWorkspace=sensitivity_ws,
-                                     Operator='LessEqual',
-                                     Value=0.5)  # 0.5 is the threshold
     # run the function
     data_ws = apply_sensitivity_correction(data_ws,
-                                           sensitivity_workspace=sensitivity_ws)
+                                           sensitivity_workspace=sensitivity_ws,
+                                           min_threshold=0.5)
     # check the results
     # masked pixels will show up as 0 (and they have a mask flag)
     assert data_ws.extractY() == pytest.approx([6.796116, 8.080808, 11.881188,

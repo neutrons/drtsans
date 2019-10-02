@@ -1,7 +1,7 @@
 """
   EQSANS example for the legacy reduction
 """
-# noqa: F405
+# flake8: noqa
 import os
 
 from mantid.simpleapi import mtd, Load, ExtractMask, SaveAscii

@@ -17,7 +17,7 @@ transmission = np.array([[0.6, 0.7, 0.7, 0.7, 0.6],
                          [0.7, 0.7, 0.8, 0.7, 0.7],
                          [0.7, 0.8, 0.9, 0.8, 0.7],
                          [0.7, 0.7, 0.8, 0.7, 0.7],
-                         [0.6, 0.7, 0.7, 0.7, 0.6]])  # the first entry in this list for some reason is taken as the constant transmission value
+                         [0.6, 0.7, 0.7, 0.7, 0.6]])
 
 # Give the transmission coefficients 5% uncertainties
 transmission_err = transmission * 0.05
@@ -33,7 +33,6 @@ def test_transmission_correction(workspace_with_instrument):
     given in Eq. 7.7 and 7.8 in the master document
     dev - Joe Osborn <osbornjd@ornl.gov>
     '''
-
     # Create the workspaces
     I_sam_wksp = workspace_with_instrument(axis_values=[5.95, 6.075],
                                            intensities=I_sam,
@@ -57,11 +56,11 @@ def test_transmission_correction(workspace_with_instrument):
     I_tsam_err = I_tsam * np.sqrt((I_sam_err/I_sam)**2 + (transmission_err/transmission)**2)
 
     # Calculate the result with drtsans framework
-    result = apply_transmission_correction(I_sam_wksp, transmission_wksp)
+    result = apply_transmission_correction(I_sam_wksp, transmission_wksp, theta_dependent=False)
 
     # Compare the result from drtsans and the result calcualted by hand
-    np.testing.assert_equal(result.extractY().reshape(I_tsam.shape), I_tsam)
-    np.testing.assert_equal(result.extractE().reshape(I_tsam.shape), I_tsam_err)
+    np.testing.assert_almost_equal(result.extractY().reshape(I_tsam.shape), I_tsam)
+    np.testing.assert_almost_equal(result.extractE().reshape(I_tsam.shape), I_tsam_err)
 
 
 if __name__ == '__main__':

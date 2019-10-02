@@ -9,9 +9,14 @@ import unittest
 import numpy as np
 
 from mantid import simpleapi as api
+
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/momentum_transfer.py
 from drtsans.tof.eqsans import momentum_transfer
+# https://github.com/mantidproject/mantid/blob/master/scripts/reduction_workflow/command_interface.py
 from reduction_workflow.command_interface import AppendDataFile, Reduce
+# https://github.com/mantidproject/mantid/blob/master/scripts/reduction_workflow/instruments/sans/sns_command_interface.py
 from reduction_workflow.instruments.sans import sns_command_interface as eqsans
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/momentum_transfer.py
 from drtsans.tof.eqsans.momentum_transfer import moderator_time_uncertainty
 
 

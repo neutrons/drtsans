@@ -39,8 +39,8 @@ def test_linear(fake_events):
     """
     # create a workspace with fake events with the given wavelengths
     ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
-    # binning the events to linear bins 2.5, 2.6, 2.7, ..., 3.2
-    # start, step, end of bin edges
+    # binning the events to linear bins with boundaries at 2.5, 2.6, 2.7, ..., 3.2
+    # start, step, end of bin boundaries
     start, step, end = 2.5, 0.1, 3.2
     # rebin using Mantid algorithm Rebin
     ws = Rebin(InputWorkspace=ws, Params='{}, {}, {}'.format(start, step, end))
@@ -63,10 +63,10 @@ def test_log(fake_events):
     """
     # create a workspace with fake events
     ws = fake_events([2.57, 3.05, 2.76, 3.13, 2.84])
-    # binning the events to loglinear bins 2.5, 2.625, 2.75625, 2.894063, 3.038, 3.1907
+    # binning the events to loglinear bins with boundaries at 2.5, 2.625, 2.75625, 2.894063, 3.038, 3.1907
     # this is the constant dlambda/lambda
     dlambda_over_lambda = 0.125/2.5
-    # start, step, end of bin edges. negative means loglinear!
+    # start, step, end of bin boundaries. negative means loglinear!
     start, step, end = 2.5, -dlambda_over_lambda, 3.36
     # rebin using Mantid algorithm Rebin
     ws = Rebin(InputWorkspace=ws, Params='{}, {}, {}'.format(start, step, end))

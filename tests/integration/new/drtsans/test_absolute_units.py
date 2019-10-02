@@ -3,21 +3,38 @@ from math import sqrt
 import numpy as np
 from mantid.simpleapi import CreateSingleValuedWorkspace, Divide
 from drtsans.tof.eqsans import center_detector
-from drtsans.absolute_units import empty_beam_intensity
+from drtsans.absolute_units import empty_beam_intensity, standard_sample_scaling
+from drtsans.settings import unique_workspace_name as uwn
 
 
 @pytest.mark.parametrize('workspace_with_instrument',
                          [dict(name='EQSANS', Nx=17, Ny=15, dx=0.01, dy=0.01, zc=1.0)], indirect=True)
 def test_empty_beam_intensity(workspace_with_instrument):
     r"""
+    This test implements issue #179 and test 15B, addressing master document section 12b.
 
-    Instrument properties:
+    dev - Jose Borreguero <borreguerojm@ornl.gov>
+    SME - Lilin He <hel3@ornl.gov>
+
+    **Instrument properties**:
     - 17 tubes, 15 pixels per tube.
     - pixel size is 1cm x 1cm
     - detector panel 1m away from the sample
 
+    **Mantid algorithms used:**
+    :ref:`CreateSingleValuedWorkspace <algm-CreateSingleValuedWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
+    :ref:`Divide <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
+
+    **drtsans functions used:**
+    ~drtsans.tof.eqsans.center_detector,
+    <https://scse.ornl.gov/docs/drt/sans/drtsans/tof/eqsans/index.html>
+    ~drtsans.absolute_units.empty_beam_intensity,
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
     """
     # Intensities of the direct beam center on every detector pixel
+    # The maximum intensity (2059.2) is located at pixel with pixel coordinates (6, 7)
     intensities = """0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.8, 0, 0, 0
 0, 1.8, 5.4, 3.6, 5.4, 3.6, 5.4, 9, 14.4, 3.6, 5.4, 3.6, 3.6, 1.8, 0, 0, 1.8
 3.6, 18, 21.6, 54, 91.8, 84.6, 75.6, 91.8, 72, 46.8, 45, 30.6, 14.4, 3.6, 0, 0, 0
@@ -36,15 +53,15 @@ def test_empty_beam_intensity(workspace_with_instrument):
     center_xy = (6, 7)  # center of the bin, in pixel coordinates
     pixels_per_tube = 15  # number of pixels in any given tube
 
-    # save the intensities in a numpy.ndarray
+    # save the intensities in a numpy.ndarray.
     intensities = [float(x) for line in intensities.split('\n') for x in line.split(',')]
     intensities = np.array(intensities, dtype=float).reshape((15, 17, 1))
 
-    # Create a Mantid workspace to store the intensities with an embedded instrument
+    # Create a Mantid workspace with an embedded instrument and store the attenuated empty beam intensities
     wavelength_bin = [2.5, 3.0]  # some arbitrary wavelength bin
     empty_beam_workspace = workspace_with_instrument(axis_values=wavelength_bin, intensities=intensities, view='array')
 
-    # Check the pixel id of the center beam
+    # Confirm the intensity of the center beam (pixel with pixel coordinates (6, 7))
     center_pixel_id = center_xy[0] * pixels_per_tube + center_xy[1]
     maximum_intensity = empty_beam_workspace.readY(center_pixel_id)[0]
     assert maximum_intensity == pytest.approx(2059.2)
@@ -58,32 +75,53 @@ def test_empty_beam_intensity(workspace_with_instrument):
     # Check that the center pixel is now at the origin in the XY plane
     assert spectrum_info.position(center_pixel_id) == pytest.approx((0.0, 0.0, 1.0))
 
-    r"""
-    # Collect the pixels within a radius of 60 mm in a table
-    from drtsans.mask_utils import circular_mask_from_beam_center
-    detector_ids = circular_mask_from_beam_center(empty_beam_workspace, radius=60, unit='mm')
-    tube_labels = list('FGHIJKLMNOPQRSTUV')  # for the spreadsheet
-    pixel_labels = [str(i) for i in range(71, 56, -1)]  # for the spreadsheet
-    cells = list()
-    for detector_id in detector_ids:
-        tube_id = detector_id // pixels_per_tube
-        pixel_id = detector_id - tube_id * pixels_per_tube
-        cells.append(tube_labels[tube_id] + pixel_labels[pixel_id])
-    pixel_labels.reverse()
-    table = ''
-    for pixel_label in pixel_labels:
-        row = list()
-        for tube_label in tube_labels:
-            cell = tube_label + pixel_label
-            if cell in cells:
-                row.append(cell)
-            else:
-                row.append('-')
-        table += '\t'.join(row) + '\n'
-    """
+    # Find the intensity of the attenuated empty beam within a radius of 60mm around the beam center,
+    # and remove the attenuation with the input attenuation coefficient
     empty_beam_intensity(empty_beam_workspace, beam_radius=60, unit='mm', output_workspace='empty_beam_intensity',
                          attenuator_coefficient=1./30, attenuator_error=0.01/30)
+
+    # Store the input sample intensity in a Mantid workspace
     CreateSingleValuedWorkspace(DataValue=100000, ErrorValue=sqrt(100000), OutputWorkspace='sample_intensity')
+
+    # The normalized sample intensity is obtain by dividing with the empty beam intensity
     normalized_intensity = Divide(LHSWorkspace='sample_intensity', RHSWorkspace='empty_beam_intensity')
+
+    # Compare with the values written in the test
     assert normalized_intensity.readY(0)[0] == pytest.approx(0.04229, abs=1e-05)
     assert normalized_intensity.readE(0)[0] == pytest.approx(0.00046, abs=1e-05)
+
+
+def test_standard_sample_measurement():
+    '''
+        Tests normalization with a calibrated standard sample as described in the master document
+        section 12.3
+        dev - Steven Hahn <hahnse@ornl.gov>
+        SME - Changwoo Do <doc1@ornl.gov>
+    '''
+    F_std = 450.  # value from supplied test
+    F_std_err = 10.  # value from supplied test
+    F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=uwn())
+    F = 10.  # value from supplied test
+    F_err = 2.  # value from supplied test
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=uwn())
+    Iq = 100.  # value from supplied test
+    Iq_err = np.sqrt(Iq)
+    Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=uwn())
+    # perform calculation done by function standard_sample_scaling
+    Iq_abs = Iq / F * F_std
+    # calculate uncertainty as described in the supplied test. Symbolically this is identical to the calculation below,
+    # but, due to numerical error, differs both the calculation below and Mantid's result by ~10%
+    # err1 = F_std**2 / F**4 * F_err**2 * Iq**2
+    # err2 = F_std_err**2 / F**2 * Iq**2
+    # err3 = F_std**2 / F**2 * Iq_err*2
+    # Iq_abs_err = np.sqrt(err1 + err2 + err3)
+    err1 = F_err**2 / F**2
+    err2 = F_std_err**2 / F_std**2
+    err3 = Iq_err**2 / Iq**2
+    Iq_abs_err = Iq / F * F_std * np.sqrt(err1 + err2 + err3)
+    # run absolute_units.standard_sample_scaling
+    Iq_abs_ws = standard_sample_scaling(Iq_ws, F_ws, F_std_ws)
+    # check results
+    assert Iq_ws.dataY(0)[0] == pytest.approx(Iq)
+    assert Iq_abs_ws.dataY(0)[0] == pytest.approx(Iq_abs)
+    assert Iq_abs_ws.dataE(0)[0] == pytest.approx(Iq_abs_err)

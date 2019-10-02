@@ -1,7 +1,7 @@
 # Example reduction scripts
 
 To use the example Jupyter notebook:
-  - Download the example notebook from here: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/next/tests/examples
+  - Download an example notebook from this repo.
   - Go to https://jupyter.sns.gov
   - Once on there, click `Open...` from the `File menu and navigate to where you downloaded the notebook to open it.
   - You will now be able to hit `Ctrl-Enter` in each cell to execute the cide.

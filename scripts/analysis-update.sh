@@ -1,6 +1,4 @@
-ls -la /SNS/software/miniconda2
-ls -la /SNS/software/miniconda2/envs
-ls -la /SNS/software/miniconda2/envs/sans
+cat /etc/idmapd.conf
 
 export PATH=/SNS/software/miniconda2/bin:$PATH
 source activate sans

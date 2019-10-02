@@ -348,7 +348,9 @@ analysis-update:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $CONTAINER_URL
-    - ls /SNS/software/miniconda2
+    - ls -la /SNS/software/miniconda2
+    - ls -la /SNS/software/miniconda2/envs
+    - ls -la /SNS/software/miniconda2/envs/sans
     - docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -u 0:0 $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/analysis-update-user.sh"
     - sudo chown -R gitlab-runner .
   tags:

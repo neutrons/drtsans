@@ -208,7 +208,7 @@ def test_single_value_resolution():
     wl_resolution = 0.15
     two_theta = 0.00092676  # radian (corner pixel)
     sample_pixel_distance = l2 + 0.1  # radian (corner pixel)
-    emission_error = 0.  # wave length = 3.5 A
+    emission_error = 250.  # wave length = 3.5 A
 
     params = InstrumentSetupParameters(l1=l1,
                                        sample_det_center_dist=l2,
@@ -224,7 +224,7 @@ def test_single_value_resolution():
                                               instrument_setup_params=params)
     print('Unit Test: Backend dQx = {}'.format(q_x_res))
 
-    # Calculte Q resolution by Weiren's algorithm
+    # Calculate Q resolution by Weiren's algorithm
     golden_dqx, golden_dqy = sigma_neutron(wave_length, wl_resolution, qx, qy, 0.5*two_theta,
                                            l1, l2, source_aperture, sample_aperture, 0.0055, 0.0043,
                                            sample_pixel_distance, l1, emission_error)

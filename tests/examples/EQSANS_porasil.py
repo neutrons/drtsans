@@ -1,7 +1,11 @@
+"""
+  EQSANS example for the legacy reduction
+"""
+# noqa: F405
 import os
 
 from mantid.simpleapi import mtd, Load, ExtractMask, SaveAscii
-from reduction_workflow.instruments.sans.sns_command_interface import *
+from reduction_workflow.instruments.sans.sns_command_interface import *  # noqa: F403
 
 
 mtd.clear()
@@ -21,7 +25,6 @@ DarkCurrent("/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5")
 TotalChargeNormalization(beam_file="/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample")
 SetAbsoluteScale(0.0208641883)
 AzimuthalAverage(n_bins=100, n_subpix=1, log_binning=True)
-#IQxQy(nbins=75)
 MaskDetectors(detector_ids604m)
 OutputPath("/tmp")
 
@@ -30,7 +33,8 @@ ReductionSingleton().reduction_properties["DetectorOffset"] = 0
 Resolution(sample_aperture_diameter=10)
 PerformFlightPathCorrection(True)
 DirectBeamCenter("88973")
-SensitivityCorrection("/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017A_mp/Sensitivity_patched_thinPMMA_4m_79165_event.nxs", min_sensitivity=0.5, max_sensitivity=1.5, use_sample_dc=True)
+SensitivityCorrection("/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017A_mp/Sensitivity_patched_thinPMMA_4m_79165_event.nxs",
+                      min_sensitivity=0.5, max_sensitivity=1.5, use_sample_dc=True)
 DivideByThickness(0.1)
 DirectBeamTransmission("88975", "88973", beam_radius=5)
 ThetaDependentTransmission(True)
@@ -40,11 +44,9 @@ Background(["88979"])
 BckDirectBeamTransmission("88974", "88973", beam_radius=5)
 BckThetaDependentTransmission(True)
 BckCombineTransmissionFits(False)
-#SaveIq(process='None')
 Reduce()
 
 SaveAscii(InputWorkspace="88980_frame1_Iq", WriteSpectrumID=False,
           Filename=os.path.join(os.path.expanduser('~'), "EQSANS_88980_frame1_iq_ref.txt"))
 SaveAscii(InputWorkspace="88980_frame2_Iq", WriteSpectrumID=False,
           Filename=os.path.join(os.path.expanduser('~'), "EQSANS_88980_frame2_iq_ref.txt"))
-

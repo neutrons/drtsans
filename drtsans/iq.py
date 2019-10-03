@@ -555,9 +555,10 @@ class IofQCalculator(object):
             named tuple for Q, dQ, I(Q), sigma_I(Q)
         """
         # Determine bin edges
-        delta_q = (q_max - q_min) / bins
-        bin_edges = np.arange(bins + 1).astype('float') * delta_q + q_min
-        bin_centers = (bin_edges[1:] - bin_edges[:-1]) * 0.5
+        # delta_q = (q_max - q_min) / bins
+        # bin_edges = np.arange(bins + 1).astype('float') * delta_q + q_min
+        # bin_centers = (bin_edges[1:] - bin_edges[:-1]) * 0.5
+        bin_centers, bin_edges = self.determine_linear_bin_edges(q_min, q_max, bins)
 
         # Bin
         binned_i_q = self.weighted_binning(self._q_dq.q, self._q_dq.dq, self._i_q, bin_centers, bin_edges)
@@ -778,7 +779,7 @@ class IofQCalculator(object):
                                                       statistic, suffix)
 
     @staticmethod
-    def weighted_binning(q_array, dq_array, iq_array, bin_centers, bin_edges):
+    def weighted_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
         """ Bin I(Q) by given bin edges and
         Parameters
         ----------
@@ -788,6 +789,8 @@ class IofQCalculator(object):
             scaler momentum transfer (Q) resolution
         iq_array: ndarray
             I(Q)
+        sigmaq_array: ndarray
+            sigma I(Q)
         bin_centers: numpy.ndarray
             bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
         bin_edges: numpy.ndarray
@@ -795,7 +798,7 @@ class IofQCalculator(object):
         Returns
         -------
         IofQ
-            named tuple for Q, dQ, I(Q), sigma_I(Q)
+            named tuple for Q, dQ, binned I(Q), binned sigma_I(Q)
         """
         # check input
         assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
@@ -805,18 +808,28 @@ class IofQCalculator(object):
         q_array = IofQCalculator.flatten(q_array)
         dq_array = IofQCalculator.flatten(dq_array)
         iq_array = IofQCalculator.flatten(iq_array)
+        sigmaq_array = IofQCalculator.flatten(sigmaq_array)
 
-        # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{\sqrt(I(i, j)^2}
-        i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges)
+        # calculate 1/sigma^2 for multiple uses
+        invert_sigma2_array = 1./(sigmaq_array**2)
+
+        print('I(Q) array:\n', iq_array)
+        print('invert_sigma2_array\n', invert_sigma2_array)
+        print('Raw raw I:\n', iq_array*invert_sigma2_array)
+        print(bin_edges)
+
+        # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
+        i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array*invert_sigma2_array)
+
+        print('[DEBUG 1] Raw: {}'.format(i_raw_array))
 
         # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
-        invert_iq_array = 1./iq_array
-        w_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=invert_iq_array)
+        w_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=invert_sigma2_array)
 
         # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
         #       sigma = 1/sqrt(w_k)
         i_final_array = i_raw_array / w_array
-        i_sigma_array = 1/np.sqrt(w_array)
+        sigma_final_array = 1/np.sqrt(w_array)
 
         # Calculate Q resolution of binned
         # FIXME - waiting for Lisa's equations for binned q resolution
@@ -825,7 +838,7 @@ class IofQCalculator(object):
         bin_q_resolution = binned_dq / i_raw_array
 
         # Get the final result
-        binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, i_sigma_array)
+        binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)
 
         return binned_iq
 
@@ -847,6 +860,14 @@ class IofQCalculator(object):
             return any_array
 
         return any_array.flatten()
+
+    @staticmethod
+    def determine_linear_bin_edges(q_min, q_max, bins):
+        delta_q = (q_max - q_min) / bins
+        bin_edges = np.arange(bins + 1).astype('float') * delta_q + q_min
+        bin_centers = (bin_edges[1:] + bin_edges[:-1]) * 0.5
+
+        return bin_centers, bin_edges
 
     @staticmethod
     def determine_log_bin_edges(q_min, q_max, step_per_decade):

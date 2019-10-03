@@ -22,6 +22,45 @@ det_view_counts = np.array([[1,      0,   1,   1,   1,   0,   1,   1, 1],
                             [1,     80, 193, 120, 148, 108, 201, 210, 1],
                             [1,      3,   2,   0,   1,   1,   0,   1, 1]], dtype=np.float)
 
+# From @lzi: qbinning_1D.xlsx
+det_view_q = np.array([[0.0057557289, 0.0048832439, 0.0041493828, 0.003639012, 0.00345271, 0.0036405748,
+                        0.0041521236, 0.0048867371, 0.0057596805],
+                       [0.0052854782, 0.0043190126, 0.0034677269, 0.0028372756, 0.0025940164, 0.0028392797,
+                        0.0034710061, 0.0043229619, 0.0052897813],
+                       [0.00492126, 0.0038647564, 0.0028822853, 0.0020814781, 0.0017353191, 0.0020842091,
+                        0.0028862297, 0.0038691694, 0.0049258812],
+                       [0.0046878562, 0.0035627952, 0.0024626644, 0.0014455746, 0.0008766204, 0.0014495043,
+                        0.0024672797, 0.0035675817, 0.0046927073],
+                       [0.0046052016, 0.0034533152, 0.0023014311, 0.0011495873, 1.80845385701797E-05,
+                        0.0011545249, 0.0023063691, 0.0034582533, 0.0046101396],
+                       [0.0046812885, 0.0035541491, 0.002450139, 0.0014241316, 0.0008407902,
+                        0.0014281203, 0.0024547779, 0.0035589472, 0.0046861464],
+                       [0.0049087405, 0.0038488017, 0.0028608564, 0.002051702, 0.0016994889,
+                        0.0020544727, 0.0028648303, 0.0038532329, 0.0049133735],
+                       [0.0052679865, 0.0042975887, 0.0034410067, 0.002804555, 0.0025581863,
+                        0.0028065826, 0.0034443113, 0.0043015577, 0.0052723038],
+                       [0.0057343077, 0.0048579767, 0.0041196168, 0.0036050342, 0.00341688,
+                        0.0036066118, 0.0041223774, 0.0048614881, 0.0057382741],
+                       [0.006283909, 0.0054959302, 0.0048555755, 0.0044273783, 0.0042755688,
+                        0.004428663, 0.0048579179, 0.0054990343, 0.0062875287]], dtype=np.float)
+
+# Weighted
+golden_linear_bin_iq = np.array([0 , 10, 7.4717068928, 438.5442497648, 266.6526914842, 4.7169313371,
+                                 1.7008577113, 1.1211574604, 0.9333333333, 1.2], dtype=np.float)
+golden_linear_bin_sigmaq = np.array([1, 1.5811388301, 1.1159231524, 6.0452753574, 6.1719722651,
+                                     0.4856403678, 0.3764812646, 0.3529490773, 0.3651483717, 0.5477225575],
+                                    dtype=np.float)
+
+golden_log_weighted_iq = np.array([6.58E-04, 7.05E-04, 7.56E-04, 8.11E-04, 8.70E-04, 9.33E-04, 1.00E-03, 1.07E-03,
+                                   1.15E-03,
+                                   1.23E-03, 1.32E-03, 1.42E-03, 1.52E-03, 1.63E-03, 1.75E-03, 1.87E-03, 2.01E-03,
+                                   2.15E-03,
+                                   2.31E-03, 2.48E-03, 2.66E-03, 2.85E-03, 3.05E-03, 3.27E-03, 3.51E-03, 3.76E-03,
+                                   4.04E-03, 4.33E-03,
+                                   4.64E-03, 4.98E-03, 5.34E-03, 5.72E-03, 6.14E-03
+                                   ])
+
+
 # Define some constants
 sdd = 5.  # meter
 x_pixel_size = 5.5 * 1.E-3  # meter
@@ -32,6 +71,114 @@ x_beam_center = 5*x_pixel_size - 0.02749  # meter
 y_beam_center = 5.5*y_pixel_size - 0.02059  # meter
 R1 = 0.02  # source aperture radius
 R2 = 0.007  # sample aperture radius
+
+
+def prepare_test_input_arrays():
+    """
+    Take the arrays provided by IS in 2D Excel cells and transform to drtsans supported data structure.
+
+    Returns
+    -------
+
+    """
+    # Transform from 2D array to 1D
+    iq_array = det_view_counts.flatten().astype(float)
+    sigma_q_array = np.sqrt(iq_array)
+    q_array = det_view_q.flatten()
+    dq_array = q_array * 0.001  # No test, fake now
+
+    # Set zero counts uncertainties correct to sigma Q
+    zero_counts_index = np.where(iq_array < 0.00001)
+    sigma_q_array[zero_counts_index] = 1.
+
+    # Remove the nans from the I(Q)
+    bad_indices = np.isnan(iq_array)
+    good_indices = ~bad_indices
+
+    q_array = q_array[good_indices]
+    dq_array = dq_array[good_indices]
+    iq_array = iq_array[good_indices]
+    sigma_q_array = sigma_q_array[good_indices]
+
+    return q_array, dq_array, iq_array, sigma_q_array
+
+
+def test_linear_binning():
+    """
+
+    Returns
+    -------
+
+    """
+    # Define target Q range
+    q_min = 0
+    q_max = 0.00629
+    assert abs(q_max - np.max(det_view_q)) < 1E-5
+    bins = 10
+
+    # Prepare inputs
+    q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
+
+    # Bin
+    bin_centers, bin_edges = IofQCalculator.determine_linear_bin_edges(q_min, q_max, bins)
+    assert bin_centers.shape == (10, )
+    assert bin_edges[0] == 0.
+    assert abs(bin_centers[9] - 0.0059731523) < 0.00005
+
+    binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+
+    # Test for Q bins
+    assert binned_q.q.shape == (10, )
+    assert pytest.approx(binned_q.q[0], q_max/bins * 0.5, 1E-5)
+
+    # Test for I(Q)
+    for i in range(10):
+        print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
+        assert pytest.approx(binned_q.i[i], golden_linear_bin_iq[i], 1E-5)
+        assert pytest.approx(binned_q.sigma[i], golden_linear_bin_sigmaq[i], 1E-5)
+
+    return
+
+
+def test_log_binning():
+    """
+    Unit test for the method to generate logarithm bins
+    Returns
+    -------
+    None
+    """
+    # Get test Q, dQ, I, sigmaI
+    q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
+
+    # Set logarithm binning
+    q_min = 0.001
+    q_max = 1.
+    step_per_decade = 33
+    bin_centers, bin_edges = IofQCalculator.determine_log_bin_edges(q_min, q_max, step_per_decade)
+
+    # Verify: bin size, min and max
+    assert bin_edges.shape[0] == bin_centers.shape[0] + 1
+    assert bin_centers.shape[0] == 100
+    assert abs(bin_centers[0] - q_min) < 1.E-12
+    assert abs(bin_centers[99] - q_max) < 1.E-12
+
+    # Bin
+    binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+
+    # # Test for Q bins
+    # assert binned_q.q.shape == (10, )
+    # assert pytest.approx(binned_q.q[0], q_max/bins * 0.5, 1E-5)
+    #
+    # # Test for I(Q)
+    # for i in range(10):
+    #     print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
+    #     assert pytest.approx(binned_q.i[i], golden_linear_bin_iq[i], 1E-5)
+    #     assert pytest.approx(binned_q.sigma[i], golden_linear_bin_sigmaq[i], 1E-5)
+    #
+    # golden_log_weighted_iq
+
+    return
+
 
 
 # Make a mantid workspace for the intensity
@@ -46,8 +193,9 @@ R2 = 0.007  # sample aperture radius
                            'yc': y_beam_center,
                            'zc': sdd}],
                          indirect=True)
-def test_binning_1d(generic_IDF):
-    """ Test binning I(Q) in 1D.
+def skip_test_binning_1d_workflow(generic_IDF):
+    """ Test the workflow to bin I(Q) in 1D from momentum transfer calculation to calculated binned
+    Q, dQ, I(Q), sigma_I(Q)
     This test shall verify
     1. Q for each pixel
     2. I(Q)
@@ -135,27 +283,6 @@ def test_binning_1d(generic_IDF):
                                            q_min=0.001, q_max=1.0, instrument='mono')
 
     assert log_result is not None
-
-    return
-
-
-def test_generate_log_bins():
-    """
-    Unit test for the method to generate logarithm bins
-    Returns
-    -------
-    None
-    """
-    q_min = 0.001
-    q_max = 1.
-    step_per_decade = 33
-    bin_centers, bin_edges = IofQCalculator.determine_log_bin_edges(q_min, q_max, step_per_decade)
-
-    # Verify: bin size, min and max
-    assert bin_edges.shape[0] == bin_centers.shape[0] + 1
-    assert bin_centers.shape[0] == 100
-    assert abs(bin_centers[0] - q_min) < 1.E-12
-    assert abs(bin_centers[99] - q_max) < 1.E-12
 
     return
 

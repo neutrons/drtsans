@@ -1,5 +1,7 @@
 # Example reduction scripts
 
+To write a reduction script, you can consult our documentation: https://scse.ornl.gov
+
 To use the example Jupyter notebook:
   - Download an example notebook from this repo.
   - Go to https://jupyter.sns.gov

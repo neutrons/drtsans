@@ -58,7 +58,8 @@ golden_log_weighted_iq = np.array([6.58E-04, 7.05E-04, 7.56E-04, 8.11E-04, 8.70E
                                    2.31E-03, 2.48E-03, 2.66E-03, 2.85E-03, 3.05E-03, 3.27E-03, 3.51E-03, 3.76E-03,
                                    4.04E-03, 4.33E-03,
                                    4.64E-03, 4.98E-03, 5.34E-03, 5.72E-03, 6.14E-03
-                                   ])
+                                   ], dtype=np.float)
+golden_log_weighted_sigma = np.array([], dtype=np.float)
 
 
 # Define some constants
@@ -133,9 +134,11 @@ def test_linear_binning():
 
     # Test for I(Q)
     for i in range(10):
-        print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
-        assert pytest.approx(binned_q.i[i], golden_linear_bin_iq[i], 1E-5)
+        print('Q[{}]: I = {}, gold I = {}, diff = {}'.format(i, binned_q.i[i], golden_linear_bin_iq[i],
+                                                             binned_q.i[i] - golden_linear_bin_iq[i]))
+        # assert abs(binned_q.i[i] - golden_linear_bin_iq[i]) < 1E-5
         assert pytest.approx(binned_q.sigma[i], golden_linear_bin_sigmaq[i], 1E-5)
+    assert False
 
     return
 
@@ -165,20 +168,15 @@ def test_log_binning():
     # Bin
     binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
-    # # Test for Q bins
-    # assert binned_q.q.shape == (10, )
-    # assert pytest.approx(binned_q.q[0], q_max/bins * 0.5, 1E-5)
-    #
     # # Test for I(Q)
-    # for i in range(10):
-    #     print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
-    #     assert pytest.approx(binned_q.i[i], golden_linear_bin_iq[i], 1E-5)
-    #     assert pytest.approx(binned_q.sigma[i], golden_linear_bin_sigmaq[i], 1E-5)
-    #
-    # golden_log_weighted_iq
+    num_test_points = golden_log_weighted_iq.shape[0]
+    for i in range(num_test_points):
+        print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
+        # assert pytest.approx(binned_q.i[i], golden_log_weighted_iq[i], 1E-5)
+        # assert pytest.approx(binned_q.sigma[i], golden_log_weighted_sigma[i], 1E-5)
+    # END-FOR
 
     return
-
 
 
 # Make a mantid workspace for the intensity

@@ -1,6 +1,7 @@
 import pytest
 from mantid.kernel import Property
 import numpy as np
+# testing https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/sensitivity.py
 from drtsans.settings import unique_workspace_name as uwn
 from drtsans.sensitivity import apply_sensitivity_correction,\
     calculate_sensitivity_correction
@@ -98,10 +99,10 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
     r'''
     Testing section 5 in the master document
     Apply sensitivity to a 3x3 workspace. Check if the output is masked where sensitivity is masked
-    Functions to test: ornl.sans.sensitivity.apply_sensitivity_correction
+    Functions to test: drtsans.sensitivity.apply_sensitivity_correction
     Underlying Mantid algorithms:
         Divide https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
-        MaskDetectors https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
+        MaskDetectorsIf https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
     See also https://docs.mantidproject.org/nightly/concepts/ErrorPropagation.html
     dev - Andrei Savici <saviciat@ornl.gov>
     SME - Venky Pingali <pingalis@ornl.gov>

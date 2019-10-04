@@ -44,6 +44,14 @@ det_view_q = np.array([[0.0057557289, 0.0048832439, 0.0041493828, 0.003639012, 0
                        [0.006283909, 0.0054959302, 0.0048555755, 0.0044273783, 0.0042755688,
                         0.004428663, 0.0048579179, 0.0054990343, 0.0062875287]], dtype=np.float)
 
+# Linear binning
+linear_bin_centers = np.ndarray([0.000314376, 0.000943129, 0.001571882, 0.002200635, 0.002829388, 0.003458141,
+                                 0.004086894, 0.004715647, 0.005344399, 0.005973152])
+linear_bin_right_bound = np.array([0.000628753, 0.001257506, 0.001886259, 0.002515011, 0.003143764, 0.003772517,
+                                   0.00440127, 0.005030023, 0.005658776, 0.006287529])
+linear_bin_left_bound = np.array([0, 0.000628753, 0.001257506, 0.001886259, 0.002515011, 0.003143764, 0.003772517,
+                                  0.00440127 , 0.005030023, 0.005658776])
+
 # Weighted
 golden_linear_bin_iq = np.array([0 , 10, 7.4717068928, 438.5442497648, 266.6526914842, 4.7169313371,
                                  1.7008577113, 1.1211574604, 0.9333333333, 1.2], dtype=np.float)
@@ -51,15 +59,25 @@ golden_linear_bin_sigmaq = np.array([1, 1.5811388301, 1.1159231524, 6.0452753574
                                      0.4856403678, 0.3764812646, 0.3529490773, 0.3651483717, 0.5477225575],
                                     dtype=np.float)
 
-golden_log_weighted_iq = np.array([6.58E-04, 7.05E-04, 7.56E-04, 8.11E-04, 8.70E-04, 9.33E-04, 1.00E-03, 1.07E-03,
-                                   1.15E-03,
-                                   1.23E-03, 1.32E-03, 1.42E-03, 1.52E-03, 1.63E-03, 1.75E-03, 1.87E-03, 2.01E-03,
-                                   2.15E-03,
-                                   2.31E-03, 2.48E-03, 2.66E-03, 2.85E-03, 3.05E-03, 3.27E-03, 3.51E-03, 3.76E-03,
-                                   4.04E-03, 4.33E-03,
-                                   4.64E-03, 4.98E-03, 5.34E-03, 5.72E-03, 6.14E-03
-                                   ], dtype=np.float)
-golden_log_weighted_sigma = np.array([], dtype=np.float)
+# Logarithm binning
+log_bin_centers = np.array([6.58E-04, 7.05E-04, 7.56E-04, 8.11E-04, 8.70E-04, 9.33E-04, 1.00E-03, 1.07E-03,
+                            1.15E-03,
+                            1.23E-03, 1.32E-03, 1.42E-03, 1.52E-03, 1.63E-03, 1.75E-03, 1.87E-03, 2.01E-03,
+                            2.15E-03,
+                            2.31E-03, 2.48E-03, 2.66E-03, 2.85E-03, 3.05E-03, 3.27E-03, 3.51E-03, 3.76E-03,
+                            4.04E-03, 4.33E-03,
+                            4.64E-03, 4.98E-03, 5.34E-03, 5.72E-03, 6.14E-03], dtype=np.float)
+
+
+golden_log_weighted_intensity = np.array([0, 0, 0, 0, 10, 0, 0, 10, 10, 0, 0, 5, 0, 0, 473.9472574, 0, 495.9012097,
+                                          505.9288538, 660.20558, 567.5506439, 121, 262.7392886, 0, 0, 12.16131385,
+                                          2.472004695, 1.989894845, 126.6649782, 1.44, 0.931190118, 0.75, 1.487164355,
+                                          1])
+
+golden_log_weighted_sigma = np.array([1, 1, 1, 1, 2.236067977, 1, 1, 3.16227766, 2.236067977, 1, 1, 1.118033989, 1, 1,
+                                      15.39394779, 1, 15.74644737, 15.90485545, 18.16873111, 10.65411323, 11,
+                                      5.730829877, 1, 1, 0.967205087, 0.703136501, 0.705318163, 4.253821445,
+                                      0.489897949, 0.364728885, 0.433012702, 0.704074891, 0.707106781], dtype=np.float)
 
 
 # Define some constants
@@ -169,7 +187,7 @@ def test_log_binning():
     binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
     # # Test for I(Q)
-    num_test_points = golden_log_weighted_iq.shape[0]
+    num_test_points = golden_log_weighted_intensity.shape[0]
     for i in range(num_test_points):
         print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
         # assert pytest.approx(binned_q.i[i], golden_log_weighted_iq[i], 1E-5)
@@ -282,6 +300,48 @@ def skip_test_binning_1d_workflow(generic_IDF):
 
     assert log_result is not None
 
+    return
+
+
+def assign_bins(bin_edges, data_points, det_counts):
+    """
+    Check the value of each data points and assign them with proper bin indexes
+    Parameters
+    ----------
+    bin_edges
+    data_points
+    det_counts: ndarray
+        detector counts
+    Returns
+    -------
+
+    """
+    import bisect
+
+    bin_index_list = [-1] * data_points.shape[0]
+
+    for i in range(data_points.shape[0]):
+        bin_index = bisect.bisect_left(bin_edges, data_points[i])
+        if data_points[i] < bin_edges[bin_index]:
+            bin_index -= 1
+            if bin_index < 0:
+                raise NotImplementedError('Implementation error')
+        bin_index_list[i] = bin_index
+        print('{}, {}, {}, {}, {}, {}'.format(i, det_counts[i], data_points[i], bin_index, bin_edges[bin_index], bin_edges[bin_index+1]))
+    # END-FOR
+
+    # count
+    counts = 0
+    for i in range(bin_edges.shape[0] - 1):
+        print('{}-th bin: count = {}'.format(i, bin_index_list.count(i)))
+        counts +=  bin_index_list.count(i)
+    print('sum = {}'.format(counts))
+    for i in range(bin_edges.shape[0] - 1):
+        print('{}, {}'.format(i, bin_index_list.count(i)))
+
+    for i in range(data_points.shape[0]):
+        print('{}'.format(det_counts[i]))
+    # END-FOR
     return
 
 

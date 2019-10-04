@@ -59,6 +59,21 @@ gold_linear_bin_sigmaq = np.array([1, 1.5811388301, 1.1159231524, 6.0452753574, 
                                    0.4856403678, 0.3764812646, 0.3529490773, 0.3651483717, 0.5477225575],
                                   dtype=np.float)
 
+"""
+Latest Lisa's gold test data (not the last bin)
+Int_raw	weight	Int_final	Int_err
+0	1	0	1
+4	0.4	10	1.58113883
+6	0.804219879	7.460646	1.115096873
+10	0.017380344	575.3626	7.585265905
+10	0.041157885	242.9668	4.929166353
+14	3.068963449	4.561801	0.57082652
+13	3.063720896	4.243206	0.571314703
+14	13.68392857	1.023098	0.270330222
+4	5.333333333	0.75	0.433012702
+4	4	1	0.5
+"""
+
 # Linear-no weight TODO FIXME - gold data shall be filled
 gold_linear_bin_no_weight_iq = np.array([],
                                         dtype=np.float)  # binned I(Q)
@@ -151,7 +166,7 @@ def test_linear_binning():
     # Prepare inputs
     q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
 
-    # Bin
+    # Bin (weighted binning)
     bin_centers, bin_edges = IofQCalculator.determine_linear_bin_edges(q_min, q_max, bins)
     assert bin_centers.shape == (10, )
     assert bin_edges[0] == 0.
@@ -165,11 +180,14 @@ def test_linear_binning():
 
     # Test for I(Q)
     for i in range(10):
-        print('Q[{}]: I = {}, gold I = {}, diff = {}'.format(i, binned_q.i[i], gold_linear_bin_iq[i],
-                                                             binned_q.i[i] - gold_linear_bin_iq[i]))
-        assert abs(binned_q.i[i] - gold_linear_bin_iq[i]) < 1E-5
-        assert abs(binned_q.sigma[i] - gold_linear_bin_sigmaq[i]) < 1E-5
+        print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
+        # print('Q[{}]: I = {}, gold I = {}, diff = {}'.format(i, binned_q.i[i], gold_linear_bin_iq[i],
+        #                                                      binned_q.i[i] - gold_linear_bin_iq[i]))
+        # assert abs(binned_q.i[i] - gold_linear_bin_iq[i]) < 1E-5
+        # assert abs(binned_q.sigma[i] - gold_linear_bin_sigmaq[i]) < 1E-5
     # END-FOR
+
+    assert False
 
     # Test no-weight binning
     no_weight_iq = IofQCalculator.no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
@@ -184,7 +202,7 @@ def test_linear_binning():
     return
 
 
-def test_log_binning():
+def next_test_log_binning():
     """
     Unit test for the method to generate logarithm bins
     Returns

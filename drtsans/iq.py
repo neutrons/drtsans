@@ -780,7 +780,7 @@ class IofQCalculator(object):
 
     @staticmethod
     def weighted_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
-        """ Bin I(Q) by given bin edges and
+        """ Bin I(Q) by given bin edges and do weighted binning
         Parameters
         ----------
         q_array: ndarray
@@ -803,7 +803,6 @@ class IofQCalculator(object):
         # check input
         assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
 
-        # FIXME - What if I_k == 0:  np.where(np.isinf(iq_array))
         # Flatten input data to 1D
         q_array = IofQCalculator.flatten(q_array)
         dq_array = IofQCalculator.flatten(dq_array)
@@ -839,6 +838,77 @@ class IofQCalculator(object):
         # FIXME - this is an incorrect solution temporarily for workflow
         binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
         bin_q_resolution = binned_dq / i_raw_array
+
+        # Get the final result
+        binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)
+
+        return binned_iq
+
+    @staticmethod
+    def no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
+        """ Bin I(Q) by given bin edges and do no-weight binning
+        This method implements equation 11.34, 11.35 and 11.36 in master document.
+        Parameters
+        ----------
+        q_array: ndarray
+            scaler momentum transfer Q
+        dq_array: ndarray
+            scaler momentum transfer (Q) resolution
+        iq_array: ndarray
+            I(Q)
+        sigmaq_array: ndarray
+            sigma I(Q)
+        bin_centers: numpy.ndarray
+            bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
+        bin_edges: numpy.ndarray
+            bin edges
+        Returns
+        -------
+        IofQ
+            named tuple for Q, dQ, binned I(Q), binned sigma_I(Q)
+        """
+        # check input
+        assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
+
+        # Flatten input data to 1D
+        q_array = IofQCalculator.flatten(q_array)
+        dq_array = IofQCalculator.flatten(dq_array)
+        iq_array = IofQCalculator.flatten(iq_array)
+        sigmaq_array = IofQCalculator.flatten(sigmaq_array)
+
+        # calculate 1/sigma^2 for multiple uses
+        invert_sigma2_array = 1./(sigmaq_array**2)
+
+        # DEBUG OUTPUT SESSION
+        print('I(Q) array:\n', iq_array)
+        print('invert_sigma2_array\n', invert_sigma2_array)
+        print('Raw raw I:\n', iq_array*invert_sigma2_array)
+        print(bin_edges)
+        # -------------------------------------------------
+
+        # Number of I(q) in each target Q bin
+        num_pt_array, bin_x = np.histogram(q_array, bins=bin_edges)
+
+        # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
+        i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array)
+        # Square of summed uncertainties for each bin
+        sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array**2)
+
+        print('[DEBUG 1] No-weight Raw: {}'.format(i_raw_array))
+        for i in range(i_raw_array.shape[0]):
+            print('{}    {:.7f}    {:.7f}    {:.7f}   {}'
+                  ''.format(i, bin_x[i], bin_centers[i], bin_x[i+1], i_raw_array[i]))
+
+        # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
+        #       sigma = 1/sqrt(w_k)
+        i_final_array = i_raw_array / num_pt_array
+        sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
+
+        # Calculate Q resolution of binned
+        # FIXME - waiting for Lisa's equations for binned q resolution
+        # FIXME - this is an incorrect solution temporarily for workflow
+        binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
+        bin_q_resolution = binned_dq / num_pt_array
 
         # Get the final result
         binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)

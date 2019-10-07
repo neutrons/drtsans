@@ -43,6 +43,26 @@ def data_test_16a():
 
 
 def test_normalization_by_time(data_test_16a):
+    r"""
+    Normalize sample intensities by the duration of the run.
+
+    devs - Steven Hahn <hahnse@ornl.gov>,
+           Jiao Lin <linjiao@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
+    SME  - Changwoo Do <doc1@ornl.gov>
+
+    **Mantid algorithms used:**
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+
+    **drtsans functions used:**
+    ~drtsans.settings.unique_workspace_dundername
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+    ~drtsans.samplelogs.SampleLogs
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    ~drtsans.mono.normalisation.time
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
+    """
     # Create a Mantid workspace with the sample intensities
     intensities_list = list(itertools.chain(*data_test_16a['I_sam']))
     errors_list = list(itertools.chain(*data_test_16a['I_sam_err']))
@@ -64,6 +84,26 @@ def test_normalization_by_time(data_test_16a):
 
 
 def test_normalization_by_monitor(data_test_16a):
+    r"""
+    Normalize sample intensities by flux at monitor
+
+    devs - Steven Hahn <hahnse@ornl.gov>,
+           Jiao Lin <linjiao@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
+    SME  - Changwoo Do <doc1@ornl.gov>
+
+    **Mantid algorithms used:**
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+
+    **drtsans functions used:**
+    ~drtsans.settings.unique_workspace_dundername
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+    ~drtsans.samplelogs.SampleLogs
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    ~drtsans.mono.normalisation.monitor
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
+    """
     # Create a Mantid workspace with the sample intensities
     intensities_list = list(itertools.chain(*data_test_16a['I_sam']))
     ws = CreateWorkspace(DataX=data_test_16a['wavelength_bin'],

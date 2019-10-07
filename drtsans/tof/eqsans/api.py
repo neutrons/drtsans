@@ -16,7 +16,7 @@ from drtsans.path import exists as path_exists
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_monitors', 'prepare_data', 'save_ascii_1D', 'save_xml_1D',
-           'save_nist_dat', 'save_nexus']
+           'save_nist_dat', 'save_nexus', 'set_init_uncertainties']
 
 
 def apply_solid_angle_correction(input_workspace):

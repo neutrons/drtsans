@@ -47,16 +47,17 @@ def flux_file(reference_dir):
               'beam_profile_flux.txt')
 
 
-@pytest.fixture(scope='module', params=run_sets)
+@pytest.fixture(scope='module', params=run_sets,
+                ids=[item['run'] for item in run_sets])
 @namedtuplefy
 def rs(reference_dir, request):
     run_set = request.param
     run = run_set['run']
     ws = uwd()
+    print('run_set={}'.format(run_set))
     with amend_config(data_dir=reference_dir.new.eqsans):
         eqsans.load_events(run, output_workspace=ws)
-    kw = dict(low_tof_clip=500, high_tof_clip=2000, output_workspace=uwd())
-    wl = eqsans.transform_to_wavelength(ws, **kw)
+    wl = eqsans.transform_to_wavelength(ws, low_tof_clip=500, high_tof_clip=2000, output_workspace=uwd())
     return {**run_set, **dict(ws=ws, wl=wl)}
 
 
@@ -107,14 +108,15 @@ def test_transform_to_wavelength(rs):
     assert sl.wavelength_max.value == approx(rs.w_max, abs=0.05)
     # assert zero uncertainty assignment
     for i in range(ws.getNumberHistograms()):
-        zci = np.where(ws.dataY(i) == 0)[0]  # zero count indices
-        np.testing.assert_equal(ws.dataE(i)[zci], np.ones(len(zci)))
+        zci = np.where(ws.readY(i) == 0)[0]  # zero count indices
+        np.testing.assert_equal(ws.readE(i)[zci], np.ones(len(zci)))
 
 
 def test_normalise_by_flux(rs, flux_file):
+    print(rs.run)
     ws = eqsans.normalise_by_flux(rs.wl, flux_file, output_workspace=uwd())
     ws = SumSpectra(ws)
-    assert np.average(ws.dataY(0)) == approx(rs.flux, abs=1)
+    assert np.average(ws.readY(0)) == approx(rs.flux, abs=1)
 
 
 def test_subtract_background(reference_dir):
@@ -124,7 +126,7 @@ def test_subtract_background(reference_dir):
     wb = LoadNexus(pj(data_dir, 'background.nxs'), OutputWorkspace=uwd())
     ws_wb = eqsans.subtract_background(ws, wb, scale=0.42)
     assert ws_wb.name() == ws_name
-    assert max(ws_wb.dataY(0)) < 1.e-09
+    assert max(ws_wb.readY(0)) < 1.e-09
 
 
 def test_prepare_monitors(reference_dir):

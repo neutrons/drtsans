@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans.dark_current import subtract_dark_current, normalise_to_workspace
+from drtsans.tof.eqsans.dark_current import normalise_to_workspace
 
 # Data for test work space was from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174
 x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
@@ -20,11 +20,11 @@ l_max = 6  # assume wavelength max is 6
 l_min = 2.5  # assume wavelength min is 2.5
 l_step = 0.1  # assume wavelength binning size is 0.1
 # DC per wavelength data
-nqbins =  int((l_max-l_min+l_step/2.)//l_step)
+nqbins = int((l_max-l_min+l_step/2.)//l_step)
 I_dc_oneimage = I_dc_total / nqbins
 # DC data 3D (image + wavelength)
 I_dc = np.repeat(I_dc_oneimage, nqbins)
-I_dc.shape = 5,5,-1
+I_dc.shape = 5, 5, -1
 #
 np.set_printoptions(precision=4, suppress=True)
 
@@ -66,16 +66,16 @@ def test_normalize_dark_current(workspace_with_instrument):
     dark_sample_log.insert('is_frame_skipping', False)
     # This is the result documented in ticket 174 by Changwoo
     expected_result = np.array([
-        [0.027, 0.0304,0.0337,0.0371,0.0405],
-        [0.0438,0.0472,0.0506,0.054, 0.0573],
-        [0.0607,0.0641,0.0675,0.0708,0.0742],
-        [0.0776,0.081, 0.0843,0.0877,0.0911],
-        [0.0944,0.0978,0.1012,0.1046,0.1079],
+        [0.027, 0.0304,  0.0337, 0.0371, 0.0405],
+        [0.0438, 0.0472, 0.0506, 0.054,  0.0573],
+        [0.0607, 0.0641, 0.0675, 0.0708, 0.0742],
+        [0.0776, 0.081,  0.0843, 0.0877, 0.0911],
+        [0.0944, 0.0978, 0.1012, 0.1046, 0.1079],
     ])
-    # This implements the formula in ticket 174 
+    # This implements the formula in ticket 174
     I_dcnorm_step = t_sam / t_dc * ((t_frame - t_low - t_high) / t_frame) * (l_step / (l_max - l_min)) * I_dc_total
     # This is obtained by calling the method id drtsans
-    result = normalise_to_workspace(dark_ws, data_ws).extractY()[:, 0].reshape(5,5) * t_sam
+    result = normalise_to_workspace(dark_ws, data_ws).extractY()[:, 0].reshape(5, 5) * t_sam
     # All three should match
     np.testing.assert_allclose(result, expected_result, atol=1e-4)
     np.testing.assert_allclose(I_dcnorm_step, expected_result, atol=1e-4)

@@ -876,14 +876,14 @@ class IofQCalculator(object):
         iq_array = IofQCalculator.flatten(iq_array)
         sigmaq_array = IofQCalculator.flatten(sigmaq_array)
 
-        # calculate 1/sigma^2 for multiple uses
-        invert_sigma2_array = 1./(sigmaq_array**2)
-
-        # DEBUG OUTPUT SESSION
-        print('I(Q) array:\n', iq_array)
-        print('invert_sigma2_array\n', invert_sigma2_array)
-        print('Raw raw I:\n', iq_array*invert_sigma2_array)
-        print(bin_edges)
+        # # calculate 1/sigma^2 for multiple uses
+        # invert_sigma2_array = 1./(sigmaq_array**2)
+        #
+        # # DEBUG OUTPUT SESSION
+        # print('I(Q) array:\n', iq_array)
+        # print('invert_sigma2_array\n', invert_sigma2_array)
+        # print('Raw raw I:\n', iq_array*invert_sigma2_array)
+        print('BIN EDGES: {}'.format(bin_edges))
         # -------------------------------------------------
 
         # Number of I(q) in each target Q bin
@@ -893,11 +893,6 @@ class IofQCalculator(object):
         i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array)
         # Square of summed uncertainties for each bin
         sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array**2)
-
-        print('[DEBUG 1] No-weight Raw: {}'.format(i_raw_array))
-        for i in range(i_raw_array.shape[0]):
-            print('{}    {:.7f}    {:.7f}    {:.7f}   {}'
-                  ''.format(i, bin_x[i], bin_centers[i], bin_x[i+1], i_raw_array[i]))
 
         # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
         #       sigma = 1/sqrt(w_k)
@@ -909,6 +904,12 @@ class IofQCalculator(object):
         # FIXME - this is an incorrect solution temporarily for workflow
         binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
         bin_q_resolution = binned_dq / num_pt_array
+
+        print('[DEBUG] No-weight: Index, Bin Center, Bin Left, Bin Right, No. Pt, I(raw), I, sigmaI')
+        for i in range(i_raw_array.shape[0]):
+            print('{} {:.7f} {:.7f} {:.7f} {} {} {:.7f} {:.7f}'
+                  ''.format(i, bin_centers[i],  bin_x[i], bin_x[i+1], num_pt_array[i], int(i_raw_array[i]),
+                            i_final_array[i], sigma_final_array[i]))
 
         # Get the final result
         binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)

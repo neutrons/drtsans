@@ -45,34 +45,18 @@ det_view_q = np.array([[0.0057557289, 0.0048832439, 0.0041493828, 0.003639012, 0
                         0.004428663, 0.0048579179, 0.0054990343, 0.0062875287]], dtype=np.float)
 
 # Linear binning
-linear_bin_centers = np.ndarray([0.000314376, 0.000943129, 0.001571882, 0.002200635, 0.002829388, 0.003458141,
-                                 0.004086894, 0.004715647, 0.005344399, 0.005973152])
-linear_bin_right_bound = np.array([0.000628753, 0.001257506, 0.001886259, 0.002515011, 0.003143764, 0.003772517,
-                                   0.00440127, 0.005030023, 0.005658776, 0.006287529])
-linear_bin_left_bound = np.array([0, 0.000628753, 0.001257506, 0.001886259, 0.002515011, 0.003143764, 0.003772517,
-                                  0.00440127 , 0.005030023, 0.005658776])
+# linear_bin_centers = np.ndarray([0.000314376, 0.000943129, 0.001571882, 0.002200635, 0.002829388, 0.003458141,
+#                                  0.004086894, 0.004715647, 0.005344399, 0.005973152], dtype=np.float)
+# linear_bin_right_bound = np.array([0.000628753, 0.001257506, 0.001886259, 0.002515011, 0.003143764, 0.003772517,
+#                                    0.00440127, 0.005030023, 0.005658776, 0.006287529], dtype=np.float)
+# linear_bin_left_bound = np.array([0, 0.000628753, 0.001257506, 0.001886259, 0.002515011, 0.003143764, 0.003772517,
+#                                   0.00440127 , 0.005030023, 0.005658776], dtype=np.float)
 
 # Linear-weighted
-gold_linear_bin_iq = np.array([0 , 10, 7.4717068928, 438.5442497648, 266.6526914842, 4.7169313371,
-                               1.7008577113, 1.1211574604, 0.9333333333, 1.2], dtype=np.float)
-gold_linear_bin_sigmaq = np.array([1, 1.5811388301, 1.1159231524, 6.0452753574, 6.1719722651,
-                                   0.4856403678, 0.3764812646, 0.3529490773, 0.3651483717, 0.5477225575],
-                                  dtype=np.float)
-
-"""
-Latest Lisa's gold test data (not the last bin)
-Int_raw	weight	Int_final	Int_err
-0	1	0	1
-4	0.4	10	1.58113883
-6	0.804219879	7.460646	1.115096873
-10	0.017380344	575.3626	7.585265905
-10	0.041157885	242.9668	4.929166353
-14	3.068963449	4.561801	0.57082652
-13	3.063720896	4.243206	0.571314703
-14	13.68392857	1.023098	0.270330222
-4	5.333333333	0.75	0.433012702
-4	4	1	0.5
-"""
+gold_linear_bin_iq = np.array([0, 10, 7.460646, 575.3626, 242.9668, 4.561801, 4.243206, 1.023098, 0.75, 1.],
+                              dtype=np.float)
+gold_linear_bin_sigmaq = np.array([1, 1.58113883, 1.115096873, 7.585265905, 4.929166353, 0.57082652, 0.571314703,
+                                   0.270330222, 0.433012702, 0.5], dtype=np.float)
 
 # Linear-no weight TODO FIXME - gold data shall be filled
 gold_linear_bin_no_weight_iq = np.array([],
@@ -151,8 +135,7 @@ def prepare_test_input_arrays():
 
 
 def test_linear_binning():
-    """
-
+    """ Test binning I(Q) with linear binning
     Returns
     -------
 
@@ -179,15 +162,16 @@ def test_linear_binning():
     assert pytest.approx(binned_q.q[0], q_max/bins * 0.5, 1E-5)
 
     # Test for I(Q)
-    for i in range(10):
+    for i in range(10-1):
         print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
         # print('Q[{}]: I = {}, gold I = {}, diff = {}'.format(i, binned_q.i[i], gold_linear_bin_iq[i],
         #                                                      binned_q.i[i] - gold_linear_bin_iq[i]))
-        # assert abs(binned_q.i[i] - gold_linear_bin_iq[i]) < 1E-5
-        # assert abs(binned_q.sigma[i] - gold_linear_bin_sigmaq[i]) < 1E-5
+        if gold_linear_bin_iq[i] > 1E-5:
+            assert abs(binned_q.i[i] - gold_linear_bin_iq[i])/gold_linear_bin_iq[i] < 2E-3
+        else:
+            assert abs(binned_q.i[i] - gold_linear_bin_iq[i]) < 1E-5
+        assert abs(binned_q.sigma[i] - gold_linear_bin_sigmaq[i]) < 1E-2
     # END-FOR
-
-    assert False
 
     # Test no-weight binning
     no_weight_iq = IofQCalculator.no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
@@ -195,14 +179,14 @@ def test_linear_binning():
     # verify result
     for i in range(10):
         print('[Linear NoWeight] Q[{}]: I = {}, sigmaI = {}'.format(i, no_weight_iq.i[i], no_weight_iq.sigma[i]))
-        assert abs(no_weight_iq.i[i] - gold_linear_bin_no_weight_iq[i]) < 1E-5
-        assert abs(no_weight_iq.sigma[i] - gold_linear_bin_no_weight_sq[i]) < 1E-5
+        # assert abs(no_weight_iq.i[i] - gold_linear_bin_no_weight_iq[i]) < 1E-5
+        # assert abs(no_weight_iq.sigma[i] - gold_linear_bin_no_weight_sq[i]) < 1E-5
     # END-FOR
 
     return
 
 
-def next_test_log_binning():
+def test_log_binning():
     """
     Unit test for the method to generate logarithm bins
     Returns
@@ -211,6 +195,8 @@ def next_test_log_binning():
     """
     # Get test Q, dQ, I, sigmaI
     q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
+
+    print('Minimum Q(s): {}'.format(np.sort(q_array)[:4]))
 
     # Set logarithm binning
     q_min = 0.001
@@ -223,6 +209,14 @@ def next_test_log_binning():
     assert bin_centers.shape[0] == 100
     assert abs(bin_centers[0] - q_min) < 1.E-12
     assert abs(bin_centers[99] - q_max) < 1.E-12
+
+    for ibin in range(100):
+        print('Q[{}]   wz = {:.7f}  ls = {:.7f}'.format(ibin, bin_centers[ibin], log_bin_centers[ibin]))
+
+    for ibin in range(100):
+        assert abs(bin_centers[ibin] - log_bin_centers[ibin]) < 1E-10
+
+    assert False
 
     # Bin with weighted binning algorithm
     binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
@@ -242,9 +236,11 @@ def next_test_log_binning():
     # verify result
     for i in range(num_test_points):
         print('[NoWeight] Q[{}]: I = {}, sigmaI = {}'.format(i, no_weight_iq.i[i], no_weight_iq.sigma[i]))
-        assert abs(no_weight_iq.i[i] - gold_log_bin_no_weight_iq[i]) < 1E-5
-        assert abs(no_weight_iq.sigma[i] - gold_log_bin_no_weight_sq[i]) < 1E-5
+        # assert abs(no_weight_iq.i[i] - gold_log_bin_no_weight_iq[i]) < 1E-5
+        # assert abs(no_weight_iq.sigma[i] - gold_log_bin_no_weight_sq[i]) < 1E-5
     # END-FOR
+
+    assert False
 
     return
 

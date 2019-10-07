@@ -4,6 +4,7 @@ import pytest
 from mantid.simpleapi import LoadEmptyInstrument, AddSampleLog  # AddTimeSeriesLog, Rebin, ConvertUnits,
 from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, IofQCalculator
 from drtsans.momentum_transfer_factory import calculate_q_dq
+import bisect
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -357,8 +358,6 @@ def assign_bins(bin_edges, data_points, det_counts):
     -------
 
     """
-    import bisect
-
     bin_index_list = [-1] * data_points.shape[0]
 
     for i in range(data_points.shape[0]):
@@ -368,14 +367,15 @@ def assign_bins(bin_edges, data_points, det_counts):
             if bin_index < 0:
                 raise NotImplementedError('Implementation error')
         bin_index_list[i] = bin_index
-        print('{}, {}, {}, {}, {}, {}'.format(i, det_counts[i], data_points[i], bin_index, bin_edges[bin_index], bin_edges[bin_index+1]))
+        print('{}, {}, {}, {}, {}, {}'
+              ''.format(i, det_counts[i], data_points[i], bin_index, bin_edges[bin_index], bin_edges[bin_index+1]))
     # END-FOR
 
     # count
     counts = 0
     for i in range(bin_edges.shape[0] - 1):
         print('{}-th bin: count = {}'.format(i, bin_index_list.count(i)))
-        counts +=  bin_index_list.count(i)
+        counts += bin_index_list.count(i)
     print('sum = {}'.format(counts))
     for i in range(bin_edges.shape[0] - 1):
         print('{}, {}'.format(i, bin_index_list.count(i)))

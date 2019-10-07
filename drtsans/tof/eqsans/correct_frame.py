@@ -523,7 +523,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
 
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=False, zero_uncertainty=1.0,
+                            keep_events=False, set_init_uncertainty=1.0,
                             interior_clip=False, output_workspace=None):
     r"""
     API function that converts corrected TOF's to Wavelength.
@@ -540,10 +540,10 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     high_tof_clip: float
         Ignore events with a time-of-flight (TOF) bigger than the maximal
         TOF minus this quantity.
-    keep_events: Bool
+    keep_events: bool
         The final histogram will be an EventsWorkspace if True.
-    zero_uncertainty: float
-        Assign this error to histogram bins having no counts.
+    set_init_uncertainty: bool
+        Assign the error to histogram bins having no counts.
     interior_clip: False
         If True, trim slow neutrons from the lead pulse (using
         ``high_tof_clip``) and fast neutrons from the skip pulse (using
@@ -570,8 +570,11 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     log_band_structure(output_workspace, bands)
     w = log_tof_structure(output_workspace, low_tof_clip,
                           high_tof_clip, interior_clip=interior_clip)
+
     # uncertainty when no counts in the bin
-    for i in range(w.getNumberHistograms()):
-        zero_count_indices = np.where(w.dataY(i) == 0)[0]
-        w.dataE(i)[zero_count_indices] = zero_uncertainty
+    if set_init_uncertainty:
+        for i in range(w.getNumberHistograms()):
+            zero_count_indices = np.where(w.dataY(i) == 0)[0]
+            w.dataE(i)[zero_count_indices] = 1.0
+
     return w

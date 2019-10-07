@@ -350,6 +350,12 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
+    min_threshold: float or None
+        if not None, the data will be masked if the sensitivity
+        is below this threshold
+    max_threshold: float or None
+        if not None, the data will be masked if the sensitivity
+        is above this threshold
     output_workspace:  ~mantid.api.MatrixWorkspace
         corrected workspace. This is the input workspace by default
     '''

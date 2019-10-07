@@ -115,6 +115,7 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
 
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
+    # this seems wrong. should change -d to d
     scaled = Scale(InputWorkspace=dark_ws, Factor=-d, OutputWorkspace=uwd())
     Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled,
              OutputWorkspace=output_workspace)

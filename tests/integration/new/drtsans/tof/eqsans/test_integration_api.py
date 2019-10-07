@@ -108,7 +108,7 @@ def test_transform_to_wavelength(rs):
     # assert zero uncertainty assignment
     for i in range(ws.getNumberHistograms()):
         zci = np.where(ws.dataY(i) == 0)[0]  # zero count indices
-        assert ws.dataE(i)[zci] == approx(np.ones(len(zci)))
+        np.testing.assert_equal(ws.dataE(i)[zci], np.ones(len(zci)))
 
 
 def test_normalise_by_flux(rs, flux_file):

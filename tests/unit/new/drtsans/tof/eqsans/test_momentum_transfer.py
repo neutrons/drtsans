@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import constants
 from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
 from drtsans import geometry as sans_geometry
 from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
@@ -207,7 +208,7 @@ def test_single_value_resolution():
     wl_resolution = 0.15
     two_theta = 0.00092676  # radian (corner pixel)
     sample_pixel_distance = l2 + 0.1  # radian (corner pixel)
-    emission_error = 0.  # wave length = 3.5 A
+    emission_error = 250.  # wave length = 3.5 A
 
     params = InstrumentSetupParameters(l1=l1,
                                        sample_det_center_dist=l2,
@@ -221,15 +222,15 @@ def test_single_value_resolution():
                                               sample_pixel_distance=sample_pixel_distance,
                                               tof_error=emission_error,
                                               instrument_setup_params=params)
+    print('Unit Test: Backend dQx = {}'.format(q_x_res))
 
-    # backend dQx = 8.34291403107089e-07
-    golden_dqx, golden_dqy = 0.000854463465864, 0.000851888156594
+    # Calculate Q resolution by Weiren's algorithm
+    golden_dqx, golden_dqy = sigma_neutron(wave_length, wl_resolution, qx, qy, 0.5*two_theta,
+                                           l1, l2, source_aperture, sample_aperture, 0.0055, 0.0043,
+                                           sample_pixel_distance, l1, emission_error)
 
-    # TODO: Disabled for #187
-    print(golden_dqx, golden_dqy)
-    print(q_x_res, q_y_res)
-    # assert_delta(q_x_res, golden_dqx, 1E-12, 'Q_x resolution')
-    # assert_delta(q_y_res, golden_dqy, 1E-12, 'Q_y resolution')
+    assert_delta(q_x_res, golden_dqx, 1E-12, 'Q_x resolution')
+    assert_delta(q_y_res, golden_dqy, 1E-12, 'Q_y resolution')
 
     return
 
@@ -270,40 +271,88 @@ def skip_test_q_resolution_per_pixel(generic_IDF):
     return
 
 
-# def sigma_neutron(wave_length, delta_wave_length, Qx, Qy, theta, L1, L2, R1, R2, x3, y3, s2p, m2s, sig_emission):
-#     """ Modified from Wei-ren's script
-#     :param wave_length: netron wavelength
-#     :param delta_wave_length: wavelength width
-#     :param Qx: momentum transfer in x direction, respectively
-#     :param Qy: momentum transfer in y direction, respectively
-#     :param theta: scattering angle (half of 2theta??? of the pixel???)
-#     :param L1: the flight path lengths
-#     :param L2: the flight path lengths
-#     :param R1: sample apertures
-#     :param R2: source apertures
-#     :param x3: detector pixel dimensions
-#     :param y3: detector pixel dimensions
-#     :param s2p: sample to pixel distance
-#     :param m2s: moderator to sample distance
-#     :param sig_emission: neutron emission time
-#     :return:
-#     """
-#     # For EQ-SANS
-#     h = 6.62607004e-34
-#     mn = 1.674929e-27
-#     g = 6.67408e-11
-#     B = 0.5 * g * mn**2 * L2 * (L1+L2)/h**2
-#     B = B/(10**10)
-#     r = (delta_wave_length/wave_length)**2
-#     sigma_x = (2. * np.pi * np.cos(theta) * np.cos(2.*theta)**2 / wave_length/L2)**2
-#     sigma_x = sigma_x* ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + x3**2/12 )
-#     sigma_x = sigma_x + Qx/12 * (r +  (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2 )
-#     sigma_y = (2. * np.pi * np.cos(theta)*np.cos(2*theta)**2/wave_length/L2)**2
-#     sigma_y = sigma_y * ((L2/L1)**2 * R1**2*0.25 + (1+L2/L1)**2 * R2**2 * 0.25 + y3**2/12 + 2*B**2*wave_length^4*r/3)
-#               + Qy/12*(r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)
-#     print('sigma_x = {.9f} sigma_y = {.9f} sigma = {.9f}\n'.format(sigma_x, sigma_y, sigma_x+sigma_y))
-#
-#     return sigma_x, sigma_y
+def sigma_neutron(wave_length, delta_wave_length, Qx, Qy, theta, L1, L2, R1, R2, x3, y3, s2p, m2s, sig_emission):
+    """
+    Q resolution calculation from Wei-ren and modified by wzz
+    Parameters
+    ----------
+    wave_length: float
+        neutron wavelength (A)
+    delta_wave_length: float
+        wavelength width (A)
+    Qx: float
+        momentum transfer in x direction
+    Qy: float
+         momentum transfer in y direction
+    theta: float
+        scattering angle (half of 2theta of the pixel)
+    L1: float
+        source to sample
+    L2: float
+        sample to center of detector
+    R1: float
+        source aperture (m)
+    R2: float
+        sample aperture (m)
+    x3: float
+        detector pixel dimensions along x-axis
+    y3: float
+        detector pixel dimensions along y-axis
+    s2p: float
+        sample to pixel distance (m), which is slightly different from L2
+    m2s: float
+        moderator to sample distance
+    sig_emission: float
+        neutron emission time (second?)
+
+    Returns
+    -------
+    float, float
+        dQx, dQy
+
+    """
+    # For EQ-SANS
+
+    # Define constants
+    h = 6.62607004e-34  # scipy.const.h
+    mn = 1.674929e-27  # scipy.const.neutron_mass
+    g = constants.g  # 9.81 n/s^2
+
+    # Calculate B
+    B = 0.5 * g * mn**2 * L2 * (L1+L2) / h**2
+    B /= 10**20  # add a factor of 10^-2 to cancel out the A in the term using B
+    # (dWL/WL)**2
+    r = (delta_wave_length/wave_length)**2
+
+    print('[UNIT TEST WeiRen] B = {}, r = {}'.format(B, r))
+
+    # dQx
+    sigma_x = (2. * np.pi * np.cos(theta) * np.cos(2.*theta)**2 / wave_length / L2)**2
+    sigma_x = sigma_x * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + x3**2/12)  # geometry
+    print('[UNIT TEST WeiRen] Geometry dQx = {}'.format(sigma_x))
+    sigma_x = sigma_x + Qx**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)
+    print('[UNIT TEST WeiRen] Wavelength dQx = {}'
+          ''.format(Qx**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)))
+
+    # dQy
+    sigma_y = (2. * np.pi * np.cos(theta) * np.cos(2*theta)**2 / wave_length / L2)**2
+    print('[UNIT TEST WeiRen] Qy/wl factor = {}'.format(sigma_y))
+    print('[UNIT TEST WeiRen] Geometry factor = {}, {}, {} = {}'
+          ''.format((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4, y3 ** 2 / 12,
+                    B ** 2 * wave_length ** 4 * 2 / 3 * r,
+                    ((L2 / L1) ** 2 * R1 ** 2 / 4 + (1 + L2 / L1) ** 2 * R2 ** 2 / 4 +
+                     y3 ** 2 / 12 + B ** 2 * wave_length ** 4 * 2 / 3 * r)))
+    sigma_y = sigma_y * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + y3**2/12 + B**2*wave_length**4*2/3*r)  # geometry
+    print('[UNIT TEST WeiRen] Geometry dQy = {}'.format(sigma_y))
+    sigma_y = sigma_y + Qy**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)
+    print('[UNIT TEST WeiRen] Wavelength dQy = {}'
+          ''.format(Qy**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)))
+
+    print('sigma_x = {:.9E} sigma_y = {:.9E} sigma = {:.9f}\n'
+          ''.format(sigma_x, sigma_y, np.sqrt(sigma_x**2+sigma_y**2)))
+
+    return sigma_x, sigma_y
+
 
 # FIXME TODO - put this to 2 parts...
 #              1. Qx and Qy calculation

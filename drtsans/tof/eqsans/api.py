@@ -1,9 +1,8 @@
 """ Top-level API for EQSANS """
 from mantid.api import mtd
-from mantid import simpleapi as sapi
-from drtsans.settings import unique_workspace_dundername as uwd
 # Import rolled up to complete a single top-level API
 from drtsans import (apply_sensitivity_correction, solid_angle_correction)
+from drtsans import subtract_background
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 from drtsans.save_2d import save_nist_dat, save_nexus
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
@@ -28,45 +27,6 @@ def apply_solid_angle_correction(input_workspace):
 def normalize(ws, normalization_type):
     """Normalize to time, monitor, or proton charge"""
     raise NotImplementedError()
-
-
-def subtract_background(input_workspace, background, scale=1.0,
-                        output_wokspace=None):
-    r"""
-    Subtract a prepared background from a prepared sample.
-
-    Perform a rebin if sample and background have different binning.
-
-    Parameters
-    ----------
-    input_workspace: str, ~mantid.api.MatrixWorkspace
-        Sample workspace.
-    background: str, ~mantid.api.MatrixWorkspace
-        Background workspace.
-    scale: float
-        Rescale background intensities by this multiplicative factor before
-        subtraction from the sample.
-    output_wokspace: str
-        Name of the sample corrected by the background. If :py:obj:`None`, then
-        ``input_workspace`` will be overwritten.
-
-    Returns
-    -------
-    ~mantid.api.MatrixWorkspace
-    """
-    if output_wokspace is None:
-        output_wokspace = str(input_workspace)
-    ws = mtd[str(input_workspace)]
-    wb = mtd[str(background)]
-    wb2 = sapi.RebinToWorkspace(WorkspaceToRebin=wb,
-                                WorkspaceToMatch=ws,
-                                OutputWorkspace=uwd())
-    wb2 = sapi.Scale(InputWorkspace=wb2, OutputWorkspace=wb2.name(),
-                     Factor=scale, Operation='Multiply')
-    sapi.Minus(LHSWorkspace=ws, RHSWorkspace=wb2,
-               OutputWorkspace=output_wokspace)
-    wb2.delete()
-    return mtd[output_wokspace]
 
 
 def prepare_monitors(data, bin_width=0.1, output_workspace=None):

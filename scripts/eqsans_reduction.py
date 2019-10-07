@@ -4,7 +4,7 @@ import sys
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
-from drtsans.sns import eqsans  # noqa E402
+from drtsans.tof import eqsans  # noqa E402
 
 
 if __name__ == '__main__':
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     config['sensitivity_file_path'] = json_conf["sensitivityFileName"]
 
     # find the beam center
-    empty_run = json_params["emptyBeam"]["runNumber"]
+    empty_run = json_params["empty"]["runNumber"]
     empty_fn = "EQSANS_{}".format(empty_run)
     # TODO apply empty flag?
     if empty_run != '':
@@ -37,12 +37,12 @@ if __name__ == '__main__':
         config['y_center'] = -0.0170801
 
     # load and prepare scattering data
-    sample_run = json_params["scattering"]["runNumber"]
+    sample_run = json_params["runNumber"]
     sample_file = "EQSANS_{}".format(sample_run)
     ws = eqsans.prepare_data(sample_file, **config)
     # TODO check the next two values if empty
     absolute_scale = float(json_conf["absoluteScale"])
-    sample_thickness = float(json_params["scattering"]["thickness"])
+    sample_thickness = float(json_params["thickness"])
 
     # apply transmission
     # TODO check as flag
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     # background
     bkg_run = json_params["background"]["runNumber"]
     bkg_fn = "EQSANS_{}".format(bkg_run)
-    bkg_trans_run = json_params["background"]["transmittedRunNumber"]
+    bkg_trans_run = json_params["background"]["transmission"]["runNumber"]
     bkg__trans_fn = "EQSANS_{}".format(bkg_trans_run)
 
     ws_bck = eqsans.prepare_data(bkg_fn, **config)
@@ -87,11 +87,12 @@ if __name__ == '__main__':
     table_ws_list = eqsans.prepare_momentum_transfer(
         ws, wavelength_binning=[0.5])
 
+    print("outfile = " + json_conf["outputDir"] + json_params["outputFilename"])
     for index, table_ws in enumerate(table_ws_list):
 
         # TODO check the configuration-numQbins and configuration_QbinType
-        numQBins = int(json_params["binning"]["size"])
-        log_binning = json_params["binning"]["useLog"]
+        numQBins = int(json_conf["numQBins"])
+        log_binning = json_conf["QbinType"] == "log"
 
         iq_ws = eqsans.cal_iq(table_ws, bins=numQBins, log_binning=log_binning)
 

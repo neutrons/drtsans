@@ -328,6 +328,8 @@ def inf_value_to_mask(ws):
 
 def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
                                  sensitivity_workspace=None,
+                                 min_threshold=None,
+                                 max_threshold=None,
                                  output_workspace=None):
     '''Apply a previously calculated sensitivity correction
 
@@ -337,6 +339,7 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     :ref:`Divide <algm-Divide-v1>`,
     :ref:`LoadNexusProcessed <algm-LoadNexusProcessed-v1>`,
     :ref:`MaskDetectors <algm-MaskDetectors-v1>`
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`
 
     Parameters
     ----------
@@ -347,6 +350,12 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
+    min_threshold: float or None
+        if not None, the data will be masked if the sensitivity
+        is below this threshold
+    max_threshold: float or None
+        if not None, the data will be masked if the sensitivity
+        is above this threshold
     output_workspace:  ~mantid.api.MatrixWorkspace
         corrected workspace. This is the input workspace by default
     '''
@@ -373,8 +382,23 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
                        OutputWorkspace=output_workspace)
     MaskDetectors(Workspace=output_workspace,
                   MaskedWorkspace=sensitivity_workspace)
-    Divide(LHSWorkspace=output_workspace, RHSWorkspace=sensitivity_workspace,
+
+    # additional masking dependent on threshold
+    temp_sensitivity = CloneWorkspace(InputWorkspace=sensitivity_workspace,
+                                      OutputWorkspace=unique_workspace_name(prefix="__sensitivity_"))
+    if min_threshold is not None:
+        MaskDetectorsIf(InputWorkspace=temp_sensitivity,
+                        Operator='LessEqual',
+                        Value=min_threshold,
+                        OutputWorkspace=temp_sensitivity)
+    if max_threshold is not None:
+        MaskDetectorsIf(InputWorkspace=temp_sensitivity,
+                        Operator='GreaterEqual',
+                        Value=max_threshold,
+                        OutputWorkspace=temp_sensitivity)
+    Divide(LHSWorkspace=output_workspace, RHSWorkspace=temp_sensitivity,
            OutputWorkspace=output_workspace)
+    DeleteWorkspace(temp_sensitivity)
 
     if cleanupSensitivity:
         DeleteWorkspace(sensitivity_workspace)

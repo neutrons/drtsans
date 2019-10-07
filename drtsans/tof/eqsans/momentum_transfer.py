@@ -9,23 +9,32 @@ from drtsans.momentum_transfer import G_MN2_OVER_H2
 
 def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, two_theta, sample_pixel_distance,
                            tof_error, instrument_setup_params):
-    """ Atomic function to calculate Q resolution for EQ-SANS
-    :param qx: Qx
-    :param qy: Qy
-    :param wave_length: neutron wave length (bin center) in Angstrom
-    :param delta_wave_length: neutron wave length (bin size) in Angstrom
-    :param two_theta: half neutron diffraction angle (half of 2theta) (unit: rad)
-    :param sample_pixel_distance: distance from sample to pixel center (meter)
-    :param tof_error: neutron emission uncertainty
-    :param instrument_setup_params: MomentumTransferResolutionParameters parameters
-    :return:
+    """ Calculate resolution of (Qx, Qy)
+    Master document equation (10.5) and (10.6) for dQx and dQy respectively
+    Parameters
+    ----------
+    qx: float
+        Qx
+    qy: float
+        Qy
+    wave_length: float
+        Wavelength (A)
+    delta_wave_length: float (neutron wave length (bin size) in Angstrom)
+        Wavelength resolution
+    two_theta: float
+        diffraction angle (2theta in radian)
+    sample_pixel_distance: float
+        sample to detector pixel center distance (meter)
+    tof_error: float
+        TOF neutron emission uncertainty
+    instrument_setup_params: MomentumTransferResolutionParameters
+         parameters including L1, L2 and etc
+    Returns
+    -------
+
     """
+    # Check input
     assert isinstance(instrument_setup_params, InstrumentSetupParameters)
-    print('Input Q resolution parameter:\n{}'.format(instrument_setup_params))
-    print('Q = {}, {}'.format(qx, qy))
-    print('Wavelength = {}, Delta Wavelength = {}'.format(wave_length, delta_wave_length))
-    print('TOF uncertainty = {}'.format(tof_error))
-    # Get setup value (for better)
 
     l1 = instrument_setup_params.l1
     l2 = instrument_setup_params.sample_det_center_distance
@@ -34,48 +43,37 @@ def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, two_theta, sa
     dx = instrument_setup_params.pixel_size_x
     dy = instrument_setup_params.pixel_size_y
 
+    # Calculate constants
     # Geometry resolution/uncertainty:
     apertures_const = (l2*r1*0.5/l1)**2 + (0.5 * r2 * (l1 + l2) / l1)**2
     const_x = dx**2 / 12.
     const_y = dy**2 / 12.
 
-    # factor 1 with ....
+    # gravity related B factor concerning unit
+    b_factor = 0.5 * G_MN2_OVER_H2 * (l1 + l2) * l2 * 1.E-20
+    # add a factor 10^-20 to B convert A to meter in the term B is used
+
+    # Calculate Qx and Qy shared variables
+    # (2. * np.pi * np.cos(theta) * np.cos(2.*theta)**2 / wave_length / L2)**2 for Qx and Qy
+    # (N, 1) array or float
     factor1 = (2.*np.pi*np.cos(two_theta*0.5)*(np.cos(two_theta)**2)/(wave_length*l2))**2
-    print('[EQ Res] Factor1 = {}'.format(factor1))
-    print('[EQ Res] Resolution X = {}'.format(apertures_const + const_x))
-    # FIXME - Good so far
-
-    # gravity part of Y ....
-    b_factor = 0.5 * G_MN2_OVER_H2 * (l1 + l2) * l2
-    gravity_y = 2./3. * (b_factor * wave_length * delta_wave_length * 1.E-20)**2  # convert to meter
-
-    print('[EQ Res] B = {}'.format(b_factor))
-    print('[EQ Res] Resolution Y (gravity) = {}'.format(gravity_y))
-
-    # FIXME - Good so far
-
-    # wave length resolution/uncertainties
+    # wave length resolution/uncertainties: float or (N, M) array
     wl_part = (delta_wave_length/wave_length)**2
+    # TOF emission: float or (N, M) array
     emission_part = (3.9650*0.001*tof_error / (wave_length*(l1+sample_pixel_distance)))**2
-    print('[DEBUG INFO] wave length uncertainty square = {}; emission time uncertainty square = {}'
-          ''.format(wl_part, emission_part))
-
-    print('[DEBUG INFO] factor 1 shape = {}'.format(factor1.shape))
+    wl_emission_factor = (wl_part + emission_part) / 12.
 
     # Q(x) resolution
     qx_geom_resolution = factor1 * (apertures_const + const_x)
-    qx_wave_resolution = qx**2 * (wl_part + emission_part) / 12.
-    dqx = qx_wave_resolution + qx_wave_resolution
-
-    print('Resolution X = {}'.format(apertures_const + const_x))
+    qx_wave_resolution = qx**2 * wl_emission_factor
+    dqx = qx_geom_resolution + qx_wave_resolution
 
     # Q(y) resolution
+    # gravity term: float or (N, M) array
+    gravity_y = 2./3. * (b_factor * wave_length * delta_wave_length)**2  # convert to meter
     qy_geom_resolution = factor1 * (apertures_const + const_y + gravity_y)
-    qy_wave_resolution = qy**2 * (wl_part + emission_part) / 12.
+    qy_wave_resolution = qy**2 * wl_emission_factor
     dqy = qy_geom_resolution + qy_wave_resolution
-
-    print('[DEBUG INFO] Geom dQx = {}, Wave dQx = {}'.format(qx_geom_resolution, qx_wave_resolution))
-    print('[DEBUG INFO] Geom dQy = {}, Wave dQy = {}'.format(qy_geom_resolution, qy_wave_resolution))
 
     return dqx, dqy
 

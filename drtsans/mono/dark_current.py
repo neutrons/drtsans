@@ -64,8 +64,9 @@ def subtract_dark_current(data_ws, dark_current_ws, output_workspace=None):
     MatrixWorkspace
         `data` minus `dark` current
     """
-
-    normalise_to_workspace(data_ws, dark_current_ws, output_workspace=str(dark_current_ws))
+    normalise_to_workspace(dark_current_ws, data_ws, output_workspace=str(dark_current_ws))
+    if output_workspace is None:
+        output_workspace = str(data_ws)
     Subtract(LHSWorkspace=data_ws,
              RHSWorkspace=dark_current_ws,
              OutputWorkspace=output_workspace)

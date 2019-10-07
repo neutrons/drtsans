@@ -1,13 +1,12 @@
 import pytest
 import itertools
-import numpy as np
 
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 from mantid.simpleapi import CreateWorkspace
 
-# unique_workspace_dundername <>
-# SampleLogs <>
-# time, monitor <>
+# unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
+# SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+# time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.normalisation import time, monitor
@@ -34,10 +33,10 @@ def data_test_16a():
                            [18., 19., 20., 21., 22.],
                            [23., 24., 25., 26., 27.],
                            [28., 29., 30., 31., 32.]],
-                I_samnorm_err=[[1.26492, 1.34164, 1.41422, 1.48324, 1.5492 ],
-                               [1.61246, 1.67332, 1.73206, 1.78886, 1.8439 ],
+                I_samnorm_err=[[1.26492, 1.34164, 1.41422, 1.48324, 1.5492],
+                               [1.61246, 1.67332, 1.73206, 1.78886, 1.8439],
                                [1.89736, 1.94936, 2., 2.0494, 2.09762],
-                               [2.14476, 2.1909, 2.23606, 2.28036, 2.3238 ],
+                               [2.14476, 2.1909, 2.23606, 2.28036, 2.3238],
                                [2.36644, 2.40832, 2.44948, 2.48998, 2.52982]],
                 flux_sam=5e8,  # flux at the monitor
                 )

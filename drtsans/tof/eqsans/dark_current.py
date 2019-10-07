@@ -1,86 +1,15 @@
-from dateutil.parser import parse as parse_date
 import numpy as np
-from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
-                              ConvertUnits, Subtract, Scale, LoadEventNexus)
+from mantid.simpleapi import (mtd, RebinToWorkspace, ConvertUnits,
+                              Subtract, Scale, LoadEventNexus)
 
-from drtsans.settings import (namedtuplefy, amend_config,
+from drtsans.dark_current import counts_in_detector, duration
+from drtsans.settings import (amend_config,
                               unique_workspace_dundername as uwd)
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
 
-__all__ = ['subtract_dark_current', ]
-
-
-@namedtuplefy
-def duration(input_workspace, log_key=None):
-    """
-    Compute the duration of the workspace by iteratively searching the logs for
-    keys 'duration', 'start_time/end_time', 'proton_charge', and 'timer'.
-
-    Parameters
-    ----------
-    input_workspace: str, MatrixWorkspace
-        Usually the dark current workspace
-    log_key: str
-        If a log entry is passed, only the contents under this log entry are
-        searched. No iterative search over the default values is performed.
-
-    Returns
-    -------
-    namedtuple
-        Fields of the namedtuple:
-        - value: float, contents under the log
-        - log_key: str, log used to return the duration
-
-    """
-    ws = mtd[str(input_workspace)]
-    log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if \
-        log_key is None else (log_key, )
-    sl = SampleLogs(ws)
-
-    def from_start_time(lk):
-        st = parse_date(sl[lk].value)
-        et = parse_date(sl['end_time'].value)
-        return (et - st).total_seconds()
-
-    def from_proton_charge(lk):
-        return sl[lk].getStatistics().duration
-
-    calc = dict(start_time=from_start_time, proton_charge=from_proton_charge)
-
-    for lk in log_keys:
-        try:
-            return dict(value=calc.get(lk, sl.single_value)(lk), log_key=lk)
-        except RuntimeError:
-            continue
-    raise AttributeError("Could not determine the duration of the run")
-
-
-def counts_in_detector(input_workspace):
-    r"""
-    Fin the total number of neutron counts in each detector pixel.
-    By definition, error=1 when zero counts in the detector.
-
-    Parameters
-    ----------
-    input_workspace: str, EventsWorkspace
-        Usually the dark current workspace
-
-    Returns
-    -------
-    tuple
-        Two elements in the tuple: (1)numpy.ndarray: counts;
-        (2) numpy.ndarray: error in the counts
-    """
-    ws = mtd[str(input_workspace)]
-    _wnc = Integration(ws, OutputWorkspace=uwd())
-    _wnc = Transpose(_wnc, OutputWorkspace=_wnc.name())
-    y = np.copy(_wnc.dataY(0))  # counts
-    e = np.copy(_wnc.dataE(0))  # errors
-    _wnc.delete()
-    e[y < 1] = 1.0  # convention of error=1 if no counts present
-    return y, e
+__all__ = ['subtract_dark_current', 'normalise_to_workspace']
 
 
 def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
@@ -99,10 +28,6 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
         Dark current workspace with units in time-of-flight
     data_ws: str, MatrixWorkspace
         Sample scattering with intensities versus wavelength
-    log_key: str
-        Log key to search for duration of the runs. if `None`, the function
-        does a sequential search for entries 'duration', 'proton_charge',
-        and 'timer'
     output_workspace : str
         Name of the normalised dark workspace. If None, the name of the input
         workspace `dark_ws` is chosen (and the input workspace is overwritten).
@@ -190,6 +115,7 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
 
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
+    # this seems wrong. should change -d to d
     scaled = Scale(InputWorkspace=dark_ws, Factor=-d, OutputWorkspace=uwd())
     Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled,
              OutputWorkspace=output_workspace)

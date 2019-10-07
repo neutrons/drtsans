@@ -442,7 +442,7 @@ def band_gap_indexes(input_workspace, bands):
                          (ws.dataX(0) < bands.skip.min))[0]).tolist()
 
 
-def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=False,
+def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=True,
                           output_workspace=None):
     r"""
     Convert a time-of-flight events workspace to a wavelength workspace
@@ -460,8 +460,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
         Do we preserve events?
     Returns
     -------
-    MatrixWorspace
-        EventsWorkspace or Matrix2DWorkspace
+    ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
     """
     input_workspace = str(input_workspace)
     if output_workspace is None:
@@ -504,17 +503,15 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
                           OutputWorkspace=output_workspace, **kwargs)
 
         # convert to a histogram as neccessary
-        if mtd[output_workspace].id() == 'EventWorkspace':
-            RebinToWorkspace(WorkspaceToRebin=output_workspace,
-                             WorkspaceToMatch=output_workspace,
-                             OutputWorkspace=output_workspace,
-                             PreserveEvents=False)
+    if (mtd[output_workspace].id() == 'EventWorkspace') and ((not events) or (is_frame_skipping)):
+        RebinToWorkspace(WorkspaceToRebin=output_workspace,
+                         WorkspaceToMatch=output_workspace,
+                         OutputWorkspace=output_workspace,
+                         PreserveEvents=False)
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
     if is_frame_skipping:
-        # hasn't been converted
-        if mtd[output_workspace].id() == 'EventWorkspace':
-            raise RuntimeError('Cannot work with frame skipping in event mode')
+        # TODO should be MaskBins, but the results are different
         _ws = mtd[output_workspace]
         to_zero = band_gap_indexes(_ws, bands)
         if to_zero:
@@ -527,7 +524,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
 
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=False, set_init_uncertainty=True,
+                            keep_events=True, set_init_uncertainty=True,
                             interior_clip=False, output_workspace=None):
     r"""
     API function that converts corrected TOF's to Wavelength.

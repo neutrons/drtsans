@@ -408,7 +408,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
     w.dataY(0)[valid_idx] = intensity
 
     # reset the uncertainties now that the data has been modified
-    w = set_init_uncertainties(w, mask_band_gap=False)
+    w = set_init_uncertainties(w)
 
     return w
 
@@ -577,6 +577,6 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
 
     # uncertainty when no counts in the bin
     if set_init_uncertainty:
-        w = set_init_uncertainties(w, mask_band_gap=False)
+        w = set_init_uncertainties(w)
 
     return w

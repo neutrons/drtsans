@@ -30,7 +30,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
                                   RenameWorkspace, ReplaceSpecialValues,
                                   MaskBTP, SolidAngle, SaveNexus)
     from drtsans.mono.biosans.beam_finder import find_beam_center
-    from drtsans.mono.dark_current import subtract_normalised_dark
+    from drtsans.mono.dark_current import subtract_dark_current
     from drtsans.mono.normalisation import time
     from drtsans.sensitivity import inf_value_to_mask, interpolate_mask
     from drtsans.transmission import (apply_transmission_correction, calculate_transmission)
@@ -58,19 +58,19 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # DC normalisation
     dark_current_norm_ws = time(dark_current_ws)
     # DC Subtraction
-    flood_dc_corrected_ws = subtract_normalised_dark(
+    flood_dc_corrected_ws = subtract_dark_current(
         flood_ws, dark_current_norm_ws)
     flood_dc_corrected_ws = RenameWorkspace(
         InputWorkspace=flood_dc_corrected_ws,
         OutputWorkspace="flood_dc_corrected_ws")
 
-    empty_transmission_dc_corrected_ws = subtract_normalised_dark(
+    empty_transmission_dc_corrected_ws = subtract_dark_current(
         empty_transmission_ws, dark_current_norm_ws)
     empty_transmission_dc_corrected_ws = RenameWorkspace(
         InputWorkspace=empty_transmission_dc_corrected_ws,
         OutputWorkspace="empty_transmission_dc_corrected_ws")
 
-    flood_beamcenter_dc_corrected_ws = subtract_normalised_dark(
+    flood_beamcenter_dc_corrected_ws = subtract_dark_current(
         flood_beamcenter_ws, dark_current_norm_ws)
     flood_beamcenter_dc_corrected_ws = RenameWorkspace(
         InputWorkspace=flood_beamcenter_dc_corrected_ws,
@@ -188,7 +188,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     # DC normalisation
     dark_current_norm_ws = time(dark_current_ws)
     # DC Subtraction
-    flood_dc_corrected_ws = subtract_normalised_dark(
+    flood_dc_corrected_ws = subtract_dark_current(
         flood_ws, dark_current_norm_ws)
     flood_dc_corrected_ws = RenameWorkspace(
         InputWorkspace=flood_dc_corrected_ws,

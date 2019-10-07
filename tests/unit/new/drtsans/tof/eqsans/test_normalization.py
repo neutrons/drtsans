@@ -93,7 +93,6 @@ def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     w = SumSpectra(w, OutputWorkspace=w.name())
     assert min(w.readY(0)) * 1e4 == approx(3.4, abs=0.1)
     w.delete()
-    assert False
 
 
 def test_normalise_by_time(data_ws):

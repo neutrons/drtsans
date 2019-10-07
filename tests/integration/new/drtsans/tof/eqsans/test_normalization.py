@@ -46,6 +46,7 @@ z_sam = np.array(z_sam)
 fm = np.array([5, 5, 4, 4, 3, 3, 3, 3, 2, 2])  # flux to monitor ratio
 phi = np.array([20, 40, 30, 25, 20, 10, 5, 5, 5, 5])  # monitor spectrum
 
+
 @pytest.mark.parametrize('generic_workspace',
                          [{'axis_values': x,
                            'intensities': fm}],

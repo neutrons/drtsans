@@ -69,7 +69,7 @@ def test_iq_binning_serial(reference_dir):
                                  high_tof_clip=2000)
 
     # Calibration in the next few steps
-    center_detector(ws, x=-0.025, y=-0.016, unit='m')
+    center_detector(ws, center_x=0.025, center_y=0.016)
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
         reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),

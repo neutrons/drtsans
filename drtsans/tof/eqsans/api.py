@@ -9,6 +9,7 @@ from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa: F401
 # Imports from EQSANS public API
 from drtsans.tof.eqsans import (load_events, load_events_monitor, transform_to_wavelength,
+                                find_beam_center,
                                 center_detector, subtract_dark_current, normalise_by_flux, apply_mask)
 from drtsans.tof.eqsans.correct_frame import smash_monitor_spikes
 from drtsans.path import exists as path_exists
@@ -127,7 +128,10 @@ def prepare_data(data,
     transform_to_wavelength(output_workspace, bin_width=bin_width,
                             low_tof_clip=low_tof_clip,
                             high_tof_clip=high_tof_clip)
-    center_detector(output_workspace, x=x_center, y=y_center)
+    if x_center is None or y_center is None:
+        # TODO see if additional parameters should be insluded
+        x_center, y_center = find_beam_center(output_workspace, mask=mask)
+    center_detector(output_workspace, center_x=x_center, center_y=y_center)
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
     # Normalization by flux

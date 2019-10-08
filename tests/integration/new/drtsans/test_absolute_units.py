@@ -70,7 +70,7 @@ def test_empty_beam_intensity(workspace_with_instrument):
     # center pixel lie now at the origin of the XY plane
     spectrum_info = empty_beam_workspace.spectrumInfo()
     x, y, z = spectrum_info.position(center_pixel_id)
-    center_detector(empty_beam_workspace, x=-x, y=-y, relative=True, method=None)
+    center_detector(empty_beam_workspace, center_x=x, center_y=y)
 
     # Check that the center pixel is now at the origin in the XY plane
     assert spectrum_info.position(center_pixel_id) == pytest.approx((0.0, 0.0, 1.0))

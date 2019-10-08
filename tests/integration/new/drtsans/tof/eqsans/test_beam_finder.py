@@ -41,7 +41,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     # and the detector. The new (x, y) coordinates for the beam center
     # should be (0, 0) now.
     #
-    eqsans.center_detector(ws, x=-x0, y=-y0)
+    eqsans.center_detector(ws, center_x=x0, center_y=y0)
     assert eqsans.find_beam_center(ws) == pytest.approx((0, 0), abs=1e-04)
 
 

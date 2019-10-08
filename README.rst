@@ -1,17 +1,38 @@
 drt-sans
 ========
 
-For end users go to `next version <http://scse-sans-demo.ornl.gov/>`_
-`QA version <http://scse-ui.ornl.gov:8080/>`_
+Data Reduction Toolkit for Small Angle Neutron Scattering
 
-Use `jupyter <https://jupyter.sns.gov/>`_ to have a play with the
-code. The kernel to select is ``sans at ...``.
+This packages is a collection of functionality for reducing SANS data developed in collaboration with the instrument scientists at the High Flux Isotope Reactor (HFIR) and Spallation Neutron Source (SNS) at Oak Ridge National Laboratory.
+While much of the functionality is generic, this implementation is aimed at reducing data from BIOSANS, EQSANS, and GPSANS.
+As appropriate, this work is an abstraction layer on top of the mantid project.
 
+Table of contents
+-----------------
+
+* :ref:`Front ends <front_ends>`
+* Using the :ref:`docker` packaged environment
+* Set-up for development in a :ref:`virtual_environment`
+* :ref:`Running the tests <running_tests>`
+* :ref:`Building the documentation <building_docs>`
 
 **This is a python3 only package.**
 
+Usage from provided front-ends
+------------------------------
+.. _front_ends:
+
+For end users go to `next version <http://shaman.ornl.gov/>`_
+`QA version <http://scse-ui.ornl.gov:8080/>`_
+
+Use `jupyter <https://jupyter.sns.gov/>`_ to have a play with the code.
+The kernel to select is ``sans at ...``.
+
+One must have an XCAMS account to use either shaman or the jupyter kernel provided above.
+
 Using the Docker packaged environment
 -------------------------------------
+.. _docker:
 
 This the instructions for someone who wants to use the Docker container
 created through the automated build pipeline to develop drt-sans, use
@@ -19,19 +40,20 @@ drt-sans to develop reduction scripts, or test existing drt-sans
 functionality. The SNS analysis cluster does not have Docker installed
 and Docker is required to follow these instructions.
 
-1. (If not installed) Install Docker: https://docs.docker.com/install/
-2. Download the latest sans-backend-run.sh script from the feature, release, or master branch for which you are testing: http://scse-mantid-demo.ornl.gov/sans-backend
+1. (If not installed) `Install Docker <https://docs.docker.com/install/>`_
+2. Download the latest ``sans-backend-run.sh`` `script <http://scse-mantid-demo.ornl.gov/sans-backend/scripts/sans-backend-run.sh>`_ from the feature, release, or master branch for which you are testing:
 3. Run the script with ``sudo bash sans-backend-run.sh -h`` to see the help menu.
 
 Current options include:
-* -i) launches a bash shell
-* -u) forces an update of the application.
-* -h) prints this message.
+* ``-i`` launches a bash shell
+* ``-u`` forces an update of the application
+* ``-h`` prints the help message
 
 You must download the wrapper script from the above link as the build process modifies the copy in version control.
 
 Set-up for development in a virtual environment
 -----------------------------------------------
+.. _virtual_environment:
 
 This is the instructions for a person who is developing *both*
 drt-sans and mantid in tandem. It assumes that you are using a virtual
@@ -120,6 +142,7 @@ with load when you enter the source tree, and unload when you leave.
 
 Running the tests
 -----------------
+.. _running_tests:
 
 The tests for this project are all written using `pytest <https://docs.pytest.org/en/latest>`_.
 The `build pipeline <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/.gitlab-ci.yml>`_ currently `runs the unit tests and integration tests <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/test_job.sh>`_ separately using
@@ -146,6 +169,7 @@ To run an individual test within an individual file add ``::`` to the filename t
 
 Building the documentation
 --------------------------
+.. _building_docs:
 
 The site can be build directly using
 
@@ -158,3 +182,9 @@ or
 .. code-block:: shell
 
    $ python setup.py build_sphinx
+
+Contributing
+------------
+
+Contributing is done through merge requests of code that you have the permission to add.
+See `CONTRIBUTING.rst`_ for more information.

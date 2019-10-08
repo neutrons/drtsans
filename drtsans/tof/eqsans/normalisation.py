@@ -136,17 +136,16 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    wi = mtd[str(input_workspace)]
 
     # Check non-skip mode
-    if bool(SampleLogs(wi).is_frame_skipping.value) is True:
+    if bool(SampleLogs(input_workspace).is_frame_skipping.value) is True:
         msg = 'Normalisation by monitor not possible in frame-skipping mode'
         raise ValueError(msg)
 
     # Only the first spectrum of the monitor is required
     monitor_workspace_rebinned = uwd()
     RebinToWorkspace(monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned)
-    excess_idx = range(1, mtd[monitor_workspace_rebinned].getNumberHistograms())
+    excess_idx = range(1, mtd[monitor_workspace_rebinned].getNumberHistograms())  # only one spectrum is needed
     RemoveSpectra(monitor_workspace_rebinned, WorkspaceIndices=excess_idx, OutputWorkspace=monitor_workspace_rebinned)
 
     # Elucidate the nature of the flux to monitor input
@@ -160,7 +159,8 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
         SplineInterpolation(WorkspaceToMatch=input_workspace, WorkspaceToInterpolate=flux_to_monitor_workspace,
                             OutputWorkspace=flux_to_monitor_workspace)
 
-    # the neutron flux is the product of the monitor counts and the flux-to-monitor ratios
+    # the neutron flux integrated over the duration of the run is the product of the monitor counts and the
+    # flux-to-monitor ratios
     flux_workspace = uwd()
     Multiply(monitor_workspace_rebinned, flux_to_monitor_workspace, OutputWorkspace=flux_workspace)
 

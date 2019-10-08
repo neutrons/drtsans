@@ -47,6 +47,10 @@ def test_normalization_by_time(generic_workspace):
 
 @pytest.fixture(scope='module')
 def data_test_16a_by_monitor():
+    r"""
+    Input and expected output taken from the intro to issue #174
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalization-by-monitor-spectrum>
+    """
     return dict(precision=1e-04,  # desired precision for comparisons,
                 n_pixels=25,
                 wavelength_bins=[2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0],
@@ -60,8 +64,8 @@ def data_test_16a_by_monitor():
                            [9.4868, 9.7468, 10., 10.247, 10.4881],
                            [10.7238, 10.9545, 11.1803, 11.4018, 11.619],
                            [11.8322, 12.0416, 12.2474, 12.4499, 12.6491]],
-                fm=[5, 5, 4, 4, 3, 3, 3, 3, 2, 2],   # flux to monitor ratio
-                phi=[20, 40, 30, 25, 20, 10, 5, 5, 5, 5],  # monitor spectrum
+                flux_to_monitor_ratios=[5, 5, 4, 4, 3, 3, 3, 3, 2, 2],   # flux to monitor ratio
+                monitor_counts=[20, 40, 30, 25, 20, 10, 5, 5, 5, 5],  # monitor spectrum
                 I_samnorm=[[[0.4, 0.45, 0.5, 0.55, 0.6],
                             [0.65, 0.7, 0.75, 0.8, 0.85],
                             [0.9, 0.95, 1., 1.05, 1.1],
@@ -116,32 +120,60 @@ def data_test_16a_by_monitor():
 
 
 def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
+    r"""
+    Normalize sample intensities by flux at monitor using also flux-to-monitor ratios.
+    Addresses section of the 6.2 the master document
+
+    devs - Steven Hahn <hahnse@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
+    SME  - Changwoo Do <doc1@ornl.gov>
+
+    **Mantid algorithms used:**
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+
+    **drtsans functions used:**
+    ~drtsans.settings.unique_workspace_dundername
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+    ~drtsans.samplelogs.SampleLogs
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    ~drtsans.tof.normalisation.normalise_by_monitor
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalisation.py>
+    """
+    # Input intensities from the test, only one value per detector pixel
     intensities_list = np.array(data_test_16a_by_monitor['I_sam']).flatten()
     errors_list = np.array(data_test_16a_by_monitor['I_sam_err']).flatten()
-    # The intensity in a detector pixel is the same for all wavelength bins
+
+    # The intensity in a detector pixel is the same for all wavelength bins. Thus, we replicate the one value per
+    # detector pixel to be the same for all wavelength bins
     intensities_list = np.repeat(intensities_list[:, np.newaxis], len(data_test_16a_by_monitor['wavelength_bins']) - 1,
                                  axis=1)
     errors_list = np.repeat(errors_list[:, np.newaxis], len(data_test_16a_by_monitor['wavelength_bins']) - 1, axis=1)
+
+    # Create the workspace with the intensities and errors. It has 25 spectra and each spectra has 10 wavelength bins
     data_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bins'],
                                      DataY=intensities_list,
                                      DataE=errors_list,
                                      NSpec=data_test_16a_by_monitor['n_pixels'],
                                      OutputWorkspace=unique_workspace_dundername())
-    SampleLogs(data_workspace).insert('is_frame_skipping', False)
+    SampleLogs(data_workspace).insert('is_frame_skipping', False)  # Monitor normalization does not work in skip-frame
+
     # In the reduction framework, counts at the monitor will be stored in a Mantid workspace
     monitor_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bins'],
-                                        DataY=data_test_16a_by_monitor['fm'],
+                                        DataY=data_test_16a_by_monitor['flux_to_monitor_ratios'],
                                         DataE=np.zeros(len(data_test_16a_by_monitor['wavelength_bins']) - 1),
                                         NSpec=1,
                                         OutputWorkspace=unique_workspace_dundername())
+
     # In the reduction framework, the flux-to-monitor file will be loaded to a Mantid workspace
     flux_to_monitor_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bins'],
-                                                DataY=data_test_16a_by_monitor['phi'],
+                                                DataY=data_test_16a_by_monitor['monitor_counts'],
                                                 DataE=np.zeros(len(data_test_16a_by_monitor['wavelength_bins']) - 1),
                                                 NSpec=1,
                                                 OutputWorkspace=unique_workspace_dundername())
-    # Carry out the normalization
+    # Carry out the normalization with the reduction framework
     data_workspace = normalise_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
+
     # Compare to test data. Notice that data_test_16a_by_monitor['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary
     test_intensities = np.transpose(np.array(data_test_16a_by_monitor['I_samnorm']).reshape((10, 25)))

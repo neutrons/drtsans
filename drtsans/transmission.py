@@ -2,6 +2,11 @@ import numpy as np
 
 from mantid import mtd
 from mantid.kernel import logger
+# https://docs.mantidproject.org/nightly/algorithms/ApplyTransmissionCorrection-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
 from mantid.simpleapi import (ApplyTransmissionCorrection, Divide, GroupDetectors, ReplaceSpecialValues,
                               RebinToWorkspace)
 from drtsans.settings import unique_workspace_dundername as uwd
@@ -142,24 +147,28 @@ def apply_transmission_correction(input_workspace, trans_workspace=None, trans_v
     r"""
     Correct the intensities with transmission coefficient(s).
 
+    **Mantid algorithms used:**
+    :ref:`ApplyTransmissionCorrection <algm-ApplyTransmissionCorrection-v1>`,
+
     Parameters
     ----------
-    input_workspace: MatrixWorkspace, str
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Input workspace to correct its intensities
-    trans_workspace: MatrixWorkspace, str
+    trans_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace containing the transmission coefficient(s). The result of applying `calculate_transmission`
-        to the input workspace. If None, `trans_value` will be used.
+        to the input workspace. If :py:obj:`None`, `trans_value` will be used.
     trans_value: float
-        A single transmission coefficient to correct the intensities. If None, `trans_workspace` will be used.
+        A single transmission coefficient to correct the intensities. If :py:obj:`None`,
+        `trans_workspace` will be used.
     trans_error: float
         Error associated to `trans_value`.
     output_workspace: str
-        Name of the workspace containing the corrected intensities. If None, the `input_workspace`
+        Name of the workspace containing the corrected intensities. If :py:obj:`None`, the `input_workspace`
         will be overwritten.
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)

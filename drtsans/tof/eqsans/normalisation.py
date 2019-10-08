@@ -2,7 +2,7 @@ from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               RebinToWorkspace, NormaliseToUnity, Divide,
                               NormaliseByCurrent, ConvertToDistribution,
                               CloneWorkspace, RemoveSpectra, Multiply, Load,
-                              DeleteWorkspace, Integration, Scale, SplineInterpolation)
+                              DeleteWorkspace, Scale, SplineInterpolation)
 from drtsans import path
 from drtsans.settings import (unique_workspace_dundername as uwd)
 from drtsans.samplelogs import SampleLogs

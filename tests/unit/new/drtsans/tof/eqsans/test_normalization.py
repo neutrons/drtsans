@@ -75,7 +75,7 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
     assert len(w.dataX(0)) == 48664
     # Reference workspace
     dws = data_ws['88565']
-    w = load_flux_to_monitor_ratio_file(flux_to_monitor, ws_reference=dws)
+    w = load_flux_to_monitor_ratio_file(flux_to_monitor, data_workspace=dws)
     assert w.dataX(0) == approx(dws.dataX(0), abs=1e-3)
     assert max(w.readY(0)) == approx(118, abs=1)
 

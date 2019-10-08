@@ -2,7 +2,7 @@ from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               RebinToWorkspace, NormaliseToUnity, Divide,
                               NormaliseByCurrent, ConvertToDistribution,
                               CloneWorkspace, RemoveSpectra, Multiply, Load,
-                              DeleteWorkspace, Integration, Scale)
+                              DeleteWorkspace, Integration, Scale, SplineInterpolation)
 from drtsans import path
 from drtsans.settings import (unique_workspace_dundername as uwd)
 from drtsans.samplelogs import SampleLogs
@@ -78,9 +78,7 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     return mtd[output_workspace]
 
 
-def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
-                                    loader_kwargs=dict(),
-                                    output_workspace=None):
+def load_flux_to_monitor_ratio_file(flux, data_workspace=None, loader_kwargs=dict(), output_workspace=None):
     r"""
     Loads the flux-to-monitor ratio
 
@@ -89,8 +87,10 @@ def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
     flux: str
         Path to file with the flux-to-monitor ratio data. Loader is
         Mantid `LoadAscii` algorithm.
+    data_workspace: str, MatrixWorkspace
+        Match the binning of the flux-to-monitor workspace to that of the data workspace.
     loader_kwargs: dict
-        optional keyword arguments to Mantid's Load algorithm
+        optional keyword arguments to Mantid's Load algorithm.
     output_workspace: str
         Name of the output workspace. If None, a hidden random name
         will be assigned.
@@ -106,17 +106,13 @@ def load_flux_to_monitor_ratio_file(flux, ws_reference=None,
     Load(Filename=flux, OutputWorkspace=output_workspace, **loader_kwargs)
     ConvertToHistogram(InputWorkspace=output_workspace,
                        OutputWorkspace=output_workspace)
-    if ws_reference is not None:
-        # RebinToWorkspace akin to average of the ratios within each bin,
-        # except of a scaling factor
-        RebinToWorkspace(WorkspaceToRebin=output_workspace,
-                         WorkspaceToMatch=ws_reference,
-                         OutputWorkspace=output_workspace)
+    if data_workspace is not None:
+        SplineInterpolation(WorkspaceToMatch=data_workspace, WorkspaceToInterpolate=output_workspace,
+                            OutputWorkspace=output_workspace)
     return mtd[output_workspace]
 
 
-def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace,
-                         output_workspace=None):
+def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None):
     r"""
     Normalises the input workspace by monitor count and flux-to-monitor
     ratio.
@@ -148,40 +144,31 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace,
         raise ValueError(msg)
 
     # Only the first spectrum of the monitor is required
-    monitor = uwd()
-    RebinToWorkspace(monitor_workspace, input_workspace,
-                     OutputWorkspace=monitor)
-    excess_idx = range(1, mtd[monitor].getNumberHistograms())
-    RemoveSpectra(monitor, WorkspaceIndices=excess_idx,
-                  OutputWorkspace=monitor)
-
-    # The monitor counts will take on the role of proton charge
-    monitor_counts = uwd()
-    Integration(monitor, OutputWorkspace=monitor_counts)
+    monitor_workspace_rebinned = uwd()
+    RebinToWorkspace(monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned)
+    excess_idx = range(1, mtd[monitor_workspace_rebinned].getNumberHistograms())
+    RemoveSpectra(monitor_workspace_rebinned, WorkspaceIndices=excess_idx, OutputWorkspace=monitor_workspace_rebinned)
 
     # Elucidate the nature of the flux to monitor input
-    flux = uwd()
+    flux_to_monitor_workspace = uwd()
     if isinstance(flux_to_monitor, str) and path.exists(flux_to_monitor):
-        load_flux_to_monitor_ratio_file(flux_to_monitor,
-                                        ws_reference=input_workspace,
-                                        output_workspace=flux)
+        load_flux_to_monitor_ratio_file(flux_to_monitor, data_workspace=input_workspace,
+                                        output_workspace=flux_to_monitor_workspace)
     else:
-        CloneWorkspace(flux_to_monitor, OutputWorkspace=flux)
-        RebinToWorkspace(flux, input_workspace, OutputWorkspace=flux)
+        CloneWorkspace(flux_to_monitor, OutputWorkspace=flux_to_monitor_workspace)
+        # Match the binning to that of the input workspace. Necessary prior to division
+        SplineInterpolation(WorkspaceToMatch=input_workspace, WorkspaceToInterpolate=flux_to_monitor_workspace,
+                            OutputWorkspace=flux_to_monitor_workspace)
 
-    # Generate a normalized beam flux distribution
-    Multiply(flux, monitor, OutputWorkspace=flux)
-    ConvertToDistribution(Workspace=flux)
-    NormaliseToUnity(InputWorkspace=flux, OutputWorkspace=flux)
+    # the neutron flux is the product of the monitor counts and the flux-to-monitor ratios
+    flux_workspace = uwd()
+    Multiply(monitor_workspace_rebinned, flux_to_monitor_workspace, OutputWorkspace=flux_workspace)
 
     # Normalise our input workspace
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux,
-           OutputWorkspace=output_workspace)
-    Divide(LHSWorkspace=output_workspace, RHSWorkspace=monitor_counts,
-           OutputWorkspace=output_workspace)
+    Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux_workspace, OutputWorkspace=output_workspace)
 
     # Clean the dust balls
-    [DeleteWorkspace(name) for name in (flux, monitor, monitor_counts)]
+    [DeleteWorkspace(name) for name in (flux_to_monitor_workspace, flux_workspace, monitor_workspace_rebinned)]
     return mtd[output_workspace]
 
 

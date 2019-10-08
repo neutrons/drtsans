@@ -235,11 +235,11 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    # Load the appropriate flux file
-    if method in ('proton charge', 'monitor'):
-        flux_loader = {'proton charge': load_beam_flux_file,
-                       'monitor': load_flux_to_monitor_ratio_file}
-        w_flux = flux_loader[method](flux, ws_reference=input_workspace)
+    # Use the appropriate flux file loader
+    if method == 'proton charge':
+        w_flux = load_beam_flux_file(flux, ws_reference=input_workspace)
+    elif method == 'monitor':
+        w_flux = load_flux_to_monitor_ratio_file(flux, data_workspace=input_workspace)
     else:
         w_flux = None
 

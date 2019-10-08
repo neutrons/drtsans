@@ -1,3 +1,4 @@
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py
 from drtsans.transmission import apply_transmission_correction
 import numpy as np
 import pytest
@@ -31,7 +32,8 @@ def test_transmission_correction(workspace_with_instrument):
     '''
     Test the calculation of the detector transmission correction and error propagation
     given in Eq. 7.7 and 7.8 in the master document
-    dev - Joe Osborn <osbornjd@ornl.gov>
+    SME - Changwoo Do <doc1@ornl.gov>
+    dev - Pete Peterson <petersonpf@ornl.gov>
     '''
     # Create the workspaces
     I_sam_wksp = workspace_with_instrument(axis_values=[5.95, 6.075],

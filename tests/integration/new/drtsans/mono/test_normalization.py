@@ -45,6 +45,7 @@ def data_test_16a():
 def test_normalization_by_time(data_test_16a):
     r"""
     Normalize sample intensities by the duration of the run.
+    Addresses section of the 6.1 of the master document
 
     devs - Steven Hahn <hahnse@ornl.gov>,
            Jiao Lin <linjiao@ornl.gov>,
@@ -86,6 +87,7 @@ def test_normalization_by_time(data_test_16a):
 def test_normalization_by_monitor(data_test_16a):
     r"""
     Normalize sample intensities by flux at monitor
+    Addresses section of the 6.2 the master document
 
     devs - Steven Hahn <hahnse@ornl.gov>,
            Jiao Lin <linjiao@ornl.gov>,

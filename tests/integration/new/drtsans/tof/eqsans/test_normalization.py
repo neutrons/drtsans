@@ -46,7 +46,7 @@ def test_normalization_by_time(generic_workspace):
 
 
 @pytest.fixture(scope='module')
-def data_test_16a_by():
+def data_test_16a_by_monitor():
     return dict(precision=1e-04,  # desired precision for comparisons,
                 n_pixels=25,
                 wavelength_bins=[2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0],
@@ -116,35 +116,36 @@ def data_test_16a_by():
 
 
 def test_normalization_by_monitor_spectrum(data_test_16a):
-    intensities_list = np.array(data_test_16a['I_sam']).flatten()
-    errors_list = np.array(data_test_16a['I_sam_err']).flatten()
+    intensities_list = np.array(data_test_16a_by_monitor['I_sam']).flatten()
+    errors_list = np.array(data_test_16a_by_monitor['I_sam_err']).flatten()
     # The intensity in a detector pixel is the same for all wavelength bins
-    intensities_list = np.repeat(intensities_list[:, np.newaxis], len(data_test_16a['wavelength_bins']) - 1, axis=1)
-    errors_list = np.repeat(errors_list[:, np.newaxis], len(data_test_16a['wavelength_bins']) - 1, axis=1)
-    data_workspace = CreateWorkspace(DataX=data_test_16a['wavelength_bins'],
+    intensities_list = np.repeat(intensities_list[:, np.newaxis], len(data_test_16a_by_monitor['wavelength_bins']) - 1,
+                                 axis=1)
+    errors_list = np.repeat(errors_list[:, np.newaxis], len(data_test_16a_by_monitor['wavelength_bins']) - 1, axis=1)
+    data_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bins'],
                                      DataY=intensities_list,
                                      DataE=errors_list,
-                                     NSpec=data_test_16a['n_pixels'],
+                                     NSpec=data_test_16a_by_monitor['n_pixels'],
                                      OutputWorkspace=unique_workspace_dundername())
     SampleLogs(data_workspace).insert('is_frame_skipping', False)
     # In the reduction framework, counts at the monitor will be stored in a Mantid workspace
-    monitor_workspace = CreateWorkspace(DataX=data_test_16a['wavelength_bins'],
-                                        DataY=data_test_16a['fm'],
-                                        DataE=np.zeros(len(data_test_16a['wavelength_bins']) - 1),
+    monitor_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bins'],
+                                        DataY=data_test_16a_by_monitor['fm'],
+                                        DataE=np.zeros(len(data_test_16a_by_monitor['wavelength_bins']) - 1),
                                         NSpec=1,
                                         OutputWorkspace=unique_workspace_dundername())
     # In the reduction framework, the flux-to-monitor file will be loaded to a Mantid workspace
-    flux_to_monitor_workspace = CreateWorkspace(DataX=data_test_16a['wavelength_bins'],
-                                                DataY=data_test_16a['phi'],
-                                                DataE=np.zeros(len(data_test_16a['wavelength_bins']) - 1),
+    flux_to_monitor_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bins'],
+                                                DataY=data_test_16a_by_monitor['phi'],
+                                                DataE=np.zeros(len(data_test_16a_by_monitor['wavelength_bins']) - 1),
                                                 NSpec=1,
                                                 OutputWorkspace=unique_workspace_dundername())
     # Carry out the normalization
     data_workspace = normalise_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
     # Compare to test data. Notice that data_test_16a['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary
-    test_intensities = np.transpose(np.array(data_test_16a['I_samnorm']).reshape((10, 25)))
-    assert data_workspace.extractY() == pytest.approx(test_intensities, abs=data_test_16a['precision'])
+    test_intensities = np.transpose(np.array(data_test_16a_by_monitor['I_samnorm']).reshape((10, 25)))
+    assert data_workspace.extractY() == pytest.approx(test_intensities, abs=data_test_16a_by_monitor['precision'])
 
 
 if __name__ == '__main__':

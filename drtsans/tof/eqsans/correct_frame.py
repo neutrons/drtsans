@@ -2,10 +2,11 @@ import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CropWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/EQSANSCorrectFrame-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/MaskBins-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
-from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace,
-                              EQSANSCorrectFrame, Rebin, RebinToWorkspace)
+from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace, EQSANSCorrectFrame,
+                              MaskBins, Rebin, RebinToWorkspace)
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 from drtsans.frame_mode import FrameMode
@@ -502,22 +503,29 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
             CropWorkspace(InputWorkspace=output_workspace,
                           OutputWorkspace=output_workspace, **kwargs)
 
-        # convert to a histogram as neccessary
-    if (mtd[output_workspace].id() == 'EventWorkspace') and ((not events) or (is_frame_skipping)):
+    # Discard neutrons in between bands.lead.max and bands.skip.min
+    if is_frame_skipping:
+        # for some reason event and histogram mode of MaskBins do not give the same result
+        # they differ by 2-3 events in the tests
+        if (mtd[output_workspace].id() == 'EventWorkspace'):
+            MaskBins(InputWorkspace=output_workspace,
+                     OutputWorkspace=output_workspace,
+                     XMax=bands.skip.min,
+                     XMin=bands.lead.max)
+        else:  # histogram
+            _ws = mtd[output_workspace]
+            to_zero = band_gap_indexes(_ws, bands)
+            if to_zero:
+                for i in range(_ws.getNumberHistograms()):
+                    _ws.dataY(i)[to_zero] = 0.0
+                    _ws.dataE(i)[to_zero] = 1.0
+
+    # convert to a histogram if requested
+    if (mtd[output_workspace].id() == 'EventWorkspace') and (not events):
         RebinToWorkspace(WorkspaceToRebin=output_workspace,
                          WorkspaceToMatch=output_workspace,
                          OutputWorkspace=output_workspace,
                          PreserveEvents=False)
-
-    # Discard neutrons in between bands.lead.max and bands.skip.min
-    if is_frame_skipping:
-        # TODO should be MaskBins, but the results are different
-        _ws = mtd[output_workspace]
-        to_zero = band_gap_indexes(_ws, bands)
-        if to_zero:
-            for i in range(_ws.getNumberHistograms()):
-                _ws.dataY(i)[to_zero] = 0.0
-                _ws.dataE(i)[to_zero] = 1.0
 
     return mtd[output_workspace]
 

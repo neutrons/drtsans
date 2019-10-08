@@ -81,8 +81,8 @@ def test_calculate_transmission_single_bin(reference_dir, workspace_with_instrum
     # Find the beam center and then center reference and sample
     beam_center = find_beam_center(reference_workspace)
     assert beam_center == pytest.approx([-0.00007, 0.00015], abs=1e-5)
-    center_detector(reference_workspace, x=-beam_center[0], y=-beam_center[1], unit='m')
-    center_detector(sample_workspace, x=-beam_center[0], y=-beam_center[1], unit='m')
+    center_detector(reference_workspace, center_x=beam_center[0], center_y=beam_center[1])
+    center_detector(sample_workspace, center_x=beam_center[0], center_y=beam_center[1])
 
     # Calculate transmission, then check
     transmission = calculate_transmission(sample_workspace, reference_workspace,

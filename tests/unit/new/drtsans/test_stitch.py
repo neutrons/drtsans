@@ -45,7 +45,7 @@ def test_stitch(reference_dir):
         # mark the overlap q region
         ax.plot([startoverlap, startoverlap], [0, np.max(yout)*10], 'k-')
         ax.plot([stopoverlap, stopoverlap], [0, np.max(yout)*10], 'k-')
-        ax.set_ylim(0, np.max(yout)*1.1)
+        ax.set_ylim(None, np.max(yout)*1.1)
         ax.legend()
         # save plot
         plt.savefig("stitch.png")

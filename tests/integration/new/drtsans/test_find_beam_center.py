@@ -1,10 +1,9 @@
 import pytest
 from pytest import approx
-import drtsans.mono.biosans.beam_finder as biosans_bf
-import drtsans.mono.gpsans.beam_finder as gpsans_bf
-import drtsans.tof.eqsans.beam_finder as eqsans_bf
+import drtsans.beam_finder as bf
 from drtsans.settings import unique_workspace_dundername as uwd
-from mantid.simpleapi import CreateWorkspace, LoadInstrument, AddSampleLog, MaskDetectors
+from mantid.simpleapi import (CreateWorkspace, LoadInstrument, AddSampleLog,
+                              MaskDetectors, LoadEmptyInstrument)
 import numpy as np
 
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
@@ -43,15 +42,9 @@ def test_beam_finder_trivial(generic_IDF):
     assert inst.getDetector(6).getPos() == approx([2, 2, 5], abs=1e-5)
     assert inst.getDetector(9).getPos() == approx([1, 1, 5], abs=1e-5)
     assert inst.getDetector(10).getPos() == approx([1, 2, 5], abs=1e-5)
-    x_bio, y_bio, _ = biosans_bf.find_beam_center(ws)
-    assert x_bio == approx(1.307692, abs=1e-5)
-    assert y_bio == approx(1.384615, abs=1e-5)
-    x_gp, y_gp = gpsans_bf.find_beam_center(ws)
-    assert x_gp == approx(1.307692, abs=1e-5)
-    assert y_gp == approx(1.384615, abs=1e-5)
-    x_eqs, y_eqs = eqsans_bf.find_beam_center(ws)
-    assert x_eqs == approx(1.307692, abs=1e-5)
-    assert y_eqs == approx(1.384615, abs=1e-5)
+    x_cen, y_cen = bf.find_beam_center(ws)
+    assert x_cen == approx(1.307692, abs=1e-5)
+    assert y_cen == approx(1.384615, abs=1e-5)
 
 
 @pytest.mark.parametrize('generic_workspace',
@@ -96,15 +89,32 @@ def test_beam_finder_larger_workspace(generic_workspace):
     for i in mask:
         assert spec.isMasked(i)
     # test functions
-    x_bio, y_bio, _ = biosans_bf.find_beam_center(ws)
-    assert x_bio == approx(5.423913, abs=1e-5)
-    assert y_bio == approx(5.654682, abs=1e-5)
-    x_eqs, y_eqs = eqsans_bf.find_beam_center(ws)
-    assert x_eqs == approx(5.423913, abs=1e-5)
-    assert y_eqs == approx(5.654682, abs=1e-5)
-    x_gp, y_gp = gpsans_bf.find_beam_center(ws)
-    assert x_gp == approx(5.423913, abs=1e-5)
-    assert y_gp == approx(5.654682, abs=1e-5)
+    x_cen, y_cen = bf.find_beam_center(ws)
+    assert x_cen == approx(5.423913, abs=1e-5)
+    assert y_cen == approx(5.654682, abs=1e-5)
+
+
+def test_center_detector():
+    r""" Testing moving EQSANS detector
+    Functions to test: drtsans.tof.eqsans.beam_finder.center_detector
+    Underlying Mantid algorithms:
+        MoveInstrumentComponent https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
+    """
+    # look at the original instrument
+    w_eqsans = LoadEmptyInstrument(InstrumentName='EQ-SANS')
+    inst = w_eqsans.getInstrument()
+    assert inst.getDetector(0).getPos() == approx([0.524185, -0.520957, -0.0316256], abs=1e-5)
+    assert inst.getDetector(49151).getPos() == approx([-0.525015, 0.520957, -0.0234656], abs=1e-5)
+
+    # move detector
+    xcenter = 0.5
+    ycenter = 0.7
+    bf.center_detector(w_eqsans, center_x=xcenter, center_y=ycenter)
+    inst = w_eqsans.getInstrument()
+    assert inst.getDetector(0).getPos() == approx([0.024185, -1.220957, -0.0316256], abs=1e-5)
+    assert inst.getDetector(49151).getPos() == approx([-1.025015, -0.179043, -0.0234656], abs=1e-5)
+
+# TODO test for moving wing detector
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ def test_api_geometry(biosans_f):
     center_y = -0.0243
     center_y_gravity = -0.0267
 
-    ws = center_detector(ws, center_x, center_y, center_y_gravity)
+    center_detector(ws, center_x, center_y, center_y_gravity)
 
     instrument = ws.getInstrument()
     pos_main_2 = instrument.getComponentByName("detector1").getPos()

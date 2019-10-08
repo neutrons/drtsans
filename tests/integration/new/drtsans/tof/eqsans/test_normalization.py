@@ -115,7 +115,7 @@ def data_test_16a_by_monitor():
                 )
 
 
-def test_normalization_by_monitor_spectrum(data_test_16a):
+def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
     intensities_list = np.array(data_test_16a_by_monitor['I_sam']).flatten()
     errors_list = np.array(data_test_16a_by_monitor['I_sam_err']).flatten()
     # The intensity in a detector pixel is the same for all wavelength bins
@@ -142,7 +142,7 @@ def test_normalization_by_monitor_spectrum(data_test_16a):
                                                 OutputWorkspace=unique_workspace_dundername())
     # Carry out the normalization
     data_workspace = normalise_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
-    # Compare to test data. Notice that data_test_16a['I_samnorm'] has shape (10, 5, 5) but
+    # Compare to test data. Notice that data_test_16a_by_monitor['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary
     test_intensities = np.transpose(np.array(data_test_16a_by_monitor['I_samnorm']).reshape((10, 25)))
     assert data_workspace.extractY() == pytest.approx(test_intensities, abs=data_test_16a_by_monitor['precision'])

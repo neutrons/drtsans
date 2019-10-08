@@ -1,5 +1,8 @@
 import pytest
 import numpy as np
+
+# normalise_to_workspace <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>  # noqa: E501
+# SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.dark_current import normalise_to_workspace
 
@@ -32,11 +35,17 @@ np.set_printoptions(precision=4, suppress=True)
 @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 5, 'Ny': 5}], indirect=True)
 def test_normalize_dark_current(workspace_with_instrument):
     """Test of dark current normalization
+    For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/156
+    and also https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174
+
     dev - Steven Hahn <hahnse@ornl.gov> Jiao Lin <linjiao@ornl.gov>
     SME - Changwoo Do <doc1@ornl.gov>
 
-    For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/156
-    and also https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174
+    **drtsans functions used:**
+    ~drtsans.samplelogs.SampleLogs
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    ~drtsans.tof.eqsans,dark_current.normalise_to_workspace
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
     """
     # create a workspace with fake events with the given wavelength
     wavelength_bin = np.arange(l_min, l_max+l_step/2., l_step)

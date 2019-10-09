@@ -122,6 +122,7 @@ def checkWorkspaces(filename, orig, entry):
         print('nothing to check against')
         return
     assert os.path.exists(filename)
+    assert os.access(filename, os.R_OK)
 
     reloaded = orig + '_reload'
     LoadNexusProcessed(Filename=filename, OutputWorkspace=reloaded,

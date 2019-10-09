@@ -62,13 +62,14 @@ def set_init_uncertainties(input_workspace, output_workspace=None):
     if numpy.count_nonzero(numpy.isnan(output_ws.extractY())):
         for ws_index in range(output_ws.getNumberHistograms()):
             vec_y = output_ws.readY(ws_index)
-            nan_indexes = numpy.argwhere(numpy.isnan(vec_y))
+            if numpy.count_nonzero(numpy.isnan(vec_y)):
+                nan_indexes = numpy.argwhere(numpy.isnan(vec_y))
 
-            # There existing nan
-            if len(nan_indexes) > 0:
-                vec_e = output_ws.dataE(ws_index)
-                vec_e[nan_indexes] = numpy.nan
-            # END-IF
+                # There existing nan
+                if len(nan_indexes) > 0:
+                    vec_e = output_ws.dataE(ws_index)
+                    vec_e[nan_indexes] = numpy.nan
+                # END-IF
         # END-FOR (spectra)
 
     return output_ws

@@ -24,6 +24,10 @@ def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None
     Entry 'normalizing_duration' is added to the logs of the normalized
     dark current to annotate what log entry was used to find the duration
 
+    **Mantid algorithms used:**
+    :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
+    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`,
+
     Parameters
     ----------
     dark_workspace: str, EventsWorkspace

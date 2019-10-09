@@ -54,7 +54,6 @@ def rs(reference_dir, request):
     run_set = request.param
     run = run_set['run']
     ws = uwd()
-    print('run_set={}'.format(run_set))
     with amend_config(data_dir=reference_dir.new.eqsans):
         eqsans.load_events(run, output_workspace=ws)
     wl = eqsans.transform_to_wavelength(ws, low_tof_clip=500, high_tof_clip=2000, output_workspace=uwd())

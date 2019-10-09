@@ -190,6 +190,7 @@ code-integration-test:
     - scse-mantid-builder
 
 code-pylint:
+  allow_failure: true
   stage: test
   dependencies:
     - dockerbuild

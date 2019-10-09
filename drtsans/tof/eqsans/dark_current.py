@@ -12,7 +12,7 @@ from drtsans.tof.eqsans import correct_frame
 __all__ = ['subtract_dark_current', 'normalise_to_workspace']
 
 
-def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
+def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None):
     r"""
     Scale and Rebin in wavelength a ``dark`` current workspace with information
     from a ``data`` workspace.
@@ -26,13 +26,13 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
 
     Parameters
     ----------
-    dark_ws: str, EventsWorkspace
+    dark_workspace: str, EventsWorkspace
         Dark current workspace with units in time-of-flight
-    data_ws: str, MatrixWorkspace
+    data_workspace: str, MatrixWorkspace
         Sample scattering with intensities versus wavelength
     output_workspace : str
         Name of the normalised dark workspace. If None, the name of the input
-        workspace ``dark_ws`` is chosen (and the input workspace is overwritten).
+        workspace `dark_workspace` is chosen (and the input workspace is overwritten).
 
     Returns
     -------
@@ -40,48 +40,43 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
         Output workspace, dark current rebinned to wavelength and rescaled
     """
     if output_workspace is None:
-        output_workspace = str(dark_ws)
-    dark = mtd[str(dark_ws)]
-    data = mtd[str(data_ws)]
-    sl = SampleLogs(data)
+        output_workspace = str(dark_workspace)
+    sample_logs = SampleLogs(data_workspace)
     # rescale counts by the shorter considered TOF width
-    fwr = sl.tof_frame_width_clipped.value / sl.tof_frame_width.value
-    nc, ec = counts_in_detector(dark)  # counts and error per detector
-    ConvertUnits(InputWorkspace=dark,
-                 Target='Wavelength', Emode='Elastic',
-                 OutputWorkspace=output_workspace)
-    RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data,
-                     PreserveEvents=False,
+    tof_clipping_factor = sample_logs.tof_frame_width_clipped.value / sample_logs.tof_frame_width.value
+    counts_in_pixel, counts_error_in_pixel = counts_in_detector(dark_workspace)  # counts and error per detector
+    ConvertUnits(InputWorkspace=dark_workspace, Target='Wavelength', Emode='Elastic', OutputWorkspace=output_workspace)
+    RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data_workspace, PreserveEvents=False,
                      OutputWorkspace=output_workspace)
-    _dark = mtd[output_workspace]
     #
     # Determine the histogram bins for which data should have counts
     # If running in frame-skipped mode, there is a wavelength band
     # gap between the lead and skipped bands
     #
-    bands = correct_frame.clipped_bands_from_logs(data)  # lead and pulse bands
-    gap_indexes = correct_frame.band_gap_indexes(data, bands)
+    dark_normalized = mtd[output_workspace]
+    bands = correct_frame.clipped_bands_from_logs(data_workspace)  # lead and pulse bands
+    gap_indexes = correct_frame.band_gap_indexes(data_workspace, bands)
     n_gap_bins = len(gap_indexes)
-    n_bins = len(_dark.dataY(0))
+    n_bins = len(dark_normalized.dataY(0))
     n_significant_bins = n_bins - n_gap_bins  # wavelength bins with counts
     #
     # factor_y is number of counts per unit time and wavelength bin
     #
-    dark_duration = duration(dark)
-    factor_y = fwr / (dark_duration.value * n_significant_bins)
-    factor_e = fwr / (dark_duration.value * np.sqrt(n_significant_bins))
+    dark_duration = duration(dark_workspace)
+    counts_rescaling_factor = tof_clipping_factor / (dark_duration.value * n_significant_bins)
+    counts_error_rescaling_factor = tof_clipping_factor / (dark_duration.value * np.sqrt(n_significant_bins))
     #
+    # Rescale the dark counts. Pay attention to the wavelength gap in frame-skip mode
     #
-    #
-    for i in range(_dark.getNumberHistograms()):
-        _dark.dataY(i)[:] = factor_y * nc[i]
-        _dark.dataE(i)[:] = factor_e * ec[i]
+    for i in range(dark_normalized.getNumberHistograms()):
+        dark_normalized.dataY(i)[:] = counts_rescaling_factor * counts_in_pixel[i]
+        dark_normalized.dataE(i)[:] = counts_error_rescaling_factor * counts_error_in_pixel[i]
     if n_gap_bins > 0:
-        for i in range(_dark.getNumberHistograms()):
-            _dark.dataY(i)[gap_indexes] = 0.0
-            _dark.dataE(i)[gap_indexes] = 0.0
-    SampleLogs(_dark).insert('normalizing_duration', dark_duration.log_key)
-    return _dark
+        for i in range(dark_normalized.getNumberHistograms()):
+            dark_normalized.dataY(i)[gap_indexes] = 0.0
+            dark_normalized.dataE(i)[gap_indexes] = 0.0
+    SampleLogs(dark_normalized).insert('normalizing_duration', dark_duration.log_key)
+    return dark_normalized
 
 
 def subtract_normalised_dark_current(input_workspace, dark_ws,

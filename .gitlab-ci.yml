@@ -12,11 +12,11 @@ stages:
 flake8-feature:
   stage: flake8
   before_script:
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh && date +%F
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh && date +%F
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 /opt/sans-backend"
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY && date +%F
+    - docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 /opt/sans-backend" && date +%F
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder
@@ -26,11 +26,11 @@ flake8-feature:
 flake8-next:
   stage: flake8
   before_script:
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh && date +%F
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh && date +%F
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 /opt/sans-backend"
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY && date +%F
+    - docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 /opt/sans-backend" && date +%F
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder
@@ -40,16 +40,16 @@ flake8-next:
 dockerbuild:
   stage: dockerbuild
   before_script:
-    - docker system prune -f
-    - docker image prune -af
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+    - docker system prune -f && date +%F
+    - docker image prune -af && date +%F
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh && date +%F
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh && date +%F
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
-    - docker build -t $CONTAINER_URL .
-    - docker push $CONTAINER_URL
-    - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY && date +%F
+    - docker pull code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master && date +%F
+    - docker build -t $CONTAINER_URL . && date +%F
+    - docker push $CONTAINER_URL && date +%F
+    - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh && date +%F
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder
@@ -66,9 +66,9 @@ docker-update-test:
     - sudo mkdir -p /SNS/EQSANS
     - sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS || true
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY && date +%F
+    - docker pull $CONTAINER_URL && date +%F
+    - bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err && date +%F
     - sudo chown -R gitlab-runner .
   tags:
     - scse-sans-demo
@@ -82,9 +82,9 @@ docker-no-update-test:
     - sudo mkdir -p /SNS/EQSANS
     - sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS || true
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY && date +%F
+    - docker pull $CONTAINER_URL && date +%F
+    - bash -x scripts/sans-backend-run.sh || cat SANS_output/*err && date +%F
     - sudo chown -R gitlab-runner .
   tags:
     - scse-sans-demo
@@ -100,8 +100,8 @@ docs-feature:
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - docker pull $CONTAINER_URL && date +%F
+    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx" && date +%F
     - ls .
     - popd
   tags:
@@ -121,8 +121,8 @@ docs-next:
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - docker pull $CONTAINER_URL && date +%F
+    - docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx" && date +%F
     - ls .
     - popd
   after_script:
@@ -149,8 +149,8 @@ code-unit-test:
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
+    - docker pull $CONTAINER_URL && date +%F
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}" && date +%F
     - popd
   after_script:
     - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
@@ -176,8 +176,8 @@ code-integration-test-next:
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
+    - docker pull $CONTAINER_URL && date +%F
+    - docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration" && date +%F
     - popd
   after_script:
     - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
@@ -278,8 +278,8 @@ analysis-update:
     - sudo mount -t nfs -o "nfsvers=3,tcp,noatime,rsize=32768,wsize=32768" 128.219.164.43:/volumes/datapool/sfw-rhel7-prod /SNS/software || true
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CONTAINER_URL
-    - docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -u 0:0 $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/analysis-update-user.sh"
+    - docker pull $CONTAINER_URL && date +%F
+    - docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -u 0:0 $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/analysis-update-user.sh" && date +%F
     - sudo chown -R gitlab-runner .
   tags:
     - scse-mantid-builder

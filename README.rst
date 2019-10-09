@@ -8,13 +8,6 @@ This packages is a collection of functionality for reducing SANS data developed 
 While much of the functionality is generic, this implementation is aimed at reducing data from BIOSANS, EQSANS, and GPSANS.
 As appropriate, this work is an abstraction layer on top of the mantid project.
 
------------------
-Table of contents
------------------
-.. contents::
-   :local:
-   :depth: 4
-
 **This is a python3 only package.**
 
 ------------------------------

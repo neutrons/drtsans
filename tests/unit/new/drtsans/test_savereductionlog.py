@@ -4,7 +4,7 @@ import numpy as np
 from drtsans import savereductionlog
 import os
 import pytest
-from tempfile import gettempdir
+from tempfile import gettempdir, NamedTemporaryFile
 
 
 def strValue(group, name):
@@ -166,7 +166,7 @@ def test_saving(reference_dir, filename1d, filename_other):
         else:
             wksp_other.append('')
 
-    tmpfile = os.path.join(gettempdir(), wksp1d + '.nxs.h5')
+    tmpfile = NamedTemporaryFile(prefix=wksp1d, suffix='.nxs.h5').name
     tmpfile = os.path.abspath(tmpfile)
     if os.path.exists(tmpfile):
         os.unlink(tmpfile)  # remove it if it already exists

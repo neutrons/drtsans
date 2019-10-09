@@ -14,11 +14,13 @@ __all__ = ['subtract_dark_current', 'normalise_to_workspace']
 
 def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
     r"""
-    Scale and Rebin in wavelength a `dark` current workspace with information
-    from a `data` workspace.
+    Scale and Rebin in wavelength a ``dark`` current workspace with information
+    from a ``data`` workspace.
 
-    Rescale and rebin to the `data` workspace according to:
-        frame_width_clipped / (frame_width * n_bins * duration) * I_dc(x, y)
+    Rescale and rebin to the ``data`` workspace according to:
+
+    .. math:: frame\_width\_clipped / (frame\_width * n\_bins * duration) * I\_dc(x, y)
+
     Entry 'normalizing_duration' is added to the logs of the normalized
     dark current to annotate what log entry was used to find the duration
 
@@ -30,7 +32,7 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
         Sample scattering with intensities versus wavelength
     output_workspace : str
         Name of the normalised dark workspace. If None, the name of the input
-        workspace `dark_ws` is chosen (and the input workspace is overwritten).
+        workspace ``dark_ws`` is chosen (and the input workspace is overwritten).
 
     Returns
     -------

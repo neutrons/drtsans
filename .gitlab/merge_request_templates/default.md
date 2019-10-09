@@ -5,12 +5,13 @@ Description of work.
 - [ ] Added integration tests?
 
 **For To Test:**
-Make sure both unit and integration tests pass. For instance
-```
-source test_job.sh 3.6 unit
-source test_job.sh 3.6 integration
-```
+<!-- Instructions for testing. -->
 
 **For Approver To Test:**
 
-<!-- Instructions for testing. -->
+The approver should check for the discussed software practices
+
+- [ ] all internal functions should have an underbar, as is python standard
+- [ ] need more comments in meat of code explaining intent
+- [ ] clearly named variables (better to be verbose in variable names)
+- [ ] does the code follow the other [coding standards](https://scse.ornl.gov/drtsans/developer/index.html)?

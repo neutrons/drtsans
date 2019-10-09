@@ -13,7 +13,6 @@ __all__ = ['normalise_by_flux', 'normalise_by_time']
 
 def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
     r"""
-
     Loads the beam flux file and converts to a wavelength
     normalized probability distribution.
 

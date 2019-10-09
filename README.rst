@@ -1,3 +1,4 @@
+========
 drt-sans
 ========
 
@@ -7,22 +8,20 @@ This packages is a collection of functionality for reducing SANS data developed 
 While much of the functionality is generic, this implementation is aimed at reducing data from BIOSANS, EQSANS, and GPSANS.
 As appropriate, this work is an abstraction layer on top of the mantid project.
 
+-----------------
 Table of contents
 -----------------
-
-* :ref:`Front ends <front_ends>`
-* Using the :ref:`docker` packaged environment
-* Set-up for development in a :ref:`virtual_environment`
-* :ref:`Running the tests <running_tests>`
-* :ref:`Building the documentation <building_docs>`
+.. contents::
+   :local:
+   :depth: 4
 
 **This is a python3 only package.**
 
+------------------------------
 Usage from provided front-ends
 ------------------------------
-.. _front_ends:
 
-For end users go to `next version <http://shaman.ornl.gov/>`_
+For end users go to `next version <http://shaman.ornl.gov/>`_ or
 `QA version <http://scse-ui.ornl.gov:8080/>`_
 
 Use `jupyter <https://jupyter.sns.gov/>`_ to have a play with the code.
@@ -30,9 +29,9 @@ The kernel to select is ``sans at ...``.
 
 One must have an XCAMS account to use either shaman or the jupyter kernel provided above.
 
+-------------------------------------
 Using the Docker packaged environment
 -------------------------------------
-.. _docker:
 
 This the instructions for someone who wants to use the Docker container
 created through the automated build pipeline to develop drt-sans, use
@@ -41,7 +40,7 @@ functionality. The SNS analysis cluster does not have Docker installed
 and Docker is required to follow these instructions.
 
 1. (If not installed) `Install Docker <https://docs.docker.com/install/>`_
-2. Download the latest ``sans-backend-run.sh`` `script <http://scse-mantid-demo.ornl.gov/sans-backend/scripts/sans-backend-run.sh>`_ from the feature, release, or master branch for which you are testing:
+2. Download the latest ``sans-backend-run.sh`` `script <scripts/sans-backend-run.sh>`_ from the feature, release, or master branch for which you are testing:
 3. Run the script with ``sudo bash sans-backend-run.sh -h`` to see the help menu.
 
 Current options include:
@@ -51,9 +50,9 @@ Current options include:
 
 You must download the wrapper script from the above link as the build process modifies the copy in version control.
 
+-----------------------------------------------
 Set-up for development in a virtual environment
 -----------------------------------------------
-.. _virtual_environment:
 
 This is the instructions for a person who is developing *both*
 drt-sans and mantid in tandem. It assumes that you are using a virtual
@@ -140,6 +139,7 @@ Finally, tell direnv that you want it to work in this directory
 Then follow steps 3-6 from above. After this, the virtual environment
 with load when you enter the source tree, and unload when you leave.
 
+-----------------
 Running the tests
 -----------------
 .. _running_tests:
@@ -167,6 +167,7 @@ To run an individual test within an individual file add ``::`` to the filename t
    $ python -m pytest tests/integration/new/drtsans/tof/eqsans/test_momentum_transfer.py::test_api
 
 
+--------------------------
 Building the documentation
 --------------------------
 .. _building_docs:
@@ -183,8 +184,9 @@ or
 
    $ python setup.py build_sphinx
 
+------------
 Contributing
 ------------
 
 Contributing is done through merge requests of code that you have the permission to add.
-See `CONTRIBUTING.rst`_ for more information.
+See `CONTRIBUTING.rst <CONTRIBUTING.rst>`_ for more information.

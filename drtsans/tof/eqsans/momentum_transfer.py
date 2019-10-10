@@ -116,7 +116,6 @@ def calculate_q_dq(ws, pixel_sizes=None):
 
     # From histogram to get wave length at center of each bin. The output is a 2D array for pixel number and
     # wave length bin
-    # FIXME - This is only good for constant binning
     wavelength_bin_boundary_matrix = ws.extractX()
     wavelength_bin_center_matrix = 0.5 * (wavelength_bin_boundary_matrix[:, 1:] +
                                           wavelength_bin_boundary_matrix[:, :-1])
@@ -127,7 +126,6 @@ def calculate_q_dq(ws, pixel_sizes=None):
                                                                    wavelength_bin_step_matrix.shape))
 
     # Calculate detector pixel information
-    # TODO - late in the issue: move this part to calculate_momentum_transfer() to reduce loop
     vectors = calculate_pixel_positions(ws)
     pixel_2theta_vec, pixel_sample_distance_vec = vectors
     # pixel_phi_vec

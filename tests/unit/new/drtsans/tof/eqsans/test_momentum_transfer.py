@@ -216,8 +216,8 @@ def test_single_value_resolution():
                                            l1, l2, source_aperture, sample_aperture, 0.0055, 0.0043,
                                            sample_pixel_distance, l1, emission_error)
 
-    assert_delta(q_x_res, golden_dqx, 1E-12, 'Q_x resolution')
-    assert_delta(q_y_res, golden_dqy, 1E-12, 'Q_y resolution')
+    assert_delta(q_x_res, golden_dqx, 1E-11, 'Q_x resolution')
+    assert_delta(q_y_res, golden_dqy, 1E-11, 'Q_y resolution')
 
     return
 

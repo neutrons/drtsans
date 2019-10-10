@@ -2,10 +2,11 @@ import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CropWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/EQSANSCorrectFrame-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/MaskBins-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
-from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace,
-                              EQSANSCorrectFrame, Rebin, RebinToWorkspace)
+from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace, EQSANSCorrectFrame,
+                              MaskBins, Rebin, RebinToWorkspace)
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 from drtsans.frame_mode import FrameMode
@@ -13,12 +14,12 @@ from drtsans import wavelength as wlg
 from drtsans.settings import namedtuplefy
 from drtsans.geometry import source_detector_distance
 from drtsans.tof.eqsans.geometry import source_monitor_distance
-
+from drtsans.process_uncertainties import set_init_uncertainties
 
 __all__ = ['transform_to_wavelength', ]
 
 
-def frame_skipping(input_workspace):
+def _is_frame_skipping(input_workspace):
     r"""
     Find whether the run was created in frame-skip mode
 
@@ -96,7 +97,7 @@ def clipped_bands_from_logs(input_workspace):
     sl = SampleLogs(ws)
     lead = wlg.Wband(sl.wavelength_lead_min.value,
                      sl.wavelength_lead_max.value)
-    if bool(sl.is_frame_skipping.value) is True:
+    if _is_frame_skipping(input_workspace):
         skip = wlg.Wband(sl.wavelength_skip_min.value,
                          sl.wavelength_skip_max.value)
     else:
@@ -232,15 +233,15 @@ def log_band_structure(input_workspace, bands):
     bands: namedtuple
         Output of running `transmitted_bands_clipped` on the workspace
     """
-    is_frame_skipping = frame_skipping(input_workspace)
+    is_frame_skipping = _is_frame_skipping(input_workspace)
     sample_logs = SampleLogs(input_workspace)
     w_min = bands.lead.min
-    w_max = bands.lead.max if is_frame_skipping is False else bands.skip.max
+    w_max = bands.skip.max if is_frame_skipping else bands.lead.max
     sample_logs.insert('wavelength_min', w_min, unit='Angstrom')
     sample_logs.insert('wavelength_max', w_max, unit='Angstrom')
     sample_logs.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
     sample_logs.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
-    if is_frame_skipping is True:
+    if is_frame_skipping:
         sample_logs.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
         sample_logs.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
 
@@ -268,7 +269,7 @@ def metadata_bands(input_workspace):
     except AttributeError as e:
         raise RuntimeError('Band structure not found in the logs') from e
     skip = None
-    if frame_skipping(input_workspace):
+    if _is_frame_skipping(input_workspace):
         try:
             skip = wlg.Wband(sample_logs.wavelength_skip_min.value, sample_logs.wavelength_skip_max.value)
         except AttributeError as e:
@@ -406,6 +407,10 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
 
     remove_spikes(intensity)
     w.dataY(0)[valid_idx] = intensity
+
+    # reset the uncertainties now that the data has been modified
+    w = set_init_uncertainties(w)
+
     return w
 
 
@@ -438,7 +443,7 @@ def band_gap_indexes(input_workspace, bands):
                          (ws.dataX(0) < bands.skip.min))[0]).tolist()
 
 
-def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=False,
+def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=True,
                           output_workspace=None):
     r"""
     Convert a time-of-flight events workspace to a wavelength workspace
@@ -456,8 +461,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
         Do we preserve events?
     Returns
     -------
-    MatrixWorspace
-        EventsWorkspace or Matrix2DWorkspace
+    ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
     """
     input_workspace = str(input_workspace)
     if output_workspace is None:
@@ -467,7 +471,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
                  Emode='Elastic', OutputWorkspace=output_workspace)
 
     # Rebin to the clipped bands
-    is_frame_skipping = frame_skipping(input_workspace)
+    is_frame_skipping = _is_frame_skipping(input_workspace)
     w_min, w_max = None, None
     if bands is None:
         try:
@@ -477,7 +481,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
             pass
     else:
         w_min = bands.lead.min
-        w_max = bands.lead.max if is_frame_skipping is False else bands.skip.max
+        w_max = bands.skip.max if is_frame_skipping else bands.lead.max
     if bin_width:
         if w_min is not None and w_max is not None:
             params = (w_min, bin_width, w_max)
@@ -499,31 +503,36 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Fal
             CropWorkspace(InputWorkspace=output_workspace,
                           OutputWorkspace=output_workspace, **kwargs)
 
-        # convert to a histogram as neccessary
-        if mtd[output_workspace].id() == 'EventWorkspace':
-            RebinToWorkspace(WorkspaceToRebin=output_workspace,
-                             WorkspaceToMatch=output_workspace,
-                             OutputWorkspace=output_workspace,
-                             PreserveEvents=False)
-
     # Discard neutrons in between bands.lead.max and bands.skip.min
     if is_frame_skipping:
-        # hasn't been converted
-        if mtd[output_workspace].id() == 'EventWorkspace':
-            raise RuntimeError('Cannot work with frame skipping in event mode')
-        _ws = mtd[output_workspace]
-        to_zero = band_gap_indexes(_ws, bands)
-        if to_zero:
-            for i in range(_ws.getNumberHistograms()):
-                _ws.dataY(i)[to_zero] = 0.0
-                _ws.dataE(i)[to_zero] = 1.0
+        # for some reason event and histogram mode of MaskBins do not give the same result
+        # they differ by 2-3 events in the tests
+        if (mtd[output_workspace].id() == 'EventWorkspace'):
+            MaskBins(InputWorkspace=output_workspace,
+                     OutputWorkspace=output_workspace,
+                     XMax=bands.skip.min,
+                     XMin=bands.lead.max)
+        else:  # histogram
+            _ws = mtd[output_workspace]
+            to_zero = band_gap_indexes(_ws, bands)
+            if to_zero:
+                for i in range(_ws.getNumberHistograms()):
+                    _ws.dataY(i)[to_zero] = 0.0
+                    _ws.dataE(i)[to_zero] = 1.0
+
+    # convert to a histogram if requested
+    if (mtd[output_workspace].id() == 'EventWorkspace') and (not events):
+        RebinToWorkspace(WorkspaceToRebin=output_workspace,
+                         WorkspaceToMatch=output_workspace,
+                         OutputWorkspace=output_workspace,
+                         PreserveEvents=False)
 
     return mtd[output_workspace]
 
 
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=False, zero_uncertainty=1.0,
+                            keep_events=True, set_init_uncertainty=True,
                             interior_clip=False, output_workspace=None):
     r"""
     API function that converts corrected TOF's to Wavelength.
@@ -540,10 +549,10 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     high_tof_clip: float
         Ignore events with a time-of-flight (TOF) bigger than the maximal
         TOF minus this quantity.
-    keep_events: Bool
+    keep_events: bool
         The final histogram will be an EventsWorkspace if True.
-    zero_uncertainty: float
-        Assign this error to histogram bins having no counts.
+    set_init_uncertainty: bool
+        Assign the error to histogram bins having no counts.
     interior_clip: False
         If True, trim slow neutrons from the lead pulse (using
         ``high_tof_clip``) and fast neutrons from the skip pulse (using
@@ -570,8 +579,9 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     log_band_structure(output_workspace, bands)
     w = log_tof_structure(output_workspace, low_tof_clip,
                           high_tof_clip, interior_clip=interior_clip)
+
     # uncertainty when no counts in the bin
-    for i in range(w.getNumberHistograms()):
-        zero_count_indices = np.where(w.dataY(i) == 0)[0]
-        w.dataE(i)[zero_count_indices] = zero_uncertainty
+    if set_init_uncertainty:
+        w = set_init_uncertainties(w)
+
     return w

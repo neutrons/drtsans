@@ -7,6 +7,8 @@ from .sensitivity import (apply_sensitivity_correction,  # noqa: F401
                           calculate_sensitivity_correction)
 from .solid_angle_correction import *  # noqa: F403, F401
 from .savereductionlog import *  # noqa: F401, F403
+from .convert_to_q import *  # noqa: F401, F403
 
-__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'half_polarization',  # noqa: F405
+__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'convert_to_q',  # noqa: F405
+           'half_polarization',  # noqa: F405
            'savereductionlog', 'solid_angle_correction', 'subtract_background']  # noqa: F405

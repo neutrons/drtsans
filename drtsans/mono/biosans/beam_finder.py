@@ -1,10 +1,8 @@
 from scipy import constants
 
+import drtsans.beam_finder as bf
 from mantid import mtd
 from mantid.kernel import logger
-# https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
-# https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
-from mantid.simpleapi import FindCenterOfMassPosition, MoveInstrumentComponent
 from drtsans.samplelogs import SampleLogs
 
 
@@ -79,6 +77,8 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None,
     """Finds the beam center in a 2D SANS data set.
     Developer: Ricardo Ferraz Leal <rhf@ornl.gov>
 
+    based on drtsans.beam_finder.find_beam_center
+
     Parameters
     ----------
     input_workspace: str, Workspace
@@ -100,14 +100,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None,
         center_y it is usually used to correct BIOSANS wing detector
         Y position.
     """
-    if method != 'center_of_mass':
-        raise NotImplementedError(f'{method} is not implemented')
-    # TODO: apply mask
-    if mask is not None:
-        logger.warning('mask is currently ignored')
-    center = FindCenterOfMassPosition(InputWorkspace=input_workspace, **kwargs)
-
-    center_x, center_y = center
+    center_x, center_y = bf.find_beam_center(input_workspace, method, mask, **kwargs)
 
     center_y_gravity = _beam_center_gravitational_drop(
         input_workspace, center_y, sdd_wing_detector)
@@ -117,38 +110,11 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None,
     return center_x, center_y, center_y_gravity
 
 
-def beam_center(center_x, center_y, wavelength, sdd_main_detector,
-                sdd_wing_detector=1.13):
-    """Given the coordinates of the beam center calculate the beam center
-    of the Y coordinate in the wing detector.
-
-    Parameters
-    ----------
-    center_x : float
-        beam center X in meters found in the main detector
-    center_y : float
-        beam center y in meters found in the main detector
-    wavelength : float
-        in Angstroms
-    sdd_main_detector : float
-        in meters
-    sdd_wing_detector : float, optional
-        in meters, by default 1.13
-    """
-
-    drop = _calculate_neutron_drop(sdd_main_detector - sdd_wing_detector,
-                                   wavelength)
-    center_y_gravity = center_y + drop
-
-    logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}".format(
-        center_x, center_y, center_y_gravity))
-    return center_x, center_y, center_y_gravity
-
-
-# API
-
 def center_detector(input_workspace, center_x, center_y, center_y_gravity):
     """Center the detector and adjusts the heigh for the wing detector
+
+    **Mantid algorithms used:**
+    :ref:`MoveInstrumentComponent <algm-MoveInstrumentComponent-v1>`,
 
     Parameters
     ----------
@@ -166,16 +132,8 @@ def center_detector(input_workspace, center_x, center_y, center_y_gravity):
     Workspace2D
         reference to the input_workspace
     """
+    # move the main detector
+    bf.center_detector(input_workspace, center_x, center_y)
 
-    MoveInstrumentComponent(
-        Workspace=input_workspace, ComponentName='detector1',
-        X=-center_x, Y=-center_y)
-
-    # Now let's correct the wing detector for the gravity drop
-    # Relative movement up words
-    MoveInstrumentComponent(
-        Workspace=input_workspace, ComponentName='wing_detector',
-        X=-center_x,
-        Y=-center_y_gravity)
-
-    return input_workspace
+    # movethe wing detector for the gravity drop
+    bf.center_detector(input_workspace, center_x, center_y_gravity, component='wing_detector')

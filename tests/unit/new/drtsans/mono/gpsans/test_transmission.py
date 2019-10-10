@@ -72,7 +72,7 @@ def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center, s
     trans_ws = CreateWorkspace(DataX=[0, 1], DataY=[0.08224400871459694], DataE=[0.012671053121947698])
     ws_c = apply_transmission_correction(ws, trans_ws, theta_dependent=False, output_workspace=uwd())
     assert ws_c.readY(9100)[0] == approx(303.97, abs=1e-2)
-    assert ws_c.readE(9100)[0] == approx(61.99, abs=1e-2)
+    assert ws_c.readE(9100)[0] == approx(77.70, abs=1e-2)
 
 
 def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scattering_sum_ws):
@@ -83,7 +83,7 @@ def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scatter
                                          output_workspace=uwd())
     # Note the corrected values are the same as above
     assert ws_c.readY(9100)[0] == approx(303.97, abs=1e-2)
-    assert ws_c.readE(9100)[0] == approx(61.99, abs=1e-2)
+    assert ws_c.readE(9100)[0] == approx(77.70, abs=1e-2)
 
 
 if __name__ == '__main__':

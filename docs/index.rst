@@ -13,7 +13,7 @@ Welcome to drt-sans's documentation!
    drtsans/mono/biosans/index
    drtsans/mono/gpsans/index
    drtsans/tof/eqsans/index
-
+   developer/index
 
 Indices and tables
 ==================

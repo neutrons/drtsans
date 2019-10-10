@@ -1,111 +1,42 @@
-from dateutil.parser import parse as parse_date
 import numpy as np
-from mantid.simpleapi import (mtd, Integration, Transpose, RebinToWorkspace,
-                              ConvertUnits, Subtract, Scale, LoadEventNexus)
+from mantid.simpleapi import (mtd, RebinToWorkspace, ConvertUnits,
+                              Subtract, Scale, LoadEventNexus)
 
-from drtsans.settings import (namedtuplefy, amend_config,
+from drtsans.dark_current import counts_in_detector, duration
+from drtsans.settings import (amend_config,
                               unique_workspace_dundername as uwd)
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
 
-__all__ = ['subtract_dark_current', ]
+__all__ = ['subtract_dark_current', 'normalise_to_workspace']
 
 
-@namedtuplefy
-def duration(input_workspace, log_key=None):
-    """
-    Compute the duration of the workspace by iteratively searching the logs for
-    keys 'duration', 'start_time/end_time', 'proton_charge', and 'timer'.
-
-    Parameters
-    ----------
-    input_workspace: str, MatrixWorkspace
-        Usually the dark current workspace
-    log_key: str
-        If a log entry is passed, only the contents under this log entry are
-        searched. No iterative search over the default values is performed.
-
-    Returns
-    -------
-    namedtuple
-        Fields of the namedtuple:
-        - value: float, contents under the log
-        - log_key: str, log used to return the duration
-
-    """
-    ws = mtd[str(input_workspace)]
-    log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if \
-        log_key is None else (log_key, )
-    sl = SampleLogs(ws)
-
-    def from_start_time(lk):
-        st = parse_date(sl[lk].value)
-        et = parse_date(sl['end_time'].value)
-        return (et - st).total_seconds()
-
-    def from_proton_charge(lk):
-        return sl[lk].getStatistics().duration
-
-    calc = dict(start_time=from_start_time, proton_charge=from_proton_charge)
-
-    for lk in log_keys:
-        try:
-            return dict(value=calc.get(lk, sl.single_value)(lk), log_key=lk)
-        except RuntimeError:
-            continue
-    raise AttributeError("Could not determine the duration of the run")
-
-
-def counts_in_detector(input_workspace):
+def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None):
     r"""
-    Fin the total number of neutron counts in each detector pixel.
-    By definition, error=1 when zero counts in the detector.
+    Scale and Rebin in wavelength a ``dark`` current workspace with information
+    from a ``data`` workspace.
 
-    Parameters
-    ----------
-    input_workspace: str, EventsWorkspace
-        Usually the dark current workspace
+    Rescale and rebin to the ``data`` workspace according to:
 
-    Returns
-    -------
-    tuple
-        Two elements in the tuple: (1)numpy.ndarray: counts;
-        (2) numpy.ndarray: error in the counts
-    """
-    ws = mtd[str(input_workspace)]
-    _wnc = Integration(ws, OutputWorkspace=uwd())
-    _wnc = Transpose(_wnc, OutputWorkspace=_wnc.name())
-    y = np.copy(_wnc.dataY(0))  # counts
-    e = np.copy(_wnc.dataE(0))  # errors
-    _wnc.delete()
-    e[y < 1] = 1.0  # convention of error=1 if no counts present
-    return y, e
+    .. math:: frame\_width\_clipped / (frame\_width * n\_bins * duration) * I\_dc(x, y)
 
-
-def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
-    r"""
-    Scale and Rebin in wavelength a `dark` current workspace with information
-    from a `data` workspace.
-
-    Rescale and rebin to the `data` workspace according to:
-        frame_width_clipped / (frame_width * n_bins * duration) * I_dc(x, y)
     Entry 'normalizing_duration' is added to the logs of the normalized
     dark current to annotate what log entry was used to find the duration
 
+    **Mantid algorithms used:**
+    :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
+    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`,
+
     Parameters
     ----------
-    dark_ws: str, EventsWorkspace
+    dark_workspace: str, EventsWorkspace
         Dark current workspace with units in time-of-flight
-    data_ws: str, MatrixWorkspace
+    data_workspace: str, MatrixWorkspace
         Sample scattering with intensities versus wavelength
-    log_key: str
-        Log key to search for duration of the runs. if `None`, the function
-        does a sequential search for entries 'duration', 'proton_charge',
-        and 'timer'
     output_workspace : str
         Name of the normalised dark workspace. If None, the name of the input
-        workspace `dark_ws` is chosen (and the input workspace is overwritten).
+        workspace `dark_workspace` is chosen (and the input workspace is overwritten).
 
     Returns
     -------
@@ -113,48 +44,43 @@ def normalise_to_workspace(dark_ws, data_ws, output_workspace=None):
         Output workspace, dark current rebinned to wavelength and rescaled
     """
     if output_workspace is None:
-        output_workspace = str(dark_ws)
-    dark = mtd[str(dark_ws)]
-    data = mtd[str(data_ws)]
-    sl = SampleLogs(data)
+        output_workspace = str(dark_workspace)
+    sample_logs = SampleLogs(data_workspace)
     # rescale counts by the shorter considered TOF width
-    fwr = sl.tof_frame_width_clipped.value / sl.tof_frame_width.value
-    nc, ec = counts_in_detector(dark)  # counts and error per detector
-    ConvertUnits(InputWorkspace=dark,
-                 Target='Wavelength', Emode='Elastic',
-                 OutputWorkspace=output_workspace)
-    RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data,
-                     PreserveEvents=False,
+    tof_clipping_factor = sample_logs.tof_frame_width_clipped.value / sample_logs.tof_frame_width.value
+    counts_in_pixel, counts_error_in_pixel = counts_in_detector(dark_workspace)  # counts and error per detector
+    ConvertUnits(InputWorkspace=dark_workspace, Target='Wavelength', Emode='Elastic', OutputWorkspace=output_workspace)
+    RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data_workspace, PreserveEvents=False,
                      OutputWorkspace=output_workspace)
-    _dark = mtd[output_workspace]
     #
     # Determine the histogram bins for which data should have counts
     # If running in frame-skipped mode, there is a wavelength band
     # gap between the lead and skipped bands
     #
-    bands = correct_frame.clipped_bands_from_logs(data)  # lead and pulse bands
-    gap_indexes = correct_frame.band_gap_indexes(data, bands)
+    dark_normalized = mtd[output_workspace]
+    bands = correct_frame.clipped_bands_from_logs(data_workspace)  # lead and pulse bands
+    gap_indexes = correct_frame.band_gap_indexes(data_workspace, bands)
     n_gap_bins = len(gap_indexes)
-    n_bins = len(_dark.dataY(0))
+    n_bins = len(dark_normalized.dataY(0))
     n_significant_bins = n_bins - n_gap_bins  # wavelength bins with counts
     #
     # factor_y is number of counts per unit time and wavelength bin
     #
-    dark_duration = duration(dark)
-    factor_y = fwr / (dark_duration.value * n_significant_bins)
-    factor_e = fwr / (dark_duration.value * np.sqrt(n_significant_bins))
+    dark_duration = duration(dark_workspace)
+    counts_rescaling_factor = tof_clipping_factor / (dark_duration.value * n_significant_bins)
+    counts_error_rescaling_factor = tof_clipping_factor / (dark_duration.value * np.sqrt(n_significant_bins))
     #
+    # Rescale the dark counts. Pay attention to the wavelength gap in frame-skip mode
     #
-    #
-    for i in range(_dark.getNumberHistograms()):
-        _dark.dataY(i)[:] = factor_y * nc[i]
-        _dark.dataE(i)[:] = factor_e * ec[i]
+    for i in range(dark_normalized.getNumberHistograms()):
+        dark_normalized.dataY(i)[:] = counts_rescaling_factor * counts_in_pixel[i]
+        dark_normalized.dataE(i)[:] = counts_error_rescaling_factor * counts_error_in_pixel[i]
     if n_gap_bins > 0:
-        for i in range(_dark.getNumberHistograms()):
-            _dark.dataY(i)[gap_indexes] = 0.0
-            _dark.dataE(i)[gap_indexes] = 0.0
-    SampleLogs(_dark).insert('normalizing_duration', dark_duration.log_key)
-    return _dark
+        for i in range(dark_normalized.getNumberHistograms()):
+            dark_normalized.dataY(i)[gap_indexes] = 0.0
+            dark_normalized.dataE(i)[gap_indexes] = 0.0
+    SampleLogs(dark_normalized).insert('normalizing_duration', dark_duration.log_key)
+    return dark_normalized
 
 
 def subtract_normalised_dark_current(input_workspace, dark_ws,
@@ -190,12 +116,10 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
 
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
-    scaled = Scale(InputWorkspace=dark_ws, Factor=-d, OutputWorkspace=uwd())
-    Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled,
-             OutputWorkspace=output_workspace)
+    scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=uwd())
+    Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled, OutputWorkspace=output_workspace)
     scaled.delete()
-    SampleLogs(output_workspace).insert('normalizing_duration',
-                                        duration_log_key)
+    SampleLogs(output_workspace).insert('normalizing_duration', duration_log_key)
     return mtd[output_workspace]
 
 

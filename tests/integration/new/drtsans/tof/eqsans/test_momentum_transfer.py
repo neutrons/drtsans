@@ -1,9 +1,11 @@
 import os
-
 import numpy as np
-
 # import mantid
 from mantid import mtd
+# https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/AddTimeSeriesLog-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 from mantid.simpleapi import AddSampleLog, ConfigService, MaskAngle, Rebin  # ExtractSpectra
 from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, prepare_data,
                                 transform_to_wavelength)
@@ -16,6 +18,16 @@ from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalis
 
 
 def test_momentum_transfer_serial(reference_dir):
+    """Test momentum transfer calculation
+
+    Parameters
+    ----------
+    reference_dir
+
+    Returns
+    -------
+
+    """
 
     print(mtd)
     print(ConfigService)
@@ -56,11 +68,12 @@ def test_momentum_transfer_serial(reference_dir):
                OutputWorkspace="ws_rebin",
                Params="{:.2f},{:.2f},{:.2f}".format(rebin_start, rebin_step,
                                                     rebin_end))
+    assert ws is not None
 
     bins = np.arange(rebin_start, rebin_end, rebin_step)
     print(bins)
 
-    # TODO - calculate q and dq
+    # calculate q and dq
 
     # Check: total_pixels_in_detector = 256 * 192 with number of wave length
 

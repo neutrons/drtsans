@@ -1,10 +1,10 @@
 import numpy as np
-
-# from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py
 from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
-from drtsans.momentum_transfer import calculate_momentum_transfer, InstrumentSetupParameters
-from drtsans.momentum_transfer import G_MN2_OVER_H2
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py
+from drtsans.momentum_transfer import calculate_momentum_transfer, InstrumentSetupParameters, G_MN2_OVER_H2
 
 
 def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, two_theta, sample_pixel_distance,
@@ -66,14 +66,14 @@ def calculate_q_resolution(qx, qy, wave_length, delta_wave_length, two_theta, sa
     # Q(x) resolution
     qx_geom_resolution = factor1 * (apertures_const + const_x)
     qx_wave_resolution = qx**2 * wl_emission_factor
-    dqx = qx_geom_resolution + qx_wave_resolution
+    dqx = np.sqrt(qx_geom_resolution + qx_wave_resolution)
 
     # Q(y) resolution
     # gravity term: float or (N, M) array
     gravity_y = 2./3. * (b_factor * wave_length * delta_wave_length)**2  # convert to meter
     qy_geom_resolution = factor1 * (apertures_const + const_y + gravity_y)
     qy_wave_resolution = qy**2 * wl_emission_factor
-    dqy = qy_geom_resolution + qy_wave_resolution
+    dqy = np.sqrt(qy_geom_resolution + qy_wave_resolution)
 
     return dqx, dqy
 

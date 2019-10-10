@@ -1,15 +1,15 @@
 import numpy as np
 from scipy import constants
-from drtsans.momentum_transfer import dq2_geometry, dq2_gravity
-from drtsans import geometry as sans_geometry
-from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/AddTimeSeriesLog-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, AddTimeSeriesLog, Rebin, ConvertUnits
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/momentum_transfer.py
 from drtsans.tof.eqsans.momentum_transfer import calculate_q_dq, calculate_pixel_positions,\
-    retrieve_instrument_setup
-from drtsans.tof.eqsans.momentum_transfer import calculate_q_resolution, InstrumentSetupParameters,\
-    moderator_time_uncertainty
+    retrieve_instrument_setup, calculate_q_resolution, InstrumentSetupParameters
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/load.py
 from drtsans.tof.eqsans import load_events
 
 
@@ -51,8 +51,18 @@ def assert_equal(exp_value, gold_value, value_name):
 
 
 def _set_generic_workspace(ws):
-    # TODO : Get a list of wave length: valid range: [ 2.46179456  6.71611136] A
+    """Set the sample logs in the generic workspace
 
+    Get a list of wave length: valid range: [ 2.46179456  6.71611136] A
+
+    Parameters
+    ----------
+    ws
+
+    Returns
+    -------
+    None
+    """
     # Range of TOF
     wave_length_range = np.array([2.5, 4.5])  # A
     intensity = np.array([20.]*16) + np.random.randn(16,)
@@ -176,28 +186,6 @@ def test_single_value_resolution():
     """ Test method calculate Q resolution mostly from Generic SANS
     :return:
     """
-    # l1 = 14.122
-    # l2 = 1.30
-    # source_aperture = 0.0075  # source aperture
-    # sample_aperture = 0.0050  # sample aperture
-    # qx = 0.01553395  # lambda 3.5 corner pixel  (0, 1)
-    # qy = 2.48543251e-05  # lambda 3.5  corner pixel (1, 1)
-    # wave_length = 3.5
-    # wl_resolution = 0.5
-    # two_theta = 0.008653107083873311  # radian (corner pixel)
-    # sample_pixel_distance = 1.2500467991239368  # radian (corner pixel)
-    # emission_error = 248.893075  # wave length = 3.5 A
-
-    """
-    Q = -0.000593411755, -0.000767944624
-    Wavelength = 6.0, Delta Wavelength = 0.15
-    Theta = 0.00046338, 2Theta = 0.00092676
-    Pixel size = 0.0055, 0.0043
-    R1 = 0.02, R2 = 0.007
-    L1 = 15, L2 = 15.5
-    B = 0.00014811607134644243
-    """
-
     l1 = 15.
     l2 = 15.5
     source_aperture = 0.02  # source aperture
@@ -222,7 +210,6 @@ def test_single_value_resolution():
                                               sample_pixel_distance=sample_pixel_distance,
                                               tof_error=emission_error,
                                               instrument_setup_params=params)
-    print('Unit Test: Backend dQx = {}'.format(q_x_res))
 
     # Calculate Q resolution by Weiren's algorithm
     golden_dqx, golden_dqy = sigma_neutron(wave_length, wl_resolution, qx, qy, 0.5*two_theta,
@@ -342,164 +329,7 @@ def sigma_neutron(wave_length, delta_wave_length, Qx, Qy, theta, L1, L2, R1, R2,
                     B ** 2 * wave_length ** 4 * 2 / 3 * r,
                     ((L2 / L1) ** 2 * R1 ** 2 / 4 + (1 + L2 / L1) ** 2 * R2 ** 2 / 4 +
                      y3 ** 2 / 12 + B ** 2 * wave_length ** 4 * 2 / 3 * r)))
-    sigma_y = sigma_y * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + y3**2/12 + B**2*wave_length**4*2/3*r)  # geometry
-    print('[UNIT TEST WeiRen] Geometry dQy = {}'.format(sigma_y))
-    sigma_y = sigma_y + Qy**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)
-    print('[UNIT TEST WeiRen] Wavelength dQy = {}'
-          ''.format(Qy**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)))
-
-    print('sigma_x = {:.9E} sigma_y = {:.9E} sigma = {:.9f}\n'
-          ''.format(sigma_x, sigma_y, np.sqrt(sigma_x**2+sigma_y**2)))
+    sigma_y = np.sqrt(sigma_y * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + y3**2/12 + B**2*wave_length**4*2/3*r))
+    sigma_y = np.sqrt(sigma_y + Qy**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2))
 
     return sigma_x, sigma_y
-
-
-# FIXME TODO - put this to 2 parts...
-#              1. Qx and Qy calculation
-#              2. Q resolution calculation
-def q_resolution_per_pixel_to_mod(ws):
-    """
-    Compute q resolution for each pixel, in each wavelength bin.
-
-    The resolution can be computed by giving a binned
-    workspace to this function:
-
-    qx, qy, dqx, dqy = q_resolution_per_pixel(ws_2d)
-
-    The returned numpy arrays are of the same dimensions
-    as the input array.
-
-    Parameters
-    ----------
-    ws: MatrixWorkspace
-        Input workspace
-
-    Returns
-    ------
-    numpy array of the same dimension as the data
-    """
-    L1 = source_sample_distance(ws, unit='m', log_key='source-sample-distance')
-    L2 = sans_geometry.sample_detector_distance(ws, unit='m')
-    R1 = 0.5 * source_aperture_diameter(ws, unit='m')
-    R2 = 0.5 * sample_aperture_diameter(ws, unit='m')
-
-    wl_bounds = ws.extractX()
-    wl = (wl_bounds[:, 1:] + wl_bounds[:, :-1]) / 2.0
-    dwl = wl_bounds[:, 1:] - wl_bounds[:, :-1]
-
-    spec_info = ws.spectrumInfo()
-
-    # Sanity check
-    if not spec_info.size() == wl.shape[0]:
-        raise RuntimeError("X size mismatch: %s %s" %
-                           (spec_info.size(), wl.shape[0]))
-
-    twotheta = np.zeros_like(wl)
-    phi = np.zeros_like(wl)
-    s2p = np.zeros_like(wl)
-    for i in range(spec_info.size()):
-        if spec_info.hasDetectors(i) and not spec_info.isMonitor(i):
-            s2p[i] = spec_info.l2(i)
-            twotheta[i] = spec_info.twoTheta(i)
-            phi[i] = spec_info.azimuthal(i)
-        else:
-            twotheta[i] = np.nan
-
-    mask = np.isnan(twotheta)
-    _q = 4.0 * np.pi * np.sin(0.5 * twotheta) / wl
-    _q[mask] = 0.
-    twotheta[mask] = 0.  # do this one last
-    del mask
-
-    qx = np.cos(phi) * _q
-    qy = np.sin(phi) * _q
-    del _q, phi
-
-    dtof = moderator_time_uncertainty(wl)
-    theta = 0.5 * twotheta
-    dqx = np.sqrt(_dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
-    dqy = np.sqrt(_dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, dtof=dtof))
-    return qx, qy, dqx, dqy
-
-
-def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0055, dtof=0.):
-    """
-    Q resolution in the horizontal direction.
-
-    Parameters
-    ----------
-    qx: float
-        value of q_x (1/Angstrom)
-    L1: float
-        source-to-sample distance (m)
-    L2: float
-        sample-to-detector distance (m)
-    R1: float
-        source aperture radius (m)
-    R2: float
-        sample aperture radius (m)
-    wl: float
-        wavelength mid-point (Angstrom)
-    dwl: float
-        wavelength-spread (Angstrom)
-    theta: float
-        scattering angle (rad)
-    s2p: float
-        sample-to-pixel (m)
-    pixel_size: float
-        dimension of the pixel (m)
-
-    Returns
-    ------
-    float
-    """
-    # If theta is not supplied, compute it from qx
-    # This simplifies the calculation for I(Q) in 1D.
-    if theta is None:
-        theta = 2.0 * np.arcsin(wl * np.fabs(qx) / 4.0 / np.pi)
-    dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
-    return dq2_geo + qx**2 * (dq_tof_term + (dwl / wl)**2) / 12.0
-
-
-def _dqy2(qy, L1, L2, R1, R2, wl, dwl, theta, s2p, pixel_size=0.0043, dtof=0.):
-    """
-    Q resolution in vertical direction.
-
-    Parameters
-    ----------
-    qy: float
-        value of q_y (1/Angstrom)
-    L1: float
-        source-to-sample distance (m)
-    L2: float
-        sample-to-detector distance (m)
-    R1: float
-        source aperture radius (m)
-    R2: float
-        sample aperture radius (m)
-    wl: float
-        wavelength mid-point (Angstrom)
-    dwl: float
-        wavelength-spread (Angstrom)
-    theta: float
-        scattering angle (rad)
-    s2p: float
-        sample-to-pixel (m)
-    pixel_size: float
-        dimension of the pixel (m)
-
-    Returns
-    ------
-    float
-    """
-    # If theta is not supplied, compute it from qx
-    # This simplifies the calculation for I(Q) in 1D.
-    if theta is None:
-        theta = 2.0 * np.arcsin(wl * np.fabs(qy) / 4.0 / np.pi)
-    dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
-    dq_tof_term = (3.9560 * dtof / 1000.0 / wl / (L1 + s2p))**2
-    dq2_grav = dq2_gravity(L1, L2, wl, dwl, theta)
-    dq2 = dq2_geo + dq2_grav
-    dq2 += qy**2 * (dq_tof_term + (dwl / wl)**2) / 12.0
-    return dq2

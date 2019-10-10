@@ -311,25 +311,25 @@ def sigma_neutron(wave_length, delta_wave_length, Qx, Qy, theta, L1, L2, R1, R2,
     # (dWL/WL)**2
     r = (delta_wave_length/wave_length)**2
 
-    print('[UNIT TEST WeiRen] B = {}, r = {}'.format(B, r))
+    # print('[UNIT TEST WeiRen] B = {}, r = {}'.format(B, r))
 
     # dQx
     sigma_x = (2. * np.pi * np.cos(theta) * np.cos(2.*theta)**2 / wave_length / L2)**2
     sigma_x = sigma_x * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + x3**2/12)  # geometry
-    print('[UNIT TEST WeiRen] Geometry dQx = {}'.format(sigma_x))
-    sigma_x = sigma_x + Qx**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)
-    print('[UNIT TEST WeiRen] Wavelength dQx = {}'
-          ''.format(Qx**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)))
+    # print('[UNIT TEST WeiRen] Geometry dQx = {}'.format(sigma_x))
+    sigma_x = np.sqrt(sigma_x + Qx**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2))
+    # print('[UNIT TEST WeiRen] Wavelength dQx = {}'
+    #       ''.format(Qx**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2)))
 
     # dQy
     sigma_y = (2. * np.pi * np.cos(theta) * np.cos(2*theta)**2 / wave_length / L2)**2
-    print('[UNIT TEST WeiRen] Qy/wl factor = {}'.format(sigma_y))
-    print('[UNIT TEST WeiRen] Geometry factor = {}, {}, {} = {}'
-          ''.format((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4, y3 ** 2 / 12,
-                    B ** 2 * wave_length ** 4 * 2 / 3 * r,
-                    ((L2 / L1) ** 2 * R1 ** 2 / 4 + (1 + L2 / L1) ** 2 * R2 ** 2 / 4 +
-                     y3 ** 2 / 12 + B ** 2 * wave_length ** 4 * 2 / 3 * r)))
-    sigma_y = np.sqrt(sigma_y * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + y3**2/12 + B**2*wave_length**4*2/3*r))
+    # print('[UNIT TEST WeiRen] Qy/wl factor = {}'.format(sigma_y))
+    # print('[UNIT TEST WeiRen] Geometry factor = {}, {}, {} = {}'
+    #       ''.format((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4, y3 ** 2 / 12,
+    #                 B ** 2 * wave_length ** 4 * 2 / 3 * r,
+    #                 ((L2 / L1) ** 2 * R1 ** 2 / 4 + (1 + L2 / L1) ** 2 * R2 ** 2 / 4 +
+    #                  y3 ** 2 / 12 + B ** 2 * wave_length ** 4 * 2 / 3 * r)))
+    sigma_y = sigma_y * ((L2/L1)**2*R1**2/4 + (1+L2/L1)**2*R2**2/4 + y3**2/12 + B**2*wave_length**4*2/3*r)
     sigma_y = np.sqrt(sigma_y + Qy**2 / 12 * (r + (3.9560*sig_emission)**2/(1000*wave_length*(s2p+m2s))**2))
 
     return sigma_x, sigma_y

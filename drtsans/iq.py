@@ -642,7 +642,8 @@ class IofQCalculator(object):
         bin_centers, bin_edges = self.determine_linear_bin_edges(q_min, q_max, bins)
 
         # Bin
-        binned_i_q = self.weighted_binning(self._q_dq.q, self._q_dq.dq, self._i_q, bin_centers, bin_edges)
+        binned_i_q = self.weighted_binning(self._q_dq.q, self._q_dq.dq, self._i_q, self._i_q_sigma,
+                                           bin_centers, bin_edges)
 
         return binned_i_q
 
@@ -860,7 +861,7 @@ class IofQCalculator(object):
                                                       statistic, suffix)
 
     @staticmethod
-    def weighted_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
+    def weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
         """ Bin I(Q) by given bin edges and do weighted binning
         Parameters
         ----------
@@ -870,7 +871,7 @@ class IofQCalculator(object):
             scaler momentum transfer (Q) resolution
         iq_array: ndarray
             I(Q)
-        sigmaq_array: ndarray
+        sigma_iq_array: ndarray
             sigma I(Q)
         bin_centers: numpy.ndarray
             bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
@@ -888,10 +889,10 @@ class IofQCalculator(object):
         q_array = IofQCalculator.flatten(q_array)
         dq_array = IofQCalculator.flatten(dq_array)
         iq_array = IofQCalculator.flatten(iq_array)
-        sigmaq_array = IofQCalculator.flatten(sigmaq_array)
+        sigma_iq_array = IofQCalculator.flatten(sigma_iq_array)
 
         # calculate 1/sigma^2 for multiple uses
-        invert_sigma2_array = 1./(sigmaq_array**2)
+        invert_sigma2_array = 1./(sigma_iq_array ** 2)
 
         print('I(Q) array:\n', iq_array)
         print('invert_sigma2_array\n', invert_sigma2_array)

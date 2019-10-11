@@ -148,8 +148,8 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     """
     # Calculate Qx and Qy bin size
-    qx_bin_size = _determine_linear_bin_size(i_q.qx, qx_bin_params.min, qx_bin_params.bins, qx_bin_params.max)
-    qy_bin_size = _determine_linear_bin_size(i_q.qy, qy_bin_params.min, qy_bin_params.bins, qy_bin_params.max)
+    qx_bin_size = determine_linear_bin_size(i_q.qx, qx_bin_params.min, qx_bin_params.bins, qx_bin_params.max)
+    qy_bin_size = determine_linear_bin_size(i_q.qy, qy_bin_params.min, qy_bin_params.bins, qy_bin_params.max)
     print(qx_bin_size, qy_bin_size)
 
     # Calculate histogram
@@ -157,7 +157,7 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
     return
 
 
-def _determine_linear_bin_size(x_array, min_x, num_bins, max_x):
+def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
     """Determine linear bin size
 
     This is adopted by bin I(Qx, Qy)

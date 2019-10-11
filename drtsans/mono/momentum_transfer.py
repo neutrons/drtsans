@@ -38,10 +38,6 @@ def calculate_q_resolution(qx, qy,  wave_length, delta_wave_length, theta, instr
     #     thetax = 2.0 * np.arcsin(wave_length * np.fabs(qx) / 4.0 / np.pi)
     #     thetay = 2.0 * np.arcsin(wave_length * np.fabs(qy) / 4.0 / np.pi)
     #     assert thetax == thetay
-
-    print('[DEBUG] WL = {} +/- {}\nTheta = {}\n{}'.format(wave_length, delta_wave_length,
-                                                          theta, instrument_setup_params))
-
     # Calculate dQx
     dqx = np.sqrt(_dqx2(qx,
                         instrument_setup_params.l1,
@@ -57,8 +53,6 @@ def calculate_q_resolution(qx, qy,  wave_length, delta_wave_length, theta, instr
                         instrument_setup_params.sample_aperture_radius,
                         wave_length, delta_wave_length, theta,
                         instrument_setup_params.pixel_size_y))
-
-    print('----> dQx = {}, dQy = {}'.format(dqx, dqy))
 
     return dqx, dqy
 
@@ -252,13 +246,13 @@ def _dqx2(qx, L1, L2, R1, R2, wl, dwl, theta, pixel_size=0.0055):
     dq2_geo = dq2_geometry(L1, L2, R1, R2, wl, theta, pixel_size)
     dq2_wl = qx**2 * (dwl / wl)**2 / 6.0
 
-    if isinstance(qx, np.ndarray):
-        print('[DEBUG....SPECIAL] Qx   : shape = {} value = \n{}'
-              ''.format(qx.shape, qx))
-        print('[DEBUG....SPECIAL] Dq2_geo: shape = {} value = \n{}'
-              ''.format(dq2_geo.shape, dq2_geo))
-        print('[DEBUG....SPECIAL] Dq2_wl:  shape = {} value = \n{}'
-              ''.format(dq2_wl.shape, dq2_wl))
+    # if isinstance(qx, np.ndarray):
+    #     print('[DEBUG....SPECIAL] Qx   : shape = {} value = \n{}'
+    #           ''.format(qx.shape, qx))
+    #     print('[DEBUG....SPECIAL] Dq2_geo: shape = {} value = \n{}'
+    #           ''.format(dq2_geo.shape, dq2_geo))
+    #     print('[DEBUG....SPECIAL] Dq2_wl:  shape = {} value = \n{}'
+    #           ''.format(dq2_wl.shape, dq2_wl))
 
     return dq2_geo + dq2_wl
 

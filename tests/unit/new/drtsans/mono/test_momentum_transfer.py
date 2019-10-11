@@ -226,8 +226,6 @@ def test_q_resolution_generic(generic_workspace):
             #                                 R1, R2, x3, y3))
             sigma_x, sigma_y = sigma_neutron(wavelength, delta_lambda, qx, qy, 0.5*two_theta_array[i],
                                              L1, L2, R1, R2, x3, y3)
-            print('->  dQX = {}, dQy = {}'.format(sigma_x, sigma_y))
-
             assert abs(sigma_x - dqx_arr[i][0]) < 1E-08, 'Spectrum {} dQx error'.format(i)
 
             # assert sigma_x == pytest.approx(dqx_arr[i][0], 1.E-6)

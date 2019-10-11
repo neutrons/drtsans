@@ -9,6 +9,7 @@ from mantid.api import AnalysisDataService
 from drtsans.momentum_transfer_factory import calculate_q_dq
 from drtsans.detector import Component
 import collections
+from enum import Enum
 
 # from mantid.kernel import logger
 # from ast import literal_eval
@@ -25,6 +26,19 @@ np.seterr(divide='ignore', invalid='ignore')
 
 # Define structure for I(Q) for Q, dQ, I(Q), Sigma_I(Q)
 IofQ = collections.namedtuple('IofQ', 'q dq i sigma')
+
+# Define structure (namedtuple) for binning parameters: min, max, number of bins
+# bins shall be integer as number of bins
+BinningParams = collections.namedtuple('BinningParams','min max bins')
+
+
+class BinningMethod(Enum):
+    """
+    Binning method
+    """
+    NOWEIGHT = 1
+    WEIGHTED = 2
+
 
 
 def bin_iq_into_linear_q1d(wl_ws, bins, q_min=0, q_max=None, instrument=None):
@@ -100,7 +114,7 @@ def bin_iq_into_logarithm_q1d(wl_ws, bins_per_decade, q_min=0.001, q_max=1.0, in
 
 
 def bin_into_q2d(wl_ws, bins, suffix):
-    """ Bin the data into Q in 2D (Qx, Qy)
+    """
     :param wl_ws: List of workspaces (names) in binned wave length space
     :param bins: Iterable for range and bin size of Qx and Qy
     :param suffix: suffix for output workspace
@@ -109,6 +123,74 @@ def bin_into_q2d(wl_ws, bins, suffix):
     calculator = IofQCalculator(wl_ws)
 
     return calculator.bin_into_q2d(bins=bins, suffix=suffix)
+
+
+def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMethod.NOWEIGHT):
+    """Bin I(Qx, Qy) into to new (Qx, Qy) bins
+
+    Note: for binning parameters:
+    - 'min': float or None.  If None, set to default as min(Qx) (or Qy)
+    - 'max': float or None.  If None, set to default as max(Qx) (or Qy)
+    - 'bins': integer as number of bins
+
+    Parameters
+    ----------
+    i_q: namedtuple
+        "i": intensity, "qx": qx, "qy": qy, "dqx": dqx, "dqy", dqy
+    qx_bin_params: BinningParams
+        binning parameters for Qx
+    qy_bin_params: BinningParams
+        binning parameters for Qy
+    method: BinningMethod
+        Weighted binning or no weight binning
+
+    Returns
+    -------
+
+    """
+    # Calculate Qx and Qy bin size
+    qx_bin_size = _determine_linear_bin_size(i_q.qx, qx_bin_params.min, qx_bin_params.bins, qx_bin_params.max)
+    qy_bin_size = _determine_linear_bin_size(i_q.qy, qy_bin_params.min, qy_bin_params.bins, qy_bin_params.max)
+
+    # Calculate histogram
+
+    return
+
+
+def _determine_linear_bin_size(x_array, min_x, num_bins, max_x):
+    """Determine linear bin size
+
+    This is adopted by bin I(Qx, Qy)
+
+    Parameters
+    ----------
+    x_array: ndarray
+        Value X
+    min_x: float
+        minimum X. None as default x_array.min()
+    num_bins: integer
+        number of bins
+    max_x: float
+        maximum X. None as default x_array.max()
+
+    Returns
+    -------
+
+    """
+    # Determine min X and max X
+    if min_x is None:
+        min_x = np.min(x_array)
+    if max_x is None:
+        max_x = np.max(x_array)
+
+    # Calculate delta
+    if num_bins <= 1:
+        raise RuntimeError('Number of bins cannot be less than 2')
+
+    delta_x = (max_x - min_x) / (num_bins - 1.)
+
+    return delta_x
+
 
 
 def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,

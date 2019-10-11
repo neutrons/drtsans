@@ -29,7 +29,7 @@ IofQ = collections.namedtuple('IofQ', 'q dq i sigma')
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
 # bins shall be integer as number of bins
-BinningParams = collections.namedtuple('BinningParams','min max bins')
+BinningParams = collections.namedtuple('BinningParams', 'min max bins')
 
 
 class BinningMethod(Enum):
@@ -38,7 +38,6 @@ class BinningMethod(Enum):
     """
     NOWEIGHT = 1
     WEIGHTED = 2
-
 
 
 def bin_iq_into_linear_q1d(wl_ws, bins, q_min=0, q_max=None, instrument=None):
@@ -151,6 +150,7 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
     # Calculate Qx and Qy bin size
     qx_bin_size = _determine_linear_bin_size(i_q.qx, qx_bin_params.min, qx_bin_params.bins, qx_bin_params.max)
     qy_bin_size = _determine_linear_bin_size(i_q.qy, qy_bin_params.min, qy_bin_params.bins, qy_bin_params.max)
+    print(qx_bin_size, qy_bin_size)
 
     # Calculate histogram
 
@@ -190,7 +190,6 @@ def _determine_linear_bin_size(x_array, min_x, num_bins, max_x):
     delta_x = (max_x - min_x) / (num_bins - 1.)
 
     return delta_x
-
 
 
 def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,

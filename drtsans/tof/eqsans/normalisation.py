@@ -4,17 +4,29 @@ from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
                               CloneWorkspace, RemoveSpectra, Multiply, Load,
                               DeleteWorkspace, Scale, SplineInterpolation)
 from drtsans import path
-from drtsans.settings import (unique_workspace_dundername as uwd)
+from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.dark_current import duration as run_duration
 
-__all__ = ['normalise_by_flux', 'normalise_by_time', 'normalise_by_monitor']
+__all__ = ['normalise_by_flux', 'normalise_by_time', 'normalise_by_monitor', 'normalise_by_proton_charge_and_flux']
 
 
 def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
     r"""
     Loads the beam flux file and converts to a wavelength
     normalized probability distribution.
+
+    **Mantid algorithms used:**
+    :ref:`LoadAscii <algm-LoadAscii-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/LoadAscii-v1.html>
+    :ref:`ConvertToHistogram <algm-ConvertToHistogram-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/ConvertToHistogram-v1.html>
+    :ref:`ConvertToDistribution <algm-ConvertToDistribution-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/ConvertToDistribution-v1.html>
+    :ref:`NormaliseToUnity <algm-NormaliseToUnity-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/NormaliseToUnity-v1.html>
+    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
 
     Parameters
     ----------
@@ -32,7 +44,7 @@ def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
     MatrixWorkspace
     """
     if output_workspace is None:
-        output_workspace = uwd()  # make a hidden workspace
+        output_workspace = unique_workspace_dundername()  # make a hidden workspace
 
     LoadAscii(Filename=flux, Separator="Tab", Unit="Wavelength",
               OutputWorkspace=output_workspace)
@@ -53,6 +65,16 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     r"""
     Normalises the input workspace by proton charge and measured flux
 
+    **Mantid algorithms used:**
+    :ref:`RebinToWorkspace <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
+    :ref:`Divide <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+    :ref:`NormaliseByCurrent <algm-NormaliseByCurrent-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/NormaliseByCurrent-v1.html>
+
     Parameters
     ----------
     input_workspace : str, MatrixWorkspace
@@ -69,18 +91,28 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    # Normalise by the flux distribution
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux,
-           OutputWorkspace=output_workspace)
-    # Normalize by Proton charge
-    NormaliseByCurrent(InputWorkspace=output_workspace,
-                       OutputWorkspace=output_workspace)
+    # Match the binning of the input workspace prior to carry out the division
+    rebinned_flux = unique_workspace_dundername()
+    RebinToWorkspace(WorkspaceToRebin=flux, WorkspaceToMatch=input_workspace, OutputWorkspace=rebinned_flux)
+    # Normalise by the flux
+    Divide(LHSWorkspace=input_workspace, RHSWorkspace=rebinned_flux, OutputWorkspace=output_workspace)
+    DeleteWorkspace(rebinned_flux)  # remove the temporary rebinned flux workspace
+    # Normalize by the proton charge
+    NormaliseByCurrent(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
     return mtd[output_workspace]
 
 
 def load_flux_to_monitor_ratio_file(flux, data_workspace=None, loader_kwargs=dict(), output_workspace=None):
     r"""
     Loads the flux-to-monitor ratio
+
+    **Mantid algorithms used:**
+    :ref:`Load <algm-Load-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
+    :ref:`ConvertToHistogram <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/ConvertToHistogram-v1.html>
+    :ref:`SplineInterpolation <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/SplineInterpolation-v1.html>
 
     Parameters
     ----------
@@ -100,7 +132,7 @@ def load_flux_to_monitor_ratio_file(flux, data_workspace=None, loader_kwargs=dic
     MatrixWorkspace
     """
     if output_workspace is None:
-        output_workspace = uwd()  # make a hidden workspace
+        output_workspace = unique_workspace_dundername()  # make a hidden workspace
 
     # Let Mantid figure out what kind file format is the flux file
     Load(Filename=flux, OutputWorkspace=output_workspace, **loader_kwargs)
@@ -116,6 +148,22 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     r"""
     Normalises the input workspace by monitor count and flux-to-monitor
     ratio.
+
+    **Mantid algorithms used:**
+    :ref:`RebinToWorkspace <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
+    :ref:`RemoveSpectra <algm-RemoveSpectra-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/RemoveSpectra-v1.html>
+    :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
+    :ref:`SplineInterpolation <algm-SplineInterpolation-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/SplineInterpolation-v1.html>
+    :ref:`Multiply <algm-Multiply-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Multiply-v1.html>
+    :ref:`Divide <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 
     Parameters
     ----------
@@ -143,13 +191,13 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
         raise ValueError(msg)
 
     # Only the first spectrum of the monitor is required
-    monitor_workspace_rebinned = uwd()
+    monitor_workspace_rebinned = unique_workspace_dundername()
     RebinToWorkspace(monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned)
     excess_idx = range(1, mtd[monitor_workspace_rebinned].getNumberHistograms())  # only one spectrum is needed
     RemoveSpectra(monitor_workspace_rebinned, WorkspaceIndices=excess_idx, OutputWorkspace=monitor_workspace_rebinned)
 
     # Elucidate the nature of the flux to monitor input
-    flux_to_monitor_workspace = uwd()
+    flux_to_monitor_workspace = unique_workspace_dundername()
     if isinstance(flux_to_monitor, str) and path.exists(flux_to_monitor):
         load_flux_to_monitor_ratio_file(flux_to_monitor, data_workspace=input_workspace,
                                         output_workspace=flux_to_monitor_workspace)
@@ -161,7 +209,7 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
 
     # the neutron flux integrated over the duration of the run is the product of the monitor counts and the
     # flux-to-monitor ratios
-    flux_workspace = uwd()
+    flux_workspace = unique_workspace_dundername()
     Multiply(monitor_workspace_rebinned, flux_to_monitor_workspace, OutputWorkspace=flux_workspace)
 
     # Normalise our input workspace
@@ -175,6 +223,12 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
 def normalise_by_time(input_workspace, log_key=None, output_workspace=None):
     r"""
     Divide the counts by the duration of the run
+
+    **Mantid algorithms used:**
+    :ref:`Scale <algm-Scale-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+    :ref:`SampleLogs <algm-SampleLogs-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/SampleLogs-v1.html>
 
     Parameters
     ----------
@@ -221,7 +275,7 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
         is 'time', then pass one log entry name such as 'duration' or pass
         :py:obj:`None` for automatic log search.
     method: str
-        Either 'proton charge' or 'monitor'
+        Either 'proton charge', 'monitor', or 'time'
     monitor_workspace: str, ~mantid.api.MatrixWorkspace
         Prepared monitor workspace
     output_workspace : str

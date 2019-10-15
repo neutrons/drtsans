@@ -9,10 +9,10 @@ from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
 
-__all__ = ['subtract_dark_current', 'normalise_to_workspace']
+__all__ = ['subtract_dark_current', 'normalize_dark_current']
 
 
-def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None):
+def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None):
     r"""
     Scale and Rebin in wavelength a ``dark`` current workspace with information
     from a ``data`` workspace.
@@ -26,7 +26,7 @@ def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None
 
     **Mantid algorithms used:**
     :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
-    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`,
+    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`
 
     Parameters
     ----------
@@ -100,7 +100,7 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
         Sample scattering with intensities versus wavelength
     dark_ws: str, ~mantid.api.MatrixWorkspace
         Normalized dark current after being normalized with
-        `normalise_to_workspace`
+        `normalize_dark_current`
     output_workspace : str
         Name of the workspace after dark current subtraction. If :py:obj:`None`,
         the name of the input workspace is chosen (and the input workspace
@@ -155,7 +155,7 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
         message = 'Unable to find or load the dark current {}'.format(dark)
         raise RuntimeError(message)
 
-    _dark_normal = normalise_to_workspace(_dark, input_workspace,
+    _dark_normal = normalize_dark_current(_dark, input_workspace,
                                           output_workspace=uwd())
     subtract_normalised_dark_current(input_workspace, _dark_normal,
                                      output_workspace=output_workspace)

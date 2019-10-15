@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from drtsans.iq import determine_linear_bin_size
 
 
 # 2D "detector view" I(i, j) array
@@ -80,6 +81,41 @@ i_final_det_array = np.array([
     ])
 
 
+def gold_qx_qy_binned_index():
+    """Generate the gold data for Qx and Qy's indexes in the binned data rang
+
+    The gold data (correct) is from Lisa's PDF
+
+    Returns
+    -------
+
+    """
+    qx_index_det_array = np.ndarray(shape=(10, 9), dtype=int)
+    qy_index_det_array = np.ndarray(shape=(10, 9), dtype=int)
+
+    qx_index_det_array[:, 0] = 1
+    qx_index_det_array[:, 1] = 2
+    qx_index_det_array[:, 2] = 3
+    qx_index_det_array[:, 3] = 4
+    qx_index_det_array[:, 4] = 4
+    qx_index_det_array[:, 5] = 5
+    qx_index_det_array[:, 6] = 6
+    qx_index_det_array[:, 7] = 7
+    qx_index_det_array[:, 8] = 8
+
+    qy_index_det_array[0, :] = 1
+    qy_index_det_array[1, :] = 2
+    qy_index_det_array[2, :] = 3
+    qy_index_det_array[3, :] = 4
+    qy_index_det_array[4, :] = 4
+    qy_index_det_array[5, :] = 5
+    qy_index_det_array[6, :] = 6
+    qy_index_det_array[7, :] = 7
+    qy_index_det_array[8, :] = 8
+    qy_index_det_array[9, :] = 8
+
+    return qx_index_det_array.flatten(), qy_index_det_array.flatten()
+
 
 def test_create_2d_bins():
     """Tester for method to generate 2D binning
@@ -88,6 +124,30 @@ def test_create_2d_bins():
     -------
 
     """
+    # Flatten from 2D to 1D
+    i_q_array = i_det_array.flatten()
+    qx_array = qx_det_array.flatten()
+    qy_array = qy_det_array.flatten()
+
+    # Test the calculation of bin widths
+    num_bins = 8
+    qx_bin_size = determine_linear_bin_size(qx_array, qx_array.min(), num_bins, qy_array.max())
+    qy_bin_size = determine_linear_bin_size(qy_array, qy_array.min(), num_bins, qy_array.max())
+
+    assert abs(qx_bin_size - 0.00263) < 0.00001, 'delta Qx {} is different from Lisa result (PDF)'.format(qx_bin_size)
+    assert abs(qy_bin_size - 0.00221) < 0.00001, 'delta Qy {} is different from Lisa result (PDF)'.format(qy_bin_size)
+
+    # Test binning assignment
+    binned_qx_index_array, binned_qy_index_array = assign_2d_bin_is(qx_array, qy_array, num_bins, num_bins)
+
+    # Get gold data
+    gold_qx_index_array, gold_qy_index_array = gold_qx_qy_binned_index()
+
+    assert np.allclose(binned_qx_index_array, gold_qx_index_array, 0)
+    assert np.allclose(binned_qy_index_array, gold_qy_index_array, 0)
+
+    # Check
+
 
     return
 
@@ -120,6 +180,10 @@ def assign_2d_bin_is(qx_array, qy_array, num_x_bins, num_y_bins):
     # Assign
     qx_index_array = np.ceil(qx_array / qx_bin_size + 0.5 * (1 + (np.max(qx_array) - np.min(qx_array)) / qx_bin_size))
     qy_index_array = np.ceil(qy_array / qy_bin_size + 0.5 * (1 + (np.max(qy_array) - np.min(qy_array)) / qy_bin_size))
+
+    # Convert to integer
+    qx_index_array = qx_index_array.astype('int')
+    qy_index_array = qy_index_array.astype('int')
 
     return qx_index_array, qy_index_array
 

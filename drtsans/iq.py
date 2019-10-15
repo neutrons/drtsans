@@ -135,7 +135,7 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
     Parameters
     ----------
     i_q: namedtuple
-        "i": intensity, "qx": qx, "qy": qy, "dqx": dqx, "dqy", dqy
+        "i": intensity, "sigma": sigma(I), "qx": qx, "qy": qy, "dqx": dqx, "dqy", dqy
     qx_bin_params: BinningParams
         binning parameters for Qx
     qy_bin_params: BinningParams
@@ -148,13 +148,75 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     """
     # Calculate Qx and Qy bin size
-    qx_bin_size = determine_linear_bin_size(i_q.qx, qx_bin_params.min, qx_bin_params.bins, qx_bin_params.max)
-    qy_bin_size = determine_linear_bin_size(i_q.qy, qy_bin_params.min, qy_bin_params.bins, qy_bin_params.max)
-    print(qx_bin_size, qy_bin_size)
+    qx_bin_size, qx_bin_center, qx_bin_edges = determine_linear_bin_size(i_q.qx, qx_bin_params.min,
+                                                                         qx_bin_params.bins, qx_bin_params.max)
+    qy_bin_size, qy_bin_center, qy_bin_edges = determine_linear_bin_size(i_q.qy, qy_bin_params.min,
+                                                                         qy_bin_params.bins, qy_bin_params.max)
 
-    # Calculate histogram
+    # Calculate histogram: get numbers of pixels/sample data per (Qx', Qy')
+    num_points_array, dummy_x_edges, dummy_y_edges = np.histogram2d(i_q.qx, i_q.qy, bins=(qx_bin_edges, qy_bin_center))
+    assert np.allclose(qx_bin_edges, dummy_x_edges, 1E-8)
+    assert np.allclose(qy_bin_edges, dummy_y_edges, 1E-8)
 
-    return
+    # Calculate weighed binning
+    binned_iq_2d_array, binned_sigma_iq_2d_array = do_2d_weighted_binning(i_q.qx, i_q.qy, i_q.i, i_q.sigma,
+                                                                          qx_bin_edges, qy_bin_edges)
+
+
+    return binned_iq_2d_array, binned_sigma_iq_2d_array
+
+
+def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_edges, y_bin_edges):
+    """
+
+    Parameters
+    ----------
+    qx_array
+    qy_array
+    iq_array
+    sigma_iq_array
+    x_bin_edges
+    y_bin_edges
+
+    Returns
+    -------
+
+    """
+    # calculate 1/sigma^2 for multiple uses
+    invert_sigma2_array = 1. / (sigma_iq_array ** 2)   # 1D
+
+    print('I(Q) array:\n', iq_array)
+    print('invert_sigma2_array\n', invert_sigma2_array)
+    print('Raw raw I:\n', iq_array * invert_sigma2_array)
+    print(x_bin_edges)
+    print(y_bin_edges)
+
+
+    # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
+    i_raw_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
+                                                      weights=iq_array * invert_sigma2_array)  # 2D
+
+    print('[DEBUG 1] Raw: {}'.format(i_raw_2d_array))
+    # for i in range(i_raw_2d_array.shape[0]):
+    #     print('{}    {:.7f}    {:.7f}    {:.7f}   {}'
+    #           ''.format(i, bin_x[i], bin_centers[i], bin_x[i + 1], i_raw_array[i]))
+
+    # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
+    w_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
+                                                  weights=invert_sigma2_array)  # 2D
+
+    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
+    #       sigma = 1/sqrt(w_k)
+    i_final_array = i_raw_2d_array / w_2d_array
+    sigma_final_array = 1 / np.sqrt(w_2d_array)
+
+    # # Calculate Q resolution of binned
+    # # FIXME - waiting for Lisa's equations for binned q resolution
+    # # FIXME - this is an incorrect solution temporarily for workflow
+    # binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
+    # bin_q_resolution = binned_dq / i_raw_2d_array
+
+    return i_final_array, sigma_final_array
 
 
 def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
@@ -175,7 +237,8 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
 
     Returns
     -------
-
+    float, ndarray, ndarray
+        delta X (bin), (N, ) array for bin centers, (N+1, ) array for bin edges
     """
     # Determine min X and max X
     if min_x is None:
@@ -189,7 +252,14 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
 
     delta_x = (max_x - min_x) / (num_bins - 1.)
 
-    return delta_x
+    # Calculate bin center and bin edges
+    # bin edge starts from minimum X and increase for delta X
+    bin_edges = np.arange(num_bins+1).astype(float) * delta_x + min_x
+    bin_centers = np.zeros(shape=(num_bins, ), dtype=float)
+    # bin center, as linear binning, is half bin shift from bin edges
+    bin_centers[:] = bin_edges[:-1] + 0.5 * delta_x
+
+    return delta_x, bin_centers, bin_edges
 
 
 def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,

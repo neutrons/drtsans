@@ -153,21 +153,28 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
     qy_bin_size, qy_bin_center, qy_bin_edges = determine_linear_bin_size(i_q.qy, qy_bin_params.min,
                                                                          qy_bin_params.bins, qy_bin_params.max)
 
-    # Calculate histogram: get numbers of pixels/sample data per (Qx', Qy')
-    num_points_array, dummy_x_edges, dummy_y_edges = np.histogram2d(i_q.qx, i_q.qy, bins=(qx_bin_edges, qy_bin_center))
-    assert np.allclose(qx_bin_edges, dummy_x_edges, 1E-8)
-    assert np.allclose(qy_bin_edges, dummy_y_edges, 1E-8)
 
-    # Calculate weighed binning
-    binned_iq_2d_array, binned_sigma_iq_2d_array = do_2d_weighted_binning(i_q.qx, i_q.qy, i_q.i, i_q.sigma,
-                                                                          qx_bin_edges, qy_bin_edges)
-
+    if method == BinningMethod.NOWEIGHT:
+        # Calculate no-weight binning
+        binned_iq_2d_array, binned_sigma_iq_2d_array = do_2d_no_weight_binning(i_q.qx, i_q.qy, i_q.i, i_q.sigma,
+                                                                               qx_bin_edges, qy_bin_edges)
+    else:
+        # Calculate weighed binning
+        binned_iq_2d_array, binned_sigma_iq_2d_array = do_2d_weighted_binning(i_q.qx, i_q.qy, i_q.i, i_q.sigma,
+                                                                              qx_bin_edges, qy_bin_edges)
 
     return binned_iq_2d_array, binned_sigma_iq_2d_array
 
 
 def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_edges, y_bin_edges):
-    """
+    """Perform 2D weighted binning
+
+    General description of algorithm:
+
+      I^{raw}_{i, j} = sum^{(i,j)}_{k} I_{k} / sigma^2(I)_k
+      weight_{i, j} = sum^{(i, j)}_k 1 / sigma^2(I)_k
+      I^{weight}_{i, j} = I^{raw}_{(i, j)} / weight_{i, j}
+      sigma I^{weight}_{i, j} = 1 / sqrt(weight_{i, j})
 
     Parameters
     ----------
@@ -191,19 +198,24 @@ def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_e
     print(x_bin_edges)
     print(y_bin_edges)
 
-
     # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
     i_raw_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
                                                       weights=iq_array * invert_sigma2_array)  # 2D
 
-    print('[DEBUG 1] Raw: {}'.format(i_raw_2d_array))
-    # for i in range(i_raw_2d_array.shape[0]):
-    #     print('{}    {:.7f}    {:.7f}    {:.7f}   {}'
-    #           ''.format(i, bin_x[i], bin_centers[i], bin_x[i + 1], i_raw_array[i]))
+    print('[DEBUG 1] Raw 2D {}'.format(i_raw_2d_array))
+    for i in range(i_raw_2d_array.shape[0]):
+        row_i = ''
+        for j in range(i_raw_2d_array.shape[1]):
+            row_i += '{}, '.format(i_raw_2d_array[i, j])
+        print(row_i)
+    # END-FOR
 
     # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
     w_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
                                                   weights=invert_sigma2_array)  # 2D
+
+    assert np.allclose(x_bin_edges, dummy_x, 1E-8)
+    assert np.allclose(y_bin_edges, dummy_y, 1E-8)
 
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
     #       sigma = 1/sqrt(w_k)
@@ -215,6 +227,45 @@ def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_e
     # # FIXME - this is an incorrect solution temporarily for workflow
     # binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
     # bin_q_resolution = binned_dq / i_raw_2d_array
+
+    return i_final_array, sigma_final_array
+
+
+def do_2d_no_weight_binning(qx_array, qy_array, iq_array, sigma_iq_array, qx_bin_edges, qy_bin_edges):
+    """Perform 2D no-weight binning on I(Qx, Qy)
+
+    General description of the algorithm:
+
+      I_{i, j} = sum^{(i, j)}_k I_{k} / N_{i, j}
+      sigma I_{i, j} = sqrt(sum^{(i, j)}_k sigma I_k^2) / N_{i, j}
+
+    Parameters
+    ----------
+    qx_array
+    qy_array
+    iq_array
+    sigma_iq_array
+    qx_bin_edges
+    qy_bin_edges
+
+    Returns
+    -------
+
+    """
+    # Number of I(q) in each target Q bin
+    num_pt_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges))
+
+    # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
+    i_raw_array, dummy_bin_x, dummy_bin_y  = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                            weights=iq_array)
+    # Square of summed uncertainties for each bin
+    sigma_sqr_array, dummy_bin_x, dummy_bin_y  = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                                weights=sigma_iq_array ** 2)
+
+    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
+    #       sigma = 1/sqrt(w_k)
+    i_final_array = i_raw_array / num_pt_array
+    sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
 
     return i_final_array, sigma_final_array
 

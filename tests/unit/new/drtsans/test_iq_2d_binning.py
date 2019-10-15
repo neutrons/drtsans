@@ -146,7 +146,8 @@ def test_create_2d_bins():
     assert np.allclose(binned_qx_index_array, gold_qx_index_array, 0)
     assert np.allclose(binned_qy_index_array, gold_qy_index_array, 0)
 
-    # Check
+    # Assign I(Q) to 8 x 8 matrix as I_raw
+
 
 
     return
@@ -186,6 +187,21 @@ def assign_2d_bin_is(qx_array, qy_array, num_x_bins, num_y_bins):
     qy_index_array = qy_index_array.astype('int')
 
     return qx_index_array, qy_index_array
+
+
+def calculate_i_raw(i_q, qx_index_array, qy_index_array):
+    """Calculate I_raw according to
+
+    Parameters
+    ----------
+    i_q
+    qx_index_array
+    qy_index_array
+
+    Returns
+    -------
+
+    """
 
 
 def bin_iq_2d_is(i_array, qx_array, qy_array, num_x_bins, num_y_bins):

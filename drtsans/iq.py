@@ -26,6 +26,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 # Define structure for I(Q) for Q, dQ, I(Q), Sigma_I(Q)
 IofQ = collections.namedtuple('IofQ', 'q dq i sigma')
+IofQ2d = collections.namedtuple('IofQ2d', 'qx dqx qy dqy i sigma')
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
 # bins shall be integer as number of bins
@@ -153,7 +154,6 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
     qy_bin_size, qy_bin_center, qy_bin_edges = determine_linear_bin_size(i_q.qy, qy_bin_params.min,
                                                                          qy_bin_params.bins, qy_bin_params.max)
 
-
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
         binned_iq_2d_array, binned_sigma_iq_2d_array = do_2d_no_weight_binning(i_q.qx, i_q.qy, i_q.i, i_q.sigma,
@@ -195,20 +195,28 @@ def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_e
     print('I(Q) array:\n', iq_array)
     print('invert_sigma2_array\n', invert_sigma2_array)
     print('Raw raw I:\n', iq_array * invert_sigma2_array)
-    print(x_bin_edges)
-    print(y_bin_edges)
+    print('X edges: {}'.format(x_bin_edges))
+    print('Y edges: {}'.format(y_bin_edges))
 
     # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
+    print(qx_array.shape)
+    print(qy_array.shape)
+    print(invert_sigma2_array.shape)
+
     i_raw_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
                                                       weights=iq_array * invert_sigma2_array)  # 2D
 
-    print('[DEBUG 1] Raw 2D {}'.format(i_raw_2d_array))
+    print('[DEBUG 1] Raw 2D:'.format(i_raw_2d_array))
     for i in range(i_raw_2d_array.shape[0]):
         row_i = ''
         for j in range(i_raw_2d_array.shape[1]):
-            row_i += '{}, '.format(i_raw_2d_array[i, j])
+            row_i += '{:1f}, '.format(i_raw_2d_array[i, j])
         print(row_i)
     # END-FOR
+
+    # check bins
+    assert np.allclose(dummy_x, x_bin_edges, 1E-12), 'X Bin edges does not match'
+    assert np.allclose(dummy_y, y_bin_edges, 1E-12), 'Y Bin edges does not match'
 
     # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
     w_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
@@ -297,6 +305,10 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
     if max_x is None:
         max_x = np.max(x_array)
 
+    # DEBUG OUTPUT
+    print('[DEBUG] Min X = {} @ {}'.format(min_x, np.argmin(x_array)))
+    print('[DEBUG] Max X = {} @ {}'.format(max_x, np.argmax(x_array)))\
+
     # Calculate delta
     if num_bins <= 1:
         raise RuntimeError('Number of bins cannot be less than 2')
@@ -305,10 +317,14 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
 
     # Calculate bin center and bin edges
     # bin edge starts from minimum X and increase for delta X
-    bin_edges = np.arange(num_bins+1).astype(float) * delta_x + min_x
+    bin_edges = np.arange(num_bins + 1).astype(float) * delta_x + min_x - 0.5 * delta_x
+    print('Bin Edge   : {}   .... from {}'.format(bin_edges, min_x))
+
     bin_centers = np.zeros(shape=(num_bins, ), dtype=float)
     # bin center, as linear binning, is half bin shift from bin edges
     bin_centers[:] = bin_edges[:-1] + 0.5 * delta_x
+
+    print('Bin Centers: {}'.format(bin_centers))
 
     return delta_x, bin_centers, bin_edges
 

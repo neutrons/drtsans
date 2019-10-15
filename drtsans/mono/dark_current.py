@@ -36,14 +36,11 @@ def normalize_dark_current(dark_workspace, output_workspace=None):
 
     # Find out the duration of the dark current from the logs, and divide
     dark_duration = duration(dark_workspace)
-    normalizing_factor = unique_workspace_dundername()  # temporary workspace
-    Scale(InputWorkspace=dark_workspace, Factor=1. / dark_duration.value, Operation='Multiply',
+    Scale(InputWorkspace=dark_workspace,
+          Factor=1. / dark_duration.value, Operation='Multiply',
           OutputWorkspace=output_workspace)
-
     # Save the name of the log used to calculate the duration
     SampleLogs(output_workspace).insert('normalizing_duration', dark_duration.log_key)
-
-    DeleteWorkspace(normalizing_factor)
     return mtd[output_workspace]
 
 

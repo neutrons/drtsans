@@ -210,9 +210,11 @@ def test_log_binning():
     assert abs(bin_centers[99] - q_max) < 1.E-12
 
     # Test bins
-    for ibin in range(log_bin_centers.shape[0]):
-        print('Q[{}]   wz = {:.7f}  ls = {:.7f}'.format(ibin, bin_centers[ibin], log_bin_centers[ibin]))
-        # assert abs(bin_centers[ibin] - log_bin_centers[ibin]) < 1E-10
+    # for ibin in range(log_bin_centers.shape[0]):
+    #     print('Q[{}]   wz = {:.7f}  ls = {:.7f}'.format(ibin, bin_centers[ibin], log_bin_centers[ibin]))
+    #     # assert abs(bin_centers[ibin] - log_bin_centers[ibin]) < 1E-10
+
+    assign_bins(bin_edges, q_array, iq_array, bin_centers)
 
     # Bin with weighted binning algorithm
     binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
@@ -235,6 +237,8 @@ def test_log_binning():
         # assert abs(no_weight_iq.i[i] - gold_log_bin_no_weight_iq[i]) < 1E-5
         # assert abs(no_weight_iq.sigma[i] - gold_log_bin_no_weight_sq[i]) < 1E-5
     # END-FOR
+
+    assert False
 
     return
 
@@ -345,21 +349,31 @@ def skip_test_binning_1d_workflow(generic_IDF):
     return
 
 
-def assign_bins(bin_edges, data_points, det_counts):
-    """
-    Check the value of each data points and assign them with proper bin indexes
+def assign_bins(bin_edges, data_points, det_counts, bin_centers):
+    """Check the value of each data points and assign them with proper bin indexes
+
     Parameters
     ----------
     bin_edges
     data_points
     det_counts: ndarray
         detector counts
+    bin_centers: ndarray
+        bin centers
     Returns
     -------
-
+    None
     """
     bin_index_list = [-1] * data_points.shape[0]
 
+    # Register binning
+    bins_dict = dict()
+    i_raw_dict = dict()
+    for i in range(bin_edges.shape[0] - 1):
+        bins_dict[i] = set()
+        i_raw_dict[i] = 0
+
+    print('Assign bins:')
     for i in range(data_points.shape[0]):
         bin_index = bisect.bisect_left(bin_edges, data_points[i])
         if data_points[i] < bin_edges[bin_index]:
@@ -367,8 +381,12 @@ def assign_bins(bin_edges, data_points, det_counts):
             if bin_index < 0:
                 raise NotImplementedError('Implementation error')
         bin_index_list[i] = bin_index
-        print('{}, {}, {}, {}, {}, {}'
+        print('{}\t{}\t{}\t{}\t({}, {})'
               ''.format(i, det_counts[i], data_points[i], bin_index, bin_edges[bin_index], bin_edges[bin_index+1]))
+        # register
+        bins_dict[bin_index].add(i)
+        if det_counts[i] > 0:
+            i_raw_dict[bin_index] += 1
     # END-FOR
 
     # count
@@ -383,6 +401,12 @@ def assign_bins(bin_edges, data_points, det_counts):
     for i in range(data_points.shape[0]):
         print('{}'.format(det_counts[i]))
     # END-FOR
+
+    # Do the summation
+    print('I raw')
+    for i in range(bin_edges.shape[0] - 1):
+        print('{}\t{}\t{}'.format(i, bin_centers[i], i_raw_dict[i]))
+
     return
 
 

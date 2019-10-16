@@ -1039,9 +1039,9 @@ class IofQCalculator(object):
         # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
         i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array*invert_sigma2_array)
 
-        print('[DEBUG 1] Raw: {}'.format(i_raw_array))
+        print('[DEBUG Log Binning]'.format(i_raw_array))
         for i in range(i_raw_array.shape[0]):
-            print('{}    {:.7f}    {:.7f}    {:.7f}   {}'
+            print('{}\t{:.7f}\t{:.7f}\t{:.7f}\t{}'
                   ''.format(i, bin_x[i], bin_centers[i], bin_x[i+1], i_raw_array[i]))
 
         # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}

@@ -143,7 +143,7 @@ def test_create_2d_bins():
 
     # Test binning assignment
     binned_qx_index_array, binned_qy_index_array = assign_2d_bin_is(qx_array, qy_array, num_bins, num_bins)
-    assign_2d_bins(i_q_array, qx_array, qy_array, qx_bin_edges, qy_bin_edges)
+    check_2d_binning_algorithm(i_q_array, qx_array, qy_array, qx_bin_edges, qy_bin_edges)
 
     # Get gold data
     gold_qx_index_array, gold_qy_index_array = gold_qx_qy_binned_index()
@@ -218,8 +218,11 @@ def assign_2d_bin_is(qx_array, qy_array, num_x_bins, num_y_bins):
     return qx_index_array, qy_index_array
 
 
-def assign_2d_bins(iq_array, qx_array, qy_array, x_bin_edges, y_bin_edges):
-    """Check the value of each data points and assign them with proper bin indexes
+def check_2d_binning_algorithm(iq_array, qx_array, qy_array, x_bin_edges, y_bin_edges):
+    """This is a third party home made inefficient algorithm to check against both Lisa's and histogram2d algorithms
+
+    To make sure the binning is correct by checking I_raw.
+    Check the value of each data points and assign them with proper bin indexes
 
     Parameters
     ----------
@@ -233,6 +236,14 @@ def assign_2d_bins(iq_array, qx_array, qy_array, x_bin_edges, y_bin_edges):
     -------
 
     """
+    # Create the 2D assignment dictionary for future reference
+    binned_dict = dict()
+    binned_sum_dict = dict()
+    for i in range(1, 9):
+        for j in range(1, 9):
+            binned_dict[(i, j)] = set()
+            binned_sum_dict[(i, j)] = 0
+
     for ipt in range(iq_array.shape[0]):
         # Check each data point's target index for Qx and Qy
 
@@ -256,22 +267,28 @@ def assign_2d_bins(iq_array, qx_array, qy_array, x_bin_edges, y_bin_edges):
                         qx_array[ipt], x_bin_edges[x_bin_index], x_bin_edges[x_bin_index + 1],
                         qy_array[ipt], y_bin_edges[y_bin_index], y_bin_edges[y_bin_index + 1]))
 
+        # Add to dictionary
+        binned_dict[(x_bin_index, y_bin_edges)].add(ipt)
+        if iq_array[ipt] > 0:
+            binned_sum_dict[(x_bin_index, y_bin_index)] += iq_array[ipt]
+    # END-FOR
+
+    # Print binned information
+    print('Binned pixels:')
+    for i in range(1, 9):
+        for j in range(1, 9):
+            print('({}, {})\t{}'.format(i, j, sorted(list(binned_dict[(i, j)]))))
+
+    # Print I raw
+    print('I_Raw:')
+    for i in range(1, 9):
+        row_i = ''
+        for j in range(1, 9):
+            row_i += '{}\t'.format(binned_sum_dict[(i, j)])
+        print(row_i)
+    # END-FOR
+
     return
-
-
-def calculate_i_raw(i_q, qx_index_array, qy_index_array):
-    """Calculate I_raw according to
-
-    Parameters
-    ----------
-    i_q
-    qx_index_array
-    qy_index_array
-
-    Returns
-    -------
-
-    """
 
 
 def bin_iq_2d_is(i_array, qx_array, qy_array, num_x_bins, num_y_bins):

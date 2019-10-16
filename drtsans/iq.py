@@ -1031,18 +1031,8 @@ class IofQCalculator(object):
         # calculate 1/sigma^2 for multiple uses
         invert_sigma2_array = 1./(sigma_iq_array ** 2)
 
-        print('I(Q) array:\n', iq_array)
-        print('invert_sigma2_array\n', invert_sigma2_array)
-        print('Raw raw I:\n', iq_array*invert_sigma2_array)
-        print(bin_edges)
-
         # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
         i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array*invert_sigma2_array)
-
-        print('[DEBUG Log Binning]'.format(i_raw_array))
-        for i in range(i_raw_array.shape[0]):
-            print('{}\t{:.7f}\t{:.7f}\t{:.7f}\t{}'
-                  ''.format(i, bin_x[i], bin_centers[i], bin_x[i+1], i_raw_array[i]))
 
         # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
         w_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=invert_sigma2_array)
@@ -1095,16 +1085,6 @@ class IofQCalculator(object):
         iq_array = IofQCalculator.flatten(iq_array)
         sigmaq_array = IofQCalculator.flatten(sigmaq_array)
 
-        # # calculate 1/sigma^2 for multiple uses
-        # invert_sigma2_array = 1./(sigmaq_array**2)
-        #
-        # # DEBUG OUTPUT SESSION
-        # print('I(Q) array:\n', iq_array)
-        # print('invert_sigma2_array\n', invert_sigma2_array)
-        # print('Raw raw I:\n', iq_array*invert_sigma2_array)
-        print('BIN EDGES: {}'.format(bin_edges))
-        # -------------------------------------------------
-
         # Number of I(q) in each target Q bin
         num_pt_array, bin_x = np.histogram(q_array, bins=bin_edges)
 
@@ -1123,12 +1103,6 @@ class IofQCalculator(object):
         # FIXME - this is an incorrect solution temporarily for workflow
         binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
         bin_q_resolution = binned_dq / num_pt_array
-
-        print('[DEBUG] No-weight: Index, Bin Center, Bin Left, Bin Right, No. Pt, I(raw), I, sigmaI')
-        for i in range(i_raw_array.shape[0]):
-            print('{} {:.7f} {:.7f} {:.7f} {} {} {:.7f} {:.7f}'
-                  ''.format(i, bin_centers[i],  bin_x[i], bin_x[i+1], num_pt_array[i], int(i_raw_array[i]),
-                            i_final_array[i], sigma_final_array[i]))
 
         # Get the final result
         binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)
@@ -1181,17 +1155,15 @@ class IofQCalculator(object):
 
         # Align q_min to power of 10 as q0
         q0 = np.power(10, np.floor(np.log10(q_min)))
-        # print('[DEBUG OUTPUT: q0 = {}'.format(q0))
+        print('[DEBUG OUTPUT: q_min = {}, q0 = {}'.format(q_min, q0))
 
         # Determine number of bins
         num_bins = 1 + int(np.ceil(step_per_decade * np.log(q_max/q0)/np.log(10)))
-        # print('[DEBUG OUTPUT: number of bins = {}'.format(num_bins))
+        print('[DEBUG OUTPUT: number of bins = {}'.format(num_bins))
 
         # Calculate bin centers
         bin_centers = np.arange(num_bins).astype('float')
         bin_centers = q0 * np.power(delta, bin_centers)
-        # for i in range(num_bins):
-        #     print('[DEBUG OUTPUT] Q({}) = {}'.format(i+1, bin_centers[i]))
 
         # Calculate bin boundaries
         delta_q_array = 2. * (delta - 1) / (delta + 1) * bin_centers

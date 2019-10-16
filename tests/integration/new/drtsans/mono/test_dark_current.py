@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from drtsans.mono.dark_current import normalise_to_workspace
+from drtsans.mono.dark_current import normalize_dark_current
 from drtsans.samplelogs import SampleLogs
 
 x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
@@ -17,9 +17,9 @@ def test_dark_current_normalize_to_workspace(workspace_with_instrument):
     dark_ws = workspace_with_instrument(intensities=np.array(I_dc),
                                         view='pixel')
     SampleLogs(dark_ws).insert('duration', t_dc, 'second')
-    normalise_to_workspace(dark_ws, data_ws)
+    normalize_dark_current(dark_ws)
     I_dcnorm_step = t_sam / t_dc * I_dc
-    assert np.allclose(dark_ws.extractY().ravel(), I_dcnorm_step.ravel())
+    assert np.allclose(t_sam * dark_ws.extractY().ravel(), I_dcnorm_step.ravel())
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 from os.path import join as pjn
 import pytest
 import numpy as np
-from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces, CreateWorkspace, Integration
+from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces, CreateWorkspace
 
 from drtsans.settings import (amend_config, unique_workspace_dundername)
 from drtsans.samplelogs import SampleLogs

@@ -1,8 +1,7 @@
 import numpy as np
-from mantid.simpleapi import (mtd, RebinToWorkspace, ConvertUnits, CreateWorkspace, Integration,
-                              Subtract, Scale, LoadEventNexus, Integration, DeleteWorkspace)
+from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus, Integration, DeleteWorkspace
 
-from drtsans.dark_current import duration, counts_in_detector
+from drtsans.dark_current import duration
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
@@ -89,7 +88,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     # Multiply the rescalings array by the counts-per-pixel array
     normalized_counts = counts[:, np.newaxis] * rescalings  # array.shape = (#pixels, #bins)
     normalized_errors = errors[:, np.newaxis] * rescalings
-    
+
     # Recall that if a pixel had no counts, then we insert a special error values: error is one for all
     # wavelength bins, and zero for the bins falling in the wavelength gap.
     special_errors = np.ones(len(bin_widths))

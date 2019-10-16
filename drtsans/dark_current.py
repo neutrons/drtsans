@@ -1,6 +1,6 @@
 from dateutil.parser import parse as parse_date
 import numpy as np
-from mantid.simpleapi import (mtd, Integration, Transpose, CreateWorkspace, Plus, DeleteWorkspace, SaveNexus)
+from mantid.simpleapi import mtd, Integration, DeleteWorkspace
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 

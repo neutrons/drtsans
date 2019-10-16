@@ -5,6 +5,7 @@ from mantid.simpleapi import Load
 from drtsans.settings import (amend_config, unique_workspace_dundername as uwd)
 from drtsans.dark_current import duration, counts_in_detector
 
+
 @pytest.fixture(scope='module')
 def wss(reference_dir):
     with amend_config(data_dir=reference_dir.new.eqsans):

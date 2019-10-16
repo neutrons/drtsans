@@ -59,7 +59,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     bands = correct_frame.clipped_bands_from_logs(data_workspace_name)  # lead and pulse bands
     wavelength_range = bands.lead.max - bands.lead.min  # wavelength range from lead skipped pulse
     if bands.skip is not None:
-        wavelength_range += bands.skipped.max - bands.skipped.min  # add the wavelength range from the skipped pulse
+        wavelength_range += bands.skip.max - bands.skip.min  # add the wavelength range from the skipped pulse
 
     # Find out the binning of the sample run
     bin_boundaries = mtd[data_workspace_name].readX(0)
@@ -74,7 +74,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     gap_bin_indexes = None
     if bands.skip is not None:
         bin_centers = 0.5 * (bin_boundaries[0: -1] + bin_boundaries[1:])
-        gab_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skipped.min))[0]
+        gab_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skip.min))[0]
         rescalings[gab_bin_indexes] = 0.0
 
     # Create a temporary workspace containing the total counts for each detector pixel, for the dark current run

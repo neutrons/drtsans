@@ -1,4 +1,12 @@
 import numpy as np
+
+# Links to mantid algorithms
+# CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+# Subtract <https://docs.mantidproject.org/nightly/algorithms/Subtract-v1.html>
+# Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+# LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
+# Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
+# DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus, Integration, DeleteWorkspace
 
 from drtsans.dark_current import duration, counts_in_detector  # noqa: F401
@@ -23,8 +31,9 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     dark current to annotate what log entry was used to find the duration
 
     **Mantid algorithms used:**
-    :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
-    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`
+    :ref:`Integration <algm-Integration-v1>`,
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
 
     Parameters
     ----------
@@ -128,6 +137,10 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
         Name of the workspace after dark current subtraction. If :py:obj:`None`,
         the name of the input workspace is chosen (and the input workspace
         is overwritten).
+
+    **Mantid algorithms used:**
+    :ref:`Scale <algm-Scale-v1>`,
+    :ref:`Subtract <algm-Subtract-v1>`,
 
     Returns
     -------

@@ -1,7 +1,7 @@
 import numpy as np
 from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus, Integration, DeleteWorkspace
 
-from drtsans.dark_current import duration
+from drtsans.dark_current import duration, counts_in_detector  # noqa: F401
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs

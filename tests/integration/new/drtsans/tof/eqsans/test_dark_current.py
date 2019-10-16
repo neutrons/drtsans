@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import mtd, CreateWorkspace
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # normalize_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>  # noqa: E501

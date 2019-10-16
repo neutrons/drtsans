@@ -1,7 +1,7 @@
 from os.path import join as pjn
 import pytest
 import numpy as np
-from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces, CreateWorkspace
+from mantid.simpleapi import Load, SumSpectra, LoadNexus, CompareWorkspaces, CreateWorkspace, Integration
 
 from drtsans.settings import (amend_config, unique_workspace_dundername)
 from drtsans.samplelogs import SampleLogs
@@ -46,7 +46,7 @@ def test_subtract_normalised_dark(wss, reference_dir):
 
 
 def test_flatten_TOF():
-    '''
+    r"""
     Check that the counts are added together in each spectra
 
     Function tested: drtsans.tof.eqsans.dark_current.counts_in_detector
@@ -56,7 +56,7 @@ def test_flatten_TOF():
 
     dev - Andrei Savici <saviciat@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>
-    '''
+    """
     # create the workspace
     tof = [1., 2., 3., 4.] * 9  # wavelength boundaries
     cts = [23, 5, 15, 18, 50, 13, 9, 7, 15,

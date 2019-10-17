@@ -47,7 +47,7 @@ def test_normalize_dark_current(data_test_16a):
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/156
     and also https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174
 
-    dev - Steven Hahn <hahnse@ornl.gov> Jiao Lin <linjiao@ornl.gov>
+    dev - Jose Borreguero <borreguerojm@ornl.gov>, Steven Hahn <hahnse@ornl.gov>, Jiao Lin <linjiao@ornl.gov>
     SME - Changwoo Do <doc1@ornl.gov>
 
     **Mantid algorithms used:**
@@ -59,7 +59,7 @@ def test_normalize_dark_current(data_test_16a):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-    ~drtsans.tof.eqsans,dark_current.normalize_dark_current
+    ~drtsans.tof.eqsans.dark_current.normalize_dark_current
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
     """
     wavelength_bin_boundaries = np.arange(data_test_16a['l_min'],

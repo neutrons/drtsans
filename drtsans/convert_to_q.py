@@ -1,9 +1,6 @@
-from mantid.simpleapi import ConvertUnits, ConvertToPointData, DeleteWorkspace, mtd
-from drtsans.settings import unique_workspace_dundername as uwd
+from mantid.simpleapi import mtd
 from drtsans.settings import namedtuplefy
 import numpy as np
-
-__all__ = ['convert_to_q']
 
 
 def convert_to_q(ws, mode, resolution_function=None, **kwargs):
@@ -63,21 +60,21 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     """
 
     # check that the workspace is in units of wavelength
-    if ws is None:
+    if not ws:
         raise RuntimeError('Workspace cannot be None')
-    elif ws.getAxis(0).getUnit().unitID() != 'Wavelength':
+    wsh = mtd[str(ws)]
+    if wsh.getAxis(0).getUnit().unitID() != 'Wavelength':
         raise RuntimeError('Input workspace {} for calculate Q and resolution must be in unit Wavelength but not {}'
-                           ''.format(ws, ws.getAxis(0).getUnit().unitID()))
+                           ''.format(wsh, wsh.getAxis(0).getUnit().unitID()))
 
     # switch according to mode
     if mode == 'scalar':
-        return _convert_to_q_scalar(ws, resolution_function, **kwargs)
-    elif mode == 'azimuthal':
-        return _convert_to_q_azimuthal(ws, resolution_function, **kwargs)
-    elif mode == 'crystallographic':
-        return _convert_to_q_crystal(ws, resolution_function, **kwargs)
-    else:
-        raise NotImplementedError('The mode you selected is not yet implemented')
+        return _convert_to_q_scalar(wsh, resolution_function, **kwargs)
+    if mode == 'azimuthal':
+        return _convert_to_q_azimuthal(wsh, resolution_function, **kwargs)
+    if mode == 'crystallographic':
+        return _convert_to_q_crystal(wsh, resolution_function, **kwargs)
+    raise NotImplementedError('The mode you selected is not yet implemented')
 
 
 @namedtuplefy
@@ -93,7 +90,7 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     Parameters
     ----------
 
-    ws:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+    ws:  ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
         Workspace in units of wavelength
     resolution_function:
         Function to calculate resolution
@@ -112,33 +109,26 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
       - wavelength
 
     """
-    # get the wavelength (for accounting purposes only)
+    # get the data
     lam = ws.extractX()
+    delta_lam = lam[:, 1:] - lam[:, :-1]
     lam = (lam[:, 1:] + lam[:, :-1]) * 0.5
-
-    # NOTE about the following algorithms: they convert lambda bin boundaries
-    # to momentum transfer, then take the center of that. The result will be slightly
-    # different than taking the center wavelength and converting it to momentum. For
-    # example, at lambda = 6+-0.1 Angstroms, in a detector at (0,5,0.5,5) meters from
-    # the sample, the difference between the two methods is about 4e-5 Angstroms^-1
-
-    # transform to momentum transfer
-    ws_q = ConvertUnits(InputWorkspace=ws,
-                        Target='MomentumTransfer',
-                        EMode='Elastic',
-                        OutputWorkspace=uwd())
-    # use bin centers
-    ws_q = ConvertToPointData(InputWorkspace=ws_q)
-    intensity = ws_q.extractY()
-    error = ws_q.extractE()
-    mod_q = ws_q.extractX()
+    intensity = ws.extractY()
+    error = ws.extractE()
 
     # get geometry info from the original workspace for resolution
     info = pixel_info(ws)
+    number_of_bins = lam.shape[1]
+    two_theta = np.repeat(info.two_theta, number_of_bins).reshape(-1, number_of_bins)
+    mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
 
     # calculate the  resolution
     if resolution_function is not None:
-        delta_q = resolution_function(mod_q, mode='scalar', pixel_info=info, **kwargs)
+        delta_q = resolution_function(mod_q, mode='scalar',
+                                      pixel_info=info,
+                                      wavelength=lam,
+                                      delta_wavelength=delta_lam,
+                                      **kwargs)
     else:
         delta_q = mod_q * 0.0
     # account for masking and monitors
@@ -148,7 +138,7 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     error = error[keep, :].reshape(-1)
     mod_q = mod_q[keep, :].reshape(-1)
     delta_q = delta_q[keep, :].reshape(-1)
-    DeleteWorkspace(ws_q)
+
     return dict(intensity=intensity, error=error, mod_q=mod_q, delta_q=delta_q, wavelength=lam)
 
 
@@ -165,7 +155,7 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     Parameters
     ----------
 
-    ws:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+    ws:  ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
         Workspace in units of wavelength
     resolution_function:
         Function to calculate resolution
@@ -186,37 +176,29 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
       - wavelength
 
     """
-    # get the wavelength (for accounting purposes only)
+    # get the data
     lam = ws.extractX()
+    delta_lam = lam[:, 1:] - lam[:, :-1]
     lam = (lam[:, 1:] + lam[:, :-1]) * 0.5
-
-    # NOTE about the following algorithms: they convert lambda bin boundaries
-    # to momentum transfer, then take the center of that. The result will be slightly
-    # different than taking the center wavelength and converting it to momentum. For
-    # example, at lambda = 6+-0.1 Angstroms, in a detector at (0,5,0.5,5) meters from
-    # the sample, the difference between the two methods is about 4e-5 Angstroms^-1
-
-    # transform to momentum transfer
-    ws_q = ConvertUnits(InputWorkspace=ws,
-                        Target='MomentumTransfer',
-                        EMode='Elastic',
-                        OutputWorkspace=uwd())
-    # use bin centers
-    ws_q = ConvertToPointData(InputWorkspace=ws_q)
-    intensity = ws_q.extractY()
-    error = ws_q.extractE()
-    mod_q = ws_q.extractX()
+    intensity = ws.extractY()
+    error = ws.extractE()
 
     # get geometry info from the original workspace for resolution
     info = pixel_info(ws)
-    number_of_bins = mod_q.shape[1]
+    number_of_bins = lam.shape[1]
+    two_theta = np.repeat(info.two_theta, number_of_bins).reshape(-1, number_of_bins)
+    mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
     azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
     qx = mod_q * np.cos(azimuthal)
     qy = mod_q * np.sin(azimuthal)
 
     # calculate the  resolution
     if resolution_function is not None:
-        delta_qx, delta_qy = resolution_function(qx, qy, mode='azimuthal', pixel_info=info, **kwargs)
+        delta_qx, delta_qy = resolution_function(qx, qy, mode='azimuthal',
+                                                 pixel_info=info,
+                                                 wavelength=lam,
+                                                 delta_wavelength=delta_lam,
+                                                 **kwargs)
     else:
         delta_qx = mod_q * 0.0
         delta_qy = delta_qx
@@ -229,12 +211,88 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     qy = qy[keep, :].reshape(-1)
     delta_qx = delta_qx[keep, :].reshape(-1)
     delta_qy = delta_qy[keep, :].reshape(-1)
-    DeleteWorkspace(ws_q)
+
     return dict(intensity=intensity, error=error, qx=qx, qy=qy, delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
 
 
+@namedtuplefy
 def _convert_to_q_crystal(ws, resolution_function, **kwargs):
-    raise NotImplementedError('The mode you selected is not yet implemented')
+    r"""
+    Convert to 3D momentum transfer in crystallographic convention
+
+    **Mantid algorithms used:**
+        :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
+        :ref:`ConvertToPointData <algm-ConvertToPointData-v1>`,
+        :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
+
+    Parameters
+    ----------
+
+    ws:  ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Workspace in units of wavelength
+    resolution_function:
+        Function to calculate resolution
+    kwargs:
+        Parameters to be passed to the resolution function
+
+    Returns
+    -------
+    ~collections.namedtuple
+       A namedtuple with fields for
+
+      - intensity
+      - error
+      - qx
+      - qy
+      - qz
+      - delta_qx
+      - delta_qy
+      - delta_qz
+      - wavelength
+
+    """
+    # get the data
+    lam = ws.extractX()
+    delta_lam = lam[:, 1:] - lam[:, :-1]
+    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5
+    intensity = ws.extractY()
+    error = ws.extractE()
+
+    # get geometry info from the original workspace for resolution
+    info = pixel_info(ws)
+    number_of_bins = lam.shape[1]
+    two_theta = np.repeat(info.two_theta, number_of_bins).reshape(-1, number_of_bins)
+    azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
+    temp = 2. * np.pi / lam
+    qx = temp * np.sin(two_theta) * np.cos(azimuthal)
+    qy = temp * np.sin(two_theta) * np.sin(azimuthal)
+    qz = temp * (np.cos(two_theta) - 1.)
+
+    # calculate the  resolution
+    if resolution_function is not None:
+        delta_qx, delta_qy, delta_qz = resolution_function(qx, qy, qz, mode='crystallographic',
+                                                           pixel_info=info,
+                                                           wavelength=lam,
+                                                           delta_wavelength=delta_lam,
+                                                           **kwargs)
+    else:
+        delta_qx = lam * 0.0
+        delta_qy = delta_qx
+        delta_qz = delta_qx
+    # account for masking and monitors
+    keep = info.keep.astype(bool)
+    lam = lam[keep, :].reshape(-1)
+    intensity = intensity[keep, :].reshape(-1)
+    error = error[keep, :].reshape(-1)
+    qx = qx[keep, :].reshape(-1)
+    qy = qy[keep, :].reshape(-1)
+    qz = qz[keep, :].reshape(-1)
+    delta_qx = delta_qx[keep, :].reshape(-1)
+    delta_qy = delta_qy[keep, :].reshape(-1)
+    delta_qz = delta_qz[keep, :].reshape(-1)
+
+    return dict(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
+                delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
 
 
 def _masked_or_monitor(spec_info, idx):
@@ -273,7 +331,6 @@ def pixel_info(ws):
     ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep
     """
-    ws = mtd[str(ws)]
     spec_info = ws.spectrumInfo()
     info = [[np.nan, np.nan, np.nan, False] if _masked_or_monitor(spec_info, i) else
             [spec_info.twoTheta(i), spec_info.azimuthal(i), spec_info.l2(i), True]

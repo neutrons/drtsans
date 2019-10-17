@@ -26,11 +26,6 @@ def apply_solid_angle_correction(input_workspace):
                                   detector_type='VerticalTube')
 
 
-def normalize(ws, normalization_type):
-    """Normalize to time, monitor, or proton charge"""
-    raise NotImplementedError()
-
-
 def prepare_monitors(data, bin_width=0.1, output_workspace=None):
     r"""
     Loads monitor counts, correct TOF, and transforms to wavelength.
@@ -143,7 +138,7 @@ def prepare_data(data,
             prepare_monitors(data, bin_width=bin_width,
                              output_workspace=monitor_workspace)
             kw['monitor_workspace='] = monitor_workspace
-        normalise_by_flux(output_workspace, flux, **kw)
+        normalize_by_flux(output_workspace, flux, **kw)
     apply_mask(output_workspace, panel=mask_panel, mask=mask, **btp)
     if solid_angle is True:
         apply_solid_angle_correction(output_workspace)

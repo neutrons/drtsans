@@ -113,7 +113,7 @@ def test_transform_to_wavelength(rs):
 
 def test_normalise_by_flux(rs, flux_file):
     print(rs.run)
-    ws = eqsans.normalise_by_flux(rs.wl, flux_file, output_workspace=uwd())
+    ws = eqsans.normalize_by_flux(rs.wl, flux_file, output_workspace=uwd())
     ws = SumSpectra(ws)
     assert np.average(ws.readY(0)) == approx(rs.flux, abs=1)
 

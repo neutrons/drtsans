@@ -9,7 +9,7 @@ from mantid.simpleapi import mtd, CreateWorkspace
 # time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalise_by_time, normalise_by_monitor,
+from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalize_by_time, normalize_by_monitor,
                                 normalise_by_proton_charge_and_flux)
 
 
@@ -18,7 +18,7 @@ def test_normalise_by_time(reference_dir):
     d = SampleLogs(w).duration.value
     w = transform_to_wavelength(w)
     y, e = sum(w.readY(42)), sum(w.readE(42))
-    w = normalise_by_time(w)
+    w = normalize_by_time(w)
     assert (sum(w.readY(42)), sum(w.readE(42))) == pytest.approx((y / d, e / d))
     assert SampleLogs(w).normalizing_duration.value == 'duration'
     w.delete()
@@ -75,7 +75,7 @@ def test_normalization_by_time(data_test_16a_by_time):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-    ~drtsans.tof.normalisation.normalise_by_time
+    ~drtsans.tof.normalisation.normalize_by_time
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalisation.py>
     """
     # Create a sample workspace with the input data
@@ -88,7 +88,7 @@ def test_normalization_by_time(data_test_16a_by_time):
     SampleLogs(data_workspace).insert('duration', data_test_16a_by_time['t_sam'], 'Second')
 
     # Carry out the normalization by time
-    normalise_by_time(data_workspace)
+    normalize_by_time(data_workspace)
 
     # Compare calculated normalized intensities with test output
     test_intensities = np.array(data_test_16a_by_time['I_samnorm']).ravel()
@@ -193,7 +193,7 @@ def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-    ~drtsans.tof.normalisation.normalise_by_monitor
+    ~drtsans.tof.normalisation.normalize_by_monitor
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalisation.py>
     """
     # Input intensities from the test, only one value per detector pixel
@@ -228,7 +228,7 @@ def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
                                                 NSpec=1,
                                                 OutputWorkspace=unique_workspace_dundername())
     # Carry out the normalization with the reduction framework
-    data_workspace = normalise_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
+    data_workspace = normalize_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
 
     # Compare to test data. Notice that data_test_16a_by_monitor['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary

@@ -8,7 +8,7 @@ from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.dark_current import duration as run_duration
 
-__all__ = ['normalise_by_flux', 'normalise_by_time', 'normalise_by_monitor', 'normalise_by_proton_charge_and_flux']
+__all__ = ['normalize_by_flux', 'normalize_by_time', 'normalize_by_monitor', 'normalise_by_proton_charge_and_flux']
 
 
 def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
@@ -144,7 +144,7 @@ def load_flux_to_monitor_ratio_file(flux, data_workspace=None, loader_kwargs=dic
     return mtd[output_workspace]
 
 
-def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None):
+def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None):
     r"""
     Normalises the input workspace by monitor count and flux-to-monitor
     ratio.
@@ -220,7 +220,7 @@ def normalise_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     return mtd[output_workspace]
 
 
-def normalise_by_time(input_workspace, log_key=None, output_workspace=None):
+def normalize_by_time(input_workspace, log_key=None, output_workspace=None):
     r"""
     Divide the counts by the duration of the run
 
@@ -255,7 +255,7 @@ def normalise_by_time(input_workspace, log_key=None, output_workspace=None):
     return mtd[output_workspace]
 
 
-def normalise_by_flux(input_workspace, flux, method='proton charge',
+def normalize_by_flux(input_workspace, flux, method='proton charge',
                       monitor_workspace=None, output_workspace=None):
     r"""
     Normalize counts by several methods to estimate the neutron flux.
@@ -299,8 +299,8 @@ def normalise_by_flux(input_workspace, flux, method='proton charge',
 
     # Select the normalisation function
     normaliser = {'proton charge': normalise_by_proton_charge_and_flux,
-                  'monitor': normalise_by_monitor,
-                  'time': normalise_by_time}
+                  'monitor': normalize_by_monitor,
+                  'time': normalize_by_time}
 
     # Arguments specific to the normaliser
     args = {'proton charge': [w_flux],

@@ -9,7 +9,7 @@ from mantid.simpleapi import CreateWorkspace
 # time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
-from drtsans.mono.normalisation import time, monitor
+from drtsans.mono.normalisation import normalize_by_time, normalize_by_monitor
 
 
 @pytest.fixture(scope='module')
@@ -74,7 +74,7 @@ def test_normalization_by_time(data_test_16a):
     # Insert the duration of the run as a metadata item
     SampleLogs(ws).insert('timer', data_test_16a['t_sam'], 'Second')
     # Carry out the normalization
-    ws_samnorm = time(ws)
+    ws_samnorm = normalize_by_time(ws)
     # Compare normalized intensities to those of the test
     intensities_list = list(itertools.chain(*data_test_16a['I_samnorm']))
     assert ws_samnorm.extractY() == pytest.approx(intensities_list, abs=data_test_16a['precision'])
@@ -114,7 +114,7 @@ def test_normalization_by_monitor(data_test_16a):
                          OutputWorkspace=unique_workspace_dundername())
     # Insert the flux at the monitor as a metadata item
     SampleLogs(ws).insert('monitor', data_test_16a['flux_sam'])
-    ws_samnorm = monitor(ws)
+    ws_samnorm = normalize_by_monitor(ws)
     # Compare normalized intensities to those of the test
     intensities_list = list(itertools.chain(*data_test_16a['I_samnorm']))
     assert ws_samnorm.extractY() == pytest.approx(intensities_list, abs=data_test_16a['precision'])

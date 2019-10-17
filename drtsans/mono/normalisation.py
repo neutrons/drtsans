@@ -5,7 +5,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.settings import (unique_workspace_dundername as uwd)
 
 
-def time(input_workspace, output_workspace=None):
+def normalize_by_time(input_workspace, output_workspace=None):
     """Normalise by time
     Used to normalise dark current
 
@@ -26,7 +26,7 @@ def time(input_workspace, output_workspace=None):
     return mtd[output_workspace]
 
 
-def monitor(input_workspace, output_workspace=None, factor_is=10 ** 8):
+def normalize_by_monitor(input_workspace, output_workspace=None, factor_is=10 ** 8):
     """Normalise by the monitor value
 
     **Mantid algorithms used:**

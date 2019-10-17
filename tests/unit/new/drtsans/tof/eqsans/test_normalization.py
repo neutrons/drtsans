@@ -5,8 +5,8 @@ from mantid.simpleapi import (Integration, SumSpectra)
 
 from drtsans.tof.eqsans.normalisation import \
     (load_beam_flux_file, normalise_by_proton_charge_and_flux,
-     load_flux_to_monitor_ratio_file, normalise_by_monitor,
-     normalise_by_time, normalise_by_flux)
+     load_flux_to_monitor_ratio_file, normalize_by_monitor,
+     normalize_by_time, normalize_by_flux)
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.tof.eqsans import (load_events, transform_to_wavelength, prepare_monitors)
 from drtsans.samplelogs import SampleLogs
@@ -84,10 +84,10 @@ def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     # Try normalization in frame-skipping mode to test raise assertion
     data_workspace, monitor_workspace = data_ws['92353'], monitor_ws['88565']
     with pytest.raises(ValueError, match='not possible in frame-skipping'):
-        data_workspace_normalized = normalise_by_monitor(data_workspace, flux_to_monitor, monitor_workspace,
+        data_workspace_normalized = normalize_by_monitor(data_workspace, flux_to_monitor, monitor_workspace,
                                                          output_workspace=unique_workspace_dundername())
     data_workspace, monitor_workspace = data_ws['88565'], monitor_ws['88565']
-    data_workspace_normalized = normalise_by_monitor(data_workspace, flux_to_monitor, monitor_workspace,
+    data_workspace_normalized = normalize_by_monitor(data_workspace, flux_to_monitor, monitor_workspace,
                                                      output_workspace=unique_workspace_dundername())
     # Easy test by comparing the integrated intensity after normalization
     data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
@@ -99,13 +99,13 @@ def test_normalise_by_time(data_ws):
     dws = data_ws['92353']
     y, e = dws.readY(42)[5], dws.readE(42)[5]  # some meaningful choice
 
-    w = normalise_by_time(dws, output_workspace=unique_workspace_dundername())
+    w = normalize_by_time(dws, output_workspace=unique_workspace_dundername())
     d = SampleLogs(w).duration.value
     assert (y/d, e/d) == approx((w.readY(42)[5], w.readE(42)[5]), abs=1e-6)
     assert SampleLogs(w).normalizing_duration.value == 'duration'
     w.delete()
 
-    w = normalise_by_time(dws, log_key='proton_charge', output_workspace=unique_workspace_dundername())
+    w = normalize_by_time(dws, log_key='proton_charge', output_workspace=unique_workspace_dundername())
     d = SampleLogs(w)['proton_charge'].getStatistics().duration
     assert (y/d, e/d) == approx((w.readY(42)[5], w.readE(42)[5]), abs=1e-6)
     assert SampleLogs(w).normalizing_duration.value == 'proton_charge'
@@ -115,7 +115,7 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
 
     # Normalize by flux and proton charge
     data_workspace = data_ws['92353']
-    data_workspace_normalized = normalise_by_flux(data_workspace, beam_flux,
+    data_workspace_normalized = normalize_by_flux(data_workspace, beam_flux,
                                                   output_workspace=unique_workspace_dundername())
     summed_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=unique_workspace_dundername())
     # Compare to "manual" normalization
@@ -127,7 +127,7 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
 
     # Normalize by monitor and flux-to-monitor ratio
     data_workspace, monitor_workspace = data_ws['88565'], monitor_ws['88565']
-    data_workspace_normalized = normalise_by_flux(data_workspace, flux_to_monitor, method='monitor',
+    data_workspace_normalized = normalize_by_flux(data_workspace, flux_to_monitor, method='monitor',
                                                   monitor_workspace=monitor_workspace,
                                                   output_workspace=unique_workspace_dundername())
     summed_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=unique_workspace_dundername())
@@ -138,7 +138,7 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
     data_workspace = data_ws['92353']
     duration = SampleLogs(data_workspace).duration.value
     total_intensity, total_intensity_error = sum(data_workspace.readY(42)), sum(data_workspace.readE(42))
-    data_workspace_normalized = normalise_by_flux(data_workspace, 'duration', method='time',
+    data_workspace_normalized = normalize_by_flux(data_workspace, 'duration', method='time',
                                                   output_workspace=unique_workspace_dundername())
     assert sum(data_workspace.readY(42)), sum(data_workspace.readE(42)) == approx((total_intensity / duration,
                                                                                    total_intensity_error / duration))

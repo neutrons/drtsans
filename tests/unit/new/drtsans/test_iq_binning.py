@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
-from mantid.simpleapi import LoadEmptyInstrument, AddSampleLog  # AddTimeSeriesLog, Rebin, ConvertUnits,
-from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, IofQCalculator
+from mantid.simpleapi import LoadEmptyInstrument, AddSampleLog
+from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, IofQCalculator, BinningMethod
 from drtsans.momentum_transfer_factory import calculate_q_dq
 import bisect
 
@@ -135,7 +135,7 @@ def prepare_test_input_arrays():
     return q_array, dq_array, iq_array, sigma_q_array
 
 
-def passed_test_linear_binning():
+def test_linear_binning():
     """ Test binning I(Q) with linear binning
     Returns
     -------
@@ -151,7 +151,7 @@ def passed_test_linear_binning():
     q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
 
     # Calculate bin centers and bin edges by Qmin, Qmax and number of bins
-    bin_centers, bin_edges = IofQCalculator.determine_linear_bin_edges(q_min, q_max, bins)
+    bin_centers, bin_edges = IofQCalculator.determine_linear_bins(q_min, q_max, bins)
 
     # Test
     assert bin_centers.shape == (10, ), 'Bin shape incorrect'
@@ -183,10 +183,15 @@ def passed_test_linear_binning():
     assert np.allclose(sigma_i_noweight_array, no_weight_iq.sigma, 1e-6)
     assert np.sqrt(np.sum((i_noweight_array - no_weight_iq.i)**2)) < 1e-6
 
+    # Test to go through wrapper method
+    wiq = bin_iq_into_linear_q1d(iq_array, sigma_q_array, q_array, dq_array, bins, q_min, q_max,
+                                 BinningMethod.WEIGHTED)
+    assert np.allclose(wiq.i, binned_q.i, 1e-6)
+
     return
 
 
-def test_log_binning():
+def error_test_log_binning():
     """
     Unit test for the method to generate logarithm bins
     Returns
@@ -232,6 +237,9 @@ def test_log_binning():
     assert np.allclose(noweight_i_q, no_weight_binned_iq.i, 1e-6), 'No-weight binned I(Q) does not match'
     assert np.allclose(noweight_sigma_q, no_weight_binned_iq.sigma, 1e-6), 'No-weight binned sigma_I(Q) ' \
                                                                            'does not match'
+
+    # Test to go through wrapper method
+    # ... ...
 
     return
 

@@ -41,23 +41,28 @@ class BinningMethod(Enum):
     WEIGHTED = 2
 
 
-def bin_iq_into_linear_q1d(wl_ws, bins, q_min=0, q_max=None, instrument=None):
-    """
-    Binning I(Q) from a mono
+def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins, q_min=None, q_max=None,
+                           bin_method=BinningMethod.WEIGHTED):
+    """Binning I(Q) from scalar Q (1D)
+
     Parameters
     ----------
-    wl_ws :  ~mantid.api.MatrixWorkspace
-        MatrixWorkspace in wave length
-    bins: integer
+    intensity : ndarray
+        Intensity I(Q)
+    intensity_error : ndarray
+        Uncertainty of intensity sigma I(Q)
+    scalar_q : ndarray
+        Q
+    scalar_dq : ndaray
+        Q resolution
+    bins : integer
         number of bins
-    q_min: float
-        minimum Q left bin edge value
-    q_max: float or None
-        maximum Q right bin edge value. None as the default such that Qmax will be determined from workspace
-            automatically
-    instrument: String or None
-        Instrument type (tof, mono) only used for testing purpose. For real SANS instrument, it will be determined
-        automatically from instrument name
+    q_min : float or NOne
+        min Q (edge) of the binned Q. Default to min(scalar_q)
+    q_max : float or None
+        max Q (edge) of the binned Q. Default to max(scalar_q)
+    bin_method : BinningMethod
+        weighted binning or no-weight binning method
     Returns
     -------
     IofQ
@@ -66,17 +71,26 @@ def bin_iq_into_linear_q1d(wl_ws, bins, q_min=0, q_max=None, instrument=None):
         Q, dQ, I, dI
         Q, Q resolution, I, uncertainty of I
     """
-    # Initialize the calculator
-    calculator = IofQCalculator(wl_ws, instrument_type=instrument)
-
-    # retrieve Qmax
+    # define q min and q max
+    if q_min is None:
+        q_min = np.min(scalar_q)
     if q_max is None:
-        q_max = calculator.get_q_max()
+        q_max = np.max(scalar_q)
 
-    # bin
-    binned_i_q = calculator.bin_into_linear_q1d(bins, q_min, q_max)
+    # calculate bin centers and bin edges
+    bin_centers, bin_edges = IofQCalculator.determine_linear_bins(q_min, q_max, bins)
 
-    return binned_i_q
+    # bin I(Q)
+    if bin_method == BinningMethod.WEIGHTED:
+        # weighed binning
+        binned_q = IofQCalculator.weighted_binning(scalar_q, scalar_dq, intensity, intensity_error,
+                                                   bin_centers, bin_edges)
+    else:
+        # no-weight binning
+        binned_q = IofQCalculator.no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error,
+                                                    bin_centers, bin_edges)
+
+    return binned_q
 
 
 def bin_iq_into_logarithm_q1d(wl_ws, bins_per_decade, q_min=0.001, q_max=1.0, instrument=None):
@@ -776,7 +790,7 @@ class IofQCalculator(object):
         # delta_q = (q_max - q_min) / bins
         # bin_edges = np.arange(bins + 1).astype('float') * delta_q + q_min
         # bin_centers = (bin_edges[1:] - bin_edges[:-1]) * 0.5
-        bin_centers, bin_edges = self.determine_linear_bin_edges(q_min, q_max, bins)
+        bin_centers, bin_edges = self.determine_linear_bins(q_min, q_max, bins)
 
         # Bin
         binned_i_q = self.weighted_binning(self._q_dq.q, self._q_dq.dq, self._i_q, self._i_q_sigma,
@@ -1129,7 +1143,23 @@ class IofQCalculator(object):
         return any_array.flatten()
 
     @staticmethod
-    def determine_linear_bin_edges(q_min, q_max, bins):
+    def determine_linear_bins(q_min, q_max, bins):
+        """Determine linear bin edges and centers
+
+        Parameters
+        ----------
+        q_min : float
+            Q min of bin edge
+        q_max : float
+            Q max of bin edge
+        bins : integer
+            number of bins
+
+        Returns
+        -------
+        ndarray, ndarray
+            bin centers, bin edges
+        """
         delta_q = (q_max - q_min) / bins
         bin_edges = np.arange(bins + 1).astype('float') * delta_q + q_min
         bin_centers = (bin_edges[1:] + bin_edges[:-1]) * 0.5

@@ -35,7 +35,7 @@ def test_dark_current(gpsans_f):
     LoadHFIRSANS(Filename=gpsans_f['dark_current'],
                  OutputWorkspace=input_dc_ws_mame)
     input_dc_ws = mtd[input_dc_ws_mame]
-    normalised_dc_ws = time(input_dc_ws)
+    normalised_dc_ws = normalize_by_time(input_dc_ws)
 
     # third let's a DC subraction
     sample_subtracted = subtract_dark_current(sample_ws, input_dc_ws)

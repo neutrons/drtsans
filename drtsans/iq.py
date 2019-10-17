@@ -264,11 +264,11 @@ def do_2d_no_weight_binning(qx_array, qy_array, iq_array, sigma_iq_array, qx_bin
     num_pt_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges))
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-    i_raw_array, dummy_bin_x, dummy_bin_y  = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                            weights=iq_array)
+    i_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                           weights=iq_array)
     # Square of summed uncertainties for each bin
-    sigma_sqr_array, dummy_bin_x, dummy_bin_y  = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                                weights=sigma_iq_array ** 2)
+    sigma_sqr_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                               weights=sigma_iq_array ** 2)
 
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
     #       sigma = 1/sqrt(w_k)

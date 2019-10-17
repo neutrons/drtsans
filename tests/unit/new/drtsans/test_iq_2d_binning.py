@@ -117,7 +117,7 @@ def gold_qx_qy_binned_index():
     return qx_index_det_array.flatten(), qy_index_det_array.flatten()
 
 
-def test_create_2d_bins():
+def error_test_create_2d_bins():
     """Tester for method to generate 2D binning
 
     Returns
@@ -176,8 +176,6 @@ def test_create_2d_bins():
     x_bin_params = BinningParams(qx_array.min(), qx_array.max(), 8)
     y_bin_params = BinningParams(qy_array.min(), qy_array.max(), 8)
     bin_iq_into_linear_q2d(test_iq, x_bin_params, y_bin_params, BinningMethod.WEIGHTED)
-
-    assert False
 
     return
 
@@ -268,7 +266,7 @@ def check_2d_binning_algorithm(iq_array, qx_array, qy_array, x_bin_edges, y_bin_
                         qy_array[ipt], y_bin_edges[y_bin_index], y_bin_edges[y_bin_index + 1]))
 
         # Add to dictionary
-        binned_dict[(x_bin_index, y_bin_edges)].add(ipt)
+        binned_dict[(x_bin_index, y_bin_index)].add(ipt)
         if iq_array[ipt] > 0:
             binned_sum_dict[(x_bin_index, y_bin_index)] += iq_array[ipt]
     # END-FOR

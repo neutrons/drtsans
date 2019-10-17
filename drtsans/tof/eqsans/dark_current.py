@@ -108,7 +108,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     # Create the normalized dark current workspace
     CreateWorkspace(DataX=bin_boundaries, UnitX='Wavelength',
                     DataY=normalized_counts, DataE=normalized_errors, Nspec=len(counts),  # number of detector pixels
-                    OutputWorkspace=output_workspace)
+                    ParentWorkspace=data_workspace, OutputWorkspace=output_workspace)
 
     SampleLogs(output_workspace).insert('normalizing_duration', dark_duration.log_key)
     DeleteWorkspace(dark_counts_workspace)  # remove temporary workspaces

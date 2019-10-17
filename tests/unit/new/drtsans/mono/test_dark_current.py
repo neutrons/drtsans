@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from drtsans.settings import unique_workspace_dundername
 
 r""" Links to mantid algorithms
@@ -17,7 +16,6 @@ subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blo
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.normalisation import time
 from drtsans.mono.dark_current import subtract_dark_current
-
 
 def test_dark_current(gpsans_f):
     r"""

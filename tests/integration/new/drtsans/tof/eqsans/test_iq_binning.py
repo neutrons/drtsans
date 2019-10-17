@@ -9,7 +9,8 @@ from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalis
                                 transform_to_wavelength)
 from drtsans.tof.eqsans.iq import (cal_iq, iq_annular, iq_wedge, iqxqy,
                                    prepare_momentum_transfer)
-from drtsans.iq import bin_iq_into_linear_q1d
+from drtsans.iq import bin_iq_into_linear_q1d, BinningMethod
+from drtsans.convert_to_q import convert_to_q
 
 
 # Integration test on I(Q) binning algorithms for EQ-SANS
@@ -95,12 +96,20 @@ def test_iq_binning_serial(reference_dir):
                Params="{:.2f},{:.2f},{:.2f}".format(rebin_start, rebin_step,
                                                     rebin_end))
 
+    # Calculate Q and dQ
+    r = convert_to_q(ws, mode='scalar', resolution_function=None)
+    iq_array = r[0]
+    sigma_iq_array = r[1]
+    q_array = r[2]
+    dq_array = r[3]
+
     # Bin I(Q)
     final_q_min = 0
-    i_of_q = bin_iq_into_linear_q1d(ws, bins=10, q_min=final_q_min, q_max=None)
+    i_of_q = bin_iq_into_linear_q1d(iq_array, sigma_iq_array, q_array, dq_array, bins=10, q_min=final_q_min,
+                                    bin_method=BinningMethod.WEIGHTED)
+    assert i_of_q
 
     # TODO - continue from here
-    print(i_of_q)
     # assert i_of_q.iq.shape == (256, 192)
     # assert i_of_q.q.shape == (256, 193)
 

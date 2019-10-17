@@ -35,7 +35,7 @@ def find_beam_center(input_ws, method='center_of_mass', mask=None, **kwargs):
         (X, Y) coordinates of the beam center (units in meters)
     """
     if method != 'center_of_mass':
-        raise NotImplementedError(f'{method} is not implemented')
+        raise NotImplementedError()  # (f'{method} is not implemented')
 
     # flatten the workspace
     flat_ws = Integration(InputWorkspace=input_ws, OutputWorkspace=uwd())

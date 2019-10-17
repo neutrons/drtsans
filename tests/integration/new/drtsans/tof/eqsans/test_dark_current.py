@@ -5,11 +5,11 @@ import numpy as np
 from mantid.simpleapi import CreateWorkspace
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
-# normalise_to_workspace <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>  # noqa: E501
+# normalize_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>  # noqa: E501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans.dark_current import normalise_to_workspace
+from drtsans.tof.eqsans.dark_current import normalize_dark_current
 
 
 @pytest.fixture(scope='module')
@@ -59,14 +59,14 @@ def test_normalize_dark_current(data_test_16a):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-    ~drtsans.tof.eqsans,dark_current.normalise_to_workspace
+    ~drtsans.tof.eqsans,dark_current.normalize_dark_current
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
     """
     wavelength_bin_boundaries = np.arange(data_test_16a['l_min'],
                                           data_test_16a['l_max'] + data_test_16a['l_step'] / 2.,
                                           data_test_16a['l_step'])
 
-    # The dark current normalization method `normalise_to_workspace` requires a sample run from
+    # The dark current normalization method `normalize_dark_current` requires a sample run from
     # which to retrieve the wavelength bins and other info, such as the clipping values for the TOF frame.
     # The intensities of this run are not relevant for the purposes of normalizing the dark current,
     # so we set them to zero
@@ -108,7 +108,7 @@ def test_normalize_dark_current(data_test_16a):
     # into account the duration of the sample run. The reason is that we can reuse this normalized dark current
     # with sample runs of different duration. The duration of the sample run is incorporated just prior to dark
     # current subtraction.
-    dark_normalized = normalise_to_workspace(dark_workspace, data_workspace,
+    dark_normalized = normalize_dark_current(dark_workspace, data_workspace,
                                              output_workspace=unique_workspace_dundername())
 
     # Compare to test result. Notice that test output, data_test_16a['I_dc_norm'], shows the

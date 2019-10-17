@@ -12,7 +12,7 @@ def test_flipping_ratio():
     polarization = CreateSingleValuedWorkspace(DataValue=0.95, ErrorValue=0.01,
                                                OutputWorkspace=uwd())
     flipping_ratio_expected = (1. + 0.95) / (1. - 0.95)
-    flipping_ratio_err_expected = (2. * 0.01) / 0.0025
+    flipping_ratio_err_expected = (2. * 0.01) / 0.0025  # denominator is (1-p)^2
 
     flipping_ratio = _calc_flipping_ratio(polarization)
 

@@ -1,8 +1,7 @@
 from dateutil.parser import parse as parse_date
 import numpy as np
-from mantid.simpleapi import (mtd, Integration, Transpose)
-from drtsans.settings import (namedtuplefy,
-                              unique_workspace_dundername as uwd)
+from mantid.simpleapi import mtd, Integration, DeleteWorkspace
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
 
@@ -53,25 +52,27 @@ def duration(input_workspace, log_key=None):
 
 def counts_in_detector(input_workspace):
     r"""
-    Fin the total number of neutron counts in each detector pixel.
-    By definition, error=1 when zero counts in the detector.
+    Find the total number of neutron counts in each detector pixel.
+
+    In a detector pixel has no counts, then the error of the zero counts is set to one.
 
     Parameters
     ----------
     input_workspace: str, EventsWorkspace
-        Usually the dark current workspace
+        Usually a dark current workspace for which we need to know the total number of counts per pixel-detector
 
     Returns
     -------
     tuple
-        Two elements in the tuple: (1)numpy.ndarray: counts;
-        (2) numpy.ndarray: error in the counts
+        counts, error in the counts
     """
-    ws = mtd[str(input_workspace)]
-    _wnc = Integration(ws, OutputWorkspace=uwd())
-    _wnc = Transpose(_wnc, OutputWorkspace=_wnc.name())
-    y = np.copy(_wnc.dataY(0))  # counts
-    e = np.copy(_wnc.dataE(0))  # errors
-    _wnc.delete()
-    e[y < 1] = 1.0  # convention of error=1 if no counts present
-    return y, e
+    # Create a workspace containing the total counts per pixel, and starting errors
+    counts_workspace = unique_workspace_dundername()
+    Integration(input_workspace, OutputWorkspace=counts_workspace)
+
+    counts = mtd[counts_workspace].extractY().flatten()
+    errors = mtd[counts_workspace].extractE().flatten()
+    errors[np.where(counts == 0)[0]] = 1
+
+    DeleteWorkspace(counts_workspace)  # some clean-up
+    return counts, errors

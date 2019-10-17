@@ -20,7 +20,7 @@ def wss(reference_dir):
 
 
 def test_normalise_to_workspace(wss, reference_dir):
-    _w0 = dark_current.normalise_to_workspace(wss['dark'], wss['data'], output_workspace=unique_workspace_dundername())
+    _w0 = dark_current.normalize_dark_current(wss['dark'], wss['data'], output_workspace=unique_workspace_dundername())
     _w1 = SumSpectra(_w0, OutputWorkspace=unique_workspace_dundername())
     name = pjn(reference_dir.new.eqsans, 'test_dark_current', 'dark_norm_sum.nxs')
     _w2 = LoadNexus(name, OutputWorkspace=unique_workspace_dundername())
@@ -46,7 +46,7 @@ def test_subtract_normalised_dark(wss, reference_dir):
 
 
 def test_flatten_TOF():
-    '''
+    r"""
     Check that the counts are added together in each spectra
 
     Function tested: drtsans.tof.eqsans.dark_current.counts_in_detector
@@ -56,7 +56,7 @@ def test_flatten_TOF():
 
     dev - Andrei Savici <saviciat@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>
-    '''
+    """
     # create the workspace
     tof = [1., 2., 3., 4.] * 9  # wavelength boundaries
     cts = [23, 5, 15, 18, 50, 13, 9, 7, 15,

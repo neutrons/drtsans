@@ -1,18 +1,24 @@
 import numpy as np
-from mantid.simpleapi import (mtd, RebinToWorkspace, ConvertUnits,
-                              Subtract, Scale, LoadEventNexus)
 
-from drtsans.dark_current import counts_in_detector, duration
-from drtsans.settings import (amend_config,
-                              unique_workspace_dundername as uwd)
+# Links to mantid algorithms
+# CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+# Subtract <https://docs.mantidproject.org/nightly/algorithms/Subtract-v1.html>
+# Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+# LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
+# Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
+# DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus, Integration, DeleteWorkspace
+
+from drtsans.dark_current import duration, counts_in_detector  # noqa: F401
+from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
 
-__all__ = ['subtract_dark_current', 'normalise_to_workspace']
+__all__ = ['subtract_dark_current', 'normalize_dark_current']
 
 
-def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None):
+def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None):
     r"""
     Scale and Rebin in wavelength a ``dark`` current workspace with information
     from a ``data`` workspace.
@@ -25,8 +31,9 @@ def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None
     dark current to annotate what log entry was used to find the duration
 
     **Mantid algorithms used:**
-    :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
-    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`,
+    :ref:`Integration <algm-Integration-v1>`,
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
 
     Parameters
     ----------
@@ -45,42 +52,67 @@ def normalise_to_workspace(dark_workspace, data_workspace, output_workspace=None
     """
     if output_workspace is None:
         output_workspace = str(dark_workspace)
-    sample_logs = SampleLogs(data_workspace)
-    # rescale counts by the shorter considered TOF width
+
+    # work with the names of the workspaces
+    dark_workspace_name = str(dark_workspace)
+    data_workspace_name = str(data_workspace)
+
+    # rescale counts by the duration of the dark current run
+    dark_duration = duration(dark_workspace_name)
+
+    # rescale counts by the ratio of trusted TOF frame and available frame
+    sample_logs = SampleLogs(data_workspace_name)
     tof_clipping_factor = sample_logs.tof_frame_width_clipped.value / sample_logs.tof_frame_width.value
-    counts_in_pixel, counts_error_in_pixel = counts_in_detector(dark_workspace)  # counts and error per detector
-    ConvertUnits(InputWorkspace=dark_workspace, Target='Wavelength', Emode='Elastic', OutputWorkspace=output_workspace)
-    RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data_workspace, PreserveEvents=False,
-                     OutputWorkspace=output_workspace)
-    #
-    # Determine the histogram bins for which data should have counts
-    # If running in frame-skipped mode, there is a wavelength band
-    # gap between the lead and skipped bands
-    #
-    dark_normalized = mtd[output_workspace]
-    bands = correct_frame.clipped_bands_from_logs(data_workspace)  # lead and pulse bands
-    gap_indexes = correct_frame.band_gap_indexes(data_workspace, bands)
-    n_gap_bins = len(gap_indexes)
-    n_bins = len(dark_normalized.dataY(0))
-    n_significant_bins = n_bins - n_gap_bins  # wavelength bins with counts
-    #
-    # factor_y is number of counts per unit time and wavelength bin
-    #
-    dark_duration = duration(dark_workspace)
-    counts_rescaling_factor = tof_clipping_factor / (dark_duration.value * n_significant_bins)
-    counts_error_rescaling_factor = tof_clipping_factor / (dark_duration.value * np.sqrt(n_significant_bins))
-    #
-    # Rescale the dark counts. Pay attention to the wavelength gap in frame-skip mode
-    #
-    for i in range(dark_normalized.getNumberHistograms()):
-        dark_normalized.dataY(i)[:] = counts_rescaling_factor * counts_in_pixel[i]
-        dark_normalized.dataE(i)[:] = counts_error_rescaling_factor * counts_error_in_pixel[i]
-    if n_gap_bins > 0:
-        for i in range(dark_normalized.getNumberHistograms()):
-            dark_normalized.dataY(i)[gap_indexes] = 0.0
-            dark_normalized.dataE(i)[gap_indexes] = 0.0
-    SampleLogs(dark_normalized).insert('normalizing_duration', dark_duration.log_key)
-    return dark_normalized
+
+    # rescale counts by the range of wavelengths over which there should be measurable intensities
+    bands = correct_frame.clipped_bands_from_logs(data_workspace_name)  # lead and pulse bands
+    wavelength_range = bands.lead.max - bands.lead.min  # wavelength range from lead skipped pulse
+    if bands.skip is not None:
+        wavelength_range += bands.skip.max - bands.skip.min  # add the wavelength range from the skipped pulse
+
+    # Find out the binning of the sample run
+    bin_boundaries = mtd[data_workspace_name].readX(0)
+    bin_widths = bin_boundaries[1:] - bin_boundaries[0: -1]
+
+    # Gather all factors into a "rescaling" array, of size len(bin_widths)
+    rescalings = tof_clipping_factor * bin_widths / (dark_duration.value * wavelength_range)
+
+    # If running in skip-mode, find the range of wavelengths between the lead and skip pulses.
+    # Also find the indexes of the bins that fall in this wavelength gap.
+    # Set the rescalings to zero for the bins falling in the wavelength gap.
+    gap_bin_indexes = None
+    if bands.skip is not None:
+        bin_centers = 0.5 * (bin_boundaries[0: -1] + bin_boundaries[1:])
+        gab_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skip.min))[0]
+        rescalings[gab_bin_indexes] = 0.0
+
+    # Create a temporary workspace containing the total counts for each detector pixel, for the dark current run
+    dark_counts_workspace = unique_workspace_dundername()  # this is random name for a temporary workspace
+    Integration(InputWorkspace=dark_workspace_name, OutputWorkspace=dark_counts_workspace)
+    counts = mtd[dark_counts_workspace].extractY().flatten()  # array length = #pixels
+    errors = mtd[dark_counts_workspace].extractE().flatten()  # array length = #pixels
+    # Also find out the indexes of the detector pixels with no counts
+    pixel_indexes_with_no_counts = np.where(counts == 0)[0]
+
+    # Multiply the rescalings array by the counts-per-pixel array
+    normalized_counts = counts[:, np.newaxis] * rescalings  # array.shape = (#pixels, #bins)
+    normalized_errors = errors[:, np.newaxis] * rescalings
+
+    # Recall that if a pixel had no counts, then we insert a special error values: error is one for all
+    # wavelength bins, and zero for the bins falling in the wavelength gap.
+    special_errors = np.ones(len(bin_widths))
+    if gap_bin_indexes is None:
+        special_errors[gap_bin_indexes] = 0.
+    normalized_errors[pixel_indexes_with_no_counts] = special_errors
+
+    # Create the normalized dark current workspace
+    CreateWorkspace(DataX=bin_boundaries, UnitX='Wavelength',
+                    DataY=normalized_counts, DataE=normalized_errors, Nspec=len(counts),  # number of detector pixels
+                    OutputWorkspace=output_workspace)
+
+    SampleLogs(output_workspace).insert('normalizing_duration', dark_duration.log_key)
+    DeleteWorkspace(dark_counts_workspace)  # remove temporary workspaces
+    return mtd[output_workspace]
 
 
 def subtract_normalised_dark_current(input_workspace, dark_ws,
@@ -100,11 +132,15 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
         Sample scattering with intensities versus wavelength
     dark_ws: str, ~mantid.api.MatrixWorkspace
         Normalized dark current after being normalized with
-        `normalise_to_workspace`
+        `normalize_dark_current`
     output_workspace : str
         Name of the workspace after dark current subtraction. If :py:obj:`None`,
         the name of the input workspace is chosen (and the input workspace
         is overwritten).
+
+    **Mantid algorithms used:**
+    :ref:`Scale <algm-Scale-v1>`,
+    :ref:`Subtract <algm-Subtract-v1>`,
 
     Returns
     -------
@@ -116,7 +152,7 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
 
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
-    scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=uwd())
+    scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=unique_workspace_dundername())
     Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled, OutputWorkspace=output_workspace)
     scaled.delete()
     SampleLogs(output_workspace).insert('normalizing_duration', duration_log_key)
@@ -150,13 +186,13 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
         _dark = dark
     elif (isinstance(dark, str) and exists(dark)) or isinstance(dark, int):
         with amend_config({'default.instrument': 'EQSANS'}):
-            _dark = LoadEventNexus(Filename=dark, OutputWorkspace=uwd())
+            _dark = LoadEventNexus(Filename=dark, OutputWorkspace=unique_workspace_dundername())
     else:
         message = 'Unable to find or load the dark current {}'.format(dark)
         raise RuntimeError(message)
 
-    _dark_normal = normalise_to_workspace(_dark, input_workspace,
-                                          output_workspace=uwd())
+    _dark_normal = normalize_dark_current(_dark, input_workspace,
+                                          output_workspace=unique_workspace_dundername())
     subtract_normalised_dark_current(input_workspace, _dark_normal,
                                      output_workspace=output_workspace)
     _dark_normal.delete()

@@ -76,8 +76,8 @@ def test_apply_calculation(cleanfile, fromFile):
                                             output_workspace=uwn())
     else:
         if not os.path.exists(FILENAME):
-            raise RuntimeError('Sensitivity file "{}" '
-                               'does not exist'.format(FILENAME))
+            create_sensitivity_file()
+            cleanfile(FILENAME)
         sensitivity = LoadNexusProcessed(Filename=FILENAME,
                                          OutputWorkspace=uwn())
         wksp = apply_sensitivity_correction(WKSPNAME_IN,

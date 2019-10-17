@@ -4,6 +4,7 @@ from mantid.geometry import Instrument
 from mantid.simpleapi import Load, ExtractMask
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.samplelogs import SampleLogs
+from collections import defaultdict
 
 
 def detector_name(ipt):
@@ -19,11 +20,7 @@ def detector_name(ipt):
     -------
     str
     """
-    inst_to_det = {'EQSANS': 'detector1',
-                   'EQ-SANS': 'detector1',
-                   'BIOSANS': 'detector1',
-                   'GPSANS': 'detector1',
-                   'GenericSANS': 'detector1'}
+    inst_to_det = defaultdict(lambda: 'detector1')
     if isinstance(ipt, str):
         if ipt in mtd:
             instrument_name = mtd[ipt].getInstrument().getName()

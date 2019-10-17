@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import mtd, CreateWorkspace
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
@@ -24,31 +24,87 @@ def test_normalise_by_time(reference_dir):
     w.delete()
 
 
-x, y = np.meshgrid(np.linspace(-1, 1, 5), np.linspace(-1, 1, 5))
-sigma, mu = 0.3, 0  # gaussian image
-d = np.sqrt(x * x + y * y)
-g = np.exp(-((d - mu) ** 2 / (2 * sigma ** 2)))
+@pytest.fixture(scope='module')
+def data_test_16a_by_time():
+    r"""
+    Input and expected output for the normalization by time test, taken from the intro to issue #174
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalization-by-monitor-spectrum>
+    """
+    return dict(t_sam=5,  # sample duration
+                n_pixels=25,
+                wavelength_bins=[2.5, 3.5],
+                precision=1.e-4,  # precision when comparing output with data from this test
+                I_sam=[[40., 45., 50., 55., 60.],
+                       [65., 70., 75., 80., 85.],
+                       [90., 95., 100., 105., 110.],
+                       [115., 120., 125., 130., 135.],
+                       [140., 145., 150., 155., 160.]],
+                I_sam_err=[[6.3246, 6.7082, 7.0711, 7.4162, 7.746],
+                           [8.0623, 8.3666, 8.6603, 8.9443, 9.2195],
+                           [9.4868, 9.7468, 10., 10.247, 10.4881],
+                           [10.7238, 10.9545, 11.1803, 11.4018, 11.619],
+                           [11.8322, 12.0416, 12.2474, 12.4499, 12.6491]],
+                I_samnorm=[[8.,  9., 10., 11., 12.],
+                           [13., 14., 15., 16., 17.],
+                           [18., 19., 20., 21., 22.],
+                           [23., 24., 25., 26., 27.],
+                           [28., 29., 30., 31., 32.]],
+                I_samnorm_error=[[1.26492, 1.34164, 1.41422, 1.48324, 1.5492],
+                                 [1.61246, 1.67332, 1.73206, 1.78886, 1.8439],
+                                 [1.89736, 1.94936, 2., 2.0494, 2.09762],
+                                 [2.14476, 2.1909, 2.23606, 2.28036, 2.3238],
+                                 [2.36644, 2.40832, 2.44948, 2.48998, 2.52982]]
+                )
 
 
-@pytest.mark.parametrize('generic_workspace',
-                         [{'axis_values': x,
-                           'intensities': g}],
-                         indirect=True)
-def test_normalization_by_time(generic_workspace):
-    ws = generic_workspace
-    I_sam = g  # choose sample data from g or z
+def test_normalization_by_time(data_test_16a_by_time):
+    r"""
+    Normalize sample intensities by run duration.
+    Addresses section of the 6.1 the master document
 
-    t_sam = 5  # any value
-    SampleLogs(ws).insert('timer', t_sam, 'Second')
-    I_samnorm = I_sam / t_sam
-    ws_samnorm = normalise_by_time(ws, log_key='timer')
-    assert np.allclose(ws_samnorm.extractY().ravel(), I_samnorm.ravel())
+    devs - Steven Hahn <hahnse@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
+    SME  - Changwoo Do <doc1@ornl.gov>
+
+    **Mantid algorithms used:**
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+
+    **drtsans functions used:**
+    ~drtsans.settings.unique_workspace_dundername
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+    ~drtsans.samplelogs.SampleLogs
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    ~drtsans.tof.normalisation.normalise_by_time
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalisation.py>
+    """
+    # Create a sample workspace with the input data
+    data_workspace = unique_workspace_dundername()
+    CreateWorkspace(DataX=data_test_16a_by_time['wavelength_bins'],
+                    DataY=np.array(data_test_16a_by_time['I_sam']).ravel(),
+                    DataE=np.array(data_test_16a_by_time['I_sam_err']).ravel(),
+                    NSpec=data_test_16a_by_time['n_pixels'],
+                    OutputWorkspace=data_workspace)
+    SampleLogs(data_workspace).insert('duration', data_test_16a_by_time['t_sam'], 'Second')
+
+    # Carry out the normalization by time
+    normalise_by_time(data_workspace)
+
+    # Compare calculated normalized intensities with test output
+    test_intensities = np.array(data_test_16a_by_time['I_samnorm']).ravel()
+    assert mtd[data_workspace].extractY().ravel() == pytest.approx(test_intensities,
+                                                                   abs=data_test_16a_by_time['precision'])
+
+    # Compare calculated errors of normalized intensities with test output
+    test_errors = np.array(data_test_16a_by_time['I_samnorm_error']).ravel()
+    assert mtd[data_workspace].extractE().ravel() == pytest.approx(test_errors,
+                                                                   abs=data_test_16a_by_time['precision'])
 
 
 @pytest.fixture(scope='module')
 def data_test_16a_by_monitor():
     r"""
-    Input and expected output taken from the intro to issue #174
+    Input and expected output for the normalization by monitor test, taken from the intro to issue #174
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalization-by-monitor-spectrum>
     """
     return dict(precision=1e-04,  # desired precision for comparisons,
@@ -183,7 +239,7 @@ def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
 @pytest.fixture(scope='module')
 def data_test_16a_by_proton():
     r"""
-    Input and expected output taken from the intro to issue #174
+    Input and expected output for the normalization by proton charge test, taken from the intro to issue #174
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalization-by-monitor-spectrum>
     """
     return dict(precision=1e-04,  # desired precision for comparisons,

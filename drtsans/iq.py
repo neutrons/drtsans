@@ -1150,11 +1150,10 @@ class IofQCalculator(object):
         -------
 
         """
-        # Calculate step
+        # Calculate step and align q_min to q0, a decade (power of 10) nearest to q_min but less than q_min
+        # 20191016 IS: "0.2% error is allowed.  This formula ensure that the number of steps per decade is respected"
         delta = np.power(10., 1. / step_per_decade)
-
-        # Align q_min to power of 10 as q0
-        q0 = np.power(10, np.floor(np.log10(q_min)))
+        q0 = np.power(delta, np.floor(step_per_decade * np.log10(q_min)))
         print('[DEBUG OUTPUT: q_min = {}, q0 = {}'.format(q_min, q0))
 
         # Determine number of bins

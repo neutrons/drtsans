@@ -206,8 +206,6 @@ def test_log_binning():
         print('{}\t{}\t{}\t{}\t'.format(ibin, bin_centers[ibin], bin_edges[ibin],
                                         bin_edges[ibin + 1]))
 
-    assert False
-
     # Verify: bin size, min and max are all on the power of 10
     # assert bin_edges.shape[0] == bin_centers.shape[0] + 1
     # assert bin_centers.shape[0] == 100
@@ -215,35 +213,25 @@ def test_log_binning():
     # assert abs(bin_centers[99] - q_max) < 1.E-12
 
     # Test bins
-
-
-        # assert abs(bin_centers[ibin] - log_bin_centers[ibin]) < 1E-10
-
-    assign_bins(bin_edges, q_array, iq_array, bin_centers)
+    bin_assignment_dict = assign_bins(bin_edges, q_array, iq_array, bin_centers)
 
     # Bin with weighted binning algorithm
     binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
-
-    # Test for I(Q)
-    num_test_points = gold_log_bin_weighted_iq.shape[0]
-    for i in range(num_test_points):
-        print('Q[{}]: I = {}, sigmaI = {}'.format(i, binned_q.i[i], binned_q.sigma[i]))
-        # assert abs(binned_q.q[i] - log_bin_centers[i]) < 1E-5
-        # assert abs(binned_q.i[i] - gold_log_bin_weighted_iq[i]) < 1E-5
-        # assert abs(binned_q.sigma[i] - gold_log_bin_weighted_sq[i]) < 1E-5
-    # END-FOR
+    # do the weighted binning
+    weighted_i_q, weighted_i_sigma_q = do_weighted_binning(bin_centers, iq_array, bin_assignment_dict)
+    # verify
+    assert np.allclose(weighted_i_q, binned_q.i, 1e-6), 'Binned I(Q) does not match'
+    assert np.allclose(weighted_i_sigma_q, binned_q.sigma, 1e-6), 'Binned sigma_I(Q) does not match'
 
     # Test no-weight binning
-    no_weight_iq = IofQCalculator.no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
-
-    # verify result
-    for i in range(num_test_points):
-        print('[NoWeight] Q[{}]: I = {}, sigmaI = {}'.format(i, no_weight_iq.i[i], no_weight_iq.sigma[i]))
-        # assert abs(no_weight_iq.i[i] - gold_log_bin_no_weight_iq[i]) < 1E-5
-        # assert abs(no_weight_iq.sigma[i] - gold_log_bin_no_weight_sq[i]) < 1E-5
-    # END-FOR
-
-    assert False
+    no_weight_binned_iq = IofQCalculator.no_weight_binning(q_array, dq_array, iq_array,
+                                                           sigma_q_array, bin_centers, bin_edges)
+    # do no weight binning
+    noweight_i_q, noweight_sigma_q = do_no_weight_binning(bin_centers, iq_array, bin_assignment_dict)
+    # verify
+    assert np.allclose(noweight_i_q, no_weight_binned_iq.i, 1e-6), 'No-weight binned I(Q) does not match'
+    assert np.allclose(noweight_sigma_q, no_weight_binned_iq.sigma, 1e-6), 'No-weight binned sigma_I(Q) ' \
+                                                                           'does not match'
 
     return
 

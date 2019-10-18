@@ -42,11 +42,20 @@ def test_integrate_detector_roi(generic_IDF):
                              OutputWorkspace='test_integration_roi')
     ws.getAxis(0).setUnit('Wavelength')
 
-    # Set the detector counts
+    # Set the detector counts: columns will be stacked to 1D array
     data_y = counts_array.transpose().flatten()
+    assert counts_array.shape == (9, 9)
     for iws in range(data_y.shape[0]):
         ws.dataY(iws)[0] = data_y[iws]
-    assert counts_array.shape == (9, 9)
+        # Set uncertainty
+        if data_y[iws] == 0:
+            error_i = 1.
+        elif np.isnan(data_y[iws]):
+            error_i = np.nan
+        else:
+            error_i = np.sqrt(data_y[iws])
+        ws.dataE(iws)[0] = error_i
+    # END-FOR
 
     # Set mask
     pid_list = list(range(1, 5))
@@ -54,8 +63,10 @@ def test_integrate_detector_roi(generic_IDF):
     pid_list.extend(list(range(18, 23)))
     pid_list.extend(list(range(28, 31)))
 
-    roi_counts = integrate_detector_roi(ws, pid_list)
+    roi_counts, roi_error = integrate_detector_roi(ws, pid_list)
 
     assert abs(roi_counts - 566) < 1E-10
+    # sqrt(567) = 23.817
+    assert abs(roi_error - np.sqrt(567.)) < 1E-12
 
     return

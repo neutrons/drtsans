@@ -191,7 +191,7 @@ def test_linear_binning():
     return
 
 
-def error_test_log_binning():
+def test_log_binning():
     """
     Unit test for the method to generate logarithm bins
     Returns
@@ -224,22 +224,60 @@ def error_test_log_binning():
     binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
     # do the weighted binning
     weighted_i_q, weighted_i_sigma_q = do_weighted_binning(bin_centers, iq_array, bin_assignment_dict)
+
+    # verify: NaN first
+    assert np.allclose(np.isnan(weighted_i_q), np.isnan(binned_q.i)), 'NaN shall be same'
+
     # verify
-    assert np.allclose(weighted_i_q, binned_q.i, 1e-6), 'Binned I(Q) does not match'
-    assert np.allclose(weighted_i_sigma_q, binned_q.sigma, 1e-6), 'Binned sigma_I(Q) does not match'
+    if not np.allclose(weighted_i_q, binned_q.i, 1e-12, True):
+        print('Different of log binning I(Q)')
+        for k in range(binned_q.i.shape[0]):
+            if np.isnan(weighted_i_q[k]) and np.isnan(binned_q.i[k]):
+                # print('{}\t{}\t{}\t{}'.format(k, 'NaN', 'NaN', 0))
+                pass
+            elif not np.isnan(weighted_i_q[k]) and not np.isnan(binned_q.i[k]):
+                diff_k = abs(weighted_i_q[k] - binned_q.i[k])
+                if abs(diff_k) < 1e-10:
+                    print('{}\t{}\t{}\t{}'.format(k, weighted_i_q[k], binned_q.i[k],
+                                                  weighted_i_q[k] - binned_q.i[k]))
+                else:
+                    print('{}\t{}\t{}\t{}\tError'.format(k, weighted_i_q[k], binned_q.i[k],
+                                                         weighted_i_q[k] - binned_q.i[k]))
+            else:
+                pass
+                # print('{}\t{}\t{}\t{}\tError'.format(k, weighted_i_q[k], binned_q.i[k],
+                #                                      weighted_i_q[k] - binned_q.i[k]))
+    # END-FOR
+
+    assert np.allclose(weighted_i_q[~np.isnan(weighted_i_q)],
+                       binned_q.i[~np.isnan(binned_q.i)],
+                       1e-10, True), 'Binned I(Q) does not match'
+    assert np.allclose(weighted_i_sigma_q, binned_q.sigma, 1e-12, True), 'Binned sigma_I(Q) does not match'
 
     # Test no-weight binning
     no_weight_binned_iq = IofQCalculator.no_weight_binning(q_array, dq_array, iq_array,
                                                            sigma_q_array, bin_centers, bin_edges)
     # do no weight binning
     noweight_i_q, noweight_sigma_q = do_no_weight_binning(bin_centers, iq_array, bin_assignment_dict)
-    # verify
-    assert np.allclose(noweight_i_q, no_weight_binned_iq.i, 1e-6), 'No-weight binned I(Q) does not match'
-    assert np.allclose(noweight_sigma_q, no_weight_binned_iq.sigma, 1e-6), 'No-weight binned sigma_I(Q) ' \
-                                                                           'does not match'
+    # verify: NaN first
+    assert np.allclose(np.isnan(noweight_i_q), np.isnan(no_weight_binned_iq.i)), 'No-weight binning NaN shall be same'
+    assert np.allclose(np.isnan(noweight_sigma_q), np.isnan(no_weight_binned_iq.sigma)), 'No-weight binning ' \
+                                                                                         'Sigma(I) NaN shall be same'
+
+    # verify: non-NaN value
+    assert np.allclose(noweight_i_q[~np.isnan(noweight_i_q)],
+                       no_weight_binned_iq.i[~np.isnan(no_weight_binned_iq.i)],
+                       1e-10, True), 'No-weight binned I(Q) does not match'
+    assert np.allclose(noweight_sigma_q[~np.isnan(noweight_sigma_q)],
+                       no_weight_binned_iq.sigma[~np.isnan(no_weight_binned_iq.sigma)],
+                       1e-10, True), 'No-weight binned sigma_I(Q) does not match'
 
     # Test to go through wrapper method
-    # ... ...
+    wiq = bin_iq_into_logarithm_q1d(iq_array, sigma_q_array, q_array, dq_array, step_per_decade,
+                                    q_min, q_max, BinningMethod.WEIGHTED)
+    assert np.allclose(wiq.i[~np.isnan(wiq.i)],
+                       binned_q.i[~np.isnan(binned_q.i)],
+                       1e-10, True)
 
     return
 
@@ -518,8 +556,14 @@ def do_no_weight_binning(bin_centers, det_counts, bins_dict):
 
         # register
         i_sum_array[k] = i_k_raw
-        i_q_array[k] = i_k_raw / num_counts
-        sigma_iq_array[k] = np.sqrt(sigma_sq_k) / num_counts
+        if num_counts == 0:
+            # zero counts: NaN
+            i_q_array[k] = np.nan
+            sigma_iq_array[k] = np.nan
+        else:
+            # non-zero counts
+            i_q_array[k] = i_k_raw / num_counts
+            sigma_iq_array[k] = np.sqrt(sigma_sq_k) / num_counts
     # END-FOR
 
     # Output

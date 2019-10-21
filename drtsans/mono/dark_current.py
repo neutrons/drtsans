@@ -1,4 +1,4 @@
-from mantid.simpleapi import Subtract, mtd, DeleteWorkspace, Scale
+from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
@@ -52,7 +52,7 @@ def subtract_dark_current(data_workspace, dark_workspace, output_workspace=None)
 
     **Mantid algorithms used:**
     :ref:`Scale <algm-Scale-v1>`,
-    :ref:`Subtract <algm-Subtract-v1>`
+    :ref:`Minus <algm-Minus-v1>`
     :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
 
     Parameters
@@ -81,7 +81,7 @@ def subtract_dark_current(data_workspace, dark_workspace, output_workspace=None)
     data_duration = duration(data_workspace, log_key=duration_log_key).value
     Scale(InputWorkspace=normalized_dark_current, Factor=data_duration, Operation='Multiply',
           OutputWorkspace=normalized_dark_current)
-    Subtract(LHSWorkspace=data_workspace, RHSWorkspace=normalized_dark_current, OutputWorkspace=output_workspace)
+    Minus(LHSWorkspace=data_workspace, RHSWorkspace=normalized_dark_current, OutputWorkspace=output_workspace)
 
     DeleteWorkspace(normalized_dark_current)  # some clean-up
     return mtd[output_workspace]

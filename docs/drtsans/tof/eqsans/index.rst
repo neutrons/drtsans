@@ -12,4 +12,5 @@ API Documentation
 
 .. automodule:: drtsans.tof.eqsans
    :members:
-   :undoc-members:
+   :private-members:
+   :special-members:

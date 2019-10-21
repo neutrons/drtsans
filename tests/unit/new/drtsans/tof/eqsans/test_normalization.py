@@ -50,14 +50,16 @@ def test_load_beam_flux_file(beam_flux, data_ws):
 
 
 def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
-    dws = data_ws['92353']
-    flux_ws = load_beam_flux_file(beam_flux, data_workspace=dws)
-    w = normalise_by_proton_charge_and_flux(dws, flux_ws,
-                                            output_workspace=unique_workspace_dundername())
-    pc = SampleLogs(dws).getProtonCharge()
-    u = SumSpectra(w, OutputWorkspace=unique_workspace_dundername()).dataY(0)
-    u2 = SumSpectra(dws, OutputWorkspace=unique_workspace_dundername()).dataY(0)
-    assert u == approx(u2 / (flux_ws.readY(0) * pc), rel=0.01)
+    data_workspace = data_ws['92353']
+    flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_workspace)
+    normalized_data_workspace = normalise_by_proton_charge_and_flux(data_workspace, flux_workspace,
+                                                                    output_workspace=unique_workspace_dundername())
+    normalized_total_intensities = SumSpectra(normalized_data_workspace,
+                                              OutputWorkspace=unique_workspace_dundername()).dataY(0)
+    total_intensities = SumSpectra(data_workspace, OutputWorkspace=unique_workspace_dundername()).dataY(0)
+    good_proton_charge = SampleLogs(data_workspace).getProtonCharge()
+    assert normalized_total_intensities == approx(total_intensities / (flux_workspace.readY(0) * good_proton_charge),
+                                                  rel=0.01)
 
 
 def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):

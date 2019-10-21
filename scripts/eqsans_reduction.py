@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # TODO apply empty flag?
     if empty_run != '':
         db_ws = eqsans.load_events(empty_fn)
-        center = eqsans.center_detector(db_ws)
+        center = eqsans.find_beam_center(db_ws)
         config['x_center'] = center[0]
         config['y_center'] = center[1]
         msapi.logger.notice('calculated center {}'.format(center))
@@ -87,7 +87,6 @@ if __name__ == '__main__':
     table_ws_list = eqsans.prepare_momentum_transfer(
         ws, wavelength_binning=[0.5])
 
-    print("outfile = " + json_conf["outputDir"] + json_params["outputFilename"])
     for index, table_ws in enumerate(table_ws_list):
 
         # TODO check the configuration-numQbins and configuration_QbinType

@@ -90,19 +90,15 @@ def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
 
 
 def test_normalise_by_time(data_ws):
-    dws = data_ws['92353']
-    y, e = dws.readY(42)[5], dws.readE(42)[5]  # some meaningful choice
+    data_workspace = data_ws['92353']
+    y, e = data_workspace.readY(42)[5], data_workspace.readE(42)[5]  # some meaningful choice
 
-    w = normalize_by_time(dws, output_workspace=unique_workspace_dundername())
-    d = SampleLogs(w).duration.value
-    assert (y/d, e/d) == approx((w.readY(42)[5], w.readE(42)[5]), abs=1e-6)
-    assert SampleLogs(w).normalizing_duration.value == 'duration'
-    w.delete()
-
-    w = normalize_by_time(dws, log_key='proton_charge', output_workspace=unique_workspace_dundername())
-    d = SampleLogs(w)['proton_charge'].getStatistics().duration
-    assert (y/d, e/d) == approx((w.readY(42)[5], w.readE(42)[5]), abs=1e-6)
-    assert SampleLogs(w).normalizing_duration.value == 'proton_charge'
+    normalized_data_workspace = normalize_by_time(data_workspace, output_workspace=unique_workspace_dundername())
+    run_duration = SampleLogs(normalized_data_workspace).duration.value
+    assert (y/run_duration, e/run_duration) == approx((normalized_data_workspace.readY(42)[5],
+                                                       normalized_data_workspace.readE(42)[5]), abs=1e-6)
+    assert SampleLogs(normalized_data_workspace).normalizing_duration.value == 'duration'
+    normalized_data_workspace.delete()
 
 
 def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):

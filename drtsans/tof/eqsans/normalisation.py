@@ -1,8 +1,5 @@
-from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram,
-                              RebinToWorkspace, NormaliseToUnity, Divide,
-                              NormaliseByCurrent, ConvertToDistribution,
-                              CloneWorkspace, RemoveSpectra, Multiply, Load,
-                              DeleteWorkspace, Scale, SplineInterpolation)
+from mantid.simpleapi import (mtd, LoadAscii, ConvertToHistogram, RebinToWorkspace, Divide, NormaliseByCurrent, Load,
+                              CloneWorkspace, RemoveSpectra, Multiply, DeleteWorkspace, Scale, SplineInterpolation)
 from drtsans import path
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs

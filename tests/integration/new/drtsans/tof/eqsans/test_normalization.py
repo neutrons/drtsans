@@ -202,10 +202,9 @@ def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
 
     # The intensity in a detector pixel is the same for all wavelength bins. Thus, we replicate the one value per
     # detector pixel to be the same for all wavelength bins
-    intensities_list = np.repeat(intensities_list[:, np.newaxis],
-                                 len(data_test_16a_by_monitor['wavelength_bin_boundaries']) - 1, axis=1)
-    errors_list = np.repeat(errors_list[:, np.newaxis],
-                            len(data_test_16a_by_monitor['wavelength_bin_boundaries']) - 1, axis=1)
+    number_wavelength_bins = len(data_test_16a_by_monitor['wavelength_bin_boundaries']) - 1
+    intensities_list = np.repeat(intensities_list[:, np.newaxis], number_wavelength_bins, axis=1)
+    errors_list = np.repeat(errors_list[:, np.newaxis], number_wavelength_bins, axis=1)
 
     # Create the workspace with the intensities and errors. It has 25 spectra and each spectra has 10 wavelength bins
     data_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bin_boundaries'],
@@ -218,15 +217,13 @@ def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
     # In the reduction framework, counts at the monitor will be stored in a Mantid workspace
     monitor_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bin_boundaries'],
                                         DataY=data_test_16a_by_monitor['monitor_counts'],
-                                        DataE=np.zeros(len(data_test_16a_by_monitor['wavelength_bin_boundaries']) - 1),
-                                        NSpec=1,
+                                        DataE=np.zeros(number_wavelength_bins), NSpec=1,
                                         OutputWorkspace=unique_workspace_dundername())
 
     # In the reduction framework, the flux-to-monitor file will be loaded to a Mantid workspace
     flux_to_monitor_workspace = CreateWorkspace(DataX=data_test_16a_by_monitor['wavelength_bin_boundaries'],
                                                 DataY=data_test_16a_by_monitor['flux_to_monitor_ratios'],
-                                                DataE=np.zeros(len(data_test_16a_by_monitor['wavelength_bin_boundaries']) - 1),
-                                                NSpec=1,
+                                                DataE=np.zeros(number_wavelength_bins), NSpec=1,
                                                 OutputWorkspace=unique_workspace_dundername())
     # Carry out the normalization with the reduction framework
     data_workspace = normalize_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
@@ -338,9 +335,9 @@ def test_normalise_by_proton_charge_and_flux(data_test_16a_by_proton):
 
     # The intensity in a detector pixel is the same for all wavelength bins. Thus, we replicate the one value per
     # detector pixel to be the same for all wavelength bins
-    intensities_list = np.repeat(intensities_list[:, np.newaxis], len(data_test_16a_by_proton['wavelength_bin_boundaries']) - 1,
-                                 axis=1)
-    errors_list = np.repeat(errors_list[:, np.newaxis], len(data_test_16a_by_proton['wavelength_bin_boundaries']) - 1, axis=1)
+    number_wavelength_bins = len(data_test_16a_by_proton['wavelength_bin_boundaries']) - 1
+    intensities_list = np.repeat(intensities_list[:, np.newaxis], number_wavelength_bins, axis=1)
+    errors_list = np.repeat(errors_list[:, np.newaxis], number_wavelength_bins, axis=1)
 
     # Create the workspace with the intensities and errors. It has 25 spectra and each spectra has 10 wavelength bins
     data_workspace = CreateWorkspace(DataX=data_test_16a_by_proton['wavelength_bin_boundaries'],

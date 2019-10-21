@@ -43,18 +43,10 @@ def monitor_ws(reference_dir):
 
 
 def test_load_beam_flux_file(beam_flux, data_ws):
-    # No reference workspace
-    w = load_beam_flux_file(beam_flux)
-    assert w.name().startswith('__')  # gets random hidden name
-    i = Integration(w)
-    assert i.readY(0)[0] == approx(1)  # normalized
-    assert max(w.readY(0)) == approx(0.337, abs=0.001)
-    # Reference workspace
-    w = load_beam_flux_file(beam_flux, ws_reference=data_ws['92353'])
-    i = Integration(w)
-    assert i.readY(0)[0] == approx(0.79, abs=0.01)  # normalized
-    assert max(w.readY(0)) == approx(0.337, abs=0.001)
-    assert w.dataX(0) == approx(data_ws['92353'].dataX(0))
+    flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_ws['92353'])
+    assert flux_workspace.readY(0)[0] == approx(959270., abs=1.)
+    assert max(flux_workspace.readY(0)) == approx(966276., abs=1.)
+    assert flux_workspace.dataX(0) == approx(data_ws['92353'].dataX(0))
 
 
 def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):

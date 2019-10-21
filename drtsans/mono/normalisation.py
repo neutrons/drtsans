@@ -2,7 +2,7 @@
 # https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
 from mantid.simpleapi import CreateSingleValuedWorkspace, Divide, mtd
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import (unique_workspace_dundername as uwd)
+from drtsans.settings import unique_workspace_dundername
 
 
 def normalize_by_time(input_workspace, output_workspace=None):
@@ -19,14 +19,14 @@ def normalize_by_time(input_workspace, output_workspace=None):
     if output_workspace is None:
         output_workspace = input_workspace
     timer = SampleLogs(input_workspace).timer.value  # seconds
-    timer_workspace = CreateSingleValuedWorkspace(timer, OutputWorkspace=uwd())
+    timer_workspace = CreateSingleValuedWorkspace(timer, OutputWorkspace=unique_workspace_dundername())
     Divide(LHSWorkspace=input_workspace,
            RHSWorkspace=timer_workspace,
            OutputWorkspace=output_workspace)
     return mtd[output_workspace]
 
 
-def normalize_by_monitor(input_workspace, output_workspace=None, factor_is=10 ** 8):
+def normalize_by_monitor(input_workspace, output_workspace=None, factor_is=1.e08):
     """Normalise by the monitor value
 
     **Mantid algorithms used:**
@@ -45,8 +45,6 @@ def normalize_by_monitor(input_workspace, output_workspace=None, factor_is=10 **
     if output_workspace is None:
         output_workspace = input_workspace
     monitor = SampleLogs(input_workspace).monitor.value / factor_is  # seconds  # counts
-    monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=uwd())
-    Divide(LHSWorkspace=input_workspace,
-           RHSWorkspace=monitor_workspace,
-           OutputWorkspace=output_workspace)
+    monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=unique_workspace_dundername())
+    Divide(LHSWorkspace=input_workspace, RHSWorkspace=monitor_workspace, OutputWorkspace=output_workspace)
     return mtd[output_workspace]

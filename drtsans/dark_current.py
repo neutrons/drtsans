@@ -61,7 +61,7 @@ def duration(input_workspace, log_key=None):
         try:
             return dict(value=calc.get(key, sample_logs.single_value)(key), log_key=key)
         except RuntimeError:
-            continue
+            continue  # check next log entry
     raise AttributeError("Could not determine the duration of the run")
 
 

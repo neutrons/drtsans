@@ -11,10 +11,9 @@ from drtsans.tof.eqsans.dark_current import duration as run_duration
 __all__ = ['normalize_by_flux', 'normalize_by_time', 'normalize_by_monitor', 'normalise_by_proton_charge_and_flux']
 
 
-def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
+def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
     r"""
-    Loads the beam flux file and converts to a wavelength
-    normalized probability distribution.
+    Loads the beam flux spectrum file.
 
     **Mantid algorithms used:**
     :ref:`LoadAscii <algm-LoadAscii-v1>`,
@@ -33,8 +32,8 @@ def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
     flux: str
         Path to file with the wavelength distribution of the neutron
         flux. Loader is Mantid `LoadAscii` algorithm.
-    ws_reference : str, MatrixWorkspace
-        Workspace to rebin the flux to. If None, no rebin is performed
+    data_workspace : str, MatrixWorkspace
+        Workspace to rebin the flux to. If None, then no rebin is performed
     output_workspace: str
         Name of the output workspace. If None, a hidden random name
         will be assigned.
@@ -46,16 +45,12 @@ def load_beam_flux_file(flux, ws_reference=None, output_workspace=None):
     if output_workspace is None:
         output_workspace = unique_workspace_dundername()  # make a hidden workspace
 
-    LoadAscii(Filename=flux, Separator="Tab", Unit="Wavelength",
-              OutputWorkspace=output_workspace)
-    ConvertToHistogram(InputWorkspace=output_workspace,
-                       OutputWorkspace=output_workspace)
-    ConvertToDistribution(Workspace=output_workspace)
-    NormaliseToUnity(InputWorkspace=output_workspace,
-                     OutputWorkspace=output_workspace)
-    if ws_reference is not None:
-        RebinToWorkspace(WorkspaceToRebin=output_workspace,
-                         WorkspaceToMatch=ws_reference,
+    # Load flux filename to a point-data workspace (we have as many intensities as wavelength values)
+    LoadAscii(Filename=flux, Separator="Tab", Unit="Wavelength", OutputWorkspace=output_workspace)
+    # In histogram data we have as many intensities as wavelength bins
+    ConvertToHistogram(InputWorkspace=output_workspace,  OutputWorkspace=output_workspace)
+    if data_workspace is not None:
+        RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data_workspace,
                          OutputWorkspace=output_workspace)
     return mtd[output_workspace]
 
@@ -102,7 +97,8 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     return mtd[output_workspace]
 
 
-def load_flux_to_monitor_ratio_file(flux, data_workspace=None, loader_kwargs=dict(), output_workspace=None):
+def load_flux_to_monitor_ratio_file(flux_to_monitor_ratio_file, data_workspace=None, loader_kwargs=dict(),
+                                    output_workspace=None):
     r"""
     Loads the flux-to-monitor ratio
 
@@ -116,7 +112,7 @@ def load_flux_to_monitor_ratio_file(flux, data_workspace=None, loader_kwargs=dic
 
     Parameters
     ----------
-    flux: str
+    flux_to_monitor_ratio_file: str
         Path to file with the flux-to-monitor ratio data. Loader is
         Mantid `LoadAscii` algorithm.
     data_workspace: str, MatrixWorkspace
@@ -135,9 +131,8 @@ def load_flux_to_monitor_ratio_file(flux, data_workspace=None, loader_kwargs=dic
         output_workspace = unique_workspace_dundername()  # make a hidden workspace
 
     # Let Mantid figure out what kind file format is the flux file
-    Load(Filename=flux, OutputWorkspace=output_workspace, **loader_kwargs)
-    ConvertToHistogram(InputWorkspace=output_workspace,
-                       OutputWorkspace=output_workspace)
+    Load(Filename=flux_to_monitor_ratio_file, OutputWorkspace=output_workspace, **loader_kwargs)
+    ConvertToHistogram(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
     if data_workspace is not None:
         SplineInterpolation(WorkspaceToMatch=data_workspace, WorkspaceToInterpolate=output_workspace,
                             OutputWorkspace=output_workspace)
@@ -291,7 +286,7 @@ def normalize_by_flux(input_workspace, flux, method='proton charge',
 
     # Use the appropriate flux file loader
     if method == 'proton charge':
-        w_flux = load_beam_flux_file(flux, ws_reference=input_workspace)
+        w_flux = load_beam_flux_file(flux, data_workspace=input_workspace)
     elif method == 'monitor':
         w_flux = load_flux_to_monitor_ratio_file(flux, data_workspace=input_workspace)
     else:

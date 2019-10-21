@@ -108,16 +108,22 @@ def test_normalization_by_monitor(data_test_16a):
     """
     # Create a Mantid workspace with the sample intensities
     intensities_list = list(itertools.chain(*data_test_16a['I_sam']))
-    ws = CreateWorkspace(DataX=data_test_16a['wavelength_bin'],
-                         DataY=intensities_list,
-                         NSpec=data_test_16a['n_pixels'],
-                         OutputWorkspace=unique_workspace_dundername())
+    intensities_errors = list(itertools.chain(*data_test_16a['I_sam_err']))
+
+    ws = CreateWorkspace(DataX=data_test_16a['wavelength_bin'], DataY=intensities_list, DataE=intensities_errors,
+                         NSpec=data_test_16a['n_pixels'], OutputWorkspace=unique_workspace_dundername())
     # Insert the flux at the monitor as a metadata item
     SampleLogs(ws).insert('monitor', data_test_16a['flux_sam'])
     ws_samnorm = normalize_by_monitor(ws)
+
     # Compare normalized intensities to those of the test
     intensities_list = list(itertools.chain(*data_test_16a['I_samnorm']))
     assert ws_samnorm.extractY() == pytest.approx(intensities_list, abs=data_test_16a['precision'])
+
+    # Compare normalized errors to those of the test
+    intensities_errors = list(itertools.chain(*data_test_16a['I_samnorm_err']))
+    assert ws_samnorm.extractE() == pytest.approx(intensities_errors, abs=data_test_16a['precision'])
+
     ws_samnorm.delete()  # some clean up
 
 

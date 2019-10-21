@@ -1,8 +1,3 @@
-# flake8: noqa
-from .dark_current import *
+from .dark_current import *  # noqa: F403
 
-__mods = (
-    dark_current,
-)
-
-__all__ = [s for m in __mods for s in m.__all__]
+__all__ = (dark_current.__all__)  # noqa: F405

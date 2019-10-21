@@ -61,18 +61,14 @@ def test_iq_binning_serial(reference_dir):
                      sample_offset=0)
 
     # Convert to wave length
-    ws = transform_to_wavelength(ws,
-                                 bin_width=0.1,
-                                 low_tof_clip=500,
-                                 high_tof_clip=2000)
+    ws = transform_to_wavelength(ws, bin_width=0.1, low_tof_clip=500, high_tof_clip=2000)
 
     # Calibration in the next few steps
     center_detector(ws, center_x=0.025, center_y=0.016)
 
     flux_ws = normalisation.load_beam_flux_file(os.path.join(
         reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
-        output_workspace='flux_ws',
-        ws_reference=ws)
+        output_workspace='flux_ws', data_workspace=ws)
 
     ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 

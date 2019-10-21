@@ -59,7 +59,7 @@ def test_load_beam_flux_file(beam_flux, data_ws):
 
 def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
     dws = data_ws['92353']
-    flux_ws = load_beam_flux_file(beam_flux, ws_reference=dws)
+    flux_ws = load_beam_flux_file(beam_flux, data_workspace=dws)
     w = normalise_by_proton_charge_and_flux(dws, flux_ws,
                                             output_workspace=unique_workspace_dundername())
     pc = SampleLogs(dws).getProtonCharge()
@@ -119,7 +119,7 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
                                                   output_workspace=unique_workspace_dundername())
     summed_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=unique_workspace_dundername())
     # Compare to "manual" normalization
-    flux_workspace = load_beam_flux_file(beam_flux, ws_reference=data_workspace)
+    flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_workspace)
     pc = SampleLogs(data_workspace).getProtonCharge()
     summed = SumSpectra(data_workspace, OutputWorkspace=unique_workspace_dundername())
     assert summed_normalized.readY(0) == approx(summed.readY(0) / (flux_workspace.readY(0) * pc), rel=0.01)

@@ -118,4 +118,4 @@ def test_center_detector():
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

@@ -36,4 +36,4 @@ def test_api_geometry(biosans_f):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

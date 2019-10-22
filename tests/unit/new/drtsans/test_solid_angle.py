@@ -63,4 +63,4 @@ def test_solid_angle_input_output(reference_dir):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

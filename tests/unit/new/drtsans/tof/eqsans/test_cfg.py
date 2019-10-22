@@ -89,4 +89,4 @@ def test_load_config(reference_dir):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

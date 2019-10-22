@@ -532,4 +532,4 @@ def do_no_weight_binning(bin_centers, det_counts, bins_dict):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])

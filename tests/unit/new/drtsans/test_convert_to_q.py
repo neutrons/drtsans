@@ -135,4 +135,4 @@ def test_convert_q_crystal(generic_workspace):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

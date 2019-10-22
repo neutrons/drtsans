@@ -38,4 +38,4 @@ def test_load_events_monitor(reference_dir):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

@@ -16,4 +16,4 @@ def test_normalise_by_time(reference_dir):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

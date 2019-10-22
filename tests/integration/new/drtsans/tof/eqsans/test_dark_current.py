@@ -122,4 +122,4 @@ def test_normalize_dark_current(data_test_16a):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

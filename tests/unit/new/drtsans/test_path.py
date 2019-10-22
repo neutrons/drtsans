@@ -70,3 +70,7 @@ def test_registered_workspace():
     w = CreateWorkspace(DataX=[1], Datay=[1], OutputWorkspace=w_name)
     assert registered_workspace(w_name) is True
     assert registered_workspace(w) is True
+
+
+if __name__ == '__main__':
+    pytest.main([__file__])

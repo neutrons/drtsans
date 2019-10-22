@@ -133,4 +133,4 @@ def test_apply_mask_simple_histogram(generic_IDF):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

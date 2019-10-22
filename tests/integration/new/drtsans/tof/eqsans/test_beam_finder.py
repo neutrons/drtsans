@@ -46,4 +46,4 @@ def test_find_beam_center(eqsans_f, eqsans_p):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

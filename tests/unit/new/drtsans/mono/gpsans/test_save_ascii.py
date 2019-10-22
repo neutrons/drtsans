@@ -49,4 +49,4 @@ def test_save_ascii(gpsans_f):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

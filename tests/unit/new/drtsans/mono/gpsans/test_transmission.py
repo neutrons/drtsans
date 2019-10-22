@@ -3,7 +3,7 @@ from pytest import approx
 from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent, CreateWorkspace
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.transmission import calculate_transmission, apply_transmission_correction
-from drtsans.mono.gpsans import beam_finder
+from drtsans.mono.gpsans import find_beam_center
 
 
 @pytest.fixture(scope='module')
@@ -27,7 +27,7 @@ def dataset_center(gpsans_full_dataset):
     Finds the beamcenter and places the instrument in the right position.
     '''
     __beamcenter = LoadHFIRSANS(Filename=gpsans_full_dataset['beamcenter'])
-    x, y = beam_finder.find_beam_center(__beamcenter)
+    x, y = find_beam_center(__beamcenter)
     return x, y
 
 

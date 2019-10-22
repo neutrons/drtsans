@@ -5,7 +5,7 @@ from drtsans.settings import unique_workspace_dundername
 from drtsans.geometry import masked_detectors
 from drtsans import transmission
 from drtsans.mask_utils import circular_mask_from_beam_center
-from drtsans.settings import unique_workspace_dundername as uwd # pylint: disable=W0404
+from drtsans.settings import unique_workspace_dundername as uwd  # pylint: disable=W0404
 
 
 def empty_beam_intensity(empty_beam_workspace, beam_radius=None, unit='mm', roi=None,

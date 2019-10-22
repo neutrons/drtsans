@@ -7,7 +7,7 @@ from mantid.simpleapi import mtd, CreateWorkspace, DeleteWorkspaces
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-# normalize_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current
+# subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.dark_current import subtract_dark_current
@@ -57,8 +57,8 @@ def data_test_16a():
                 )
 
 
-def test_dark_current_normalize_to_workspace(data_test_16a):
-    r"""Test of dark current normalization
+def test_subtract_dark_current(data_test_16a):
+    r"""Test of dark current subtraction from data. Dark current must be normalized
 
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/156
     and also https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174

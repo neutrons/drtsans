@@ -1,9 +1,9 @@
 import pytest
 from pytest import approx
-import drtsans.beam_finder as bf
-from drtsans.settings import unique_workspace_dundername as uwd
-from mantid.simpleapi import (CreateWorkspace, LoadInstrument, AddSampleLog,
-                              MaskDetectors, LoadEmptyInstrument)
+from drtsans.beam_finder import center_detector, find_beam_center
+# https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
+from mantid.simpleapi import LoadEmptyInstrument, MaskDetectors
 import numpy as np
 
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
@@ -12,11 +12,17 @@ import numpy as np
 # to padd with zeros on each side
 
 
-@pytest.mark.parametrize('generic_IDF',
+@pytest.mark.parametrize('generic_workspace',
                          [{'Nx': 4, 'Ny': 4, 'dx': 1.,
-                           'dy': 1., 'xc': 1.5, 'yc': 1.5}],
+                           'dy': 1., 'xc': 1.5, 'yc': 1.5,
+                           'axis_values': [1., 2.]*16,
+                           'intensities': [0., 0., 0., 0.,
+                                           0., 5., 3., 0.,
+                                           0., 11., 7., 0.,
+                                           0., 0., 0., 0.],
+                           'uncertainties':[1.]*16}],
                          indirect=True)
-def test_beam_finder_trivial(generic_IDF):
+def test_beam_finder_trivial(generic_workspace):
     r"""
     Testing section 3.1 in the master document
     Find beam center of a simple 2 x 2 detector
@@ -26,23 +32,14 @@ def test_beam_finder_trivial(generic_IDF):
     dev - Andrei Savici <saviciat@ornl.gov>
     SME - Venky Pingali <pingalis@ornl.gov>
     """
-    ws = CreateWorkspace(DataX=[1., 2.]*16,
-                         DataY=[0., 0., 0., 0.,
-                                0., 5., 3., 0.,
-                                0., 11., 7., 0.,
-                                0., 0., 0., 0.],
-                         DataE=[1.]*16,
-                         Nspec=16,
-                         OutputWorkspace=uwd())
-    LoadInstrument(Workspace=ws, InstrumentXML=generic_IDF,
-                   RewriteSpectraMap=True, InstrumentName='EQ-SANS')
-    AddSampleLog(Workspace=ws, LogName='wavelength', LogText='6.0', LogType='Number')
+    ws = generic_workspace  # simple name to make the rest easier
+
     inst = ws.getInstrument()
     assert inst.getDetector(5).getPos() == approx([2, 1, 5], abs=1e-5)
     assert inst.getDetector(6).getPos() == approx([2, 2, 5], abs=1e-5)
     assert inst.getDetector(9).getPos() == approx([1, 1, 5], abs=1e-5)
     assert inst.getDetector(10).getPos() == approx([1, 2, 5], abs=1e-5)
-    x_cen, y_cen = bf.find_beam_center(ws)
+    x_cen, y_cen = find_beam_center(ws)
     assert x_cen == approx(1.307692, abs=1e-5)
     assert y_cen == approx(1.384615, abs=1e-5)
 
@@ -74,7 +71,6 @@ def test_beam_finder_larger_workspace(generic_workspace):
     SME - Venky Pingali <pingalis@ornl.gov>
     """
     ws = generic_workspace
-    AddSampleLog(Workspace=ws, LogName='wavelength', LogText='6.0', LogType='Number')
     # masking
     intensities = ws.extractY()
     mask = np.where(np.isnan(intensities))[0].tolist()
@@ -89,7 +85,7 @@ def test_beam_finder_larger_workspace(generic_workspace):
     for i in mask:
         assert spec.isMasked(i)
     # test functions
-    x_cen, y_cen = bf.find_beam_center(ws)
+    x_cen, y_cen = find_beam_center(ws)
     assert x_cen == approx(5.423913, abs=1e-5)
     assert y_cen == approx(5.654682, abs=1e-5)
 
@@ -109,7 +105,7 @@ def test_center_detector():
     # move detector
     xcenter = 0.5
     ycenter = 0.7
-    bf.center_detector(w_eqsans, center_x=xcenter, center_y=ycenter)
+    center_detector(w_eqsans, center_x=xcenter, center_y=ycenter)
     inst = w_eqsans.getInstrument()
     assert inst.getDetector(0).getPos() == approx([0.024185, -1.220957, -0.0316256], abs=1e-5)
     assert inst.getDetector(49151).getPos() == approx([-1.025015, -0.179043, -0.0234656], abs=1e-5)

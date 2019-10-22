@@ -61,4 +61,4 @@ def test_thickness_normalization(workspaces):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

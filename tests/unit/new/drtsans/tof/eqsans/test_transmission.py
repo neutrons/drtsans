@@ -46,4 +46,4 @@ def test_fit_raw(trasmission_data):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

@@ -107,7 +107,7 @@ def test_reduction(reference_dir):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])
 
 """Original script in /SNS/EQSANS/IPTS-20196/shared/heller/test/porasil_slice1m.py
 # EQSANS reduction script

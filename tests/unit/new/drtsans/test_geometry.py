@@ -67,4 +67,4 @@ def test_detector_translation():
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

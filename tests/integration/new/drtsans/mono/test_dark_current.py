@@ -50,4 +50,4 @@ def test_dark_current_normalize_to_workspace(workspace_with_instrument):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

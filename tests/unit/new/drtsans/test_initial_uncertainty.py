@@ -57,4 +57,4 @@ def test_initial_uncertainty(generic_IDF):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

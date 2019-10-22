@@ -147,4 +147,4 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

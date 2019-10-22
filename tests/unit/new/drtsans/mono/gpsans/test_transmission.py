@@ -87,4 +87,4 @@ def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scatter
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

@@ -45,4 +45,4 @@ def test_center_detector(reference_dir):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

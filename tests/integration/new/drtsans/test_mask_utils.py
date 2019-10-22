@@ -60,4 +60,4 @@ def test_apply_mask():
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

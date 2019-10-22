@@ -119,4 +119,4 @@ def test_convert_to_wavelength(reference_dir):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

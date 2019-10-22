@@ -74,3 +74,7 @@ def verify_q(ws, q_matrix, qx_matrix, qy_matrix):
     assert np.allclose(q_matrix**2, qx_matrix**2 + qy_matrix**2, rtol=1.E-10)
 
     return
+
+
+if __name__ == '__main__':
+    pytest.main([__file__])

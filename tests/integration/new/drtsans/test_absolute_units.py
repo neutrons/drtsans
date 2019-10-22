@@ -69,7 +69,7 @@ def test_empty_beam_intensity(workspace_with_instrument):
     # Find the coordinates of the center pixel, then translate the detector such that the coordinates of the
     # center pixel lie now at the origin of the XY plane
     spectrum_info = empty_beam_workspace.spectrumInfo()
-    x, y, z = spectrum_info.position(center_pixel_id)
+    x, y, _ = spectrum_info.position(center_pixel_id)
     center_detector(empty_beam_workspace, center_x=x, center_y=y)
 
     # Check that the center pixel is now at the origin in the XY plane

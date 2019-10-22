@@ -1,6 +1,11 @@
 from dateutil.parser import parse as parse_date
 import numpy as np
+
+# Links to mantid algorithms
+# Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
+# DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 from mantid.simpleapi import mtd, Integration, DeleteWorkspace
+
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 

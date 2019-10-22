@@ -8,7 +8,7 @@ import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/RenameWorkspace-v1.html
 from mantid.simpleapi import CloneWorkspace, CreateSingleValuedWorkspace, Minus, mtd, RebinToWorkspace, RenameWorkspace
 
-__all__ = ['subtract_background']
+__all__ = ['half_polarization', 'subtract_background']
 
 
 def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,

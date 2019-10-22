@@ -1,4 +1,3 @@
-
 from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace, LoadNexusMonitors)
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs

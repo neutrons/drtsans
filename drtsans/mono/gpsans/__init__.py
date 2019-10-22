@@ -1,10 +1,6 @@
-# flake8: noqa
-from drtsans.transmission import apply_transmission_correction
+import drtsans.transmission
+from drtsans.transmission import *  # noqa: F403
+from .load import *  # noqa: F403
+from .api import *  # noqa: F403
 
-from .load import *
-from .api import *
-
-__mods = (load, )
-
-__all__ = [s for m in __mods for s in m.__all__]
-
+__all__ = [] + drtsans.transmission.__all__ + api.__all__ + load.__all__  # noqa: F405

@@ -14,6 +14,8 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import masked_detectors
 from drtsans.mask_utils import circular_mask_from_beam_center
 
+__all__ = ['apply_transmission_correction']
+
 
 # To-do. This should be substituted with a function similar to
 # eqsans.transmission.beam_radius so that

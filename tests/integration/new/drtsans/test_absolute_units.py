@@ -92,12 +92,26 @@ def test_empty_beam_intensity(workspace_with_instrument):
 
 
 def test_standard_sample_measurement():
-    '''
-        Tests normalization with a calibrated standard sample as described in the master document
-        section 12.3
-        dev - Steven Hahn <hahnse@ornl.gov>
-        SME - Changwoo Do <doc1@ornl.gov>
-    '''
+    r"""
+    Tests normalization with a calibrated standard sample as described in the master document
+    section 12.3
+    dev - Steven Hahn <hahnse@ornl.gov>
+    SME - Changwoo Do <doc1@ornl.gov>
+
+    **Mantid algorithms used:**
+    :ref:`CreateSingleValuedWorkspace <algm-CreateSingleValuedWorkspace-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
+    :ref:`DeleteWorkspace <algm-DeleteWorksapce-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+    :ref:`Divide <algm-Divide-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
+    :ref:`Multiply <algm-Multiply-v1>`,
+    <https://docs.mantidproject.org/nightly/algorithms/Multiply-v1.html>
+
+    **drtsans functions used:**
+    ~drtsans.absolute_units.standard_sample_scaling,
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
+    """
     F_std = 450.  # value from supplied test
     F_std_err = 10.  # value from supplied test
     F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=uwn())

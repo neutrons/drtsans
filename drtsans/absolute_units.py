@@ -1,5 +1,6 @@
 from mantid.simpleapi import (mtd, CreateSingleValuedWorkspace, GroupDetectors, Divide, RebinToWorkspace,
                               Multiply, DeleteWorkspace)
+from mantid.dataobjects import WorkspaceSingleValue
 from drtsans.settings import unique_workspace_dundername
 from drtsans.geometry import masked_detectors
 from drtsans import transmission
@@ -119,7 +120,7 @@ def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
         Workspace to be normalized
     f: ~mantid.api.WorkspaceSingleValue
         Level of flat scattering
-    f_std: ~mantid.api.SingleValueWorkspace
+    f_std: ~mantid.api.WorkspaceSingleValue
         Known value of the scattering level of the material
     output_workspace: ~mantid.api.MatrixWorkspace
         Name of the normalized workspace. If ``None``, then the name of ``input_workspace`` will be used,
@@ -128,8 +129,14 @@ def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
     -------
         ~mantid.api.MatrixWorkspace
     """
+    if not isinstance(f, WorkspaceSingleValue):
+        raise TypeError("f is not of type WorkspaceSingleValue")
+    if not isinstance(f_std, WorkspaceSingleValue):
+        raise TypeError("f_std is not of type WorkspaceSingleValue")
+
     if output_workspace is None:
         output_workspace = str(input_workspace)
+
     scaling_factor = Divide(LHSWorkspace=f_std, RHSWorkspace=f, OutputWorkspace=uwd())
     output_workspace = Multiply(LHSWorkspace=input_workspace, RHSWorkspace=scaling_factor)
     DeleteWorkspace(Workspace=scaling_factor)

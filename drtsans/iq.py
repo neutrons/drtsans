@@ -37,13 +37,13 @@ class BinningMethod(Enum):
     """
     Binning method
     """
-    NOWEIGHT = 1
-    WEIGHTED = 2
+    NOWEIGHT = 1   # no-weight binning
+    WEIGHTED = 2   # weighted binning
 
 
 def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins, q_min=None, q_max=None,
                            bin_method=BinningMethod.WEIGHTED):
-    """Binning I(Q) from scalar Q (1D)
+    """Binning I(Q) from scalar Q (1D) with linear binning on Q
 
     Parameters
     ----------
@@ -93,23 +93,28 @@ def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins
     return binned_q
 
 
-def bin_iq_into_logarithm_q1d(wl_ws, bins_per_decade, q_min=0.001, q_max=1.0, instrument=None):
-    """
-    Binning I(Q) with a logarithm bin
+def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, step_per_decade,
+                              q_min=None, q_max=None, bin_method=BinningMethod.WEIGHTED):
+    """Binning I(Q) from scalar Q (1D) with logarithm binning on Q
+
     Parameters
     ----------
-    wl_ws :  ~mantid.api.MatrixWorkspace
-        MatrixWorkspace in wave length
-    bins_per_decade: integer
-        number of bins
-    q_min: float
-        minimum Q left bin edge value
-    q_max: float or None
-        maximum Q right bin edge value. None as the default such that Qmax will be determined from workspace
-            automatically
-    instrument: String or None
-        Instrument type (tof, mono) only used for testing purpose. For real SANS instrument, it will be determined
-        automatically from instrument name
+    intensity : ndarray
+        Intensity I(Q)
+    intensity_error : ndarray
+        Uncertainty of intensity sigma I(Q)
+    scalar_q : ndarray
+        Q
+    scalar_dq : ndaray
+        Q resolution
+    step_per_decade : integer
+        number of bins per decade
+    q_min : float or NOne
+        min Q (edge) of the binned Q. Default to min(scalar_q)
+    q_max : float or None
+        max Q (edge) of the binned Q. Default to max(scalar_q)
+    bin_method : BinningMethod
+        weighted binning or no-weight binning method
     Returns
     -------
     IofQ
@@ -118,13 +123,26 @@ def bin_iq_into_logarithm_q1d(wl_ws, bins_per_decade, q_min=0.001, q_max=1.0, in
         Q, dQ, I, dI
         Q, Q resolution, I, uncertainty of I
     """
-    # Initialize the calculator
-    calculator = IofQCalculator(wl_ws, instrument_type=instrument)
+    # define q min and q max
+    if q_min is None:
+        q_min = np.min(scalar_q)
+    if q_max is None:
+        q_max = np.max(scalar_q)
 
-    # bin
-    binned_i_q = calculator.bin_into_log_q1d(bins_per_decade, q_min, q_max)
+    # calculate bin centers and bin edges
+    bin_centers, bin_edges = IofQCalculator.determine_log_bin_edges(q_min, q_max, step_per_decade)
 
-    return binned_i_q
+    # bin I(Q)
+    if bin_method == BinningMethod.WEIGHTED:
+        # weighed binning
+        binned_q = IofQCalculator.weighted_binning(scalar_q, scalar_dq, intensity, intensity_error,
+                                                   bin_centers, bin_edges)
+    else:
+        # no-weight binning
+        binned_q = IofQCalculator.no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error,
+                                                    bin_centers, bin_edges)
+
+    return binned_q
 
 
 def bin_into_q2d(wl_ws, bins, suffix):
@@ -1014,6 +1032,9 @@ class IofQCalculator(object):
     @staticmethod
     def weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
         """ Bin I(Q) by given bin edges and do weighted binning
+
+        If there is no Q in a certain Qk bin, NaN will be set to both I(Qk) and sigma I(Qk)
+
         Parameters
         ----------
         q_array: ndarray

@@ -1,4 +1,9 @@
+# Links to mantid algorithms
+# Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
+# DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+# Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale
+
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 

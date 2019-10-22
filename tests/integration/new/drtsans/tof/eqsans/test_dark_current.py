@@ -52,15 +52,15 @@ def test_normalize_dark_current(data_test_16a):
 
     **Mantid algorithms used:**
     :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
-    <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+        <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 
     **drtsans functions used:**
     ~drtsans.settings.unique_workspace_dundername
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
     ~drtsans.tof.eqsans.dark_current.normalize_dark_current
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
+        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
     """
     wavelength_bin_boundaries = np.arange(data_test_16a['l_min'],
                                           data_test_16a['l_max'] + data_test_16a['l_step'] / 2.,
@@ -102,7 +102,7 @@ def test_normalize_dark_current(data_test_16a):
     # Initialize the dark current logs. Only the duration of the run is necessary, which is recorded by the data
     # acquisition software.
     dark_sample_log = SampleLogs(dark_workspace)
-    dark_sample_log.insert('duration', data_test_16a['t_dc'])
+    dark_sample_log.insert('duration', data_test_16a['dark_current_duration'])
 
     # Normalization obtained by calling the method id drtsans. Know that this normalization does not take
     # into account the duration of the sample run. The reason is that we can reuse this normalized dark current

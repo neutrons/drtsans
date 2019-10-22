@@ -8,3 +8,6 @@ from .solid_angle import (
     apply_solid_angle_correction_wing_detector,
 )
 from .beam_finder import center_detector
+
+# TODO should this be empty?
+__all__ = []

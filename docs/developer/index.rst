@@ -4,6 +4,8 @@ Developer documentation
 
 See `solid_angle_correction.py <drtsans/solid_angle_correction.py>`_ for propely documented code
 
+.. _devdocs-standardnames:
+
 --------------------------------------------
 Standard variable names and what they denote
 --------------------------------------------

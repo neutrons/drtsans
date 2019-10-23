@@ -356,7 +356,7 @@ def _getDataDimensions(req_params):
     if intensity is None:
         Nx = int(req_params.get('Nx', 3))
         Ny = int(req_params.get('Ny', 3))
-        return Nx, Ny
+        return Nx, Ny, 1
     else:
         # force it to be a numpy array
         # this is a no-op if it is already the right type
@@ -367,14 +367,17 @@ def _getDataDimensions(req_params):
         if (Nx is not None) and (Ny is not None):
             Nx = int(Nx)
             Ny = int(Ny)
-
-            if not (Nx * Ny == intensity.size):
+            if intensity.size % (Nx * Ny) != 0:
                 raise RuntimeError('Supplied Nx={}, Ny={} not compatible with '
                                    'intensities[{}]'.format(Nx, Ny, intensity.shape))
             else:
-                return Nx, Ny
+                return Nx, Ny, int(intensity.size / (Nx * Ny))
         else:
-            return intensity.shape[:2]  # Nx, Ny
+            if len(intensity.shape) == 3:
+                return intensity.shape
+            else:
+                Nx, Ny = intensity.shape[:2]  # Nx, Ny
+                return Nx, Ny, 1
 
 
 @pytest.fixture(scope='function')
@@ -410,7 +413,7 @@ def generic_IDF(request):
             req_params = dict()
 
     # use hidden attibutes to get data dimension, Nx and Ny can override this
-    Nx, Ny = _getDataDimensions(req_params)
+    Nx, Ny, _ = _getDataDimensions(req_params)
 
     # get the parameters from the request object
     params = {'name': req_params.get('name', 'GenericSANS'),
@@ -587,12 +590,12 @@ def generic_workspace(generic_IDF, request):
     y = req_params.get('intensities', None)
     e = req_params.get('uncertainties', None)
 
-    Nx, Ny = _getDataDimensions(req_params)
+    Nx, Ny, Naxis = _getDataDimensions(req_params)
     if y is not None:
         # force it to be a numpy array
         # this is a no-op if it is already the right type
         y = np.array(y)
-        y = y.reshape((Nx, Ny))
+        y = y.reshape((Nx, Ny, Naxis))
     else:
         y = np.zeros((Nx, Ny), dtype=float)
     y = y.ravel()

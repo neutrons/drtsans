@@ -26,10 +26,8 @@ def test_api_load(biosans_f):
     assert ws_name in mtd.getObjectNames()
 
     ws_name = "xptoxpto"
-    ws = load_histogram(
-        filename=biosans_f['beamcenter'], output_workspace=ws_name,
-        wavelength=12, wavelength_spread=1,
-        sample_to_detector_distance=9)
+    ws = load_histogram(filename=biosans_f['beamcenter'], output_workspace=ws_name,
+                        wavelength=12, wavelength_spread=1, sample_det_cent=9)
     assert ws_name in mtd.getObjectNames()
 
     # check logs when some parameters don't come directly from the metadata
@@ -42,3 +40,7 @@ def test_api_load(biosans_f):
     wavelength_spread_ratio_log = sl.single_value('wavelength-spread-ratio')
     assert wavelength_spread_ratio_log == pytest.approx(
         wavelength_spread_log / wavelength_log, abs=1e-3)
+
+
+if __name__ == '__main__':
+    pytest.main([__file__])

@@ -9,6 +9,9 @@ from drtsans.samplelogs import SampleLogs
 from collections import defaultdict
 
 
+__all__ = ['InstrumentName', 'instrument_name', ]
+
+
 @enum.unique
 class InstrumentName(enum.Enum):
     r"""Unique names labelling each instrument"""
@@ -18,6 +21,7 @@ class InstrumentName(enum.Enum):
 
     def __str__(self):
         return self.name
+
 
 def instrument_name(input_query):
     r"""

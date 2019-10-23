@@ -25,6 +25,14 @@ def wss():
                 gpsans=None)
 
 
+def test_instrument_name(serve_events_workspace):
+    assert geo.instrument_name('EQ-SANS') == geo.InstrumentName.EQSANS
+    assert str(geo.instrument_name('EQ-SANS')) == 'EQSANS'
+    assert str(geo.instrument_name('CG3')) == 'BIOSANS'
+    input_workspace = serve_events_workspace('EQSANS_92353')
+    assert geo.instrument_name(input_workspace) == geo.InstrumentName.EQSANS
+
+
 @pytest.mark.offline
 def test_source_sample_distance(wss):
     for v in wss.values():

@@ -16,6 +16,8 @@ class InstrumentName(enum.Enum):
     EQSANS = enum.auto()
     GPSANS = enum.auto()
 
+    def __str__(self):
+        return self.name
 
 def instrument_name(input_query):
     r"""

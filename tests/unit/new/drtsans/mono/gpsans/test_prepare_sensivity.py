@@ -2,13 +2,12 @@ import numpy as np
 import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 # from mantid.simpleapi import LoadEmptyInstrument, AddSampleLog
-from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, IofQCalculator, BinningMethod
-from drtsans.momentum_transfer_factory import calculate_q_dq
 
 # This test implements issue #205 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
 # DEV - Wenduo Zhou <petersonpf@ornl.gov> and Joe Osborn <osbornjd@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>, Lisa
+
 
 def generate_test_data():
     """Generate test data from IS (Lisa)
@@ -25,7 +24,7 @@ def generate_test_data():
 
     l_matrix_b = np.array([[86, 400, 89],
                            [92, np.nan, 91],
-                           [95, 97, 36 ]])
+                           [95, 97, 36]])
 
     l_matrix_c = np.array([[99, 400, 93],
                            [np.nan, 105, 94],
@@ -111,7 +110,7 @@ def calculate_weighted_average_with_error(normalized_data, normalized_error):
     avg_norm_error = normalized_data / weighted_average * np.sqrt((normalized_error / normalized_data)**2
                                                                   + (weighted_average_error / weighted_average)**2)
 
-    return avg_norm_data, avg_norm_error,weighted_average, weighted_average_error
+    return avg_norm_data, avg_norm_error, weighted_average, weighted_average_error
 
 
 def process_bad_pixels(data, data_error, threshold_min, threshold_max):
@@ -143,6 +142,7 @@ def process_bad_pixels(data, data_error, threshold_min, threshold_max):
 
     return data, data_error
 
+
 def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error, data_c, data_c_error):
     """Calculate pixel-wise average of N files to create the new summed file for doing sensitivity correction
 
@@ -168,7 +168,7 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
     return sensitivities, sensitivities_error
 
 
-def calculate_scalar_sensitivity(d_matrix, sigma_d_matrix):
+def normalize_sensitivities(d_matrix, sigma_d_matrix):
     """Do weighted average to pixel-wise sensitivities and propagate the error
     And then apply the average to sensitivity
 
@@ -188,8 +188,7 @@ def calculate_scalar_sensitivity(d_matrix, sigma_d_matrix):
         scalar sensitivity, error of scalar sensitivity
     """
     # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
-    sens_avg = np.sum(d_matrix / sigma_d_matrix) / \
-                      np.sum(1 / sigma_d_matrix)
+    sens_avg = np.sum(d_matrix / sigma_d_matrix) / np.sum(1 / sigma_d_matrix)
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_matrix / sens_avg
@@ -207,10 +206,6 @@ def calculate_scalar_sensitivity(d_matrix, sigma_d_matrix):
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg
 
 
-
-
-
-
 def test_prepare_moving_det_sensitivity():
     """Test main algorithm to prepare sensitivity for instrument with moving detector
 
@@ -223,26 +218,45 @@ def test_prepare_moving_det_sensitivity():
     monitor_a = 10
     monitor_b = 10
     monitor_c = 10
+    threshold_min = 0.5
+    threshold_max = 1.5
 
-    # Normalize by monitor
+    # Normalize by monitor: A, B and C
     matrix_a, sigma_a = test_data_set[0], test_data_set[1]
-    matrix_a, sigma_a = normalize_by_monitor(matrix_a, sigma_a)
+    matrix_a, sigma_a = normalize_by_monitor(matrix_a, sigma_a, monitor_a)
+
+    matrix_b, sigma_b = test_data_set[2], test_data_set[3]
+    matrix_b, sigma_b = normalize_by_monitor(matrix_b, sigma_b, monitor_b)
+
+    matrix_c, sigma_c = test_data_set[4], test_data_set[5]
+    matrix_c, sigma_c = normalize_by_monitor(matrix_c, sigma_c, monitor_c)
+
 
     # Find weighted average and error
-    calculate_weighted_average_with_error()
-    calculate_weighted_average_error()
+    matrix_a, sigma_a, avg_a, sigma_avg_a = calculate_weighted_average_with_error(normalized_data=matrix_a,
+                                                                                  normalized_error=sigma_a)
+    matrix_b, sigma_b, avg_b, sigma_avg_b = calculate_weighted_average_with_error(normalized_data=matrix_b,
+                                                                                  normalized_error=sigma_b)
+    matrix_c, sigma_c, avg_c, sigma_avg_c = calculate_weighted_average_with_error(normalized_data=matrix_c,
+                                                                                  normalized_error=sigma_c)
 
     # Apply bad pixel threshold to the data
-    process_bad_pixels(threshold_min, threshold_max)
+    matrix_a, sigma_a = process_bad_pixels(matrix_a, sigma_a, threshold_min, threshold_max)
+    matrix_b, sigma_b = process_bad_pixels(matrix_b, sigma_b, threshold_min, threshold_max)
+    matrix_c, sigma_c = process_bad_pixels(matrix_c, sigma_c, threshold_min, threshold_max)
 
-    # Correct for beam stop
-    single_file = calculate_pixel_wise_sensitivity()
 
-    sensitivity = calculate_weighted_average_with_error()
-    sen_error = calculate_weighted_average_error()
+    # Correct for beam stop, sum N files for non-normalized sensitivities
+    matrix_d, sigma_matrix_d = calculate_pixel_wise_sensitivity(matrix_a, sigma_a,
+                                                                matrix_b, sigma_b,
+                                                                matrix_c, sigma_c)
+
+    # Normalize pixel-wise sensitivities by weighting-average
+    sensitivities, sensitivities_error, avg_sens, avg_sigma_sens = normalize_sensitivities(matrix_d,
+                                                                                           sigma_matrix_d)
 
     # Compare with gold data
-    verify_result(sensitivity, sen_error)
+    verify_result(sensitivities, sensitivities_error)
 
     return
 

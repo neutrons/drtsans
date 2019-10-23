@@ -1,7 +1,7 @@
 import os
 import enum
 
-from mantid.api import mtd, MatrixWorkspace
+from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.simpleapi import mtd, Load, ExtractMask
 from drtsans.settings import unique_workspace_dundername as uwd
@@ -23,7 +23,7 @@ def instrument_name(input_query):
 
     Parameters
     ----------
-    query: str, Workspace
+    input_query: str, Workspace
         string representing a valid instrument name, or a Mantid workspace containing an instrument
 
     Returns
@@ -32,7 +32,7 @@ def instrument_name(input_query):
         The name of the instrument as one of the InstrumentName enumerations
     """
     string_to_enum = {'CG3': InstrumentName.BIOSANS, 'BIOSANS': InstrumentName.BIOSANS,
-                      'EQ-SANS':InstrumentName.EQSANS, 'EQSANS': InstrumentName.EQSANS,
+                      'EQ-SANS': InstrumentName.EQSANS, 'EQSANS': InstrumentName.EQSANS,
                       'CG2': InstrumentName.GPSANS, 'GPSANS': InstrumentName.GPSANS}
     # We want the enum representation of an instrument name
     if isinstance(input_query, str) and input_query in string_to_enum.keys():

@@ -172,7 +172,7 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
     """Do weighted average to pixel-wise sensitivities and propagate the error
     And then apply the average to sensitivity
 
-    S_avg = \sum_{m, n}{D(m, n) / sigma^2(m, n)} / \sum_{m, n}{1 / sigma^2(m, n)}
+    S_avg = sum_{m, n}{D(m, n) / sigma^2(m, n)} / sum_{m, n}{1 / sigma^2(m, n)}
 
     Parameters
     ----------
@@ -194,7 +194,7 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
     sensitivities = d_matrix / sens_avg
 
     # Calculate scalar sensitivity's error
-    # sigma_S_avg = sqrt(1 / \sum_{m, n}(1 / sigma_D(m, n)^2))
+    # sigma_S_avg = sqrt(1 / sum_{m, n}(1 / sigma_D(m, n)^2))
     sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigma_d_matrix))
 
     # Propagate the sensitivities
@@ -231,7 +231,6 @@ def test_prepare_moving_det_sensitivity():
     matrix_c, sigma_c = test_data_set[4], test_data_set[5]
     matrix_c, sigma_c = normalize_by_monitor(matrix_c, sigma_c, monitor_c)
 
-
     # Find weighted average and error
     matrix_a, sigma_a, avg_a, sigma_avg_a = calculate_weighted_average_with_error(normalized_data=matrix_a,
                                                                                   normalized_error=sigma_a)
@@ -244,7 +243,6 @@ def test_prepare_moving_det_sensitivity():
     matrix_a, sigma_a = process_bad_pixels(matrix_a, sigma_a, threshold_min, threshold_max)
     matrix_b, sigma_b = process_bad_pixels(matrix_b, sigma_b, threshold_min, threshold_max)
     matrix_c, sigma_c = process_bad_pixels(matrix_c, sigma_c, threshold_min, threshold_max)
-
 
     # Correct for beam stop, sum N files for non-normalized sensitivities
     matrix_d, sigma_matrix_d = calculate_pixel_wise_sensitivity(matrix_a, sigma_a,

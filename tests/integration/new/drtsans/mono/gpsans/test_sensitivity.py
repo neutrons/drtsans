@@ -6,7 +6,7 @@ from mantid import mtd
 from mantid.kernel import Property
 from mantid.simpleapi import (CalculateEfficiency, ClearMaskFlag, LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent, ReplaceSpecialValues, SolidAngle, SaveNexus)
-from drtsans.mono.gpsans.beam_finder import find_beam_center
+from drtsans.mono.gpsans import find_beam_center
 from drtsans.mono.normalisation import monitor
 from drtsans.sensitivity import inf_value_to_mask
 

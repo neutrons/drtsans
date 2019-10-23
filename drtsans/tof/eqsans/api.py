@@ -3,12 +3,12 @@ from mantid.api import mtd
 # Import rolled up to complete a single top-level API
 from drtsans import (apply_sensitivity_correction, solid_angle_correction)
 from drtsans import subtract_background
+from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.path import exists as path_exists
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 from drtsans.save_2d import save_nist_dat, save_nexus
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa: F401
-from drtsans.tof.eqsans.beam_finder import center_detector, find_beam_center
 from drtsans.tof.eqsans.correct_frame import smash_monitor_spikes, transform_to_wavelength
 from drtsans.tof.eqsans.load import load_events, load_events_monitor
 from drtsans.tof.eqsans.dark_current import subtract_dark_current

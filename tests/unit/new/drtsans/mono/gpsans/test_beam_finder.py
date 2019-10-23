@@ -3,7 +3,7 @@ import pytest
 from mantid import mtd
 from mantid.simpleapi import MoveInstrumentComponent, FindCenterOfMassPosition, LoadHFIRSANS
 from drtsans.settings import unique_workspace_dundername
-from drtsans.mono.gpsans import beam_finder
+from drtsans.mono.gpsans import find_beam_center
 
 
 def test_beam_finder(gpsans_f):
@@ -15,7 +15,7 @@ def test_beam_finder(gpsans_f):
     LoadHFIRSANS(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws_name)
     ws = mtd[ws_name]
 
-    x, y = beam_finder.find_beam_center(ws)
+    x, y = find_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
 
     assert x == pytest.approx(0.02185, abs=1e-4)

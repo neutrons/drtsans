@@ -8,7 +8,7 @@ from drtsans.mask_utils import mask_spectra_with_special_values
 __all__ = ['center_detector', 'find_beam_center']
 
 
-def find_beam_center(input_ws, method='center_of_mass', mask=None, **kwargs):
+def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwargs):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.
     Usually employed for a direct beam run (no sample and not sample holder).
@@ -38,7 +38,7 @@ def find_beam_center(input_ws, method='center_of_mass', mask=None, **kwargs):
         raise NotImplementedError()  # (f'{method} is not implemented')
 
     # flatten the workspace
-    flat_ws = Integration(InputWorkspace=input_ws, OutputWorkspace=uwd())
+    flat_ws = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
     mask_spectra_with_special_values(flat_ws)
 
     # parameters to be passed to masking

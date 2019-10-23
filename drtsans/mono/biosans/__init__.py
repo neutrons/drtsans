@@ -3,11 +3,7 @@
 from drtsans.transmission import apply_transmission_correction
 
 from ..load import load_histogram
-from .solid_angle import (
-    apply_solid_angle_correction_main_detector,
-    apply_solid_angle_correction_wing_detector,
-)
-from .beam_finder import center_detector
+from .beam_finder import *
+from .solid_angle import *
 
-# TODO should this be empty?
-__all__ = []
+__all__ = (['load_histogram'] + beam_finder.__all__ + solid_angle.__all__)

@@ -4,7 +4,7 @@ from pytest import approx
 from mantid.simpleapi import LoadEventNexus
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.settings import amend_config
-from drtsans.tof.eqsans.beam_finder import center_detector, find_beam_center
+from drtsans.tof.eqsans import center_detector, find_beam_center
 
 
 def test_find_beam_center(reference_dir):

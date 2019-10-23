@@ -25,7 +25,7 @@ class InstrumentName(enum.Enum):
 
 def instrument_name(input_query):
     r"""
-    Find the instrument name as
+    Resolve the instrument name as a unique enumeration.
 
     Parameters
     ----------

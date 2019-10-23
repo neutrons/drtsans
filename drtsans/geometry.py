@@ -350,6 +350,7 @@ def sample_aperture_diameter(input_workspace, unit='m'):
         if log_key in sample_logs.keys():
             diameter = sample_logs.single_value(log_key)
             break
+
     if diameter is None:
         raise RuntimeError('Unable to retrieve the sample aperture diameter from the logs')
 

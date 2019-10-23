@@ -4,7 +4,7 @@ del get_versions
 
 from .api import *  # noqa: F403
 from .beam_finder import *  # noqa: F403
-from .geometry import  *  # noqa: F403
+from .geometry import *  # noqa: F403
 from .sensitivity import *  # noqa: F403
 from .solid_angle_correction import *  # noqa: F403
 from .savereductionlog import *  # noqa: F403

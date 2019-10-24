@@ -266,9 +266,10 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
         scalar sensitivity, error of scalar sensitivity
     """
     # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
-    sens_avg = np.sum(d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))] /
-                      sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]) /\
-               np.sum(1 / sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))])
+    denomiator = np.sum(d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))] /
+                        sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))])
+    nominator = np.sum(1 / sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))])
+    sens_avg = denomiator / nominator
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_matrix / sens_avg

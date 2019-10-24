@@ -320,8 +320,19 @@ def test_prepare_moving_det_sensitivity():
     matrix_c, sigma_c, avg_c, sigma_avg_c = calculate_weighted_average_with_error(normalized_data=matrix_c,
                                                                                   normalized_error=sigma_c)
 
+    # Check weighted sum
+    # Matrix A
     assert abs(avg_a - 8.69) < 0.01, 'Average A is not correct'
     assert abs(sigma_avg_a - 0.329) < 0.001, 'Average Sigma_A is not correct'
+
+    # Matrix C
+    assert abs(avg_c - 8.7031340939) < 0.000001, 'Average C is not correct'
+    assert abs(sigma_avg_c - 0.3298320424) < 0.0000001, 'Average Sigma_C is not correct'
+
+    # Matrix B
+    assert abs(avg_b - 7.3189956223) < 0.00001, 'Average B is not correct: Test = {}, Gold = {}' \
+                                                ''.format(avg_b, 7.3189956223)
+    assert abs(sigma_avg_b - 0.323024967) < 0.000001, 'Average Sigma_B is not correct'
 
     # compare A, B and C to Lisa's gold data
     gold_data_set = get_weighted_averaged_matrix_abc()

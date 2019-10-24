@@ -32,7 +32,7 @@ def show_diff(test_data, gold_data):
         print('      gold\ttest\tdiff')
         for m in range(gold_data.shape[0]):
             for n in range(gold_data.shape[1]):
-                print('({}, {}):  {}\t{}\t'
+                print('({}, {}):  {}\t{}\t{}'
                       .format(m, n, gold_data[m, n], test_data[m, n], abs(gold_data[m, n] - test_data[m, n])))
 
     return

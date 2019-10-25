@@ -22,11 +22,10 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     **Mantid algorithms used:**
         :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v2>`,
         :ref:`Integration <algm-Integration-v1>`,
-        :ref:`MaskBTP <algm-MaskBTP-v1>`
 
     Parameters
     ----------
-    input_workspace: str, Workspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
     method: str
         Method to calculate the beam center. Available methods are:
         - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`.

@@ -74,8 +74,8 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_wing_dete
     return new_beam_center_y
 
 
-def find_beam_center(input_workspace, method='center_of_mass', mask=None,
-                     sample_det_cent_wing_detector=1.13, **kwargs):
+def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={}, centering_options={},
+                     sample_det_cent_wing_detector=1.13):
     """Finds the beam center in a 2D SANS data set.
     This is based on (and uses) :func:`drtsans.find_beam_center`
 
@@ -83,27 +83,29 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None,
 
     Parameters
     ----------
-    input_workspace: str, ~mantid.api.Workspace
-        Workspace to calculate beam center from
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
     method: str
-        Method to calculate the beam center( only ``'center_of_mass'`` is
-        implemented)
-    mask: str or list
-        Tubes to be masked
-    sample_det_cent_wing_detector : float, optional
+        Method to calculate the beam center. Available methods are:
+        - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`.
+    mask: mask file path, `MaskWorkspace``, :py:obj:`list`.
+        Mask to be passed on to ~drtsans.mask_utils.mask_apply.
+    mask_options: dict
+        Additional arguments to be passed on to ~drtsans.mask_utils.mask_apply.
+    centering_options: dict
+        Arguments to be passed on to the centering method.
+    sample_det_cent_wing_detector : float
         :ref:`sample to detector center distance <devdocs-standardnames>`,
-        in meters, of the wing detector
-    kwargs: dict
-        Parameters to be passed to the method to calculate the center
+        in meters, of the wing detector.
 
     Returns
     -------
-    Tuple of 3 floats
-        ``(center_x, center_y, center_y)`` corrected for gravity
-        ``center_y`` is usually used to correct BIOSANS wing detector
-        Y position.
+    tuple
+        Three float numbers:
+        ``(center_x, center_y, center_y)`` corrected for gravity.
+        ``center_y`` is usually used to correct BIOSANS wing detector Y position.
     """
-    center_x, center_y = bf.find_beam_center(input_workspace, method, mask, **kwargs)
+    center_x, center_y = bf.find_beam_center(input_workspace, method, mask,
+                                             mask_options=mask_options, centering_options=centering_options)
 
     center_y_gravity = _beam_center_gravitational_drop(
         input_workspace, center_y, sample_det_cent_wing_detector)

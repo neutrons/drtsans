@@ -78,9 +78,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     ###########################################################################
     # Find the beam center
-    x, y, y_gravity = find_beam_center(
-        flood_beamcenter_dc_corrected_ws, Tolerance=0.00125, DirectBeam=True,
-        BeamRadius=0.0155)
+    x, y, y_gravity = find_beam_center(flood_beamcenter_dc_corrected_ws,
+                                       centering_options=dict(Tolerance=0.00125, DirectBeam=True, BeamRadius=0.0155))
     assert x == pytest.approx(0.011, abs=1e-3)
     assert y == pytest.approx(-0.012, abs=1e-3)
 

@@ -66,8 +66,7 @@ def test_beam_finder(biosans_f):
     assert y1 == pytest.approx(0.0, abs=1e-3)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_gravity2 = beam_finder.find_beam_center(
-        ws, CenterX=-x, CenterY=-y)
+    x2, y2, y_gravity2 = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
 
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-3) == y1

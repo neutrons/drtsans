@@ -9,6 +9,8 @@ from mantid.dataobjects import WorkspaceSingleValue
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername as uwd  # pylint: disable=W0404
 
+__all__ = ['standard_sample_scaling', ]
+
 
 def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
     r"""

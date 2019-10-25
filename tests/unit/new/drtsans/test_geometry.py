@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
+
 from mantid.simpleapi import LoadEmptyInstrument, MoveInstrumentComponent
 from drtsans.settings import unique_workspace_dundername
+from drtsans.samplelogs import SampleLogs
 from drtsans import geometry as geo
 
 
@@ -21,6 +23,14 @@ def wss():
     return dict(biosans=None,
                 eqsans=dict(ws=_eq_ws, ssd=13842, sdd=1280),
                 gpsans=None)
+
+
+def test_instrument_name(serve_events_workspace):
+    assert geo.instrument_name('EQ-SANS') == geo.InstrumentName.EQSANS
+    assert str(geo.instrument_name('EQ-SANS')) == 'EQSANS'
+    assert str(geo.instrument_name('CG3')) == 'BIOSANS'
+    input_workspace = serve_events_workspace('EQSANS_92353')
+    assert geo.instrument_name(input_workspace) == geo.InstrumentName.EQSANS
 
 
 @pytest.mark.offline
@@ -64,6 +74,14 @@ def test_detector_translation():
         for i, final_position in enumerate(final_positions):
             assert final_position == pytest.approx(np.array(initial_positions[i]) + translation, abs=1e-4)
         workspace.delete()
+
+
+def test_sample_aperture_diameter(serve_events_workspace):
+    input_workspace = serve_events_workspace('EQSANS_92353')
+    # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters
+    assert geo.sample_aperture_diameter(input_workspace) == pytest.approx(0.01, abs=0.1)
+    # verify entry 'sample-aperture-diameter' has been added to the logs
+    assert SampleLogs(input_workspace).single_value('sample-aperture-diameter') == pytest.approx(10.0, abs=0.1)
 
 
 if __name__ == '__main__':

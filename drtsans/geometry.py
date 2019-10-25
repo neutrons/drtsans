@@ -1,10 +1,51 @@
 import os
-from mantid.api import mtd, MatrixWorkspace
+import enum
+
+from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
-from mantid.simpleapi import Load, ExtractMask
+from mantid.simpleapi import mtd, Load, ExtractMask
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.samplelogs import SampleLogs
 from collections import defaultdict
+
+
+__all__ = ['InstrumentName', 'instrument_name', ]
+
+
+@enum.unique
+class InstrumentName(enum.Enum):
+    r"""Unique names labelling each instrument"""
+    BIOSANS = enum.auto()
+    EQSANS = enum.auto()
+    GPSANS = enum.auto()
+
+    def __str__(self):
+        return self.name
+
+
+def instrument_name(input_query):
+    r"""
+    Resolve the instrument name as a unique enumeration.
+
+    Parameters
+    ----------
+    input_query: str, Workspace
+        string representing a valid instrument name, or a Mantid workspace containing an instrument
+
+    Returns
+    -------
+    InstrumentName
+        The name of the instrument as one of the InstrumentName enumerations
+    """
+    string_to_enum = {'CG3': InstrumentName.BIOSANS, 'BIOSANS': InstrumentName.BIOSANS,
+                      'EQ-SANS': InstrumentName.EQSANS, 'EQSANS': InstrumentName.EQSANS,
+                      'CG2': InstrumentName.GPSANS, 'GPSANS': InstrumentName.GPSANS}
+    # We want the enum representation of an instrument name
+    if isinstance(input_query, str) and input_query in string_to_enum.keys():
+        return string_to_enum[input_query]
+    # Resolve passing a workspace
+    mantid_instrument_name = mtd[str(input_query)].getInstrument().getName()
+    return string_to_enum[mantid_instrument_name]
 
 
 def detector_name(ipt):
@@ -277,3 +318,45 @@ def source_detector_distance(source, unit='mm', search_logs=True):
     ssd = source_sample_distance(source, unit=unit, search_logs=search_logs)
     sdd = sample_detector_distance(source, unit=unit, search_logs=search_logs)
     return ssd + sdd
+
+
+def sample_aperture_diameter(input_workspace, unit='m'):
+    r"""
+    Find the sample aperture diameter from the logs.
+
+    Log keys searched are 'sample-aperture-diameter' and additional log entries for specific instruments. It is
+    assumed that the units of the logged value is mm
+
+    Parameters
+    ----------
+    input_workspace: :py:obj:`~mantid.api.MatrixWorkspace`
+        Input workspace from which to find the aperture
+    unit: str
+        return aperture in requested length unit, either 'm' or 'mm'
+
+    Returns
+    -------
+    float
+    """
+    # Additional log keys aiding in calculating the sample aperture diameter
+    additional_log_keys = {InstrumentName.EQSANS: ['beamslit4'],
+                           InstrumentName.GPSANS: [],
+                           InstrumentName.BIOSANS: []}
+    log_keys = ['sample-aperture-diameter'] + additional_log_keys[instrument_name(input_workspace)]
+
+    sample_logs = SampleLogs(input_workspace)
+    diameter = None
+    for log_key in log_keys:
+        if log_key in sample_logs.keys():
+            diameter = sample_logs.single_value(log_key)
+            break
+
+    if diameter is None:
+        raise RuntimeError('Unable to retrieve the sample aperture diameter from the logs')
+
+    # The diameter was found using the additional logs. Insert a log for the diameter under key
+    # "sample-aperture-diameter"
+    if 'sample-aperture-diameter' not in sample_logs.keys():
+        sample_logs.insert('sample-aperture-diameter', diameter, unit='mm')
+
+    return diameter if unit == 'mm' else diameter / 1.e3

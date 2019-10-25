@@ -1,4 +1,3 @@
-# flake8: noqa: F401
 # flake8: noqa
 from drtsans.transmission import apply_transmission_correction
 

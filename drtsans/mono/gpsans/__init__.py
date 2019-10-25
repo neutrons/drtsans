@@ -1,3 +1,4 @@
+# flake8: noqa
 import drtsans.transmission
 import drtsans.mono.absolute_units
 

@@ -2,6 +2,7 @@
 import drtsans.transmission
 import drtsans.absolute_units
 
+from ...transmission import *
 from ...beam_finder import *
 from ...absolute_units import *
 from .api import *

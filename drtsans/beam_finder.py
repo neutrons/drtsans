@@ -1,14 +1,20 @@
-from mantid.simpleapi import (MaskBTP, FindCenterOfMassPosition, MoveInstrumentComponent, Integration)
+r""" Links to mantid algorithms
+FindCenterOfMassPosition <https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v1.html>
+Integration              <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
+MoveInstrumentComponent  <https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html>
+"""
+from mantid.simpleapi import FindCenterOfMassPosition, Integration, MoveInstrumentComponent
 from mantid.kernel import logger
-from drtsans import mask_utils
+
+# drtsans imports
 from drtsans.settings import unique_workspace_dundername as uwd
-from drtsans.mask_utils import mask_spectra_with_special_values
+from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
 
 
-__all__ = ['center_detector', 'find_beam_center']
+__all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans namespace
 
 
-def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwargs):
+def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={}, centering_options={}):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.
     Usually employed for a direct beam run (no sample and not sample holder).
@@ -22,17 +28,19 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwar
     ----------
     input_workspace: str, Workspace
     method: str
-        Method to calculate the beam center( only 'center_of_mass' is
-        implemented)
-    mask: str, ``MaskWorkspace``
-        Use a mask in conjuction with `method` to find the beam center
-    kwargs: dict
-        Parameters to be passed to the method to calculate the center or to MaskBTP or 'panel'
-        'panel' is either 'front' or 'back' to mask a whole panel
+        Method to calculate the beam center. Available methods are:
+        - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`.
+    mask: mask file path, `MaskWorkspace``, :py:obj:`list`.
+        Mask to be passed on to ~drtsans.mask_utils.mask_apply.
+    mask_options: dict
+        Additional arguments to be passed on to ~drtsans.mask_utils.mask_apply.
+    centering_options: dict
+        Arguments to be passed on to the centering method.
+
     Returns
     -------
     tuple
-        (X, Y) coordinates of the beam center (units in meters)
+        (X, Y) coordinates of the beam center (units in meters).
     """
     if method != 'center_of_mass':
         raise NotImplementedError()  # (f'{method} is not implemented')
@@ -41,30 +49,14 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, **kwar
     flat_ws = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
     mask_spectra_with_special_values(flat_ws)
 
-    # parameters to be passed to masking
-    mask_dict = {}
-    if mask:
-        mask_dict['mask'] = mask
-
-    # mask panel for EQSANS
-    panel = kwargs.pop('panel', None)
-    if panel:
-        MaskBTP(Workspace=flat_ws, Components=panel + '-panel')
-    for key in ['Components', 'Bank', 'Tube', 'Pixel']:
-        value = kwargs.pop(key, None)
-        if value is not None:
-            mask_dict[key] = value
-
-    if mask_dict:
-        mask_workspace = mask_utils.apply_mask(flat_ws, **mask_dict)
+    if mask is not None or mask_options != {}:
+        mask_workspace = apply_mask(flat_ws, mask=mask, **mask_options)
         mask_workspace.delete()  # we don't need the mask workspace so keep it clean
 
     # find center of mass position
-    center = FindCenterOfMassPosition(InputWorkspace=flat_ws.name(), **kwargs)
-    center_x, center_y = center
-    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(
-        center_x, center_y))
-    return center_x, center_y
+    center = FindCenterOfMassPosition(InputWorkspace=flat_ws.name(), **centering_options)
+    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(*center))
+    return center
 
 
 def center_detector(input_workspace, center_x, center_y, component='detector1'):
@@ -86,8 +78,5 @@ def center_detector(input_workspace, center_x, center_y, component='detector1'):
         name of the detector to be centered
     """
 
-    MoveInstrumentComponent(Workspace=input_workspace,
-                            ComponentName=component,
-                            X=-center_x,
-                            Y=-center_y,
+    MoveInstrumentComponent(Workspace=input_workspace, ComponentName=component, X=-center_x, Y=-center_y,
                             RelativePosition=True)

@@ -14,6 +14,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import masked_detectors
 from drtsans.mask_utils import circular_mask_from_beam_center
 
+# Symbols to be exported to the drtsans namespace
 __all__ = ['apply_transmission_correction']
 
 
@@ -34,7 +35,7 @@ def beam_radius(input_workspace, unit='mm',
     input_workspace: MatrixWorkspace, str
         Input workspace
     unit: str
-        Either 'mm' or 'm'.
+        Units of the output beam radius. Either 'mm' or 'm'.
     sample_aperture_diameter_log: str
         Log entry for the sample-aperture diameter
     source_aperture_diameter_log: str
@@ -47,7 +48,6 @@ def beam_radius(input_workspace, unit='mm',
     Returns
     -------
     float
-        Radius, in millimeters
     """
     from drtsans.tof.eqsans import beam_radius as eqsans_beam_radius
     ws = mtd[str(input_workspace)]
@@ -66,7 +66,7 @@ def beam_radius(input_workspace, unit='mm',
     # Calculate beam radius
     radius = radius_sample_aperture + sdd * (radius_sample_aperture + radius_source_aperture) / ssd
 
-    logger.notice("Radius calculated from the WS = {:.2} mm".format(radius))
+    logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius))
     return radius if unit == 'mm' else 1e-3 * radius
 
 

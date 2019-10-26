@@ -5,19 +5,16 @@ from mantid.simpleapi import (Fit, CloneWorkspace, Plus, SaveNexus)
 from drtsans.settings import (namedtuplefy, unique_workspace_dundername as uwd)
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
 from drtsans.tof.eqsans.correct_frame import transmitted_bands
-from drtsans.tof.eqsans.geometry import\
-    (sample_aperture_diameter, source_aperture_diameter)
-from drtsans.geometry import\
-    (sample_detector_distance, source_sample_distance)
+from drtsans.tof.eqsans.geometry import sample_aperture_diameter, source_aperture_diameter
+from drtsans.geometry import sample_detector_distance, source_sample_distance
 
 
+# Symbols to be exported to the eqsans namespace
 __all__ = ['beam_radius', 'calculate_transmission']
 
 
-def calculate_transmission(input_sample, input_reference,
-                           radius=None, radius_unit='mm',
-                           fit_func='name=UserFunction,Formula=a*x+b',
-                           output_workspace=None):
+def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm',
+                           fit_function='name=UserFunction,Formula=a*x+b', output_workspace=None):
     """
     Calculate the transmission coefficients at zero scattering angle
     from already prepared sample and reference data.
@@ -27,21 +24,20 @@ def calculate_transmission(input_sample, input_reference,
 
     Parameters
     ----------
-    input_sample: ~mantid.api.MatrixWorkspace
+    input_sample: str, ~mantid.api.MatrixWorkspace
         Prepared sample workspace (possibly obtained with an attenuated beam)
-    input_reference: ~mantid.api.MatrixWorkspace
-        Prepared direct beam workspace (possibly obtained with an attenuated
-        beam)
+    input_reference: str, ~mantid.api.MatrixWorkspace
+        Prepared direct beam workspace (possibly obtained with an attenuated beam)
     radius: float
-        Radius around the bean center for pixel integration, in millimeters.
+        Radius around the bean center for pixel integration, in milimeters.
         If None, radius will be obtained or calculated using ``input_reference``.
     radius_unit: str
         Either 'mm' or 'm', and only used in conjunction with option ``radius``.
-    fit_func: str
+    fit_function: str
         String representation of the fit function. See Mantid's
         :ref:`UserFunction <func-UserFunction>` or any of Mantid's built-in functions.
-        The default value represents a linear model. If :py:obj:`None` or empty
-        string, no fitting is performed.
+        The default value represents a linear model. If this option is left as :py:obj:`None` or empty
+        string, then no fitting is performed.
     output_workspace: str
         Name of the output workspace containing the raw transmission values.
         If :py:obj:`None`, an anonymous hidden name will be automatically provided.
@@ -49,14 +45,14 @@ def calculate_transmission(input_sample, input_reference,
     Returns
     -------
     MatrixWorkspace
-        Workspace containing the raw transmission values
+        Workspace containing the transmission values
     """
     if output_workspace is None:
         output_workspace = uwd()
     transmission_values = calculate_raw_transmission(input_sample, input_reference, radius=radius,
                                                      radius_unit=radius_unit, output_workspace=output_workspace)
-    if bool(fit_func) is True:
-        transmission_values = fit_raw(transmission_values, func=fit_func).transmission
+    if bool(fit_function) is True:
+        transmission_values = fit_raw(transmission_values, func=fit_function).transmission
     return transmission_values
 
 

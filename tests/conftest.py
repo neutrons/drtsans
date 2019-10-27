@@ -711,7 +711,10 @@ def workspace_with_instrument(generic_IDF, request):
         if uncertainties is not None:
             uncertainties = np.array(uncertainties)
             if view == 'array':
-                uncertainties = uncertainties.transpose()[:, ::-1]
+                if uncertainties.ndim == 2:
+                    uncertainties = uncertainties.transpose()[:, ::-1]
+                elif uncertainties.ndim == 3:
+                    uncertainties = np.transpose(uncertainties, axes=(1, 0, 2))[:, ::-1, :]
             uncertainties = uncertainties.ravel()
         else:
             uncertainties = np.sqrt(intensities)

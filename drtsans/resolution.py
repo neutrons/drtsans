@@ -2,6 +2,10 @@ import numpy as np
 from scipy import constants
 
 
+__all__ = ['InstrumentSetupParameters', 'calculate_sigma_theta_prefactor', 'calculate_sigma_geometry',
+           'calculate_sigma_theta_geometry', 'calculate_sigma_theta_gravity']
+
+
 class InstrumentSetupParameters(object):
     """
     Class to contain the parameters used to calculate Q resolution
@@ -10,12 +14,21 @@ class InstrumentSetupParameters(object):
                  pixel_size_x, pixel_size_y):
         """
         Initialization to set all the parameters (6) to calculate momentrum transfer resolution
-        :param l1: L1 (source to sample)
-        :param sample_det_center_dist: sample detector (bank) center distance
-        :param source_aperture_radius: source aperture radius (meter)
-        :param sample_aperture_radius: sample aperture radius (meter)
-        :param pixel_size_x: pixel linear size along X direction (meter)
-        :param pixel_size_y: pixel linear size along Y direction (meter)
+
+        Parameters
+        ----------
+        l1:
+            source to sample distance
+        sample_det_center_dist:
+            sample detector (bank) center distance
+        source_aperture_radius:
+            source aperture radius (meter)
+        sample_aperture_radius:
+            sample aperture radius (meter)
+        pixel_size_x:
+            pixel linear size along X direction (meter)
+        pixel_size_y:
+            pixel linear size along Y direction (meter)
         """
         self._l1 = l1
         self._sample_det_center_dist = sample_det_center_dist
@@ -90,9 +103,10 @@ class InstrumentSetupParameters(object):
 def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameters):
     r"""
     Calculates for every pixel and wavelength
+
     .. math::
 
-    \left(\frac{2\pi\cos\theta\cos^2(2\theta)}{\lambda L_2}\right)^2
+       \left(\frac{2\pi\cos\theta\cos^2(2\theta)}{\lambda L_2}\right)^2
 
 
     Parameters
@@ -102,7 +116,7 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
         the array of wavelengths (same shape as momentum transfer)
     pixel_info: ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep
-    instrument_parameters: ~momentum_transfer.InstrumentSetupParameters
+    instrument_parameters: InstrumentSetupParameters
         Information abot instrument
 
     Returns
@@ -118,18 +132,19 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
 def calculate_sigma_theta_geometry(instrument_parameters, mode):
     r"""
     Calculates
+
     .. math::
 
-    \left(\frac {L_2}{L_1}\right)^2\frac{R_1^2}{4}+\left(\frac {L_1+L_2}{L_1}\right)^2\frac{R_2^2}{4}+
-    \frac {1}{12}(\Delta R)^2
+       \left(\frac {L_2}{L_1}\right)^2\frac{R_1^2}{4}+\left(\frac {L_1+L_2}{L_1}\right)^2\frac{R_2^2}{4}+
+       \frac {1}{12}(\Delta R)^2
 
     If mode is "scalar", :math:`((\Delta R)^2=(\Delta x)^2+(\Delta y)^2)/2`, else
-    :math:`(\Delta R)^2=[(\Delta x)^2,(\Delta R)^2]`
+    :math:`(\Delta R)^2=[(\Delta x)^2,(\Delta y)^2]`
 
     Parameters
     ----------
 
-    instrument_parameters: ~momentum_transfer.InstrumentSetupParameters
+    instrument_parameters: InstrumentSetupParameters
         Information abot instrument
     mode: str
         One of "scalar", "azimuthal", "crystalographic"
@@ -147,21 +162,22 @@ def calculate_sigma_theta_geometry(instrument_parameters, mode):
     dy2 = np.square(instrument_parameters.pixel_size_y)
 
     if mode == "scalar":
-        pixel_size = 0.5 * (dx2 + dy2)
+        pixel_size2 = 0.5 * (dx2 + dy2)
     elif mode == "azimuthal":
-        pixel_size = [dx2, dy2]
+        pixel_size2 = np.array([dx2, dy2])
     return 0.25 * np.square(L2 / L1 * R1)  \
-        + 0.25 * np.square((L1 + L2) / L1 * R2) + np.square(pixel_size) / 12.0
+        + 0.25 * np.square((L1 + L2) / L1 * R2) + pixel_size2 / 12.0
 
 
 def calculate_sigma_theta_gravity(instrument_parameters, wavelength, delta_wavelength):
     r"""
     Calculates
+
     .. math::
 
-    \frac 23 B^2\lambda^2(\Delta\lambda)^2
+       \frac 23 B^2\lambda^2(\Delta\lambda)^2
 
-    where :math:`B=g m_N
+    where :math:`B=g m_N^2L_2(L_1+L_2)/(2h^2)`
 
     """
     # derived constant where:
@@ -189,7 +205,7 @@ def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, ins
         the array of wavelength widths (same shape as momentum transfer)
     pixel_info: ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep
-    instrument_parameters: ~momentum_transfer.InstrumentSetupParameters
+    instrument_parameters: InstrumentSetupParameters
         Information abot instrument
 
 

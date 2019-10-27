@@ -9,6 +9,7 @@ from .sensitivity import *  # noqa: F403
 from .solid_angle_correction import *  # noqa: F403
 from .savereductionlog import *  # noqa: F403
 from .convert_to_q import *  # noqa: F403
+from .resolution import *  # noqa: F403
 
 
 # FIXME the functions done as strings can't be done via __all__ because module and function have same name

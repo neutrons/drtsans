@@ -3,7 +3,6 @@ import pytest
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, AddSampleLog
 from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, IofQCalculator, BinningMethod
-from drtsans.momentum_transfer_factory import calculate_q_dq
 import bisect
 
 # This test implements issue #169 to verify
@@ -364,7 +363,7 @@ def skip_test_binning_1d_workflow(generic_IDF):
                  LogType='Number', LogUnit='mm')
 
     # Calculate Q and dQ
-    q_dq = calculate_q_dq(workspace, instrument_type='mono')
+    q_dq = calculate_q_dq(workspace, instrument_type='mono')  # noqa: F821
     q_array = q_dq.q
     print('Max Q = {} @ {}'.format(np.max(q_array), np.argmax(q_array)))
     assert q_array.shape == (90, 1)

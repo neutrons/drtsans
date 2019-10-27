@@ -6,7 +6,6 @@ from scipy import stats
 import mantid
 from mantid.simpleapi import CreateEmptyTableWorkspace, CreateWorkspace
 from mantid.api import AnalysisDataService
-from drtsans.momentum_transfer_factory import calculate_q_dq
 from drtsans.detector import Component
 import collections
 from enum import Enum
@@ -605,7 +604,7 @@ class IofQCalculator(object):
 
         # Calculate q, qx, qy, dqx, dqy: N x M array where N is number of histograms in input workspace
         # It is not necessary to consider monitor or masked detectors (pixels) for Q and dQ
-        self._q_dq = calculate_q_dq(input_workspace, instrument_type=instrument_type)
+        self._q_dq = calculate_q_dq(input_workspace, instrument_type=instrument_type)  # noqa: F821
 
         # Extract I(Q) from input workspace: N x M array
         # such that self._i_q[n, m] corresponds to self._q_dq[n, m]

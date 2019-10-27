@@ -634,7 +634,7 @@ def workspace_with_instrument(generic_IDF, request):
        @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
 
     Once inside the test function, the factory is called with the following optional arguments:
-        name: Name of the workspace and instrument (default: random name prefixed with '__')
+        output_workspace: Name of the workspace (default: random name prefixed with '__')
         axis_values : 1D array or list of the independent axis for the data. It will be copied across
             all spectra (default 0 for all spectra)
         intensities : ndarray or 2d/3d list of intensities for the instrument. Detector dimensions are inferred
@@ -682,13 +682,13 @@ def workspace_with_instrument(generic_IDF, request):
 
     workspace_inventory = list()  # holds created workspaces
 
-    def factory(name=None, axis_units='wavelength',
+    def factory(output_workspace=None, axis_units='wavelength',
                 axis_values=None, intensities=None, uncertainties=None, view=view,
                 number_x_pixels=instrument_params.get('Nx', 3), number_y_pixels=instrument_params.get('Ny', 3)):
         # Initialization of these options within the function signature results in the interpreter assigning a
         # function signature preserved through function call.
-        if name is None:
-            name = unique_workspace_dundername()
+        if output_workspace is None:
+            output_workspace = unique_workspace_dundername()
 
         if view not in ['array', 'pixel']:
             raise RuntimeError('Invalid value of view="{}". Must be "array" or "pixel"'.format(view))
@@ -724,11 +724,11 @@ def workspace_with_instrument(generic_IDF, request):
 
         n_pixels = number_x_pixels * number_y_pixels
         workspace = CreateWorkspace(DataX=axis_values, DataY=intensities, DataE=uncertainties, Nspec=n_pixels,
-                                    UnitX=axis_units, OutputWorkspace=name)
+                                    UnitX=axis_units, OutputWorkspace=output_workspace)
         instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', generic_IDF).groups()[0]
         LoadInstrument(Workspace=workspace, InstrumentXML=generic_IDF, RewriteSpectraMap=True,
                        InstrumentName=instrument_name)
-        workspace_inventory.append(name)
+        workspace_inventory.append(output_workspace)
         return workspace
 
     yield factory

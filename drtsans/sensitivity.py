@@ -328,6 +328,7 @@ def inf_value_to_mask(ws):
             ws.setE(i, np.array([0]))
 
 
+# flake8: noqa: C901
 def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
                                  sensitivity_workspace=None,
                                  min_threshold=None,
@@ -408,9 +409,8 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     return mtd[output_workspace]
 
 
-def calculate_sensitivity_correction(input_workspace, min_threashold,
-                                     max_threshold, filename,
-                                     output_workspace=None):
+def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_threshold=2.0,
+                                     filename=None, output_workspace=None):
     '''
     Calculate the detector sensitivity
 
@@ -425,9 +425,9 @@ def calculate_sensitivity_correction(input_workspace, min_threashold,
     input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to calculate the sensitivity from
     min_threashold: float
-        Minimum threshold for sensitivity value
+        Minimum threshold for efficiency value.
     max_threashold: float
-        Maximum threshold for sensitivity value
+        Maximum threshold for efficiency value
     filename: str
         Name of the file to save the sensitivity calculation to
     output_workspace: ~mantid.api.MatrixWorkspace
@@ -436,13 +436,10 @@ def calculate_sensitivity_correction(input_workspace, min_threashold,
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
-    CalculateEfficiency(InputWorkspace=str(input_workspace),
-                        OutputWorkspace=output_workspace,
-                        MinThreshold=min_threashold,
-                        MaxThreshold=max_threshold)
-    MaskDetectorsIf(InputWorkspace=output_workspace,
-                    OutputWorkspace=output_workspace, Mode='SelectIf',
-                    Operator='Equal', Value=Property.EMPTY_DBL)
-    SaveNexusProcessed(InputWorkspace=output_workspace,
-                       Filename=filename)
+    CalculateEfficiency(InputWorkspace=input_workspace, OutputWorkspace=output_workspace,
+                        MinThreshold=min_threashold, MaxThreshold=max_threshold)
+    MaskDetectorsIf(InputWorkspace=output_workspace, OutputWorkspace=output_workspace,
+                    Mode='SelectIf', Operator='Equal', Value=Property.EMPTY_DBL)
+    if filename is not None:
+        SaveNexusProcessed(InputWorkspace=output_workspace, Filename=filename)
     return mtd[output_workspace]

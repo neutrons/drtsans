@@ -337,7 +337,6 @@ def test_2d_linear_bin_no_wt():
     assert abs(binned_iq_2d[0][5 + 1] - 67.) < 1E-6, 'I(Qx, Qy) is incorrect'
     assert abs(binned_iq_2d[1][5 + 1] - 4.725815626) < 1E-8, 'sigma I(Qx, Qy) is incorrect'
 
-
     return
 
 
@@ -391,7 +390,6 @@ def test_2d_bin_wt():
     # Determine the bins
 
     return
-
 
 
 def next2_test_1d_annular_no_wt():

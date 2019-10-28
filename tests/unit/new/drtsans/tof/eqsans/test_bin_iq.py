@@ -212,7 +212,7 @@ def test_1d_bin_linear_no_wt():
     None
 
     """
-    q_min = 0.001
+    q_min = 0.000
     q_max = 0.010
     num_bins = 10
 
@@ -261,8 +261,8 @@ def test_1d_bin_log_no_wt():
 
     print(bin_edges - gold_edges)
 
-    assert np.allclose(bin_edges, gold_edges, 1.E-12)
-    assert np.allclose(bin_centers, gold_centers, 1.E-12)
+    assert np.allclose(bin_edges, gold_edges, 5.E-6)
+    assert np.allclose(bin_centers, gold_centers, 5.E-6)
 
     # Get Q1D data
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)

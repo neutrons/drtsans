@@ -3,6 +3,7 @@ import enum
 
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
+from mantid.kernel import ConfigService
 from mantid.simpleapi import mtd, Load, ExtractMask
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.samplelogs import SampleLogs
@@ -15,9 +16,9 @@ __all__ = ['InstrumentName', ]
 @enum.unique
 class InstrumentName(enum.Enum):
     r"""Unique names labelling each instrument"""
-    BIOSANS = enum.auto()
-    EQSANS = enum.auto()
-    GPSANS = enum.auto()
+    BIOSANS = ConfigService.getFacility('HFIR').instrument('BIOSANS')
+    EQSANS = ConfigService.getFacility('SNS').instrument('EQSANS')
+    GPSANS = ConfigService.getFacility('HFIR').instrument('GPSANS')
 
     @staticmethod
     def from_name(label):

@@ -323,13 +323,6 @@ def next2test_2d_bin_no_wt():
     return
 
 
-def determine_1d_log_bins():
-    # blabla
-    # copy from bin_1d
-
-    return
-
-
 def determine_2d_bins():
     """
 
@@ -455,10 +448,10 @@ def weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, b
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
 
     # Flatten input data to 1D
-    q_array = IofQCalculator.flatten(q_array)
-    dq_array = IofQCalculator.flatten(dq_array)
-    iq_array = IofQCalculator.flatten(iq_array)
-    sigma_iq_array = IofQCalculator.flatten(sigma_iq_array)
+    # q_array = IofQCalculator.flatten(q_array)
+    # dq_array = IofQCalculator.flatten(dq_array)
+    # iq_array = IofQCalculator.flatten(iq_array)
+    # sigma_iq_array = IofQCalculator.flatten(sigma_iq_array)
 
     # calculate 1/sigma^2 for multiple uses
     invert_sigma2_array = 1. / (sigma_iq_array ** 2)

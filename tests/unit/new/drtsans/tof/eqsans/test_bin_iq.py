@@ -262,8 +262,8 @@ def test_1d_bin_log_no_wt():
     print(bin_edges - gold_edges)
     print(bin_centers - gold_centers)
 
-    assert np.allclose(bin_edges, gold_edges, 6.E-5)
-    assert np.allclose(bin_centers, gold_centers, 6.E-5)
+    assert np.allclose(bin_edges, gold_edges, 5.E-4)
+    assert np.allclose(bin_centers, gold_centers, 5.E-4)
 
     # Get Q1D data
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)

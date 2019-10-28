@@ -288,17 +288,6 @@ def test_1d_bin_log_no_wt():
     return
 
 
-def next3_test_1d_annular_no_wt():
-    """Test '1D_annular_no_sub_no_wt'
-
-    Returns
-    -------
-
-    """
-
-    return
-
-
 def test_2d_linear_bin_no_wt():
     """Test '2D_bin_no_sub_no_wt'
 
@@ -340,6 +329,14 @@ def test_2d_linear_bin_no_wt():
 
     print(binned_iq_2d[0])
     print(binned_iq_2d[1])
+
+    # Verify I(-0.003254,-0.001713)
+    assert abs(x_centers[1] - (-0.003254)) < 1.E-6, 'Qx is not correct'
+    assert abs(y_centers[1] - (-0.001713)) < 1.E-6, 'Qy is not correct'
+
+    assert abs(binned_iq_2d[0][5 + 1] - 67.) < 1E-6, 'I(Qx, Qy) is incorrect'
+    assert abs(binned_iq_2d[1][5 + 1] - 4.725815626) < 1E-8, 'sigma I(Qx, Qy) is incorrect'
+
 
     return
 
@@ -396,7 +393,19 @@ def test_2d_bin_wt():
     return
 
 
-def next_test_1d_bin_log_wedge_no_wt():
+
+def next2_test_1d_annular_no_wt():
+    """Test '1D_annular_no_sub_no_wt'
+
+    Returns
+    -------
+
+    """
+
+    return
+
+
+def next3_test_1d_bin_log_wedge_no_wt():
     """Test '1D_bin_log_wedget_no_sub_no_wt
 
     Returns

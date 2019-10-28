@@ -260,9 +260,10 @@ def test_1d_bin_log_no_wt():
     gold_edges, gold_centers = get_gold_1d_log_bins()
 
     print(bin_edges - gold_edges)
+    print(bin_centers - gold_centers)
 
-    assert np.allclose(bin_edges, gold_edges, 5.E-6)
-    assert np.allclose(bin_centers, gold_centers, 5.E-6)
+    assert np.allclose(bin_edges, gold_edges, 6.E-6)
+    assert np.allclose(bin_centers, gold_centers, 6.E-6)
 
     # Get Q1D data
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
@@ -273,11 +274,11 @@ def test_1d_bin_log_no_wt():
 
     # Verify: 2 I(Q) in bin: Q(3, 2, 3.1), Q(3, 2, 3.2)
     # I(0.0022) = 70.00000
-    assert abs(binned_iq.i[4] - 70.00000) < 1.E-12, 'I wrong'
+    assert abs(binned_iq.i[3] - 70.00000) < 1.E-12, 'I wrong'
     # dI(0.0022) = 5.9160797831
-    assert abs(binned_iq.sigma[4] - 5.9160797831) < 1.E-12, 'sigma I wrong'
+    assert abs(binned_iq.sigma[3] - 5.9160797831) < 1.E-12, 'sigma I wrong'
     # sigma_Q(0.0022) = 2.529E-05
-    assert abs(binned_iq.dq[4] - 2.529E-05) < 1.E-12, 'Q resolution wrong'
+    assert abs(binned_iq.dq[3] - 2.529E-05) < 1.E-12, 'Q resolution wrong'
 
     return
 

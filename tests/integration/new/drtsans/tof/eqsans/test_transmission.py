@@ -1,17 +1,25 @@
-import pytest
-import json
+from math import nan
 import numpy as np
-from pathlib import Path
+import pytest
 from os.path import join as pjn
-
 r"""
-Hyperlinks to Mantid algorithms 
+Hyperlinks to Mantid algorithms
 CompareWorkspaces <https://docs.mantidproject.org/nightly/algorithms/CompareWorkspaces-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
 """
 from mantid.simpleapi import CompareWorkspaces, LoadNexus, SumSpectra
-
+from mantid.api import mtd
+r"""
+Hyperlinks to drtsans functions
+amend_config, namedtuplefy, unique_workspace_dundername available at:
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+insert_aperture_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
+prepare_data <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/api.py>
+calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py>
+apply_transmission_correction <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
+find_beam_center, center_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/beam_finder.py>
+"""  # noqa: E501
 from drtsans.settings import amend_config, namedtuplefy, unique_workspace_dundername
 from drtsans.tof.eqsans.geometry import insert_aperture_logs
 from drtsans.tof.eqsans.api import prepare_data
@@ -33,7 +41,7 @@ def test_data_9a_part_1():
     -------
     dict
     """
-    return dict(wavelength_range = [2.0, 5.0],  # data integrated over this wavelength range
+    return dict(wavelength_range=[2.0, 5.0],  # data integrated over this wavelength range
                 emtpy_reference=[[1, 2, 3, 1, 1, 2, 2, 3, 0, 0],  # uncertainties by taking the square root
                                  [3, 2, 2, 4, 5, 4, 6, 3, 2, 1],
                                  [1, 4, 6, 9, 13, 15, 5, 8, 3, 0],
@@ -41,8 +49,8 @@ def test_data_9a_part_1():
                                  [2, 5, 9, 28, 79, 201, 41, 16, 2, 5],
                                  [0, 7, 11, 23, 128, 97, 50, 17, 3, 2],
                                  [3, 3, 9, 20, 27, 23, 18, 7, 4, 3],
-                                 [1, 2, 5, 9, 9, 15, 4, NaN, NaN, 1],
-                                 [2, 4, 2, 4, 3, 4, 1, NaN, NaN, 1],
+                                 [1, 2, 5, 9, 9, 15, 4, nan, nan, 1],
+                                 [2, 4, 2, 4, 3, 4, 1, nan, nan, 1],
                                  [4, 0, 1, 3, 1, 2, 0, 0, 2, 0, ]],
                 sample=[[4, 5, 4, 3, 1, 5, 5, 7, 3, 3],
                         [4, 4, 3, 5, 7, 5, 7, 3, 2, 4],
@@ -51,19 +59,19 @@ def test_data_9a_part_1():
                         [3, 5, 9, 23, 60, 155, 35, 13, 3, 8],
                         [2, 9, 13, 20, 96, 76, 41, 15, 6, 3],
                         [3, 5, 10, 15, 22, 20, 17, 10, 5, 6],
-                        [1, 6, 7, 10, 8, 13, 5, NaN, NaN, 4],
-                        [2, 6, 3, 7, 6, 4, 3, NaN, NaN, 1],
+                        [1, 6, 7, 10, 8, 13, 5, nan, nan, 4],
+                        [2, 6, 3, 7, 6, 4, 3, nan, nan, 1],
                         [3, 4, 1, 4, 5, 6, 3, 3, 3, 1]],
                 radius=2.0,
                 radius_unit='mm',
                 transmission=0.7888,
-                transmission_uncertainty=0.0419,
+                transmission_uncertainty=0.04071,  # 0.0419,
                 precision=1.e-04  # precision when comparing test data with drtsans calculations
-               )
+                )
 
 
 @pytest.mark.parametrize('workspace_with_instrument',
-                         [dict(name='EQSANS', Nx=10, Ny=10, dx=1.e-3, dy=.1e-3, zc=1.0)], indirect=True)
+                         [dict(name='EQSANS', Nx=10, Ny=10, dx=1.e-3, dy=1.e-3, zc=1.0)], indirect=True)
 def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, workspace_with_instrument):
     r"""
     This test calculates the raw transmission at zero scattering angle starting with sample and empty-beam datasets,
@@ -94,25 +102,29 @@ def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, w
     workspace_with_instrument(axis_values=data.wavelength_range,
                               intensities=reference_counts, uncertainties=np.sqrt(reference_counts),
                               view='array', output_workspace=reference_workspace)
-    assert mtd[reference_workspace].readY(42)[0] == 9
+    assert mtd[reference_workspace].readY(44)[0] == 128
 
     # Load the sample into a workspace
     sample_counts = np.array(data.sample, dtype=float).reshape((10, 10, 1))
-    sample_workspace =  unique_workspace_dundername()  # some temporary random name for the workspace
+    sample_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
     workspace_with_instrument(axis_values=data.wavelength_range,
                               intensities=sample_counts,  uncertainties=np.sqrt(sample_counts),
                               view='array', output_workspace=sample_workspace)
-    assert mtd[sample_workspace].readY(42)[0] == 8
+    assert mtd[sample_workspace].readY(44)[0] == 96
 
-    # Find the beam center and then center reference and sample
-    beam_center = find_beam_center(reference_workspace)
-    assert beam_center == pytest.approx([-0.00007, 0.00015], abs=1e-5)
-    center_detector(reference_workspace, center_x=beam_center[0], center_y=beam_center[1])
-    center_detector(sample_workspace, center_x=beam_center[0], center_y=beam_center[1])
+    # Find the beam center using the empty reference, and then center both reference and sample runs
+    # We pass centering options to the underlying Mantid algorithm finding the center of the beam
+    # <FindCenterOfMassPosition://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v1.html>
+    beam_center = find_beam_center(reference_workspace,
+                                   centering_options={'BeamRadius': data.radius, 'Tolerance': 0.1 * data.radius})
+    center_detector(reference_workspace, *beam_center)
+    center_detector(sample_workspace, *beam_center)
 
-    # Calculate transmission, then check
+    # Calculate raw (no fitting) transmission at zero angle using drtsans
     transmission = calculate_transmission(sample_workspace, reference_workspace,
-                                          radius=data.radius, radius_unit=data.radius_unit, fit_func=None)
+                                          radius=data.radius, radius_unit=data.radius_unit, fit_function=None)
+
+    # Verify transmission and associated uncertainty
     assert transmission.readY(0)[0] == pytest.approx(data.transmission, abs=data.precision)
     assert transmission.readE(0)[0] == pytest.approx(data.transmission_uncertainty, abs=data.precision)
 
@@ -157,12 +169,12 @@ def test_calculate_raw_transmission(trans_fix):
     (this test was written previously to the testset with the instrument team)
     """
     raw = calculate_transmission(trans_fix.sample, trans_fix.reference,
-                                 fit_func=None)
+                                 fit_function=None)
     assert trans_fix.compare(raw, 'raw_transmission.nxs')
     # big radius because detector is not centered
     raw = calculate_transmission(trans_fix.sample_skip,
                                  trans_fix.reference_skip, radius=50,
-                                 fit_func=None)
+                                 fit_function=None)
     assert trans_fix.compare(raw, 'raw_transmission_skip.nxs')
 
 

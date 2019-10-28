@@ -329,8 +329,8 @@ def test_2d_linear_bin_no_wt():
     assert abs(x_edges[1] - (-0.004694044)) < 1E-8
     assert abs(x_edges[2] - (-0.001814261)) < 1E-8
     # Check Y
-    assert abs(y_edges[1] - (-0.002826)) < 1E-8
-    assert abs(y_edges[2] - (-0.000601)) < 1E-8
+    assert abs(y_edges[1] - (-0.002826)) < 1E-6
+    assert abs(y_edges[2] - (-0.000601)) < 1E-6
 
     # Bin 2D
     # Get Q1D data

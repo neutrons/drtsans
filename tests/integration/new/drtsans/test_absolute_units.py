@@ -1,18 +1,15 @@
 import pytest
-
 import numpy as np
-
 r""" Links to Mantid algorithms
 CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
 """
 from mantid.simpleapi import CreateSingleValuedWorkspace
-
 r""" Links to drtsans imports
 standard_sample_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
 unique_workspace_name <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 """
-from drtsans.absolute_units import standard_sample_scaling
-from drtsans.settings import unique_workspace_name
+from drtsans.absolute_units import standard_sample_scaling  # noqa: E402
+from drtsans.settings import unique_workspace_name  # noqa: E402
 
 
 def test_standard_sample_measurement():

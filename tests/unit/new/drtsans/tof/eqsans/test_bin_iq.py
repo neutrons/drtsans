@@ -217,7 +217,7 @@ def test_1d_bin_linear_no_wt():
     num_bins = 10
 
     # Verify bin edges and bin center
-    bin_edges, bin_centers = determine_linear_bins(q_min, q_max, num_bins)
+    bin_centers, bin_edges = determine_linear_bins(q_min, q_max, num_bins)
     gold_edges, gold_centers = get_gold_1d_linear_bins()
 
     assert np.allclose(bin_edges, gold_edges, 1.E-12)
@@ -503,12 +503,6 @@ def no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bi
     """
     # check input
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
-
-    # Flatten input data to 1D
-    # q_array = IofQCalculator.flatten(q_array)
-    # dq_array = IofQCalculator.flatten(dq_array)
-    # iq_array = IofQCalculator.flatten(iq_array)
-    # sigmaq_array = IofQCalculator.flatten(sigmaq_array)
 
     # Number of I(q) in each target Q bin
     num_pt_array, bin_x = np.histogram(q_array, bins=bin_edges)

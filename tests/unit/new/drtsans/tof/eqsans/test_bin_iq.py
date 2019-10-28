@@ -212,7 +212,7 @@ def test_1d_bin_linear_no_wt():
     None
 
     """
-    q_min = 0.
+    q_min = 0.001
     q_max = 0.010
     num_bins = 10
 
@@ -393,7 +393,7 @@ def determine_1d_log_bins(q_min, q_max, step_per_decade):
     # C_max = ceil(log{Q_max})
     c_max = 10 ** (np.ceil(np.log10(q_max)))
     # Set to minimumn Q as 0.0001A
-    c_min = 10 ** (np.floor(np.log10(q_max)))
+    c_min = 10 ** (np.floor(np.log10(q_min)))
     # Total number of
     delta_l = (np.log10(c_max / c_min)) / step_per_decade
     # number of data points

@@ -266,9 +266,6 @@ def test_1d_bin_log_no_wt():
     bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
     gold_edges, gold_centers = get_gold_1d_log_bins()
 
-    print(bin_edges - gold_edges)
-    print(bin_centers - gold_centers)
-
     assert np.allclose(bin_edges, gold_edges, 5.E-4)
     assert np.allclose(bin_centers, gold_centers, 5.E-4)
 
@@ -291,6 +288,65 @@ def test_1d_bin_log_no_wt():
     return
 
 
+def next3_test_1d_annular_no_wt():
+    """Test '1D_annular_no_sub_no_wt'
+
+    Returns
+    -------
+
+    """
+
+    return
+
+
+def test_2d_linear_bin_no_wt():
+    """Test '2D_bin_no_sub_no_wt'
+
+    2D linear bin no sub pixel no weighing summation
+
+    Returns
+    -------
+
+    """
+    # Calculate and determine the bin edges
+    # range of binned (Qx, Qy) is taken from William's Excel
+    qx_min = -0.007573828
+    qx_max = 0.006825091
+    qy_min = -0.005051412
+    qy_max = 0.00607504
+
+    x_centers, x_edges = determine_1d_linear_bins(qx_min, qx_max, 5)
+    y_centers, y_edges = determine_1d_linear_bins(qy_min, qy_max, 5)
+
+    # verify
+    gold_x_centers, gold_y_centers = get_gold_2d_linear_bins()
+    gold_y_centers = gold_y_centers[::-1]
+
+    np.allclose(x_centers, gold_x_centers, atol=5E-6)
+    np.allclose(y_centers, gold_y_centers, atol=5E-6)
+
+    # Check X
+    assert abs(x_edges[1] - (-0.004694044)) < 1E-8
+    assert abs(x_edges[2] - (-0.001814261)) < 1E-8
+    # Check Y
+    assert abs(y_edges[4] - (-0.002826)) < 1E-8
+    assert abs(y_edges[3] - (-0.000601)) < 1E-8
+
+    # Bin 2D
+
+    return
+
+
+def test_2d_bin_wt():
+    """Test '2D_bin_no_sub_wt'
+
+    :return:
+    """
+    # Determine the bins
+
+    return
+
+
 def next_test_1d_bin_log_wedge_no_wt():
     """Test '1D_bin_log_wedget_no_sub_no_wt
 
@@ -308,28 +364,6 @@ def next_test_1d_bin_log_wedge_no_wt():
     # Bin wedge
     assert bin_edges
     assert bin_centers
-
-    return
-
-
-def next3_test_1d_annular_no_wt():
-    """Test '1D_annular_no_sub_no_wt'
-
-    Returns
-    -------
-
-    """
-
-    return
-
-
-def next2test_2d_bin_no_wt():
-    """Test '2D_bin_no_sub_no_wt'
-
-    Returns
-    -------
-
-    """
 
     return
 

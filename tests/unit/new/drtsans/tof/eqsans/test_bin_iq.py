@@ -329,12 +329,61 @@ def test_2d_linear_bin_no_wt():
     assert abs(x_edges[1] - (-0.004694044)) < 1E-8
     assert abs(x_edges[2] - (-0.001814261)) < 1E-8
     # Check Y
-    assert abs(y_edges[4] - (-0.002826)) < 1E-8
-    assert abs(y_edges[3] - (-0.000601)) < 1E-8
+    assert abs(y_edges[1] - (-0.002826)) < 1E-8
+    assert abs(y_edges[2] - (-0.000601)) < 1E-8
 
     # Bin 2D
+    # Get Q1D data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+
+    binned_iq_2d = do_2d_no_weight_binning(qx_array, qy_array, intensities, sigmas, x_edges, y_edges)
+
+    print(binned_iq_2d[0])
+    print(binned_iq_2d[1])
 
     return
+
+
+def do_2d_no_weight_binning(qx_array, qy_array, iq_array, sigma_iq_array, qx_bin_edges, qy_bin_edges):
+    """Perform 2D no-weight binning on I(Qx, Qy)
+
+    General description of the algorithm:
+
+      I_{i, j} = sum^{(i, j)}_k I_{k} / N_{i, j}
+      sigma I_{i, j} = sqrt(sum^{(i, j)}_k sigma I_k^2) / N_{i, j}
+
+    Parameters
+    ----------
+    qx_array
+    qy_array
+    iq_array
+    sigma_iq_array
+    qx_bin_edges
+    qy_bin_edges
+
+    Returns
+    -------
+
+    """
+    # Number of I(q) in each target Q bin
+    num_pt_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges))
+    print('[DEBUG number of Pts per bin: {}'.format(num_pt_array))
+
+    # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
+    i_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                           weights=iq_array)
+    print('[DEBUG summation of counts per bin: {}'.format(num_pt_array))
+
+    # Square of summed uncertainties for each bin
+    sigma_sqr_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                               weights=sigma_iq_array ** 2)
+
+    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
+    #       sigma = 1/sqrt(w_k)
+    i_final_array = i_raw_array / num_pt_array
+    sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
+
+    return i_final_array, sigma_final_array
 
 
 def test_2d_bin_wt():

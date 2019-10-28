@@ -1,8 +1,23 @@
 import numpy as np
 from mantid.api import mtd
-from mantid.simpleapi import (Fit, CloneWorkspace, Plus, SaveNexus)
 
-from drtsans.settings import (namedtuplefy, unique_workspace_dundername as uwd)
+r"""
+Hyperlinks to Mantid algorithms
+CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
+Fit <https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html>
+Plus <https://docs.mantidproject.org/nightly/algorithms/Plus-v1.html>
+SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
+"""
+from mantid.simpleapi import CloneWorkspace, Fit, Plus, SaveNexus
+r"""
+Hyperlinks to drtsans functions
+namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
+transmitted_bands <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
+sample_aperture_diameter, source_aperture_diameter available at:
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
+"""  # noqa: E501
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
 from drtsans.tof.eqsans.correct_frame import transmitted_bands
 from drtsans.tof.eqsans.geometry import sample_aperture_diameter, source_aperture_diameter
@@ -48,7 +63,7 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
         Workspace containing the transmission values
     """
     if output_workspace is None:
-        output_workspace = uwd()
+        output_workspace = unique_workspace_dundername()
     transmission_values = calculate_raw_transmission(input_sample, input_reference, radius=radius,
                                                      radius_unit=radius_unit, output_workspace=output_workspace)
     if bool(fit_function) is True:
@@ -114,7 +129,7 @@ def fit_band(input_workspace, band, func='name=UserFunction,Formula=a*x+b',
         - mfit: namedtuple, output of calling Mantid's Fit algorithm
     """
     if output_workspace is None:
-        output_workspace = uwd()
+        output_workspace = unique_workspace_dundername()
     ws = mtd[str(input_workspace)]
     # Carry out the fit only over the wavelength band with sensible intensities
     x = ws.dataX(0)
@@ -134,7 +149,7 @@ def fit_band(input_workspace, band, func='name=UserFunction,Formula=a*x+b',
     start_x, end_x = x[lower_bin_boundary], x[upper_bin_boundary - 1]
     SaveNexus(ws, '/tmp/junk.nxs')
     mfit = Fit(Function=func, InputWorkspace=ws.name(), WorkspaceIndex=0,
-               StartX=start_x, EndX=end_x, Output=uwd())
+               StartX=start_x, EndX=end_x, Output=unique_workspace_dundername())
 
     # Insert the fitted band into the wavelength range of ws
     fitted = CloneWorkspace(ws, OutputWorkspace=output_workspace)
@@ -195,13 +210,13 @@ def fit_raw(input_workspace, func='name=UserFunction,Formula=a*x+b',
     # Fit the lead pulse
     #
     fit_lead = fit_band(raw, bands.lead, func=func,
-                        output_workspace=uwd())  # band from lead pulse
+                        output_workspace=unique_workspace_dundername())  # band from lead pulse
     #
     # Fit the skipped pulse, if running in skip-frame mode
     #
     if bands.skip is not None:
         fit_skip = fit_band(raw, bands.skip, func=func,
-                            output_workspace=uwd())  # skipped pulse
+                            output_workspace=unique_workspace_dundername())  # skipped pulse
         fitted_ws = Plus(LHSWorkspace=fit_lead.fitted,
                          RHSWorkspace=fit_skip.fitted,
                          OutputWorkspace=output_workspace)

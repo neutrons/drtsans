@@ -144,6 +144,120 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
     return binned_q
 
 
+def determine_1d_linear_bins(q_min, q_max, bins):
+    """Determine linear bin edges and centers
+
+    Parameters
+    ----------
+    q_min : float
+        Q min of bin edge
+    q_max : float
+        Q max of bin edge
+    bins : integer
+        number of bins
+
+    Returns
+    -------
+    ndarray, ndarray
+        bin centers, bin edges
+    """
+    # Calculate Q step size
+    delta_q = (q_max - q_min) / bins
+    # Determine bin edges
+    bin_edges = np.arange(bins + 1).astype('float') * delta_q + q_min
+    # Determine bin centers from edges
+    bin_centers = (bin_edges[1:] + bin_edges[:-1]) * 0.5
+
+    return bin_centers, bin_edges
+
+
+def determine_1d_log_bins(q_min, q_max, step_per_decade):
+    """Determine the logarithm bins
+
+    The algorithm to calculate bins are from 11.28 and 11.29 in master document
+
+    Parameters
+    ----------
+    q_min
+    q_max
+    step_per_decade: float
+        step per decade (ex. 0.1 to 1.0 is one decade); denoted as 'j' in document
+    Returns
+    -------
+    ndarray, ndarray
+        bin centers, bin edges
+
+    """
+    # C_max = ceil(log{Q_max})
+    c_max = 10 ** (np.ceil(np.log10(q_max)))
+    # Set to minimum Q as 0.0001A
+    c_min = 10 ** (np.floor(np.log10(q_min)))
+    # Total number of
+    delta_l = (np.log10(c_max / c_min)) / step_per_decade
+    # number of data points
+    num_bins = int(np.log10(c_max / c_min)) * 10
+
+    # Determine Q bin centers
+    bin_centers = np.arange(num_bins)
+    bin_centers = bin_centers.astype(float)
+    bin_centers = 10 ** (delta_l * (bin_centers + 0.5)) * c_min
+    # Determine Q bin edges
+    bin_edges = np.zeros((bin_centers.shape[0] + 1), float)
+    bin_edges[0] = c_min
+    bin_edges[1:-1] = 0.5 * (bin_centers[:-1] + bin_centers[1:])
+    bin_edges[-1] = c_max
+
+    return bin_centers, bin_edges
+
+
+def no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
+    """ Bin I(Q) by given bin edges and do no-weight binning
+    This method implements equation 11.34, 11.35 and 11.36 in master document.
+    Parameters
+    ----------
+    q_array: ndarray
+        scaler momentum transfer Q
+    dq_array: ndarray
+        scaler momentum transfer (Q) resolution
+    iq_array: ndarray
+        I(Q)
+    sigmaq_array: ndarray
+        sigma I(Q)
+    bin_centers: numpy.ndarray
+        bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
+    bin_edges: numpy.ndarray
+        bin edges
+    Returns
+    -------
+    IofQ
+        named tuple for Q, dQ, binned I(Q), binned sigma_I(Q)
+    """
+    # check input
+    assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
+
+    # Number of I(q) in each target Q bin
+    num_pt_array, bin_x = np.histogram(q_array, bins=bin_edges)
+
+    # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
+    i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array)
+    # Square of summed uncertainties for each bin
+    sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array ** 2)
+
+    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
+    #       sigma = 1/sqrt(w_k)
+    i_final_array = i_raw_array / num_pt_array
+    sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
+
+    # Calculate Q resolution of binned
+    binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
+    bin_q_resolution = binned_dq / num_pt_array
+
+    # Get the final result
+    binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)
+
+    return binned_iq
+
+
 def bin_into_q2d(wl_ws, bins, suffix):
     """
     :param wl_ws: List of workspaces (names) in binned wave length space

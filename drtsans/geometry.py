@@ -9,7 +9,7 @@ from drtsans.samplelogs import SampleLogs
 from collections import defaultdict
 
 
-__all__ = ['InstrumentName', 'instrument_name', ]
+__all__ = ['InstrumentName', ]
 
 
 @enum.unique
@@ -19,33 +19,42 @@ class InstrumentName(enum.Enum):
     EQSANS = enum.auto()
     GPSANS = enum.auto()
 
+    @staticmethod
+    def from_name(label):
+        r"""
+        Resolve the instrument name as a unique enumeration.
+
+        Parameters
+        ----------
+        label: str, Workspace
+            string representing a valid instrument name, or a Mantid workspace containing an instrument
+
+        Returns
+        -------
+        InstrumentName
+            The name of the instrument as one of the InstrumentName enumerations
+        """
+        string_to_enum = {'CG3': InstrumentName.BIOSANS, 'BIOSANS': InstrumentName.BIOSANS,
+                          'EQ-SANS': InstrumentName.EQSANS, 'EQSANS': InstrumentName.EQSANS,
+                          'CG2': InstrumentName.GPSANS, 'GPSANS': InstrumentName.GPSANS}
+        # convert to a string
+        name = str(label)
+
+        # convert mantid workspaces into a instrument string
+        if name in mtd:
+            name = mtd[str(name)].getInstrument().getName()
+
+        # dict only checks for uppercase names
+        name = name.upper()
+
+        # We want the enum representation of an instrument name
+        if name in string_to_enum.keys():
+            return string_to_enum[name]
+        else:
+            raise ValueError('Do not know how to convert "{}" to InstrumentName'.format(label))
+
     def __str__(self):
         return self.name
-
-
-def instrument_name(input_query):
-    r"""
-    Resolve the instrument name as a unique enumeration.
-
-    Parameters
-    ----------
-    input_query: str, Workspace
-        string representing a valid instrument name, or a Mantid workspace containing an instrument
-
-    Returns
-    -------
-    InstrumentName
-        The name of the instrument as one of the InstrumentName enumerations
-    """
-    string_to_enum = {'CG3': InstrumentName.BIOSANS, 'BIOSANS': InstrumentName.BIOSANS,
-                      'EQ-SANS': InstrumentName.EQSANS, 'EQSANS': InstrumentName.EQSANS,
-                      'CG2': InstrumentName.GPSANS, 'GPSANS': InstrumentName.GPSANS}
-    # We want the enum representation of an instrument name
-    if isinstance(input_query, str) and input_query in string_to_enum.keys():
-        return string_to_enum[input_query]
-    # Resolve passing a workspace
-    mantid_instrument_name = mtd[str(input_query)].getInstrument().getName()
-    return string_to_enum[mantid_instrument_name]
 
 
 def detector_name(ipt):
@@ -92,12 +101,12 @@ def bank_detector_ids(input_workspace, masked=None):
     """
     ws = mtd[str(input_workspace)]
     ids = ws.detectorInfo().detectorIDs()
-    all = ids[ids >= 0].tolist()
+    everything = ids[ids >= 0].tolist()
     if masked is None:
-        return all  # by convention, monitors have ID < 0
+        return everything  # by convention, monitors have ID < 0
     else:
         instrument = ws.getInstrument()
-        return [det_id for det_id in all if
+        return [det_id for det_id in everything if
                 masked == instrument.getDetector(det_id).isMasked()]
 
 
@@ -228,7 +237,7 @@ def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
                     'source_sample_distance', 'sample-source-distance',
                     'sample_source-distance', 'sample_source_distance')
         if log_key is not None:
-            log_keys = [log_key]
+            log_keys = (log_key)
         sl = SampleLogs(source)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
@@ -278,7 +287,7 @@ def sample_detector_distance(source, unit='mm', log_key=None,
                     'detector_sample_distance', 'sample-detector-distance',
                     'sample_detector-distance', 'sample_detector_distance')
         if log_key is not None:
-            log_keys = [log_key]
+            log_keys = (log_key)
         sl = SampleLogs(source)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
@@ -342,7 +351,7 @@ def sample_aperture_diameter(input_workspace, unit='m'):
     additional_log_keys = {InstrumentName.EQSANS: ['beamslit4'],
                            InstrumentName.GPSANS: [],
                            InstrumentName.BIOSANS: []}
-    log_keys = ['sample-aperture-diameter'] + additional_log_keys[instrument_name(input_workspace)]
+    log_keys = ['sample-aperture-diameter'] + additional_log_keys[InstrumentName.from_name(input_workspace)]
 
     sample_logs = SampleLogs(input_workspace)
     diameter = None

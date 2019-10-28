@@ -26,11 +26,14 @@ def wss():
 
 
 def test_instrument_name(serve_events_workspace):
-    assert geo.instrument_name('EQ-SANS') == geo.InstrumentName.EQSANS
-    assert str(geo.instrument_name('EQ-SANS')) == 'EQSANS'
-    assert str(geo.instrument_name('CG3')) == 'BIOSANS'
+    assert geo.InstrumentName.from_name('EQ-SANS') == geo.InstrumentName.EQSANS
+    assert str(geo.InstrumentName.from_name('EQ-SANS')) == 'EQSANS'
+    assert str(geo.InstrumentName.from_name('CG3')) == 'BIOSANS'
+    with pytest.raises(ValueError):
+        geo.InstrumentName.from_name('nonexistantsansinstrument')
+        assert False, 'Should have generated an exception'
     input_workspace = serve_events_workspace('EQSANS_92353')
-    assert geo.instrument_name(input_workspace) == geo.InstrumentName.EQSANS
+    assert geo.InstrumentName.from_name(input_workspace) == geo.InstrumentName.EQSANS
 
 
 @pytest.mark.offline

@@ -7,9 +7,12 @@ CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/C
 """
 from mantid.simpleapi import CreateSingleValuedWorkspace
 
-# drtsans imports
+r""" Links to drtsans imports
+standard_sample_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
+unique_workspace_name <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+"""
 from drtsans.absolute_units import standard_sample_scaling
-from drtsans.settings import unique_workspace_name as uwn
+from drtsans.settings import unique_workspace_name
 
 
 def test_standard_sample_measurement():
@@ -35,13 +38,14 @@ def test_standard_sample_measurement():
     """
     F_std = 450.  # value from supplied test
     F_std_err = 10.  # value from supplied test
-    F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=uwn())
+    F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err,
+                                           OutputWorkspace=unique_workspace_name())
     F = 10.  # value from supplied test
     F_err = 2.  # value from supplied test
-    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=uwn())
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=unique_workspace_name())
     Iq = 100.  # value from supplied test
     Iq_err = np.sqrt(Iq)
-    Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=uwn())
+    Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=unique_workspace_name())
     # perform calculation done by function standard_sample_scaling
     Iq_abs = Iq / F * F_std
     # calculate uncertainty as described in the supplied test. Symbolically this is identical to the calculation below,

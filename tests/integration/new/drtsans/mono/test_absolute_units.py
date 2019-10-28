@@ -3,7 +3,12 @@ import numpy as np
 
 from mantid.simpleapi import mtd
 
-# drtsans imports
+r""" Links to drtsans imports
+center_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/beam_finder.py>
+unique_workspace_name <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+empty_beam_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/absolute_units.py>
+"""
 from drtsans import center_detector
 from drtsans.settings import unique_workspace_dundername, namedtuplefy
 from drtsans.mono import empty_beam_scaling

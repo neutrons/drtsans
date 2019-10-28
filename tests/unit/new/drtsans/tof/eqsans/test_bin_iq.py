@@ -277,8 +277,9 @@ def test_1d_bin_log_no_wt():
     assert abs(binned_iq.i[3] - 70.00000) < 1.E-12, 'I wrong'
     # dI(0.0022) = 5.9160797831
     assert abs(binned_iq.sigma[3] - 5.9160797831) < 1.E-12, 'sigma I wrong'
-    # sigma_Q(0.0022) = 2.529E-05
-    assert abs(binned_iq.dq[3] - 2.529E-05) < 1.E-12, 'Q resolution wrong'
+    # sigma_Q(0.0022) = 2.529E-05: this value is from EXCEL with error in Q resolution
+    # corrected value shall be   2.5112610804313703e-05
+    assert abs(binned_iq.dq[3] - 2.529E-05) < 2.E-7, 'Q resolution wrong'
 
     return
 

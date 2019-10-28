@@ -231,17 +231,17 @@ def test_1d_bin_linear_no_wt():
                                   bin_centers, bin_edges)
 
     # Calculate and verify
-    # I(0.0035) =		68.92857
-    assert abs(binned_iq.i[3] - 68.92857) < 1.E-12, 'I wrong'
+    # I(0.0035) =		68.92857:    drtsans: 68.92857142857143
+    assert abs(binned_iq.i[3] - 68.92857) < 2.E-6, 'I wrong'
     # di(0.0035)		2.218889
-    assert abs(binned_iq.sigma[3] - 2.218889) < 1.E-12, 'sigma I wrong'
+    assert abs(binned_iq.sigma[3] - 2.218889) < 2.E-6, 'sigma I wrong'
     # sigma_Q(0.0035) = 		3.722E-05
     assert abs(binned_iq.dq[3] - 3.722E-05) < 1.E-12, 'Q resolution wrong'
 
     return
 
 
-def next_test_1d_bin_log_no_wt():
+def test_1d_bin_log_no_wt():
     """Test '1D_bin_log_no_sub_no_wt'
 
     Test binning methods for 1D no-weight binning with log bins
@@ -256,8 +256,10 @@ def next_test_1d_bin_log_no_wt():
     num_steps_per_10 = 10  # 10 steps per decade
 
     # Verify bin edges and bin center
-    bin_edges, bin_centers = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
+    bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
     gold_edges, gold_centers = get_gold_1d_log_bins()
+
+    print(bin_edges - gold_edges)
 
     assert np.allclose(bin_edges, gold_edges, 1.E-12)
     assert np.allclose(bin_centers, gold_centers, 1.E-12)
@@ -384,6 +386,8 @@ def determine_1d_log_bins(q_min, q_max, step_per_decade):
         step per decade (ex. 0.1 to 1.0 is one decade); denoted as 'j' in document
     Returns
     -------
+    ndarray, ndarray
+        bin centers, bin edges
 
     """
     # Calculate step and align q_min to q0, a decade (power of 10) nearest to q_min but less than q_min

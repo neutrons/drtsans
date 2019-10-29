@@ -15,10 +15,10 @@ transmitted_bands <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/ne
 beam_radius, fit_band, fit_raw_transmission available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py>
 """
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
-from drtsans.tof.eqsans.correct_frame import transmitted_bands
-from drtsans.tof.eqsans.transmission import fit_band, fit_raw_transmission
-from drtsans.tof.eqsans.geometry import beam_radius
+from drtsans.settings import namedtuplefy, unique_workspace_dundername  # noqa: E402
+from drtsans.tof.eqsans.correct_frame import transmitted_bands  # noqa: E402
+from drtsans.tof.eqsans.transmission import fit_band, fit_raw_transmission  # noqa: E402
+from drtsans.tof.eqsans.geometry import beam_radius  # noqa: E402
 
 
 @pytest.fixture(scope='module')

@@ -101,7 +101,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     # Recall that if a pixel had no counts, then we insert a special error values: error is one for all
     # wavelength bins, and zero for the bins falling in the wavelength gap.
     special_errors = np.ones(len(bin_widths))
-    if gap_bin_indexes is None:
+    if gap_bin_indexes is not None:
         special_errors[gap_bin_indexes] = 0.
     normalized_errors[pixel_indexes_with_no_counts] = special_errors
 

@@ -402,7 +402,6 @@ def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-
 def next2_test_1d_annular_no_wt():
     """Test '1D_annular_no_sub_no_wt'
 

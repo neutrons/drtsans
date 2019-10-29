@@ -4,7 +4,7 @@ from numpy.testing import assert_almost_equal
 from mantid.simpleapi import LoadNexus
 from drtsans.settings import (namedtuplefy, unique_workspace_dundername as uwd)
 from drtsans.tof.eqsans.correct_frame import transmitted_bands
-from drtsans.tof.eqsans.transmission import fit_band, fit_raw, beam_radius
+from drtsans.tof.eqsans.transmission import fit_band, fit_raw_transmission, beam_radius
 
 
 @pytest.fixture(scope='module')
@@ -28,21 +28,21 @@ def test_fit_band(trasmission_data):
     # Non-skip mode
     bands = transmitted_bands(trasmission_data.raw)
     fb = fit_band(trasmission_data.raw, bands.lead)
-    assert_almost_equal(fb.mfit.OutputChi2overDoF, 1.1, decimal=1)
+    assert_almost_equal(fb.mantid_fit_output.OutputChi2overDoF, 1.1, decimal=1)
     # Frame-skipping mode
     bands = transmitted_bands(trasmission_data.raw_skip)
     fb = fit_band(trasmission_data.raw_skip, bands.lead)
-    assert_almost_equal(fb.mfit.OutputChi2overDoF, 1.1, decimal=1)
+    assert_almost_equal(fb.mantid_fit_output.OutputChi2overDoF, 1.1, decimal=1)
     fb = fit_band(trasmission_data.raw_skip, bands.skip)
-    assert_almost_equal(fb.mfit.OutputChi2overDoF, 3.6, decimal=0)
+    assert_almost_equal(fb.mantid_fit_output.OutputChi2overDoF, 3.6, decimal=0)
 
 
 def test_fit_raw(trasmission_data):
-    fitted = fit_raw(trasmission_data.raw, output_workspace=uwd())
-    assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 1.1, decimal=1)
-    fitted = fit_raw(trasmission_data.raw_skip, output_workspace=uwd())
-    assert_almost_equal(fitted.lead_mfit.OutputChi2overDoF, 1.1, decimal=1)
-    assert_almost_equal(fitted.skip_mfit.OutputChi2overDoF, 3.6, decimal=1)
+    fitted = fit_raw_transmission(trasmission_data.raw, output_workspace=uwd())
+    assert_almost_equal(fitted.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
+    fitted = fit_raw_transmission(trasmission_data.raw_skip, output_workspace=uwd())
+    assert_almost_equal(fitted.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
+    assert_almost_equal(fitted.skip_mantid_fit.OutputChi2overDoF, 3.6, decimal=1)
 
 
 if __name__ == '__main__':

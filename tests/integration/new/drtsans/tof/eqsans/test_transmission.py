@@ -5,26 +5,30 @@ from os.path import join as pjn
 r"""
 Hyperlinks to Mantid algorithms
 CompareWorkspaces <https://docs.mantidproject.org/nightly/algorithms/CompareWorkspaces-v1.html>
+CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
 """
-from mantid.simpleapi import CompareWorkspaces, LoadNexus, SumSpectra
+from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadNexus, SumSpectra, SaveNexus
 from mantid.api import mtd
 r"""
 Hyperlinks to drtsans functions
 amend_config, namedtuplefy, unique_workspace_dundername available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 insert_aperture_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
 prepare_data <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/api.py>
-calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py>
+calculate_transmission, fit_raw_transmission available at:
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py>
 apply_transmission_correction <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
 find_beam_center, center_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/beam_finder.py>
 """  # noqa: E501
 from drtsans.settings import amend_config, namedtuplefy, unique_workspace_dundername
+from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.geometry import insert_aperture_logs
 from drtsans.tof.eqsans.api import prepare_data
-from drtsans.tof.eqsans import (calculate_transmission, apply_transmission_correction, find_beam_center,
-                                center_detector)
+from drtsans.tof.eqsans import (calculate_transmission, apply_transmission_correction, fit_raw_transmission,
+                                find_beam_center, center_detector)
 
 
 @pytest.fixture(scope='module')
@@ -130,15 +134,86 @@ def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, w
 
 
 @pytest.fixture(scope='module')
+@namedtuplefy  # converts a dictionary into a namedtuple for more pythonic dereferencing of dictionary keys
+def test_data_9a_part_2():
+    r"""
+    Data for the test that fits a raw transmission at zero scattering angle, wavelength dependent, with a linear model.
+
+    Dropbox link to the test data:
+        <https://www.dropbox.com/s/up96plrq60jjdcg/fit_transmission_and_calc_test.xlsx>
+
+    Returns
+    -------
+    dict
+    """
+    return dict(
+        wavelength_bin_boundaries=[2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75, 6.25],
+        raw_transmissions=[0.91, 0.90, 0.86, 0.83, 0.80, 0.78, 0.75, 0.72],
+        raw_uncertainties=[0.04, 0.03, 0.03, 0.04, 0.03, 0.04, 0.03, 0.03],
+        fitted_transmissions=[0.918456, 0.890107, 0.861748, 0.833394, 0.805040, 0.776686, 0.748320, 0.719978],
+        fitted_uncertainties=[0.051776, 0.054412, 0.057371, 0.060607, 0.064076, 0.067744, 0.07158, 0.075558],
+        slope=(-0.056708, 0.0100089),  # slope value and error for the linear fit of the raw transmission values
+        intercept=(1.060225, 0.045217),  # intercept value and error for the linear fit of the raw transmission values
+        precision=1.e06,  # precision when comparing test data with drtsans calculations
+    )
+
+
+def test_fit_transmission_and_calc(test_data_9a_part_2):
+    r"""
+    This test fits a raw transmission at zero scattering angle, wavelength dependent, with a linear model.
+
+    This test implements Issue #175, addressing section 7.3 of the master document.
+    Dropbox links to the test:
+        <https://www.dropbox.com/s/dxg613usfg34vbx/fit_transmission_and_calc_test.pdf>
+        <https://www.dropbox.com/s/up96plrq60jjdcg/fit_transmission_and_calc_test.xlsx>
+
+    dev - Jose Borreguero <borreguerojm@ornl.gov>
+    SME - Changwoo Do <doc1@ornl.gov>
+
+    - List of Mantid algorithms employed:
+        Fit <https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html>
+    """
+    data = test_data_9a_part_2  # let's cut-down on the verbosity
+
+    # Load the raw transmissions at zero scattering angle into a workspace.
+    raw_transmission_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
+    CreateWorkspace(DataX=data.wavelength_bin_boundaries, UnitX='Wavelength',
+                    DataY=data.raw_transmissions, DataE=data.raw_uncertainties,
+                    OutputWorkspace=raw_transmission_workspace)
+
+    # We need to "manually" insert information about whether this run is skipped mode. This information would
+    # already be present in a prepared workspace.
+    sample_logs = SampleLogs(raw_transmission_workspace)
+    sample_logs.insert('is_frame_skipping', 0)
+    sample_logs.insert('wavelength_lead_min', data.wavelength_bin_boundaries[0], unit='Angstrom')
+    sample_logs.insert('wavelength_lead_max', data.wavelength_bin_boundaries[-1], unit='Angstrom')
+
+    # use drtsans to fit the raw transmission values
+    fitted_transmission_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
+    fit_results = fit_raw_transmission(raw_transmission_workspace, output_workspace=fitted_transmission_workspace)
+
+    # Verify fitted transmission values
+    assert mtd[fitted_transmission_workspace].readY(0) == pytest.approx(data.fitted_transmissions, abs=data.precision)
+    assert mtd[fitted_transmission_workspace].readE(0) == pytest.approx(data.fitted_uncertainties, abs=data.precision)
+
+    # Verify values for the fit parameters
+    parameter_table_workspace = fit_results.lead_mantid_fit.OutputParameters
+    _, slope_value, slope_error = list(parameter_table_workspace.row(0).values())
+    assert (slope_value, slope_error) == pytest.approx(data.slope, abs=data.precision)
+    _, intercept_value, intercept_error = list(parameter_table_workspace.row(1).values())
+    assert (intercept_value, intercept_error) == pytest.approx(data.intercept, abs=data.precision)
+
+
+@pytest.fixture(scope='module')
 @namedtuplefy
-def trans_fix(reference_dir):
+def transmission_fixture(reference_dir):
     data_dir = pjn(reference_dir.new.eqsans, 'test_transmission')
     cmp_dir = pjn(data_dir, 'compare')
 
     def quick_compare(tentative, asset):
         r"""asset: str, name of golden standard nexus file"""
         ws = LoadNexus(pjn(cmp_dir, asset), OutputWorkspace=unique_workspace_dundername())
-        return CompareWorkspaces(tentative, ws, Tolerance=1.E-6).Result
+        return CompareWorkspaces(tentative, ws, Tolerance=1.e-4).Result
 
     a = LoadNexus(pjn(data_dir, 'sample.nxs'))
     insert_aperture_logs(a)  # source and sample aperture diameters
@@ -149,12 +224,12 @@ def trans_fix(reference_dir):
                 reference_skip=d, compare=quick_compare)
 
 
-def test_masked_beam_center(reference_dir, trans_fix):
+def test_masked_beam_center(reference_dir, transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
     Test for an exception raised when the beam centers are masked
     """
-    mask = pjn(trans_fix.data_dir, 'beam_center_masked.xml')
+    mask = pjn(transmission_fixture.data_dir, 'beam_center_masked.xml')
     with amend_config(data_dir=reference_dir.new.eqsans):
         s = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
         d = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
@@ -164,45 +239,46 @@ def test_masked_beam_center(reference_dir, trans_fix):
     d.delete()
 
 
-def test_calculate_raw_transmission(trans_fix):
+def test_calculate_raw_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
     """
-    raw = calculate_transmission(trans_fix.sample, trans_fix.reference,
+    raw = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference, fit_function=None)
+    assert transmission_fixture.compare(raw, 'raw_transmission.nxs')
+    # big radius because detector is not centered
+    raw = calculate_transmission(transmission_fixture.sample_skip, transmission_fixture.reference_skip, radius=50,
                                  fit_function=None)
-    assert trans_fix.compare(raw, 'raw_transmission.nxs')
-    # big radius because detector is not centered
-    raw = calculate_transmission(trans_fix.sample_skip,
-                                 trans_fix.reference_skip, radius=50,
-                                 fit_function=None)
-    assert trans_fix.compare(raw, 'raw_transmission_skip.nxs')
+    assert transmission_fixture.compare(raw, 'raw_transmission_skip.nxs')
 
 
-def test_calculate_fitted_transmission(trans_fix):
+def test_calculate_fitted_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
     """
-    #175 fixture for data, instead of loading from a json file
-    fitted = calculate_transmission(trans_fix.sample, trans_fix.reference)
-    assert trans_fix.compare(fitted, 'fitted_transmission.nxs')
+    fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference)
+    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission.nxs')
+
     # big radius because detector is not centered
-    fitted = calculate_transmission(trans_fix.sample_skip, trans_fix.reference_skip, radius=50)
-    assert trans_fix.compare(fitted, 'fitted_transmission_skip.nxs')
+    fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample_skip,
+                                                           transmission_fixture.reference_skip, radius=50)
+    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_skip.nxs')
 
 
-def test_apply_transmission(trans_fix):
+def test_apply_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
     """
-    trans = calculate_transmission(trans_fix.sample, trans_fix.reference)
-    corr = apply_transmission_correction(trans_fix.sample, trans, output_workspace=unique_workspace_dundername())
+    trans = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference)
+    corr = apply_transmission_correction(transmission_fixture.sample, trans,
+                                         output_workspace=unique_workspace_dundername())
     corr = SumSpectra(corr, OutputWorkspace=corr.name())
-    trans_fix.compare(corr, 'sample_corrected.nxs')
+    transmission_fixture.compare(corr, 'sample_corrected.nxs')
     # big radius because detector is not centered
-    trans = calculate_transmission(trans_fix.sample_skip, trans_fix.reference_skip, radius=50)
-    corr = apply_transmission_correction(trans_fix.sample_skip, trans, output_workspace=unique_workspace_dundername())
+    trans = calculate_transmission(transmission_fixture.sample_skip, transmission_fixture.reference_skip, radius=50)
+    corr = apply_transmission_correction(transmission_fixture.sample_skip, trans,
+                                         output_workspace=unique_workspace_dundername())
     corr = SumSpectra(corr, OutputWorkspace=corr.name())
-    trans_fix.compare(corr, 'sample_corrected_skip.nxs')
+    transmission_fixture.compare(corr, 'sample_corrected_skip.nxs')
 
 
 if __name__ == '__main__':

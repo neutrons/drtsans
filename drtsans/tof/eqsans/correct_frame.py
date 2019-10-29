@@ -93,8 +93,7 @@ def clipped_bands_from_logs(input_workspace):
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
-    ws = mtd[str(input_workspace)]
-    sl = SampleLogs(ws)
+    sl = SampleLogs(input_workspace)
     lead = wlg.Wband(sl.wavelength_lead_min.value,
                      sl.wavelength_lead_max.value)
     if _is_frame_skipping(input_workspace):

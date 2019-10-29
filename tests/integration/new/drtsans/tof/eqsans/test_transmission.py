@@ -238,8 +238,6 @@ def test_masked_beam_center(reference_dir, transmission_fixture):
     [workspace.delete() for workspace in (sample_workspace, reference_workspace)]
 
 
-
-
 def test_calculate_raw_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)

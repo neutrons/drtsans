@@ -90,6 +90,7 @@ def test_calculate_transmission_single_bin(reference_dir, workspace_with_instrum
     assert transmission.readY(0)[0] == pytest.approx(0.7888, abs=1e-04)
 
 
+@pytest.mark.xfail(strict=True)
 def test_calculate_fitted_transmission(trans_fix):
     fitted = calculate_transmission(trans_fix.sample, trans_fix.reference)
     assert trans_fix.compare(fitted, 'fitted_transmission.nxs')

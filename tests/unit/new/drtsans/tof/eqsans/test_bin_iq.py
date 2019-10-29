@@ -375,8 +375,8 @@ def get_gold_theta_bins():
         bin edges, bin centers
 
     """
-    theta_centers = np.ndarray([18, 54, 90, 126, 162, 198, 234, 270, 306, 342])
-    theta_edges = np.ndarray([0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360])
+    theta_centers = np.array([18, 54, 90, 126, 162, 198, 234, 270, 306, 342])
+    theta_edges = np.array([0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360])
 
     return theta_edges, theta_centers
 

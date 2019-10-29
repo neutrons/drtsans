@@ -366,13 +366,17 @@ def test_2d_linear_bin_no_wt():
     return
 
 
-def next2_test_1d_annular_no_wt():
+def test_1d_annular_no_wt():
     """Test '1D_annular_no_sub_no_wt'
 
     Returns
     -------
 
     """
+
+    # Calculate azimuthal angle of each Q
+    angle = np.arctan2(qy, qx) * 180. / np.pi
+    angle[np.where(angle < 0)] += 360
 
     return
 

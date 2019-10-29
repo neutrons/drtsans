@@ -11,9 +11,8 @@ GroupDetectors              <https://docs.mantidproject.org/nightly/algorithms/G
 from mantid.simpleapi import mtd, CreateSingleValuedWorkspace, DeleteWorkspace, Divide, GroupDetectors
 
 from drtsans.settings import unique_workspace_dundername
-from drtsans.geometry import masked_detectors
 from drtsans import transmission
-from drtsans.mask_utils import circular_mask_from_beam_center
+from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 
 __all__ = ['empty_beam_scaling', ]
 

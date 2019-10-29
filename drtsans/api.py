@@ -1,12 +1,12 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
 from drtsans.settings import unique_workspace_dundername as uwd
-import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RenameWorkspace-v1.html
 from mantid.simpleapi import CloneWorkspace, CreateSingleValuedWorkspace, Minus, mtd, RebinToWorkspace, RenameWorkspace
+import numpy as np
 
 __all__ = ['half_polarization', 'subtract_background']
 
@@ -99,8 +99,7 @@ def _calc_flipping_ratio(polarization):
                                            OutputWorkspace=uwd(), EnableLogging=False)
     else:
         # if it is an array should call CreateWorkspace(EnableLogging=False)
-        print(value)
-        raise NotImplementedError('Somebody needs to create an output from {}'.format(type(value)))
+        raise NotImplementedError('Somebody needs to create an output from {} (type={})'.format(value, type(value)))
 
 
 def _set_uncertainty_from_numpy(wksp, uncertainty):

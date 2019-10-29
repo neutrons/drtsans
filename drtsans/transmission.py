@@ -3,26 +3,32 @@ import sys
 
 from mantid import mtd
 from mantid.kernel import logger
-# https://docs.mantidproject.org/nightly/algorithms/ApplyTransmissionCorrection-v1.html
-# https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
-# https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v1.html
-# https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
-# https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
-from mantid.simpleapi import (ApplyTransmissionCorrection, Divide, GroupDetectors, ReplaceSpecialValues,
-                              RebinToWorkspace)
 
+r""" Links to mantid algorithms
+ApplyTransmissionCorrection <https://docs.mantidproject.org/nightly/algorithms/ApplyTransmissionCorrection-v1.html>
+Divide <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
+GroupDetectors <https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v1.html>
+RebinToWorkspace <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
+ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html>
+"""
+from mantid.simpleapi import (ApplyTransmissionCorrection, Divide, GroupDetectors, RebinToWorkspace,
+                              ReplaceSpecialValues)
+
+r""" links to drtsans imports
+unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+circular_mask_from_beam_center, masked_detectors available at:
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mask_utils.py>
+beam_radius <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/geometry.py>
+"""  # noqa: E501
+from drtsans.settings import unique_workspace_dundername
+from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 from drtsans.mono.geometry import beam_radius
-from drtsans.settings import unique_workspace_dundername as uwd
-from drtsans.geometry import masked_detectors
-from drtsans.mask_utils import circular_mask_from_beam_center
 
 # Symbols to be exported to the drtsans namespace
-__all__ = ['apply_transmission_correction']
+__all__ = ['apply_transmission_correction', 'calculate_transmission']
 
 
-def calculate_transmission(input_sample, input_reference,
-                           radius=None, radius_unit='mm',
-                           output_workspace=None):
+def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm', output_workspace=None):
     """
     Calculate the raw transmission coefficients at zero scattering angle
     from already prepared sample and reference data.
@@ -30,16 +36,24 @@ def calculate_transmission(input_sample, input_reference,
     For EQ-SANS, one additional step fitting the returned raw values is
     necessary. Use `eqsans.calculate_transmission` instead.
 
+    **Mantid algorithms used:**
+        :ref:`Divide <algm-Divide-v1>`
+        <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>,
+        :ref:`GroupDetectors <algm-GroupDetectors-v2>`
+        <https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v2.html>,
+        :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`
+        <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>.
+
+
     Parameters
     ----------
-    input_sample: MatrixWorkspace
+    input_sample: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
         Prepared sample workspace (possibly obtained with an attenuated beam)
-    input_reference: MatrixWorkspace
-        Prepared direct beam workspace (possibly obtained with an attenuated
-         beam)
+    input_reference: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+        Prepared direct beam workspace (possibly obtained with an attenuated beam)
     radius: float
         Radius around the bean center for pixel integration, in millimeters.
-        If None, radius will be obtained or calculated using `input_reference`.
+        If None, radius will be obtained or calculated using `input_reference` workspace.
     radius_unit: str
         Either 'mm' or 'm', and only used in conjunction with option `radius`.
     output_workspace: str
@@ -48,49 +62,60 @@ def calculate_transmission(input_sample, input_reference,
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
         Workspace containing the raw transmission values
     """
     if output_workspace is None:
-        output_workspace = uwd()
+        output_workspace = unique_workspace_dundername()
 
     if radius is None:
         logger.information('Calculating beam radius from sample logs')
         radius = beam_radius(input_reference, unit='mm')
     else:
-
         radius = float(radius) if radius_unit == 'mm' else 1.e3 * radius  # to mm
     if radius <= 0.:
         raise ValueError('Encountered negative beam radius={}mm'.format(radius))
 
-    det_ids = circular_mask_from_beam_center(input_reference, radius, unit='mm')
-    if not det_ids:
+    # Find the identity of the detector pixels falling within the beam area
+    detector_ids = circular_mask_from_beam_center(input_reference, radius, unit='mm')
+    if not detector_ids:
         raise RuntimeError('No pixels in beam with radius of {:.2f} mm'.format(radius))
 
     # Warn when masking many pixels around the beam center
     warning_message = 'Warning: More than half of the detectors within a radius of {:.2f} mm '.format(radius) +\
                       'from the beam center are masked in the input {0}'
-    for k, v in dict(sample=input_sample, reference=input_reference).items():
-        if len(masked_detectors(v, det_ids)) > len(det_ids) / 2:
-            sys.stderr.write(warning_message.format(k))
+    for run, workspace in dict(sample=input_sample, reference=input_reference).items():
+        if len(masked_detectors(workspace, detector_ids)) > len(detector_ids) / 2:
+            sys.stderr.write(warning_message.format(run))
 
-    # by default it sums all the grouped detectors
-    gis = GroupDetectors(InputWorkspace=input_sample, DetectorList=det_ids,
-                         OutputWorkspace=uwd())
-    gir = GroupDetectors(InputWorkspace=input_reference, DetectorList=det_ids,
-                         OutputWorkspace=uwd())
-    gir = RebinToWorkspace(WorkspaceToRebin=gir, WorkspaceToMatch=gis,
-                           OutputWorkspace=gir.name())
+    # Add the intensities of the detector pixels within the beam area
+    sample_intensity_workspace = GroupDetectors(InputWorkspace=input_sample, DetectorList=detector_ids,
+                                                OutputWorkspace=unique_workspace_dundername())
+    reference_intensity_workspace = GroupDetectors(InputWorkspace=input_reference, DetectorList=detector_ids,
+                                                   OutputWorkspace=unique_workspace_dundername())
+
+    # If the reference workspace used a different wavelength binning than that of the sample workspace, a rebinning
+    # step is necessary prior to dividing sample intensities by the reference intensities.
+    reference_intensity_workspace = RebinToWorkspace(WorkspaceToRebin=reference_intensity_workspace,
+                                                     WorkspaceToMatch=sample_intensity_workspace,
+                                                     OutputWorkspace=reference_intensity_workspace.name())
 
     # calculate zero angle transmission coefficient(s)
-    zat = Divide(LHSWorkspace=gis, RHSWorkspace=gir,
-                 OutputWorkspace=output_workspace)
-    av_t, av_e = np.mean(zat.dataY(0)), np.linalg.norm(zat.dataE(0))
+    zero_angle_transmission_workspace = Divide(LHSWorkspace=sample_intensity_workspace,
+                                               RHSWorkspace=reference_intensity_workspace,
+                                               OutputWorkspace=output_workspace)
+
+    # Notify of average transmission value
+    average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.dataY(0))
+    average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.dataE(0))
     message = 'Average zero angle transmission = {0} +/- {1}'
-    logger.notice(message.format(av_t, av_e))
-    gis.delete()
-    gir.delete()
-    return zat
+    logger.notice(message.format(average_zero_angle_transmission, average_zero_angle_transmission_error))
+
+    # A bit of clean up
+    sample_intensity_workspace.delete()
+    reference_intensity_workspace.delete()
+
+    return zero_angle_transmission_workspace
 
 
 def apply_transmission_correction(input_workspace, trans_workspace=None, trans_value=None, trans_error=0.0,
@@ -99,7 +124,10 @@ def apply_transmission_correction(input_workspace, trans_workspace=None, trans_v
     Correct the intensities with transmission coefficient(s).
 
     **Mantid algorithms used:**
-    :ref:`ApplyTransmissionCorrection <algm-ApplyTransmissionCorrection-v1>`,
+        :ref:`<algm-ApplyTransmissionCorrection-v1>`
+        https://docs.mantidproject.org/nightly/algorithms/ApplyTransmissionCorrection-v1.html,
+        :ref:`<algm-ReplaceSpecialValues-v1>`
+        https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html,
 
     Parameters
     ----------
@@ -123,18 +151,26 @@ def apply_transmission_correction(input_workspace, trans_workspace=None, trans_v
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
+
+    # kwargs is a list of options to be passed on to Mantid algorithm ApplyTransmissionCorrection
     kwargs = dict(InputWorkspace=input_workspace, ThetaDependent=theta_dependent, OutputWorkspace=output_workspace)
+
     if trans_workspace is not None:
         # EQ-SANS transmissions in skip-frame mode have transmission values of zero in the wavelength gap.
         # Need to be replaced with one to avoid division of intensities by zero.
-        clean_trans_workspace = ReplaceSpecialValues(InputWorkspace=trans_workspace, SmallNumberThreshold=1.0e-6,
-                                                     SmallNumberValue=1.0, OutputWorkspace=uwd())
+        clean_trans_workspace = ReplaceSpecialValues(InputWorkspace=trans_workspace,
+                                                     SmallNumberThreshold=1.0e-6,
+                                                     SmallNumberValue=1.0,
+                                                     OutputWorkspace=unique_workspace_dundername())
         kwargs['TransmissionWorkspace'] = clean_trans_workspace
-    elif trans_value is not None:
+    elif trans_value is not None:  # we are passing a single value for the transmission
         kwargs.update(dict(TransmissionValue=trans_value, TransmissionError=trans_error))
-    else:
+    else:  # we neither passed a transmission workspace nor a single transmission value
         raise RuntimeError('Provide either trans_workspace or trans_value')
+
     ApplyTransmissionCorrection(**kwargs)
+
     if trans_workspace is not None:
         clean_trans_workspace.delete()
+
     return mtd[output_workspace]

@@ -258,18 +258,6 @@ def no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bi
     return binned_iq
 
 
-def bin_into_q2d(wl_ws, bins, suffix):
-    """
-    :param wl_ws: List of workspaces (names) in binned wave length space
-    :param bins: Iterable for range and bin size of Qx and Qy
-    :param suffix: suffix for output workspace
-    :return:
-    """
-    calculator = IofQCalculator(wl_ws)
-
-    return calculator.bin_into_q2d(bins=bins, suffix=suffix)
-
-
 def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMethod.NOWEIGHT):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 

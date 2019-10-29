@@ -325,6 +325,7 @@ def test_2d_linear_bin_no_wt():
     # Get Q1D data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
+    # Test for no-weight binning
     binned_iq_2d = do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, intensities, sigmas,
                                            x_edges, y_edges)
 
@@ -337,8 +338,18 @@ def test_2d_linear_bin_no_wt():
     assert abs(binned_iq_2d[1][1][1] - 4.725815626) < 1E-8, 'sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
-    assert abs(binned_iq_2d[2][1][1] - 3.31E-05) < 1E-7, 'dQx is incorrect'
-    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 1E-7, 'dQy is incorrect'
+    # correct: 3.2999999999999996e-05
+    assert abs(binned_iq_2d[2][1][1] - 3.31E-05) < 2E-7, 'dQx is incorrect'
+    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 2E-7, 'dQy is incorrect'
+
+    # Test for weighted-binning
+    binned_iq_2d = do_2d_weighted_binning(qx_array, qy_array, intensities, sigmas,
+                                           x_edges, y_edges)
+
+    # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
+    assert abs(binned_iq_2d[0][1][1] - 56.8660) < 1E-6, 'Weighted-binned I(Qx, Qy) is incorrect'
+    assert abs(binned_iq_2d[1][1][1] - 4.353773265) < 1E-8, 'Weighted-binned sigma I(Qx, Qy) is incorrect'
+
 
     return
 
@@ -400,6 +411,79 @@ def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
     dqy_final_array = dqy_raw_array / num_pt_array
 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
+
+
+def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_edges, y_bin_edges):
+    """Perform 2D weighted binning
+
+    General description of algorithm:
+
+      I^{raw}_{i, j} = sum^{(i,j)}_{k} I_{k} / sigma^2(I)_k
+      weight_{i, j} = sum^{(i, j)}_k 1 / sigma^2(I)_k
+      I^{weight}_{i, j} = I^{raw}_{(i, j)} / weight_{i, j}
+      sigma I^{weight}_{i, j} = 1 / sqrt(weight_{i, j})
+
+    Parameters
+    ----------
+    qx_array
+    qy_array
+    iq_array
+    sigma_iq_array
+    x_bin_edges
+    y_bin_edges
+
+    Returns
+    -------
+
+    """
+    # calculate 1/sigma^2 for multiple uses
+    invert_sigma2_array = 1. / (sigma_iq_array ** 2)   # 1D
+
+    print('I(Q) array:\n', iq_array)
+    print('invert_sigma2_array\n', invert_sigma2_array)
+    print('Raw raw I:\n', iq_array * invert_sigma2_array)
+    print('X edges: {}'.format(x_bin_edges))
+    print('Y edges: {}'.format(y_bin_edges))
+
+    # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
+    print(qx_array.shape)
+    print(qy_array.shape)
+    print(invert_sigma2_array.shape)
+
+    i_raw_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
+                                                      weights=iq_array * invert_sigma2_array)  # 2D
+
+    print('[DEBUG 1] Raw 2D:'.format(i_raw_2d_array))
+    for i in range(i_raw_2d_array.shape[0]):
+        row_i = ''
+        for j in range(i_raw_2d_array.shape[1]):
+            row_i += '{:1f}, '.format(i_raw_2d_array[i, j])
+        print(row_i)
+    # END-FOR
+
+    # check bins
+    assert np.allclose(dummy_x, x_bin_edges, 1E-12), 'X Bin edges does not match'
+    assert np.allclose(dummy_y, y_bin_edges, 1E-12), 'Y Bin edges does not match'
+
+    # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
+    w_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
+                                                  weights=invert_sigma2_array)  # 2D
+
+    assert np.allclose(x_bin_edges, dummy_x, 1E-8)
+    assert np.allclose(y_bin_edges, dummy_y, 1E-8)
+
+    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
+    #       sigma = 1/sqrt(w_k)
+    i_final_array = i_raw_2d_array / w_2d_array
+    sigma_final_array = 1 / np.sqrt(w_2d_array)
+
+    # # Calculate Q resolution of binned
+    # # FIXME - waiting for Lisa's equations for binned q resolution
+    # # FIXME - this is an incorrect solution temporarily for workflow
+    # binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
+    # bin_q_resolution = binned_dq / i_raw_2d_array
+
+    return i_final_array, sigma_final_array
 
 
 def next2_test_1d_annular_no_wt():

@@ -420,7 +420,8 @@ def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array, x_bin_edges, y_bin_edges):
+def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
+                           x_bin_edges, y_bin_edges):
     """Perform 2D weighted binning
 
     General description of algorithm:
@@ -478,7 +479,6 @@ def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, s
                                                      weights=dqx_array * invert_sigma2_array)  # 2D
     dqy_raw_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
                                                      weights=dqy_array * invert_sigma2_array)  # 2D
-
 
     print('[DEBUG 1] Raw 2D:'.format(i_raw_2d_array))
     for i in range(i_raw_2d_array.shape[0]):

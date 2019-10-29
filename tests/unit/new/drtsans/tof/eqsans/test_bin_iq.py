@@ -343,12 +343,18 @@ def test_2d_linear_bin_no_wt():
     assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 2E-7, 'dQy is incorrect'
 
     # Test for weighted-binning
-    binned_iq_2d = do_2d_weighted_binning(qx_array, qy_array, intensities, sigmas, x_edges, y_edges)
+    binned_iq_2d = do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, intensities, sigmas,
+                                          x_edges, y_edges)
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
     # test value: 56.86602493293357
     assert abs(binned_iq_2d[0][1][1] - 56.8660) < 1E-4, 'Weighted-binned I(Qx, Qy) is incorrect'
     assert abs(binned_iq_2d[1][1][1] - 4.353773265) < 1E-8, 'Weighted-binned sigma I(Qx, Qy) is incorrect'
+
+    # verify dQx and dQy
+    # correct: 3.2999999999999996e-05
+    assert abs(binned_iq_2d[2][1][1] - 3.30E-05) < 2E-7, 'dQx is incorrect'
+    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 2E-7, 'dQy is incorrect'
 
     return
 
@@ -364,10 +370,12 @@ def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
 
     Parameters
     ----------
-    qx_array
-    dqy_array: ndarray
+    qx_array: ndarray
+        Qx array
+    dqx_array: ndarray
         Qx resolution
-    qy_array
+    qy_array : ndarray
+        Qy array
     dqy_array: ndarray
         Qy resolution
     iq_array: ndarray
@@ -412,7 +420,7 @@ def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_edges, y_bin_edges):
+def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array, x_bin_edges, y_bin_edges):
     """Perform 2D weighted binning
 
     General description of algorithm:
@@ -424,15 +432,27 @@ def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_e
 
     Parameters
     ----------
-    qx_array
-    qy_array
-    iq_array
-    sigma_iq_array
-    x_bin_edges
+    qx_array : ndarray
+        qx
+    dqx_array : ndarray
+        Qx resolution
+    qy_array: ndarray
+        qy
+    dqy_array: ndarray
+        Qy resolution
+    iq_array : ndarray
+        intensities
+    sigma_iq_array : ndarray
+        intensity errors
+    x_bin_edges : ndarray
+        X bin edges
     y_bin_edges
+        Y bin edges
 
     Returns
     -------
+    ndarray, ndarray, ndarray, ndarray
+        binned intensities (n x m), binned sigmas (n x m), binned Qx resolution (n x m), binned Qy resolution (n x m)
 
     """
     # calculate 1/sigma^2 for multiple uses
@@ -449,8 +469,16 @@ def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_e
     print(qy_array.shape)
     print(invert_sigma2_array.shape)
 
+    # Intensities
     i_raw_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
                                                       weights=iq_array * invert_sigma2_array)  # 2D
+
+    # dQx and dQy
+    dqx_raw_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
+                                                     weights=dqx_array * invert_sigma2_array)  # 2D
+    dqy_raw_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
+                                                     weights=dqy_array * invert_sigma2_array)  # 2D
+
 
     print('[DEBUG 1] Raw 2D:'.format(i_raw_2d_array))
     for i in range(i_raw_2d_array.shape[0]):
@@ -474,7 +502,12 @@ def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_e
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
     #       sigma = 1/sqrt(w_k)
     i_final_array = i_raw_2d_array / w_2d_array
+    # sigma I(Qx, Qy)
     sigma_final_array = 1 / np.sqrt(w_2d_array)
+    # Qx resolution
+    dqx_final_array = dqx_raw_array / w_2d_array
+    # Qy resolution
+    dqy_final_array = dqy_raw_array / w_2d_array
 
     # # Calculate Q resolution of binned
     # # FIXME - waiting for Lisa's equations for binned q resolution
@@ -482,7 +515,7 @@ def do_2d_weighted_binning(qx_array, qy_array, iq_array, sigma_iq_array, x_bin_e
     # binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
     # bin_q_resolution = binned_dq / i_raw_2d_array
 
-    return i_final_array, sigma_final_array
+    return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
 def next2_test_1d_annular_no_wt():

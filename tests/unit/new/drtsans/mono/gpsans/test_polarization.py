@@ -1,5 +1,4 @@
 import pytest
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans import half_polarization
 from drtsans.api import _calc_flipping_ratio  # private function
@@ -8,11 +7,19 @@ from mantid.simpleapi import CreateSingleValuedWorkspace
 
 
 def test_flipping_ratio():
+    '''Test for the calclation of the flipping ratio in section 9.1. This was used to determine
+    that the uncertainty needs to be calculated separately because of accumulation of numeric
+    error.
+
+    dev - Pete Peterson <petersonpf@ornl.gov>
+    SME - Lisa DeBeer-Schmitt <debeerschmlm@ornl.gov>
+          Mike Fitzsimmons <fitzsimmonsm@ornl.gov>
+    '''
     # this is called "P" in the document
     polarization = CreateSingleValuedWorkspace(DataValue=0.95, ErrorValue=0.01,
                                                OutputWorkspace=uwd())
     flipping_ratio_expected = (1. + 0.95) / (1. - 0.95)
-    flipping_ratio_err_expected = (2. * 0.01) / 0.0025  # denominator is (1-p)^2
+    flipping_ratio_err_expected = (2. * polarization.readE(0)[0]) / 0.0025  # denominator is (1-p)^2
 
     flipping_ratio = _calc_flipping_ratio(polarization)
 

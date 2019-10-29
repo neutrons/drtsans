@@ -24,13 +24,14 @@ __all__ = ['calculate_transmission', 'fit_raw_transmission']
 
 
 def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm',
-                           fit_function='name=UserFunction,Formula=a*x+b', output_workspace=None):
+                           fit_function='name=UserFunction,Formula=a*x+b',
+                           output_workspace=None, output_raw_transmission=None):
     """
-    Calculate the transmission coefficients at zero scattering angle
-    from already prepared sample and reference data.
+    Calculate the transmission coefficients at zero scattering angle from already prepared sample and reference data.
 
-    For EQ-SANS, one additional step fitting the raw values with an
-    analytic wavelength-dependent function may be requested
+    For EQ-SANS, one additional step fitting the values with an analytic wavelength-dependent function
+    may be requested. In this case the fitted transmission values are stored in ``output_workspace`` and the raw
+    transmission values can be optionally stored in workspace ``output_raw_transmissions``.
 
     Parameters
     ----------
@@ -49,20 +50,32 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
         The default value represents a linear model. If this option is left as :py:obj:`None` or empty
         string, then no fitting is performed.
     output_workspace: str
-        Name of the output workspace containing the raw transmission values.
+        Name of the output workspace containing the raw transmission values when ``fit_function`` is :py:obj:`None`,
+        or the fitted transmission values when `fit_function`` is not :py:obj:`None`.
         If :py:obj:`None`, an anonymous hidden name will be automatically provided.
+    output_raw_transmission: str
+        When ``fit_function`` is not :py:obj:`None`, this option allows to store the unfitted transmission values
+        to a workspace. If the option is left as :py:obj:`None`, then the unfitted values are not kep.
 
     Returns
     -------
     MatrixWorkspace
-        Workspace containing the transmission values
+        Workspace containing the raw transmission values when ``fit_function`` is :py:obj:`None`, and the fitted
+        transmission values when `fit_function`` is not :py:obj:`None`.
     """
     if output_workspace is None:
         output_workspace = unique_workspace_dundername()
-    transmission_workspace = calculate_raw_transmission(input_sample, input_reference, radius=radius,
-                                                        radius_unit=radius_unit, output_workspace=output_workspace)
+
+    if output_raw_transmission is None:
+        output_raw_transmission = output_workspace  # we return the raw transmissions
+
+    # start calculating the raw transmissions
+    raw_transmission_workspace = calculate_raw_transmission(input_sample, input_reference,
+                                                            radius=radius, radius_unit=radius_unit,
+                                                            output_workspace=output_raw_transmission)
     if bool(fit_function) is True:
-        transmission_workspace = fit_raw_transmission(transmission_workspace, fit_function=fit_function).transmission
+        transmission_workspace = fit_raw_transmission(raw_transmission_workspace, fit_function=fit_function,
+                                                      output_workspace=output_workspace).transmission
     return transmission_workspace
 
 

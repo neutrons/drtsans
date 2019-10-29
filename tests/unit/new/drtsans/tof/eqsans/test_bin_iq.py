@@ -343,13 +343,11 @@ def test_2d_linear_bin_no_wt():
     assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 2E-7, 'dQy is incorrect'
 
     # Test for weighted-binning
-    binned_iq_2d = do_2d_weighted_binning(qx_array, qy_array, intensities, sigmas,
-                                           x_edges, y_edges)
+    binned_iq_2d = do_2d_weighted_binning(qx_array, qy_array, intensities, sigmas, x_edges, y_edges)
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
     assert abs(binned_iq_2d[0][1][1] - 56.8660) < 1E-6, 'Weighted-binned I(Qx, Qy) is incorrect'
     assert abs(binned_iq_2d[1][1][1] - 4.353773265) < 1E-8, 'Weighted-binned sigma I(Qx, Qy) is incorrect'
-
 
     return
 

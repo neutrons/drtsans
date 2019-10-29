@@ -1,5 +1,7 @@
 import sys
 
+import drtsans.mono.geometry
+
 r""" Links to Mantid algorithms
 CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
 DeleteWorkspace             <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
@@ -52,7 +54,7 @@ def empty_beam_intensity(empty_beam_workspace, beam_radius=None, unit='mm', roi=
 
     # Obtain the beam radius from the logs or calculate from the source and sample apertures
     if beam_radius is None:
-        beam_radius = transmission.beam_radius(empty_beam_workspace, unit=unit)
+        beam_radius = drtsans.mono.geometry.beam_radius(empty_beam_workspace, unit=unit)
 
     det_ids = circular_mask_from_beam_center(empty_beam_workspace, beam_radius, unit=unit)
 

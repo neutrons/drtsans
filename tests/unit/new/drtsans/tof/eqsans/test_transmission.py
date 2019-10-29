@@ -17,7 +17,8 @@ beam_radius, fit_band, fit_raw_transmission available at:
 """
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tof.eqsans.correct_frame import transmitted_bands
-from drtsans.tof.eqsans.transmission import beam_radius, fit_band, fit_raw_transmission
+from drtsans.tof.eqsans.transmission import fit_band, fit_raw_transmission
+from drtsans.tof.eqsans.geometry import beam_radius
 
 
 @pytest.fixture(scope='module')

@@ -14,18 +14,13 @@ namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/s
 calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
 clipped_bands_from_logs, transmitted_bands available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
-sample_aperture_diameter, source_aperture_diameter available at:
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
 """  # noqa: E501
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
 from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs, transmitted_bands
-from drtsans.tof.eqsans.geometry import sample_aperture_diameter, source_aperture_diameter
-from drtsans.geometry import sample_detector_distance, source_sample_distance
-
 
 # Symbols to be exported to the eqsans namespace
-__all__ = ['beam_radius', 'calculate_transmission', 'fit_raw_transmission']
+__all__ = ['calculate_transmission', 'fit_raw_transmission']
 
 
 def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm',
@@ -69,36 +64,6 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
     if bool(fit_function) is True:
         transmission_workspace = fit_raw_transmission(transmission_workspace, fit_function=fit_function).transmission
     return transmission_workspace
-
-
-def beam_radius(input_workspace, unit='mm'):
-    r"""
-    Calculate the beam radius impinging on the detector bank.
-
-    .. math::
-
-           R_{beam} = R_{sampleAp} + SDD * (R_{sampleAp} + R_{sourceAp}) / SSD
-
-    Parameters
-    ----------
-    input_workspace: ~mantid.api.MatrixWorkspace, str
-        Input workspace, contains all necessary info in the logs
-    unit: str
-        Either 'mm' or 'm'
-
-    Returns
-    -------
-    float
-        Estimated beam radius
-    """
-    source_aperture_diam = source_aperture_diameter(input_workspace, unit=unit)
-    source_sample_dist = source_sample_distance(input_workspace)
-
-    sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
-    sample_detector_dist = sample_detector_distance(input_workspace)
-
-    return sample_aperture_diam +\
-        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_sample_dist)
 
 
 @namedtuplefy

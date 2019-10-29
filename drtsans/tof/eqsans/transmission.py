@@ -76,7 +76,9 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
     if bool(fit_function) is True:
         transmission_workspace = fit_raw_transmission(raw_transmission_workspace, fit_function=fit_function,
                                                       output_workspace=output_workspace).transmission
-    return transmission_workspace
+        return transmission_workspace
+    else:
+        return raw_transmission_workspace
 
 
 @namedtuplefy

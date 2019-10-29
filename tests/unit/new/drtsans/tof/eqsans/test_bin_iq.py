@@ -401,7 +401,7 @@ def test_1d_annular_no_wt():
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
     # Calculate theta array
-    theta_array =  np.arctan2(qy_array, qx_array) * 180. / np.pi
+    theta_array = np.arctan2(qy_array, qx_array) * 180. / np.pi
     # convert -0 to -180 to 180 to 360
     theta_array[np.where(theta_array < 0)] += 360.
 
@@ -415,7 +415,6 @@ def test_1d_annular_no_wt():
     # Check result
     print('Theta = 54 I[1]:  {} - {} = {}'.format(binned_iq.i[1], 63.66666667, binned_iq.i[1] - 63.66666667))
     print('Theta = 54 sI[1]: {} - {} = {}'.format(binned_iq.sigma[1], 3.257470048, binned_iq.sigma[1] - 3.257470048))
-
 
     # # Calculate azimuthal angle of each Q
     # angle = np.arctan2(qy, qx) * 180. / np.pi

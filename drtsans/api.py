@@ -5,6 +5,7 @@ from drtsans.settings import unique_workspace_dundername as uwd
 # https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RenameWorkspace-v1.html
+# mtd is https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
 from mantid.simpleapi import CloneWorkspace, CreateSingleValuedWorkspace, Minus, mtd, RebinToWorkspace, RenameWorkspace
 import numpy as np
 
@@ -86,6 +87,18 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
 
 
 def _calc_flipping_ratio(polarization):
+    '''Calculates the flipping ratio from the polarization state
+
+    Parameters
+    ----------
+    polarization: str, ~mantid.api.MatrixWorkspace
+        Polarization state
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+        The ratio of flipping
+    '''
     value = polarization.extractY()[0]
     uncertainty = polarization.extractE()[0]
     if len(value) == 1 and len(uncertainty) == 1:
@@ -114,6 +127,24 @@ def _set_uncertainty_from_numpy(wksp, uncertainty):
 
 
 def _calc_half_polarization_up(flipper_off, flipper_on, efficiency, flipping_ratio):
+    '''This calculates the spin up workspace
+
+    Parameters
+    ----------
+    flipper_off_workspace: str, ~mantid.api.MatrixWorkspace
+        Flipper off measurement
+    flipper_on_workspace: str, ~mantid.api.MatrixWorkspace
+        Flipper on measurement
+    efficiency: ~mantid.api.MatrixWorkspace
+        Flipper efficiency
+    flipping_ratio: ~mantid.api.MatrixWorkspace
+        The ratio of flipping
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+        The spin up workspace
+    '''
     __spin_up = flipper_off + (flipper_off - flipper_on) / (efficiency * (flipping_ratio - 1.))
 
     e = efficiency.extractY()[0]
@@ -136,6 +167,24 @@ def _calc_half_polarization_up(flipper_off, flipper_on, efficiency, flipping_rat
 
 
 def _calc_half_polarization_down(flipper_off, flipper_on, efficiency, flipping_ratio):
+    '''This calculates the spin down workspace
+
+    Parameters
+    ----------
+    flipper_off_workspace: str, ~mantid.api.MatrixWorkspace
+        Flipper off measurement
+    flipper_on_workspace: str, ~mantid.api.MatrixWorkspace
+        Flipper on measurement
+    efficiency: ~mantid.api.MatrixWorkspace
+        Flipper efficiency
+    flipping_ratio: ~mantid.api.MatrixWorkspace
+        The ratio of flipping
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+        The spin down workspace
+    '''
     __spin_down = flipper_off - (flipper_off - flipper_on) / (efficiency * (1. - 1./flipping_ratio))
 
     e = efficiency.extractY()[0]
@@ -160,6 +209,9 @@ def _calc_half_polarization_down(flipper_off, flipper_on, efficiency, flipping_r
 def half_polarization(flipper_off_workspace, flipper_on_workspace, polarization, efficiency,
                       spin_up_workspace=None, spin_down_workspace=None):
     '''Calculate the spin up/down workspaces from flipper on/off.
+
+    **Mantid algorithms used:**
+    :ref:`RenameWorkspace <algm-RenameWorkspace-v1>`
 
     Parameters
     ----------

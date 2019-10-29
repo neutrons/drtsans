@@ -521,4 +521,3 @@ def next3_test_1d_bin_log_wedge_no_wt():
     assert bin_centers
 
     return
-

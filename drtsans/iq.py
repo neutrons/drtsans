@@ -554,7 +554,6 @@ def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, s
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-
 def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
     """Determine linear bin size
 

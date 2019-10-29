@@ -187,14 +187,14 @@ def determine_1d_log_bins(q_min, q_max, step_per_decade):
         bin centers, bin edges
 
     """
-    # C_max = ceil(log{Q_max})
+    # C_max = 10^ceil(log{Q_max}): nearest equal or larger power of 10 for C_max
     c_max = 10 ** (np.ceil(np.log10(q_max)))
-    # Set to minimum Q as 0.0001A
+    # C_min = 10^floor(log(Q_min)): nearest equal or smaller power of 10 for C_min
     c_min = 10 ** (np.floor(np.log10(q_min)))
-    # Total number of
-    delta_l = (np.log10(c_max / c_min)) / step_per_decade
-    # number of data points
-    num_bins = int(np.log10(c_max / c_min)) * 10
+    # log step
+    delta_l = 1. / step_per_decade
+    # number of total bins
+    num_bins = int(np.log10(c_max / c_min)) * step_per_decade
 
     # Determine Q bin centers
     bin_centers = np.arange(num_bins)

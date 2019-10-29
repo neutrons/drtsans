@@ -1,13 +1,10 @@
 from mantid.simpleapi import MoveInstrumentComponent
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import (get_instrument, detector_name,
-                              source_sample_distance, sample_detector_distance)
+from drtsans.geometry import get_instrument, detector_name, source_sample_distance, sample_detector_distance
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'detector_z_log',
            'translate_sample_by_z', 'translate_detector_by_z']
-                       ]
-
 detector_z_log = 'detectorZ'
 
 

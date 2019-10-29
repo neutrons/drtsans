@@ -2,7 +2,7 @@ from mantid import mtd, logger
 
 from drtsans.samplelogs import SampleLogs
 
-__all__ = ['beam_radius',]
+__all__ = ['beam_radius']
 
 
 def beam_radius(input_workspace, unit='mm',

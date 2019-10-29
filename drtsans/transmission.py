@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 
 from mantid import mtd
 from mantid.kernel import logger
@@ -66,13 +67,12 @@ def calculate_transmission(input_sample, input_reference,
     if not det_ids:
         raise RuntimeError('No pixels in beam with radius of {:.2f} mm'.format(radius))
 
-    # Avoid pitfall of masking many pixels around the beam center
-    msg = 'More than half of the detectors ' +\
-          'within a radius of {:.2f} mm '.format(radius) +\
-          'from the beam center are masked in the input {0}'
+    # Warn when masking many pixels around the beam center
+    warning_message = 'Warning: More than half of the detectors within a radius of {:.2f} mm '.format(radius) +\
+                      'from the beam center are masked in the input {0}'
     for k, v in dict(sample=input_sample, reference=input_reference).items():
         if len(masked_detectors(v, det_ids)) > len(det_ids) / 2:
-            raise RuntimeError(msg.format(k))
+            sys.stderr.write(warning_message.format(k))
 
     # by default it sums all the grouped detectors
     gis = GroupDetectors(InputWorkspace=input_sample, DetectorList=det_ids,

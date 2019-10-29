@@ -1,5 +1,6 @@
 import numpy as np
-from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning
+from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning,\
+    bin_iq_into_logarithm_q1d, BinningMethod
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -284,6 +285,12 @@ def test_1d_bin_log_no_wt():
     # sigma_Q(0.0022) = 2.529E-05: this value is from EXCEL with error in Q resolution
     # corrected value shall be   2.5112610804313703e-05
     assert abs(binned_iq.dq[3] - 2.529E-05) < 2.E-7, 'Q resolution wrong'
+
+    # Test the high level method
+    binned_iq = bin_iq_into_logarithm_q1d(intensities, sigmas, scalar_q_array, scalar_dq_array, num_steps_per_10, q_min, q_max,
+                                          BinningMethod.NOWEIGHT)
+    # I(0.0022) = 70.00000
+    assert abs(binned_iq.i[3] - 70.00000) < 1.E-12, 'I wrong'
 
     return
 

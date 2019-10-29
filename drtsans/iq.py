@@ -129,17 +129,16 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
         q_max = np.max(scalar_q)
 
     # calculate bin centers and bin edges
+    print('[DEBUG] Qmin = {}, Qmax = {}, Step/Decade = {}'.format(q_min, q_max, step_per_decade))
     bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
 
     # bin I(Q)
     if bin_method == BinningMethod.WEIGHTED:
         # weighed binning
-        binned_q = IofQCalculator.weighted_binning(scalar_q, scalar_dq, intensity, intensity_error,
-                                                   bin_centers, bin_edges)
+        binned_q = do_1d_weighted_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
     else:
         # no-weight binning
-        binned_q = IofQCalculator.no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error,
-                                                    bin_centers, bin_edges)
+        binned_q = do_1d_no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
 
     return binned_q
 
@@ -333,6 +332,8 @@ def do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cent
     """
     # check input
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
+
+    print('[DB...BAT] Log bin edges: {}'.format(bin_edges))
 
     # calculate 1/sigma^2 for multiple uses
     invert_sigma2_array = 1. / (sigma_iq_array ** 2)

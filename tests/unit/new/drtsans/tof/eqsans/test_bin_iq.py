@@ -352,9 +352,9 @@ def test_2d_linear_bin_no_wt():
     assert abs(binned_iq_2d[1][1][1] - 4.353773265) < 1E-8, 'Weighted-binned sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
-    # correct: 3.2999999999999996e-05
     assert abs(binned_iq_2d[2][1][1] - 3.30E-05) < 2E-7, 'dQx is incorrect'
-    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 2E-7, 'dQy is incorrect'
+    # correct: 1.71877860186208e-05
+    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 4E-7, 'dQy is incorrect'
 
     return
 

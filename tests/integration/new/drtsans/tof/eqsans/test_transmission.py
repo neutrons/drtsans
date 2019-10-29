@@ -69,7 +69,7 @@ def test_data_9a_part_1():
                 radius=2.0,
                 radius_unit='mm',
                 transmission=0.7888,
-                transmission_uncertainty=0.04071,  # 0.0419,
+                transmission_uncertainty=0.0419,
                 precision=1.e-04  # precision when comparing test data with drtsans calculations
                 )
 
@@ -231,12 +231,13 @@ def test_masked_beam_center(reference_dir, transmission_fixture):
     """
     mask = pjn(transmission_fixture.data_dir, 'beam_center_masked.xml')
     with amend_config(data_dir=reference_dir.new.eqsans):
-        s = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
-        d = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
-    with pytest.raises(RuntimeError, match=r'More than half of the detectors'):
-        calculate_transmission(s, d, output_workspace=())
-    s.delete()
-    d.delete()
+        sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
+        reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
+    with pytest.raises(RuntimeError, match=r'number or NaN found in input data'):
+        calculate_transmission(sample_workspace, reference_workspace)
+    [workspace.delete() for workspace in (sample_workspace, reference_workspace)]
+
+
 
 
 def test_calculate_raw_transmission(transmission_fixture):

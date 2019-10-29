@@ -1,5 +1,5 @@
 import numpy as np
-from drtsans.iq import IofQ, determine_1d_linear_bins, determine_1d_log_bins, no_weight_binning
+from drtsans.iq import IofQ, determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -234,8 +234,8 @@ def test_1d_bin_linear_no_wt():
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
 
     # Binned I(Q) no-weight
-    binned_iq = no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
-                                  bin_centers, bin_edges)
+    binned_iq = do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
+                                        bin_centers, bin_edges)
 
     # Calculate and verify
     # I(0.0035) = 68.92857:    drtsans: 68.92857142857143
@@ -273,8 +273,8 @@ def test_1d_bin_log_no_wt():
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
 
     # Binned I(Q) no-weight
-    binned_iq = no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
-                                  bin_centers, bin_edges)
+    binned_iq = do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
+                                        bin_centers, bin_edges)
 
     # Verify: 2 I(Q) in bin: Q(3, 2, 3.1), Q(3, 2, 3.2)
     # I(0.0022) = 70.00000
@@ -393,12 +393,10 @@ def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
     """
     # Number of I(q) in each target Q bin
     num_pt_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges))
-    print('[DEBUG number of Pts per bin: {}'.format(num_pt_array))
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
     i_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
                                                            weights=iq_array)
-    print('[DEBUG summation of counts per bin: {}'.format(num_pt_array))
 
     # Square of summed uncertainties for each bin
     sigma_sqr_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
@@ -459,17 +457,6 @@ def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, s
     # calculate 1/sigma^2 for multiple uses
     invert_sigma2_array = 1. / (sigma_iq_array ** 2)   # 1D
 
-    print('I(Q) array:\n', iq_array)
-    print('invert_sigma2_array\n', invert_sigma2_array)
-    print('Raw raw I:\n', iq_array * invert_sigma2_array)
-    print('X edges: {}'.format(x_bin_edges))
-    print('Y edges: {}'.format(y_bin_edges))
-
-    # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
-    print(qx_array.shape)
-    print(qy_array.shape)
-    print(invert_sigma2_array.shape)
-
     # Intensities
     i_raw_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
                                                       weights=iq_array * invert_sigma2_array)  # 2D
@@ -479,14 +466,6 @@ def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, s
                                                      weights=dqx_array * invert_sigma2_array)  # 2D
     dqy_raw_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
                                                      weights=dqy_array * invert_sigma2_array)  # 2D
-
-    print('[DEBUG 1] Raw 2D:'.format(i_raw_2d_array))
-    for i in range(i_raw_2d_array.shape[0]):
-        row_i = ''
-        for j in range(i_raw_2d_array.shape[1]):
-            row_i += '{:1f}, '.format(i_raw_2d_array[i, j])
-        print(row_i)
-    # END-FOR
 
     # check bins
     assert np.allclose(dummy_x, x_bin_edges, 1E-12), 'X Bin edges does not match'
@@ -508,12 +487,6 @@ def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, s
     dqx_final_array = dqx_raw_array / w_2d_array
     # Qy resolution
     dqy_final_array = dqy_raw_array / w_2d_array
-
-    # # Calculate Q resolution of binned
-    # # FIXME - waiting for Lisa's equations for binned q resolution
-    # # FIXME - this is an incorrect solution temporarily for workflow
-    # binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
-    # bin_q_resolution = binned_dq / i_raw_2d_array
 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
@@ -637,64 +610,6 @@ def determine_2d_bins():
 #
 #     return bin_centers, bin_edges
 
-
-def weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
-    """ Bin I(Q) by given bin edges and do weighted binning
-
-    If there is no Q in a certain Qk bin, NaN will be set to both I(Qk) and sigma I(Qk)
-
-    Parameters
-    ----------
-    q_array: ndarray
-        scaler momentum transfer Q
-    dq_array: ndarray
-        scaler momentum transfer (Q) resolution
-    iq_array: ndarray
-        I(Q)
-    sigma_iq_array: ndarray
-        sigma I(Q)
-    bin_centers: numpy.ndarray
-        bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
-    bin_edges: numpy.ndarray
-        bin edges
-    Returns
-    -------
-    IofQ
-        named tuple for Q, dQ, binned I(Q), binned sigma_I(Q)
-    """
-    # check input
-    assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
-
-    # Flatten input data to 1D
-    # q_array = IofQCalculator.flatten(q_array)
-    # dq_array = IofQCalculator.flatten(dq_array)
-    # iq_array = IofQCalculator.flatten(iq_array)
-    # sigma_iq_array = IofQCalculator.flatten(sigma_iq_array)
-
-    # calculate 1/sigma^2 for multiple uses
-    invert_sigma2_array = 1. / (sigma_iq_array ** 2)
-
-    # Counts per bin: I_{k, raw} = \sum \frac{I(i, j)}{(\sigma I(i, j))^2}
-    i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array * invert_sigma2_array)
-
-    # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
-    w_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=invert_sigma2_array)
-
-    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
-    #       sigma = 1/sqrt(w_k)
-    i_final_array = i_raw_array / w_array
-    sigma_final_array = 1 / np.sqrt(w_array)
-
-    # Calculate Q resolution of binned
-    # FIXME - waiting for Lisa's equations for binned q resolution
-    # FIXME - this is an incorrect solution temporarily for workflow
-    binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
-    bin_q_resolution = binned_dq / i_raw_array
-
-    # Get the final result
-    binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)
-
-    return binned_iq
 
 
 # def no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):

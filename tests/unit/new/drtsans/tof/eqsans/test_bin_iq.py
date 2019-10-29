@@ -366,6 +366,21 @@ def test_2d_linear_bin_no_wt():
     return
 
 
+def get_gold_theta_bins():
+    """Get theta bins from EXCEL
+
+    Returns
+    -------
+    ndarray, ndarray
+        bin edges, bin centers
+
+    """
+    theta_centers = np.ndarray([18, 54, 90, 126, 162, 198, 234, 270, 306, 342])
+    theta_edges = np.ndarray([0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360])
+
+    return theta_edges, theta_centers
+
+
 def test_1d_annular_no_wt():
     """Test '1D_annular_no_sub_no_wt'
 
@@ -373,10 +388,43 @@ def test_1d_annular_no_wt():
     -------
 
     """
+    theta_min = 0
+    theta_max = 360.
+    theta_step = 10.
+    num_bins = int((theta_max - theta_min) / theta_step)
 
-    # Calculate azimuthal angle of each Q
-    angle = np.arctan2(qy, qx) * 180. / np.pi
-    angle[np.where(angle < 0)] += 360
+    theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, num_bins)
+    print(theta_bin_centers)
+    print(theta_bin_edges)
+
+    # Generate testing data: Get Q1D data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+
+    # Calculate theta array
+    theta_array =  np.arctan2(qy_array, qx_array) * 180. / np.pi
+    # convert -0 to -180 to 180 to 360
+    theta_array[np.where(theta_array < 0)] += 360.
+
+    # calculate dQ from dQx and dQy
+    dq_array = np.sqrt(dqx_array**2 + dqy_array**2)
+
+    # binning
+    binned_iq = do_1d_no_weight_binning(theta_array, dq_array, intensities, sigmas,
+                                        theta_bin_centers, theta_bin_edges)
+
+    # Check result
+    print('Theta = 54 I[1]:  {} - {} = {}'.format(binned_iq.i[1], 63.66666667, binned_iq.i[1] - 63.66666667))
+    print('Theta = 54 sI[1]: {} - {} = {}'.format(binned_iq.sigma[1], 3.257470048, binned_iq.sigma[1] - 3.257470048))
+
+
+    # # Calculate azimuthal angle of each Q
+    # angle = np.arctan2(qy, qx) * 180. / np.pi
+    # angle[np.where(angle < 0)] += 360
+
+    gold_theta_edges, gold_theta_centers = get_gold_theta_bins()
+
+    assert np.allclose(theta_bin_centers, gold_theta_centers, rtol=1.e-5)
+    assert np.allclose(theta_bin_edges, gold_theta_edges, rtol=1.e-5)
 
     return
 

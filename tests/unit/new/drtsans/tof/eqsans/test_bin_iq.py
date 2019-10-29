@@ -287,8 +287,8 @@ def test_1d_bin_log_no_wt():
     assert abs(binned_iq.dq[3] - 2.529E-05) < 2.E-7, 'Q resolution wrong'
 
     # Test the high level method
-    binned_iq = bin_iq_into_logarithm_q1d(intensities, sigmas, scalar_q_array, scalar_dq_array, num_steps_per_10, q_min, q_max,
-                                          BinningMethod.NOWEIGHT)
+    binned_iq = bin_iq_into_logarithm_q1d(intensities, sigmas, scalar_q_array, scalar_dq_array,
+                                          num_steps_per_10, q_min, q_max, BinningMethod.NOWEIGHT)
     # I(0.0022) = 70.00000
     assert abs(binned_iq.i[3] - 70.00000) < 1.E-12, 'I wrong'
 

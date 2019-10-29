@@ -9,7 +9,7 @@ CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspa
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
 """
-from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadNexus, SumSpectra, SaveNexus
+from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadNexus, SumSpectra
 from mantid.api import mtd
 r"""
 Hyperlinks to drtsans functions

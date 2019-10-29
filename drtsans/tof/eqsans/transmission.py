@@ -6,16 +6,14 @@ Hyperlinks to Mantid algorithms
 CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
 Fit <https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html>
 Plus <https://docs.mantidproject.org/nightly/algorithms/Plus-v1.html>
-SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import CloneWorkspace, Fit, Plus, SaveNexus
+from mantid.simpleapi import CloneWorkspace, Fit, Plus
 r"""
 Hyperlinks to drtsans functions
 namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
-clipped_bands_from_logs, transmitted_bands available at: 
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans
-/correct_frame.py>
+clipped_bands_from_logs, transmitted_bands available at:
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
 sample_aperture_diameter, source_aperture_diameter available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
 """  # noqa: E501
@@ -93,10 +91,12 @@ def beam_radius(input_workspace, unit='mm'):
     float
         Estimated beam radius
     """
-    sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
     source_aperture_diam = source_aperture_diameter(input_workspace, unit=unit)
     source_sample_dist = source_sample_distance(input_workspace)
+
+    sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
     sample_detector_dist = sample_detector_distance(input_workspace)
+
     return sample_aperture_diam +\
         sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_sample_dist)
 

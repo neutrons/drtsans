@@ -442,6 +442,7 @@ def band_gap_indexes(input_workspace, bands):
                          (ws.dataX(0) < bands.skip.min))[0]).tolist()
 
 
+# flake8: noqa: C901
 def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=True,
                           output_workspace=None):
     r"""

@@ -23,6 +23,7 @@ def data_test_16a():
                 sample_run_duration=5.,  # sample run collected for 5s
                 number_of_pixels=25,
                 wavelength_bin_boundaries=[2.5, 3.5],  # the actual numbers are irrelevant for the test
+                # dark current intensities and errors
                 I_dc=[[1., 2., 3., 4., 5.],  # dark current intensities per pixels
                       [2., 3., 4., 5., 6.],
                       [3., 4., 5., 6., 7.],
@@ -33,6 +34,8 @@ def data_test_16a():
                           [1.7321, 2., 2.2361, 2.4495, 2.6458],
                           [2., 2.2361, 2.4495, 2.6458, 2.8284],
                           [2.2361, 2.4495, 2.6458, 2.8284, 3.]],
+                # sample data intensities and errors. Numers are selected in such a way that subtracting the dark
+                # current will yield no intensities.
                 I_data=[[0.0014, 0.0028, 0.0042, 0.0056, 0.0069],  # data intensities
                         [0.0028, 0.0042, 0.0056, 0.0069, 0.0083],
                         [0.0042, 0.0056, 0.0069, 0.0083, 0.0097],
@@ -43,6 +46,8 @@ def data_test_16a():
                             [0.0024, 0.0028, 0.0031, 0.0034, 0.0037],
                             [0.0028, 0.0031, 0.0034, 0.0037, 0.0039],
                             [0.0031, 0.0034, 0.0037, 0.0039, 0.0042]],
+                # Sample data normalized by the dark current. As stated before, the sample data was selected such
+                # that the normalization will yield no intensities.
                 I_data_norm=[[0., 0., 0., 0., 0.],  # data minus normalized dark current
                              [0., 0., 0., 0., 0.],  # is all zeroes by construction
                              [0., 0., 0., 0., 0.],

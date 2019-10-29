@@ -1,14 +1,11 @@
 import os
 
-import numpy as np
+# import numpy as np
 
 # import mantid
 from mantid import mtd
-from mantid.simpleapi import AddSampleLog, ConfigService, MaskAngle, Rebin  # ExtractSpectra
-from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, prepare_data,
-                                transform_to_wavelength)
-from drtsans.tof.eqsans.iq import (cal_iq, iq_annular, iq_wedge, iqxqy,
-                                   prepare_momentum_transfer)
+from mantid.simpleapi import AddSampleLog, ConfigService, Rebin  # ExtractSpectra MaskAngle,
+from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, transform_to_wavelength)
 from drtsans.iq import bin_iq_into_linear_q1d, BinningMethod
 from drtsans.convert_to_q import convert_to_q
 
@@ -185,116 +182,118 @@ def skip_test_api(reference_dir):
     ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
                      detector_offset=0,
                      sample_offset=0)
+    assert ws
 
-    ws = transform_to_wavelength(ws,
-                                 bin_width=0.1,
-                                 low_tof_clip=500,
-                                 high_tof_clip=2000)
+    # ws = transform_to_wavelength(ws,
+    #                              bin_width=0.1,
+    #                              low_tof_clip=500,
+    #                              high_tof_clip=2000)
 
-    center_detector(ws, x=-0.025, y=-0.016, unit='m')
+    # center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
-    flux_ws = normalisation.load_beam_flux_file(os.path.join(
-        reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
-        output_workspace='flux_ws',
-        ws_reference=ws)
+    # flux_ws = normalisation.load_beam_flux_file(os.path.join(
+    #     reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+    #     output_workspace='flux_ws',
+    #     ws_reference=ws)
 
-    ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    # ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
-    #
-    table_ws = prepare_momentum_transfer(
-        ws, wavelength_binning=[2.6, 0.2, 5.6])
-    assert mtd.doesExist(ws.name() + "_table")
+    # #
+    # table_ws = prepare_momentum_transfer(
+    #     ws, wavelength_binning=[2.6, 0.2, 5.6])
+    # assert mtd.doesExist(ws.name() + "_table")
 
-    table_ws = table_ws[0]
+    # table_ws = table_ws[0]
 
-    iq_ws = cal_iq(table_ws)
-    assert mtd.doesExist(ws.name() + "_iq")
+    # assert mtd.doesExist(ws.name() + "_iq")
 
-    iq_ws = cal_iq(table_ws, bins=100, log_binning=True)
-    assert mtd[ws.name() + "_iq"] is not None
+    # iq_ws = cal_iq(table_ws, bins=100, log_binning=True)
+    # assert mtd[ws.name() + "_iq"] is not None
 
-    # check if it is log binning:
-    q = iq_ws.readX(0)
-    q_divide = q[1:] / q[:-1]
-    assert np.allclose(q_divide, q_divide[0])
+    # # check if it is log binning:
+    # q = iq_ws.readX(0)
+    # q_divide = q[1:] / q[:-1]
+    # assert np.allclose(q_divide, q_divide[0])
 
-    # TODO: this need some Anisotopic data to tes. See gpsans test.
-    # TODO: Ask BL Scientists.
-    # Test Wedge
-    iq_wedge_ws = iq_wedge(table_ws)
-    assert iq_wedge_ws
+    # # TODO: this need some Anisotopic data to tes. See gpsans test.
+    # # TODO: Ask BL Scientists.
+    # # Test Wedge
+    # iq_wedge_ws = iq_wedge(table_ws)
+    # assert iq_wedge_ws
 
-    # Tests annulus
-    iq_annular_ws_1 = iq_annular(table_ws, q_min=0.0001, q_max=0.1,
-                                 bins=20, suffix="_annular_iq_1")
-    assert iq_annular_ws_1
-    y_ws_1 = iq_annular_ws_1.extractY().ravel()
-    iq_annular_ws_2 = iq_annular(table_ws, q_min=0.1, q_max=0.3,
-                                 bins=40, suffix="_annular_iq_2")
-    assert iq_annular_ws_2
-    y_ws_2 = iq_annular_ws_2.extractY().ravel()
-    abs(np.log10(y_ws_1.sum())-np.log10(y_ws_2.sum())) > 2  # orders magnitude
+    # # Tests annulus
+    # iq_annular_ws_1 = iq_annular(table_ws, q_min=0.0001, q_max=0.1,
+    #                              bins=20, suffix="_annular_iq_1")
+    # assert iq_annular_ws_1
+    # y_ws_1 = iq_annular_ws_1.extractY().ravel()
+    # iq_annular_ws_2 = iq_annular(table_ws, q_min=0.1, q_max=0.3,
+    #                              bins=40, suffix="_annular_iq_2")
+    # assert iq_annular_ws_2
+    # y_ws_2 = iq_annular_ws_2.extractY().ravel()
+    # assert abs(np.log10(y_ws_1.sum())-np.log10(y_ws_2.sum())) > 2  # orders magnitude
 
-    iqxqy_ws = iqxqy(table_ws)
-    assert iqxqy_ws is not None
-    assert mtd.doesExist(ws.name() + "_iqxqy")
+    # iqxqy_ws = iqxqy(table_ws)
+    # assert iqxqy_ws is not None
+    # assert mtd.doesExist(ws.name() + "_iqxqy")
 
-    # test 2d with log_binning=True
-    iqxqy_ws_log = iqxqy(table_ws, log_binning=True)
-    qx = iqxqy_ws_log.readX(0)
-    # Q log bining in 2D may have different negative and positive bin widths.
-    # The Qx must be thus divided in two: the beggining (negative) and at the
-    # end (positive). Let's pick a few bins (e.g. 30) where we now the division
-    # with the anterior bin is constant.
-    qx_divide_negative = qx[1:31] / qx[:30]  # beginning off Qx
-    qx_divide_positive = qx[-30:] / qx[-31:-1]  # end of qx
-    assert np.allclose(qx_divide_negative, qx_divide_negative[0])
-    assert np.allclose(qx_divide_positive, qx_divide_positive[0])
+    # # test 2d with log_binning=True
+    # iqxqy_ws_log = iqxqy(table_ws, log_binning=True)
+    # qx = iqxqy_ws_log.readX(0)
+    # # Q log bining in 2D may have different negative and positive bin widths.
+    # # The Qx must be thus divided in two: the beggining (negative) and at the
+    # # end (positive). Let's pick a few bins (e.g. 30) where we now the division
+    # # with the anterior bin is constant.
+    # qx_divide_negative = qx[1:31] / qx[:30]  # beginning off Qx
+    # qx_divide_positive = qx[-30:] / qx[-31:-1]  # end of qx
+    # assert np.allclose(qx_divide_negative, qx_divide_negative[0])
+    # assert np.allclose(qx_divide_positive, qx_divide_positive[0])
 
-    # Test Mask now
-    MaskAngle(Workspace=ws, MaxAngle=0.4, Angle="TwoTheta")
+    # # Test Mask now
+    # MaskAngle(Workspace=ws, MaxAngle=0.4, Angle="TwoTheta")
 
-    table_ws_masked = prepare_momentum_transfer(
-        ws, wavelength_binning=[2.6, 0.2, 5.6], prefix='mask')
+    # table_ws_masked = prepare_momentum_transfer(
+    #     ws, wavelength_binning=[2.6, 0.2, 5.6], prefix='mask')
 
-    table_ws_masked = table_ws_masked[0]
+    # table_ws_masked = table_ws_masked[0]
 
-    iq_ws_masked = cal_iq(table_ws_masked, bins=100, log_binning=True)
-    assert np.all(
-        iq_ws_masked.extractY()[0][:5] < iq_ws.extractY()[0][:5])
+    # iq_ws_masked = cal_iq(table_ws_masked, bins=100, log_binning=True)
+    # assert np.all(
+    #     iq_ws_masked.extractY()[0][:5] < iq_ws.extractY()[0][:5])
 
-    iqxqy_ws_masked = iqxqy(table_ws_masked)
-    # Masked values around beam center
-    assert iqxqy_ws_masked.readY(51)[46] == 0
-    assert iqxqy_ws_masked.readY(51)[47] == 0
+    # iqxqy_ws_masked = iqxqy(table_ws_masked)
+    # # Masked values around beam center
+    # assert iqxqy_ws_masked.readY(51)[46] == 0
+    # assert iqxqy_ws_masked.readY(51)[47] == 0
 
 
 def skip_test_api_frame_skipping(reference_dir):
 
     db_ws = load_events(os.path.join(reference_dir.new.eqsans, "EQSANS_88973.nxs.h5"))
-    center = center_detector(db_ws)
+    assert db_ws
 
-    ws = prepare_data(os.path.join(reference_dir.new.eqsans, "EQSANS_88980.nxs.h5"),
-                      x_center=-center[0], y_center=-center[1],
-                      # use_config_tof_cuts=True,
-                      # use_config=True,
-                      # use_config_mask=True,
-                      # correct_for_flight_path=True,
-                      # flux=beam_flux_file,
-                      # mask=detector_ids604m,
-                      # dark_current=dark_data_file,
-                      # sensitivity_file_path=sensitivity_file,
-                      sample_offset=340)
+    # center = center_detector(db_ws)
 
-    ws_frame1, ws_frame2 = prepare_momentum_transfer(ws)
+    # ws = prepare_data(os.path.join(reference_dir.new.eqsans, "EQSANS_88980.nxs.h5"),
+    #                   x_center=-center[0], y_center=-center[1],
+    #                   # use_config_tof_cuts=True,
+    #                   # use_config=True,
+    #                   # use_config_mask=True,
+    #                   # correct_for_flight_path=True,
+    #                   # flux=beam_flux_file,
+    #                   # mask=detector_ids604m,
+    #                   # dark_current=dark_data_file,
+    #                   # sensitivity_file_path=sensitivity_file,
+    #                   sample_offset=340)
 
-    ws_frame1_iq = cal_iq(ws_frame1, bins=150, log_binning=True)
-    ws_frame2_iq = cal_iq(ws_frame2, bins=150, log_binning=True)
-    assert ws_frame1_iq is not None
-    assert ws_frame2_iq is not None
-    assert not np.allclose(ws_frame1_iq.extractX(), ws_frame2_iq.extractX())
+    # ws_frame1, ws_frame2 = prepare_momentum_transfer(ws)
 
-    ws_frame1_iqxqy = iqxqy(ws_frame1)
-    ws_frame2_iqxqy = iqxqy(ws_frame2)
-    assert ws_frame1_iqxqy is not None
-    assert ws_frame2_iqxqy is not None
+    # ws_frame1_iq = cal_iq(ws_frame1, bins=150, log_binning=True)
+    # ws_frame2_iq = cal_iq(ws_frame2, bins=150, log_binning=True)
+    # assert ws_frame1_iq is not None
+    # assert ws_frame2_iq is not None
+    # assert not np.allclose(ws_frame1_iq.extractX(), ws_frame2_iq.extractX())
+
+    # ws_frame1_iqxqy = iqxqy(ws_frame1)
+    # ws_frame2_iqxqy = iqxqy(ws_frame2)
+    # assert ws_frame1_iqxqy is not None
+    # assert ws_frame2_iqxqy is not None

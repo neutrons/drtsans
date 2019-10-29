@@ -390,8 +390,7 @@ def test_1d_annular_no_wt():
     """
     theta_min = 0
     theta_max = 360.
-    theta_step = 10.
-    num_bins = int((theta_max - theta_min) / theta_step)
+    num_bins = 10
 
     theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, num_bins)
     print(theta_bin_centers)

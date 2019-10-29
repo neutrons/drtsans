@@ -325,22 +325,26 @@ def test_2d_linear_bin_no_wt():
     # Get Q1D data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
-    binned_iq_2d = do_2d_no_weight_binning(qx_array, qy_array, intensities, sigmas, x_edges, y_edges)
+    binned_iq_2d = do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, intensities, sigmas,
+                                           x_edges, y_edges)
 
-    print(binned_iq_2d[0])
-    print(binned_iq_2d[1])
-
-    # Verify I(-0.003254,-0.001713)
+    # Verify Qx and Qy
     assert abs(x_centers[1] - (-0.003254)) < 1.E-6, 'Qx is not correct'
     assert abs(y_centers[1] - (-0.001713)) < 1.E-6, 'Qy is not correct'
 
-    assert abs(binned_iq_2d[0][5 + 1] - 67.) < 1E-6, 'I(Qx, Qy) is incorrect'
-    assert abs(binned_iq_2d[1][5 + 1] - 4.725815626) < 1E-8, 'sigma I(Qx, Qy) is incorrect'
+    # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
+    assert abs(binned_iq_2d[0][1][1] - 67.) < 1E-6, 'I(Qx, Qy) is incorrect'
+    assert abs(binned_iq_2d[1][1][1] - 4.725815626) < 1E-8, 'sigma I(Qx, Qy) is incorrect'
+
+    # verify dQx and dQy
+    assert abs(binned_iq_2d[2][1][1] - 3.31E-05) < 1E-7, 'dQx is incorrect'
+    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 1E-7, 'dQy is incorrect'
 
     return
 
 
-def do_2d_no_weight_binning(qx_array, qy_array, iq_array, sigma_iq_array, qx_bin_edges, qy_bin_edges):
+def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
+                            qx_bin_edges, qy_bin_edges):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -351,14 +355,22 @@ def do_2d_no_weight_binning(qx_array, qy_array, iq_array, sigma_iq_array, qx_bin
     Parameters
     ----------
     qx_array
+    dqy_array: ndarray
+        Qx resolution
     qy_array
-    iq_array
-    sigma_iq_array
-    qx_bin_edges
+    dqy_array: ndarray
+        Qy resolution
+    iq_array: ndarray
+        intensities
+    sigma_iq_array: ndarray
+        intensities error
+    qx_bin_edges: ndarray
     qy_bin_edges
 
     Returns
     -------
+    ndarray, ndarray, ndarray, ndarray
+        intensities (n x m), sigma intensities (n x m), Qx resolution (n x m), Qy resolution (n x m)
 
     """
     # Number of I(q) in each target Q bin
@@ -374,22 +386,21 @@ def do_2d_no_weight_binning(qx_array, qy_array, iq_array, sigma_iq_array, qx_bin
     sigma_sqr_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
                                                                weights=sigma_iq_array ** 2)
 
+    # Q resolution: simple average
+    dqx_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                             weights=dqx_array)
+    dqy_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
+                                                             weights=dqy_array)
+
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
     #       sigma = 1/sqrt(w_k)
     i_final_array = i_raw_array / num_pt_array
     sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
+    dqx_final_array = dqx_raw_array / num_pt_array
+    dqy_final_array = dqy_raw_array / num_pt_array
 
-    return i_final_array, sigma_final_array
+    return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
-
-def test_2d_bin_wt():
-    """Test '2D_bin_no_sub_wt'
-
-    :return:
-    """
-    # Determine the bins
-
-    return
 
 
 def next2_test_1d_annular_no_wt():

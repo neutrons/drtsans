@@ -408,6 +408,9 @@ def test_1d_annular_no_wt():
     theta_max = 360.
     num_bins = 10
 
+    q_min = 0.003
+    q_max = 0.006
+
     theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, num_bins)
     print(theta_bin_centers)
     print(theta_bin_edges)
@@ -420,11 +423,20 @@ def test_1d_annular_no_wt():
     # convert -0 to -180 to 180 to 360
     theta_array[np.where(theta_array < 0)] += 360.
 
+    # Calculate Q from Qx and Qy
+    q_array = np.sqrt(qx_array**2 + qy_array**2)
+
     # calculate dQ from dQx and dQy
     dq_array = np.sqrt(dqx_array**2 + dqy_array**2)
 
+    # Filter by q_min and q_max
+    allowed_q_index = (q_array > q_min) & (q_array < q_max)
+
     # binning
-    binned_iq = do_1d_no_weight_binning(theta_array, dq_array, intensities, sigmas,
+    binned_iq = do_1d_no_weight_binning(theta_array[allowed_q_index],
+                                        dq_array[allowed_q_index],
+                                        intensities[allowed_q_index],
+                                        sigmas[allowed_q_index],
                                         theta_bin_centers, theta_bin_edges)
 
     # Check bins

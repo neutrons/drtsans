@@ -467,7 +467,7 @@ def test_1d_annular_no_wt():
     test_i_q = IQ2d(intensities, sigmas, qx_array, qy_array, dqx_array, dqy_array, None)
 
     # Bin
-    binned_iq = bin_annular_into_q1d(test_i_q,theta_min, theta_max, q_min, q_max, num_bins,
+    binned_iq = bin_annular_into_q1d(test_i_q, theta_min, theta_max, q_min, q_max, num_bins,
                                      BinningMethod.NOWEIGHT)
     # verify
     assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'

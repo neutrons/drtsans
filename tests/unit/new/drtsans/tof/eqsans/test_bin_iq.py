@@ -464,10 +464,11 @@ def test_1d_annular_no_wt():
     # Test the high level method
     # Define input data
     IQ2d = namedtuple('IQ2d', 'intensity error qx qy delta_qx delta_qy wavelength')
-    test_iq = IQ2d(intensities, sigmas, qx_array, qy_array, dqx_array, dqy_array, None)
+    test_i_q = IQ2d(intensities, sigmas, qx_array, qy_array, dqx_array, dqy_array, None)
 
     # Bin
-    binned_iq = bin_annular_into_q1d(test_i_q, q_min, q_max, num_bins, BinningMethod.NOWEIGHT)
+    binned_iq = bin_annular_into_q1d(test_i_q,theta_min, theta_max, q_min, q_max, num_bins,
+                                     BinningMethod.NOWEIGHT)
     # verify
     assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
     assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'

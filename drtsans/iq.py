@@ -128,7 +128,7 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
     return binned_q
 
 
-def bin_annular_into_q1d(i_q, q_min=0.001, q_max=0.4, bins=100, method=BinningMethod.NOWEIGHT):
+def bin_annular_into_q1d(i_q, theta_min, theta_max, q_min=0.001, q_max=0.4, bins=100, method=BinningMethod.NOWEIGHT):
     """Annular 1D binning
 
     Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
@@ -137,6 +137,10 @@ def bin_annular_into_q1d(i_q, q_min=0.001, q_max=0.4, bins=100, method=BinningMe
     ----------
     i_q :  ~collections.namedtuple
          "intensity": intensity, "error": sigma(I), "qx": qx, "qy": qy, "delta_qx": dqx, "delta_qy", dqy
+    theta_min : float
+        minimum value of theta/azimuthal angle
+    theta_max : float
+        maximum value of theta/azimuthal angle
     q_min : float, optional
         , by default
     q_max : float, optional

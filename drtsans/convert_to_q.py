@@ -1,5 +1,5 @@
 from mantid.simpleapi import mtd
-from drtsans.dataobjects import IQmod
+from drtsans.dataobjects import IQazimuthal, IQmod
 from drtsans.settings import namedtuplefy
 import numpy as np
 
@@ -142,7 +142,6 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     return IQmod(intensity=intensity, error=error, mod_q=mod_q, delta_mod_q=delta_q, wavelength=lam)
 
 
-@namedtuplefy
 def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     r"""
     Convert to 2D momentum transfer in azimuthal convention
@@ -212,7 +211,8 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     delta_qx = delta_qx[keep, :].reshape(-1)
     delta_qy = delta_qy[keep, :].reshape(-1)
 
-    return dict(intensity=intensity, error=error, qx=qx, qy=qy, delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
+    return IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy,
+                       delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
 
 
 @namedtuplefy

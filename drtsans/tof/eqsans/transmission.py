@@ -7,7 +7,7 @@ CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace
 Fit <https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html>
 Plus <https://docs.mantidproject.org/nightly/algorithms/Plus-v1.html>
 """
-from mantid.simpleapi import CloneWorkspace, Fit, Plus, SaveNexus
+from mantid.simpleapi import CloneWorkspace, Fit, Plus
 r"""
 Hyperlinks to drtsans functions
 namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
@@ -17,7 +17,7 @@ clipped_bands_from_logs, transmitted_bands available at:
 """  # noqa: E501
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
-from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs, transmitted_bands_clipped
+from drtsans.tof.eqsans.correct_frame import transmitted_bands_clipped
 
 # Symbols to be exported to the eqsans namespace
 __all__ = ['calculate_transmission', 'fit_raw_transmission']
@@ -286,4 +286,3 @@ def insert_fitted_errors(input_workspace, mantid_fit_output):
     # Insert the fitting errors, and set zero elsewhere.
     input_handle.dataE(0)[:] = np.zeros(input_handle.dataE(0).size)
     input_handle.dataE(0)[first_insertion_index: last_insertion_index] = fitting_errors
-

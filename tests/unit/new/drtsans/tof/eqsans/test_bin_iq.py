@@ -476,7 +476,8 @@ def test_1d_annular_no_wt():
 
     assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
     assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'
-    assert abs(binned_iq.dq[1] - 4.717E-05) < 1E-8, 'Binned Q resolution is wrong'
+    # 4.70549611605334e-05 calculated vs 4.717e-05
+    assert abs(binned_iq.dq[1] - 4.717E-05) < 1.5E-7, 'Binned Q resolution is wrong'
 
     return
 

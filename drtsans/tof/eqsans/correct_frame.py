@@ -137,8 +137,7 @@ def limiting_tofs(input_workspace, sdd):
 
 
 @namedtuplefy
-def transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip,
-                              interior_clip=False):
+def transmitted_bands_clipped(ws, sdd, low_tof_clip=None, high_tof_clip=None, interior_clip=False):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by
     the choppers taking into account the TOF clippings for neutrons
@@ -151,11 +150,11 @@ def transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip,
     sdd: float
         Distance from source to detector, in meters
     low_tof_clip: float
-        trim neutrons of the leading pulse with a TOF smaller than the
-        minimal TOF plus this value. Units in micro-seconds
+        trim neutrons of the leading pulse with a TOF smaller than the minimal TOF plus this value. Units in
+        micro-seconds. If py:obj:`None`, the value is retrieved from log entry `'low_tof_clip``.
     high_tof_clip: float
-        trim neutrons of the leading pulse with TOF bigger than the maximal
-        TOF minus this value.  Units in micro-seconds
+        trim neutrons of the leading pulse with TOF bigger than the maximal TOF minus this value. Units in
+        micro-seconds. If py:obj:`None`, the value is retrieved from log entry `'low_tof_clip``.
     interior_clip: False
         If True, trim slow neutrons from the lead pulse (using
         `high_tof_clip`) and fast neutrons from the skip pulse (using
@@ -168,6 +167,13 @@ def transmitted_bands_clipped(ws, sdd, low_tof_clip, high_tof_clip,
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
+    # If necessary, retrieve the clips from the logs
+    sample_logs = SampleLogs(ws)
+    if low_tof_clip is None:
+        low_tof_clip = sample_logs.low_tof_clip.value
+    if high_tof_clip is None:
+        high_tof_clip = sample_logs.low_tof_clip.value
+
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     lwc = wlg.from_tof(low_tof_clip, sdd, ch.pulse_width)  # low wavel. clip
     hwc = wlg.from_tof(high_tof_clip, sdd)  # high wavelength clip
@@ -214,11 +220,13 @@ def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
     """
     ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)
-    sl = SampleLogs(ws)
-    sl.insert('tof_frame_width', ch.period, unit='ms')
+    sample_logs = SampleLogs(ws)
+    sample_logs.insert('low_tof_clip', low_tof_clip, unit='ms')
+    sample_logs.insert('high_tof_clip', high_tof_clip, unit='ms')
+    sample_logs.insert('tof_frame_width', ch.period, unit='ms')
     clip_times = 1 if interior_clip is False else 2
     tof_width_clipped = ch.period - clip_times * (low_tof_clip + high_tof_clip)
-    sl.insert('tof_frame_width_clipped', tof_width_clipped, unit='ms')
+    sample_logs.insert('tof_frame_width_clipped', tof_width_clipped, unit='ms')
     return ws
 
 

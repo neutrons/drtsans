@@ -1,6 +1,8 @@
 import numpy as np
+from collections import namedtuple
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning,\
-    bin_iq_into_logarithm_q1d, BinningMethod
+    bin_iq_into_logarithm_q1d, BinningMethod, do_2d_weighted_binning, do_2d_no_weight_binning,\
+    bin_annular_into_q1d
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -366,145 +368,112 @@ def test_2d_linear_bin_no_wt():
     return
 
 
-def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
-                            qx_bin_edges, qy_bin_edges):
-    """Perform 2D no-weight binning on I(Qx, Qy)
-
-    General description of the algorithm:
-
-      I_{i, j} = sum^{(i, j)}_k I_{k} / N_{i, j}
-      sigma I_{i, j} = sqrt(sum^{(i, j)}_k sigma I_k^2) / N_{i, j}
-
-    Parameters
-    ----------
-    qx_array: ndarray
-        Qx array
-    dqx_array: ndarray
-        Qx resolution
-    qy_array : ndarray
-        Qy array
-    dqy_array: ndarray
-        Qy resolution
-    iq_array: ndarray
-        intensities
-    sigma_iq_array: ndarray
-        intensities error
-    qx_bin_edges: ndarray
-    qy_bin_edges
+def get_gold_theta_bins():
+    """Get theta bins from EXCEL
 
     Returns
     -------
-    ndarray, ndarray, ndarray, ndarray
-        intensities (n x m), sigma intensities (n x m), Qx resolution (n x m), Qy resolution (n x m)
+    ndarray, ndarray
+        bin edges, bin centers
 
     """
-    # Number of I(q) in each target Q bin
-    num_pt_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges))
+    theta_centers = np.array([18, 54, 90, 126, 162, 198, 234, 270, 306, 342])
+    theta_edges = np.array([0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360])
 
-    # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-    i_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                           weights=iq_array)
-
-    # Square of summed uncertainties for each bin
-    sigma_sqr_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                               weights=sigma_iq_array ** 2)
-
-    # Q resolution: simple average
-    dqx_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                             weights=dqx_array)
-    dqy_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                             weights=dqy_array)
-
-    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
-    #       sigma = 1/sqrt(w_k)
-    i_final_array = i_raw_array / num_pt_array
-    sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
-    dqx_final_array = dqx_raw_array / num_pt_array
-    dqy_final_array = dqy_raw_array / num_pt_array
-
-    return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
+    return theta_edges, theta_centers
 
 
-def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
-                           x_bin_edges, y_bin_edges):
-    """Perform 2D weighted binning
-
-    General description of algorithm:
-
-      I^{raw}_{i, j} = sum^{(i,j)}_{k} I_{k} / sigma^2(I)_k
-      weight_{i, j} = sum^{(i, j)}_k 1 / sigma^2(I)_k
-      I^{weight}_{i, j} = I^{raw}_{(i, j)} / weight_{i, j}
-      sigma I^{weight}_{i, j} = 1 / sqrt(weight_{i, j})
-
-    Parameters
-    ----------
-    qx_array : ndarray
-        qx
-    dqx_array : ndarray
-        Qx resolution
-    qy_array: ndarray
-        qy
-    dqy_array: ndarray
-        Qy resolution
-    iq_array : ndarray
-        intensities
-    sigma_iq_array : ndarray
-        intensity errors
-    x_bin_edges : ndarray
-        X bin edges
-    y_bin_edges
-        Y bin edges
+def get_gold_azimuthal_values():
+    """Get the azimuthal values from EXCEL
 
     Returns
     -------
-    ndarray, ndarray, ndarray, ndarray
-        binned intensities (n x m), binned sigmas (n x m), binned Qx resolution (n x m), binned Qy resolution (n x m)
 
     """
-    # calculate 1/sigma^2 for multiple uses
-    invert_sigma2_array = 1. / (sigma_iq_array ** 2)   # 1D
+    gold_theta_array = np.array([141.026949, 123.2554061, 94.31432613, 63.21170404, 42.66018375,
+                                 155.9524823, 139.9324658, 97.78839725, 47.53052642, 26.94261266,
+                                 175.230287, 171.0616985, 126.183895, 11.5457636, 5.429158913,
+                                 195.6073192, 207.7689884, 257.6752727, 325.6314615, 342.3498758,
+                                 212.7055538, 230.4368877, 264.5704513, 302.460102, 323.8180773])
 
-    # Intensities
-    i_raw_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                                      weights=iq_array * invert_sigma2_array)  # 2D
-
-    # dQx and dQy
-    dqx_raw_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                                     weights=dqx_array * invert_sigma2_array)  # 2D
-    dqy_raw_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                                     weights=dqy_array * invert_sigma2_array)  # 2D
-
-    # check bins
-    assert np.allclose(dummy_x, x_bin_edges, 1E-12), 'X Bin edges does not match'
-    assert np.allclose(dummy_y, y_bin_edges, 1E-12), 'Y Bin edges does not match'
-
-    # Weight per bin: w_k = \sum \frac{1}{\sqrt{I(i, j)^2}
-    w_2d_array, dummy_x, dummy_y = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                                  weights=invert_sigma2_array)  # 2D
-
-    assert np.allclose(x_bin_edges, dummy_x, 1E-8)
-    assert np.allclose(y_bin_edges, dummy_y, 1E-8)
-
-    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
-    #       sigma = 1/sqrt(w_k)
-    i_final_array = i_raw_2d_array / w_2d_array
-    # sigma I(Qx, Qy)
-    sigma_final_array = 1 / np.sqrt(w_2d_array)
-    # Qx resolution
-    dqx_final_array = dqx_raw_array / w_2d_array
-    # Qy resolution
-    dqy_final_array = dqy_raw_array / w_2d_array
-
-    return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
+    return gold_theta_array
 
 
-def next2_test_1d_annular_no_wt():
+def test_1d_annular_no_wt():
     """Test '1D_annular_no_sub_no_wt'
 
     Returns
     -------
 
     """
+    theta_min = 0
+    theta_max = 360.
+    num_bins = 10
+
+    q_min = 0.003
+    q_max = 0.006
+
+    theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, num_bins)
+
+    # Generate testing data: Get Q1D data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+
+    # Calculate theta array
+    theta_array = np.arctan2(qy_array, qx_array) * 180. / np.pi
+    # convert -0 to -180 to 180 to 360
+    theta_array[np.where(theta_array < 0)] += 360.
+
+    # Calculate Q from Qx and Qy
+    q_array = np.sqrt(qx_array**2 + qy_array**2)
+
+    # calculate dQ from dQx and dQy
+    dq_array = np.sqrt(dqx_array**2 + dqy_array**2)
+
+    # Filter by q_min and q_max
+    allowed_q_index = (q_array > q_min) & (q_array < q_max)
+
+    # binning
+    binned_iq = do_1d_no_weight_binning(theta_array[allowed_q_index],
+                                        dq_array[allowed_q_index],
+                                        intensities[allowed_q_index],
+                                        sigmas[allowed_q_index],
+                                        theta_bin_centers, theta_bin_edges)
+
+    # Check bins
+    gold_theta_edges, gold_theta_centers = get_gold_theta_bins()
+    assert np.allclose(theta_bin_centers, gold_theta_centers, rtol=1.e-5)
+    assert np.allclose(theta_bin_edges, gold_theta_edges, rtol=1.e-5)
+
+    # Check theta (azimuthal angle)
+    # print(theta_array)
+    # assert abs(theta_array[0] - 141.026949) < 5E-2, 'Azimuthal angle check'
+    gold_theta_array = get_gold_azimuthal_values()
+    num_test_data = gold_theta_array.shape[0]
+
+    # Check result
+    print('Theta = 54 I[1]:  {} - {} = {}'.format(binned_iq.i[1], 63.66666667, binned_iq.i[1] - 63.66666667))
+    print('Theta = 54 sI[1]: {} - {} = {}'.format(binned_iq.sigma[1], 3.257470048, binned_iq.sigma[1] - 3.257470048))
+
+    assert np.allclose(theta_array[:num_test_data], gold_theta_array, rtol=6.e-4), 'Azimuthal vectors'
+
+    assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
+    assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'
+    # 4.70549611605334e-05 calculated vs 4.717e-05
+    assert abs(binned_iq.dq[1] - 4.717E-05) < 1.5E-7, 'Binned Q resolution is wrong'
+
+    # Test the high level method
+    # Define input data
+    IQ2d = namedtuple('IQ2d', 'intensity error qx qy delta_qx delta_qy wavelength')
+    test_i_q = IQ2d(intensities, sigmas, qx_array, qy_array, dqx_array, dqy_array, None)
+
+    # Bin
+    binned_iq = bin_annular_into_q1d(test_i_q, theta_min, theta_max, q_min, q_max, num_bins,
+                                     BinningMethod.NOWEIGHT)
+    # verify
+    assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
+    assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'
+    # 4.70549611605334e-05 calculated vs 4.717e-05
+    assert abs(binned_iq.dq[1] - 4.717E-05) < 1.5E-7, 'Binned Q resolution is wrong'
 
     return
 

@@ -556,8 +556,10 @@ def test_1d_bin_log_wedge_no_wt():
 
     # A simple fact check
     sub_qarray = scalar_q_array[wedge_indexes]
-    num_pixels, dummy1, dummy2 = np.histogram(sub_qarray, bins=bin_edges)
+    num_pixels, dummy1 = np.histogram(sub_qarray, bins=bin_edges)
     print(num_pixels)
+    print(dummy1)
+    print(intensities[wedge_indexes])
 
     assert abs(binned_iq.i[7] - 65.77777778) < 1E-10
     assert abs(binned_iq.sigma[7] - 2.703450013) < 1E-10

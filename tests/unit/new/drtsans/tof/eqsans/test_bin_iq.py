@@ -460,7 +460,7 @@ def test_1d_annular_no_wt():
     print('Theta = 54 I[1]:  {} - {} = {}'.format(binned_iq.i[1], 63.66666667, binned_iq.i[1] - 63.66666667))
     print('Theta = 54 sI[1]: {} - {} = {}'.format(binned_iq.sigma[1], 3.257470048, binned_iq.sigma[1] - 3.257470048))
 
-    assert np.allclose(theta_array[:num_test_data], gold_theta_array, rtol=1.e-5), 'Azimuthal vectors'
+    assert np.allclose(theta_array[:num_test_data], gold_theta_array, rtol=6.e-4), 'Azimuthal vectors'
 
     assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
     assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'

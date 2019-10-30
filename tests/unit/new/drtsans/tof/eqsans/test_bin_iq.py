@@ -381,6 +381,22 @@ def get_gold_theta_bins():
     return theta_edges, theta_centers
 
 
+def get_gold_azimuthal_values():
+    """Get the azimuthal values from EXCEL
+
+    Returns
+    -------
+
+    """
+    gold_theta_array = np.array([141.026949, 123.2554061, 94.31432613, 63.21170404, 42.66018375,
+                                 155.9524823, 139.9324658, 97.78839725, 47.53052642, 26.94261266,
+                                 175.230287, 171.0616985, 126.183895, 11.5457636, 5.429158913,
+                                 195.6073192, 207.7689884, 257.6752727, 325.6314615, 342.3498758,
+                                 212.7055538, 230.4368877, 264.5704513, 302.460102, 323.8180773])
+
+    return gold_theta_array
+
+
 def test_1d_annular_no_wt():
     """Test '1D_annular_no_sub_no_wt'
 
@@ -417,12 +433,34 @@ def test_1d_annular_no_wt():
     assert np.allclose(theta_bin_edges, gold_theta_edges, rtol=1.e-5)
 
     # Check theta (azimuthal angle)
-    print(theta_array)
-    assert abs(theta_array[0] - 141.026949) < 1E-6, 'Azimuthal angle check'
+    # print(theta_array)
+    # assert abs(theta_array[0] - 141.026949) < 5E-2, 'Azimuthal angle check'
+    gold_theta_array = get_gold_azimuthal_values()
+    num_test_data = gold_theta_array.shape[0]
+
+    """
+    [141.02943341 123.25621977  94.31039504  63.2136773   42.65897106
+     155.95349968 139.9321838   97.78104622  47.53413812  26.94257769
+     175.22862817 171.05811825 126.14696088  11.5516483    5.43129397
+     195.60308846 207.76362027 257.68385737 325.63441716 342.35382839
+     212.70689172 230.43995613 264.57614273 302.45424756 323.81541356
+     141.02844803 123.25559762  94.31110278  63.20631944  42.66094538
+     155.9506993  139.92880117  97.78157374  47.52777428  26.94640373
+     175.2331631  171.06661962 126.17849486  11.53693517   5.42632214
+     195.60572177 207.76753864 257.68358779 325.63914104 342.35032962
+     212.70789888 230.44072046 264.57527294 302.46243846 323.8134304
+     141.03050746 123.2587434   94.31487218  63.20877598  42.65655715
+     155.95437063 139.9349656   97.7890787   47.52799899  26.94056299
+     175.22893786 171.05919955 126.17613806  11.54895643   5.4306925
+     195.60269823 207.76163646 257.6715528  325.63977164 342.35502828
+     212.70651567 230.43792646 264.57065048 302.45914397 323.81706919]
+    """
 
     # Check result
     print('Theta = 54 I[1]:  {} - {} = {}'.format(binned_iq.i[1], 63.66666667, binned_iq.i[1] - 63.66666667))
     print('Theta = 54 sI[1]: {} - {} = {}'.format(binned_iq.sigma[1], 3.257470048, binned_iq.sigma[1] - 3.257470048))
+
+    assert np.allclose(theta_array[:num_test_data], gold_theta_array, rtol=1.e-5), 'Azimuthal vectors'
 
     assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
     assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'

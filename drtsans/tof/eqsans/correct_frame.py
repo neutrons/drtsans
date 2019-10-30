@@ -176,7 +176,7 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
     if search_in_logs is True:
         try:
             bands = clipped_bands_from_logs(input_workspace)
-            return bands
+            return dict(lead=bands.lead, skip=bands.skip)
         except AttributeError:
             sys.stderr.write('Clipped bands not present in the logs. Calculating using the chopper settings.')
 

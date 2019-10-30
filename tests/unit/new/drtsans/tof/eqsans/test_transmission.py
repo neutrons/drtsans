@@ -16,6 +16,7 @@ beam_radius, fit_band, fit_raw_transmission available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py>
 """
 from drtsans.settings import namedtuplefy, unique_workspace_dundername  # noqa: E402
+from drtsans.samplelogs import SampleLogs  # noqa: E402
 from drtsans.tof.eqsans.correct_frame import transmitted_bands  # noqa: E402
 from drtsans.tof.eqsans.transmission import fit_band, fit_raw_transmission  # noqa: E402
 from drtsans.tof.eqsans.geometry import beam_radius  # noqa: E402
@@ -29,6 +30,10 @@ def trasmission_data(reference_dir):
     b = LoadNexus(pjn(data_dir, 'sample.nxs'))
     c = LoadNexus(pjn(data_dir, 'raw_transmission_skip.nxs'))
     d = LoadNexus(pjn(data_dir, 'sample_skip.nxs'))
+    for workspace in (a, b, c, d):
+        sample_logs = SampleLogs(workspace)
+        sample_logs.insert('low_tof_clip', 0.0, unit='ms')
+        sample_logs.insert('low_tof_clip', 0.0, unit='ms')
     return dict(data_dir=data_dir, raw=a, sample=b, raw_skip=c, sample_skip=d)
 
 

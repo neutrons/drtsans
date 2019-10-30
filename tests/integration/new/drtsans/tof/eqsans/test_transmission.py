@@ -220,6 +220,10 @@ def transmission_fixture(reference_dir):
     b = LoadNexus(pjn(data_dir, 'direct_beam.nxs'))
     c = LoadNexus(pjn(data_dir, 'sample_skip.nxs'))
     d = LoadNexus(pjn(data_dir, 'direct_beam_skip.nxs'))
+    for workspace in (a, c):
+        sample_logs = SampleLogs(workspace)
+        sample_logs.insert('low_tof_clip', 0.0, unit='ms')
+        sample_logs.insert('low_tof_clip', 0.0, unit='ms')
     return dict(data_dir=data_dir, sample=a, reference=b, sample_skip=c,
                 reference_skip=d, compare=quick_compare)
 

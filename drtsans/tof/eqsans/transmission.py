@@ -17,7 +17,7 @@ clipped_bands_from_logs, transmitted_bands available at:
 """  # noqa: E501
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
-from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs, transmitted_bands
+from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs, transmitted_bands_clipped
 
 # Symbols to be exported to the eqsans namespace
 __all__ = ['calculate_transmission', 'fit_raw_transmission']
@@ -113,34 +113,18 @@ def fit_band(input_workspace, band, fit_function='name=UserFunction,Formula=a*x+
     if output_workspace is None:
         output_workspace = unique_workspace_dundername()
 
-    ws = mtd[str(input_workspace)]
+    mantid_fit = Fit(Function=fit_function, InputWorkspace=input_workspace, WorkspaceIndex=0,
+                     StartX=band.min, EndX=band.max, Output=unique_workspace_dundername())
 
-    # Carry out the fit only over the wavelength band
-    x, y = ws.dataX(0), ws.dataY(0)
-    band_indexes = np.where((x >= band.min) & (x < band.max))[0]
+    # The fit only contains transmission values within the wavelength range [band.min, band.max]. Insert this values
+    # into a workspace with a wavelength range same as that of the input workspace. For instance, we are fitting the
+    # transmission values for wavelengths corresponding to the lead pulse of an input_workspace that contains
+    # raw transmissions for the lead and skipped pulses
+    CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+    insert_fitted_values(output_workspace, mantid_fit, band.min, band.max)
+    insert_fitted_errors(output_workspace, mantid_fit, band.min, band.max)
 
-    # It has been found that raw transmission values at the edges of the wavelength band do fall short of the
-    # expected values. These anomalous values should be excluded from the fit
-    min_y = 1e-3 * np.mean(y[band_indexes[:-1]])  # 1e-3 pure heuristics
-    # Find the low-wavelength edge with non-zero intensities
-    i = 0
-    while x[i] < band.min or y[i] < min_y:
-        i += 1
-    lower_bin_boundary = i
-    # Find the high-wavelength edge with non-zero intensities
-    while i < len(y) and x[i] < band.max and y[i] > min_y:
-        i += 1
-    upper_bin_boundary = i
-    start_x, end_x = x[lower_bin_boundary], x[upper_bin_boundary - 1]  # this is our restricted fitting range
-
-    mantid_fit = Fit(Function=fit_function, InputWorkspace=ws.name(), WorkspaceIndex=0,
-                     StartX=start_x, EndX=end_x, Output=unique_workspace_dundername())
-
-    # Insert the fitted band into the wavelength range of the input workspace
-    fitted = CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-    insert_fitted_values(output_workspace, mantid_fit, lower_bin_boundary, upper_bin_boundary)
-    insert_fitted_errors(output_workspace, mantid_fit, lower_bin_boundary, upper_bin_boundary)
-    return dict(fitted_workspace=fitted, mantid_fit_output=mantid_fit)
+    return dict(fitted_workspace=mtd[output_workspace], mantid_fit_output=mantid_fit)
 
 
 @namedtuplefy
@@ -188,7 +172,7 @@ def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formul
     try:
         wavelength_bands = clipped_bands_from_logs(input_workspace)
     except AttributeError:  # bands are not logged
-        wavelength_bands = transmitted_bands(input_workspace)  # calculate from the chopper settings
+        wavelength_bands = transmitted_bands_clipped(input_workspace)  # calculate from the chopper settings
 
     # Fit transmission over the wavelength band corresponding to the lead pulse. The output of the fit
     # (lead_fit_output) has attributes 'fitted_workspace' and 'mantid_fit_output'

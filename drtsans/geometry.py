@@ -9,11 +9,11 @@ from drtsans.samplelogs import SampleLogs
 from collections import defaultdict
 
 
-__all__ = ['InstrumentName', ]
+__all__ = ['InstrumentEnumName', ]
 
 
 @enum.unique
-class InstrumentName(enum.Enum):
+class InstrumentEnumName(enum.Enum):
     r"""Unique names labelling each instrument"""
     BIOSANS = ConfigService.getFacility('HFIR').instrument('BIOSANS')
     EQSANS = ConfigService.getFacility('SNS').instrument('EQSANS')
@@ -31,12 +31,12 @@ class InstrumentName(enum.Enum):
 
         Returns
         -------
-        InstrumentName
+        InstrumentEnumName
             The name of the instrument as one of the InstrumentName enumerations
         """
-        string_to_enum = {'CG3': InstrumentName.BIOSANS, 'BIOSANS': InstrumentName.BIOSANS,
-                          'EQ-SANS': InstrumentName.EQSANS, 'EQSANS': InstrumentName.EQSANS,
-                          'CG2': InstrumentName.GPSANS, 'GPSANS': InstrumentName.GPSANS}
+        string_to_enum = {'CG3': InstrumentEnumName.BIOSANS, 'BIOSANS': InstrumentEnumName.BIOSANS,
+                          'EQ-SANS': InstrumentEnumName.EQSANS, 'EQSANS': InstrumentEnumName.EQSANS,
+                          'CG2': InstrumentEnumName.GPSANS, 'GPSANS': InstrumentEnumName.GPSANS}
         # convert to a string
         name = str(label)
 
@@ -324,10 +324,10 @@ def sample_aperture_diameter(input_workspace, unit='m'):
     float
     """
     # Additional log keys aiding in calculating the sample aperture diameter
-    additional_log_keys = {InstrumentName.EQSANS: ['beamslit4'],
-                           InstrumentName.GPSANS: [],
-                           InstrumentName.BIOSANS: []}
-    log_keys = ['sample-aperture-diameter'] + additional_log_keys[InstrumentName.from_name(input_workspace)]
+    additional_log_keys = {InstrumentEnumName.EQSANS: ['beamslit4'],
+                           InstrumentEnumName.GPSANS: [],
+                           InstrumentEnumName.BIOSANS: []}
+    log_keys = ['sample-aperture-diameter'] + additional_log_keys[InstrumentEnumName.from_name(input_workspace)]
 
     sample_logs = SampleLogs(input_workspace)
     diameter = None

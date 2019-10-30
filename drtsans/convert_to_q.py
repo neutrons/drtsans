@@ -1,5 +1,5 @@
 from mantid.simpleapi import mtd
-from drtsans.dataobjects import IQazimuthal, IQmod
+from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod
 from drtsans.settings import namedtuplefy
 import numpy as np
 
@@ -215,7 +215,6 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
                        delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
 
 
-@namedtuplefy
 def _convert_to_q_crystal(ws, resolution_function, **kwargs):
     r"""
     Convert to 3D momentum transfer in crystallographic convention
@@ -291,8 +290,8 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
     delta_qy = delta_qy[keep, :].reshape(-1)
     delta_qz = delta_qz[keep, :].reshape(-1)
 
-    return dict(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
-                delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
+    return IQcrystal(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
+                     delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
 
 
 def _masked_or_monitor(spec_info, idx):

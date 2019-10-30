@@ -1,5 +1,6 @@
 import numpy as np
 from collections import namedtuple
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning,\
     bin_iq_into_logarithm_q1d, BinningMethod, do_2d_weighted_binning, do_2d_no_weight_binning,\
     bin_annular_into_q1d
@@ -399,6 +400,7 @@ def get_gold_azimuthal_values():
     return gold_theta_array
 
 
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/246
 def test_1d_annular_no_wt():
     """Test '1D_annular_no_sub_no_wt'
 

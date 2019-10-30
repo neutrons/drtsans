@@ -7,7 +7,7 @@ CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace
 Fit <https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html>
 Plus <https://docs.mantidproject.org/nightly/algorithms/Plus-v1.html>
 """
-from mantid.simpleapi import CloneWorkspace, Fit, Plus
+from mantid.simpleapi import CloneWorkspace, Fit, Plus, SaveNexus
 r"""
 Hyperlinks to drtsans functions
 namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
@@ -121,15 +121,14 @@ def fit_band(input_workspace, band, fit_function='name=UserFunction,Formula=a*x+
     # transmission values for wavelengths corresponding to the lead pulse of an input_workspace that contains
     # raw transmissions for the lead and skipped pulses
     CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-    insert_fitted_values(output_workspace, mantid_fit, band.min, band.max)
-    insert_fitted_errors(output_workspace, mantid_fit, band.min, band.max)
+    insert_fitted_values(output_workspace, mantid_fit.OutputWorkspace)
+    insert_fitted_errors(output_workspace, mantid_fit)
 
     return dict(fitted_workspace=mtd[output_workspace], mantid_fit_output=mantid_fit)
 
 
 @namedtuplefy
-def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formula=a*x+b',
-                         output_workspace=None):
+def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formula=a*x+b', output_workspace=None):
     r"""
     Fit the wavelength dependence of the raw zero-angle transmission
     values with a model.
@@ -169,10 +168,7 @@ def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formul
         output_workspace = str(input_workspace)
 
     # Fit only over the range of the transmitted wavelength band(s)
-    try:
-        wavelength_bands = clipped_bands_from_logs(input_workspace)
-    except AttributeError:  # bands are not logged
-        wavelength_bands = transmitted_bands_clipped(input_workspace)  # calculate from the chopper settings
+    wavelength_bands = transmitted_bands_clipped(input_workspace)
 
     # Fit transmission over the wavelength band corresponding to the lead pulse. The output of the fit
     # (lead_fit_output) has attributes 'fitted_workspace' and 'mantid_fit_output'
@@ -208,8 +204,7 @@ def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formul
     return r
 
 
-def insert_fitted_values(input_workspace, mantid_fit_output,
-                         lower_wavelength_boundary, upper_wavelength_boundary):
+def insert_fitted_values(input_workspace, mantid_fit_workspace):
     r"""
     Substitute transmission raw values with fitted transmission values over
     a range of wavelengths, and set zero elsewhere.
@@ -218,23 +213,27 @@ def insert_fitted_values(input_workspace, mantid_fit_output,
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to subtitute raw with fitted transmission values
-    mantid_fit_output: namedtuple
-        Return value after running Mantid's Fit algorithm
-    lower_wavelength_boundary: float
-        Lower wavelength boundary for the range of fitted transmission values
-    upper_wavelength_boundary: float
-        Upper wavelength boundary for the range of fitted transmission values
+    mantid_fit_workspace: ~mantid.api.MatrixWorkspace
+        Workspace containing unfitted, fitted, and residuals for the transmission fit
     """
-    fitted = mtd[str(input_workspace)]
-    y = fitted.dataY(0)
-    fitted_values = np.zeros(len(y))
-    idx = list(range(lower_wavelength_boundary, upper_wavelength_boundary))
-    fitted_values[idx] = mantid_fit_output.OutputWorkspace.dataY(1)
-    fitted.dataY(0)[:] = fitted_values
+    # Find the range of fitted wavelengths
+    mantid_fit_handle = mtd[str(mantid_fit_workspace)]
+    fitting_wavelength_range = mantid_fit_handle.readX(0)
+    first_fitted_wavelength, last_fitted_wavelength = fitting_wavelength_range[0], fitting_wavelength_range[-1]
+
+    # Find the array indexes enclosing the range of fitted wavelengths
+    input_handle = mtd[str(input_workspace)]
+    input_wavelength_range = input_handle.readX(0)
+    first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[0][0]
+    last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[0][0]
+
+    # Insert the fitted transmission values, and set zero elsewhere.
+    fitted_transmission_values = mantid_fit_handle.readY(1)  # fitted values reside at workspace index 1
+    input_handle.dataY(0)[:] = np.zeros(input_handle.dataY(0).size)
+    input_handle.dataY(0)[first_insertion_index: last_insertion_index] = fitted_transmission_values
 
 
-def insert_fitted_errors(input_workspace, mantid_fit_output,
-                         lower_wavelength_boundary, upper_wavelength_boundary):
+def insert_fitted_errors(input_workspace, mantid_fit_output):
     r"""
     Substitute raw errors with errors derived from the model transmission
     over a wavelength band. Substitute with zero errors elsewhere
@@ -254,30 +253,37 @@ def insert_fitted_errors(input_workspace, mantid_fit_output,
     upper_wavelength_boundary: float
         Upper wavelength boundary of the range of fitted transmission values
     """
-    fit_function = mantid_fit_output.Function
-    wavelengths = mantid_fit_output.OutputWorkspace.dataX(0)
-    if len(wavelengths) == len(mantid_fit_output.OutputWorkspace.dataY(0)) + 1:
-        wavelengths = (wavelengths[: -1] + wavelengths[1:]) / 2  # dealing with histogram data
+    fit_function = mantid_fit_output.Function  # Fit function object
+
+    # Find the fitting wavelengths, and use the midpoint wavelengths for the error estimation
+    fitting_wavelength_range = mantid_fit_output.OutputWorkspace.readX(0)
+    fitting_wavelengths = (fitting_wavelength_range[: -1] + fitting_wavelength_range[1:]) / 2  # midpoints
 
     # Iterate over the fitting parameters, calculating their numerical derivatives and their error contributions
-    fit_errors = np.zeros(len(wavelengths))
-    parameter_table = mantid_fit_output.OutputParameters
+    fitting_errors = np.zeros(len(fitting_wavelengths))  # we accumulate the individual errors in this array
+    parameter_table = mantid_fit_output.OutputParameters  # contain the optimized parameters of the
     for row_index in range(parameter_table.rowCount() - 1):  # last row is the Chi-square, thus we exclude it
         row = parameter_table.row(row_index)
         parameter_name, parameter_value, parameter_error = [row[key] for key in ('Name', 'Value', 'Error')]
         # evaluate the fit function by increasing the parameter value
-        fit_function[parameter_name] += parameter_error  # slightly change the parameter's value
-        evaluation_plus = fit_function(wavelengths)  # evaluate function at the domain
-        # evaluate the fit function by decreasing the parameter value
+        fit_function[parameter_name] += parameter_error  # slightly increase the parameter's value
+        evaluation_plus = fit_function(fitting_wavelengths)  # evaluate function at the fitting wavelengths
+        # re-evaluate the fit function by decreasing the parameter value
         fit_function[parameter_name] -= 2 * parameter_error
-        evaluation_minus = fit_function(wavelengths)
+        evaluation_minus = fit_function(fitting_wavelengths)
         numerical_derivative = (evaluation_plus - evaluation_minus) / (2 * parameter_error)
-        fit_errors += (numerical_derivative * parameter_error)**2  # error contribution from this parameter
+        fitting_errors += (numerical_derivative * parameter_error)**2  # error contribution from this parameter
         fit_function[parameter_name] += parameter_error  # restore the original value
-    fit_errors = np.sqrt(fit_errors)
+    fitting_errors = np.sqrt(fitting_errors)
 
-    # Insert errors
-    fitted_errors = np.zeros(len(mtd[input_workspace].dataE(0)))
-    idx = list(range(lower_wavelength_boundary, upper_wavelength_boundary))
-    fitted_errors[idx] = fit_errors
-    mtd[input_workspace].dataE(0)[:] = fitted_errors
+    # Find the array indexes enclosing the range of fitted wavelengths
+    first_fitted_wavelength, last_fitted_wavelength = fitting_wavelength_range[0], fitting_wavelength_range[-1]
+    input_handle = mtd[str(input_workspace)]
+    input_wavelength_range = input_handle.readX(0)
+    first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[0][0]
+    last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[0][0]
+
+    # Insert the fitting errors, and set zero elsewhere.
+    input_handle.dataE(0)[:] = np.zeros(input_handle.dataE(0).size)
+    input_handle.dataE(0)[first_insertion_index: last_insertion_index] = fitting_errors
+

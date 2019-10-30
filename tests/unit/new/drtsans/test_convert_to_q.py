@@ -62,13 +62,13 @@ def test_convert_to_mod_q(generic_workspace):
 
     # test namedtuple result and resolution
     result = convert_to_q(ws, mode='scalar', resolution_function=fake_resolution1)
-    assert result.delta_q == approx([0, 1, 3], abs=1e-5)
+    assert result.delta_mod_q == approx([0, 1, 3], abs=1e-5)
 
     # test geometry dependent resolution
     result = convert_to_q(ws, mode='scalar', resolution_function=fake_resolution2)
     # note that x axis is pointing to the left, so the azimuthal angles by
     # spectrum number are -45, 45, -135, 135
-    assert np.degrees(result.delta_q) == approx([-45, 45, 135], abs=1e-5)
+    assert np.degrees(result.delta_mod_q) == approx([-45, 45, 135], abs=1e-5)
 
 
 @pytest.mark.parametrize('generic_workspace',

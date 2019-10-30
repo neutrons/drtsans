@@ -59,7 +59,7 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
         Workspace containing the raw transmission values when ``fit_function`` is :py:obj:`None`, and the fitted
         transmission values when `fit_function`` is not :py:obj:`None`.
     """
@@ -90,7 +90,7 @@ def fit_band(input_workspace, band, fit_function='name=UserFunction,Formula=a*x+
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace, str
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Input workspace containing the raw transmission values
     band: Wband
         Wavelength band over which to carry out the fit
@@ -106,7 +106,7 @@ def fit_band(input_workspace, band, fit_function='name=UserFunction,Formula=a*x+
     -------
     namedtuple
         Fields of the namedtuple:
-        - fitted_workspace: MatrixWorkspace, transmission values within the band,
+        - fitted_workspace: ~mantid.api.MatrixWorkspace, transmission values within the band,
           zero elsewhere. The name of this workspace is `output_workspace`
         - mantid_fit_output: namedtuple, output of calling Mantid's Fit algorithm
     """
@@ -139,7 +139,7 @@ def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formul
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: ~mantid.api.MatrixWorkspace
         Input workspace containing the raw transmission values
     output_workspace: str
         Name of the workspace containing the fitted transmission values
@@ -152,9 +152,9 @@ def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formul
     -------
     namedtuple
         Fields of the namedtuple:
-        - transmission: workspace containing the fitted transmissio values and errors. The name of this workspace
-        is the value of `output_workspace`
-        - lead_transmission: workspace containing the fitted transmission values and
+        - transmission: ~mantid.api.MatrixWorkspace containing the fitted transmissiom values and errors. The name
+          of this workspace is the value of `output_workspace`
+        - lead_transmission: ~mantid.api.MatrixWorkspace containing the fitted transmission values and
             errors of the lead pulse
         - lead_mantid_fit: return value of running Mantid's Fit algorithm when
             fitting the raw transmission over the lead pulse wavelength range
@@ -216,7 +216,7 @@ def insert_fitted_values(input_workspace, mantid_fit_output,
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to subtitute raw with fitted transmission values
     mantid_fit_output: namedtuple
         Return value after running Mantid's Fit algorithm
@@ -245,7 +245,7 @@ def insert_fitted_errors(input_workspace, mantid_fit_output,
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to contain the fitted error transmission values
     mantid_fit_output: namedtuple
         Return value of Mantid's Fit algorithm

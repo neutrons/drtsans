@@ -1,95 +1,88 @@
 import numpy as np
 from mantid.api import mtd
-from mantid.simpleapi import (Fit, CloneWorkspace, Plus, SaveNexus)
 
-from drtsans.settings import (namedtuplefy, unique_workspace_dundername as uwd)
+r"""
+Hyperlinks to Mantid algorithms
+CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
+Fit <https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html>
+Plus <https://docs.mantidproject.org/nightly/algorithms/Plus-v1.html>
+"""
+from mantid.simpleapi import CloneWorkspace, Fit, Plus
+r"""
+Hyperlinks to drtsans functions
+namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
+clipped_bands_from_logs, transmitted_bands available at:
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
+"""  # noqa: E501
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
-from drtsans.tof.eqsans.correct_frame import transmitted_bands
-from drtsans.tof.eqsans.geometry import\
-    (sample_aperture_diameter, source_aperture_diameter)
-from drtsans.geometry import\
-    (sample_detector_distance, source_sample_distance)
+from drtsans.tof.eqsans.correct_frame import transmitted_bands_clipped
+
+# Symbols to be exported to the eqsans namespace
+__all__ = ['calculate_transmission', 'fit_raw_transmission']
 
 
-__all__ = ['beam_radius', 'calculate_transmission']
-
-
-def calculate_transmission(input_sample, input_reference,
-                           radius=None, radius_unit='mm',
-                           fit_func='name=UserFunction,Formula=a*x+b',
-                           output_workspace=None):
+def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm',
+                           fit_function='name=UserFunction,Formula=a*x+b',
+                           output_workspace=None, output_raw_transmission=None):
     """
-    Calculate the transmission coefficients at zero scattering angle
-    from already prepared sample and reference data.
+    Calculate the transmission coefficients at zero scattering angle from already prepared sample and reference data.
 
-    For EQ-SANS, one additional step fitting the raw values with an
-    analytic wavelength-dependent function may be requested
+    For EQ-SANS, one additional step fitting the values with an analytic wavelength-dependent function
+    may be requested. In this case the fitted transmission values are stored in ``output_workspace`` and the raw
+    transmission values can be optionally stored in workspace ``output_raw_transmissions``.
 
     Parameters
     ----------
-    input_sample: ~mantid.api.MatrixWorkspace
+    input_sample: str, ~mantid.api.MatrixWorkspace
         Prepared sample workspace (possibly obtained with an attenuated beam)
-    input_reference: ~mantid.api.MatrixWorkspace
-        Prepared direct beam workspace (possibly obtained with an attenuated
-        beam)
+    input_reference: str, ~mantid.api.MatrixWorkspace
+        Prepared direct beam workspace (possibly obtained with an attenuated beam)
     radius: float
-        Radius around the bean center for pixel integration, in millimeters.
+        Radius around the bean center for pixel integration, in milimeters.
         If None, radius will be obtained or calculated using ``input_reference``.
     radius_unit: str
         Either 'mm' or 'm', and only used in conjunction with option ``radius``.
-    fit_func: str
+    fit_function: str
         String representation of the fit function. See Mantid's
         :ref:`UserFunction <func-UserFunction>` or any of Mantid's built-in functions.
-        The default value represents a linear model. If :py:obj:`None` or empty
-        string, no fitting is performed.
+        The default value represents a linear model. If this option is left as :py:obj:`None` or empty
+        string, then no fitting is performed.
     output_workspace: str
-        Name of the output workspace containing the raw transmission values.
+        Name of the output workspace containing the raw transmission values when ``fit_function`` is :py:obj:`None`,
+        or the fitted transmission values when `fit_function`` is not :py:obj:`None`.
         If :py:obj:`None`, an anonymous hidden name will be automatically provided.
+    output_raw_transmission: str
+        When ``fit_function`` is not :py:obj:`None`, this option allows to store the unfitted transmission values
+        to a workspace. If the option is left as :py:obj:`None`, then the unfitted values are not kep.
 
     Returns
     -------
-    MatrixWorkspace
-        Workspace containing the raw transmission values
+    ~mantid.api.MatrixWorkspace
+        Workspace containing the raw transmission values when ``fit_function`` is :py:obj:`None`, and the fitted
+        transmission values when `fit_function`` is not :py:obj:`None`.
     """
     if output_workspace is None:
-        output_workspace = uwd()
-    transmission_values = calculate_raw_transmission(input_sample, input_reference, radius=radius,
-                                                     radius_unit=radius_unit, output_workspace=output_workspace)
-    if bool(fit_func) is True:
-        transmission_values = fit_raw(transmission_values, func=fit_func).transmission
-    return transmission_values
+        output_workspace = unique_workspace_dundername()
 
+    if output_raw_transmission is None:
+        output_raw_transmission = output_workspace  # we return the raw transmissions
 
-def beam_radius(input_workspace, unit='mm'):
-    r"""
-    Calculate the beam radius impinging on the detector bank.
-
-    .. math::
-
-           R_{beam} = R_{sampleAp} + SDD * (R_{sampleAp} + R_{sourceAp}) / SSD
-
-    Parameters
-    ----------
-    input_workspace: ~mantid.api.MatrixWorkspace, str
-        Input workspace, contains all necessary info in the logs
-    unit: str
-        Either 'mm' or 'm'
-
-    Returns
-    -------
-    float
-        Estimated beam radius
-    """
-    sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
-    source_aperture_diam = source_aperture_diameter(input_workspace, unit=unit)
-    source_sample_dist = source_sample_distance(input_workspace)
-    sample_detector_dist = sample_detector_distance(input_workspace)
-    return sample_aperture_diam +\
-        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_sample_dist)
+    # start calculating the raw transmissions
+    raw_transmission_workspace = calculate_raw_transmission(input_sample, input_reference,
+                                                            radius=radius, radius_unit=radius_unit,
+                                                            output_workspace=output_raw_transmission)
+    if bool(fit_function) is True:
+        transmission_workspace = fit_raw_transmission(raw_transmission_workspace, fit_function=fit_function,
+                                                      output_workspace=output_workspace).transmission
+        return transmission_workspace
+    else:
+        return raw_transmission_workspace
 
 
 @namedtuplefy
-def fit_band(input_workspace, band, func='name=UserFunction,Formula=a*x+b',
+def fit_band(input_workspace, band, fit_function='name=UserFunction,Formula=a*x+b',
              output_workspace=None):
     r"""
     Fit the wavelength dependence of the raw zero-angle transmission
@@ -97,11 +90,11 @@ def fit_band(input_workspace, band, func='name=UserFunction,Formula=a*x+b',
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace, str
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Input workspace containing the raw transmission values
     band: Wband
         Wavelength band over which to carry out the fit
-    func: str
+    fit_function: str
         String representation of the fit function. See Mantid's
         `UserFunction` or any of Mantid's fit functions
     output_workspace: str
@@ -113,45 +106,29 @@ def fit_band(input_workspace, band, func='name=UserFunction,Formula=a*x+b',
     -------
     namedtuple
         Fields of the namedtuple:
-        - fitted: MatrixWorkspace, transmission values within the band,
-            zero elsewhere. The name of this workspace is `output_workspace`
-        - mfit: namedtuple, output of calling Mantid's Fit algorithm
+        - fitted_workspace: ~mantid.api.MatrixWorkspace, transmission values within the band,
+          zero elsewhere. The name of this workspace is `output_workspace`
+        - mantid_fit_output: namedtuple, output of calling Mantid's Fit algorithm
     """
     if output_workspace is None:
-        output_workspace = uwd()
-    ws = mtd[str(input_workspace)]
-    # Carry out the fit only over the wavelength band with sensible intensities
-    x = ws.dataX(0)
-    y = ws.dataY(0)
-    band_indexes = np.where((x >= band.min) & (x < band.max))[0]
-    min_y = 1e-3 * np.mean(y[band_indexes[:-1]])  # 1e-3 pure heuristics
+        output_workspace = unique_workspace_dundername()
 
-    # Find wavelength range with non-zero intensities. Care with boundaries
-    # that have intensities largely deviating from the expected intensities
-    i = 0
-    while x[i] < band.min or y[i] < min_y:
-        i += 1
-    lower_bin_boundary = i
-    while i < len(y) and x[i] < band.max and y[i] > min_y:
-        i += 1
-    upper_bin_boundary = i
-    start_x, end_x = x[lower_bin_boundary], x[upper_bin_boundary - 1]
-    SaveNexus(ws, '/tmp/junk.nxs')
-    mfit = Fit(Function=func, InputWorkspace=ws.name(), WorkspaceIndex=0,
-               StartX=start_x, EndX=end_x, Output=uwd())
+    mantid_fit = Fit(Function=fit_function, InputWorkspace=input_workspace, WorkspaceIndex=0,
+                     StartX=band.min, EndX=band.max, Output=unique_workspace_dundername())
 
-    # Insert the fitted band into the wavelength range of ws
-    fitted = CloneWorkspace(ws, OutputWorkspace=output_workspace)
-    insert_fitted_values(output_workspace, mfit,
-                         lower_bin_boundary, upper_bin_boundary)
-    insert_fitted_errors(output_workspace, mfit,
-                         lower_bin_boundary, upper_bin_boundary)
-    return dict(fitted=fitted, mfit=mfit)
+    # The fit only contains transmission values within the wavelength range [band.min, band.max]. Insert this values
+    # into a workspace with a wavelength range same as that of the input workspace. For instance, we are fitting the
+    # transmission values for wavelengths corresponding to the lead pulse of an input_workspace that contains
+    # raw transmissions for the lead and skipped pulses
+    CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+    insert_fitted_values(output_workspace, mantid_fit.OutputWorkspace)
+    insert_fitted_errors(output_workspace, mantid_fit)
+
+    return dict(fitted_workspace=mtd[output_workspace], mantid_fit_output=mantid_fit)
 
 
 @namedtuplefy
-def fit_raw(input_workspace, func='name=UserFunction,Formula=a*x+b',
-            output_workspace=None):
+def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formula=a*x+b', output_workspace=None):
     r"""
     Fit the wavelength dependence of the raw zero-angle transmission
     values with a model.
@@ -161,12 +138,12 @@ def fit_raw(input_workspace, func='name=UserFunction,Formula=a*x+b',
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: ~mantid.api.MatrixWorkspace
         Input workspace containing the raw transmission values
     output_workspace: str
         Name of the workspace containing the fitted transmission values
         and errors. If None, the input worskpace will be overwritten
-    func: str
+    fit_function: str
         String representation of the fit function. See Mantid's
         `UserFunction` or any of Mantid's fit functions
 
@@ -174,92 +151,100 @@ def fit_raw(input_workspace, func='name=UserFunction,Formula=a*x+b',
     -------
     namedtuple
         Fields of the namedtuple:
-        - transmission: workspace containing the fitted transmission
-               values and errors.
-               The name of this workspace is the value of `output_workspace`
-        - lead_fit: workspace containing the fitted transmission values and
+        - transmission: ~mantid.api.MatrixWorkspace containing the fitted transmissiom values and errors. The name
+          of this workspace is the value of `output_workspace`
+        - lead_transmission: ~mantid.api.MatrixWorkspace containing the fitted transmission values and
             errors of the lead pulse
-        - lead_mfit: return value of running Mantid's Fit algorithm when
+        - lead_mantid_fit: return value of running Mantid's Fit algorithm when
             fitting the raw transmission over the lead pulse wavelength range
-        - skip_fit: workspace containing the fitted transmission values and
+        - skip_transmission: workspace containing the fitted transmission values and
             errors of the skip pulse. None if not working in frame skipping
             mode
-        - skip_mfit: return value of running Mantid's Fit algorithm when
+        - skip_mantid_fit: return value of running Mantid's Fit algorithm when
             fitting the raw transmission over the skip pulse wavelength range
             None f not working in frame skipping mode
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    raw = mtd[str(input_workspace)]
-    #
+
     # Fit only over the range of the transmitted wavelength band(s)
-    #
-    bands = transmitted_bands(raw)
-    #
-    # Fit the lead pulse
-    #
-    fit_lead = fit_band(raw, bands.lead, func=func,
-                        output_workspace=uwd())  # band from lead pulse
-    #
-    # Fit the skipped pulse, if running in skip-frame mode
-    #
-    if bands.skip is not None:
-        fit_skip = fit_band(raw, bands.skip, func=func,
-                            output_workspace=uwd())  # skipped pulse
-        fitted_ws = Plus(LHSWorkspace=fit_lead.fitted,
-                         RHSWorkspace=fit_skip.fitted,
-                         OutputWorkspace=output_workspace)
+    wavelength_bands = transmitted_bands_clipped(input_workspace)
+
+    # Fit transmission over the wavelength band corresponding to the lead pulse. The output of the fit
+    # (lead_fit_output) has attributes 'fitted_workspace' and 'mantid_fit_output'
+    lead_fit_output = fit_band(input_workspace, wavelength_bands.lead, fit_function=fit_function,
+                               output_workspace=unique_workspace_dundername())  # band from lead pulse
+
+    # Fit transmission over the wavelength band corresponding to the skipped pulse, if running in skip-frame mode
+    if wavelength_bands.skip is not None:
+        # skip_fit_output is a namedtuple with attributes 'fitted_workspace' and 'mantid_fit_output'
+        skip_fit_output = fit_band(input_workspace, wavelength_bands.skip, fit_function=fit_function,
+                                   output_workspace=unique_workspace_dundername())  # skipped pulse
+
+    # The overall fitted transmission workspace is either the transmission over the wavelength range of the lead
+    # pulse or the sum of the fitted transmissions over the lead and skip pulses
+    if wavelength_bands.skip is None:
+        fitted_workspace = CloneWorkspace(lead_fit_output.fitted_workspace, OutputWorkspace=output_workspace)
     else:
-        fitted_ws = CloneWorkspace(fit_lead.fitted,
-                                   OutputWorkspace=output_workspace)
-    # dictionary to return
-    r = dict(transmission=fitted_ws,
-             lead_fit=fit_lead.fitted, lead_mfit=fit_lead.mfit)
-    if bands.skip is not None:
-        r.update(dict(skip_fit=fit_skip.fitted, skip_mfit=fit_skip.mfit))
+        fitted_workspace = Plus(LHSWorkspace=lead_fit_output.fitted_workspace,
+                                RHSWorkspace=skip_fit_output.fitted_workspace,
+                                OutputWorkspace=output_workspace)
+
+    # Return a dictionary containing comprehensive output from the fit(s)
+    r = dict(transmission=fitted_workspace,  # overall fitted transmission workspace
+             lead_transmission=lead_fit_output.fitted_workspace,  # fitted transmission workspace over the lead pulse
+             lead_mantid_fit=lead_fit_output.mantid_fit_output)  # comprehensive results from Mantid's Fit algorithm
+
+    if wavelength_bands.skip is None:
+        r.update(dict(skip_transmission=None, skip_mantid_fit=None))
     else:
-        r.update(dict(skip_fit=None, skip_mfit=None))
+        r.update(dict(skip_transmission=skip_fit_output.fitted_workspace,
+                      skip_mantid_fit=skip_fit_output.mantid_fit_output))
+
     return r
 
 
-def insert_fitted_values(input_workspace, mantid_fit_output,
-                         lower_wavelength_boundary, upper_wavelength_boundary):
+def insert_fitted_values(input_workspace, mantid_fit_workspace):
     r"""
     Substitute transmission raw values with fitted transmission values over
-    a range of vawelengths, and set zero elsewhere.
+    a range of wavelengths, and set zero elsewhere.
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to subtitute raw with fitted transmission values
-    mantid_fit_output: namedtuple
-        Return value after running Mantid's Fit algorithm
-    lower_wavelength_boundary: float
-        Lower wavelength boundary for the range of fitted transmission values
-    upper_wavelength_boundary: float
-        Upper wavelength boundary for the range of fitted transmission values
+    mantid_fit_workspace: ~mantid.api.MatrixWorkspace
+        Workspace containing unfitted, fitted, and residuals for the transmission fit
     """
-    fitted = mtd[str(input_workspace)]
-    y = fitted.dataY(0)
-    fitted_values = np.zeros(len(y))
-    idx = list(range(lower_wavelength_boundary, upper_wavelength_boundary))
-    fitted_values[idx] = mantid_fit_output.OutputWorkspace.dataY(1)
-    fitted.dataY(0)[:] = fitted_values
+    # Find the range of fitted wavelengths
+    mantid_fit_handle = mtd[str(mantid_fit_workspace)]
+    fitting_wavelength_range = mantid_fit_handle.readX(0)
+    first_fitted_wavelength, last_fitted_wavelength = fitting_wavelength_range[0], fitting_wavelength_range[-1]
+
+    # Find the array indexes enclosing the range of fitted wavelengths
+    input_handle = mtd[str(input_workspace)]
+    input_wavelength_range = input_handle.readX(0)
+    first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[0][0]
+    last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[0][0]
+
+    # Insert the fitted transmission values, and set zero elsewhere.
+    fitted_transmission_values = mantid_fit_handle.readY(1)  # fitted values reside at workspace index 1
+    input_handle.dataY(0)[:] = np.zeros(input_handle.dataY(0).size)
+    input_handle.dataY(0)[first_insertion_index: last_insertion_index] = fitted_transmission_values
 
 
-def insert_fitted_errors(input_workspace, mantid_fit_output,
-                         lower_wavelength_boundary, upper_wavelength_boundary):
+def insert_fitted_errors(input_workspace, mantid_fit_output):
     r"""
     Substitute raw errors with errors derived from the model transmission
     over a wavelength band. Substitute with zero errors elsewhere
 
-    Errors are calculated using the errors in the fitting parameters of the
-    transmission model. For instance, the errors in the slope and intercept
-    of a linear model.
+    Errors are calculated using the errors in the fitting parameters of the transmission model.
+    For instance, the errors in the slope and intercept of a linear model.
+    We employ numerical derivative of the fit function with respect to the fitting parameters
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Workspace to contain the fitted error transmission values
     mantid_fit_output: namedtuple
         Return value of Mantid's Fit algorithm
@@ -268,31 +253,36 @@ def insert_fitted_errors(input_workspace, mantid_fit_output,
     upper_wavelength_boundary: float
         Upper wavelength boundary of the range of fitted transmission values
     """
-    fitted = mtd[str(input_workspace)]
-    #
-    # Estimate errors using the numerical derivative of the fit function with
-    # respect to the fitting parameters
-    #
-    f = mantid_fit_output.Function
-    x = mantid_fit_output.OutputWorkspace.dataX(0)
-    if len(x) == len(mantid_fit_output.OutputWorkspace.dataY(0)) + 1:
-        x = (x[: -1] + x[1:]) / 2  # dealing with histogram data
-    e = np.zeros(len(x))
-    p_table = mantid_fit_output.OutputParameters
-    # Iterate over the fitting parameters,calculating the numerical derivative
-    for i in range(p_table.rowCount() - 1):
-        row = p_table.row(i)
-        p_n, p_e = row['Name'], row['Error'] / 2.0
-        f[p_n] = f[p_n] + p_e  # slightly change the parameter's value
-        d = f(x)  # evaluate function at the domain
-        f[p_n] = f[p_n] - 2 * p_e
-        d = (d - f(x)) / (2 * p_e)  # numerical derivative with respect to p_n
-        e += np.abs(d) * p_e**2  # error contribution from this parameter
-        f[p_n] += p_e  # restore the original value
-    e = np.sqrt(e)
+    fit_function = mantid_fit_output.Function  # Fit function object
 
-    # Insert errors
-    fitted_errors = np.zeros(len(fitted.dataE(0)))
-    idx = list(range(lower_wavelength_boundary, upper_wavelength_boundary))
-    fitted_errors[idx] = e
-    fitted.dataE(0)[:] = fitted_errors
+    # Find the fitting wavelengths, and use the midpoint wavelengths for the error estimation
+    fitting_wavelength_range = mantid_fit_output.OutputWorkspace.readX(0)
+    fitting_wavelengths = (fitting_wavelength_range[: -1] + fitting_wavelength_range[1:]) / 2  # midpoints
+
+    # Iterate over the fitting parameters, calculating their numerical derivatives and their error contributions
+    fitting_errors = np.zeros(len(fitting_wavelengths))  # we accumulate the individual errors in this array
+    parameter_table = mantid_fit_output.OutputParameters  # contain the optimized parameters of the
+    for row_index in range(parameter_table.rowCount() - 1):  # last row is the Chi-square, thus we exclude it
+        row = parameter_table.row(row_index)
+        parameter_name, parameter_value, parameter_error = [row[key] for key in ('Name', 'Value', 'Error')]
+        # evaluate the fit function by increasing the parameter value
+        fit_function[parameter_name] += parameter_error  # slightly increase the parameter's value
+        evaluation_plus = fit_function(fitting_wavelengths)  # evaluate function at the fitting wavelengths
+        # re-evaluate the fit function by decreasing the parameter value
+        fit_function[parameter_name] -= 2 * parameter_error
+        evaluation_minus = fit_function(fitting_wavelengths)
+        numerical_derivative = (evaluation_plus - evaluation_minus) / (2 * parameter_error)
+        fitting_errors += (numerical_derivative * parameter_error)**2  # error contribution from this parameter
+        fit_function[parameter_name] += parameter_error  # restore the original value
+    fitting_errors = np.sqrt(fitting_errors)
+
+    # Find the array indexes enclosing the range of fitted wavelengths
+    first_fitted_wavelength, last_fitted_wavelength = fitting_wavelength_range[0], fitting_wavelength_range[-1]
+    input_handle = mtd[str(input_workspace)]
+    input_wavelength_range = input_handle.readX(0)
+    first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[0][0]
+    last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[0][0]
+
+    # Insert the fitting errors, and set zero elsewhere.
+    input_handle.dataE(0)[:] = np.zeros(input_handle.dataE(0).size)
+    input_handle.dataE(0)[first_insertion_index: last_insertion_index] = fitting_errors

@@ -1,4 +1,6 @@
-from .absolute_units import *  # noqa: F403
-from .dark_current import *  # noqa: F403
+# flake8: noqa
+from .absolute_units import *
+from .dark_current import *
+from .geometry import *
 
-__all__ = (absolute_units.__all__ + dark_current.__all__)  # noqa: F405
+__all__ = absolute_units.__all__ + dark_current.__all__ + geometry.__all__

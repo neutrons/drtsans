@@ -4,8 +4,7 @@ import enum
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import ConfigService
-from mantid.simpleapi import mtd, Load, ExtractMask
-from drtsans.settings import unique_workspace_dundername as uwd
+from mantid.simpleapi import mtd, Load
 from drtsans.samplelogs import SampleLogs
 from collections import defaultdict
 
@@ -134,30 +133,6 @@ def bank_detectors(input_workspace, masked=None):
         det = instrument.getDetector(det_id)
         if masked is None or masked == det.isMasked():
             yield instrument.getDetector(det_id)
-
-
-def masked_detectors(input_workspace, query_ids=None):
-    r"""
-    List of detector ID's that are masked
-
-    Parameters
-    ----------
-    input_workspace: str, MatrixWorkspace
-        Input workspace to find the detectors
-    query_ids: list
-        Restrict the search to this list of detector ID's. If `None`, query
-        all detectors.
-
-    Returns
-    -------
-    list
-    """
-    mask_ws, det_ids = ExtractMask(input_workspace,
-                                   OutputWorkspace=uwd())
-    if query_ids is not None:
-        det_ids = sorted(list(set(det_ids) & set(query_ids)))
-    mask_ws.delete()
-    return det_ids
 
 
 def get_instrument(source):

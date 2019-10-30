@@ -13,7 +13,7 @@ from mantid.api import mtd
 from mantid.dataobjects import MaskWorkspace
 
 # drtsans imports
-from drtsans.settings import unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
 
 
 def mask_as_numpy_array(input_workspace, invert=False):
@@ -174,4 +174,27 @@ def circular_mask_from_beam_center(input_workspace, radius, unit='mm'):
     <algebra val="shape" />
     """.format(r)
     det_ids = FindDetectorsInShape(Workspace=input_workspace, ShapeXML=cylinder)
+    return det_ids
+
+
+def masked_detectors(input_workspace, query_ids=None):
+    r"""
+    List of detector ID's that are masked
+
+    Parameters
+    ----------
+    input_workspace: str, MatrixWorkspace
+        Input workspace to find the detectors
+    query_ids: list
+        Restrict the search to this list of detector ID's. If `None`, query
+        all detectors.
+
+    Returns
+    -------
+    list
+    """
+    mask_ws, det_ids = ExtractMask(input_workspace, OutputWorkspace=uwd())
+    if query_ids is not None:
+        det_ids = sorted(list(set(det_ids) & set(query_ids)))
+    mask_ws.delete()
     return det_ids

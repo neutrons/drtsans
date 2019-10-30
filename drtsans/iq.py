@@ -350,6 +350,9 @@ def do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cente
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
     i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array)
+
+    print('[DEBUG]\nI_raw: {}\nPt  : {}'.format(i_raw_array, num_pt_array))
+
     # Square of summed uncertainties for each bin
     sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array ** 2)
 

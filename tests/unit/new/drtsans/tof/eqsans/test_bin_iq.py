@@ -1,6 +1,8 @@
 import numpy as np
+from collections import namedtuple
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning,\
-    bin_iq_into_logarithm_q1d, BinningMethod, do_2d_weighted_binning, do_2d_no_weight_binning
+    bin_iq_into_logarithm_q1d, BinningMethod, do_2d_weighted_binning, do_2d_no_weight_binning,\
+    bin_annular_into_q1d
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -454,6 +456,19 @@ def test_1d_annular_no_wt():
 
     assert np.allclose(theta_array[:num_test_data], gold_theta_array, rtol=6.e-4), 'Azimuthal vectors'
 
+    assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
+    assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'
+    # 4.70549611605334e-05 calculated vs 4.717e-05
+    assert abs(binned_iq.dq[1] - 4.717E-05) < 1.5E-7, 'Binned Q resolution is wrong'
+
+    # Test the high level method
+    # Define input data
+    IQ2d = namedtuple('IQ2d', 'intensity error qx qy delta_qx delta_qy wavelength')
+    test_iq = IQ2d(intensities, sigmas, qx_array, qy_array, dqx_array, dqy_array, None)
+
+    # Bin
+    binned_iq = bin_annular_into_q1d(test_i_q, q_min, q_max, num_bins, BinningMethod.NOWEIGHT)
+    # verify
     assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
     assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'
     # 4.70549611605334e-05 calculated vs 4.717e-05

@@ -135,8 +135,8 @@ def bin_annular_into_q1d(i_q, q_min=0.001, q_max=0.4, bins=100, method=BinningMe
 
     Parameters
     ----------
-    i_q :  namedtuple
-         "i": intensity, "sigma": sigma(I), "qx": qx, "qy": qy, "dqx": dqx, "dqy", dqy
+    i_q :  ~collections.namedtuple
+         "intensity": intensity, "error": sigma(I), "qx": qx, "qy": qy, "delta_qx": dqx, "delta_qy", dqy
     q_min : float, optional
         , by default
     q_max : float, optional
@@ -163,7 +163,7 @@ def bin_annular_into_q1d(i_q, q_min=0.001, q_max=0.4, bins=100, method=BinningMe
 
     """
     # Determine azimuthal angle bins (i.e., theta bins)
-    theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, num_bins)
+    theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, bins)
 
     # Calculate theta array
     theta_array = np.arctan2(i_q.qy, i_q.qx) * 180. / np.pi
@@ -173,17 +173,29 @@ def bin_annular_into_q1d(i_q, q_min=0.001, q_max=0.4, bins=100, method=BinningMe
     # Calculate Q from Qx and Qy
     q_array = np.sqrt(i_q.qx**2 + i_q.qy**2)
     # calculate dQ from dQx and dQy
-    dq_array = np.sqrt(i_q.dqx**2 + i_q.dqy**2)
+    dq_array = np.sqrt(i_q.delta_qx**2 + i_q.delta_qy**2)
 
     # Filter by q_min and q_max
     allowed_q_index = (q_array > q_min) & (q_array < q_max)
 
     # binning
-    binned_iq = do_1d_no_weight_binning(theta_array[allowed_q_index],
-                                        dq_array[allowed_q_index],
-                                        i_q.i[allowed_q_index],
-                                        i_q.sigma[allowed_q_index],
-                                        theta_bin_centers, theta_bin_edges)
+    if method == BinningMethod.NOWEIGHT:
+        # no weight binning
+        binned_iq = do_1d_no_weight_binning(theta_array[allowed_q_index],
+                                            dq_array[allowed_q_index],
+                                            i_q.intensity[allowed_q_index],
+                                            i_q.error[allowed_q_index],
+                                            theta_bin_centers, theta_bin_edges)
+    elif method == BinningMethod.WEIGHTED:
+        # weighted binning
+        binned_iq = do_1d_weighted_binning(theta_array[allowed_q_index],
+                                           dq_array[allowed_q_index],
+                                           i_q.intensity[allowed_q_index],
+                                           i_q.error[allowed_q_index],
+                                           theta_bin_centers, theta_bin_edges)
+    else:
+        # not supported case
+        raise RuntimeError('Binning method {} is not recognized'.format(method))
 
     return binned_iq
 

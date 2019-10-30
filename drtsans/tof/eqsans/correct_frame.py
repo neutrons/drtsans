@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CropWorkspace-v1.html
@@ -57,14 +58,13 @@ def transmitted_bands(input_workspace):
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
-    ws = mtd[str(input_workspace)]
-    sl = SampleLogs(ws)
+    sl = SampleLogs(input_workspace)
     try:
         # 10^6/60 micro-seconds
         pulse_period = 1.e6 / sl.single_value('frequency')
     except RuntimeError:
         pulse_period = 1.e6 / 60.  # reasonable default
-    ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
+    ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
     # Wavelength band of neutrons from the leading pulse transmitted
     # by the chopper system
     lead_band = ch.transmission_bands(pulsed=True)[0]
@@ -72,36 +72,6 @@ def transmitted_bands(input_workspace):
     skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0]\
         if ch.frame_mode == FrameMode.skip else None
     return dict(lead=lead_band, skip=skip_band)
-
-
-@namedtuplefy
-def clipped_bands_from_logs(input_workspace):
-    r"""
-    Retrieve the wavelength bands over which we expect non-zero intensity. We
-    inspect the log.
-
-    Parameters
-    ----------
-    input_workspace: str, MatrixWorkspace
-        Input Workspace containing all necessary info
-
-    Returns
-    -------
-    namedtuple
-        Fields of the namedtuple:
-        - lead, WBand object for the wavelength band of the lead pulse
-        - skipped, Wband for the skipped pulse. None if not operating in
-            the skipped frame mode
-    """
-    sl = SampleLogs(input_workspace)
-    lead = wlg.Wband(sl.wavelength_lead_min.value,
-                     sl.wavelength_lead_max.value)
-    if _is_frame_skipping(input_workspace):
-        skip = wlg.Wband(sl.wavelength_skip_min.value,
-                         sl.wavelength_skip_max.value)
-    else:
-        skip = None
-    return dict(lead=lead, skip=skip)
 
 
 @namedtuplefy
@@ -137,18 +107,49 @@ def limiting_tofs(input_workspace, sdd):
 
 
 @namedtuplefy
-def transmitted_bands_clipped(ws, sdd, low_tof_clip=None, high_tof_clip=None, interior_clip=False):
+def clipped_bands_from_logs(input_workspace):
     r"""
-    Wavelength bands of the lead and skipped pulses transmitted by
-    the choppers taking into account the TOF clippings for neutrons
-    arriving at the detector, assuming a detector were placed at `distance`.
+    Retrieve the wavelength bands over which we expect non-zero intensity. We
+    inspect the log.
 
     Parameters
     ----------
-    ws: EventsWorkspace
+    input_workspace: str, MatrixWorkspace
+        Input Workspace containing all necessary info
+
+    Returns
+    -------
+    namedtuple
+        Fields of the namedtuple:
+        - lead, WBand object for the wavelength band of the lead pulse
+        - skipped, Wband for the skipped pulse. None if not operating in
+            the skipped frame mode
+    """
+    sl = SampleLogs(input_workspace)
+    lead = wlg.Wband(sl.wavelength_lead_min.value,
+                     sl.wavelength_lead_max.value)
+    if _is_frame_skipping(input_workspace):
+        skip = wlg.Wband(sl.wavelength_skip_min.value,
+                         sl.wavelength_skip_max.value)
+    else:
+        skip = None
+    return dict(lead=lead, skip=skip)
+
+
+@namedtuplefy
+def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_tof_clip=None, high_tof_clip=None,
+                              interior_clip=False, search_in_logs=True):
+    r"""
+    Wavelength bands of the lead and skipped pulses transmitted by the choppers taking into account
+    the TOF clippings for neutrons arriving at the detector, assuming a detector were placed at `distance`.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
         Data workspace
-    sdd: float
-        Distance from source to detector, in meters
+    source_detector_dist: float
+        Distance from source to detector, in meters. if :py:obj:`None`, the distance will be obtained from the
+        information stored in the input workspace.
     low_tof_clip: float
         trim neutrons of the leading pulse with a TOF smaller than the minimal TOF plus this value. Units in
         micro-seconds. If py:obj:`None`, the value is retrieved from log entry `'low_tof_clip``.
@@ -159,6 +160,10 @@ def transmitted_bands_clipped(ws, sdd, low_tof_clip=None, high_tof_clip=None, in
         If True, trim slow neutrons from the lead pulse (using
         `high_tof_clip`) and fast neutrons from the skip pulse (using
          `low_tof_clip`)
+    search_in_logs: True
+        If :py:obj:`True`, function clipped_bands_from_logs is tried first in order to retrieve the clipped bands
+        from the logs.
+
     Returns
     -------
     namedtuple
@@ -167,17 +172,29 @@ def transmitted_bands_clipped(ws, sdd, low_tof_clip=None, high_tof_clip=None, in
         - skipped, Wband for the skipped pulse. None if not operating in
             the skipped frame mode
     """
+    # First see if the clipped bands are already present in the logs
+    if search_in_logs is True:
+        try:
+            bands = clipped_bands_from_logs(input_workspace)
+            return bands
+        except AttributeError:
+            sys.stderr.write('Clipped bands not present in the logs. Calculating using the chopper settings.')
+
     # If necessary, retrieve the clips from the logs
-    sample_logs = SampleLogs(ws)
+    sample_logs = SampleLogs(input_workspace)
     if low_tof_clip is None:
         low_tof_clip = sample_logs.low_tof_clip.value
     if high_tof_clip is None:
         high_tof_clip = sample_logs.low_tof_clip.value
 
-    ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
-    lwc = wlg.from_tof(low_tof_clip, sdd, ch.pulse_width)  # low wavel. clip
-    hwc = wlg.from_tof(high_tof_clip, sdd)  # high wavelength clip
-    bands = transmitted_bands(ws)
+    # If necessary, retrieve the source_detector_distance from the input workspace
+    if source_detector_dist is None:
+        source_detector_dist = source_detector_distance(input_workspace, unit='m')
+
+    ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
+    lwc = wlg.from_tof(low_tof_clip, source_detector_dist, ch.pulse_width)  # low wavel. clip
+    hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
+    bands = transmitted_bands(input_workspace)
     if ch.frame_mode == FrameMode.not_skip:
         lead = wlg.Wband(bands.lead.min + lwc, bands.lead.max - hwc)
         skip = None
@@ -199,7 +216,7 @@ def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
 
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Input workspace to amend its logs
     sdd: float
         Distance from source to detector, in meters
@@ -215,7 +232,7 @@ def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
         The input workspace, with the logs ammended
     """
     ws = mtd[str(input_workspace)]
@@ -236,7 +253,7 @@ def log_band_structure(input_workspace, bands):
 
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
     bands: namedtuple
         Output of running `transmitted_bands_clipped` on the workspace
     """
@@ -261,7 +278,7 @@ def metadata_bands(input_workspace):
 
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
     Returns
     -------
     namedtuple
@@ -295,7 +312,7 @@ def correct_tof_frame(input_workspace, source_to_component_distance,
 
     Parameters
     ----------
-    input_workspace: str, EventsWorkspace
+    input_workspace: str, ~mantid.api.IEventsWorkspace
         Data workspace
     source_to_component_distance: float
         Distance from source to detecting component (detector or monitor), in
@@ -309,7 +326,7 @@ def correct_tof_frame(input_workspace, source_to_component_distance,
     -------
     namedtuple
         Fields of the namedtuple:
-        - ws: EventsWorkspace, the input workspace
+        - ws: ~mantid.api.IEventsWorkspace, the input workspace
         - lead_band: WBand wavelength band for the lead pulse
         - skip_band: WBand wavelength band for the skip pulse. `None` if not
             working in frame-skipping mode
@@ -345,12 +362,12 @@ def correct_monitor_frame(input_workspace):
 
     Parameters
     ----------
-    input_workspace: EventsWorkspace
+    input_workspace: ~mantid.api.IEventsWorkspace
         Monitor events workspace
 
     Returns
     -------
-    EventsWorkspace
+    ~mantid.api.IEventsWorkspace
     """
     # check we are not running in skip-frame mode
     ws = mtd[str(input_workspace)]
@@ -370,7 +387,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
 
     Parameters
     ----------
-    input_workspace: EventsWorkspace
+    input_workspace: ~mantid.api.IEventsWorkspace
         Monitor events workspace
     output_workspace : str
         Name of the normalised workspace. If None, the name of the input
@@ -378,7 +395,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
     """
 
     def remove_spikes(y, to_median=20):
@@ -432,7 +449,7 @@ def band_gap_indexes(input_workspace, bands):
 
     Parameters
     ----------
-    input_workspace: str, MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace
         Input workspace with units of Wavelength on the X-axis
     bands: namedtuple
         Output of running `transmitted_bands_clipped` on the workspace
@@ -458,7 +475,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
 
     Parameters
     ----------
-    input_workspace: EventsWorkspace
+    input_workspace: ~mantid.api.IEventsWorkspace
         Input workspace, after TOF frame correction
     bands: namedtuple
         Output of running `transmitted_bands_clipped` on the workspace. If None, the

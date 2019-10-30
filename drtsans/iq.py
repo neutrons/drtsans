@@ -128,6 +128,66 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
     return binned_q
 
 
+def bin_annular_into_q1d(i_q, q_min=0.001, q_max=0.4, bins=100, method=BinningMethod.NOWEIGHT):
+    """Annular 1D binning
+
+    Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
+
+    Parameters
+    ----------
+    i_q :  namedtuple
+         "i": intensity, "sigma": sigma(I), "qx": qx, "qy": qy, "dqx": dqx, "dqy", dqy
+    q_min : float, optional
+        , by default
+    q_max : float, optional
+        , by default
+    bins : int or sequence of scalars, optional
+        See `scipy.stats.binned_statistic`.
+        If `bins` is an int, it defines the number of equal-width bins in
+        the given range (10 by default).  If `bins` is a sequence, it
+        defines the bin edges, including the rightmost edge, allowing for
+        non-uniform bin widths.  Values in `x` that are smaller than lowest
+        bin edge areassigned to bin number 0, values beyond the highest bin
+        are assigned to ``bins[-1]``.  If the bin edges are specified,
+        the number of bins will be, (nx = len(bins)-1).
+    method : BinningMethod
+        binning method, no-weight or weighed
+
+    Returns
+    -------
+    IofQ
+        named tuple for Q, dQ, I(Q), sigma_I(Q)
+        numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray
+        Q, dQ, I, dI
+        Q, Q resolution, I, uncertainty of I
+
+    """
+    # Determine azimuthal angle bins (i.e., theta bins)
+    theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, num_bins)
+
+    # Calculate theta array
+    theta_array = np.arctan2(i_q.qy, i_q.qx) * 180. / np.pi
+    # convert -0 to -180 to 180 to 360
+    theta_array[np.where(theta_array < 0)] += 360.
+
+    # Calculate Q from Qx and Qy
+    q_array = np.sqrt(i_q.qx**2 + i_q.qy**2)
+    # calculate dQ from dQx and dQy
+    dq_array = np.sqrt(i_q.dqx**2 + i_q.dqy**2)
+
+    # Filter by q_min and q_max
+    allowed_q_index = (q_array > q_min) & (q_array < q_max)
+
+    # binning
+    binned_iq = do_1d_no_weight_binning(theta_array[allowed_q_index],
+                                        dq_array[allowed_q_index],
+                                        i_q.i[allowed_q_index],
+                                        i_q.sigma[allowed_q_index],
+                                        theta_bin_centers, theta_bin_edges)
+
+    return binned_iq
+
+
 def determine_1d_linear_bins(q_min, q_max, bins):
     """Determine linear bin edges and centers
 
@@ -184,6 +244,7 @@ def determine_1d_log_bins(q_min, q_max, step_per_decade):
     # Determine Q bin centers
     bin_centers = np.arange(num_bins)
     bin_centers = bin_centers.astype(float)
+    # bin centers: 10^{delta_l * (k + 0.5)} * c_min
     bin_centers = 10 ** (delta_l * (bin_centers + 0.5)) * c_min
     # Determine Q bin edges
     bin_edges = np.zeros((bin_centers.shape[0] + 1), float)
@@ -654,76 +715,6 @@ def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,
     assert suffix
 
     return
-
-
-def bin_annular_into_q1d(wl_ws,
-                         q_min=0.001,
-                         q_max=0.4,
-                         bins=100,
-                         statistic='mean',
-                         suffix="_annular_iq"):
-    """
-    Wedge calculation and integration
-
-    Calculates: I(Q) and Dq
-    The ws_* input parameters are the output workspaces from bin_into_q2d
-
-    Parameters
-    ----------
-    wl_ws : list of workspaces (reference or string as name)
-    q_min : float, optional
-        , by default
-    q_max : float, optional
-        , by default
-    bins : int or sequence of scalars, optional
-        See `scipy.stats.binned_statistic`.
-        If `bins` is an int, it defines the number of equal-width bins in
-        the given range (10 by default).  If `bins` is a sequence, it
-        defines the bin edges, including the rightmost edge, allowing for
-        non-uniform bin widths.  Values in `x` that are smaller than lowest
-        bin edge areassigned to bin number 0, values beyond the highest bin
-        are assigned to ``bins[-1]``.  If the bin edges are specified,
-        the number of bins will be, (nx = len(bins)-1).
-    statistic : str, optional
-        See `scipy.stats.binned_statistic`.
-        The statistic to compute, by default 'mean'
-        The following statistics are available:
-        * 'mean' : compute the mean of values for points within each bin.
-            Empty bins will be represented by NaN.
-        * 'std' : compute the standard deviation within each bin. This
-            is implicitly calculated with ddof=0.
-        * 'median' : compute the median of values for points within each
-            bin. Empty bins will be represented by NaN.
-        * 'count' : compute the count of points within each bin.  This is
-            identical to an unweighted histogram.  `values` array is not
-            referenced.
-        * 'sum' : compute the sum of values for points within each bin.
-            This is identical to a weighted histogram.
-        * 'min' : compute the minimum of values for points within each bin.
-            Empty bins will be represented by NaN.
-        * 'max' : compute the maximum of values for point within each bin.
-            Empty bins will be represented by NaN.
-        * function : a user-defined function which takes a 1D array of
-            values, and outputs a single numerical statistic. This function
-            will be called on the values in each bin.  Empty bins will be
-            represented by function([]), or NaN if this returns an error.
-    suffix : str, optional
-        The prefix of the workspace created in Mantid, by default "ws"
-
-    Returns
-    -------
-    tuple
-        (workspace name, workspace)
-
-    """
-    assert wl_ws
-    assert q_min
-    assert q_max
-    assert bins
-    assert statistic
-    assert suffix
-
-    return None
 
 
 def export_i_q_to_table(i_of_q, table_ws_name, detector_dims, DETECTOR_DIMENSIONS_TEMPLATE):

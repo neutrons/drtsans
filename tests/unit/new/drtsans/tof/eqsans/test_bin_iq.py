@@ -509,7 +509,7 @@ def test_1d_bin_log_wedge_no_wt():
     max_wedge_angle = 45
 
     # Bin wedge
-    bin_edges, bin_centers = determine_1d_log_bins(q_min, q_max, step_per_decade)
+    bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
 
     # Get data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
@@ -535,7 +535,7 @@ def test_1d_bin_log_wedge_no_wt():
                                         bin_edges=bin_edges)
     # Verification
     # Bin centers and boundaries
-    gold_centers, gold_edges = get_gold_1d_log_bins()
+    gold_edges, gold_centers = get_gold_1d_log_bins()
     assert np.allclose(bin_edges, gold_edges)
     assert np.allclose(bin_centers, gold_centers)
 

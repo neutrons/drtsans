@@ -1,5 +1,4 @@
 import numpy as np
-import h5py
 import json
 import sys
 import matplotlib
@@ -8,28 +7,31 @@ import matplotlib.pyplot as plt # noqa E402
 from matplotlib.colors import LogNorm # noqa E402
 import mpld3 # noqa E402
 from mpld3 import plugins # noqa E402
+from mantid.simpleapi import Load # noqa E402
 
 
-# Quick event integrating loader for EQSANS
+# Load data using Mantid
 def load_data(filename):
-    bc = np.zeros((256*192))
-    with h5py.File(filename, 'r') as f:
-        run_number = f['/entry/run_number'].value[0]
-        title = f['/entry/title'].value[0]
-        for b in range(48):
-            bc += np.bincount(f['/entry/bank'+str(b+1) +
-                                '_events/event_id'].value,
-                              minlength=256*192)
-    data = bc.reshape(-1, 8, 256).T
+    ws = Load(filename)
+    data = ws.extractY().reshape(-1, 8, 256).T
     data2 = data[:, [0, 4, 1, 5, 2, 6, 3, 7], :]
     data2 = data2.transpose().reshape(-1, 256)
-    return data2.T, run_number, title
+
+    # Get mask from detector info
+    di = ws.detectorInfo()
+    offset = int(di.detectorIDs().searchsorted(0))
+    mask = np.array([di.isMasked(i+offset) for i in range(data.size)]).reshape(-1, 8, 256).T
+    mask2 = mask[:, [0, 4, 1, 5, 2, 6, 3, 7], :]
+    mask2 = mask2.transpose().reshape(-1, 256)
+    return np.ma.masked_where(mask2, data2).T, ws.getRunNumber(), ws.getTitle()
 
 
 data, run_number, title = load_data(sys.argv[1])
 
 fig, ax = plt.subplots()
-plot = ax.imshow(data, norm=LogNorm(), extent=(0.5, 192.5, 0.5, 256.5),
+current_cmap = matplotlib.cm.get_cmap()
+current_cmap.set_bad(color='grey')
+plot = ax.imshow(data, extent=(0.5, 192.5, 0.5, 256.5),
                  origin='lower', aspect='auto')
 ax.set_title("EQSANS_{} - {}".format(run_number, title))
 ax.set_xlabel("Tube")

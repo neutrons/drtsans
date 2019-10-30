@@ -411,18 +411,22 @@ def test_1d_annular_no_wt():
     binned_iq = do_1d_no_weight_binning(theta_array, dq_array, intensities, sigmas,
                                         theta_bin_centers, theta_bin_edges)
 
+    # Check bins
+    gold_theta_edges, gold_theta_centers = get_gold_theta_bins()
+    assert np.allclose(theta_bin_centers, gold_theta_centers, rtol=1.e-5)
+    assert np.allclose(theta_bin_edges, gold_theta_edges, rtol=1.e-5)
+
+    # Check theta (azimuthal angle)
+    print(theta_array)
+    assert abs(theta_array[0] - 141.026949) < 1E-6, 'Azimuthal angle check'
+
     # Check result
     print('Theta = 54 I[1]:  {} - {} = {}'.format(binned_iq.i[1], 63.66666667, binned_iq.i[1] - 63.66666667))
     print('Theta = 54 sI[1]: {} - {} = {}'.format(binned_iq.sigma[1], 3.257470048, binned_iq.sigma[1] - 3.257470048))
 
-    # # Calculate azimuthal angle of each Q
-    # angle = np.arctan2(qy, qx) * 180. / np.pi
-    # angle[np.where(angle < 0)] += 360
-
-    gold_theta_edges, gold_theta_centers = get_gold_theta_bins()
-
-    assert np.allclose(theta_bin_centers, gold_theta_centers, rtol=1.e-5)
-    assert np.allclose(theta_bin_edges, gold_theta_edges, rtol=1.e-5)
+    assert abs(binned_iq.i[1] - 63.66666667) < 1E-8, 'Binned intensity is wrong'
+    assert abs(binned_iq.sigma[1] - 3.257470048) < 1E-8, 'Binned sigma I is wrong'
+    assert abs(binned_iq.dq[1] - 4.717E-05) < 1E-8, 'Binned Q resolution is wrong'
 
     return
 

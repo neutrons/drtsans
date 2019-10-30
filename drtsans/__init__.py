@@ -5,7 +5,6 @@ del get_versions
 
 from .api import *
 from .beam_finder import *
-from .geometry import *
 from .instruments import *
 from .sensitivity import *
 from .solid_angle_correction import *
@@ -15,6 +14,5 @@ from .resolution import *
 
 
 # FIXME the functions done as strings can't be done via __all__ because module and function have same name
-__all__ = (['convert_to_q', 'solid_angle_correction']
-           + api.__all__ + beam_finder.__all__ + geometry.__all__ + instruments.__all__ + reductionlog.__all__
-           + sensitivity.__all__)
+__all__ = ['convert_to_q', 'solid_angle_correction'] + api.__all__ + beam_finder.__all__ + instruments.__all__ +\
+          reductionlog.__all__ + sensitivity.__all__

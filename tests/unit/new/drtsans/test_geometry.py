@@ -25,17 +25,6 @@ def wss():
                 gpsans=None)
 
 
-def test_instrument_name(serve_events_workspace):
-    assert geo.InstrumentEnumName.from_name('EQ-SANS') == geo.InstrumentEnumName.EQSANS
-    assert str(geo.InstrumentEnumName.from_name('EQ-SANS')) == 'EQSANS'
-    assert str(geo.InstrumentEnumName.from_name('CG3')) == 'BIOSANS'
-    with pytest.raises(ValueError):
-        geo.InstrumentEnumName.from_name('nonexistantsansinstrument')
-        assert False, 'Should have generated an exception'
-    input_workspace = serve_events_workspace('EQSANS_92353')
-    assert geo.InstrumentEnumName.from_name(input_workspace) == geo.InstrumentEnumName.EQSANS
-
-
 @pytest.mark.offline
 def test_source_sample_distance(wss):
     for v in wss.values():

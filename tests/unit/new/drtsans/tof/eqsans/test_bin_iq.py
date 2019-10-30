@@ -533,6 +533,7 @@ def test_1d_bin_log_wedge_no_wt():
                                         sigmaq_array=sigmas[wedge_indexes],
                                         bin_centers=bin_centers,
                                         bin_edges=bin_edges)
+
     # Verification
     # Bin centers and boundaries
     gold_edges, gold_centers = get_gold_1d_log_bins()
@@ -549,9 +550,15 @@ def test_1d_bin_log_wedge_no_wt():
 
     # Binned I(Q) and others
     print('Q = 0.005623 [7]:  (Q, I, sigmaI, dQ)'
-          '\tTest    : {}\t{}\t{}\t{}'
-          '\tExpected: {}\t{}\t{}\t{}'.format(binned_iq.q[7], binned_iq.i[7], binned_iq.sigma[7], binned_iq.dq[7],
+          '\nTest    : {}\t{}\t{}\t{}'
+          '\nExpected: {}\t{}\t{}\t{}'.format(binned_iq.q[7], binned_iq.i[7], binned_iq.sigma[7], binned_iq.dq[7],
                                               0.005623, 65.77777778, 2.703450013, 5.798E-05))
+
+    # A simple fact check
+    sub_qarray = scalar_q_array[wedge_indexes]
+    num_pixels, dummy1, dummy2 = np.histogram(sub_qarray, bins=bin_edges)
+    print(num_pixels)
+
     assert abs(binned_iq.i[7] - 65.77777778) < 1E-10
     assert abs(binned_iq.sigma[7] - 2.703450013) < 1E-10
     assert abs(binned_iq.dq[7] - 5.798E-05) < 1E-10

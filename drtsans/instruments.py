@@ -1,5 +1,6 @@
 import enum
 from mantid.kernel import ConfigService
+from mantid.api import mtd
 
 __all__ = ['InstrumentEnumName', 'instrument_enum_name']
 

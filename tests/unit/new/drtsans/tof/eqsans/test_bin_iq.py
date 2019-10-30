@@ -536,8 +536,8 @@ def test_1d_bin_log_wedge_no_wt():
     # Verification
     # Bin centers and boundaries
     gold_edges, gold_centers = get_gold_1d_log_bins()
-    assert np.allclose(bin_edges, gold_edges)
-    assert np.allclose(bin_centers, gold_centers)
+    assert np.allclose(bin_edges, gold_edges, 5.E-4)
+    assert np.allclose(bin_centers, gold_centers, 5.E-4)
 
     # Azimuthal angles
     gold_angles = get_gold_wedge_angles()

@@ -278,7 +278,7 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
                 # Do weighted summation
                 # remove NaN
                 d_ij_arr = d_ij_arr[~np.isnan(d_ij_arr)]
-                s_ij_arr = s_ij_arr[~np.isnan(d_ij_arr)]
+                s_ij_arr = s_ij_arr[~np.isnan(s_ij_arr)]
 
                 # sum
                 s_ij = np.sum(1. / s_ij_arr**2)

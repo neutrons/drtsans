@@ -285,7 +285,8 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
                 d_ij = np.sum(d_ij_arr / s_ij_arr**2) / s_ij
                 s_ij = np.sqrt(s_ij)
 
-                print('[DEBUG] ({}, {})  D" = {}, s = {}'.format(i, j, d_ij, s_ij))
+                print('[DEBUG] ({}, {})  D" = {}, s = {}/{}  <-- {}, {}'
+                      ''.format(i, j, d_ij, s_ij, s_ij**2, d_ij_arr, s_ij_arr))
 
             sensitivities[i, j] = s_ij
             sensitivities_error[i, j] = d_ij

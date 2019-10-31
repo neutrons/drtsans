@@ -1,5 +1,5 @@
 from collections import namedtuple
-from drtsans.dataobjects import IQmod
+from drtsans.dataobjects import IQazimuthal, IQmod
 from enum import Enum
 from mantid.simpleapi import CreateEmptyTableWorkspace
 import numpy as np
@@ -7,9 +7,6 @@ from string import Template
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
-
-# Define structure for I(Qx, Qy) for Qx, dQx, Qy, dQy, I(Q), Sigma_I(Q)
-IofQ2d = namedtuple('IofQ2d', 'qx dqx qy dqy i sigma')
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
 # bins shall be integer as number of bins
@@ -563,9 +560,8 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
     # construct return
     binned_intensities, binned_sigmas, binned_dqx, binned_dqy = binned_arrays
 
-    binned_iq_2d = IofQ2d(qx_bin_center, binned_dqx, qy_bin_center, binned_dqy, binned_intensities, binned_sigmas)
-
-    return binned_iq_2d
+    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_bin_center,
+                       delta_qx=binned_dqx, qy=qy_bin_center, delta_qy=binned_dqy)
 
 
 def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

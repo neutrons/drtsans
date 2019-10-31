@@ -259,10 +259,42 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
         non-normalized sensitivities, non-normalized sensitivities error
 
     """
+    # Create sensitivities and sigmas matrices
+    sensitivities = np.zeros_like(data_a)
+    sensitivities_error = np.zeros_like(data_a)
+
+    # Calculate D'(i, j)    = sum_{k}^{A, B, C}M_k(i, j)/s_k^2(i, j)
+    #           1/s^2(i, j) = sum_{k}^{A, B, C}1/s_k^2(i, j)
+    for i in range(sensitivities.shape[0]):
+        for j in range(sensitivities.shape[1]):
+            d_ij_arr = np.array([data_a[i, j], data_b[i, j], data_c[i, j]])
+            s_ij_arr = np.array([data_a_error[i, j], data_b_error[i, j], data_c_error[i, j]])
+
+            if -np.inf in d_ij_arr:
+                # Infinity case
+                d_ij = -np.inf
+                s_ij = -np.inf
+            else:
+                # Do weighted summation
+                # remove NaN
+                d_ij_arr = d_ij_arr[~np.isnan(d_ij_arr)]
+                s_ij_arr = s_ij_arr[~np.isnan(d_ij_arr)]
+
+                # sum
+                s_ij = np.sum(1. / s_ij_arr**2)
+                d_ij = np.sum(d_ij_arr / s_ij_arr**2) / s_ij
+                s_ij = np.sqrt(s_ij)
+
+                print('[DEBUG] ({}, {})  D" = {}, s = {}'.format(i, j, d_ij, s_ij))
+
+            sensitivities[i, j] = s_ij
+            sensitivities_error[i, j] = d_ij
+    # END-FOR
+
     # Calculate  D, i.e., sensitivity for each pixel
     # D_avg(m, n) = sum_M^{a, b, c}{M(m, n) / sigma_M^2(m, n)} / sum_M^{A, B, C} 1 / sigma_M(m, n)**2
-    sensitivities = (data_a / data_a_error**2 + data_b / data_b_error**2 + data_c / data_c_error**2) / \
-                    (1 / data_a_error**2 + 1 / data_b_error**2 + 1 / data_c_error**2)
+    #  sensitivities = (data_a / data_a_error**2 + data_b / data_b_error**2 + data_c / data_c_error**2) / \
+    #                  (1 / data_a_error**2 + 1 / data_b_error**2 + 1 / data_c_error**2)
 
     # Debug output
     for i in range(sensitivities.shape[0]):
@@ -273,7 +305,7 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
     # END-FOR
 
     # Propagating error to D: delta Sen(m, n) = 1 / sum_{M}^{A, B, C}{ 1 / sigma_M^2(m, n)}
-    sensitivities_error = 1 / (1 / data_a_error**2 + 1 / data_b_error*2 + 1 / data_c_error**2)
+    # sensitivities_error = 1 / (1 / data_a_error**2 + 1 / data_b_error*2 + 1 / data_c_error**2)
 
     # Debug output
     for i in range(sensitivities_error.shape[0]):

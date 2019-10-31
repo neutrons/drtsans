@@ -1,9 +1,9 @@
 # flake8: noqa
 import drtsans.beam_finder
-from drtsans.beam_finder import *
+from ...beam_finder import *
 
 import drtsans.absolute_units
-from ..absolute_units import *
+from ...absolute_units import *
 
 import drtsans.transmission
 from ...transmission import *

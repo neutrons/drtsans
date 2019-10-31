@@ -1,4 +1,5 @@
 from mantid.simpleapi import mtd
+from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod
 from drtsans.settings import namedtuplefy
 import numpy as np
 
@@ -77,7 +78,6 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     raise NotImplementedError('The mode you selected is not yet implemented')
 
 
-@namedtuplefy
 def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     r"""
     Convert to scalar momentum transfer
@@ -139,10 +139,9 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     mod_q = mod_q[keep, :].reshape(-1)
     delta_q = delta_q[keep, :].reshape(-1)
 
-    return dict(intensity=intensity, error=error, mod_q=mod_q, delta_q=delta_q, wavelength=lam)
+    return IQmod(intensity=intensity, error=error, mod_q=mod_q, delta_mod_q=delta_q, wavelength=lam)
 
 
-@namedtuplefy
 def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     r"""
     Convert to 2D momentum transfer in azimuthal convention
@@ -212,10 +211,10 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     delta_qx = delta_qx[keep, :].reshape(-1)
     delta_qy = delta_qy[keep, :].reshape(-1)
 
-    return dict(intensity=intensity, error=error, qx=qx, qy=qy, delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
+    return IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy,
+                       delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
 
 
-@namedtuplefy
 def _convert_to_q_crystal(ws, resolution_function, **kwargs):
     r"""
     Convert to 3D momentum transfer in crystallographic convention
@@ -291,8 +290,8 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
     delta_qy = delta_qy[keep, :].reshape(-1)
     delta_qz = delta_qz[keep, :].reshape(-1)
 
-    return dict(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
-                delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
+    return IQcrystal(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
+                     delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
 
 
 def _masked_or_monitor(spec_info, idx):

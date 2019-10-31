@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from drtsans.iq import determine_linear_bin_size, bin_iq_into_linear_q2d, IofQ2d, BinningParams, BinningMethod
+from drtsans.dataobjects import IQazimuthal
+from drtsans.iq import determine_linear_bin_size, bin_iq_into_linear_q2d, BinningParams, BinningMethod
 import bisect
 
 
@@ -117,7 +118,8 @@ def gold_qx_qy_binned_index():
     return qx_index_det_array.flatten(), qy_index_det_array.flatten()
 
 
-def error_test_create_2d_bins():
+@pytest.mark.xfail(strict=True)
+def test_create_2d_bins():
     """Tester for method to generate 2D binning
 
     Returns
@@ -138,8 +140,10 @@ def error_test_create_2d_bins():
     qy_bin_size, qy_bin_centers, qy_bin_edges = \
         determine_linear_bin_size(qy_array, qy_array.min(), num_bins, qy_array.max())
 
-    assert abs(qx_bin_size - 0.00263) < 0.00001, 'delta Qx {} is different from Lisa result (PDF)'.format(qx_bin_size)
-    assert abs(qy_bin_size - 0.00221) < 0.00001, 'delta Qy {} is different from Lisa result (PDF)'.format(qy_bin_size)
+    assert qx_bin_size == pytest.approx(0.00263, rel=0.00001), \
+        'delta Qx {} is different from Lisa result (PDF)'.format(qx_bin_size)
+    assert qy_bin_size == pytest.approx(0.00221, rel=0.00001), \
+        'delta Qy {} is different from Lisa result (PDF)'.format(qy_bin_size)
 
     # Test binning assignment
     binned_qx_index_array, binned_qy_index_array = assign_2d_bin_is(qx_array, qy_array, num_bins, num_bins)
@@ -157,8 +161,8 @@ def error_test_create_2d_bins():
         print(row)
     # END-FOR
 
-    assert np.allclose(binned_qx_index_array, gold_qx_index_array, 0)
-    assert np.allclose(binned_qy_index_array, gold_qy_index_array, 0)
+    np.testing.assert_equal(binned_qx_index_array, gold_qx_index_array)
+    np.testing.assert_equal(binned_qy_index_array, gold_qy_index_array)
 
     # Remove the NaN
     nan_indexes = np.where(np.isnan(i_q_array))
@@ -170,14 +174,13 @@ def error_test_create_2d_bins():
     print(qx_array.shape, sigma_iq_array.shape)
 
     # Construct I(Q) for input
-    test_iq = IofQ2d(qx_array, None, qy_array, None, i_q_array, sigma_iq_array)
+
+    test_iq = IQazimuthal(intensity=i_q_array, error=sigma_iq_array, qx=qx_array, qy=qy_array)
 
     # Assign I(Q) to 8 x 8 matrix as I_raw
     x_bin_params = BinningParams(qx_array.min(), qx_array.max(), 8)
     y_bin_params = BinningParams(qy_array.min(), qy_array.max(), 8)
     bin_iq_into_linear_q2d(test_iq, x_bin_params, y_bin_params, BinningMethod.WEIGHTED)
-
-    return
 
 
 def assign_2d_bin_is(qx_array, qy_array, num_x_bins, num_y_bins):
@@ -285,8 +288,6 @@ def check_2d_binning_algorithm(iq_array, qx_array, qy_array, x_bin_edges, y_bin_
             row_i += '{}\t'.format(binned_sum_dict[(i, j)])
         print(row_i)
     # END-FOR
-
-    return
 
 
 def bin_iq_2d_is(i_array, qx_array, qy_array, num_x_bins, num_y_bins):

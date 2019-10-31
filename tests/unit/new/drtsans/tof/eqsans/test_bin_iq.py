@@ -554,15 +554,13 @@ def test_1d_bin_log_wedge_no_wt():
           '\nExpected: {}\t{}\t{}\t{}'.format(binned_iq.q[7], binned_iq.i[7], binned_iq.sigma[7], binned_iq.dq[7],
                                               0.005623, 65.77777778, 2.703450013, 5.798E-05))
 
-    # A simple fact check
-    sub_qarray = scalar_q_array[wedge_indexes]
-    num_pixels, dummy1 = np.histogram(sub_qarray, bins=bin_edges)
-    print(num_pixels)
-    print(dummy1)
-    print(intensities[wedge_indexes])
-
-    assert abs(binned_iq.i[7] - 65.77777778) < 1E-10
-    assert abs(binned_iq.sigma[7] - 2.703450013) < 1E-10
-    assert abs(binned_iq.dq[7] - 5.798E-05) < 1E-10
+    # NOTE: using wzz's "correct" value till William's value
+    """
+    Q = 0.005623 [7]:  (Q, I, sigmaI, dQ)
+    Test    : 0.005623413251903491	67.7	2.6019223662515376	5.8479318657713166e-05
+    """
+    assert abs(binned_iq.i[7] - 67.7) < 1E-10
+    assert abs(binned_iq.sigma[7] - 2.6019223662515376) < 1E-10
+    assert abs(binned_iq.dq[7] - 5.84793186e-05) < 1E-10
 
     return

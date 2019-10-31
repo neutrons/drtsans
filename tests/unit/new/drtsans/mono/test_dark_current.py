@@ -4,7 +4,7 @@ from drtsans.settings import unique_workspace_dundername
 r""" Links to mantid algorithms
 LoadHFIRSANS <https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html>
 """
-from mantid.simpleapi import LoadHFIRSANS
+from mantid.simpleapi import LoadHFIRSANS, DeleteWorkspaces
 from mantid import mtd
 
 r"""
@@ -14,8 +14,9 @@ time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mo
 subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
-from drtsans.mono.normalisation import time
-from drtsans.mono.dark_current import subtract_dark_current
+from drtsans.dark_current import duration
+from drtsans.mono.dark_current import subtract_dark_current, normalize_dark_current
+
 
 def test_dark_current(gpsans_f):
     r"""

@@ -1,17 +1,26 @@
 import numpy as np
 
-# Links to mantid algorithms
-# CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-# Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
-# Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
-# LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
+r""" Links to mantid algorithms
+CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
+Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
+"""
 from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale, LoadEventNexus
 
-from drtsans.dark_current import duration, counts_in_detector
+r"""
+Hyperlinks to drtsans functions
+amend_config, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+exists, registered_workspace <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/path.py>
+SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+clipped_bands_from_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
+duration, counts_in_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
+"""  # noqa: E501
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans import correct_frame
+from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs
+from drtsans.dark_current import duration, counts_in_detector
 
 __all__ = ['subtract_dark_current', 'normalize_dark_current']
 
@@ -63,7 +72,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     tof_clipping_factor = sample_logs.tof_frame_width_clipped.value / sample_logs.tof_frame_width.value
 
     # rescale counts by the range of wavelengths over which there should be measurable intensities
-    bands = correct_frame.clipped_bands_from_logs(data_workspace_name)  # lead and pulse bands
+    bands = clipped_bands_from_logs(data_workspace_name)  # lead and pulse bands
     wavelength_range = bands.lead.max - bands.lead.min  # wavelength range from lead skipped pulse
     if bands.skip is not None:
         wavelength_range += bands.skip.max - bands.skip.min  # add the wavelength range from the skipped pulse

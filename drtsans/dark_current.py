@@ -6,7 +6,11 @@ import numpy as np
 # DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 from mantid.simpleapi import mtd, Integration, DeleteWorkspace
 
-from drtsans.instruments import is_time_of_flight
+r"""
+Hyperlinks to drtsans functions
+namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+"""  # noqa: E501
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
@@ -15,9 +19,7 @@ from drtsans.samplelogs import SampleLogs
 def duration(input_workspace, log_key=None):
     """
     Compute the duration of the workspace by iteratively searching the logs for
-    the following keys, according to whether the instrument is monochromatic or time-of-flight:
-    - monochromatic: 'duration', 'start_time/end_time', and 'timer'.
-    - time-of-flight: 'duration', 'start_time/end_time', 'proton_charge', and 'timer'.
+    the following keys: 'duration', 'start_time/end_time', and 'timer'.
 
     Parameters
     ----------
@@ -36,13 +38,7 @@ def duration(input_workspace, log_key=None):
 
     """
     # Determine which log keys to use when finding out the duration of the run
-    if log_key is None:
-        if is_time_of_flight(input_workspace):
-            log_keys = ('duration', 'start_time', 'proton_charge', 'timer')
-        else:
-            log_keys = ('duration', 'start_time', 'timer')  # for monochromatic instruments
-    else:
-        log_keys = (log_key, )
+    log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if log_key is None else (log_key, )
 
     sample_logs = SampleLogs(input_workspace)
 

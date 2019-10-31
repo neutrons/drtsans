@@ -1,12 +1,17 @@
-# Links to mantid algorithms
-# Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
-# DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
-# Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+r"""Links to mantid algorithms
+Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
+DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+"""
 from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale
 
+r""" links to drtsans imports
+unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
+"""  # noqa: E501
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
-
 from drtsans.dark_current import duration
 
 __all__ = ['subtract_dark_current', 'normalize_dark_current']

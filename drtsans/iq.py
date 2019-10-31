@@ -128,6 +128,87 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
     return binned_q
 
 
+
+
+def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins, linear_binning,
+                       method=BinningMethod.NOWEIGHT):
+    """Wedge calculation and integration
+
+    Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
+
+    Parameters
+    ----------
+    i_q :  ~collections.namedtuple
+         "intensity": intensity, "error": sigma(I), "qx": qx, "qy": qy, "delta_qx": dqx, "delta_qy", dqy
+    min_wedge_angle : float
+        minimum value of theta/azimuthal angle for wedge
+    max_wedge_angle : float
+        maximum value of theta/azimuthal angle for wedge
+    q_min : float, optional
+        , by default
+    q_max : float, optional
+        , by default
+    bins : int
+        linear binning: number of bins
+        logarithm binning: number of steps per decade
+    linear_binning : boolean
+        flag to use linear binning; otherwise, logarithm binning
+    method : BinningMethod
+        binning method, no-weight or weighed
+
+    Returns
+    -------
+    IofQ
+        named tuple for Q, dQ, I(Q), sigma_I(Q)
+        numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray
+        Q, dQ, I, dI
+        Q, Q resolution, I, uncertainty of I
+
+    """
+    # Q bins
+    if linear_binning:
+        # linear binning
+        bin_centers, bin_edges = determine_1d_linear_bins(q_min, q_max, bins)
+    else:
+        # log binning
+        bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, bins)
+
+
+    # calculate Q and dQ
+    scalar_q_array = np.sqrt(i_q.qx**2 + i_q.qy**2)
+    scalar_dq_array = np.sqrt(i_q.delta_qx**2 + i_q.delta_qy**2)
+
+    # Calculate wedge angles for each I(Qx, Qy)
+    # calculate azimuthal angles from -180 to 180 degrees
+    azimuthal_array = np.arctan2(i_q.qy, i_q.qx) * 180. / np.pi
+    # correct azimuthal angles to -90 to 270 degrees
+    azimuthal_array[azimuthal_array < -90.] += 360.
+
+    # Define the filter (mask/ROI) for pixels falling into preferred wedge
+    wedge_indexes = (azimuthal_array > min_wedge_angle) & (azimuthal_array < max_wedge_angle)
+
+    # Binning
+    if method == BinningMethod.NOWEIGHT:
+        # No weight binning
+        binned_iq = do_1d_no_weight_binning(q_array=scalar_q_array[wedge_indexes],
+                                            dq_array=scalar_dq_array[wedge_indexes],
+                                            iq_array=i_q.intensity[wedge_indexes],
+                                            sigmaq_array=i_q.error[wedge_indexes],
+                                            bin_centers=bin_centers,
+                                            bin_edges=bin_edges)
+    else:
+        # Weighted binning
+        binned_iq = do_1d_weighted_binning(q_array=scalar_q_array[wedge_indexes],
+                                           dq_array=scalar_dq_array[wedge_indexes],
+                                           iq_array=i_q.intensity[wedge_indexes],
+                                           sigma_iq_array=i_q.error[wedge_indexes],
+                                           bin_centers=bin_centers,
+                                           bin_edges=bin_edges)
+    # END-IF-ELSE
+
+    return binned_iq
+
+
 def bin_annular_into_q1d(i_q, theta_min, theta_max, q_min=0.001, q_max=0.4, bins=100, method=BinningMethod.NOWEIGHT):
     """Annular 1D binning
 
@@ -671,69 +752,6 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
     print('Bin Centers: {}'.format(bin_centers))
 
     return delta_x, bin_centers, bin_edges
-
-
-def bin_wedge_into_q1d(wl_ws, phi_0=0, phi_aperture=30, bins=100,
-                       statistic='mean', suffix="_wedge_iq"):
-    """
-    Wedge calculation and integration
-
-        Calculates: I(Q) and Dq
-        The ws_* input parameters are the output workspaces from bin_into_q2d
-
-        Parameters
-        ----------
-        phi_0 : int, optional
-            Where to start the wedge, by default 0
-        phi_aperture : int, optional
-            Aperture of the wedge, by default 30
-        bins : int or sequence of scalars, optional
-            See `scipy.stats.binned_statistic`.
-            If `bins` is an int, it defines the number of equal-width bins in
-            the given range (10 by default).  If `bins` is a sequence, it
-            defines the bin edges, including the rightmost edge, allowing for
-            non-uniform bin widths.  Values in `x` that are smaller than lowest
-            bin edge areassigned to bin number 0, values beyond the highest bin
-            are assigned to ``bins[-1]``.  If the bin edges are specified,
-            the number of bins will be, (nx = len(bins)-1).
-        statistic : str, optional
-            See `scipy.stats.binned_statistic`.
-            The statistic to compute, by default 'mean'
-            The following statistics are available:
-            * 'mean' : compute the mean of values for points within each bin.
-                Empty bins will be represented by NaN.
-            * 'std' : compute the standard deviation within each bin. This
-                is implicitly calculated with ddof=0.
-            * 'median' : compute the median of values for points within each
-                bin. Empty bins will be represented by NaN.
-            * 'count' : compute the count of points within each bin.  This is
-                identical to an unweighted histogram.  `values` array is not
-                referenced.
-            * 'sum' : compute the sum of values for points within each bin.
-                This is identical to a weighted histogram.
-            * 'min' : compute the minimum of values for points within each bin.
-                Empty bins will be represented by NaN.
-            * 'max' : compute the maximum of values for point within each bin.
-                Empty bins will be represented by NaN.
-            * function : a user-defined function which takes a 1D array of
-                values, and outputs a single numerical statistic. This function
-                will be called on the values in each bin.  Empty bins will be
-                represented by function([]), or NaN if this returns an error.
-        suffix : str, optional
-            The prefix of the workspace created in Mantid, by default "ws"
-
-        Returns
-        -------
-        workspaces list
-    """
-    assert wl_ws
-    assert phi_0
-    assert phi_aperture
-    assert bins
-    assert statistic
-    assert suffix
-
-    return
 
 
 def export_i_q_to_table(i_of_q, table_ws_name, detector_dims, DETECTOR_DIMENSIONS_TEMPLATE):

@@ -35,8 +35,6 @@ def duration(input_workspace, log_key=None):
         - log_key: str, log used to return the duration
 
     """
-    ws = mtd[str(input_workspace)]
-
     # Determine which log keys to use when finding out the duration of the run
     if log_key is None:
         if is_time_of_flight(input_workspace):
@@ -46,7 +44,7 @@ def duration(input_workspace, log_key=None):
     else:
         log_keys = (log_key, )
 
-    sample_logs = SampleLogs(ws)
+    sample_logs = SampleLogs(input_workspace)
 
     def from_start_time(log_entry):
         r"""Utility function to find the duration using the start_time and end_time log entries"""

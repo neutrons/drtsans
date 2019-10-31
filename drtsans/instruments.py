@@ -8,6 +8,7 @@ __all__ = ['InstrumentEnumName', 'instrument_enum_name', 'is_time_of_flight']
 @enum.unique
 class InstrumentEnumName(enum.Enum):
     r"""Unique names labelling each instrument"""
+    UNDEFINED = None  # usually the dummy instrument used for testing
     BIOSANS = ConfigService.getFacility('HFIR').instrument('BIOSANS')
     EQSANS = ConfigService.getFacility('SNS').instrument('EQSANS')
     GPSANS = ConfigService.getFacility('HFIR').instrument('GPSANS')
@@ -16,13 +17,13 @@ class InstrumentEnumName(enum.Enum):
         return self.name
 
 
-def instrument_enum_name(label):
+def instrument_enum_name(input_query):
     r"""
     Resolve the instrument name as a unique enumeration.
 
     Parameters
     ----------
-    label: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         string representing a valid instrument name, or a Mantid workspace containing an instrument
 
     Returns
@@ -34,20 +35,13 @@ def instrument_enum_name(label):
                       'EQ-SANS': InstrumentEnumName.EQSANS, 'EQSANS': InstrumentEnumName.EQSANS,
                       'CG2': InstrumentEnumName.GPSANS, 'GPSANS': InstrumentEnumName.GPSANS}
     # convert to a string
-    name = str(label)
+    name = str(input_query)
 
     # convert mantid workspaces into a instrument string
     if name in mtd:
         name = mtd[str(name)].getInstrument().getName()
 
-    # dict only checks for uppercase names
-    name = name.upper()
-
-    # We want the enum representation of an instrument name
-    if name in string_to_enum.keys():
-        return string_to_enum[name]
-    else:
-        raise ValueError('Do not know how to convert "{}" to InstrumentName'.format(label))
+    return string_to_enum.get(name.upper(), InstrumentEnumName.UNDEFINED)
 
 
 def is_time_of_flight(input_query):

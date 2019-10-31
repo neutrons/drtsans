@@ -2,10 +2,10 @@ import numpy as np
 
 # Links to mantid algorithms
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-# Subtract <https://docs.mantidproject.org/nightly/algorithms/Subtract-v1.html>
+# Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
 # Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 # LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
-from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus
+from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale, LoadEventNexus
 
 from drtsans.dark_current import duration, counts_in_detector
 from drtsans.settings import amend_config, unique_workspace_dundername
@@ -145,7 +145,7 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
     scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=unique_workspace_dundername())
-    Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled, OutputWorkspace=output_workspace)
+    Minus(LHSWorkspace=input_workspace, RHSWorkspace=scaled, OutputWorkspace=output_workspace)
     scaled.delete()
     SampleLogs(output_workspace).insert('normalizing_duration', duration_log_key)
     return mtd[output_workspace]

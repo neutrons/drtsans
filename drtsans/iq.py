@@ -128,8 +128,6 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
     return binned_q
 
 
-
-
 def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins, linear_binning,
                        method=BinningMethod.NOWEIGHT):
     """Wedge calculation and integration
@@ -172,7 +170,6 @@ def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins
     else:
         # log binning
         bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, bins)
-
 
     # calculate Q and dQ
     scalar_q_array = np.sqrt(i_q.qx**2 + i_q.qy**2)

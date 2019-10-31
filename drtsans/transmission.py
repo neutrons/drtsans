@@ -4,13 +4,11 @@ import sys
 from mantid import mtd
 from mantid.kernel import logger
 
-r""" Links to mantid algorithms
-ApplyTransmissionCorrection <https://docs.mantidproject.org/nightly/algorithms/ApplyTransmissionCorrection-v1.html>
-Divide <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
-GroupDetectors <https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v1.html>
-RebinToWorkspace <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
-ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html>
-"""
+# https://docs.mantidproject.org/nightly/algorithms/ApplyTransmissionCorrection-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
 from mantid.simpleapi import (ApplyTransmissionCorrection, Divide, GroupDetectors, RebinToWorkspace,
                               ReplaceSpecialValues)
 
@@ -37,12 +35,9 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
     necessary. Use `eqsans.calculate_transmission` instead.
 
     **Mantid algorithms used:**
-        :ref:`Divide <algm-Divide-v1>`
-        <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>,
-        :ref:`GroupDetectors <algm-GroupDetectors-v2>`
-        <https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v2.html>,
-        :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`
-        <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>.
+    :ref:`Divide <algm-Divide-v1>`
+    :ref:`GroupDetectors <algm-GroupDetectors-v2>`
+    :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`
 
 
     Parameters
@@ -124,10 +119,8 @@ def apply_transmission_correction(input_workspace, trans_workspace=None, trans_v
     Correct the intensities with transmission coefficient(s).
 
     **Mantid algorithms used:**
-        :ref:`<algm-ApplyTransmissionCorrection-v1>`
-        https://docs.mantidproject.org/nightly/algorithms/ApplyTransmissionCorrection-v1.html,
-        :ref:`<algm-ReplaceSpecialValues-v1>`
-        https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html,
+    :ref:`ApplyTransmissionCorrection <algm-ApplyTransmissionCorrection-v1>`
+    :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`
 
     Parameters
     ----------

@@ -3,7 +3,7 @@ from collections import namedtuple
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning,\
     bin_iq_into_logarithm_q1d, BinningMethod, do_2d_weighted_binning, do_2d_no_weight_binning,\
-    bin_annular_into_q1d
+    bin_annular_into_q1d, bin_wedge_into_q1d
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -481,7 +481,14 @@ def test_1d_annular_no_wt():
 
 
 def get_gold_wedge_angles():
+    """Get wedge angles from Excel for test
 
+    Returns
+    -------
+    ndarray
+        Wedge angles for all the pixels
+
+    """
     wedge_angle_array = np.array([
         141.026949, 123.2554061, 94.31432613, 63.21170404, 42.66018375,
         155.9524823, 139.9324658, 97.78839725, 47.53052642, 26.94261266,
@@ -562,5 +569,20 @@ def test_1d_bin_log_wedge_no_wt():
     assert abs(binned_iq.i[7] - 67.7) < 1E-10
     assert abs(binned_iq.sigma[7] - 2.6019223662515376) < 1E-10
     assert abs(binned_iq.dq[7] - 5.84793186e-05) < 1E-10
+
+    # Test high level method
+    # Define input data
+    IQ2d = namedtuple('IQ2d', 'intensity error qx qy delta_qx delta_qy wavelength')
+    test_i_q = IQ2d(intensities, sigmas, qx_array, qy_array, dqx_array, dqy_array, None)
+
+    binned_iq2 = bin_wedge_into_q1d(test_i_q, min_wedge_angle, max_wedge_angle,
+                                    q_min, q_max, step_per_decade,
+                                    linear_binning=False,
+                                    method=BinningMethod.NOWEIGHT)
+
+    # verify calculated I, sigma and dQ
+    assert abs(binned_iq.i[7] - binned_iq2.i[7]) < 1E-12
+    assert abs(binned_iq.sigma[7] -binned_iq2.sigma[7]) < 1E-12
+    assert abs(binned_iq.dq[7] - binned_iq2.dq[7]) < 1E-12
 
     return

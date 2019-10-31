@@ -2,7 +2,7 @@ import enum
 from mantid.kernel import ConfigService
 from mantid.api import mtd
 
-__all__ = ['InstrumentEnumName', 'instrument_enum_name']
+__all__ = ['InstrumentEnumName', 'instrument_enum_name', 'is_time_of_flight']
 
 
 @enum.unique
@@ -22,7 +22,7 @@ def instrument_enum_name(label):
 
     Parameters
     ----------
-    label: str, Workspace
+    label: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         string representing a valid instrument name, or a Mantid workspace containing an instrument
 
     Returns
@@ -48,3 +48,19 @@ def instrument_enum_name(label):
         return string_to_enum[name]
     else:
         raise ValueError('Do not know how to convert "{}" to InstrumentName'.format(label))
+
+
+def is_time_of_flight(input_query):
+    r"""
+    Find if the instrument is a time-of-flight one
+
+    Parameters
+    ----------
+    input_query: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        string representing a valid instrument name, or a Mantid workspace containing an instrument
+
+    Returns
+    -------
+    bool
+    """
+    return instrument_enum_name(input_query) is InstrumentEnumName.EQSANS  # we only have one, for the moment

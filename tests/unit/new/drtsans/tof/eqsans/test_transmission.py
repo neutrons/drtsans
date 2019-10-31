@@ -2,19 +2,11 @@ import pytest
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 
-r"""
-Hyperlinks to Mantid algorithms
-LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
-"""
+# https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html
 from mantid.simpleapi import LoadNexus
-r"""
-Hyperlinks to drtsans functions
-amend_config, namedtuplefy, unique_workspace_dundername available at:
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-transmitted_bands <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
-beam_radius, fit_band, fit_raw_transmission available at:
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py>
-"""
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py
 from drtsans.settings import namedtuplefy, unique_workspace_dundername  # noqa: E402
 from drtsans.samplelogs import SampleLogs  # noqa: E402
 from drtsans.tof.eqsans.correct_frame import transmitted_bands  # noqa: E402

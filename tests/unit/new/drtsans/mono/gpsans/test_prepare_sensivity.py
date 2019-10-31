@@ -439,6 +439,15 @@ def test_prepare_moving_det_sensitivity():
                                                                 matrix_b, sigma_b,
                                                                 matrix_c, sigma_c)
 
+    # verify
+    gold_d, gold_sigma_d = get_non_normalized_sensitivities()
+    np.testing.assert_allclose(matrix_d, gold_d, rtol=1e-8, equal_nan=True,
+                               err_msg='Summed files (matrix D) does not match to gold data',
+                               verbose=True)
+    np.testing.assert_allclose(sigma_matrix_d, gold_sigma_d, rtol=1e-8, equal_nan=True,
+                               err_msg='Summed files (matrix sigma D) does not match to gold data',
+                               verbose=True)
+
     # Normalize pixel-wise sensitivities by weighting-average
     sensitivities, sensitivities_error, avg_sens, avg_sigma_sens = normalize_sensitivities(matrix_d,
                                                                                            sigma_matrix_d)

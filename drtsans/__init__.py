@@ -1,18 +1,18 @@
+# flake8: noqa
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-from .api import *  # noqa: F403
-from .beam_finder import *  # noqa: F403
-from .geometry import *  # noqa: F403
-from .sensitivity import *  # noqa: F403
-from .solid_angle_correction import *  # noqa: F403
-from .reductionlog import *  # noqa: F403
-from .convert_to_q import *  # noqa: F403
-from .resolution import *  # noqa: F403
+from .api import *
+from .beam_finder import *
+from .instruments import *
+from .sensitivity import *
+from .solid_angle_correction import *
+from .reductionlog import *
+from .convert_to_q import *
+from .resolution import *
 
 
 # FIXME the functions done as strings can't be done via __all__ because module and function have same name
-__all__ = (['convert_to_q', 'solid_angle_correction']
-           + api.__all__ + beam_finder.__all__ + geometry.__all__ + reductionlog.__all__  # noqa: F405
-           + sensitivity.__all__)  # noqa: F405
+__all__ = ['convert_to_q', 'solid_angle_correction'] + api.__all__ + beam_finder.__all__ + instruments.__all__ +\
+          reductionlog.__all__ + sensitivity.__all__

@@ -1,15 +1,28 @@
 import pytest
 import numpy as np
 
+r""" Links to mantid algorithms
+LoadHFIRSANS <https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html>
+"""
+from mantid.simpleapi import LoadHFIRSANS
+from mantid import mtd
+
+r"""
+Hyperlinks to drtsans functions
+SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
+subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current.py>
+"""  # noqa: E501
+from drtsans.samplelogs import SampleLogs
+from drtsans.mono.normalisation import time
+from drtsans.mono.dark_current import subtract_dark_current
+
 
 @pytest.mark.offline
 def test_dark_current(gpsans_f):
-    from drtsans.mono.normalisation import time
-    from drtsans.mono.dark_current import subtract_dark_current
-    from drtsans.samplelogs import SampleLogs
-    from mantid.simpleapi import LoadHFIRSANS
-    from mantid import mtd
-
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     # First read the data
     input_sample_ws_mame = 'input_sample_ws_name'
     LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],

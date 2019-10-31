@@ -1,19 +1,26 @@
 import numpy as np
 
-# Links to mantid algorithms
-# CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-# Subtract <https://docs.mantidproject.org/nightly/algorithms/Subtract-v1.html>
-# Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
-# LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
-# Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
-# DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
-from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus, Integration, DeleteWorkspace
+r""" Links to mantid algorithms
+CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
+Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
+"""
+from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale, LoadEventNexus
 
-from drtsans.dark_current import duration, counts_in_detector  # noqa: F401
+r"""
+Hyperlinks to drtsans functions
+amend_config, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+exists, registered_workspace <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/path.py>
+SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+clipped_bands_from_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
+duration, counts_in_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
+"""  # noqa: E501
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans import correct_frame
+from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs
+from drtsans.dark_current import duration, counts_in_detector
 
 __all__ = ['subtract_dark_current', 'normalize_dark_current']
 
@@ -65,7 +72,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     tof_clipping_factor = sample_logs.tof_frame_width_clipped.value / sample_logs.tof_frame_width.value
 
     # rescale counts by the range of wavelengths over which there should be measurable intensities
-    bands = correct_frame.clipped_bands_from_logs(data_workspace_name)  # lead and pulse bands
+    bands = clipped_bands_from_logs(data_workspace_name)  # lead and pulse bands
     wavelength_range = bands.lead.max - bands.lead.min  # wavelength range from lead skipped pulse
     if bands.skip is not None:
         wavelength_range += bands.skip.max - bands.skip.min  # add the wavelength range from the skipped pulse
@@ -86,12 +93,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
         gab_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skip.min))[0]
         rescalings[gab_bin_indexes] = 0.0
 
-    # Create a temporary workspace containing the total counts for each detector pixel, for the dark current run
-    dark_counts_workspace = unique_workspace_dundername()  # this is random name for a temporary workspace
-    Integration(InputWorkspace=dark_workspace_name, OutputWorkspace=dark_counts_workspace)
-    counts = mtd[dark_counts_workspace].extractY().flatten()  # array length = #pixels
-    errors = mtd[dark_counts_workspace].extractE().flatten()  # array length = #pixels
-    # Also find out the indexes of the detector pixels with no counts
+    counts, errors = counts_in_detector(dark_workspace_name)
     pixel_indexes_with_no_counts = np.where(counts == 0)[0]
 
     # Multiply the rescalings array by the counts-per-pixel array
@@ -111,7 +113,6 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
                     ParentWorkspace=data_workspace, OutputWorkspace=output_workspace)
 
     SampleLogs(output_workspace).insert('normalizing_duration', dark_duration.log_key)
-    DeleteWorkspace(dark_counts_workspace)  # remove temporary workspaces
     return mtd[output_workspace]
 
 
@@ -153,7 +154,7 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
     scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=unique_workspace_dundername())
-    Subtract(LHSWorkspace=input_workspace, RHSWorkspace=scaled, OutputWorkspace=output_workspace)
+    Minus(LHSWorkspace=input_workspace, RHSWorkspace=scaled, OutputWorkspace=output_workspace)
     scaled.delete()
     SampleLogs(output_workspace).insert('normalizing_duration', duration_log_key)
     return mtd[output_workspace]

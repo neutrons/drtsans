@@ -1,9 +1,7 @@
 import numpy as np
 import pytest
-# https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
-from mantid.simpleapi import LoadEmptyInstrument, AddSampleLog
-from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, IofQCalculator, BinningMethod
-from drtsans.momentum_transfer_factory import calculate_q_dq
+from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, BinningMethod,\
+    determine_1d_linear_bins, determine_1d_log_bins, do_1d_weighted_binning, do_1d_no_weight_binning
 import bisect
 
 # This test implements issue #169 to verify
@@ -151,7 +149,7 @@ def test_linear_binning():
     q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
 
     # Calculate bin centers and bin edges by Qmin, Qmax and number of bins
-    bin_centers, bin_edges = IofQCalculator.determine_linear_bins(q_min, q_max, bins)
+    bin_centers, bin_edges = determine_1d_linear_bins(q_min, q_max, bins)
 
     # Test
     assert bin_centers.shape == (10, ), 'Bin shape incorrect'
@@ -160,10 +158,10 @@ def test_linear_binning():
 
     # Get assignment of each Qi to Qk
     bins_dict = assign_bins(bin_edges, q_array, iq_array, bin_centers)
-    i_weighted_array, sigma_i_weighted_array = do_weighted_binning(bin_centers, iq_array, bins_dict)
+    i_weighted_array, sigma_i_weighted_array = bin_weighted_prototype(bin_centers, iq_array, bins_dict)
 
     # Do weighted binning
-    binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    binned_q = do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
     # Test for Q bins
     assert binned_q.q.shape == (10, )
@@ -175,8 +173,8 @@ def test_linear_binning():
     assert np.sqrt(np.sum((i_weighted_array - binned_q.i)**2)) < 1e-6
 
     # Test no-weight binning
-    i_noweight_array, sigma_i_noweight_array = do_no_weight_binning(bin_centers, iq_array, bins_dict)
-    no_weight_iq = IofQCalculator.no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    i_noweight_array, sigma_i_noweight_array = do_no_weight_prototype(bin_centers, iq_array, bins_dict)
+    no_weight_iq = do_1d_no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
     # verify
     assert np.allclose(i_noweight_array, no_weight_iq.i, 1e-6)
@@ -191,7 +189,7 @@ def test_linear_binning():
     return
 
 
-def error_test_log_binning():
+def test_log_binning():
     """
     Unit test for the method to generate logarithm bins
     Returns
@@ -205,7 +203,7 @@ def error_test_log_binning():
     q_min = q_array.min()
     q_max = 1.
     step_per_decade = 33
-    bin_centers, bin_edges = IofQCalculator.determine_log_bin_edges(q_min, q_max, step_per_decade)
+    bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
 
     for ibin in range(bin_centers.shape[0]):
         print('{}\t{}\t{}\t{}\t'.format(ibin, bin_centers[ibin], bin_edges[ibin],
@@ -221,131 +219,66 @@ def error_test_log_binning():
     bin_assignment_dict = assign_bins(bin_edges, q_array, iq_array, bin_centers)
 
     # Bin with weighted binning algorithm
-    binned_q = IofQCalculator.weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    binned_q = do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
     # do the weighted binning
-    weighted_i_q, weighted_i_sigma_q = do_weighted_binning(bin_centers, iq_array, bin_assignment_dict)
+    weighted_i_q, weighted_i_sigma_q = bin_weighted_prototype(bin_centers, iq_array, bin_assignment_dict)
+
+    # verify: NaN first
+    assert np.allclose(np.isnan(weighted_i_q), np.isnan(binned_q.i)), 'NaN shall be same'
+
     # verify
-    assert np.allclose(weighted_i_q, binned_q.i, 1e-6), 'Binned I(Q) does not match'
-    assert np.allclose(weighted_i_sigma_q, binned_q.sigma, 1e-6), 'Binned sigma_I(Q) does not match'
-
-    # Test no-weight binning
-    no_weight_binned_iq = IofQCalculator.no_weight_binning(q_array, dq_array, iq_array,
-                                                           sigma_q_array, bin_centers, bin_edges)
-    # do no weight binning
-    noweight_i_q, noweight_sigma_q = do_no_weight_binning(bin_centers, iq_array, bin_assignment_dict)
-    # verify
-    assert np.allclose(noweight_i_q, no_weight_binned_iq.i, 1e-6), 'No-weight binned I(Q) does not match'
-    assert np.allclose(noweight_sigma_q, no_weight_binned_iq.sigma, 1e-6), 'No-weight binned sigma_I(Q) ' \
-                                                                           'does not match'
-
-    # Test to go through wrapper method
-    # ... ...
-
-    return
-
-
-# Make a mantid workspace for the intensity
-@pytest.mark.parametrize('generic_IDF',
-                         [{'name': 'GenericSANS',
-                           'l1': -15.,
-                           'Nx': det_view_counts.shape[1],  # 9
-                           'Ny': det_view_counts.shape[0],  # 10
-                           'dx': x_pixel_size,
-                           'dy': y_pixel_size,
-                           'xc': x_beam_center,
-                           'yc': y_beam_center,
-                           'zc': sdd}],
-                         indirect=True)
-def skip_test_binning_1d_workflow(generic_IDF):
-    """ Test the workflow to bin I(Q) in 1D from momentum transfer calculation to calculated binned
-    Q, dQ, I(Q), sigma_I(Q)
-    This test shall verify
-    1. Q for each pixel
-    2. I(Q)
-
-    Parameters
-    ----------
-    generic_IDF : fixture of workspace
-
-    Returns
-    -------
-
-    """
-    with open(r'/tmp/GenericSANS_Definition.xml', 'w') as tmp:
-        tmp.write(generic_IDF)
-        tmp.close()
-    workspace = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
-                                    OutputWorkspace='GenericMonoSANS')
-    workspace.getAxis(0).setUnit('Wavelength')
-
-    # Set value
-    wave_length_range = [wavelength - 0.5 * delta_lambda,  wavelength + 0.5*delta_lambda]
-    det_counts = det_view_counts[:, ::-1]
-    det_counts = det_counts.flatten('F')
-    det_counts_error = np.sqrt(det_counts)
-
-    # User golden data
-    # expected_q_array = golden_q_array[:, ::-1].flatten('F')
-
-    # assume that the TOF is already frame corrected
-    for i in range(workspace.getNumberHistograms()):
-        workspace.dataX(i)[:] = wave_length_range  # microseconds
-        workspace.dataY(i)[0] = det_counts[i]
-        workspace.dataE(i)[0] = det_counts_error[i]
+    if not np.allclose(weighted_i_q, binned_q.i, 1e-12, True):
+        print('Different of log binning I(Q)')
+        for k in range(binned_q.i.shape[0]):
+            if np.isnan(weighted_i_q[k]) and np.isnan(binned_q.i[k]):
+                # print('{}\t{}\t{}\t{}'.format(k, 'NaN', 'NaN', 0))
+                pass
+            elif not np.isnan(weighted_i_q[k]) and not np.isnan(binned_q.i[k]):
+                diff_k = abs(weighted_i_q[k] - binned_q.i[k])
+                if abs(diff_k) < 1e-10:
+                    print('{}\t{}\t{}\t{}'.format(k, weighted_i_q[k], binned_q.i[k],
+                                                  weighted_i_q[k] - binned_q.i[k]))
+                else:
+                    print('{}\t{}\t{}\t{}\tError'.format(k, weighted_i_q[k], binned_q.i[k],
+                                                         weighted_i_q[k] - binned_q.i[k]))
+            else:
+                pass
+                # print('{}\t{}\t{}\t{}\tError'.format(k, weighted_i_q[k], binned_q.i[k],
+                #                                      weighted_i_q[k] - binned_q.i[k]))
     # END-FOR
 
-    # # Create a single workspace workspace
-    # workspace = workspace_with_instrument(axis_values=[wavelength - 0.5*delta_lambda,
-    #                                                    wavelength + 0.5*delta_lambda],
-    #                                       intensities=det_view_counts)
+    assert np.allclose(weighted_i_q[~np.isnan(weighted_i_q)],
+                       binned_q.i[~np.isnan(binned_q.i)],
+                       1e-10, True), 'Binned I(Q) does not match'
+    assert np.allclose(weighted_i_sigma_q, binned_q.sigma, 1e-12, True), 'Binned sigma_I(Q) does not match'
 
-    print(det_view_counts.shape)
-    print(det_view_counts[0])
-    print(x_beam_center, y_beam_center)
-    # for i in range(90):
-    #    det_id = i   # 80 + i  # i * 10
-    #    print('Det {}: {} = {} (count)'.format(det_id, workspace.getDetector(det_id).getPos(),
-    #                                        workspace.readY(det_id)[0]))
+    # Test no-weight binning
+    no_weight_binned_iq = do_1d_no_weight_binning(q_array, dq_array, iq_array,
+                                                  sigma_q_array, bin_centers, bin_edges)
+    # do no weight binning
+    noweight_i_q, noweight_sigma_q = do_no_weight_prototype(bin_centers, iq_array, bin_assignment_dict)
+    # verify: NaN first
+    assert np.allclose(np.isnan(noweight_i_q), np.isnan(no_weight_binned_iq.i)), 'No-weight binning NaN shall be same'
+    assert np.allclose(np.isnan(noweight_sigma_q), np.isnan(no_weight_binned_iq.sigma)), 'No-weight binning ' \
+                                                                                         'Sigma(I) NaN shall be same'
 
-    # Verify detector position
-    det_80_pos = workspace.getDetector(80).getPos()
-    assert abs(det_80_pos[0] - (5.5 - 27.49) * 0.001) < 1E-6, 'Pixel 80 X-distance to center. Expected to be {}.' \
-                                                              'Test is {}'.format((5.5 - 27.49)*0.001, det_80_pos[0])
+    # verify: non-NaN value
+    assert np.allclose(noweight_i_q[~np.isnan(noweight_i_q)],
+                       no_weight_binned_iq.i[~np.isnan(no_weight_binned_iq.i)],
+                       1e-10, True), 'No-weight binned I(Q) does not match'
+    assert np.allclose(noweight_sigma_q[~np.isnan(noweight_sigma_q)],
+                       no_weight_binned_iq.sigma[~np.isnan(no_weight_binned_iq.sigma)],
+                       1e-10, True), 'No-weight binned sigma_I(Q) does not match'
 
-    assert abs(det_80_pos[1] - (4.1 - 20.59) * 0.001) < 1E-6, 'Pixel 80 Y-distance to center. Expected to be {}.' \
-                                                              'Test is {}'.format((4.1 - 20.58)*0.001, det_80_pos[1])
+    # Test to go through wrapper method
+    wiq = bin_iq_into_logarithm_q1d(iq_array, sigma_q_array, q_array, dq_array, step_per_decade,
+                                    q_min, q_max, BinningMethod.WEIGHTED)
+    assert wiq
 
-    # Add sample logs for Q resolution
-    AddSampleLog(Workspace=workspace, LogName='wavelength', LogText='{}'.format(wavelength),
-                 LogType='Number', LogUnit='A')
-    AddSampleLog(Workspace=workspace, LogName='wavelength-spread', LogText='{}'.format(delta_lambda),
-                 LogType='Number', LogUnit='A')
-    AddSampleLog(Workspace=workspace, LogName='source-aperture-diameter', LogText='{}'.format(R1*2.*1000),
-                 LogType='Number', LogUnit='mm')
-    AddSampleLog(Workspace=workspace, LogName='sample-aperture-diameter', LogText='{}'.format(R2*2.*1000),
-                 LogType='Number', LogUnit='mm')
-
-    # Calculate Q and dQ
-    q_dq = calculate_q_dq(workspace, instrument_type='mono')
-    q_array = q_dq.q
-    print('Max Q = {} @ {}'.format(np.max(q_array), np.argmax(q_array)))
-    assert q_array.shape == (90, 1)
-    # assert abs(q_array[80] - expected_q_array[80]) < 10000000
-    # assert abs(np.max(q_array) - 0.013434*0.5) < 0.0001
-
-    # Test the linear binning
-    # Can pass the instrument type or the function will grab it from the workspace
-    result = bin_iq_into_linear_q1d(workspace, bins=10, q_min=0, q_max=None, instrument='mono')
-
-    # Test instrument geometry
-    # assert that returned workspace has some binning scheme as from Lisa's PDF
-    assert result is not None
-
-    # Test the logarithm binning
-    log_result = bin_iq_into_logarithm_q1d(workspace, bins_per_decade=33,
-                                           q_min=0.001, q_max=1.0, instrument='mono')
-
-    assert log_result is not None
+    # Note: disable the check due to a different algorithm (Lisa vs William) to generate log bins
+    # assert np.allclose(wiq.i[~np.isnan(wiq.i)],
+    #                    binned_q.i[~np.isnan(binned_q.i)],
+    #                    1e-10, True)
 
     return
 
@@ -405,7 +338,7 @@ def assign_bins(bin_edges, data_points, det_counts, bin_centers):
     return bins_dict
 
 
-def do_weighted_binning(bin_centers, det_counts, bins_dict):
+def bin_weighted_prototype(bin_centers, det_counts, bins_dict):
     """Do weighted binning
 
     Parameters
@@ -468,7 +401,7 @@ def do_weighted_binning(bin_centers, det_counts, bins_dict):
     return i_weighted_array, sigma_i_weighed_array
 
 
-def do_no_weight_binning(bin_centers, det_counts, bins_dict):
+def do_no_weight_prototype(bin_centers, det_counts, bins_dict):
     """Do weighted binning
 
     Parameters
@@ -518,8 +451,14 @@ def do_no_weight_binning(bin_centers, det_counts, bins_dict):
 
         # register
         i_sum_array[k] = i_k_raw
-        i_q_array[k] = i_k_raw / num_counts
-        sigma_iq_array[k] = np.sqrt(sigma_sq_k) / num_counts
+        if num_counts == 0:
+            # zero counts: NaN
+            i_q_array[k] = np.nan
+            sigma_iq_array[k] = np.nan
+        else:
+            # non-zero counts
+            i_q_array[k] = i_k_raw / num_counts
+            sigma_iq_array[k] = np.sqrt(sigma_sq_k) / num_counts
     # END-FOR
 
     # Output
@@ -532,4 +471,4 @@ def do_no_weight_binning(bin_centers, det_counts, bins_dict):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])

@@ -6,7 +6,6 @@ import mantid
 from mantid import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import CloneWorkspace, LoadHFIRSANS
-from drtsans.momentum_transfer import calculate_momentum_transfer
 
 
 # This test implements issue #??? to verify methods to bin I(Q) for BIO-SANS
@@ -24,7 +23,7 @@ def skip_test_momentum_tranfer_serial(biosans_f):
         Filename=biosans_f['anisotropic'],
         OutputWorkspace="ws")
 
-    mt = calculate_momentum_transfer(ws)
+    mt = calculate_momentum_transfer(ws)  # noqa: F821
     assert mt.qx.shape == mt.qy.shape == mt.dqx.shape == mt.dqy.shape == \
         mt.i.shape == mt.i_sigma.shape == (256*192, )
 
@@ -72,7 +71,7 @@ def bin_in_parallel(params):
 
     # Temp disable: component_name, out_ws_prefix = params
     ws = mtd["ws_data_raw"]
-    mt = calculate_momentum_transfer(ws)
+    mt = calculate_momentum_transfer(ws)  # noqa: F821
     # component_name=component_name,
     # out_ws_prefix=out_ws_prefix)
 

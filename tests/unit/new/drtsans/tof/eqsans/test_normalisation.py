@@ -140,4 +140,4 @@ def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

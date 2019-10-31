@@ -53,4 +53,4 @@ def test_save_ascii(biosans_sensitivity_dataset):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

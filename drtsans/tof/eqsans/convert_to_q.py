@@ -1,4 +1,5 @@
 import numpy as np
+from collections import namedtuple
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/convert_to_q.py
 import drtsans.convert_to_q
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
@@ -7,6 +8,9 @@ import drtsans.resolution
 from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
+from drtsans.samplelogs import SampleLogs
+from mantid.kernel import logger
 
 
 def EQSANS_resolution(*args, **kwargs):
@@ -174,6 +178,10 @@ def moderator_time_uncertainty(wl):
     :param wl: float (or ndarray) wavelength [Angstrom]
     :return: float or ~np.array (same shape to wave_length_array) of emission error time
     """
+    original_float = False
+    if isinstance(wl, float):
+        wl = np.array([wl])
+        original_float = True
     # init output array to zeros
     time_error = np.zeros_like(wl)
 
@@ -196,7 +204,61 @@ def moderator_time_uncertainty(wl):
     del mask
 
     # convert from zero-dimensional nparray to float
-    if isinstance(wl, float):
+    if original_float:
         time_error = float(time_error)
 
     return time_error
+
+
+def split_by_frame(input_workspace, *args, **kwargs):
+    r""" Split the output of convert_to_q into a list of
+    outputs, one for each frame.
+
+    Parameters
+    ----------
+
+    input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Workspace in units of wavelength
+    kwargs: ~collections.namedtuple or dict
+        Outputs from convert_to_q
+
+    Returns
+    -------
+
+    list
+        A list with namedtuples
+    """
+    # transform args to dictionary
+    try:
+        kwargs = args[0]._asdict()
+    except AttributeError:
+        pass
+    keys = kwargs.keys()
+    # get the wavelengths for each frame
+    sl = SampleLogs(input_workspace)
+    frames = []
+    if bool(sl.is_frame_skipping.value) is True:
+        logger.information("This is a frame skipping data set.")
+        frame1_wavelength_min = sl.wavelength_skip_min.value
+        frame1_wavelength_max = sl.wavelength_skip_max.value
+        frame2_wavelength_min = sl.wavelength_lead_min.value
+        frame2_wavelength_max = sl.wavelength_lead_max.value
+        frames.append((frame1_wavelength_min, frame1_wavelength_max))
+        frames.append((frame2_wavelength_min, frame2_wavelength_max))
+    else:
+        frame1_wavelength_min = sl.wavelength_min.value
+        frame1_wavelength_max = sl.wavelength_max.value
+        frames.append((frame1_wavelength_min, frame1_wavelength_max))
+
+    # create the output list
+    output_list = []
+    for wl_min, wl_max in frames:
+        output = dict()
+        wavelength = kwargs['wavelength']
+        # use only data between the given wavelengths
+        keep = np.logical_and(np.greater_equal(wavelength, wl_min), np.less_equal(wavelength, wl_max))
+        for k in keys:
+            output[k] = kwargs[k][keep]
+        # create the namedtuple from a dictionary
+        output_list.append(namedtuple('frame', output)(**output))
+    return output_list

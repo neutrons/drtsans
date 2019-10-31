@@ -1,4 +1,6 @@
 import numpy as np
+
+# drtsans imports
 from drtsans.settings import namedtuplefy
 
 

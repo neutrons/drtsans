@@ -65,4 +65,4 @@ def test_solid_angle(generic_workspace):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

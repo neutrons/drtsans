@@ -10,7 +10,6 @@ from mantid.simpleapi import (mtd, DeleteWorkspace, LoadNexusProcessed)
 import tempfile
 from tests.conftest import data_dir
 
-FILENAME = tempfile.NamedTemporaryFile('wt', suffix='.nxs').name
 WKSPNAME_IN = 'EQSANS_87680'
 FILENAME_IN = os.path.join(data_dir, 'EQSANS_87680_integrated.nxs')
 MIN, MAX = 0.5, 2.0
@@ -30,15 +29,16 @@ def eqsans_87680(request):
     request.addfinalizer(fin)
 
 
-def create_sensitivity_file():
+def create_sensitivity_file(filename):
     '''Single function to create the sensitivity file'''
-    return calculate_sensitivity_correction(WKSPNAME_IN, MIN, MAX, FILENAME,
+    return calculate_sensitivity_correction(WKSPNAME_IN, MIN, MAX, filename,
                                             output_workspace=uwn())
 
 
 def test_calculation(cleanfile):
-    wksp = create_sensitivity_file()
-    cleanfile(FILENAME)
+    filename = tempfile.NamedTemporaryFile('wt', suffix='.nxs').name
+    wksp = create_sensitivity_file(filename)
+    cleanfile(filename)
     assert wksp
 
     # check for the number masked
@@ -55,7 +55,7 @@ def test_calculation(cleanfile):
     assert np.all(values < 1.5), 'Some values greater than {}'.format(MAX)
 
     # verify the output file exists
-    assert os.path.exists(FILENAME)
+    assert os.path.exists(filename)
 
     # cleanup
     wksp.delete()
@@ -67,18 +67,20 @@ def fromFile(request):
 
 
 def test_apply_calculation(cleanfile, fromFile):
+    filename = tempfile.NamedTemporaryFile('wt', suffix='.nxs').name
+    if not os.path.exists(filename):
+        create_sensitivity_file(filename)
+        cleanfile(filename)
+
     if fromFile:
-        if not os.path.exists(FILENAME):
-            create_sensitivity_file()
-            cleanfile(FILENAME)
         wksp = apply_sensitivity_correction(WKSPNAME_IN,
-                                            sensitivity_filename=FILENAME,
+                                            sensitivity_filename=filename,
                                             output_workspace=uwn())
     else:
-        if not os.path.exists(FILENAME):
+        if not os.path.exists(filename):
             create_sensitivity_file()
-            cleanfile(FILENAME)
-        sensitivity = LoadNexusProcessed(Filename=FILENAME,
+            cleanfile(filename)
+        sensitivity = LoadNexusProcessed(Filename=filename,
                                          OutputWorkspace=uwn())
         wksp = apply_sensitivity_correction(WKSPNAME_IN,
                                             sensitivity_workspace=sensitivity,
@@ -145,4 +147,4 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

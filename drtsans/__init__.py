@@ -2,13 +2,17 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-from .api import half_polarization, subtract_background  # noqa: F401
-from .sensitivity import (apply_sensitivity_correction,  # noqa: F401
-                          calculate_sensitivity_correction)
-from .solid_angle_correction import *  # noqa: F403, F401
-from .savereductionlog import *  # noqa: F401, F403
-from .convert_to_q import *  # noqa: F401, F403
+from .api import *  # noqa: F403
+from .beam_finder import *  # noqa: F403
+from .geometry import *  # noqa: F403
+from .sensitivity import *  # noqa: F403
+from .solid_angle_correction import *  # noqa: F403
+from .reductionlog import *  # noqa: F403
+from .convert_to_q import *  # noqa: F403
+from .resolution import *  # noqa: F403
 
-__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'convert_to_q',  # noqa: F405
-           'half_polarization',  # noqa: F405
-           'savereductionlog', 'solid_angle_correction', 'subtract_background']  # noqa: F405
+
+# FIXME the functions done as strings can't be done via __all__ because module and function have same name
+__all__ = (['convert_to_q', 'solid_angle_correction']
+           + api.__all__ + beam_finder.__all__ + geometry.__all__ + reductionlog.__all__  # noqa: F405
+           + sensitivity.__all__)  # noqa: F405

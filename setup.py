@@ -8,6 +8,12 @@ import versioneer
 
 THIS_DIR = os.path.dirname(__file__)
 
+# get list of scripts to install
+scripts = [item for item in os.listdir(os.path.join(THIS_DIR, 'scripts'))
+           if item.endswith('.py')]
+# prepend directory
+scripts = [os.path.join('scripts', item) for item in scripts]
+
 
 def read_requirements_from_file(filepath):
     '''Read a list of requirements from the given file and split into a
@@ -33,6 +39,7 @@ setup(name="drtsans",
       license="Apache License 2.0",
       zip_safe=False,
       packages=find_packages(),
+      scripts=scripts,
       package_dir={},
       package_data={},
       install_requires=install_requires,

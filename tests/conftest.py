@@ -328,6 +328,58 @@ def porasil_slice1m(reference_dir):
                    w=GetWS(f, 'porasil_slice1m', loaders=lds), help=_help)
 
 
+def _getDataDimensions(req_params):
+    '''
+    Determine the dimensionality of the data for use in generic_IDF and generic_workspace.
+    The basic rules are that the dimensionality is taken from ``Nx`` and ``Ny``, then
+    determined from ``intensities``, then is ``(3,3)``. If both dimensions and intensities
+    are specified, dimensions wins, but it must be compatible with the number of values in
+    intensities.
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        intensities : ndarray or 2d/3d list of intensities for the
+             instrument. Detector dimensions are inferred from the
+             dimensionality.
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+
+    Returns
+    -------
+    tuple
+    Nx, Ny
+    '''
+    intensity = req_params.get('intensities', None)
+    if intensity is None:
+        Nx = int(req_params.get('Nx', 3))
+        Ny = int(req_params.get('Ny', 3))
+        return Nx, Ny, 1
+    else:
+        # force it to be a numpy array
+        # this is a no-op if it is already the right type
+        intensity = np.array(intensity)
+
+        Nx = req_params.get('Nx', None)
+        Ny = req_params.get('Ny', None)
+        if (Nx is not None) and (Ny is not None):
+            Nx = int(Nx)
+            Ny = int(Ny)
+            if intensity.size % (Nx * Ny) != 0:
+                raise RuntimeError('Supplied Nx={}, Ny={} not compatible with '
+                                   'intensities[{}]'.format(Nx, Ny, intensity.shape))
+            else:
+                return Nx, Ny, int(intensity.size / (Nx * Ny))
+        else:
+            if len(intensity.shape) == 3:
+                return intensity.shape
+            else:
+                Nx, Ny = intensity.shape[:2]  # Nx, Ny
+                return Nx, Ny, 1
+
+
 @pytest.fixture(scope='function')
 def generic_IDF(request):
     '''
@@ -361,21 +413,13 @@ def generic_IDF(request):
             req_params = dict()
 
     # use hidden attibutes to get data dimension, Nx and Ny can override this
-    intensity = req_params.get('intensities', None)
-    if intensity is None:  # checking ndarray against bool gives an exception
-        Nx, Ny = 3, 3
-    else:
-        try:
-            Nx, Ny = intensity.shape[:2]  # numpy array
-        except AttributeError:
-            Nx = len(intensity)
-            Ny = len(intensity[0])
+    Nx, Ny, _ = _getDataDimensions(req_params)
 
     # get the parameters from the request object
     params = {'name': req_params.get('name', 'GenericSANS'),
               'l1': -1. * abs(float(req_params.get('l1', -11.))),
-              'Nx': int(req_params.get('Nx', Nx)),
-              'Ny': int(req_params.get('Ny', Ny)),
+              'Nx': Nx,
+              'Ny': Ny,
               'dx': float(req_params.get('dx', 1.)),
               'dy': float(req_params.get('dy', 1.)),
               'xcenter': float(req_params.get('xc', 0.)),
@@ -545,18 +589,17 @@ def generic_workspace(generic_IDF, request):
     x = req_params.get('axis_values', None)
     y = req_params.get('intensities', None)
     e = req_params.get('uncertainties', None)
+
+    Nx, Ny, Naxis = _getDataDimensions(req_params)
     if y is not None:
-        try:
-            Nx, Ny = y.shape[:2]
-        except AttributeError:
-            Nx = len(y)
-            Ny = len(y[0])
-            y = np.array(y)
+        # force it to be a numpy array
+        # this is a no-op if it is already the right type
+        y = np.array(y)
+        y = y.reshape((Nx, Ny, Naxis))
     else:
-        Nx = req_params.get('Nx', 3)  # must match generic_IDF
-        Ny = req_params.get('Ny', 3)  # must match generic_IDF
         y = np.zeros((Nx, Ny), dtype=float)
     y = y.ravel()
+
     if e is not None:
         e = np.array(e).ravel()
     else:
@@ -591,7 +634,7 @@ def workspace_with_instrument(generic_IDF, request):
        @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
 
     Once inside the test function, the factory is called with the following optional arguments:
-        name: Name of the workspace and instrument (default: random name prefixed with '__')
+        output_workspace: Name of the workspace (default: random name prefixed with '__')
         axis_values : 1D array or list of the independent axis for the data. It will be copied across
             all spectra (default 0 for all spectra)
         intensities : ndarray or 2d/3d list of intensities for the instrument. Detector dimensions are inferred
@@ -639,13 +682,13 @@ def workspace_with_instrument(generic_IDF, request):
 
     workspace_inventory = list()  # holds created workspaces
 
-    def factory(name=None, axis_units='wavelength',
+    def factory(output_workspace=None, axis_units='wavelength',
                 axis_values=None, intensities=None, uncertainties=None, view=view,
                 number_x_pixels=instrument_params.get('Nx', 3), number_y_pixels=instrument_params.get('Ny', 3)):
         # Initialization of these options within the function signature results in the interpreter assigning a
         # function signature preserved through function call.
-        if name is None:
-            name = unique_workspace_dundername()
+        if output_workspace is None:
+            output_workspace = unique_workspace_dundername()
 
         if view not in ['array', 'pixel']:
             raise RuntimeError('Invalid value of view="{}". Must be "array" or "pixel"'.format(view))
@@ -668,7 +711,10 @@ def workspace_with_instrument(generic_IDF, request):
         if uncertainties is not None:
             uncertainties = np.array(uncertainties)
             if view == 'array':
-                uncertainties = uncertainties.transpose()[:, ::-1]
+                if uncertainties.ndim == 2:
+                    uncertainties = uncertainties.transpose()[:, ::-1]
+                elif uncertainties.ndim == 3:
+                    uncertainties = np.transpose(uncertainties, axes=(1, 0, 2))[:, ::-1, :]
             uncertainties = uncertainties.ravel()
         else:
             uncertainties = np.sqrt(intensities)
@@ -681,11 +727,11 @@ def workspace_with_instrument(generic_IDF, request):
 
         n_pixels = number_x_pixels * number_y_pixels
         workspace = CreateWorkspace(DataX=axis_values, DataY=intensities, DataE=uncertainties, Nspec=n_pixels,
-                                    UnitX=axis_units, OutputWorkspace=name)
+                                    UnitX=axis_units, OutputWorkspace=output_workspace)
         instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', generic_IDF).groups()[0]
         LoadInstrument(Workspace=workspace, InstrumentXML=generic_IDF, RewriteSpectraMap=True,
                        InstrumentName=instrument_name)
-        workspace_inventory.append(name)
+        workspace_inventory.append(output_workspace)
         return workspace
 
     yield factory

@@ -57,4 +57,4 @@ def test_stitch(reference_dir):
     return
 
 
-if __name__ == '__main__': pytest.main()
+if __name__ == '__main__': pytest.main([__file__])

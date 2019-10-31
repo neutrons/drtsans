@@ -1,13 +1,10 @@
 from mantid.simpleapi import MoveInstrumentComponent
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import (get_instrument, detector_name,
-                              source_sample_distance)
+from drtsans.geometry import get_instrument, detector_name, source_sample_distance, sample_detector_distance
 
-__all__ = ['detector_z_log',
-           'translate_sample_by_z', 'translate_detector_by_z',
-           'sample_aperture_diameter', 'source_aperture_diameter']
-
+__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'detector_z_log',
+           'translate_sample_by_z', 'translate_detector_by_z']
 detector_z_log = 'detectorZ'
 
 
@@ -325,3 +322,33 @@ def pixel_coordinates(detector_id, tube_size=256):
         x = eithpack_index * 8 + tube_index_permutation[tube_id]
         pixel_xy.append((x, y))
     return pixel_xy if len(pixel_xy) > 1 else pixel_xy[0]
+
+
+def beam_radius(input_workspace, unit='mm'):
+    r"""
+    Calculate the beam radius impinging on the detector bank.
+
+    .. math::
+
+           R_{beam} = R_{sampleAp} + SDD * (R_{sampleAp} + R_{sourceAp}) / SSD
+
+    Parameters
+    ----------
+    input_workspace: ~mantid.api.MatrixWorkspace, str
+        Input workspace, contains all necessary info in the logs
+    unit: str
+        Either 'mm' or 'm'
+
+    Returns
+    -------
+    float
+        Estimated beam radius
+    """
+    source_aperture_diam = source_aperture_diameter(input_workspace, unit=unit)
+    source_sample_dist = source_sample_distance(input_workspace)
+
+    sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
+    sample_detector_dist = sample_detector_distance(input_workspace)
+
+    return sample_aperture_diam +\
+        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_sample_dist)

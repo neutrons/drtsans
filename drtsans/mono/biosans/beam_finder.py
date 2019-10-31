@@ -5,9 +5,12 @@ from mantid import mtd
 from mantid.kernel import logger
 from drtsans.samplelogs import SampleLogs
 
+__all__ = ['center_detector', 'find_beam_center']
+
 
 def _calculate_neutron_drop(path_length, wavelength):
-    """ Calculate the gravitational drop of the neutrons
+    """Calculate the gravitational drop of the neutrons from the wing detector
+    (which is closer) to the main detector.
 
     Parameters
     ----------
@@ -25,12 +28,11 @@ def _calculate_neutron_drop(path_length, wavelength):
     neutron_mass = constants.neutron_mass
     gravity = constants.g
     h_planck = constants.Planck
-    l_2 = (gravity * neutron_mass**2 /
-           (2.0 * h_planck**2)) * path_length**2
+    l_2 = (gravity * neutron_mass**2 / (2.0 * h_planck**2)) * path_length**2
     return wavelength**2 * l_2
 
 
-def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
+def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector):
     """This method is used for correcting for gravitational drop.
     It is used in the biosans for the correction of the beam center
     in the wing detector. The center in the wing detector will be higher
@@ -38,102 +40,114 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sdd_wing_detector=1.13):
 
     Parameters
     ----------
-    ws : Workspace2D, str
+    ws : ~mantid.api.MatrixWorkspace, str
         The workspace to get the sample to the main detector distance
     beam_center_y : float
         The Y center coordinate in the main detector in meters
-    sdd : float, optional
-        sample detector distance in meters to apply the beam center,
-        by default 1.13
+    sample_det_cent_main_detector: float
+        :ref:`sample to detector center distance <devdocs-standardnames>` of the main detector
+        in meters
+    sample_det_cent_wing_detector : float
+        :ref:`sample to detector center distance <devdocs-standardnames>` of the wing detector
+        in meters
 
     Returns
     -------
     float
-        The new y beam center corrected for distance
+        The new y beam center of the wing detector
     """
-
-    ws = mtd[str(ws)]
-
     sl = SampleLogs(ws)
-    sdd_main_detector = ws.getInstrument().getComponentByName('detector1').getPos().Z()
-    path_length = sdd_main_detector - sdd_wing_detector
 
     wavelength = sl.wavelength.value
 
-    r = ws.run()
-    wavelength = r.getProperty("wavelength").value
+    # this comes back as a positive number
+    drop_main = _calculate_neutron_drop(sample_det_cent_main_detector, wavelength)
+    drop_wing = _calculate_neutron_drop(sample_det_cent_wing_detector, wavelength)
 
-    drop = _calculate_neutron_drop(path_length, wavelength)
-    new_beam_center_y = beam_center_y - drop
+    new_beam_center_y = beam_center_y + drop_main - drop_wing
     logger.information("Beam Center Y before gravity (drop = {:.3}): {:.3}"
                        " after = {:.3}.".format(
-                            drop, beam_center_y, new_beam_center_y))
+                            drop_main-drop_wing, beam_center_y, new_beam_center_y))
 
     return new_beam_center_y
 
 
-def find_beam_center(input_workspace, method='center_of_mass', mask=None,
-                     sdd_wing_detector=1.13, **kwargs):
+def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={}, centering_options={},
+                     sample_det_cent_main_detector=None, sample_det_cent_wing_detector=None):
     """Finds the beam center in a 2D SANS data set.
-    Developer: Ricardo Ferraz Leal <rhf@ornl.gov>
-
-    based on drtsans.beam_finder.find_beam_center
+    This is based on (and uses) :func:`drtsans.find_beam_center`
 
     Parameters
     ----------
-    input_workspace: str, Workspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
     method: str
-        Method to calculate the beam center( only 'center_of_mass' is
-        implemented)
-    mask: str or list
-        Tubes to be masked
-    sdd_wing_detector : float, optional
-        Sample Detector Distance,  in meters, of the wing detector,
-        by default 1.13
-    kwargs: dict
-        Parameters to be passed to the method to calculate the center
+        Method to calculate the beam center. Available methods are:
+        - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`.
+    mask: mask file path, `MaskWorkspace``, :py:obj:`list`.
+        Mask to be passed on to ~drtsans.mask_utils.mask_apply.
+    mask_options: dict
+        Additional arguments to be passed on to ~drtsans.mask_utils.mask_apply.
+    centering_options: dict
+        Arguments to be passed on to the centering method.
+    sample_det_cent_wing_detector : float
+        :ref:`sample to detector center distance <devdocs-standardnames>`,
+        in meters, of the wing detector.
 
     Returns
     -------
-    Tuple of 3 floats
-        center_x, center_y, center_y corrected for gravity
-        center_y it is usually used to correct BIOSANS wing detector
-        Y position.
+    tuple
+        Three float numbers:
+        ``(center_x, center_y, center_y_wing)`` corrected for gravity.
+        ``center_y_wing`` is used to correct BIOSANS wing detector Y position.
     """
-    center_x, center_y = bf.find_beam_center(input_workspace, method, mask, **kwargs)
+    ws = mtd[str(input_workspace)]
 
-    center_y_gravity = _beam_center_gravitational_drop(
-        input_workspace, center_y, sdd_wing_detector)
+    # find the center on the main detector
+    center_x, center_y = bf.find_beam_center(ws, method, mask,
+                                             mask_options=mask_options, centering_options=centering_options)
+
+    # get the distance to center of the main and wing detectors
+    if sample_det_cent_main_detector is None or sample_det_cent_main_detector == 0.:
+        sample_det_cent_main_detector = ws.getInstrument().getComponentByName('detector1').getPos().norm()
+
+    if sample_det_cent_wing_detector is None or sample_det_cent_wing_detector == 0.:
+        sample_det_cent_wing_detector = ws.getInstrument().getComponentByName('wing_detector').getPos().norm()
+        if sample_det_cent_wing_detector == 0.:
+            sample_det_cent_wing_detector = ws.getInstrument().getComponentByName('wing_tube_0').getPos().norm()
+
+    center_y_wing = _beam_center_gravitational_drop(ws, center_y,
+                                                    sample_det_cent_main_detector, sample_det_cent_wing_detector)
 
     logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}.".format(
-        center_x, center_y, center_y_gravity))
-    return center_x, center_y, center_y_gravity
+        center_x, center_y, center_y_wing))
+    return center_x, center_y, center_y_wing
 
 
-def center_detector(input_workspace, center_x, center_y, center_y_gravity):
-    """Center the detector and adjusts the heigh for the wing detector
+def center_detector(input_workspace, center_x, center_y, center_y_wing):
+    """Center the detector and adjusts the height for both the main and wing detectors
+    This uses :func:`drtsans.center_detector`
 
     **Mantid algorithms used:**
-    :ref:`MoveInstrumentComponent <algm-MoveInstrumentComponent-v1>`,
+    :ref:`MoveInstrumentComponent <algm-MoveInstrumentComponent-v1>`
 
     Parameters
     ----------
-    input_workspace : Workspace2D, str
+    input_workspace : ~mantid.api.MatrixWorkspace, str
         The workspace to be centered
     center_x : float
-        in meters
+        The x-coordinate of the beam center in meters
     center_y : float
-        in meters
-    center_y_gravity : float
-        in meters
+        The y-coordinate of the beam center on the main detector in meters
+    center_y_wing : float
+        The y-coordinate of the beam center on the wing detector in meters
 
     Returns
     -------
-    Workspace2D
-        reference to the input_workspace
+    ~mantid.api.MatrixWorkspace
+        reference to the corrected ``input_workspace``
     """
     # move the main detector
     bf.center_detector(input_workspace, center_x, center_y)
 
     # movethe wing detector for the gravity drop
-    bf.center_detector(input_workspace, center_x, center_y_gravity, component='wing_detector')
+    bf.center_detector(input_workspace, center_x, center_y_wing, component='wing_detector')

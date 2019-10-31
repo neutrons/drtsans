@@ -31,4 +31,4 @@ def test_counts_in_detector(wss):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

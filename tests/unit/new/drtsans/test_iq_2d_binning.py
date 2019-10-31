@@ -317,4 +317,4 @@ def bin_iq_2d_is(i_array, qx_array, qy_array, num_x_bins, num_y_bins):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])

@@ -6,7 +6,10 @@ from mantid import __version__ as mantid_version
 from mantid.simpleapi import mtd, SaveNexusProcessed
 import numpy as np
 from drtsans import __version__ as drtsans_version
-from os import environ
+from os import environ, path
+
+
+__all__ = ['savereductionlog']
 
 
 def _createnxgroup(parent, name, klass):
@@ -50,7 +53,7 @@ def _savepythonscript(nxentry, pythonfile, pythonscript):
         The python script itself
     '''
     # read the contents of the script
-    if not pythonscript:
+    if not pythonscript and path.exists(pythonfile):
         with open(pythonfile, 'r') as script:
             pythonscript = script.read()
 
@@ -67,8 +70,10 @@ def _savereductionparams(nxentry, parameters):
         The parameters supplied to the reduction script. This will be converted
         to a json string if it isn't one already.
     '''
+    # convert the parameters into a string to save
     if not isinstance(parameters, str):
         parameters = json.dumps(parameters)
+
     return _savenxnote(nxentry, 'reduction_parameters',
                        'application/json', file_name='',
                        data=parameters)
@@ -117,7 +122,8 @@ def _savenxlog(nxcollection, property):
     if value and property.units:
         value.attrs['units'] = property.units
 
-    # TODO should get times but current examples don't have that
+    # TODO should get time from the logs but current examples don't have that
+    # this code should work
     try:
         times = property.times
         if len(times) > 0:
@@ -137,7 +143,8 @@ def _savespecialparameters(nxentry, wksp):
     '''Save the special parameters from the workspace
 
     Currently this only saves the derived parameters. It should be expanded to
-    save some of the special input parameters as well.
+    save some of the special input parameters as well, such as overridden beam
+    center.
 
     Parameters
     ----------

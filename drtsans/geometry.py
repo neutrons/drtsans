@@ -1,10 +1,60 @@
 import os
-from mantid.api import mtd, MatrixWorkspace
+import enum
+
+from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
-from mantid.simpleapi import Load, ExtractMask
-from drtsans.settings import unique_workspace_dundername as uwd
+from mantid.kernel import ConfigService
+from mantid.simpleapi import mtd, Load
 from drtsans.samplelogs import SampleLogs
 from collections import defaultdict
+
+
+__all__ = ['InstrumentName', ]
+
+
+@enum.unique
+class InstrumentName(enum.Enum):
+    r"""Unique names labelling each instrument"""
+    BIOSANS = ConfigService.getFacility('HFIR').instrument('BIOSANS')
+    EQSANS = ConfigService.getFacility('SNS').instrument('EQSANS')
+    GPSANS = ConfigService.getFacility('HFIR').instrument('GPSANS')
+
+    @staticmethod
+    def from_name(label):
+        r"""
+        Resolve the instrument name as a unique enumeration.
+
+        Parameters
+        ----------
+        label: str, Workspace
+            string representing a valid instrument name, or a Mantid workspace containing an instrument
+
+        Returns
+        -------
+        InstrumentName
+            The name of the instrument as one of the InstrumentName enumerations
+        """
+        string_to_enum = {'CG3': InstrumentName.BIOSANS, 'BIOSANS': InstrumentName.BIOSANS,
+                          'EQ-SANS': InstrumentName.EQSANS, 'EQSANS': InstrumentName.EQSANS,
+                          'CG2': InstrumentName.GPSANS, 'GPSANS': InstrumentName.GPSANS}
+        # convert to a string
+        name = str(label)
+
+        # convert mantid workspaces into a instrument string
+        if name in mtd:
+            name = mtd[str(name)].getInstrument().getName()
+
+        # dict only checks for uppercase names
+        name = name.upper()
+
+        # We want the enum representation of an instrument name
+        if name in string_to_enum.keys():
+            return string_to_enum[name]
+        else:
+            raise ValueError('Do not know how to convert "{}" to InstrumentName'.format(label))
+
+    def __str__(self):
+        return self.name
 
 
 def detector_name(ipt):
@@ -51,12 +101,12 @@ def bank_detector_ids(input_workspace, masked=None):
     """
     ws = mtd[str(input_workspace)]
     ids = ws.detectorInfo().detectorIDs()
-    all = ids[ids >= 0].tolist()
+    everything = ids[ids >= 0].tolist()
     if masked is None:
-        return all  # by convention, monitors have ID < 0
+        return everything  # by convention, monitors have ID < 0
     else:
         instrument = ws.getInstrument()
-        return [det_id for det_id in all if
+        return [det_id for det_id in everything if
                 masked == instrument.getDetector(det_id).isMasked()]
 
 
@@ -83,30 +133,6 @@ def bank_detectors(input_workspace, masked=None):
         det = instrument.getDetector(det_id)
         if masked is None or masked == det.isMasked():
             yield instrument.getDetector(det_id)
-
-
-def masked_detectors(input_workspace, query_ids=None):
-    r"""
-    List of detector ID's that are masked
-
-    Parameters
-    ----------
-    input_workspace: str, MatrixWorkspace
-        Input workspace to find the detectors
-    query_ids: list
-        Restrict the search to this list of detector ID's. If `None`, query
-        all detectors.
-
-    Returns
-    -------
-    list
-    """
-    mask_ws, det_ids = ExtractMask(input_workspace,
-                                   OutputWorkspace=uwd())
-    if query_ids is not None:
-        det_ids = sorted(list(set(det_ids) & set(query_ids)))
-    mask_ws.delete()
-    return det_ids
 
 
 def get_instrument(source):
@@ -187,7 +213,7 @@ def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
                     'source_sample_distance', 'sample-source-distance',
                     'sample_source-distance', 'sample_source_distance')
         if log_key is not None:
-            log_keys = [log_key]
+            log_keys = (log_key)
         sl = SampleLogs(source)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
@@ -237,7 +263,7 @@ def sample_detector_distance(source, unit='mm', log_key=None,
                     'detector_sample_distance', 'sample-detector-distance',
                     'sample_detector-distance', 'sample_detector_distance')
         if log_key is not None:
-            log_keys = [log_key]
+            log_keys = (log_key)
         sl = SampleLogs(source)
         try:
             lk = set(log_keys).intersection(set(sl.keys())).pop()
@@ -277,3 +303,45 @@ def source_detector_distance(source, unit='mm', search_logs=True):
     ssd = source_sample_distance(source, unit=unit, search_logs=search_logs)
     sdd = sample_detector_distance(source, unit=unit, search_logs=search_logs)
     return ssd + sdd
+
+
+def sample_aperture_diameter(input_workspace, unit='m'):
+    r"""
+    Find the sample aperture diameter from the logs.
+
+    Log keys searched are 'sample-aperture-diameter' and additional log entries for specific instruments. It is
+    assumed that the units of the logged value is mm
+
+    Parameters
+    ----------
+    input_workspace: :py:obj:`~mantid.api.MatrixWorkspace`
+        Input workspace from which to find the aperture
+    unit: str
+        return aperture in requested length unit, either 'm' or 'mm'
+
+    Returns
+    -------
+    float
+    """
+    # Additional log keys aiding in calculating the sample aperture diameter
+    additional_log_keys = {InstrumentName.EQSANS: ['beamslit4'],
+                           InstrumentName.GPSANS: [],
+                           InstrumentName.BIOSANS: []}
+    log_keys = ['sample-aperture-diameter'] + additional_log_keys[InstrumentName.from_name(input_workspace)]
+
+    sample_logs = SampleLogs(input_workspace)
+    diameter = None
+    for log_key in log_keys:
+        if log_key in sample_logs.keys():
+            diameter = sample_logs.single_value(log_key)
+            break
+
+    if diameter is None:
+        raise RuntimeError('Unable to retrieve the sample aperture diameter from the logs')
+
+    # The diameter was found using the additional logs. Insert a log for the diameter under key
+    # "sample-aperture-diameter"
+    if 'sample-aperture-diameter' not in sample_logs.keys():
+        sample_logs.insert('sample-aperture-diameter', diameter, unit='mm')
+
+    return diameter if unit == 'mm' else diameter / 1.e3

@@ -77,4 +77,4 @@ def test_flatten_TOF():
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

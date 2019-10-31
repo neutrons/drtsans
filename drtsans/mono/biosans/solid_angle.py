@@ -1,17 +1,19 @@
 from drtsans import solid_angle_correction
 
+__all__ = ['apply_solid_angle_correction_main_detector', 'apply_solid_angle_correction_wing_detector']
+
 
 def apply_solid_angle_correction_main_detector(input_workspace):
-    """ Apply solid angle correction for the main detector
+    """ Apply :func:`drtsans.solid_angle_correction` to the main detector
 
     Parameters
     ----------
-    input_workspace : MatrixWorkspace, str
+    input_workspace : ~mantid.api.MatrixWorkspace, str
         The input workspace name or itself
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
         The input workspace corrected for solid angle
     """
 
@@ -20,16 +22,16 @@ def apply_solid_angle_correction_main_detector(input_workspace):
 
 
 def apply_solid_angle_correction_wing_detector(input_workspace):
-    """ Apply solid angle correction for the wing detector
+    """ Apply :func:`drtsans.solid_angle_correction` to the wing detector
 
     Parameters
     ----------
-    input_workspace : MatrixWorkspace, str
+    input_workspace : ~mantid.api.MatrixWorkspace, str
         The input workspace name or itself
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.MatrixWorkspace
         The input workspace corrected for solid angle
     """
 

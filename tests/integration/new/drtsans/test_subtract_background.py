@@ -23,12 +23,8 @@ I_output = I_Data - scale_factor * I_Background
 Sig_output = np.sqrt(np.power(Sig_data, 2) + np.power(scale_factor * Sig_background, 2)
                      + np.power(Sig_scale * I_Background, 2))
 
-Q_dummy = Q_Scale.copy()
-I_dummy = I_Background.copy()
-Sig_Dummy1 = Sig_background.copy()
 
-
-def create_workspace(datatype, y=None, e=None, x=Q_Scale):
+def _create_workspace(datatype, y=None, e=None, x=Q_Scale):
     '''This function creates data based on supplied information. There are pre-defined ``datatype``
     of ``data`` and ``background``. All others are custom.
     '''
@@ -57,8 +53,8 @@ def test_data_not_background():
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - Ken Littrell <littrellkc@ornl.gov>
     '''
-    data = create_workspace('data')
-    background = create_workspace('background')
+    data = _create_workspace('data')
+    background = _create_workspace('background')
 
     assert not CompareWorkspaces(data, background).Result
 
@@ -73,14 +69,15 @@ def test_subtract_background():
     SME - Ken Littrell <littrellkc@ornl.gov>
     '''
     # create workspaces with the input data
-    data = create_workspace('data')
-    background = create_workspace('background')
-    expected = create_workspace('custom', I_output, Sig_output)
+    data = _create_workspace('data')
+    background = _create_workspace('background')
+    expected = _create_workspace('custom', I_output, Sig_output)
 
     # do the calculation using the framework in-place
     observed = subtract_background(data, background, scale=scale_factor, scale_error=Sig_scale)
 
     # check the results
+    np.testing.assert_equal(observed.extractX(), expected.extractX())
     np.testing.assert_equal(observed.extractY(), expected.extractY())
     np.testing.assert_almost_equal(observed.extractE(), expected.extractE())  # sqrts aren't quite the same
 
@@ -90,4 +87,4 @@ def test_subtract_background():
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

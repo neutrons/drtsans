@@ -151,13 +151,13 @@ Specifying a regular expression using ``-k`` will select all tests that match th
 
 .. code-block:: shell
 
-   $ python -m pytest -k momentum_transfer
+   $ python -m pytest -k test_samplelogs
 
 To run an individual test within an individual file add ``::`` to the filename to specify the test
 
 .. code-block:: shell
 
-   $ python -m pytest tests/integration/new/drtsans/tof/eqsans/test_momentum_transfer.py::test_api
+   $ python -m pytest tests/unit/new/drtsans/tof/eqsans/test_beam_finder.py::test_center_detector
 
 
 --------------------------

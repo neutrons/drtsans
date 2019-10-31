@@ -83,4 +83,4 @@ def test_band_structure_logs():
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

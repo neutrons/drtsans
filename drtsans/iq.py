@@ -1,20 +1,19 @@
-from string import Template
-import numpy as np
-from mantid.simpleapi import CreateEmptyTableWorkspace
-import collections
+from collections import namedtuple
+from drtsans.dataobjects import IQmod
 from enum import Enum
+from mantid.simpleapi import CreateEmptyTableWorkspace
+import numpy as np
+from string import Template
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
 
-# Define structure for I(Q) for Q, dQ, I(Q), Sigma_I(Q)
-IofQ = collections.namedtuple('IofQ', 'q dq i sigma')
 # Define structure for I(Qx, Qy) for Qx, dQx, Qy, dQy, I(Q), Sigma_I(Q)
-IofQ2d = collections.namedtuple('IofQ2d', 'qx dqx qy dqy i sigma')
+IofQ2d = namedtuple('IofQ2d', 'qx dqx qy dqy i sigma')
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
 # bins shall be integer as number of bins
-BinningParams = collections.namedtuple('BinningParams', 'min max bins')
+BinningParams = namedtuple('BinningParams', 'min max bins')
 
 
 class BinningMethod(Enum):
@@ -47,13 +46,11 @@ def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins
         max Q (edge) of the binned Q. Default to max(scalar_q)
     bin_method : BinningMethod
         weighted binning or no-weight binning method
+
     Returns
     -------
-    IofQ
-        named tuple for Q, dQ, I(Q), sigma_I(Q)
-        numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray
-        Q, dQ, I, dI
-        Q, Q resolution, I, uncertainty of I
+    ~drtsans.dataobjects.IQmod
+        the one dimensional data as a named tuple
     """
     # define q min and q max
     if q_min is None:
@@ -101,11 +98,8 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
         weighted binning or no-weight binning method
     Returns
     -------
-    IofQ
-        named tuple for Q, dQ, I(Q), sigma_I(Q)
-        numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray
-        Q, dQ, I, dI
-        Q, Q resolution, I, uncertainty of I
+    ~drtsans.dataobjects.IQmod
+        the one dimensional data as a named tuple
     """
     # define q min and q max
     if q_min is None:
@@ -114,7 +108,7 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
         q_max = np.max(scalar_q)
 
     # calculate bin centers and bin edges
-    print('[DEBUG] Qmin = {}, Qmax = {}, Step/Decade = {}'.format(q_min, q_max, step_per_decade))
+    # print('[DEBUG] Qmin = {}, Qmax = {}, Step/Decade = {}'.format(q_min, q_max, step_per_decade))
     bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
 
     # bin I(Q)
@@ -368,11 +362,11 @@ def determine_1d_log_bins_lisa(q_min, q_max, step_per_decade):
     # 20191016 IS: "0.2% error is allowed.  This formula ensure that the number of steps per decade is respected"
     delta = np.power(10., 1. / step_per_decade)
     q0 = np.power(delta, np.floor(step_per_decade * np.log10(q_min)))
-    print('[DEBUG OUTPUT: q_min = {}, q0 = {}'.format(q_min, q0))
+    # print('[DEBUG OUTPUT: q_min = {}, q0 = {}'.format(q_min, q0))
 
     # Determine number of bins
     num_bins = 1 + int(np.ceil(step_per_decade * np.log(q_max / q0) / np.log(10)))
-    print('[DEBUG OUTPUT: number of bins = {}'.format(num_bins))
+    # print('[DEBUG OUTPUT: number of bins = {}'.format(num_bins))
 
     # Calculate bin centers
     bin_centers = np.arange(num_bins).astype('float')
@@ -417,8 +411,8 @@ def do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cente
         bin edges
     Returns
     -------
-    IofQ
-        named tuple for Q, dQ, binned I(Q), binned sigma_I(Q)
+    ~drtsans.dataobjects.IQmod
+        the one dimensional data as a named tuple
     """
     # check input
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
@@ -444,9 +438,8 @@ def do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cente
     bin_q_resolution = binned_dq / num_pt_array
 
     # Get the final result
-    binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)
-
-    return binned_iq
+    return IQmod(intensity=i_final_array, error=sigma_final_array,
+                 mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 
 
 def do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
@@ -470,13 +463,13 @@ def do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cent
         bin edges
     Returns
     -------
-    IofQ
-        named tuple for Q, dQ, binned I(Q), binned sigma_I(Q)
+    ~drtsans.dataobjects.IQmod
+        the one dimensional data as a named tuple
     """
     # check input
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
 
-    print('[DB...BAT] Log bin edges: {}'.format(bin_edges))
+    # print('[DB...BAT] Log bin edges: {}'.format(bin_edges))
 
     # calculate 1/sigma^2 for multiple uses
     invert_sigma2_array = 1. / (sigma_iq_array ** 2)
@@ -497,17 +490,24 @@ def do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cent
     bin_q_resolution = binned_dq / i_raw_array
 
     # Get the final result
-    binned_iq = IofQ(bin_centers, bin_q_resolution, i_final_array, sigma_final_array)
-
-    return binned_iq
+    return IQmod(intensity=i_final_array, error=sigma_final_array,
+                 mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 
 
 def bin_into_q2d(wl_ws, bins, suffix):
     """
-    :param wl_ws: List of workspaces (names) in binned wave length space
-    :param bins: Iterable for range and bin size of Qx and Qy
-    :param suffix: suffix for output workspace
-    :return:
+    Parameters
+    ----------
+    wl_ws:
+        List of workspaces (names) in binned wave length space
+    bins:
+        Iterable for range and bin size of Qx and Qy
+    suffix:
+        suffix for output workspace
+
+    Returns
+    -------
+    None
     """
     assert wl_ws
     assert bins
@@ -526,7 +526,7 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     Parameters
     ----------
-    i_q: namedtuple
+    i_q: collections.namedtuple
         "i": intensity, "sigma": sigma(I), "qx": qx, "qy": qy, "dqx": dqx, "dqy", dqy
     qx_bin_params: BinningParams
         binning parameters for Qx
@@ -728,8 +728,8 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
         max_x = np.max(x_array)
 
     # DEBUG OUTPUT
-    print('[DEBUG] Min X = {} @ {}'.format(min_x, np.argmin(x_array)))
-    print('[DEBUG] Max X = {} @ {}'.format(max_x, np.argmax(x_array)))\
+    # print('[DEBUG] Min X = {} @ {}'.format(min_x, np.argmin(x_array)))
+    # print('[DEBUG] Max X = {} @ {}'.format(max_x, np.argmax(x_array)))\
 
     # Calculate delta
     if num_bins <= 1:
@@ -740,13 +740,13 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
     # Calculate bin center and bin edges
     # bin edge starts from minimum X and increase for delta X
     bin_edges = np.arange(num_bins + 1).astype(float) * delta_x + min_x - 0.5 * delta_x
-    print('Bin Edge   : {}   .... from {}'.format(bin_edges, min_x))
+    # print('Bin Edge   : {}   .... from {}'.format(bin_edges, min_x))
 
     bin_centers = np.zeros(shape=(num_bins, ), dtype=float)
     # bin center, as linear binning, is half bin shift from bin edges
     bin_centers[:] = bin_edges[:-1] + 0.5 * delta_x
 
-    print('Bin Centers: {}'.format(bin_centers))
+    # print('Bin Centers: {}'.format(bin_centers))
 
     return delta_x, bin_centers, bin_edges
 

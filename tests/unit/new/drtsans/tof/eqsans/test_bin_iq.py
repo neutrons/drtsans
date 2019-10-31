@@ -4,6 +4,7 @@ from collections import namedtuple
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning,\
     bin_iq_into_logarithm_q1d, BinningMethod, do_2d_weighted_binning, do_2d_no_weight_binning,\
     bin_annular_into_q1d, bin_wedge_into_q1d
+import pytest
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -243,13 +244,11 @@ def test_1d_bin_linear_no_wt():
 
     # Calculate and verify
     # I(0.0035) = 68.92857:    drtsans: 68.92857142857143
-    assert abs(binned_iq.i[3] - 68.92857) < 2.E-6, 'I wrong'
+    assert binned_iq.intensity[3] == pytest.approx(68.92857, abs=2.E-6), 'intensity'
     # di(0.0035)		2.218889
-    assert abs(binned_iq.sigma[3] - 2.218889) < 2.E-6, 'sigma I wrong'
+    assert binned_iq.error[3] == pytest.approx(2.218889, abs=2.E-6), 'error'
     # sigma_Q(0.0035) = 3.722E-05: This is off as it is the value from EXCEL with some error
-    assert abs(binned_iq.dq[3] - 3.722E-05) < 2.E-5, 'Q resolution wrong'
-
-    return
+    assert binned_iq.delta_mod_q[3] == pytest.approx(3.722E-05, abs=2.E-5), 'Q resolution'
 
 
 def test_1d_bin_log_no_wt():
@@ -282,20 +281,18 @@ def test_1d_bin_log_no_wt():
 
     # Verify: 2 I(Q) in bin: Q(3, 2, 3.1), Q(3, 2, 3.2)
     # I(0.0022) = 70.00000
-    assert abs(binned_iq.i[3] - 70.00000) < 1.E-12, 'I wrong'
+    assert binned_iq.intensity[3] == pytest.approx(70.00000, abs=1.E-12), 'intensity'
     # dI(0.0022) = 5.9160797831
-    assert abs(binned_iq.sigma[3] - 5.9160797831) < 1.E-12, 'sigma I wrong'
+    assert binned_iq.error[3] == pytest.approx(5.9160797831, abs=1.E-12), 'error'
     # sigma_Q(0.0022) = 2.529E-05: this value is from EXCEL with error in Q resolution
     # corrected value shall be   2.5112610804313703e-05
-    assert abs(binned_iq.dq[3] - 2.529E-05) < 2.E-7, 'Q resolution wrong'
+    assert binned_iq.delta_mod_q[3] == pytest.approx(2.529E-05, abs=2.E-7), 'Q resolution wrong'
 
     # Test the high level method
     binned_iq = bin_iq_into_logarithm_q1d(intensities, sigmas, scalar_q_array, scalar_dq_array,
                                           num_steps_per_10, q_min, q_max, BinningMethod.NOWEIGHT)
     # I(0.0022) = 70.00000
-    assert abs(binned_iq.i[3] - 70.00000) < 1.E-12, 'I wrong'
-
-    return
+    assert binned_iq.intensity[3] == pytest.approx(70.00000, abs=1.E-12), 'intensity'
 
 
 def test_2d_linear_bin_no_wt():
@@ -321,15 +318,15 @@ def test_2d_linear_bin_no_wt():
     gold_x_centers, gold_y_centers = get_gold_2d_linear_bins()
     gold_y_centers = gold_y_centers[::-1]
 
-    np.allclose(x_centers, gold_x_centers, atol=5E-6)
-    np.allclose(y_centers, gold_y_centers, atol=5E-6)
+    assert np.allclose(x_centers, gold_x_centers, atol=5E-6)
+    assert np.allclose(y_centers, gold_y_centers, atol=5E-6)
 
     # Check X
-    assert abs(x_edges[1] - (-0.004694044)) < 1E-8
-    assert abs(x_edges[2] - (-0.001814261)) < 1E-8
+    assert x_edges[1] == pytest.approx(-0.004694044, abs=1E-8)
+    assert x_edges[2] == pytest.approx(-0.001814261, abs=1E-8)
     # Check Y
-    assert abs(y_edges[1] - (-0.002826)) < 1E-6
-    assert abs(y_edges[2] - (-0.000601)) < 1E-6
+    assert y_edges[1] == pytest.approx(-0.002826, abs=1E-6)
+    assert y_edges[2] == pytest.approx(-0.000601, abs=1E-6)
 
     # Bin 2D
     # Get Q1D data
@@ -340,17 +337,17 @@ def test_2d_linear_bin_no_wt():
                                            x_edges, y_edges)
 
     # Verify Qx and Qy
-    assert abs(x_centers[1] - (-0.003254)) < 1.E-6, 'Qx is not correct'
-    assert abs(y_centers[1] - (-0.001713)) < 1.E-6, 'Qy is not correct'
+    assert x_centers[1] == pytest.approx(-0.003254, abs=1.E-6), 'Qx is not correct'
+    assert y_centers[1] == pytest.approx(-0.001713, abs=1.E-6), 'Qy is not correct'
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
-    assert abs(binned_iq_2d[0][1][1] - 67.) < 1E-6, 'I(Qx, Qy) is incorrect'
-    assert abs(binned_iq_2d[1][1][1] - 4.725815626) < 1E-8, 'sigma I(Qx, Qy) is incorrect'
+    assert binned_iq_2d[0][1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
+    assert binned_iq_2d[1][1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
     # correct: 3.2999999999999996e-05
-    assert abs(binned_iq_2d[2][1][1] - 3.31E-05) < 2E-7, 'dQx is incorrect'
-    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 2E-7, 'dQy is incorrect'
+    assert binned_iq_2d[2][1][1] == pytest.approx(3.31E-05, abs=2E-7), 'dQx is incorrect'
+    assert binned_iq_2d[3][1][1] == pytest.approx(1.75E-05, abs=2E-7), 'dQy is incorrect'
 
     # Test for weighted-binning
     binned_iq_2d = do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, intensities, sigmas,
@@ -358,15 +355,14 @@ def test_2d_linear_bin_no_wt():
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
     # test value: 56.86602493293357
-    assert abs(binned_iq_2d[0][1][1] - 56.8660) < 1E-4, 'Weighted-binned I(Qx, Qy) is incorrect'
-    assert abs(binned_iq_2d[1][1][1] - 4.353773265) < 1E-8, 'Weighted-binned sigma I(Qx, Qy) is incorrect'
+    assert binned_iq_2d[0][1][1] == pytest.approx(56.8660, abs=1E-4), 'Weighted-binned I(Qx, Qy) is incorrect'
+    assert binned_iq_2d[1][1][1] == pytest.approx(4.353773265, abs=1E-8), \
+        'Weighted-binned sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
-    assert abs(binned_iq_2d[2][1][1] - 3.30E-05) < 2E-7, 'dQx is incorrect'
+    assert binned_iq_2d[2][1][1] == pytest.approx(3.30E-05, abs=2E-7), 'dQx is incorrect'
     # correct: 1.71877860186208e-05
-    assert abs(binned_iq_2d[3][1][1] - 1.75E-05) < 4E-7, 'dQy is incorrect'
-
-    return
+    assert binned_iq_2d[3][1][1] == pytest.approx(1.75E-05, abs=4E-7), 'dQy is incorrect'
 
 
 def get_gold_theta_bins():
@@ -477,8 +473,6 @@ def test_1d_annular_no_wt():
     # 4.70549611605334e-05 calculated vs 4.717e-05
     assert abs(binned_iq.dq[1] - 4.717E-05) < 1.5E-7, 'Binned Q resolution is wrong'
 
-    return
-
 
 def get_gold_wedge_angles():
     """Get wedge angles from Excel for test
@@ -502,10 +496,6 @@ def get_gold_wedge_angles():
 
 def test_1d_bin_log_wedge_no_wt():
     """Test '1D_bin_log_wedget_no_sub_no_wt
-
-    Returns
-    -------
-
     """
     # Define Q range
     q_min = 0.001  # Edge
@@ -588,4 +578,6 @@ def test_1d_bin_log_wedge_no_wt():
     assert abs(binned_iq.sigma[7] - binned_iq2.sigma[7]) < 1E-12
     assert abs(binned_iq.dq[7] - binned_iq2.dq[7]) < 1E-12
 
-    return
+
+if __name__ == '__main__':
+    pytest.main([__file__])

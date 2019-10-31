@@ -17,6 +17,11 @@ def test_drtsans():
     find_missing(drtsans)
 
 
+def test_drtsans_dataobjects():
+    import drtsans.dataobjects
+    find_missing(drtsans.dataobjects)
+
+
 def test_drtsans_mono():
     import drtsans.mono
     find_missing(drtsans.mono)

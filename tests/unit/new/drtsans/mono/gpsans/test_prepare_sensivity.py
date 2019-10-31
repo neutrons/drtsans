@@ -289,7 +289,7 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
                       ''.format(i, j, d_ij, s_ij, s_ij**2, d_ij_arr, s_ij_arr))
 
             sensitivities[i, j] = d_ij
-            sensitivities_error[i, j] = s_ij
+            sensitivities_error[i, j] = 1. / s_ij
     # END-FOR
 
     # Calculate  D, i.e., sensitivity for each pixel

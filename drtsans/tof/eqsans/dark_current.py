@@ -5,11 +5,9 @@ import numpy as np
 # Subtract <https://docs.mantidproject.org/nightly/algorithms/Subtract-v1.html>
 # Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 # LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
-# Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
-# DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
-from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus, Integration, DeleteWorkspace
+from mantid.simpleapi import mtd, CreateWorkspace, Subtract, Scale, LoadEventNexus
 
-from drtsans.dark_current import duration, counts_in_detector  # noqa: F401
+from drtsans.dark_current import duration, counts_in_detector
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
@@ -86,12 +84,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
         gab_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skip.min))[0]
         rescalings[gab_bin_indexes] = 0.0
 
-    # Create a temporary workspace containing the total counts for each detector pixel, for the dark current run
-    dark_counts_workspace = unique_workspace_dundername()  # this is random name for a temporary workspace
-    Integration(InputWorkspace=dark_workspace_name, OutputWorkspace=dark_counts_workspace)
-    counts = mtd[dark_counts_workspace].extractY().flatten()  # array length = #pixels
-    errors = mtd[dark_counts_workspace].extractE().flatten()  # array length = #pixels
-    # Also find out the indexes of the detector pixels with no counts
+    counts, errors = counts_in_detector(dark_workspace_name)
     pixel_indexes_with_no_counts = np.where(counts == 0)[0]
 
     # Multiply the rescalings array by the counts-per-pixel array
@@ -111,7 +104,6 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
                     ParentWorkspace=data_workspace, OutputWorkspace=output_workspace)
 
     SampleLogs(output_workspace).insert('normalizing_duration', dark_duration.log_key)
-    DeleteWorkspace(dark_counts_workspace)  # remove temporary workspaces
     return mtd[output_workspace]
 
 

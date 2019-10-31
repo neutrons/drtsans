@@ -582,7 +582,7 @@ def test_1d_bin_log_wedge_no_wt():
 
     # verify calculated I, sigma and dQ
     assert abs(binned_iq.i[7] - binned_iq2.i[7]) < 1E-12
-    assert abs(binned_iq.sigma[7] -binned_iq2.sigma[7]) < 1E-12
+    assert abs(binned_iq.sigma[7] - binned_iq2.sigma[7]) < 1E-12
     assert abs(binned_iq.dq[7] - binned_iq2.dq[7]) < 1E-12
 
     return

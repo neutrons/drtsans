@@ -14,6 +14,8 @@ def _check_parallel(*args):
 
 
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
+    '''This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
+    and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional.'''
     def __new__(cls, intensity, error, mod_q, delta_mod_q=None, wavelength=None):
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)
@@ -40,6 +42,14 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
 
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
+    '''This class holds the information for the azimuthal projection, I(Qx, Qy). The resolution terms,
+    (``delta_qx``, ``delta_qy``) and ``wavelength`` fields are optional.
+
+    All of the arrays must be 1-dimensional or 2-dimensional and matching length. For the 1-dimensional
+    case, all of the arrays must be parallel (same length). For the 2-dimensional case, (``intensity``,
+    ``error``, ``delta_qx``, ``delta_qy``, ``wavelength``) must all be parallel. However, for (``qx``,
+    ``qy``), they must either (both) be 2-dimensional and parallel, or (both) 1-dimensional with
+    ``len(qx) == intensity.shape[0]`` and ``len(qy) == intensity.shape[1]``.'''
     def __new__(cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None):
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)
@@ -82,6 +92,9 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
 
 
 class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx delta_qy delta_qz wavelength')):
+    '''This class holds the information for the crystallographic projection, I(Qx, Qy, Qz). All of the
+    arrays must be 1-dimensional and parallel (same length). The resolution terms, (``delta_qx``,
+    ``delta_qy``, ``delta_qz``) and ``wavelength`` fields are optional.'''
     def __new__(cls, intensity, error, qx, qy, qz, delta_qx=None, delta_qy=None, delta_qz=None, wavelength=None):
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)

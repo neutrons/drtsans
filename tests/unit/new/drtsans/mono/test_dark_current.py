@@ -20,7 +20,9 @@ from drtsans.mono.dark_current import subtract_dark_current
 
 @pytest.mark.offline
 def test_dark_current(gpsans_f):
-
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     # First read the data
     input_sample_ws_mame = 'input_sample_ws_name'
     LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],

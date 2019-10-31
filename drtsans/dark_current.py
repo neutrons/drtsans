@@ -6,6 +6,7 @@ import numpy as np
 # DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 from mantid.simpleapi import mtd, Integration, DeleteWorkspace
 
+from drtsans.instruments import is_time_of_flight
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
@@ -14,7 +15,9 @@ from drtsans.samplelogs import SampleLogs
 def duration(input_workspace, log_key=None):
     """
     Compute the duration of the workspace by iteratively searching the logs for
-    keys 'duration', 'start_time/end_time', 'proton_charge', and 'timer'.
+    the following keys, according to whether the instrument is monochromatic or time-of-flight:
+    - monochromatic: 'duration', 'start_time/end_time', and 'timer'.
+    - time-of-flight: 'duration', 'start_time/end_time', 'proton_charge', and 'timer'.
 
     Parameters
     ----------
@@ -33,23 +36,36 @@ def duration(input_workspace, log_key=None):
 
     """
     ws = mtd[str(input_workspace)]
-    log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if \
-        log_key is None else (log_key, )
-    sl = SampleLogs(ws)
 
-    def from_start_time(lk):
-        st = parse_date(sl[lk].value)
-        et = parse_date(sl['end_time'].value)
+    # Determine which log keys to use when finding out the duration of the run
+    if log_key is None:
+        if is_time_of_flight(input_workspace):
+            log_keys = ('duration', 'start_time', 'proton_charge', 'timer')
+        else:
+            log_keys = ('duration', 'start_time', 'timer')  # for monochromatic instruments
+    else:
+        log_keys = (log_key, )
+
+    sample_logs = SampleLogs(ws)
+
+    def from_start_time(log_entry):
+        r"""Utility function to find the duration using the start_time and end_time log entries"""
+        st = parse_date(sample_logs[log_entry].value)
+        et = parse_date(sample_logs['end_time'].value)
         return (et - st).total_seconds()
 
-    def from_proton_charge(lk):
-        return sl[lk].getStatistics().duration
+    def from_proton_charge(log_entry):
+        r"""Utility function to find the duration using the start_time and end_time log entries"""
+        return sample_logs[log_entry].getStatistics().duration
 
+    # Dictionary storing the utility functions that find the duration of the run, based on different log
+    # keys
     calc = dict(start_time=from_start_time, proton_charge=from_proton_charge)
 
-    for lk in log_keys:
+    # Iterate over all possible log entries until we are able to find the duration of the run
+    for key in log_keys:
         try:
-            return dict(value=calc.get(lk, sl.single_value)(lk), log_key=lk)
+            return dict(value=calc.get(key, sample_logs.single_value)(key), log_key=key)
         except RuntimeError:
             continue
     raise AttributeError("Could not determine the duration of the run")

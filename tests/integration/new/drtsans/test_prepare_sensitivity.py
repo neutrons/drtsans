@@ -1,8 +1,13 @@
 import numpy as np
 import copy
+from mantid.simpleapi import CreateWorkspace
+import pytest
+from drtsans.sensitivity import calculate_sensitivity_correction
 
 
-def test_prepare_sensitivity():
+@pytest.mark.parametrize('workspace_with_instrument',
+                          [dict(name='EQSANS', Nx=8, Ny=8)], indirect=True)
+def test_prepare_sensitivity(workspace_with_instrument):
     flood_field_measurement = np.array([[5, 6, 7, 4, 6, 6,  5, 3],
                                         [7, 4, 6, 5, 5, 5,  4, 5],
                                         [3, 5, 7, 4, 6, 6,  5, 4],
@@ -114,6 +119,16 @@ def test_prepare_sensitivity():
     result = extrapolation/final_sensitivity
     result_uncertainty = result * np.sqrt(np.square(extrapolation_uncertainty/extrapolation) +
                                           np.square(final_sensitivity_uncertainty/final_sensitivity))
+
+
+    x = list(range(1,9))
+    y = list(range(1,9))
+    xv, yv = np.meshgrid(x,y)
+    ws = workspace_with_instrument(axis_values=xv, intensities=ffm_with_mask,
+                              uncertainties=ffm_uncertainty_with_mask, view='pixel')
+    out = calculate_sensitivity_correction(ws, min_threashold=0.5, max_threshold=1.5, )
+    print(out.extractX().reshape(8,8))
+    print(out.extractY().reshape(8,8))
     np.set_printoptions(precision=4)
     print(result)
     print(result_uncertainty)

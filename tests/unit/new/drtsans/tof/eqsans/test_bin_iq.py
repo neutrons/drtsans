@@ -3,7 +3,7 @@ from collections import namedtuple
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, do_1d_no_weight_binning,\
     bin_iq_into_logarithm_q1d, BinningMethod, do_2d_weighted_binning, do_2d_no_weight_binning,\
-    bin_annular_into_q1d
+    bin_annular_into_q1d, bin_wedge_into_q1d
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -417,7 +417,7 @@ def test_1d_annular_no_wt():
 
     theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, num_bins)
 
-    # Generate testing data: Get Q1D data
+    # Generate testing data: Get Q2D data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
     # Calculate theta array
@@ -480,7 +480,27 @@ def test_1d_annular_no_wt():
     return
 
 
-def next3_test_1d_bin_log_wedge_no_wt():
+def get_gold_wedge_angles():
+    """Get wedge angles from Excel for test
+
+    Returns
+    -------
+    ndarray
+        Wedge angles for all the pixels
+
+    """
+    wedge_angle_array = np.array([
+        141.026949, 123.2554061, 94.31432613, 63.21170404, 42.66018375,
+        155.9524823, 139.9324658, 97.78839725, 47.53052642, 26.94261266,
+        175.230287, 171.0616985, 126.183895, 11.5457636, 5.429158913,
+        195.6073192, 207.7689884, 257.6752727, -34.3685385, -17.65012424,
+        212.7055538, 230.4368877, 264.5704513, -57.539898, -36.18192273,
+    ])
+
+    return wedge_angle_array
+
+
+def test_1d_bin_log_wedge_no_wt():
     """Test '1D_bin_log_wedget_no_sub_no_wt
 
     Returns
@@ -492,10 +512,77 @@ def next3_test_1d_bin_log_wedge_no_wt():
     q_max = 0.010  # Edge
     step_per_decade = 10  # 10 steps per decade
 
-    bin_edges, bin_centers = determine_1d_log_bins(q_min, q_max, step_per_decade)
+    min_wedge_angle = -45.
+    max_wedge_angle = 45
 
     # Bin wedge
-    assert bin_edges
-    assert bin_centers
+    bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
+
+    # Get data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+    # calculate Q and dQ
+    scalar_q_array = np.sqrt(qx_array**2 + qy_array**2)
+    scalar_dq_array = np.sqrt(dqx_array**2 + dqy_array**2)
+
+    # Calculate wedge angles for each I(Qx, Qy)
+    # calculate azimuthal angles from -180 to 180 degrees
+    azimuthal_array = np.arctan2(qy_array, qx_array) * 180. / np.pi
+    # correct azimuthal angles to -90 to 270 degrees
+    azimuthal_array[azimuthal_array < -90.] += 360.
+
+    # Define the filter (mask/ROI) for pixels falling into preferred wedge
+    wedge_indexes = (azimuthal_array > min_wedge_angle) & (azimuthal_array < max_wedge_angle)
+
+    # Binning
+    binned_iq = do_1d_no_weight_binning(q_array=scalar_q_array[wedge_indexes],
+                                        dq_array=scalar_dq_array[wedge_indexes],
+                                        iq_array=intensities[wedge_indexes],
+                                        sigmaq_array=sigmas[wedge_indexes],
+                                        bin_centers=bin_centers,
+                                        bin_edges=bin_edges)
+
+    # Verification
+    # Bin centers and boundaries
+    gold_edges, gold_centers = get_gold_1d_log_bins()
+    assert np.allclose(bin_edges, gold_edges, 5.E-4)
+    assert np.allclose(bin_centers, gold_centers, 5.E-4)
+
+    # Azimuthal angles
+    gold_angles = get_gold_wedge_angles()
+    assert np.allclose(azimuthal_array[:gold_angles.shape[0]], gold_angles,
+                       rtol=1e-3), 'Wedge angles do no match to gold data'
+
+    # Number of pixels in the wedge
+    assert intensities[wedge_indexes].shape[0] == 7 * 3, 'Number of I(Q) in wedge area is incorrect'
+
+    # Binned I(Q) and others
+    print('Q = 0.005623 [7]:  (Q, I, sigmaI, dQ)'
+          '\nTest    : {}\t{}\t{}\t{}'
+          '\nExpected: {}\t{}\t{}\t{}'.format(binned_iq.q[7], binned_iq.i[7], binned_iq.sigma[7], binned_iq.dq[7],
+                                              0.005623, 65.77777778, 2.703450013, 5.798E-05))
+
+    # NOTE: using wzz's "correct" value till William's value
+    """
+    Q = 0.005623 [7]:  (Q, I, sigmaI, dQ)
+    Test    : 0.005623413251903491	67.7	2.6019223662515376	5.8479318657713166e-05
+    """
+    assert abs(binned_iq.i[7] - 67.7) < 1E-10
+    assert abs(binned_iq.sigma[7] - 2.6019223662515376) < 1E-10
+    assert abs(binned_iq.dq[7] - 5.84793186e-05) < 1E-10
+
+    # Test high level method
+    # Define input data
+    IQ2d = namedtuple('IQ2d', 'intensity error qx qy delta_qx delta_qy wavelength')
+    test_i_q = IQ2d(intensities, sigmas, qx_array, qy_array, dqx_array, dqy_array, None)
+
+    binned_iq2 = bin_wedge_into_q1d(test_i_q, min_wedge_angle, max_wedge_angle,
+                                    q_min, q_max, step_per_decade,
+                                    linear_binning=False,
+                                    method=BinningMethod.NOWEIGHT)
+
+    # verify calculated I, sigma and dQ
+    assert abs(binned_iq.i[7] - binned_iq2.i[7]) < 1E-12
+    assert abs(binned_iq.sigma[7] - binned_iq2.sigma[7]) < 1E-12
+    assert abs(binned_iq.dq[7] - binned_iq2.dq[7]) < 1E-12
 
     return

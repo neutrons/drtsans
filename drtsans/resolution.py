@@ -139,7 +139,9 @@ def calculate_sigma_theta_geometry(instrument_parameters, mode):
        \frac {1}{12}(\Delta R)^2
 
     If mode is "scalar", :math:`((\Delta R)^2=(\Delta x)^2+(\Delta y)^2)/2`, else
-    :math:`(\Delta R)^2=[(\Delta x)^2,(\Delta y)^2]`
+    :math:`(\Delta R)^2=[(\Delta x)^2,(\Delta y)^2]`. The formula for scalar is consistent with
+    the equations 10.3 and 10.4 in the master document. when you add the two together, the geometry
+    part is twice the contribution of :math:`(\Delta R)^2` plus the gravity part.
 
     Parameters
     ----------

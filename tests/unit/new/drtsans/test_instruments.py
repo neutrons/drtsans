@@ -16,6 +16,7 @@ def test_instrument_name(serve_events_workspace):
     assert instrument_enum_name(workspace) == InstrumentEnumName.UNDEFINED
     workspace.delete()
 
+
 def test_is_time_of_flight(serve_events_workspace):
     for query in ('EQSANS', 'EQ-SANS', serve_events_workspace('EQSANS_92353')):
         assert is_time_of_flight(query) is True

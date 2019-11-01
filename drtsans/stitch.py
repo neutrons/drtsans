@@ -1,14 +1,19 @@
-# flake8: noqa
+from drtsans.settings import unique_workspace_dundername as uwd
+import numpy as np
+# https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v3.html
 # https://docs.mantidproject.org/nightly/algorithms/Stitch1D-v3.html
-import os, numpy as np
-from mantid.simpleapi import WorkspaceFactory, Stitch1D
+from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, Stitch1D
 
-def stitch(q1,y1,erry1,errq1, q2,y2,erry2,errq2, startoverlap, stopoverlap):
+
+def stitch(q1, y1, erry1, errq1, q2, y2, erry2, errq2, startoverlap, stopoverlap):
     r"""
     The algorithm calculates the stitched spectrum out of two spectrum, one
     for low q, another for high q.
 
     **Mantid algorithms used:**
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
     :ref:`Stitch1D <algm-Stitch1D-v3>`,
 
     Parameters
@@ -33,21 +38,24 @@ def stitch(q1,y1,erry1,errq1, q2,y2,erry2,errq2, startoverlap, stopoverlap):
     ws2 = _toWS(q2, y2, newq)
     # then stitch
     _, scale = Stitch1D(LHSWorkspace=ws1, RHSWorkspace=ws2, StartOverlap=startoverlap, EndOverlap=stopoverlap)
-    # put together the output data. it is the concatenation of low_q_spectrum[q<startoverlap] and high_q_spectrum[q>startoverlap]
-    lowqrange = q1<startoverlap
-    highqrange = q2>startoverlap
+
+    # put together the output data. it is the concatenation of low_q_spectrum[q<startoverlap]
+    # and high_q_spectrum[q>startoverlap]
+    lowqrange = q1 < startoverlap
+    highqrange = q2 > startoverlap
     qout = np.concatenate((q1[lowqrange], q2[highqrange]))
     yout = np.concatenate((y1[lowqrange], scale*y2[highqrange]))
     erryout = np.concatenate((erry1[lowqrange], scale*erry2[highqrange]))
     errqout = np.concatenate((errq1[lowqrange], errq2[highqrange]))
+
+    # clean up temporary workspaces
+    DeleteWorkspace(Workspace=str(ws1))
+    DeleteWorkspace(Workspace=str(ws2))
+
     return qout, yout, erryout, errqout, scale
 
 
-def _toWS(x,y, newx):
+def _toWS(x, y, newx):
     newy = np.interp(newx, x, y)
-    nbins = newx.size
-    ws = WorkspaceFactory.create(
-        "Workspace2D", NVectors=1, XLength=nbins, YLength=nbins)
-    ws.setX(0, newx)
-    ws.setY(0, newy)
-    return ws
+    return CreateWorkspace(DataX=newx, DataY=newy, Nspec=1,
+                           OutputWorkspace=uwd(), EnableLogging=False)

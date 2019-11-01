@@ -18,5 +18,5 @@ from .transmission import *
 
 __all__ = (drtsans.beam_finder.__all__ + drtsans.transmission.__all__ + drtsans.absolute_units.__all__ + api.__all__
            + cfg.__all__ + correct_frame.__all__ + dark_current.__all__ + geometry.__all__
-           + iq.__all__ + load.__all__ + mask.__all__ + normalisation.__all__ + drtsans.iq.__all__
+           + load.__all__ + mask.__all__ + normalisation.__all__ + drtsans.iq.__all__
            + transmission.__all__)  # noqa: F405

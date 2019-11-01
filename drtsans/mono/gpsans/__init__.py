@@ -4,7 +4,7 @@ import drtsans.beam_finder
 from drtsans.beam_finder import *
 
 import drtsans.iq
-from drtsans.iq import *
+from ...iq import *
 
 import drtsans.thickness_normalization
 from ...thickness_normalization import *

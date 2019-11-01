@@ -36,5 +36,5 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + iq.__all__\
           + mask.__all__\
           + normalisation.__all__\
-          + transmission.__all_
+          + transmission.__all__
 

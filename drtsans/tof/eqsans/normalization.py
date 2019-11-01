@@ -76,8 +76,7 @@ def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
     return mtd[output_workspace]
 
 
-def normalize_by_proton_charge_and_flux(input_workspace, flux,
-                                        output_workspace=None):
+def normalize_by_proton_charge_and_flux(input_workspace, flux, output_workspace=None):
     r"""
     Normalizes the input workspace by proton charge and measured flux
 
@@ -264,20 +263,21 @@ def normalize_by_time(input_workspace, log_key=None, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
     duration = run_duration(input_workspace, log_key=log_key)
-    Scale(input_workspace, Factor=1./duration.value,
-          Operation='Multiply', OutputWorkspace=output_workspace)
-    SampleLogs(output_workspace).insert('normalizing_duration',
-                                        duration.log_key)
+    Scale(input_workspace, Factor=1./duration.value, Operation='Multiply', OutputWorkspace=output_workspace)
+    SampleLogs(output_workspace).insert('normalizing_duration', duration.log_key)
     return mtd[output_workspace]
 
 
-def normalize_by_flux(input_workspace, flux, method='proton charge',
-                      monitor_workspace=None, output_workspace=None):
+def normalize_by_flux(input_workspace, flux, method='proton charge', monitor_workspace=None, output_workspace=None):
     r"""
     Normalize counts by several methods to estimate the neutron flux.
 
-    Neutron flux can be estimated either with a monitor or with the proton
-    charge.
+    This function calls specialized normalizing functions based on ``method`` argument.
+    Those functions are:
+    - normalize_by_time
+    - normalize_by_monitor
+    - normalize_by_proton_charge_and_flux
+
 
     Parameters
     ----------
@@ -325,8 +325,7 @@ def normalize_by_flux(input_workspace, flux, method='proton charge',
     kwargs = {'time': dict(log_key=flux)}
     kwargs = kwargs.get(method, dict())
 
-    normalizer[method](input_workspace, *args,
-                       output_workspace=output_workspace, **kwargs)
+    normalizer[method](input_workspace, *args, output_workspace=output_workspace, **kwargs)
 
     # A bit of cleanup
     if w_flux:

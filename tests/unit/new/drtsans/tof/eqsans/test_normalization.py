@@ -42,6 +42,9 @@ def monitor_ws(reference_dir):
 
 
 def test_load_beam_flux_file(beam_flux, data_ws):
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_ws['92353'])
     assert flux_workspace.readY(0)[0] == approx(959270., abs=1.)
     assert max(flux_workspace.readY(0)) == approx(966276., abs=1.)
@@ -49,6 +52,9 @@ def test_load_beam_flux_file(beam_flux, data_ws):
 
 
 def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     data_workspace = data_ws['92353']
     flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_workspace)
     normalized_data_workspace = normalize_by_proton_charge_and_flux(data_workspace, flux_workspace,
@@ -62,6 +68,9 @@ def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
 
 
 def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     # No reference workspace
     flux_to_monitor_workspace = load_flux_to_monitor_ratio_file(flux_to_monitor)
     assert len(flux_to_monitor_workspace.dataX(0)) == 1 + len(flux_to_monitor_workspace.dataY(0))
@@ -74,6 +83,9 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
 
 
 def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws):
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     # Try normalization in frame-skipping mode to test raise assertion
     data_workspace, monitor_workspace = data_ws['92353'], monitor_ws['88565']
     with pytest.raises(ValueError, match='not possible in frame-skipping'):
@@ -89,6 +101,9 @@ def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws):
 
 
 def test_normalize_by_time(data_ws):
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     data_workspace = data_ws['92353']
     y, e = data_workspace.readY(42)[5], data_workspace.readE(42)[5]  # some meaningful choice
 
@@ -101,7 +116,9 @@ def test_normalize_by_time(data_ws):
 
 
 def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
-
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
     # Normalize by flux and proton charge
     data_workspace = data_ws['92353']
     data_workspace_normalized = normalize_by_flux(data_workspace, beam_flux,

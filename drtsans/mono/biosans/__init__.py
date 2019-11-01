@@ -23,6 +23,9 @@ from ..load import *
 from .beam_finder import *
 from .solid_angle import *
 
+from drtsans.iq import *
+
+
 __all__ = [] + drtsans.beam_finder.__all__ + drtsans.absolute_units.__all__ + drtsans.transmission.__all__ +\
           drtsans.mono.absolute_units.__all__ + drtsans.mono.dark_current.__all__ + drtsans.mono.geometry.__all__\
-          + beam_finder.__all__ + solid_angle.__all__
+          + beam_finder.__all__ + solid_angle.__all__ + drtsans.iq.__all__

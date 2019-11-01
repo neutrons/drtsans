@@ -9,7 +9,7 @@ from mantid.simpleapi import CreateWorkspace
 # time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
-from drtsans.mono.normalisation import normalize_by_time, normalize_by_monitor
+from drtsans.mono.normalization import normalize_by_time, normalize_by_monitor
 
 
 @pytest.fixture(scope='module')

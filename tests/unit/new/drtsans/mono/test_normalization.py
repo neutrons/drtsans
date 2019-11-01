@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.offline
 def test_normalisation_monitor(gpsans_f):
 
-    from drtsans.mono.normalisation import normalize_by_monitor
+    from drtsans.mono.normalization import normalize_by_monitor
     from drtsans.samplelogs import SampleLogs
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd
@@ -25,7 +25,7 @@ def test_normalisation_monitor(gpsans_f):
 @pytest.mark.offline
 def test_normalisation_time(gpsans_f):
 
-    from drtsans.mono.normalisation import normalize_by_time
+    from drtsans.mono.normalization import normalize_by_time
     from drtsans.samplelogs import SampleLogs
     from mantid.simpleapi import LoadHFIRSANS
     from mantid import mtd

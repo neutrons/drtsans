@@ -31,7 +31,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
                                   MaskBTP, SolidAngle, SaveNexus)
     from drtsans.mono.biosans.beam_finder import find_beam_center
     from drtsans.mono.dark_current import subtract_dark_current
-    from drtsans.mono.normalisation import normalize_by_time
+    from drtsans.mono.normalization import normalize_by_time
     from drtsans.sensitivity import inf_value_to_mask, interpolate_mask
     from drtsans.transmission import (apply_transmission_correction, calculate_transmission)
     # Load the files into WS

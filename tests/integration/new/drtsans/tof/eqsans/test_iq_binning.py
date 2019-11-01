@@ -6,7 +6,7 @@ import os
 from mantid import mtd
 from mantid.simpleapi import AddSampleLog, ConfigService, Rebin  # ExtractSpectra MaskAngle,
 from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, transform_to_wavelength)
-from drtsans.iq import bin_iq_into_linear_q1d, BinningMethod
+from drtsans.iq import bin_intensity_into_q1d, BinningMethod
 from drtsans.convert_to_q import convert_to_q
 
 
@@ -102,8 +102,8 @@ def test_iq_binning_serial(reference_dir):
 
     # Bin I(Q)
     final_q_min = 0
-    i_of_q = bin_iq_into_linear_q1d(iq_array, sigma_iq_array, q_array, dq_array, bins=10, q_min=final_q_min,
-                                    bin_method=BinningMethod.WEIGHTED)
+    i_of_q = bin_intensity_into_q1d(iq_array, sigma_iq_array, q_array, dq_array, bins=10, q_min=final_q_min,
+                                    linear_binning=True, bin_method=BinningMethod.WEIGHTED)
     assert i_of_q
 
     # TODO - continue from here

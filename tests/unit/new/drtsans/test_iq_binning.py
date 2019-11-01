@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, BinningMethod,\
+from drtsans.iq import bin_intensity_into_q1d, bin_iq_into_logarithm_q1d, BinningMethod,\
     _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_weighted_binning, _do_1d_no_weight_binning
 import bisect
 
@@ -178,8 +178,8 @@ def test_linear_binning():
     assert np.sqrt(np.sum((i_noweight_array - no_weight_iq.intensity)**2)) < 1e-6
 
     # Test to go through wrapper method
-    wiq = bin_iq_into_linear_q1d(iq_array, sigma_q_array, q_array, dq_array, bins, q_min, q_max,
-                                 BinningMethod.WEIGHTED)
+    wiq = bin_intensity_into_q1d(iq_array, sigma_q_array, q_array, dq_array, bins, q_min, q_max,
+                                 True, BinningMethod.WEIGHTED)
     np.testing.assert_allclose(wiq.intensity, binned_q.intensity, atol=1e-6)
 
 

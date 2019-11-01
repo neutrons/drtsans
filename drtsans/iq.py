@@ -9,8 +9,8 @@ from string import Template
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
-__all__ = ['bin_iq_into_linear_q1d', 'bin_iq_into_logarithm_q1d', 'bin_wedge_into_q1d',
-           'bin_annular_into_q1d', '_bin_iq_into_linear_q2d']
+__all__ = ['bin_intensity_into_q1d', 'bin_iq_into_logarithm_q1d', 'bin_wedge_into_q1d',
+           'bin_annular_into_q1d', 'bin_iq_into_linear_q2d', 'BinningMethod']
 
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
@@ -26,8 +26,8 @@ class BinningMethod(Enum):
     WEIGHTED = 2   # weighted binning
 
 
-def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins, q_min=None, q_max=None,
-                           bin_method=BinningMethod.WEIGHTED):
+def bin_intensity_into_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins, q_min=None, q_max=None,
+                           linear_binning=True, bin_method=BinningMethod.WEIGHTED):
     """Binning I(Q) from scalar Q (1D) with linear binning on Q
 
     Parameters
@@ -41,11 +41,13 @@ def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins
     scalar_dq : ndaray
         Q resolution
     bins : integer
-        number of bins
+        number of bins for linear binning; step per decade for logarithm binning
     q_min : float or NOne
         min Q (edge) of the binned Q. Default to min(scalar_q)
     q_max : float or None
         max Q (edge) of the binned Q. Default to max(scalar_q)
+    linear_binning : bool
+        flag for linear binning or logarithm binning
     bin_method : BinningMethod
         weighted binning or no-weight binning method
 
@@ -61,7 +63,13 @@ def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins
         q_max = np.max(scalar_q)
 
     # calculate bin centers and bin edges
-    bin_centers, bin_edges = _determine_1d_linear_bins(q_min, q_max, bins)
+    if linear_binning:
+        # linear bins
+        bin_centers, bin_edges = _determine_1d_linear_bins(q_min, q_max, bins)
+    else:
+        # log bins.
+        # in this case, bins is steps per decade
+        bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, bins)
 
     # bin I(Q)
     if bin_method == BinningMethod.WEIGHTED:
@@ -481,7 +489,7 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
                  mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 
 
-def _bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMethod.NOWEIGHT):
+def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMethod.NOWEIGHT):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
     Note: for binning parameters:

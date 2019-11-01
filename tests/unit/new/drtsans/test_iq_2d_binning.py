@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from drtsans.dataobjects import IQazimuthal
-from drtsans.iq import _determine_linear_bin_size, _bin_iq_into_linear_q2d, BinningParams, BinningMethod
+from drtsans.iq import _determine_linear_bin_size, bin_iq_into_linear_q2d, BinningParams, BinningMethod
 import bisect
 
 
@@ -180,7 +180,7 @@ def test_create_2d_bins():
     # Assign I(Q) to 8 x 8 matrix as I_raw
     x_bin_params = BinningParams(qx_array.min(), qx_array.max(), 8)
     y_bin_params = BinningParams(qy_array.min(), qy_array.max(), 8)
-    _bin_iq_into_linear_q2d(test_iq, x_bin_params, y_bin_params, BinningMethod.WEIGHTED)
+    bin_iq_into_linear_q2d(test_iq, x_bin_params, y_bin_params, BinningMethod.WEIGHTED)
 
 
 def assign_2d_bin_is(qx_array, qy_array, num_x_bins, num_y_bins):

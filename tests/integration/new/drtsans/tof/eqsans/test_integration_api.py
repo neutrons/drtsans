@@ -42,8 +42,7 @@ run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 
 @pytest.fixture(scope='module')
 def flux_file(reference_dir):
-    return pj(reference_dir.new.eqsans, 'test_normalisation',
-              'beam_profile_flux.txt')
+    return pj(reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt')
 
 
 @pytest.fixture(scope='module', params=run_sets, ids=[item['run'] for item in run_sets])

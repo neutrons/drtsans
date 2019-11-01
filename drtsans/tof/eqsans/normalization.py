@@ -29,7 +29,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans import path
 from drtsans.tof.eqsans.dark_current import duration as run_duration
 
-__all__ = ['normalize_by_flux', 'normalize_by_time', 'normalize_by_monitor', 'normalise_by_proton_charge_and_flux']
+__all__ = ['normalize_by_flux', 'normalize_by_time', 'normalize_by_monitor', 'normalize_by_proton_charge_and_flux']
 
 
 def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
@@ -76,10 +76,10 @@ def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
     return mtd[output_workspace]
 
 
-def normalise_by_proton_charge_and_flux(input_workspace, flux,
+def normalize_by_proton_charge_and_flux(input_workspace, flux,
                                         output_workspace=None):
     r"""
-    Normalises the input workspace by proton charge and measured flux
+    Normalizes the input workspace by proton charge and measured flux
 
     **Mantid algorithms used:**
     :ref:`RebinToWorkspace <algm-Divide-v1>`,
@@ -94,11 +94,11 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     Parameters
     ----------
     input_workspace : str, MatrixWorkspace
-        Workspace to be normalised, rebinned in wavelength.
+        Workspace to be normalized, rebinned in wavelength.
     flux : Workspace
         Measured beam flux file ws, usually the output of `load_beam_flux_file`
     output_workspace : str
-        Name of the normalised workspace. If None, the name of the input
+        Name of the normalized workspace. If None, the name of the input
         workspace is chosen (the input workspace is overwritten).
 
     Returns
@@ -110,7 +110,7 @@ def normalise_by_proton_charge_and_flux(input_workspace, flux,
     # Match the binning of the input workspace prior to carry out the division
     rebinned_flux = unique_workspace_dundername()
     RebinToWorkspace(WorkspaceToRebin=flux, WorkspaceToMatch=input_workspace, OutputWorkspace=rebinned_flux)
-    # Normalise by the flux
+    # Normalize by the flux
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=rebinned_flux, OutputWorkspace=output_workspace)
     DeleteWorkspace(rebinned_flux)  # remove the temporary rebinned flux workspace
     # Normalize by the proton charge
@@ -162,7 +162,7 @@ def load_flux_to_monitor_ratio_file(flux_to_monitor_ratio_file, data_workspace=N
 
 def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None):
     r"""
-    Normalises the input workspace by monitor count and flux-to-monitor
+    Normalizes the input workspace by monitor count and flux-to-monitor
     ratio.
 
     **Mantid algorithms used:**
@@ -184,14 +184,14 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     Parameters
     ----------
     input_workspace : str, MatrixWorkspace
-        Workspace to be normalised, rebinned in wavelength.
+        Workspace to be normalized, rebinned in wavelength.
     flux_to_monitor : str, MatrixWorkspace
         Flux to monitor ratio. A file path or a workspace resulting from
         calling `load_flux_to_monitor_ratio_file`.
     monitor_workspace : str, MatrixWorkspace
         Counts from the monitor.
     output_workspace : str
-        Name of the normalised workspace. If None, the name of the input
+        Name of the normalized workspace. If None, the name of the input
         workspace is chosen (the input workspace is overwritten).
 
     Returns
@@ -203,7 +203,7 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
 
     # Check non-skip mode
     if bool(SampleLogs(input_workspace).is_frame_skipping.value) is True:
-        msg = 'Normalisation by monitor not possible in frame-skipping mode'
+        msg = 'Normalization by monitor not possible in frame-skipping mode'
         raise ValueError(msg)
 
     # Only the first spectrum of the monitor is required
@@ -228,7 +228,7 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     flux_workspace = unique_workspace_dundername()
     Multiply(monitor_workspace_rebinned, flux_to_monitor_workspace, OutputWorkspace=flux_workspace)
 
-    # Normalise our input workspace
+    # Normalize our input workspace
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux_workspace, OutputWorkspace=output_workspace)
 
     # Clean the dust balls
@@ -254,7 +254,7 @@ def normalize_by_time(input_workspace, log_key=None, output_workspace=None):
         logs are sequentially searched for keys ``duration``, ``start_time``,
         ``proton_charge``, and ``timer``, in order to find out the duration.
     output_workspace : str
-        Name of the normalised workspace. If :py:obj:`None`, the name of the input
+        Name of the normalized workspace. If :py:obj:`None`, the name of the input
         workspace is chosen (and the input workspace is overwritten).
 
     Returns
@@ -295,7 +295,7 @@ def normalize_by_flux(input_workspace, flux, method='proton charge',
     monitor_workspace: str, ~mantid.api.MatrixWorkspace
         Prepared monitor workspace
     output_workspace : str
-        Name of the normalised workspace. If :py:obj:`None`, the name of the input
+        Name of the normalized workspace. If :py:obj:`None`, the name of the input
         workspace is chosen (the input workspace is overwritten).
 
     Returns
@@ -313,19 +313,19 @@ def normalize_by_flux(input_workspace, flux, method='proton charge',
     else:
         w_flux = None
 
-    # Select the normalisation function
-    normaliser = {'proton charge': normalise_by_proton_charge_and_flux,
+    # Select the normalization function
+    normalizer = {'proton charge': normalize_by_proton_charge_and_flux,
                   'monitor': normalize_by_monitor,
                   'time': normalize_by_time}
 
-    # Arguments specific to the normaliser
+    # Arguments specific to the normalizer
     args = {'proton charge': [w_flux],
             'monitor': [w_flux, monitor_workspace]}
     args = args.get(method, list())
     kwargs = {'time': dict(log_key=flux)}
     kwargs = kwargs.get(method, dict())
 
-    normaliser[method](input_workspace, *args,
+    normalizer[method](input_workspace, *args,
                        output_workspace=output_workspace, **kwargs)
 
     # A bit of cleanup

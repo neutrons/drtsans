@@ -67,10 +67,10 @@ def test_iq_binning_serial(reference_dir):
     center_detector(ws, center_x=0.025, center_y=0.016)
 
     flux_ws = normalization.load_beam_flux_file(os.path.join(
-        reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+        reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt'),
         output_workspace='flux_ws', data_workspace=ws)
 
-    ws = normalization.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    ws = normalization.normalize_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # Prepare to calculate Q, dQ and bin I(Q)
     # NOTE: geometry.sample_aperture_diameter is not working: slit4 missing in EQSANS_68200_event.nxs
@@ -187,12 +187,12 @@ def skip_test_api(reference_dir):
 
     # center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
-    # flux_ws = normalisation.load_beam_flux_file(os.path.join(
-    #     reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+    # flux_ws = normalization.load_beam_flux_file(os.path.join(
+    #     reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt'),
     #     output_workspace='flux_ws',
     #     ws_reference=ws)
 
-    # ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    # ws = normalization.normalize_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # #
     # table_ws = prepare_momentum_transfer(

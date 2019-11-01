@@ -3,7 +3,7 @@ from pytest import approx
 from os.path import join as pj
 from mantid.simpleapi import SumSpectra
 
-from drtsans.tof.eqsans.normalization import (load_beam_flux_file, normalise_by_proton_charge_and_flux,
+from drtsans.tof.eqsans.normalization import (load_beam_flux_file, normalize_by_proton_charge_and_flux,
                                               load_flux_to_monitor_ratio_file, normalize_by_monitor,
                                               normalize_by_time, normalize_by_flux)
 from drtsans.settings import amend_config, unique_workspace_dundername
@@ -13,13 +13,13 @@ from drtsans.samplelogs import SampleLogs
 
 @pytest.fixture(scope='module')
 def beam_flux(reference_dir):
-    return pj(reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt')
+    return pj(reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt')
 
 
 @pytest.fixture(scope='module')
 def flux_to_monitor(reference_dir):
     return pj(reference_dir.new.eqsans,
-              'test_normalisation', 'flux_to_monitor_ratio.nxs')
+              'test_normalization', 'flux_to_monitor_ratio.nxs')
 
 
 @pytest.fixture(scope='module')
@@ -51,7 +51,7 @@ def test_load_beam_flux_file(beam_flux, data_ws):
 def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
     data_workspace = data_ws['92353']
     flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_workspace)
-    normalized_data_workspace = normalise_by_proton_charge_and_flux(data_workspace, flux_workspace,
+    normalized_data_workspace = normalize_by_proton_charge_and_flux(data_workspace, flux_workspace,
                                                                     output_workspace=unique_workspace_dundername())
     normalized_total_intensities = SumSpectra(normalized_data_workspace,
                                               OutputWorkspace=unique_workspace_dundername()).dataY(0)
@@ -73,7 +73,7 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
     assert max(flux_to_monitor_workspace.dataY(0)) == approx(0.569, abs=1e-3)
 
 
-def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
+def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     # Try normalization in frame-skipping mode to test raise assertion
     data_workspace, monitor_workspace = data_ws['92353'], monitor_ws['88565']
     with pytest.raises(ValueError, match='not possible in frame-skipping'):
@@ -88,7 +88,7 @@ def test_normalise_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     data_workspace_normalized.delete()
 
 
-def test_normalise_by_time(data_ws):
+def test_normalize_by_time(data_ws):
     data_workspace = data_ws['92353']
     y, e = data_workspace.readY(42)[5], data_workspace.readE(42)[5]  # some meaningful choice
 
@@ -100,7 +100,7 @@ def test_normalise_by_time(data_ws):
     normalized_data_workspace.delete()
 
 
-def test_normalise_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
+def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
 
     # Normalize by flux and proton charge
     data_workspace = data_ws['92353']

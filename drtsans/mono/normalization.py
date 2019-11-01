@@ -16,8 +16,8 @@ from drtsans.samplelogs import SampleLogs
 
 
 def normalize_by_time(input_workspace, output_workspace=None):
-    """Normalise by time
-    Used to normalise dark current
+    """Normalize by time
+    Used to normalize dark current
 
     **Mantid algorithms used:**
     :ref:`Divide <algm-Divide-v1>`,
@@ -39,7 +39,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
 
 
 def normalize_by_monitor(input_workspace, output_workspace=None, factor_is=1.e08):
-    """Normalise by the monitor value
+    """Normalize by the monitor value
 
     **Mantid algorithms used:**
     :ref: `CreateSingleValuedWorkspace <algm-CreateSingleValuedWorkspace-v1>

@@ -55,7 +55,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     # Let's correct the data first
     ###########################################################################
-    # DC normalisation
+    # DC normalization
     dark_current_norm_ws = normalize_by_time(dark_current_ws)
     # DC Subtraction
     flood_dc_corrected_ws = subtract_dark_current(
@@ -184,7 +184,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     MaskBTP(Workspace=dark_current_ws, Components='detector1')
     MaskBTP(Workspace=flood_ws, Components="detector1")
 
-    # DC normalisation
+    # DC normalization
     dark_current_norm_ws = normalize_by_time(dark_current_ws)
     # DC Subtraction
     flood_dc_corrected_ws = subtract_dark_current(

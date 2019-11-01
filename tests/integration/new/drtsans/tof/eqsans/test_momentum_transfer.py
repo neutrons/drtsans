@@ -43,10 +43,10 @@ def test_momentum_transfer_serial(reference_dir):
     center_detector(ws, center_x=0.025, center_y=0.016)
 
     flux_ws = normalization.load_beam_flux_file(os.path.join(
-        reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+        reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt'),
         output_workspace='flux_ws', data_workspace=ws)
 
-    ws = normalization.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    ws = normalization.normalize_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # geometry.sample_aperture_diameter is not working: slit4 missing
     # We hard code the sample_aperture_diameter instead

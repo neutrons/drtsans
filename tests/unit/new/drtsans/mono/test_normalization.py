@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.mark.offline
-def test_normalisation_monitor(gpsans_f):
+def test_normalization_monitor(gpsans_f):
 
     from drtsans.mono.normalization import normalize_by_monitor
     from drtsans.samplelogs import SampleLogs
@@ -23,7 +23,7 @@ def test_normalisation_monitor(gpsans_f):
 
 
 @pytest.mark.offline
-def test_normalisation_time(gpsans_f):
+def test_normalization_time(gpsans_f):
 
     from drtsans.mono.normalization import normalize_by_time
     from drtsans.samplelogs import SampleLogs

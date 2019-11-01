@@ -6,14 +6,14 @@ from mantid.simpleapi import mtd, CreateWorkspace
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-# time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
+# time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalize_by_time, normalize_by_monitor,
-                                normalise_by_proton_charge_and_flux)
+                                normalize_by_proton_charge_and_flux)
 
 
-def test_normalise_by_time(reference_dir):
+def test_normalize_by_time(reference_dir):
     w = load_events('EQSANS_68168', data_dir=reference_dir.new.eqsans)
     d = SampleLogs(w).duration.value
     w = transform_to_wavelength(w)
@@ -75,8 +75,8 @@ def test_normalization_by_time(data_test_16a_by_time):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-    ~drtsans.tof.normalisation.normalize_by_time
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalisation.py>
+    ~drtsans.tof.normalization.normalize_by_time
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
     """
     # Create a sample workspace with the input data
     data_workspace = unique_workspace_dundername()
@@ -193,8 +193,8 @@ def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-    ~drtsans.tof.normalisation.normalize_by_monitor
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalisation.py>
+    ~drtsans.tof.normalization.normalize_by_monitor
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
     """
     # Input intensities from the test, only one value per detector pixel
     intensities_list = np.array(data_test_16a_by_monitor['I_sam']).flatten()
@@ -308,7 +308,7 @@ def data_test_16a_by_proton():
                 )
 
 
-def test_normalise_by_proton_charge_and_flux(data_test_16a_by_proton):
+def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton):
     r"""
     Normalize sample intensities by flux and proton charge.
     Addresses section of the 6.3 the master document
@@ -326,8 +326,8 @@ def test_normalise_by_proton_charge_and_flux(data_test_16a_by_proton):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-    ~drtsans.tof.normalisation.normalise_by_proton_charge_and_flux
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalisation.py>
+    ~drtsans.tof.normalization.normalize_by_proton_charge_and_flux
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
     """
     # Input intensities from the test, only one value per detector pixel
     intensities_list = np.array(data_test_16a_by_proton['I_sam']).flatten()
@@ -354,7 +354,7 @@ def test_normalise_by_proton_charge_and_flux(data_test_16a_by_proton):
                                      OutputWorkspace=unique_workspace_dundername())
 
     # Carry out the normalization with the reduction framework
-    data_workspace = normalise_by_proton_charge_and_flux(data_workspace, flux_workspace)
+    data_workspace = normalize_by_proton_charge_and_flux(data_workspace, flux_workspace)
 
     # Compare to test data. Notice that data_test_16a_by_proton['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary

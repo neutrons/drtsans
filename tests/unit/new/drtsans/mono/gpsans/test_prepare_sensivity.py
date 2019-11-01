@@ -297,8 +297,8 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
 
             if -np.inf in d_ij_arr:
                 # Infinity case
-                d_ij = -np.inf
-                s_ij = -0.  # will be set to -inf after 1/s_ij operation
+                sensitivities[i, j] = -np.inf
+                sensitivities_error[i, j] = -np.inf
             else:
                 # Do weighted summation
                 # remove NaN
@@ -313,8 +313,8 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
                 print('[DEBUG] ({}, {})  D" = {}, s = {}/{}  <-- {}, {}'
                       ''.format(i, j, d_ij, s_ij, s_ij**2, d_ij_arr, s_ij_arr))
 
-            sensitivities[i, j] = d_ij
-            sensitivities_error[i, j] = 1. / s_ij
+                sensitivities[i, j] = d_ij
+                sensitivities_error[i, j] = 1. / s_ij
     # END-FOR
 
     # Calculate  D, i.e., sensitivity for each pixel

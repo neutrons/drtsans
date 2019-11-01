@@ -7,7 +7,7 @@ from mantid import mtd
 # https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 from mantid.simpleapi import AddSampleLog, ConfigService, MaskAngle, Rebin  # ExtractSpectra
-from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, prepare_data,
+from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalization, prepare_data,
                                 transform_to_wavelength)
 
 
@@ -42,11 +42,11 @@ def test_momentum_transfer_serial(reference_dir):
 
     center_detector(ws, center_x=0.025, center_y=0.016)
 
-    flux_ws = normalisation.load_beam_flux_file(os.path.join(
+    flux_ws = normalization.load_beam_flux_file(os.path.join(
         reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
         output_workspace='flux_ws', data_workspace=ws)
 
-    ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    ws = normalization.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # geometry.sample_aperture_diameter is not working: slit4 missing
     # We hard code the sample_aperture_diameter instead

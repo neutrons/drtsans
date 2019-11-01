@@ -3,7 +3,7 @@ from pytest import approx
 from os.path import join as pj
 from mantid.simpleapi import SumSpectra
 
-from drtsans.tof.eqsans.normalisation import (load_beam_flux_file, normalise_by_proton_charge_and_flux,
+from drtsans.tof.eqsans.normalization import (load_beam_flux_file, normalise_by_proton_charge_and_flux,
                                               load_flux_to_monitor_ratio_file, normalize_by_monitor,
                                               normalize_by_time, normalize_by_flux)
 from drtsans.settings import amend_config, unique_workspace_dundername

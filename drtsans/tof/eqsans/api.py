@@ -12,7 +12,7 @@ from drtsans.tof.eqsans.correct_frame import smash_monitor_spikes, transform_to_
 from drtsans.tof.eqsans.load import load_events, load_events_monitor
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 from drtsans.tof.eqsans.mask import apply_mask
-from drtsans.tof.eqsans.normalisation import normalize_by_flux
+from drtsans.tof.eqsans.normalization import normalize_by_flux
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_monitors', 'prepare_data', 'save_ascii_1D', 'save_xml_1D',

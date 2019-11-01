@@ -5,7 +5,7 @@ import os
 # import mantid
 from mantid import mtd
 from mantid.simpleapi import AddSampleLog, ConfigService, Rebin  # ExtractSpectra MaskAngle,
-from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, transform_to_wavelength)
+from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalization, transform_to_wavelength)
 from drtsans.iq import bin_iq_into_linear_q1d, BinningMethod
 from drtsans.convert_to_q import convert_to_q
 
@@ -66,11 +66,11 @@ def test_iq_binning_serial(reference_dir):
     # Calibration in the next few steps
     center_detector(ws, center_x=0.025, center_y=0.016)
 
-    flux_ws = normalisation.load_beam_flux_file(os.path.join(
+    flux_ws = normalization.load_beam_flux_file(os.path.join(
         reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
         output_workspace='flux_ws', data_workspace=ws)
 
-    ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    ws = normalization.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # Prepare to calculate Q, dQ and bin I(Q)
     # NOTE: geometry.sample_aperture_diameter is not working: slit4 missing in EQSANS_68200_event.nxs

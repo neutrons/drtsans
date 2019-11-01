@@ -1,4 +1,6 @@
 from collections import namedtuple
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
 from drtsans.dataobjects import IQazimuthal, IQmod
 from enum import Enum
 from mantid.simpleapi import CreateEmptyTableWorkspace
@@ -494,28 +496,6 @@ def do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cent
                  mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 
 
-def bin_into_q2d(wl_ws, bins, suffix):
-    """
-    Parameters
-    ----------
-    wl_ws:
-        List of workspaces (names) in binned wave length space
-    bins:
-        Iterable for range and bin size of Qx and Qy
-    suffix:
-        suffix for output workspace
-
-    Returns
-    -------
-    None
-    """
-    assert wl_ws
-    assert bins
-    assert suffix
-
-    return None
-
-
 def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMethod.NOWEIGHT):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
@@ -544,11 +524,6 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
                                                            qx_bin_params.max)
     qy_bin_center, qy_bin_edges = determine_1d_linear_bins(qy_bin_params.min,  qy_bin_params.bins,
                                                            qy_bin_params.max)
-
-    # qx_bin_size, qx_bin_center, qx_bin_edges = determine_linear_bin_size(i_q.qx, qx_bin_params.min,
-    #                                                                      qx_bin_params.bins, qx_bin_params.max)
-    # qy_bin_size, qy_bin_center, qy_bin_edges = determine_linear_bin_size(i_q.qy, qy_bin_params.min,
-    #                                                                      qy_bin_params.bins, qy_bin_params.max)
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning

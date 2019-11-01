@@ -10,7 +10,7 @@ from string import Template
 np.seterr(divide='ignore', invalid='ignore')
 
 __all__ = ['bin_iq_into_linear_q1d', 'bin_iq_into_logarithm_q1d', 'bin_wedge_into_q1d',
-           'bin_annular_into_q1d', 'bin_iq_into_linear_q2d']
+           'bin_annular_into_q1d', '_bin_iq_into_linear_q2d']
 
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
@@ -61,17 +61,17 @@ def bin_iq_into_linear_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins
         q_max = np.max(scalar_q)
 
     # calculate bin centers and bin edges
-    bin_centers, bin_edges = determine_1d_linear_bins(q_min, q_max, bins)
+    bin_centers, bin_edges = _determine_1d_linear_bins(q_min, q_max, bins)
 
     # bin I(Q)
     if bin_method == BinningMethod.WEIGHTED:
         # weighed binning
-        binned_q = do_1d_weighted_binning(scalar_q, scalar_dq, intensity, intensity_error,
-                                          bin_centers, bin_edges)
+        binned_q = _do_1d_weighted_binning(scalar_q, scalar_dq, intensity, intensity_error,
+                                           bin_centers, bin_edges)
     else:
         # no-weight binning
-        binned_q = do_1d_no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error,
-                                           bin_centers, bin_edges)
+        binned_q = _do_1d_no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error,
+                                            bin_centers, bin_edges)
 
     return binned_q
 
@@ -111,15 +111,15 @@ def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, s
 
     # calculate bin centers and bin edges
     # print('[DEBUG] Qmin = {}, Qmax = {}, Step/Decade = {}'.format(q_min, q_max, step_per_decade))
-    bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
+    bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, step_per_decade)
 
     # bin I(Q)
     if bin_method == BinningMethod.WEIGHTED:
         # weighed binning
-        binned_q = do_1d_weighted_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
+        binned_q = _do_1d_weighted_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
     else:
         # no-weight binning
-        binned_q = do_1d_no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
+        binned_q = _do_1d_no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
 
     return binned_q
 
@@ -162,10 +162,10 @@ def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins
     # Q bins
     if linear_binning:
         # linear binning
-        bin_centers, bin_edges = determine_1d_linear_bins(q_min, q_max, bins)
+        bin_centers, bin_edges = _determine_1d_linear_bins(q_min, q_max, bins)
     else:
         # log binning
-        bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, bins)
+        bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, bins)
 
     # calculate Q and dQ
     scalar_q_array = np.sqrt(i_q.qx**2 + i_q.qy**2)
@@ -183,20 +183,20 @@ def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins
     # Binning
     if method == BinningMethod.NOWEIGHT:
         # No weight binning
-        binned_iq = do_1d_no_weight_binning(q_array=scalar_q_array[wedge_indexes],
-                                            dq_array=scalar_dq_array[wedge_indexes],
-                                            iq_array=i_q.intensity[wedge_indexes],
-                                            sigmaq_array=i_q.error[wedge_indexes],
-                                            bin_centers=bin_centers,
-                                            bin_edges=bin_edges)
+        binned_iq = _do_1d_no_weight_binning(q_array=scalar_q_array[wedge_indexes],
+                                             dq_array=scalar_dq_array[wedge_indexes],
+                                             iq_array=i_q.intensity[wedge_indexes],
+                                             sigmaq_array=i_q.error[wedge_indexes],
+                                             bin_centers=bin_centers,
+                                             bin_edges=bin_edges)
     else:
         # Weighted binning
-        binned_iq = do_1d_weighted_binning(q_array=scalar_q_array[wedge_indexes],
-                                           dq_array=scalar_dq_array[wedge_indexes],
-                                           iq_array=i_q.intensity[wedge_indexes],
-                                           sigma_iq_array=i_q.error[wedge_indexes],
-                                           bin_centers=bin_centers,
-                                           bin_edges=bin_edges)
+        binned_iq = _do_1d_weighted_binning(q_array=scalar_q_array[wedge_indexes],
+                                            dq_array=scalar_dq_array[wedge_indexes],
+                                            iq_array=i_q.intensity[wedge_indexes],
+                                            sigma_iq_array=i_q.error[wedge_indexes],
+                                            bin_centers=bin_centers,
+                                            bin_edges=bin_edges)
     # END-IF-ELSE
 
     return binned_iq
@@ -241,7 +241,7 @@ def bin_annular_into_q1d(i_q, theta_min, theta_max, q_min=0.001, q_max=0.4, bins
 
     """
     # Determine azimuthal angle bins (i.e., theta bins)
-    theta_bin_centers, theta_bin_edges = determine_1d_linear_bins(theta_min, theta_max, bins)
+    theta_bin_centers, theta_bin_edges = _determine_1d_linear_bins(theta_min, theta_max, bins)
 
     # Calculate theta array
     theta_array = np.arctan2(i_q.qy, i_q.qx) * 180. / np.pi
@@ -259,18 +259,18 @@ def bin_annular_into_q1d(i_q, theta_min, theta_max, q_min=0.001, q_max=0.4, bins
     # binning
     if method == BinningMethod.NOWEIGHT:
         # no weight binning
-        binned_iq = do_1d_no_weight_binning(theta_array[allowed_q_index],
+        binned_iq = _do_1d_no_weight_binning(theta_array[allowed_q_index],
+                                             dq_array[allowed_q_index],
+                                             i_q.intensity[allowed_q_index],
+                                             i_q.error[allowed_q_index],
+                                             theta_bin_centers, theta_bin_edges)
+    elif method == BinningMethod.WEIGHTED:
+        # weighted binning
+        binned_iq = _do_1d_weighted_binning(theta_array[allowed_q_index],
                                             dq_array[allowed_q_index],
                                             i_q.intensity[allowed_q_index],
                                             i_q.error[allowed_q_index],
                                             theta_bin_centers, theta_bin_edges)
-    elif method == BinningMethod.WEIGHTED:
-        # weighted binning
-        binned_iq = do_1d_weighted_binning(theta_array[allowed_q_index],
-                                           dq_array[allowed_q_index],
-                                           i_q.intensity[allowed_q_index],
-                                           i_q.error[allowed_q_index],
-                                           theta_bin_centers, theta_bin_edges)
     else:
         # not supported case
         raise RuntimeError('Binning method {} is not recognized'.format(method))
@@ -278,7 +278,7 @@ def bin_annular_into_q1d(i_q, theta_min, theta_max, q_min=0.001, q_max=0.4, bins
     return binned_iq
 
 
-def determine_1d_linear_bins(q_min, q_max, bins):
+def _determine_1d_linear_bins(q_min, q_max, bins):
     """Determine linear bin edges and centers
 
     Parameters
@@ -305,7 +305,7 @@ def determine_1d_linear_bins(q_min, q_max, bins):
     return bin_centers, bin_edges
 
 
-def determine_1d_log_bins(q_min, q_max, step_per_decade):
+def _determine_1d_log_bins(q_min, q_max, step_per_decade):
     """Determine the logarithm bins
 
     The algorithm to calculate bins are from 11.28 and 11.29 in master document
@@ -345,7 +345,7 @@ def determine_1d_log_bins(q_min, q_max, step_per_decade):
     return bin_centers, bin_edges
 
 
-def determine_1d_log_bins_lisa(q_min, q_max, step_per_decade):
+def _determine_1d_log_bins_lisa(q_min, q_max, step_per_decade):
     """Lisa's algorithm tot determine 1D log bins
 
     Parameters
@@ -364,11 +364,9 @@ def determine_1d_log_bins_lisa(q_min, q_max, step_per_decade):
     # 20191016 IS: "0.2% error is allowed.  This formula ensure that the number of steps per decade is respected"
     delta = np.power(10., 1. / step_per_decade)
     q0 = np.power(delta, np.floor(step_per_decade * np.log10(q_min)))
-    # print('[DEBUG OUTPUT: q_min = {}, q0 = {}'.format(q_min, q0))
 
     # Determine number of bins
     num_bins = 1 + int(np.ceil(step_per_decade * np.log(q_max / q0) / np.log(10)))
-    # print('[DEBUG OUTPUT: number of bins = {}'.format(num_bins))
 
     # Calculate bin centers
     bin_centers = np.arange(num_bins).astype('float')
@@ -380,21 +378,10 @@ def determine_1d_log_bins_lisa(q_min, q_max, step_per_decade):
     bin_edges[1:] = bin_centers[:] + 0.5 * delta_q_array[:]
     bin_edges[0] = bin_centers[0] - 0.5 * delta_q_array[0]
 
-    # # Big debug
-    # print('[DEBUG OUTPUT] Edge from {}'.format(bin_edges[0]))
-    # for i in range(99):
-    #     from_left = bin_centers[i] + 0.5 * delta_q_array[i]
-    #     from_right = bin_centers[i + 1] - 0.5 * delta_q_array[i + 1]
-    #     diff = from_right - from_left
-    #     diff2 = from_right - bin_edges[i+1]
-    #     print('[DEBUG OUTPUT] From left = {}, From right = {}, Difference = {}, Calculated = {}  Diff = {}'
-    #           ''.format(from_left, from_right, diff, bin_edges[i+1], diff2))
-    # # END-FOR
-
     return bin_centers, bin_edges
 
 
-def do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
+def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
     """ Bin I(Q) by given bin edges and do no-weight binning
     This method implements equation 11.34, 11.35 and 11.36 in master document.
     Parameters
@@ -425,8 +412,6 @@ def do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cente
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
     i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array)
 
-    print('[DEBUG]\nI_raw: {}\nPt  : {}'.format(i_raw_array, num_pt_array))
-
     # Square of summed uncertainties for each bin
     sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array ** 2)
 
@@ -444,7 +429,7 @@ def do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cente
                  mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 
 
-def do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
+def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
     """ Bin I(Q) by given bin edges and do weighted binning
 
     If there is no Q in a certain Qk bin, NaN will be set to both I(Qk) and sigma I(Qk)
@@ -496,7 +481,7 @@ def do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cent
                  mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 
 
-def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMethod.NOWEIGHT):
+def _bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMethod.NOWEIGHT):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
     Note: for binning parameters:
@@ -520,19 +505,19 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     """
     # Calculate Qx and Qy bin size
-    qx_bin_center, qx_bin_edges = determine_1d_linear_bins(qx_bin_params.min, qx_bin_params.bins,
-                                                           qx_bin_params.max)
-    qy_bin_center, qy_bin_edges = determine_1d_linear_bins(qy_bin_params.min,  qy_bin_params.bins,
-                                                           qy_bin_params.max)
+    qx_bin_center, qx_bin_edges = _determine_1d_linear_bins(qx_bin_params.min, qx_bin_params.bins,
+                                                            qx_bin_params.max)
+    qy_bin_center, qy_bin_edges = _determine_1d_linear_bins(qy_bin_params.min, qy_bin_params.bins,
+                                                            qy_bin_params.max)
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
-        binned_arrays = do_2d_no_weight_binning(i_q.qx, i_q.dqx, i_q.qy, i_q.dqy, i_q.i, i_q.sigma,
-                                                qx_bin_edges, qy_bin_edges)
+        binned_arrays = _do_2d_no_weight_binning(i_q.qx, i_q.dqx, i_q.qy, i_q.dqy, i_q.i, i_q.sigma,
+                                                 qx_bin_edges, qy_bin_edges)
     else:
         # Calculate weighed binning
-        binned_arrays = do_2d_weighted_binning(i_q.qx, i_q.dqx, i_q.qy, i_q.dqy, i_q.i, i_q.sigma,
-                                               qx_bin_edges, qy_bin_edges)
+        binned_arrays = _do_2d_weighted_binning(i_q.qx, i_q.dqx, i_q.qy, i_q.dqy, i_q.i, i_q.sigma,
+                                                qx_bin_edges, qy_bin_edges)
     # END-IF-ELSE
 
     # construct return
@@ -542,8 +527,8 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
                        delta_qx=binned_dqx, qy=qy_bin_center, delta_qy=binned_dqy)
 
 
-def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
-                            qx_bin_edges, qy_bin_edges):
+def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
+                             qx_bin_edges, qy_bin_edges):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -601,8 +586,8 @@ def do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
-                           x_bin_edges, y_bin_edges):
+def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
+                            x_bin_edges, y_bin_edges):
     """Perform 2D weighted binning
 
     General description of algorithm:
@@ -674,7 +659,7 @@ def do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, s
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
+def _determine_linear_bin_size(x_array, min_x, num_bins, max_x):
     """Determine linear bin size
 
     This is adopted by bin I(Qx, Qy)
@@ -700,10 +685,6 @@ def determine_linear_bin_size(x_array, min_x, num_bins, max_x):
         min_x = np.min(x_array)
     if max_x is None:
         max_x = np.max(x_array)
-
-    # DEBUG OUTPUT
-    # print('[DEBUG] Min X = {} @ {}'.format(min_x, np.argmin(x_array)))
-    # print('[DEBUG] Max X = {} @ {}'.format(max_x, np.argmax(x_array)))\
 
     # Calculate delta
     if num_bins <= 1:

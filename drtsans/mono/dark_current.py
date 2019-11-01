@@ -33,7 +33,7 @@ def normalize_dark_current(dark_workspace, output_workspace=None):
     dark_workspace: str, ~mantid.api.MatrixWorkspace
         Dark current workspace
     output_workspace : str
-        Name of the normalised dark workspace. If None, the name of the input
+        Name of the normalized dark workspace. If None, the name of the input
         workspace `dark_workspace` is chosen (and the input workspace is overwritten).
 
     Returns

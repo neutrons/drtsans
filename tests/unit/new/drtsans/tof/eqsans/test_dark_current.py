@@ -64,7 +64,7 @@ def wss(reference_dir):
         return dict(data=data, dark=dark)
 
 
-def test_normalise_to_workspace(wss, reference_dir):
+def test_normalize_to_workspace(wss, reference_dir):
     r"""
     (This test was introduced prior to the testset with the instrument team)
     """
@@ -76,13 +76,13 @@ def test_normalise_to_workspace(wss, reference_dir):
     [_w.delete() for _w in (_w0, _w1, _w2)]
 
 
-def test_subtract_normalised_dark(wss, reference_dir):
+def test_subtract_normalized_dark(wss, reference_dir):
     r"""
     (This test was introduced prior to the testset with the instrument team)
     """
     file_path = pjn(reference_dir.new.eqsans, 'test_dark_current', 'dark_norm_sum.nxs')
     dark_normalized = LoadNexus(file_path, OutputWorkspace=unique_workspace_dundername())
-    data_normalized = dark_current.subtract_normalised_dark_current(wss['data'], dark_normalized,
+    data_normalized = dark_current.subtract_normalized_dark_current(wss['data'], dark_normalized,
                                                                     output_workspace=unique_workspace_dundername())
     assert SampleLogs(data_normalized).normalizing_duration.value == 'duration'
     summed_normalized = SumSpectra(data_normalized, OutputWorkspace=unique_workspace_dundername())

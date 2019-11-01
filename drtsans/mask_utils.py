@@ -125,7 +125,7 @@ def mask_spectra_with_special_values(input_workspace, output_workspace=None):
         List of string representations for special `float` values. The special value can be obtained by applying
         `float` to the string, e.g. float('nan').
     output_workspace : str
-        Name of the normalised workspace. If None, the name of the input
+        Name of the normalized workspace. If None, the name of the input
         workspace is chosen (the input workspace is overwritten).
 
     Returns

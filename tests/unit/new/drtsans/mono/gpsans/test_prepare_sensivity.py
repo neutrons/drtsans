@@ -148,15 +148,15 @@ def get_final_sensitivities():
 
     """
     sen_matrix = np.array([
-        [1.19E+00, -1.08E+12, 1.17E+00],
-        [1.19E+00, 1.24E+00, 1.17E+00],
-        [1.20E+00, 1.23E+00, -1.08E+12]
+        [9.91E-01, -np.inf, 9.78E-01],
+        [9.93E-01, 1.03E+00, 9.77E-01],
+        [1.00E+00, 1.03E+00, -np.inf]
     ])
 
     sen_sigma_matrix = np.array([
-        [2.30E-01, -6.54E+11, 2.27E-01],
-        [2.36E-01, 2.45E-01, 2.33E-01],
-        [2.32E-01, 2.38E-01, -6.54E+11]
+        [1.63E-01, -np.inf, 1.62E-01],
+        [1.70E-01, 1.76E-01, 1.67E-01],
+        [1.65E-01, 1.69E-01, -np.inf]
     ])
 
     return sen_matrix, sen_sigma_matrix
@@ -492,8 +492,7 @@ def test_prepare_moving_det_sensitivity():
     # Normalize pixel-wise sensitivities by weighting-average
     sensitivities, sensitivities_error, avg_sens, avg_sigma_sens = normalize_sensitivities(matrix_d,
                                                                                            sigma_matrix_d)
-    print('Avg sensitivities: {} - {} = {}'.format(avg_sens, 9.26E-01, abs(avg_sens - 9.26E-01)))
-    print('Avg sens error   : {} - {} = {}'.format(avg_sigma_sens, 0., abs(avg_sens - 0.)))
+    print('Avg sensitivities: {} - {} = {}'.format(avg_sens, 1.11E+00, abs(avg_sens - 1.11E+00)))
 
     gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
     np.testing.assert_allclose(sensitivities, gold_final_sen_matrix, rtol=1e-7, equal_nan=True,

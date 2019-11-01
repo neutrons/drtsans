@@ -14,6 +14,8 @@ SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drts
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
+__all__ = ['normalize_by_time', 'normalize_by_monitor']
+
 
 def normalize_by_time(input_workspace, output_workspace=None):
     """Normalize by time

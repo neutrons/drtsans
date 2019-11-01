@@ -27,7 +27,7 @@ duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsan
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans import path
-from drtsans.tof.eqsans.dark_current import duration as run_duration
+from drtsans.dark_current import duration as run_duration
 
 __all__ = ['normalize_by_flux', 'normalize_by_time', 'normalize_by_monitor', 'normalize_by_proton_charge_and_flux']
 

@@ -26,6 +26,12 @@ from ..dark_current import *
 import drtsans.mono.geometry
 from ..geometry import *
 
+import drtsans.mono.load
+from ..load import *
+
+import drtsans.mono.normalization
+from ..normalization import *
+
 from .load import *  # noqa: F403
 from .api import *  # noqa: F403
 
@@ -38,5 +44,7 @@ __all__ = [] + drtsans.beam_finder.__all__ \
           + drtsans.mono.absolute_units.__all__\
           + drtsans.mono.dark_current.__all__\
           + drtsans.mono.geometry.__all__\
+          + drtsans.mono.load.__all__\
+          + drtsans.mono.normalization.__all__\
           + api.__all__ + load.__all__
 

@@ -267,6 +267,10 @@ def process_bad_pixels(data, data_error, threshold_min, threshold_max):
     data[(data < threshold_min) | (data > threshold_max)] = -np.inf
     data_error[(data < threshold_min) | (data > threshold_max)] = -np.inf
 
+    print('[DEBUG] Process bad pixel:  Q threshold: {}, {}'.format(threshold_min, threshold_max))
+    print(data)
+    print('END')
+
     return data, data_error
 
 

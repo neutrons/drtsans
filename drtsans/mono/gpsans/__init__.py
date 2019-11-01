@@ -23,6 +23,8 @@ from ..geometry import *
 from .load import *  # noqa: F403
 from .api import *  # noqa: F403
 
+from drtsans.iq import *
+
 __all__ = [] + drtsans.beam_finder.__all__ + drtsans.transmission.__all__ + drtsans.absolute_units.__all__\
           + drtsans.mono.absolute_units.__all__ + drtsans.mono.dark_current.__all__ + drtsans.mono.geometry.__all__ \
-          + api.__all__ + load.__all__
+          + api.__all__ + load.__all__ + drtsans.iq.__all__

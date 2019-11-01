@@ -7,6 +7,9 @@ from string import Template
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
+__all__ = ['bin_iq_into_linear_q1d', 'bin_iq_into_logarithm_q1d', 'bin_wedge_into_q1d',
+           'bin_annular_into_q1d', 'bin_iq_into_linear_q2d']
+
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
 # bins shall be integer as number of bins

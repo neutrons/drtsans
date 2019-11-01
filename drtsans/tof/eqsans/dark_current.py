@@ -141,7 +141,7 @@ def subtract_normalised_dark_current(input_workspace, dark_ws,
 
     **Mantid algorithms used:**
     :ref:`Scale <algm-Scale-v1>`,
-    :ref:`Subtract <algm-Subtract-v1>`,
+    :ref:`Minus <algm-Minus-v1>`,
 
     Returns
     -------

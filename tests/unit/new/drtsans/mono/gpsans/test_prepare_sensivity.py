@@ -362,8 +362,8 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
     """
     # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
     denomiator = np.sum(d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))] /
-                        sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))])
-    nominator = np.sum(1 / sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))])
+                        sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]**2)
+    nominator = np.sum(1 / sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]**2)
     sens_avg = denomiator / nominator
     print('[DEBUG] S_avg = {} / {} = {}'.format(denomiator, nominator, sens_avg))
 

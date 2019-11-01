@@ -3,7 +3,7 @@ import os, numpy as np          # noqa: E401
 from numpy.testing import assert_allclose
 from mantid.simpleapi import WorkspaceFactory
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/thickness_normalization.py
-from drtsans.tof.eqsans.api import normalize_by_thickness
+from drtsans.thickness_normalization import normalize_by_thickness
 here = os.path.abspath(os.path.dirname(__file__))
 
 

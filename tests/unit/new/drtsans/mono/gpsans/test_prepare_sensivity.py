@@ -137,6 +137,31 @@ def get_non_normalized_sensitivities():
     return m_d, sigma_d
 
 
+def get_final_sensitivities():
+    """Get the final sensitivities and sigma
+
+    "Apply another weighted average and propate the error"
+
+    Returns
+    -------
+    ndarray, ndarray
+
+    """
+    sen_matrix = np.array([
+        [1.19E+00, -1.08E+12, 1.17E+00],
+        [1.19E+00, 1.24E+00, 1.17E+00],
+        [1.20E+00, 1.23E+00, -1.08E+12]
+    ])
+
+    sen_sigma_matrix = np.array([
+        [2.30E-01, -6.54E+11, 2.27E-01],
+        [2.36E-01, 2.45E-01, 2.33E-01],
+        [2.32E-01, 2.38E-01, -6.54E+11]
+    ])
+
+    return sen_matrix, sen_sigma_matrix
+
+
 def verify_result(sensitivity, sensitivity_error):
     """Verify the test result
 
@@ -273,7 +298,7 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
             if -np.inf in d_ij_arr:
                 # Infinity case
                 d_ij = -np.inf
-                s_ij = -np.inf
+                s_ij = -0.  # will be set to -inf after 1/s_ij operation
             else:
                 # Do weighted summation
                 # remove NaN
@@ -304,9 +329,6 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
             row += '{}\t'.format(sensitivities[i, j])
         print(row)
     # END-FOR
-
-    # Propagating error to D: delta Sen(m, n) = 1 / sum_{M}^{A, B, C}{ 1 / sigma_M^2(m, n)}
-    # sensitivities_error = 1 / (1 / data_a_error**2 + 1 / data_b_error*2 + 1 / data_c_error**2)
 
     # Debug output
     for i in range(sensitivities_error.shape[0]):
@@ -343,6 +365,7 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
                         sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))])
     nominator = np.sum(1 / sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))])
     sens_avg = denomiator / nominator
+    print('[DEBUG] S_avg = {} / {} = {}'.format(denomiator, nominator, sens_avg))
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_matrix / sens_avg
@@ -414,17 +437,10 @@ def test_prepare_moving_det_sensitivity():
     np.testing.assert_allclose(matrix_a, gold_data_set[0], rtol=1e-8, equal_nan=True,
                                err_msg='Weighted-averaged A does not match gold data',
                                verbose=True)
-    # if not np.allclose(matrix_a[~np.isnan(matrix_a)],
-    #                    gold_data_set[0][~np.isnan(gold_data_set[0])], 1E-8):
-    #     show_diff(matrix_a, gold_data_set[0])
-    #     assert False, 'Weighted-averaged A does not match gold data'
+
     np.testing.assert_allclose(sigma_a, gold_data_set[1], rtol=1e-8, equal_nan=True,
                                err_msg='Weighted-averaged sigma A does not match gold data',
                                verbose=True)
-    # if not np.allclose(sigma_a[~np.isnan(sigma_a)],
-    #                    gold_data_set[1][~np.isnan(gold_data_set[1])], 1E-8):
-    #     show_diff(sigma_a, gold_data_set[1])
-    #     assert False, 'Weighted-averaged sigma A does not match gold data'
 
     # B
     np.testing.assert_allclose(matrix_b, gold_data_set[2], rtol=1e-8, equal_nan=True,
@@ -434,15 +450,6 @@ def test_prepare_moving_det_sensitivity():
                                err_msg='Weighted-averaged sigma B does not match gold data',
                                verbose=True)
 
-    # if not np.allclose(matrix_b, gold_data_set[2], 1E-8, True):
-    #     print('B are different')
-    #     show_diff(matrix_b, gold_data_set[2])
-    #     # assert False, 'Weighted-averaged B does not match gold data'
-    # if not np.allclose(sigma_b, gold_data_set[3], 1E-8, True):
-    #     print('Sigma B are different')
-    #     show_diff(sigma_b, gold_data_set[3])
-    #     assert False, 'Weighted-averaged sigma B does not match gold data'
-
     # C
     np.testing.assert_allclose(matrix_c, gold_data_set[4], rtol=1e-8, equal_nan=True,
                                err_msg='Weighted-averaged C does not match gold data',
@@ -450,15 +457,6 @@ def test_prepare_moving_det_sensitivity():
     np.testing.assert_allclose(sigma_c, gold_data_set[5], rtol=1e-8, equal_nan=True,
                                err_msg='Weighted-averaged sigma C does not match gold data',
                                verbose=True)
-
-    # if not np.allclose(matrix_c, gold_data_set[4], 1E-8, True):
-    #     print('C are different')
-    #     show_diff(matrix_c, gold_data_set[4])
-    #     assert False, 'Weighted-averaged A does not match gold data'
-    # if not np.allclose(sigma_c, gold_data_set[5], 1E-8, True):
-    #     print('sigma C are different')
-    #     show_diff(sigma_c, gold_data_set[5])
-    #     assert False, 'Weighted-averaged sigma C does not match gold data'
 
     # Apply bad pixel threshold to each file
     matrix_a, sigma_a = process_bad_pixels(matrix_a, sigma_a, threshold_min, threshold_max)
@@ -484,9 +482,14 @@ def test_prepare_moving_det_sensitivity():
     # Normalize pixel-wise sensitivities by weighting-average
     sensitivities, sensitivities_error, avg_sens, avg_sigma_sens = normalize_sensitivities(matrix_d,
                                                                                            sigma_matrix_d)
+    print('Avg sensitivities: {} - {} = {}'.format(avg_sens, 9.26E-01, abs(avg_sens - 9.26E-01)))
+    print('Avg sens error   : {} - {} = {}'.format(avg_sigma_sens, 0., abs(avg_sens - 0.)))
 
-    # Compare with gold data
-    verify_result(sensitivities, sensitivities_error)
+    gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
+    np.testing.assert_allclose(sensitivities, gold_final_sen_matrix, rtol=1e-7, equal_nan=True,
+                               err_msg='Final sensitivities matrix not match', verbose=True)
+    np.testing.assert_allclose(sensitivities_error, gold_final_sigma_matrix, rtol=1e-7, equal_nan=True,
+                               err_msg='Final sensitivities error matrix not match', verbose=True)
 
     return
 

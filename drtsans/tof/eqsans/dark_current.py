@@ -49,7 +49,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     data_workspace: str, MatrixWorkspace
         Sample scattering with intensities versus wavelength
     output_workspace : str
-        Name of the normalised dark workspace. If None, the name of the input
+        Name of the normalized dark workspace. If None, the name of the input
         workspace `dark_workspace` is chosen (and the input workspace is overwritten).
 
     Returns
@@ -116,7 +116,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     return mtd[output_workspace]
 
 
-def subtract_normalised_dark_current(input_workspace, dark_ws,
+def subtract_normalized_dark_current(input_workspace, dark_ws,
                                      output_workspace=None):
     r"""
     Subtract normalized dark current from data, taking into account
@@ -167,7 +167,7 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
     Parameters
     ----------
     input_workspace : int, str, ~mantid.api.IEventWorkspace
-        The workspace to be normalised
+        The workspace to be normalized
     dark: int, str, ~mantid.api.IEventWorkspace
         run number, file path, workspace name, or :py:obj:`~mantid.api.IEventWorkspace`
         for dark current.
@@ -194,7 +194,7 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
 
     _dark_normal = normalize_dark_current(_dark, input_workspace,
                                           output_workspace=unique_workspace_dundername())
-    subtract_normalised_dark_current(input_workspace, _dark_normal,
+    subtract_normalized_dark_current(input_workspace, _dark_normal,
                                      output_workspace=output_workspace)
     _dark_normal.delete()
     if _dark is not dark:

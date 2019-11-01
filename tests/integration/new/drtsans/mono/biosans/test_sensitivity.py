@@ -31,7 +31,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
                                   MaskBTP, SolidAngle, SaveNexus)
     from drtsans.mono.biosans.beam_finder import find_beam_center
     from drtsans.mono.dark_current import subtract_dark_current
-    from drtsans.mono.normalisation import time
+    from drtsans.mono.normalization import normalize_by_time
     from drtsans.sensitivity import inf_value_to_mask, interpolate_mask
     from drtsans.transmission import (apply_transmission_correction, calculate_transmission)
     # Load the files into WS
@@ -55,8 +55,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     # Let's correct the data first
     ###########################################################################
-    # DC normalisation
-    dark_current_norm_ws = time(dark_current_ws)
+    # DC normalization
+    dark_current_norm_ws = normalize_by_time(dark_current_ws)
     # DC Subtraction
     flood_dc_corrected_ws = subtract_dark_current(
         flood_ws, dark_current_norm_ws)
@@ -93,12 +93,12 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
 
     ###########################################################################
     # Normalization (In the original script they use time normalization)
-    flood_dc_time_corrected_ws = time(flood_dc_corrected_ws)
+    flood_dc_time_corrected_ws = normalize_by_time(flood_dc_corrected_ws)
     flood_dc_time_corrected_ws = RenameWorkspace(
         InputWorkspace=flood_dc_time_corrected_ws,
         OutputWorkspace="flood_dc_time_corrected_ws")
 
-    empty_transmission_dc_time_corrected_ws = time(
+    empty_transmission_dc_time_corrected_ws = normalize_by_time(
         empty_transmission_dc_corrected_ws)
     empty_transmission_dc_time_corrected_ws = RenameWorkspace(
         InputWorkspace=empty_transmission_dc_time_corrected_ws,
@@ -184,8 +184,8 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     MaskBTP(Workspace=dark_current_ws, Components='detector1')
     MaskBTP(Workspace=flood_ws, Components="detector1")
 
-    # DC normalisation
-    dark_current_norm_ws = time(dark_current_ws)
+    # DC normalization
+    dark_current_norm_ws = normalize_by_time(dark_current_ws)
     # DC Subtraction
     flood_dc_corrected_ws = subtract_dark_current(
         flood_ws, dark_current_norm_ws)
@@ -199,7 +199,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
         ComponentName='detector1', X=-x, Y=-y_gravity)
 
     # Normalization (In the original script they use time normalization)
-    flood_dc_time_corrected_ws = time(flood_dc_corrected_ws)
+    flood_dc_time_corrected_ws = normalize_by_time(flood_dc_corrected_ws)
     flood_dc_time_corrected_ws = RenameWorkspace(
         InputWorkspace=flood_dc_time_corrected_ws,
         OutputWorkspace="flood_dc_time_corrected_ws")

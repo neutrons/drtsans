@@ -390,7 +390,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
     input_workspace: ~mantid.api.IEventsWorkspace
         Monitor events workspace
     output_workspace : str
-        Name of the normalised workspace. If None, the name of the input
+        Name of the normalized workspace. If None, the name of the input
         workspace is chosen (the input workspace is overwritten).
 
     Returns

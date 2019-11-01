@@ -1,49 +1,49 @@
 import pytest
-import numpy as np
+from drtsans.settings import unique_workspace_dundername
 
 r""" Links to mantid algorithms
 LoadHFIRSANS <https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html>
 """
-from mantid.simpleapi import LoadHFIRSANS
+from mantid.simpleapi import LoadHFIRSANS, DeleteWorkspaces
 from mantid import mtd
 
 r"""
 Hyperlinks to drtsans functions
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalisation.py>
+time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
 subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
-from drtsans.mono.normalisation import time
-from drtsans.mono.dark_current import subtract_dark_current
+from drtsans.dark_current import duration
+from drtsans.mono.dark_current import subtract_dark_current, normalize_dark_current
 
 
-@pytest.mark.offline
 def test_dark_current(gpsans_f):
     r"""
     (This test was introduced prior to the testset with the instrument team)
     """
     # First read the data
-    input_sample_ws_mame = 'input_sample_ws_name'
-    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                 OutputWorkspace=input_sample_ws_mame)
-    sample_ws = mtd[input_sample_ws_mame]
-    v1_sample = sample_ws.dataY(612)[0]
+    sample_workspace = unique_workspace_dundername()
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'], OutputWorkspace=sample_workspace)
 
-    # second read and normalise the dark current
-    input_dc_ws_mame = 'input_dc_ws_name'
-    LoadHFIRSANS(Filename=gpsans_f['dark_current'],
-                 OutputWorkspace=input_dc_ws_mame)
-    input_dc_ws = mtd[input_dc_ws_mame]
-    normalised_dc_ws = time(input_dc_ws)
+    # second read and normalize the dark current
+    dark_current_workspace = unique_workspace_dundername()
+    LoadHFIRSANS(Filename=gpsans_f['dark_current'], OutputWorkspace=dark_current_workspace)
+    normalized_dark_current = unique_workspace_dundername()
+    normalize_dark_current(dark_current_workspace, output_workspace=normalized_dark_current)
 
     # third let's a DC subraction
-    sample_subtracted = subtract_dark_current(sample_ws, input_dc_ws)
+    sample_subtracted = unique_workspace_dundername()
+    subtract_dark_current(sample_workspace, dark_current_workspace, output_workspace=sample_subtracted)
 
     # Let's test:
-    normalised_sample_time = SampleLogs(sample_ws).timer.value
+    duration_log_key = SampleLogs(normalized_dark_current).normalizing_duration.value
+    sample_duration = duration(sample_workspace, log_key=duration_log_key).value
 
-    v1_dc = normalised_dc_ws.dataY(612)[0]
-    v1_sample_subtracted = sample_subtracted.dataY(612)[0]
+    sample_sample_value = mtd[sample_workspace].dataY(612)[0]
+    normalized_dark_current_sample_value = mtd[normalized_dark_current].dataY(612)[0]
+    sample_subtracted_sample_value = mtd[sample_subtracted].dataY(612)[0]
 
-    np.testing.assert_allclose(v1_sample-v1_sample_subtracted, normalised_sample_time * v1_dc, rtol=0.03)
+    test_value = sample_sample_value - sample_duration * normalized_dark_current_sample_value
+    assert sample_subtracted_sample_value == pytest.approx(test_value, abs=1.e-6)
+    DeleteWorkspaces([sample_workspace, dark_current_workspace, normalized_dark_current, sample_subtracted])

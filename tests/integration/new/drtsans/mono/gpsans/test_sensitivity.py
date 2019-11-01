@@ -7,7 +7,7 @@ from mantid.kernel import Property
 from mantid.simpleapi import (CalculateEfficiency, ClearMaskFlag, LoadEmptyInstrument, LoadHFIRSANS, LoadMask,
                               MaskDetectors, MoveInstrumentComponent, ReplaceSpecialValues, SolidAngle, SaveNexus)
 from drtsans.mono.gpsans import find_beam_center
-from drtsans.mono.normalisation import monitor
+from drtsans.mono.normalization import normalize_by_monitor
 from drtsans.sensitivity import inf_value_to_mask
 
 
@@ -61,7 +61,7 @@ def test_sensitivity_procedural(gpsans_sensitivity_dataset):
         flood_dc_sa_corrected_ws = flood_dc_corrected_ws / solid_angle_ws
         #
         # Monitor Normalization
-        flood_dc_sa_mon_corrected_ws = monitor(flood_dc_sa_corrected_ws)
+        flood_dc_sa_mon_corrected_ws = normalize_by_monitor(flood_dc_sa_corrected_ws)
         #
         # Sensitivity
         sensitivity_ws_name = "sensitivity_{}".format(trans)

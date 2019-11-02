@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
-from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, BinningMethod,\
-    determine_1d_linear_bins, determine_1d_log_bins, do_1d_weighted_binning, do_1d_no_weight_binning
+from drtsans.iq import bin_intensity_into_q1d, BinningMethod, BinningParams,\
+    _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_weighted_binning, _do_1d_no_weight_binning
 import bisect
+from drtsans.dataobjects import IQmod
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -145,7 +146,7 @@ def test_linear_binning():
     q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
 
     # Calculate bin centers and bin edges by Qmin, Qmax and number of bins
-    bin_centers, bin_edges = determine_1d_linear_bins(q_min, q_max, bins)
+    bin_centers, bin_edges = _determine_1d_linear_bins(q_min, q_max, bins)
 
     # Test
     assert bin_centers.shape == (10, ), 'Bin shape incorrect'
@@ -157,7 +158,7 @@ def test_linear_binning():
     i_weighted_array, sigma_i_weighted_array = bin_weighted_prototype(bin_centers, iq_array, bins_dict)
 
     # Do weighted binning
-    binned_q = do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    binned_q = _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
     # Test for Q bins
     assert binned_q.mod_q.shape == (10, )
@@ -170,7 +171,7 @@ def test_linear_binning():
 
     # Test no-weight binning
     i_noweight_array, sigma_i_noweight_array = do_no_weight_prototype(bin_centers, iq_array, bins_dict)
-    no_weight_iq = do_1d_no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    no_weight_iq = _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
     # verify
     np.testing.assert_allclose(i_noweight_array, no_weight_iq.intensity, atol=1e-6)
@@ -178,8 +179,9 @@ def test_linear_binning():
     assert np.sqrt(np.sum((i_noweight_array - no_weight_iq.intensity)**2)) < 1e-6
 
     # Test to go through wrapper method
-    wiq = bin_iq_into_linear_q1d(iq_array, sigma_q_array, q_array, dq_array, bins, q_min, q_max,
-                                 BinningMethod.WEIGHTED)
+    test_iq = IQmod(iq_array, sigma_q_array, q_array, dq_array, None)
+    binning = BinningParams(q_min, q_max, bins)
+    wiq = bin_intensity_into_q1d(test_iq, binning, True, BinningMethod.WEIGHTED)
     np.testing.assert_allclose(wiq.intensity, binned_q.intensity, atol=1e-6)
 
 
@@ -194,24 +196,13 @@ def test_log_binning():
     q_min = q_array.min()
     q_max = 1.
     step_per_decade = 33
-    bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
-
-    # DEBUG PRINT
-    # for ibin in range(bin_centers.shape[0]):
-    #    print('{}\t{}\t{}\t{}\t'.format(ibin, bin_centers[ibin], bin_edges[ibin],
-    #                                    bin_edges[ibin + 1]))
-
-    # Verify: bin size, min and max are all on the power of 10
-    # assert bin_edges.shape[0] == bin_centers.shape[0] + 1
-    # assert bin_centers.shape[0] == 100
-    # assert abs(bin_centers[0] - q_min) < 1.E-12
-    # assert abs(bin_centers[99] - q_max) < 1.E-12
+    bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, step_per_decade)
 
     # Test bins
     bin_assignment_dict = assign_bins(bin_edges, q_array, iq_array, bin_centers)
 
     # Bin with weighted binning algorithm
-    binned_q = do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    binned_q = _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
     # do the weighted binning
     weighted_i_q, weighted_i_sigma_q = bin_weighted_prototype(bin_centers, iq_array, bin_assignment_dict)
 
@@ -222,8 +213,8 @@ def test_log_binning():
                                err_msg='Binned sigma_I(Q) does not match')
 
     # Test no-weight binning
-    no_weight_binned_iq = do_1d_no_weight_binning(q_array, dq_array, iq_array,
-                                                  sigma_q_array, bin_centers, bin_edges)
+    no_weight_binned_iq = _do_1d_no_weight_binning(q_array, dq_array, iq_array,
+                                                   sigma_q_array, bin_centers, bin_edges)
     # do no weight binning
     noweight_i_q, noweight_sigma_q = do_no_weight_prototype(bin_centers, iq_array, bin_assignment_dict)
     # verify
@@ -233,8 +224,9 @@ def test_log_binning():
                                err_msg='No-weight binned sigma_I(Q) does not match')
 
     # Test to go through wrapper method
-    wiq = bin_iq_into_logarithm_q1d(iq_array, sigma_q_array, q_array, dq_array, step_per_decade,
-                                    q_min, q_max, BinningMethod.WEIGHTED)
+    test_iq = IQmod(iq_array, sigma_q_array, q_array, dq_array)
+    binning = BinningParams(q_min, q_max, step_per_decade)
+    wiq = bin_intensity_into_q1d(test_iq, binning, False, BinningMethod.WEIGHTED)
     assert wiq
 
     # Note: disable the check due to a different algorithm (Lisa vs William) to generate log bins

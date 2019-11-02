@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from drtsans.dataobjects import IQazimuthal
-from drtsans.iq import determine_linear_bin_size, bin_iq_into_linear_q2d, BinningParams, BinningMethod
+from drtsans.iq import _determine_linear_bin_size, bin_iq_into_linear_q2d, BinningParams, BinningMethod
 import bisect
 
 
@@ -136,9 +136,9 @@ def test_create_2d_bins():
     # Test the calculation of bin widths
     num_bins = 8
     qx_bin_size, qx_bin_centers, qx_bin_edges = \
-        determine_linear_bin_size(qx_array, qx_array.min(), num_bins, qx_array.max())
+        _determine_linear_bin_size(qx_array, qx_array.min(), num_bins, qx_array.max())
     qy_bin_size, qy_bin_centers, qy_bin_edges = \
-        determine_linear_bin_size(qy_array, qy_array.min(), num_bins, qy_array.max())
+        _determine_linear_bin_size(qy_array, qy_array.min(), num_bins, qy_array.max())
 
     assert qx_bin_size == pytest.approx(0.00263, rel=0.00001), \
         'delta Qx {} is different from Lisa result (PDF)'.format(qx_bin_size)

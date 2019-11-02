@@ -257,7 +257,7 @@ def test_1d_bin_linear_no_wt():
 
     # verify
     np.testing.assert_allclose(binned_iq2.intensity, binned_iq.intensity, rtol=1e-8,
-                               equal_nan=False, err_msg='High level method cannot have same result from low levels',
+                               equal_nan=True, err_msg='High level method cannot have same result from low levels',
                                verbose=True)
 
     return

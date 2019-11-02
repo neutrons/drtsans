@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from drtsans.iq import bin_intensity_into_q1d, bin_iq_into_logarithm_q1d, BinningMethod, BinningParams,\
+from drtsans.iq import bin_intensity_into_q1d, BinningMethod, BinningParams,\
     _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_weighted_binning, _do_1d_no_weight_binning
 import bisect
 from drtsans.dataobjects import IQmod

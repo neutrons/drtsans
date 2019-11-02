@@ -2,7 +2,7 @@ import numpy as np
 from drtsans.dataobjects import IQazimuthal, IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_no_weight_binning,\
-    bin_iq_into_logarithm_q1d, BinningMethod, _do_2d_weighted_binning, _do_2d_no_weight_binning,\
+    BinningMethod, _do_2d_weighted_binning, _do_2d_no_weight_binning,\
     bin_annular_into_q1d, bin_wedge_into_q1d, BinningParams, bin_intensity_into_q1d
 import pytest
 

@@ -8,6 +8,7 @@ from mantid.simpleapi import AddSampleLog, ConfigService, Rebin  # ExtractSpectr
 from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalization, transform_to_wavelength)
 from drtsans.iq import BinningMethod, bin_intensity_into_q1d
 from drtsans.convert_to_q import convert_to_q
+from drtsans.dataobjects import IQmod
 
 
 # Integration test on I(Q) binning algorithms for EQ-SANS
@@ -98,7 +99,8 @@ def test_iq_binning_serial(reference_dir):
 
     # Bin I(Q)
     final_q_min = 0
-    i_of_q = bin_intensity_into_q1d(iq_array, sigma_iq_array, q_array, dq_array, bins=10, q_min=final_q_min,
+    test_iq = IQmod(iq_array, sigma_iq_array, q_array, dq_array, None)
+    i_of_q = bin_intensity_into_q1d(test_iq, bins=10, q_min=final_q_min,
                                     linear_binning=True, bin_method=BinningMethod.WEIGHTED)
     assert i_of_q
 

@@ -26,20 +26,17 @@ class BinningMethod(Enum):
     WEIGHTED = 2   # weighted binning
 
 
-def bin_intensity_into_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins, q_min=None, q_max=None,
+def bin_intensity_into_q1d(i_of_q, bins, q_min=None, q_max=None,
                            linear_binning=True, bin_method=BinningMethod.WEIGHTED):
     """Binning I(Q) from scalar Q (1D) with linear binning on Q
 
+    Replace intensity, intensity_error, scalar_q, scalar_dq by IQmod
+
     Parameters
     ----------
-    intensity : ndarray
-        Intensity I(Q)
-    intensity_error : ndarray
-        Uncertainty of intensity sigma I(Q)
-    scalar_q : ndarray
-        Q
-    scalar_dq : ndaray
-        Q resolution
+    i_of_q : ~drtsans.dataobjects.IQmod
+        Scalar I(Q) including intensity, intensity_error, scalar_q, scalar_dq in 1d nparray
+        including: intensity error mod_q delta_mod_q
     bins : integer
         number of bins for linear binning; step per decade for logarithm binning
     q_min : float or NOne
@@ -58,9 +55,9 @@ def bin_intensity_into_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins
     """
     # define q min and q max
     if q_min is None:
-        q_min = np.min(scalar_q)
+        q_min = np.min(i_of_q.mod_q)
     if q_max is None:
-        q_max = np.max(scalar_q)
+        q_max = np.max(i_of_q.mod_q)
 
     # calculate bin centers and bin edges
     if linear_binning:
@@ -74,11 +71,11 @@ def bin_intensity_into_q1d(intensity, intensity_error, scalar_q, scalar_dq, bins
     # bin I(Q)
     if bin_method == BinningMethod.WEIGHTED:
         # weighed binning
-        binned_q = _do_1d_weighted_binning(scalar_q, scalar_dq, intensity, intensity_error,
+        binned_q = _do_1d_weighted_binning(i_of_q.mod_q, i_of_q.delta_mod_q, i_of_q.intensity, i_of_q.error,
                                            bin_centers, bin_edges)
     else:
         # no-weight binning
-        binned_q = _do_1d_no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error,
+        binned_q = _do_1d_no_weight_binning(i_of_q.mod_q, i_of_q.delta_mod_q, i_of_q.intensity, i_of_q.error,
                                             bin_centers, bin_edges)
 
     return binned_q

@@ -1,9 +1,9 @@
 import numpy as np
-from drtsans.dataobjects import IQazimuthal
+from drtsans.dataobjects import IQazimuthal, IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_no_weight_binning,\
     bin_iq_into_logarithm_q1d, BinningMethod, _do_2d_weighted_binning, _do_2d_no_weight_binning,\
-    bin_annular_into_q1d, bin_wedge_into_q1d
+    bin_annular_into_q1d, bin_wedge_into_q1d, BinningParams, bin_intensity_into_q1d
 import pytest
 
 # This test implements issue #169 to verify
@@ -249,6 +249,18 @@ def test_1d_bin_linear_no_wt():
     assert binned_iq.error[3] == pytest.approx(2.218889, abs=2.E-6), 'error'
     # sigma_Q(0.0035) = 3.722E-05: This is off as it is the value from EXCEL with some error
     assert binned_iq.delta_mod_q[3] == pytest.approx(3.722E-05, abs=2.E-5), 'Q resolution'
+
+    # Test high level method
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array, None)
+    binning = BinningParams(q_min, q_max, num_bins)
+    binned_iq2 = bin_intensity_into_q1d(test_iq, binning, True, BinningMethod.NOWEIGHT)
+
+    # verify
+    np.testing.assert_allclose(binned_iq2.intensity, binned_iq.intensity, rtol=1e-8,
+                               equal_nan=False, err_msg='High level method cannot have same result from low levels',
+                               verbose=True)
+
+    return
 
 
 def test_1d_bin_log_no_wt():

@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from drtsans.iq import bin_intensity_into_q1d, bin_iq_into_logarithm_q1d, BinningMethod,\
+from drtsans.iq import bin_intensity_into_q1d, bin_iq_into_logarithm_q1d, BinningMethod, BinningParams,\
     _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_weighted_binning, _do_1d_no_weight_binning
 import bisect
 from drtsans.dataobjects import IQmod
@@ -180,8 +180,8 @@ def test_linear_binning():
 
     # Test to go through wrapper method
     test_iq = IQmod(iq_array, sigma_q_array, q_array, dq_array, None)
-    wiq = bin_intensity_into_q1d(test_iq, bins, q_min, q_max,
-                                 True, BinningMethod.WEIGHTED)
+    binning = BinningParams(q_min, q_max, bins)
+    wiq = bin_intensity_into_q1d(test_iq, binning, True, BinningMethod.WEIGHTED)
     np.testing.assert_allclose(wiq.intensity, binned_q.intensity, atol=1e-6)
 
 
@@ -197,17 +197,6 @@ def test_log_binning():
     q_max = 1.
     step_per_decade = 33
     bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, step_per_decade)
-
-    # DEBUG PRINT
-    # for ibin in range(bin_centers.shape[0]):
-    #    print('{}\t{}\t{}\t{}\t'.format(ibin, bin_centers[ibin], bin_edges[ibin],
-    #                                    bin_edges[ibin + 1]))
-
-    # Verify: bin size, min and max are all on the power of 10
-    # assert bin_edges.shape[0] == bin_centers.shape[0] + 1
-    # assert bin_centers.shape[0] == 100
-    # assert abs(bin_centers[0] - q_min) < 1.E-12
-    # assert abs(bin_centers[99] - q_max) < 1.E-12
 
     # Test bins
     bin_assignment_dict = assign_bins(bin_edges, q_array, iq_array, bin_centers)

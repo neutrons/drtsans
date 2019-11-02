@@ -9,7 +9,7 @@ from string import Template
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
-__all__ = ['bin_intensity_into_q1d', 'bin_iq_into_logarithm_q1d', 'bin_wedge_into_q1d',
+__all__ = ['bin_intensity_into_q1d', 'bin_wedge_into_q1d',
            'bin_annular_into_q1d', 'bin_iq_into_linear_q2d', 'BinningMethod']
 
 
@@ -83,59 +83,13 @@ def bin_intensity_into_q1d(i_of_q, bin_params,
     return binned_q
 
 
-def bin_iq_into_logarithm_q1d(intensity, intensity_error, scalar_q, scalar_dq, step_per_decade,
-                              q_min=1E-4, q_max=None, bin_method=BinningMethod.WEIGHTED):
-    """Binning I(Q) from scalar Q (1D) with logarithm binning on Q
-
-    Parameters
-    ----------
-    intensity : ndarray
-        Intensity I(Q)
-    intensity_error : ndarray
-        Uncertainty of intensity sigma I(Q)
-    scalar_q : ndarray
-        Q
-    scalar_dq : ndaray
-        Q resolution
-    step_per_decade : integer
-        number of bins per decade
-    q_min : float
-        min Q (edge) of the binned Q. Default to 1E-4 according to master document
-    q_max : float or None
-        max Q (edge) of the binned Q. Default to max(scalar_q)
-    bin_method : BinningMethod
-        weighted binning or no-weight binning method
-    Returns
-    -------
-    ~drtsans.dataobjects.IQmod
-        the one dimensional data as a named tuple
-    """
-    # define q min and q max
-    if q_min is None:
-        q_min = np.min(scalar_q)
-    if q_max is None:
-        q_max = np.max(scalar_q)
-
-    # calculate bin centers and bin edges
-    # print('[DEBUG] Qmin = {}, Qmax = {}, Step/Decade = {}'.format(q_min, q_max, step_per_decade))
-    bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, step_per_decade)
-
-    # bin I(Q)
-    if bin_method == BinningMethod.WEIGHTED:
-        # weighed binning
-        binned_q = _do_1d_weighted_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
-    else:
-        # no-weight binning
-        binned_q = _do_1d_no_weight_binning(scalar_q, scalar_dq, intensity, intensity_error, bin_centers, bin_edges)
-
-    return binned_q
-
-
-def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins, linear_binning,
+def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_bin_params, linear_binning,
                        method=BinningMethod.NOWEIGHT):
     """Wedge calculation and integration
 
     Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
+
+    binning parmaeters: q_min, q_max, bins
 
     Parameters
     ----------
@@ -145,13 +99,15 @@ def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins
         minimum value of theta/azimuthal angle for wedge
     max_wedge_angle : float
         maximum value of theta/azimuthal angle for wedge
-    q_min : float, optional
-        , by default
-    q_max : float, optional
-        , by default
-    bins : int
-        linear binning: number of bins
-        logarithm binning: number of steps per decade
+    q_bin_params : BinningParams
+        binning parameters for momentum transfer
+            q_min : float, optional
+                , by default
+            q_max : float, optional
+                , by default
+            bins : int
+                linear binning: number of bins
+                logarithm binning: number of steps per decade
     linear_binning : boolean
         flag to use linear binning; otherwise, logarithm binning
     method : BinningMethod
@@ -169,10 +125,10 @@ def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins
     # Q bins
     if linear_binning:
         # linear binning
-        bin_centers, bin_edges = _determine_1d_linear_bins(q_min, q_max, bins)
+        bin_centers, bin_edges = _determine_1d_linear_bins(q_bin_params.min, q_bin_params.max, q_bin_params.bins)
     else:
         # log binning
-        bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, bins)
+        bin_centers, bin_edges = _determine_1d_log_bins(q_bin_params.min, q_bin_params.max, q_bin_params.bins)
 
     # calculate Q and dQ
     scalar_q_array = np.sqrt(i_q.qx**2 + i_q.qy**2)
@@ -209,32 +165,36 @@ def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_min, q_max, bins
     return binned_iq
 
 
-def bin_annular_into_q1d(i_q, theta_min, theta_max, q_min=0.001, q_max=0.4, bins=100, method=BinningMethod.NOWEIGHT):
+def bin_annular_into_q1d(i_q, theta_bin_params, q_min=0.001, q_max=0.4,  method=BinningMethod.NOWEIGHT):
     """Annular 1D binning
 
     Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
+
+   theta_min, theta_max,  bins=100,
 
     Parameters
     ----------
     i_q :  ~collections.namedtuple
          "intensity": intensity, "error": sigma(I), "qx": qx, "qy": qy, "delta_qx": dqx, "delta_qy", dqy
-    theta_min : float
-        minimum value of theta/azimuthal angle
-    theta_max : float
-        maximum value of theta/azimuthal angle
+    theta_bin_params : BinningParams
+        binning parameters on annular angle 'theta'
+        theta_min : float
+            minimum value of theta/azimuthal angle
+        theta_max : float
+            maximum value of theta/azimuthal angle
+        bins : int or sequence of scalars, optional
+            See `scipy.stats.binned_statistic`.
+            If `bins` is an int, it defines the number of equal-width bins in
+            the given range (10 by default).  If `bins` is a sequence, it
+            defines the bin edges, including the rightmost edge, allowing for
+            non-uniform bin widths.  Values in `x` that are smaller than lowest
+            bin edge areassigned to bin number 0, values beyond the highest bin
+            are assigned to ``bins[-1]``.  If the bin edges are specified,
+            the number of bins will be, (nx = len(bins)-1).
     q_min : float, optional
         , by default
     q_max : float, optional
         , by default
-    bins : int or sequence of scalars, optional
-        See `scipy.stats.binned_statistic`.
-        If `bins` is an int, it defines the number of equal-width bins in
-        the given range (10 by default).  If `bins` is a sequence, it
-        defines the bin edges, including the rightmost edge, allowing for
-        non-uniform bin widths.  Values in `x` that are smaller than lowest
-        bin edge areassigned to bin number 0, values beyond the highest bin
-        are assigned to ``bins[-1]``.  If the bin edges are specified,
-        the number of bins will be, (nx = len(bins)-1).
     method : BinningMethod
         binning method, no-weight or weighed
 
@@ -248,7 +208,8 @@ def bin_annular_into_q1d(i_q, theta_min, theta_max, q_min=0.001, q_max=0.4, bins
 
     """
     # Determine azimuthal angle bins (i.e., theta bins)
-    theta_bin_centers, theta_bin_edges = _determine_1d_linear_bins(theta_min, theta_max, bins)
+    theta_bin_centers, theta_bin_edges = _determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max,
+                                                                   theta_bin_params.bins)
 
     # Calculate theta array
     theta_array = np.arctan2(i_q.qy, i_q.qx) * 180. / np.pi

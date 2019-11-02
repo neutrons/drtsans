@@ -477,8 +477,8 @@ def test_1d_annular_no_wt():
                            delta_qx=dqx_array, delta_qy=dqy_array)
 
     # Bin
-    binned_iq = bin_annular_into_q1d(test_i_q, theta_min, theta_max, q_min, q_max, num_bins,
-                                     BinningMethod.NOWEIGHT)
+    theta_binning = BinningParams(theta_min, theta_max, num_bins)
+    binned_iq = bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
     # verify
     assert binned_iq.intensity[1] == pytest.approx(63.66666667, abs=1E-8), 'Binned intensity is wrong'
     assert binned_iq.error[1] == pytest.approx(3.257470048, abs=1E-8), 'Binned sigma I is wrong'
@@ -577,10 +577,10 @@ def test_1d_bin_log_wedge_no_wt():
     # Define input data
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
                            delta_qx=dqx_array, delta_qy=dqy_array)
+    binning = BinningParams(q_min, q_max, step_per_decade)
 
     binned_iq2 = bin_wedge_into_q1d(test_i_q, min_wedge_angle, max_wedge_angle,
-                                    q_min, q_max, step_per_decade,
-                                    linear_binning=False,
+                                    binning, linear_binning=False,
                                     method=BinningMethod.NOWEIGHT)
 
     # verify calculated I, sigma and dQ

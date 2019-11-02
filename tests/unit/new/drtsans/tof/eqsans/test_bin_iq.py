@@ -301,8 +301,12 @@ def test_1d_bin_log_no_wt():
     assert binned_iq.delta_mod_q[3] == pytest.approx(2.529E-05, abs=2.E-7), 'Q resolution wrong'
 
     # Test the high level method
-    binned_iq = bin_iq_into_logarithm_q1d(intensities, sigmas, scalar_q_array, scalar_dq_array,
-                                          num_steps_per_10, q_min, q_max, BinningMethod.NOWEIGHT)
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
+    binning = BinningParams(q_min, q_max, num_steps_per_10)
+    binned_iq = bin_intensity_into_q1d(test_iq, binning, False, BinningMethod.NOWEIGHT)
+
+    # binned_iq = bin_iq_into_logarithm_q1d(intensities, sigmas, scalar_q_array, scalar_dq_array,
+    #                                       num_steps_per_10, q_min, q_max, BinningMethod.NOWEIGHT)
     # I(0.0022) = 70.00000
     assert binned_iq.intensity[3] == pytest.approx(70.00000, abs=1.E-12), 'intensity'
 

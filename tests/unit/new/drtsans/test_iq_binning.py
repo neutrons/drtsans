@@ -224,8 +224,9 @@ def test_log_binning():
                                err_msg='No-weight binned sigma_I(Q) does not match')
 
     # Test to go through wrapper method
-    wiq = bin_iq_into_logarithm_q1d(iq_array, sigma_q_array, q_array, dq_array, step_per_decade,
-                                    q_min, q_max, BinningMethod.WEIGHTED)
+    test_iq = IQmod(iq_array, sigma_q_array, q_array, dq_array)
+    binning = BinningParams(q_min, q_max, step_per_decade)
+    wiq = bin_intensity_into_q1d(test_iq, binning, False, BinningMethod.WEIGHTED)
     assert wiq
 
     # Note: disable the check due to a different algorithm (Lisa vs William) to generate log bins

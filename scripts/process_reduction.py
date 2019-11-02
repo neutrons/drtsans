@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 import os
 import subprocess
@@ -26,7 +27,8 @@ if __name__ == '__main__':
         logFile = open(out_log, "w")
         errFile = open(out_err, "w")
         json_string = json.dumps(json_parameters)
-        cmd = "python3 /opt/sans-backend/scripts/{}".format(reduction_script)
+        script_folder = os.path.abspath(os.path.dirname(__file__))
+        cmd = "python3 {}".format(os.path.join(script_folder, reduction_script))
         cmd += " '{}'".format(json_string)
         proc = subprocess.Popen(cmd,
                                 shell=True,

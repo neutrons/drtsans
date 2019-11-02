@@ -2,6 +2,39 @@ from mantid.plots.helperfunctions import get_spectrum
 from mantid.simpleapi import SaveCanSAS1D
 
 
+def save_ascii_binned_1D(filename, title, *args, **kwargs):
+    r""" Save I(q) data in Ascii format
+
+    Parameters
+    ----------
+    filename: str
+        output filename
+    title: str
+        title to be added on the first line
+    args: namedtuple
+        output from 1D binning
+    kwargs:
+        i, sigma, q, dq - 1D numpy arrays of the same length, output from 1D binning
+    """
+    try:
+        kwargs = args[0]._asdict()
+    except AttributeError:
+        pass
+    q = kwargs['q']
+    intensity = kwargs['i']
+    error = kwargs['sigma']
+    dq = kwargs['dq']
+
+    with open(filename, "w+") as f:
+        f.write('# ' + title + '\n')
+        f.write('#Q (1/A)        I (1/cm)        dI (1/cm)       dQ (1/A)\n')
+        for i in range(len(intensity)):
+            f.write('{:.6f}\t'.format(q[i]))
+            f.write('{:.6f}\t'.format(intensity[i]))
+            f.write('{:.6f}\t'.format(error[i]))
+            f.write('{:.6f}\n'.format(dq[i]))
+
+
 def save_ascii_1D(wksp, title, filename):
     """Save the I(q) workspace in Ascii format
 

@@ -8,12 +8,12 @@ ReplaceSpecialValues https://docs.mantidproject.org/nightly/algorithms/ReplaceSp
 from mantid.api import mtd
 
 r"""
-Links to drtsans functions
-solid_angle_correction <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/solid_angle.py>
+Links to drtsans modules and functions
+solid_angle <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/solid_angle.py>
 """  # noqa: E501
-from drtsans import solid_angle_correction as solid_angle_base_correction
+from drtsans import solid_angle
 
-__all__ = ['solid_angle_correction']
+__all__ = ['solid_angle_correction', ]
 
 
 def solid_angle_correction(input_workspace, output_workspace=None):
@@ -41,10 +41,10 @@ def solid_angle_correction(input_workspace, output_workspace=None):
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    # Apply correction to main detector
-    solid_angle_base_correction(input_workspace, detector_type='VerticalTube', output_workspace=output_workspace,
-                                StartWorkspaceIndex=2, EndWorkspaceIndex=49153)
+    solid_angle.solid_angle_correction(input_workspace, detector_type='VerticalTube', StartWorkspaceIndex=2,
+                                       EndWorkspaceIndex=49153, output_workspace=output_workspace)
     # Apply correction to wing detector
-    solid_angle_base_correction(output_workspace, detector_type='VerticalWing', StartWorkspaceIndex=49154,
-                                EndWorkspaceIndex=90113)
+    solid_angle.solid_angle_correction(output_workspace, detector_type='VerticalWing', StartWorkspaceIndex=49154,
+                                       EndWorkspaceIndex=90113)
     return mtd[output_workspace]
+

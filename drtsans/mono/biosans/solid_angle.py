@@ -7,6 +7,10 @@ ReplaceSpecialValues https://docs.mantidproject.org/nightly/algorithms/ReplaceSp
 """
 from mantid.api import mtd
 
+r"""
+Links to drtsans functions
+solid_angle_correction <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/solid_angle.py>
+"""  # noqa: E501
 from drtsans import solid_angle_correction as solid_angle_base_correction
 
 __all__ = ['solid_angle_correction']

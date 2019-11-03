@@ -8,7 +8,8 @@ ReplaceSpecialValues https://docs.mantidproject.org/nightly/algorithms/ReplaceSp
 from mantid.simpleapi import DeleteWorkspace, Divide, mtd, SolidAngle, ReplaceSpecialValues
 r"""
 Links to drtsans functions
-"""
+unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+"""  # noqa: E501
 from drtsans.settings import unique_workspace_dundername
 
 __all__ = ['solid_angle_correction']

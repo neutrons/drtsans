@@ -8,7 +8,7 @@ from .api import *
 from .beam_finder import *
 from .instruments import *
 from .sensitivity import *
-from .solid_angle_correction import *
+from .solid_angle import *
 from .reductionlog import *
 from .convert_to_q import *
 from .resolution import *

@@ -6,12 +6,13 @@ from drtsans.beam_finder import *
 import drtsans.iq
 from ...iq import *
 
+import drtsans.solid_angle
+from ...solid_angle import *
+
 import drtsans.thickness_normalization
 from ...thickness_normalization import *
 
 import drtsans.transmission
-from ...transmission import *
-
 from ...transmission import *
 
 import drtsans.absolute_units
@@ -38,6 +39,7 @@ from .api import *  # noqa: F403
 
 __all__ = [] + drtsans.beam_finder.__all__ \
           + drtsans.iq.__all__\
+          + drtsans.solid_angle.__all__\
           + drtsans.thickness_normalization.__all__\
           + drtsans.transmission.__all__\
           + drtsans.absolute_units.__all__\

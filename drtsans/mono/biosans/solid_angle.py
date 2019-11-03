@@ -1,38 +1,46 @@
-from drtsans import solid_angle_correction
+r"""
+Links to Mantid algorithms
+DeleteWorkspace https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
+Divide https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
+SolidAngle https://docs.mantidproject.org/nightly/algorithms/SolidAngle-v1.html
+ReplaceSpecialValues https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
+"""
+from mantid.api import mtd
 
-__all__ = ['solid_angle_correction_main_detector', 'solid_angle_correction_wing_detector']
+from drtsans import solid_angle_correction as solid_angle_base_correction
+
+__all__ = ['solid_angle_correction']
 
 
-def solid_angle_correction_main_detector(input_workspace):
-    """ Apply :func:`drtsans.solid_angle_correction` to the main detector
+def solid_angle_correction(input_workspace, output_workspace=None):
+    r"""
+    The algorithm calculates solid angles subtended by the individual pixel-detectors when vieved from the sample
+    position. The returned workspace is the input workspace normalized (divided) by the pixel solid angles.
+
+    **Mantid algorithms used:**
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
+    :ref:`Divide <algm-Divide-v1>`,
+    :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
+    :ref:`SolidAngle <algm-SolidAngle-v1>`
 
     Parameters
     ----------
-    input_workspace : ~mantid.api.MatrixWorkspace, str
-        The input workspace name or itself
+    input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Input workspace to be normalized by the solid angle.
+    output_workspace: str
+        Optional name of the output workspace. if :py:obj:`None`, the name of the input workspace is taken,
+        thus the output workspace replaces the input workspace.
 
     Returns
     -------
-    ~mantid.api.MatrixWorkspace
-        The input workspace corrected for solid angle
+    ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
     """
-
-    return solid_angle_correction(input_workspace, detector_type='VerticalTube')
-
-
-def solid_angle_correction_wing_detector(input_workspace):
-    """ Apply :func:`drtsans.solid_angle_correction` to the wing detector
-
-    Parameters
-    ----------
-    input_workspace : ~mantid.api.MatrixWorkspace, str
-        The input workspace name or itself
-
-    Returns
-    -------
-    ~mantid.api.MatrixWorkspace
-        The input workspace corrected for solid angle
-    """
-
-    return solid_angle_correction(
-        input_workspace, detector_type='VerticalWing')
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+    # Apply correction to main detector
+    solid_angle_base_correction(input_workspace, detector_type='VerticalTube', output_workspace=output_workspace,
+                                StartWorkspaceIndex=2, EndWorkspaceIndex=49153)
+    # Apply correction to wing detector
+    solid_angle_base_correction(output_workspace, detector_type='VerticalWing', StartWorkspaceIndex=49154,
+                                EndWorkspaceIndex=90113)
+    return mtd[output_workspace]

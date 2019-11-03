@@ -8,7 +8,7 @@ from drtsans.settings import (unique_workspace_dundername as uwd)
 
 
 def solid_angle_correction(input_workspace, detector_type='VerticalTube',
-                           output_workspace=None):
+                           output_workspace=None, **kwargs):
     r"""
     The algorithm calculates solid angles from the sample position of
     the input workspace for all of the spectra selected. The output workspace

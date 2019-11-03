@@ -47,4 +47,3 @@ def solid_angle_correction(input_workspace, output_workspace=None):
     solid_angle.solid_angle_correction(output_workspace, detector_type='VerticalWing', StartWorkspaceIndex=49154,
                                        EndWorkspaceIndex=90113)
     return mtd[output_workspace]
-

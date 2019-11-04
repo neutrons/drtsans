@@ -124,12 +124,9 @@ def _calculate_weighted_average_with_error(normalized_data, normalized_error):
     # a = sum_{m, n} I(m, n) / sigma^2(m, n)
     data_no_nan = normalized_data[~np.isnan(normalized_data)]
     print('[DEBUG] Data with NaN removed: {}\n....... shape = {}'.format(data_no_nan, data_no_nan.shape))
-    weighted_sum = np.sum(normalized_data[~np.isnan(normalized_data)] /
-                          normalized_error[~np.isnan(normalized_error)]**2,
-                          axis=1)
+    weighted_sum = np.nansum(normalized_data / normalized_error**2, axis=1)  # summing in row
     # b = sum 1 / sigma^2(m, n)
-    weights_square = np.sum(1. / normalized_error[~np.isnan(normalized_error)]**2,
-                            axis=1)
+    weights_square = np.nansum(1. / normalized_error**2, axis=1)
     # Avg = a / b
     weighted_average = weighted_sum / weights_square
     # sigma Avg = 1 / sqrt(b)

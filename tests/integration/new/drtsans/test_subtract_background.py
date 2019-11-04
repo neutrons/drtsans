@@ -8,53 +8,58 @@ from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, DeleteWorkspace
 import numpy as np
 import pytest
 
-# these equations are taken from the spreadsheet supplied for 1d data
-scale_factor = 0.92
-Sig_scale = 0.005 * scale_factor
 
-Q_Scale = np.linspace(.01, .99, 99)  # 99 numbers from 0.01 to 0.99
-I_Background_1d = np.power(Q_Scale * 10, -4) + .57  # power-law maximum (Porod-scattering)
-Sig_background_1d = I_Background_1d * 0.02
+class _Data1D(object):
+    '''This is a factory class for generating the 1d example data
 
-I_Data_1d = scale_factor * I_Background_1d + 0.2 * (0.5 - np.absolute(0.5 - Q_Scale))
-Sig_data_1d = 0.01 * I_Data_1d
-
-I_output_1d = I_Data_1d - scale_factor * I_Background_1d
-Sig_output_1d = np.sqrt(np.power(Sig_data_1d, 2) + np.power(scale_factor * Sig_background_1d, 2)
-                     + np.power(Sig_scale * I_Background_1d, 2))
-
-
-def _create_workspace_1d(datatype, y=None, e=None, x=Q_Scale):
-    '''This function creates data based on supplied information. There are pre-defined ``datatype``
-    of ``data`` and ``background``. All others are custom.
+    The equations are taken from the spreadsheet supplied for 1d data
     '''
-    if datatype == 'data':
-        y = I_Data_1d
-        e = Sig_data_1d
-    elif datatype == 'background':
-        y = I_Background_1d
-        e = Sig_background_1d
-    elif datatype == 'custom':
-        if y is None:
-            raise RuntimeError('Must supply signal')
-        if e is None:
-            e = np.sqrt(y)
-    else:
-        raise RuntimeError('Unknown data type={}'.format(datatype))
+    scale_factor = 0.92
+    Sig_scale = 0.005 * scale_factor
 
-    # create a workspace with the correct signal and uncertainties and random name
-    return CreateWorkspace(DataX=x, DataY=y, DataE=e,
-                           UnitX='momentumtransfer', OutputWorkspace=uwd())
+    Q_Scale = np.linspace(.01, .99, 99)  # 99 numbers from 0.01 to 0.99
+    I_Background_1d = np.power(Q_Scale * 10, -4) + .57  # power-law maximum (Porod-scattering)
+    Sig_background_1d = I_Background_1d * 0.02
+
+    I_Data_1d = scale_factor * I_Background_1d + 0.2 * (0.5 - np.absolute(0.5 - Q_Scale))
+    Sig_data_1d = 0.01 * I_Data_1d
+
+    I_output_1d = I_Data_1d - scale_factor * I_Background_1d
+    Sig_output_1d = np.sqrt(np.power(Sig_data_1d, 2) + np.power(scale_factor * Sig_background_1d, 2)
+                            + np.power(Sig_scale * I_Background_1d, 2))
+
+    def create(self, datatype, y=None, e=None):
+        '''This function creates data based on supplied information. There are pre-defined ``datatype``
+        of ``data`` and ``background``. All others are custom.
+        '''
+        if datatype == 'data':
+            y = self.I_Data_1d
+            e = self.Sig_data_1d
+        elif datatype == 'background':
+            y = self.I_Background_1d
+            e = self.Sig_background_1d
+        elif datatype == 'output':
+            y = self.I_output_1d
+            e = self.Sig_output_1d
+        else:
+            raise RuntimeError('Unknown data type="{}"'.format(datatype))
+
+        # create a workspace with the correct signal and uncertainties and random name
+        return CreateWorkspace(DataX=self.Q_Scale, DataY=y, DataE=e,
+                               UnitX='momentumtransfer', OutputWorkspace=uwd())
 
 
+# -------------------- 1d tests
 def test_data_not_background_1d():
     '''This tests that the ``data`` is not equal to the ``background``
 
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - Ken Littrell <littrellkc@ornl.gov>
     '''
-    data = _create_workspace_1d('data')
-    background = _create_workspace_1d('background')
+    factory = _Data1D()
+
+    data = factory.create('data')
+    background = factory.create('background')
 
     assert not CompareWorkspaces(data, background).Result
 
@@ -68,13 +73,15 @@ def test_subtract_background_1d():
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - Ken Littrell <littrellkc@ornl.gov>
     '''
+    factory = _Data1D()
+
     # create workspaces with the input data
-    data = _create_workspace_1d('data')
-    background = _create_workspace_1d('background')
-    expected = _create_workspace_1d('custom', I_output_1d, Sig_output_1d)
+    data = factory.create('data')
+    background = factory.create('background')
+    expected = factory.create('output')
 
     # do the calculation using the framework in-place
-    observed = subtract_background(data, background, scale=scale_factor, scale_error=Sig_scale)
+    observed = subtract_background(data, background, scale=factory.scale_factor, scale_error=factory.Sig_scale)
 
     # check the results
     np.testing.assert_equal(observed.extractX(), expected.extractX())
@@ -84,6 +91,15 @@ def test_subtract_background_1d():
     # cleanup workspaces that were created
     for wksp in [data, background, expected]:
         DeleteWorkspace(wksp)
+
+
+# -------------------- 2d tests
+def test_subtract_background_2d_linearized():
+    pass
+
+
+def test_subtract_background_2d():
+    pass
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 from scipy import constants
-
+import numpy as np
 import drtsans.beam_finder as bf
 from mantid import mtd
 from mantid.kernel import logger
@@ -58,7 +58,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_dete
     """
     sl = SampleLogs(ws)
 
-    wavelength = sl.wavelength.value
+    wavelength = np.mean(sl.wavelength.value)
 
     # this comes back as a positive number
     drop_main = _calculate_neutron_drop(sample_det_cent_main_detector, wavelength)

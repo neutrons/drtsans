@@ -129,6 +129,7 @@ def _calculate_weighted_average_with_error(normalized_data, normalized_error):
     weights_square = np.nansum(1. / normalized_error**2, axis=1)
     # Avg = a / b
     weighted_average = weighted_sum / weights_square
+    weighted_average = weighted_average.reshape((normalized_data.shape[0], 1))  # reshape to (N, 1) for division
     # sigma Avg = 1 / sqrt(b)
     weighted_average_error = 1. / np.sqrt(weights_square)
     print('[DEBUG] Average = {}, Error = {}'.format(weighted_average, weighted_average_error))
@@ -139,6 +140,8 @@ def _calculate_weighted_average_with_error(normalized_data, normalized_error):
     # Propagate uncertainties: sigma S(m, n) = I(m, n) / avg * [(error(m, n)/I(m, n))^2 + (sigma Avg/Avg)^2]^1/2
     avg_norm_error = normalized_data / weighted_average * np.sqrt((normalized_error / normalized_data)**2
                                                                   + (weighted_average_error / weighted_average)**2)
+
+    assert normalized_data.shape == avg_norm_error
 
     return avg_norm_data, avg_norm_error, weighted_average, weighted_average_error
 

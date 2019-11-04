@@ -8,32 +8,32 @@ from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, DeleteWorkspace
 import numpy as np
 import pytest
 
-# these equations are taken from the spreadsheet supplied
+# these equations are taken from the spreadsheet supplied for 1d data
 scale_factor = 0.92
 Sig_scale = 0.005 * scale_factor
 
 Q_Scale = np.linspace(.01, .99, 99)  # 99 numbers from 0.01 to 0.99
-I_Background = np.power(Q_Scale * 10, -4) + .57  # power-law maximum (Porod-scattering)
-Sig_background = I_Background * 0.02
+I_Background_1d = np.power(Q_Scale * 10, -4) + .57  # power-law maximum (Porod-scattering)
+Sig_background_1d = I_Background_1d * 0.02
 
-I_Data = scale_factor * I_Background + 0.2 * (0.5 - np.absolute(0.5 - Q_Scale))
-Sig_data = 0.01 * I_Data
+I_Data_1d = scale_factor * I_Background_1d + 0.2 * (0.5 - np.absolute(0.5 - Q_Scale))
+Sig_data_1d = 0.01 * I_Data_1d
 
-I_output = I_Data - scale_factor * I_Background
-Sig_output = np.sqrt(np.power(Sig_data, 2) + np.power(scale_factor * Sig_background, 2)
-                     + np.power(Sig_scale * I_Background, 2))
+I_output_1d = I_Data_1d - scale_factor * I_Background_1d
+Sig_output_1d = np.sqrt(np.power(Sig_data_1d, 2) + np.power(scale_factor * Sig_background_1d, 2)
+                     + np.power(Sig_scale * I_Background_1d, 2))
 
 
-def _create_workspace(datatype, y=None, e=None, x=Q_Scale):
+def _create_workspace_1d(datatype, y=None, e=None, x=Q_Scale):
     '''This function creates data based on supplied information. There are pre-defined ``datatype``
     of ``data`` and ``background``. All others are custom.
     '''
     if datatype == 'data':
-        y = I_Data
-        e = Sig_data
+        y = I_Data_1d
+        e = Sig_data_1d
     elif datatype == 'background':
-        y = I_Background
-        e = Sig_background
+        y = I_Background_1d
+        e = Sig_background_1d
     elif datatype == 'custom':
         if y is None:
             raise RuntimeError('Must supply signal')
@@ -47,14 +47,14 @@ def _create_workspace(datatype, y=None, e=None, x=Q_Scale):
                            UnitX='momentumtransfer', OutputWorkspace=uwd())
 
 
-def test_data_not_background():
+def test_data_not_background_1d():
     '''This tests that the ``data`` is not equal to the ``background``
 
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - Ken Littrell <littrellkc@ornl.gov>
     '''
-    data = _create_workspace('data')
-    background = _create_workspace('background')
+    data = _create_workspace_1d('data')
+    background = _create_workspace_1d('background')
 
     assert not CompareWorkspaces(data, background).Result
 
@@ -62,16 +62,16 @@ def test_data_not_background():
     DeleteWorkspace(background)
 
 
-def test_subtract_background():
+def test_subtract_background_1d():
     '''This tests that ``data - scale * background`` and its uncertainties gives the expected result.
 
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - Ken Littrell <littrellkc@ornl.gov>
     '''
     # create workspaces with the input data
-    data = _create_workspace('data')
-    background = _create_workspace('background')
-    expected = _create_workspace('custom', I_output, Sig_output)
+    data = _create_workspace_1d('data')
+    background = _create_workspace_1d('background')
+    expected = _create_workspace_1d('custom', I_output_1d, Sig_output_1d)
 
     # do the calculation using the framework in-place
     observed = subtract_background(data, background, scale=scale_factor, scale_error=Sig_scale)

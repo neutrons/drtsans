@@ -54,8 +54,9 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
 
     # find weighted average for each fie and error
     # inputs: (N, M) array; outputs: (N, M) array
-    flood_data_matrix, flood_sigma_matrix = _calculate_weighted_average_with_error(flood_data_matrix,
-                                                                                   flood_sigma_matrix)
+    returns = _calculate_weighted_average_with_error(flood_data_matrix, flood_sigma_matrix)
+    flood_data_matrix = returns[0]
+    flood_sigma_matrix = returns[1]
 
     # apply bad pixel threshold to each file
     # inputs: (N, M) array; outputs: (N, M) array

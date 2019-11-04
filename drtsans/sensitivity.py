@@ -10,7 +10,7 @@ from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
 from drtsans.path import exists as path_exists
 from drtsans.settings import unique_workspace_name
 
-__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction']
+__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
 
 
 class Detector(object):
@@ -443,3 +443,45 @@ def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_th
     if filename is not None:
         SaveNexusProcessed(InputWorkspace=output_workspace, Filename=filename)
     return mtd[output_workspace]
+
+def prepare_sensitivity_correction(input_workspace, min_threashold=0.5, max_threshold=2.0,
+                                     filename=None, output_workspace=None):
+    '''
+    Calculate the detector sensitivity
+
+    **Mantid algorithms used:**
+    :ref:`CalculateEfficiency <algm-CalculateEfficiency-v1>`,
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
+    :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
+
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace
+        Workspace to calculate the sensitivity from
+    min_threashold: float
+        Minimum threshold for efficiency value.
+    max_threashold: float
+        Maximum threshold for efficiency value
+    filename: str
+        Name of the file to save the sensitivity calculation to
+    output_workspace: ~mantid.api.MatrixWorkspace
+        The calculated sensitivity workspace
+    '''
+    if output_workspace is None:
+        output_workspace = '{}_sensitivity'.format(input_workspace)
+
+    y = input_workspace.extractY().flatten()
+    indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    MaskDetectors(inputworkspace, WorkspaceIndexList=indices_to_mask)
+
+    #F = np.nanmean(ffm_with_mask)
+    #n_elements = np.sum(np.logical_not(np.isnan(ffm_with_mask)))
+    #dF = np.sqrt(np.nansum(np.power(ffm_uncertainty_with_mask, 2)))/n_elements
+    #II = ffm_with_mask/F
+    #dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
+
+
+
+
+    return output_workspace

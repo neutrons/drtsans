@@ -133,7 +133,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
     MaskDetectors(ws, WorkspaceIndexList=indices_to_mask)
     np.set_printoptions(precision=4)
     #print(ws.extractY().reshape(8, 8))
-    out = calculate_sensitivity_correction(ws, min_threashold=0.5, max_threshold=1.5)
+    out = prepare_sensitivity_correction(ws, min_threashold=0.5, max_threshold=1.5)
     print(out.extractY().reshape(8, 8))
     print(out.extractE().reshape(8, 8))
     print(result)

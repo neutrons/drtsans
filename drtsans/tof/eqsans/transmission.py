@@ -145,24 +145,24 @@ def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formul
         and errors. If None, the input worskpace will be overwritten
     fit_function: str
         String representation of the fit function. See Mantid's
-        `UserFunction` or any of Mantid's fit functions
+        `fitting functions <https://docs.mantidproject.org/nightly/fitting/fitfunctions/index.html>`_
 
     Returns
     -------
-    namedtuple
-        Fields of the namedtuple:
+    ~collections.namedtuple
+        The fields of the returned ~collections.namedtuple are:
+
         - transmission: ~mantid.api.MatrixWorkspace containing the fitted transmissiom values and errors. The name
-          of this workspace is the value of `output_workspace`
+          of this workspace is the value of ``output_workspace``
         - lead_transmission: ~mantid.api.MatrixWorkspace containing the fitted transmission values and
-            errors of the lead pulse
+          errors of the lead pulse
         - lead_mantid_fit: return value of running Mantid's Fit algorithm when
-            fitting the raw transmission over the lead pulse wavelength range
+          fitting the raw transmission over the lead pulse wavelength range
         - skip_transmission: workspace containing the fitted transmission values and
-            errors of the skip pulse. None if not working in frame skipping
-            mode
+          errors of the skip pulse. None if not working in frame skipping mode
         - skip_mantid_fit: return value of running Mantid's Fit algorithm when
-            fitting the raw transmission over the skip pulse wavelength range
-            None f not working in frame skipping mode
+          fitting the raw transmission over the skip pulse wavelength range
+          None if not working in frame skipping mode
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)

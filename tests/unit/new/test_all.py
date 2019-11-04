@@ -1,20 +1,25 @@
-'''This is a collection of tests to verify that the wild imports
+r"""
+This is a collection of tests to verify that the wild imports
 (e.g. __all__) don't define things that don't exist
 
 See http://xion.io/post/code/python-all-wild-imports.html for more information
-'''
+"""
 import pytest
 
 
 def find_missing(package):
-    missing = set(n for n in package.__all__
-                  if getattr(package, n, None) is None)
+    missing = set(n for n in package.__all__ if getattr(package, n, None) is None)
     assert not missing, '__all__ contains unresolved names: {}'.format(', '.join(missing))
 
 
 def test_drtsans():
     import drtsans
     find_missing(drtsans)
+
+
+def test_drtsans_dataobjects():
+    import drtsans.dataobjects
+    find_missing(drtsans.dataobjects)
 
 
 def test_drtsans_mono():

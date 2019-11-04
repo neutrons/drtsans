@@ -5,6 +5,7 @@
 .. toctree::
    :maxdepth: 2
 
+   /drtsans/dataobjects
    /drtsans/mono/index
    /drtsans/tof/index
 

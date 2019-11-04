@@ -5,9 +5,10 @@ import os
 # import mantid
 from mantid import mtd
 from mantid.simpleapi import AddSampleLog, ConfigService, Rebin  # ExtractSpectra MaskAngle,
-from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalisation, transform_to_wavelength)
-from drtsans.iq import bin_iq_into_linear_q1d, BinningMethod
+from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalization, transform_to_wavelength)
+from drtsans.iq import BinningMethod, bin_intensity_into_q1d, BinningParams
 from drtsans.convert_to_q import convert_to_q
+from drtsans.dataobjects import IQmod
 
 
 # Integration test on I(Q) binning algorithms for EQ-SANS
@@ -61,20 +62,16 @@ def test_iq_binning_serial(reference_dir):
                      sample_offset=0)
 
     # Convert to wave length
-    ws = transform_to_wavelength(ws,
-                                 bin_width=0.1,
-                                 low_tof_clip=500,
-                                 high_tof_clip=2000)
+    ws = transform_to_wavelength(ws, bin_width=0.1, low_tof_clip=500, high_tof_clip=2000)
 
     # Calibration in the next few steps
     center_detector(ws, center_x=0.025, center_y=0.016)
 
-    flux_ws = normalisation.load_beam_flux_file(os.path.join(
-        reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
-        output_workspace='flux_ws',
-        ws_reference=ws)
+    flux_ws = normalization.load_beam_flux_file(os.path.join(
+        reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt'),
+        output_workspace='flux_ws', data_workspace=ws)
 
-    ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    ws = normalization.normalize_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # Prepare to calculate Q, dQ and bin I(Q)
     # NOTE: geometry.sample_aperture_diameter is not working: slit4 missing in EQSANS_68200_event.nxs
@@ -102,8 +99,10 @@ def test_iq_binning_serial(reference_dir):
 
     # Bin I(Q)
     final_q_min = 0
-    i_of_q = bin_iq_into_linear_q1d(iq_array, sigma_iq_array, q_array, dq_array, bins=10, q_min=final_q_min,
-                                    bin_method=BinningMethod.WEIGHTED)
+    test_iq = IQmod(iq_array, sigma_iq_array, q_array, dq_array, None)
+    binning = BinningParams(final_q_min, None, 10)
+    i_of_q = bin_intensity_into_q1d(test_iq, binning,
+                                    linear_binning=True, bin_method=BinningMethod.WEIGHTED)
     assert i_of_q
 
     # TODO - continue from here
@@ -191,12 +190,12 @@ def skip_test_api(reference_dir):
 
     # center_detector(ws, x=-0.025, y=-0.016, unit='m')
 
-    # flux_ws = normalisation.load_beam_flux_file(os.path.join(
-    #     reference_dir.new.eqsans, 'test_normalisation', 'beam_profile_flux.txt'),
+    # flux_ws = normalization.load_beam_flux_file(os.path.join(
+    #     reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt'),
     #     output_workspace='flux_ws',
     #     ws_reference=ws)
 
-    # ws = normalisation.normalise_by_proton_charge_and_flux(ws, flux_ws, "ws")
+    # ws = normalization.normalize_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # #
     # table_ws = prepare_momentum_transfer(

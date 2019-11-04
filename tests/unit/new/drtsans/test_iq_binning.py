@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
-from drtsans.iq import bin_iq_into_linear_q1d, bin_iq_into_logarithm_q1d, BinningMethod,\
-    determine_1d_linear_bins, determine_1d_log_bins, do_1d_weighted_binning, do_1d_no_weight_binning
+from drtsans.iq import bin_intensity_into_q1d, BinningMethod, BinningParams,\
+    _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_weighted_binning, _do_1d_no_weight_binning
 import bisect
+from drtsans.dataobjects import IQmod
 
 # This test implements issue #169 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/tree/169_bin_q1d
@@ -106,10 +107,6 @@ R2 = 0.007  # sample aperture radius
 def prepare_test_input_arrays():
     """
     Take the arrays provided by IS in 2D Excel cells and transform to drtsans supported data structure.
-
-    Returns
-    -------
-
     """
     # Transform from 2D array to 1D
     iq_array = det_view_counts.flatten().astype(float)
@@ -142,59 +139,55 @@ def test_linear_binning():
     # Define target Q range
     q_min = 0
     q_max = 0.00629
-    assert abs(q_max - np.max(det_view_q)) < 1E-5
+    assert q_max == pytest.approx(np.max(det_view_q), abs=1E-5)
     bins = 10
 
     # Prepare inputs
     q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
 
     # Calculate bin centers and bin edges by Qmin, Qmax and number of bins
-    bin_centers, bin_edges = determine_1d_linear_bins(q_min, q_max, bins)
+    bin_centers, bin_edges = _determine_1d_linear_bins(q_min, q_max, bins)
 
     # Test
     assert bin_centers.shape == (10, ), 'Bin shape incorrect'
     assert bin_edges[0] == 0., 'Bin edge shall start from 0'
-    assert abs(bin_centers[9] - 0.0059731523) < 0.00005, 'Last bin center is too far away from gold data'
+    assert bin_centers[9] == pytest.approx(0.0059731523, abs=0.00005), 'Last bin center is too far away from gold data'
 
     # Get assignment of each Qi to Qk
     bins_dict = assign_bins(bin_edges, q_array, iq_array, bin_centers)
     i_weighted_array, sigma_i_weighted_array = bin_weighted_prototype(bin_centers, iq_array, bins_dict)
 
     # Do weighted binning
-    binned_q = do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    binned_q = _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
     # Test for Q bins
-    assert binned_q.q.shape == (10, )
-    assert pytest.approx(binned_q.q[0], q_max/bins * 0.5, 1E-5)
+    assert binned_q.mod_q.shape == (10, )
+    assert pytest.approx(binned_q.mod_q[0], q_max/bins * 0.5, 1E-5)
 
     # Test for I(Q)
-    assert np.allclose(i_weighted_array, binned_q.i, 1e-6)
-    assert np.allclose(sigma_i_weighted_array, binned_q.sigma, 1e-6)
-    assert np.sqrt(np.sum((i_weighted_array - binned_q.i)**2)) < 1e-6
+    np.testing.assert_allclose(i_weighted_array, binned_q.intensity, atol=1e-6)
+    np.testing.assert_allclose(sigma_i_weighted_array, binned_q.error, atol=1e-6)
+    assert np.sqrt(np.sum((i_weighted_array - binned_q.intensity)**2)) < 1e-6
 
     # Test no-weight binning
     i_noweight_array, sigma_i_noweight_array = do_no_weight_prototype(bin_centers, iq_array, bins_dict)
-    no_weight_iq = do_1d_no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    no_weight_iq = _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
 
     # verify
-    assert np.allclose(i_noweight_array, no_weight_iq.i, 1e-6)
-    assert np.allclose(sigma_i_noweight_array, no_weight_iq.sigma, 1e-6)
-    assert np.sqrt(np.sum((i_noweight_array - no_weight_iq.i)**2)) < 1e-6
+    np.testing.assert_allclose(i_noweight_array, no_weight_iq.intensity, atol=1e-6)
+    np.testing.assert_allclose(sigma_i_noweight_array, no_weight_iq.error, atol=1e-6)
+    assert np.sqrt(np.sum((i_noweight_array - no_weight_iq.intensity)**2)) < 1e-6
 
     # Test to go through wrapper method
-    wiq = bin_iq_into_linear_q1d(iq_array, sigma_q_array, q_array, dq_array, bins, q_min, q_max,
-                                 BinningMethod.WEIGHTED)
-    assert np.allclose(wiq.i, binned_q.i, 1e-6)
-
-    return
+    test_iq = IQmod(iq_array, sigma_q_array, q_array, dq_array, None)
+    binning = BinningParams(q_min, q_max, bins)
+    wiq = bin_intensity_into_q1d(test_iq, binning, True, BinningMethod.WEIGHTED)
+    np.testing.assert_allclose(wiq.intensity, binned_q.intensity, atol=1e-6)
 
 
 def test_log_binning():
     """
     Unit test for the method to generate logarithm bins
-    Returns
-    -------
-    None
     """
     # Get test Q, dQ, I, sigmaI
     q_array, dq_array, iq_array, sigma_q_array = prepare_test_input_arrays()
@@ -203,84 +196,41 @@ def test_log_binning():
     q_min = q_array.min()
     q_max = 1.
     step_per_decade = 33
-    bin_centers, bin_edges = determine_1d_log_bins(q_min, q_max, step_per_decade)
-
-    for ibin in range(bin_centers.shape[0]):
-        print('{}\t{}\t{}\t{}\t'.format(ibin, bin_centers[ibin], bin_edges[ibin],
-                                        bin_edges[ibin + 1]))
-
-    # Verify: bin size, min and max are all on the power of 10
-    # assert bin_edges.shape[0] == bin_centers.shape[0] + 1
-    # assert bin_centers.shape[0] == 100
-    # assert abs(bin_centers[0] - q_min) < 1.E-12
-    # assert abs(bin_centers[99] - q_max) < 1.E-12
+    bin_centers, bin_edges = _determine_1d_log_bins(q_min, q_max, step_per_decade)
 
     # Test bins
     bin_assignment_dict = assign_bins(bin_edges, q_array, iq_array, bin_centers)
 
     # Bin with weighted binning algorithm
-    binned_q = do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
+    binned_q = _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_q_array, bin_centers, bin_edges)
     # do the weighted binning
     weighted_i_q, weighted_i_sigma_q = bin_weighted_prototype(bin_centers, iq_array, bin_assignment_dict)
 
-    # verify: NaN first
-    assert np.allclose(np.isnan(weighted_i_q), np.isnan(binned_q.i)), 'NaN shall be same'
-
     # verify
-    if not np.allclose(weighted_i_q, binned_q.i, 1e-12, True):
-        print('Different of log binning I(Q)')
-        for k in range(binned_q.i.shape[0]):
-            if np.isnan(weighted_i_q[k]) and np.isnan(binned_q.i[k]):
-                # print('{}\t{}\t{}\t{}'.format(k, 'NaN', 'NaN', 0))
-                pass
-            elif not np.isnan(weighted_i_q[k]) and not np.isnan(binned_q.i[k]):
-                diff_k = abs(weighted_i_q[k] - binned_q.i[k])
-                if abs(diff_k) < 1e-10:
-                    print('{}\t{}\t{}\t{}'.format(k, weighted_i_q[k], binned_q.i[k],
-                                                  weighted_i_q[k] - binned_q.i[k]))
-                else:
-                    print('{}\t{}\t{}\t{}\tError'.format(k, weighted_i_q[k], binned_q.i[k],
-                                                         weighted_i_q[k] - binned_q.i[k]))
-            else:
-                pass
-                # print('{}\t{}\t{}\t{}\tError'.format(k, weighted_i_q[k], binned_q.i[k],
-                #                                      weighted_i_q[k] - binned_q.i[k]))
-    # END-FOR
-
-    assert np.allclose(weighted_i_q[~np.isnan(weighted_i_q)],
-                       binned_q.i[~np.isnan(binned_q.i)],
-                       1e-10, True), 'Binned I(Q) does not match'
-    assert np.allclose(weighted_i_sigma_q, binned_q.sigma, 1e-12, True), 'Binned sigma_I(Q) does not match'
+    np.testing.assert_allclose(weighted_i_q, binned_q.intensity, rtol=1e-12, equal_nan=True,
+                               err_msg='Binned I(Q) does not match')
+    np.testing.assert_allclose(weighted_i_sigma_q, binned_q.error, rtol=1e-12, equal_nan=True,
+                               err_msg='Binned sigma_I(Q) does not match')
 
     # Test no-weight binning
-    no_weight_binned_iq = do_1d_no_weight_binning(q_array, dq_array, iq_array,
-                                                  sigma_q_array, bin_centers, bin_edges)
+    no_weight_binned_iq = _do_1d_no_weight_binning(q_array, dq_array, iq_array,
+                                                   sigma_q_array, bin_centers, bin_edges)
     # do no weight binning
     noweight_i_q, noweight_sigma_q = do_no_weight_prototype(bin_centers, iq_array, bin_assignment_dict)
-    # verify: NaN first
-    assert np.allclose(np.isnan(noweight_i_q), np.isnan(no_weight_binned_iq.i)), 'No-weight binning NaN shall be same'
-    assert np.allclose(np.isnan(noweight_sigma_q), np.isnan(no_weight_binned_iq.sigma)), 'No-weight binning ' \
-                                                                                         'Sigma(I) NaN shall be same'
-
-    # verify: non-NaN value
-    assert np.allclose(noweight_i_q[~np.isnan(noweight_i_q)],
-                       no_weight_binned_iq.i[~np.isnan(no_weight_binned_iq.i)],
-                       1e-10, True), 'No-weight binned I(Q) does not match'
-    assert np.allclose(noweight_sigma_q[~np.isnan(noweight_sigma_q)],
-                       no_weight_binned_iq.sigma[~np.isnan(no_weight_binned_iq.sigma)],
-                       1e-10, True), 'No-weight binned sigma_I(Q) does not match'
+    # verify
+    np.testing.assert_allclose(noweight_i_q, no_weight_binned_iq.intensity, rtol=1e-10, equal_nan=True,
+                               err_msg='No-weight binned I(Q) does not match')
+    np.testing.assert_allclose(noweight_sigma_q, no_weight_binned_iq.error, rtol=1e-10, equal_nan=True,
+                               err_msg='No-weight binned sigma_I(Q) does not match')
 
     # Test to go through wrapper method
-    wiq = bin_iq_into_logarithm_q1d(iq_array, sigma_q_array, q_array, dq_array, step_per_decade,
-                                    q_min, q_max, BinningMethod.WEIGHTED)
+    test_iq = IQmod(iq_array, sigma_q_array, q_array, dq_array)
+    binning = BinningParams(q_min, q_max, step_per_decade)
+    wiq = bin_intensity_into_q1d(test_iq, binning, False, BinningMethod.WEIGHTED)
     assert wiq
 
     # Note: disable the check due to a different algorithm (Lisa vs William) to generate log bins
-    # assert np.allclose(wiq.i[~np.isnan(wiq.i)],
-    #                    binned_q.i[~np.isnan(binned_q.i)],
-    #                    1e-10, True)
-
-    return
+    # assert np.testing.assert_allclose(wiq.i, binned_q.i, rtol=1e-10, equal_nan=True)
 
 
 def assign_bins(bin_edges, data_points, det_counts, bin_centers):
@@ -300,9 +250,9 @@ def assign_bins(bin_edges, data_points, det_counts, bin_centers):
         dictionary of Q[k] to detector Q[i]'s list
     """
     # Print bin edges
-    print('Bin edges:')
-    for i in range(bin_centers.shape[0]):
-        print('{}\t{}\t{}'.format(i, bin_edges[i], bin_edges[i + 1]))
+    # print('Bin edges:')
+    # for i in range(bin_centers.shape[0]):
+    #    print('{}\t{}\t{}'.format(i, bin_edges[i], bin_edges[i + 1]))
     # END-FOR
 
     # Register binning
@@ -314,7 +264,7 @@ def assign_bins(bin_edges, data_points, det_counts, bin_centers):
         i_raw_dict[i] = 0
     # END-FOR
 
-    print('Assign bins:')
+    # print('Assign bins:')
     for i in range(data_points.shape[0]):
         bin_index = bisect.bisect_left(bin_edges, data_points[i])
         if data_points[i] < bin_edges[bin_index]:
@@ -322,8 +272,8 @@ def assign_bins(bin_edges, data_points, det_counts, bin_centers):
             if bin_index < 0:
                 raise NotImplementedError('Implementation error')
         bin_index_list[i] = bin_index
-        print('{}\t{}\t{}\t{}\t({}, {})'
-              ''.format(i, det_counts[i], data_points[i], bin_index, bin_edges[bin_index], bin_edges[bin_index+1]))
+        # print('{}\t{}\t{}\t{}\t({}, {})'
+        #      ''.format(i, det_counts[i], data_points[i], bin_index, bin_edges[bin_index], bin_edges[bin_index+1]))
         # register
         bins_dict[bin_index].add(i)
         if det_counts[i] > 0:
@@ -331,8 +281,8 @@ def assign_bins(bin_edges, data_points, det_counts, bin_centers):
     # END-FOR
 
     # Binning assignment demo 2
-    for k in range(bin_centers.shape[0]):
-        print('{}\t{}'.format(k, sorted(list(bins_dict[k]))))
+    # for k in range(bin_centers.shape[0]):
+    #    print('{}\t{}'.format(k, sorted(list(bins_dict[k]))))
     # END-FOR(k)
 
     return bins_dict

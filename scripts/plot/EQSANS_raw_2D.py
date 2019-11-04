@@ -23,7 +23,7 @@ def load_data(filename):
     data = bc.reshape(-1, 8, 256).T
     data2 = data[:, [0, 4, 1, 5, 2, 6, 3, 7], :]
     data2 = data2.transpose().reshape(-1, 256)
-    return np.ma.masked_where(data2 < 1, data2).T, run_number, title
+    return data2.T, run_number, title
 
 
 data, run_number, title = load_data(sys.argv[1])

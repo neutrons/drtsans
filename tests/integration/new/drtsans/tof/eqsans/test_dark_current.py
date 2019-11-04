@@ -28,6 +28,7 @@ def data_test_16a():
                 l_max=l_max,
                 l_step=l_step,  # wavelength bin width
                 n_pixels=25,  # 25 pixels in the detector
+                # dark current intensities and errors
                 I_dc=[[40., 45., 50., 55., 60.],  # intensity per pixel, integrated over all wavelength bins
                       [65., 70., 75., 80., 85.],
                       [90., 95., 100., 105., 110.],
@@ -38,6 +39,8 @@ def data_test_16a():
                           [9.4868,  9.7468, 10., 10.247, 10.4881],
                           [10.7238, 10.9545, 11.1803, 11.4018, 11.619],
                           [11.8322, 12.0416, 12.2474, 12.4499, 12.6491]],
+                # sample data intensities and errors. Numers are selected in such a way that subtracting the dark
+                # current will yield no intensities.
                 I_data=[[0.9444, 1.0625, 1.1806, 1.2986, 1.4167],  # intensity per pixel, integrated over all
                         [1.5347, 1.6528, 1.7708, 1.8889, 2.0069],  # wavelength bins
                         [2.125, 2.2431, 2.3611, 2.4792, 2.5972],
@@ -48,6 +51,8 @@ def data_test_16a():
                             [0.0379, 0.0389, 0.0399, 0.0409, 0.0419],
                             [0.0428, 0.0437, 0.0446, 0.0455, 0.0464],
                             [0.0472, 0.0481, 0.0489, 0.0497, 0.0505]],
+                # Sample data normalized by the dark current. As stated before, the sample data was selected such
+                # that the normalization will yield no intensities.
                 I_data_norm=[[0., 0., 0., 0., 0.],  # data minus normalized dark current
                              [0., 0., 0., 0., 0.],  # is all zeroes by construction
                              [0., 0., 0., 0., 0.],

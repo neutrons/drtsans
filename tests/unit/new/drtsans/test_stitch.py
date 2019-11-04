@@ -1,4 +1,3 @@
-# flake8: noqa
 import os
 import numpy as np
 import pytest
@@ -22,21 +21,21 @@ def test_stitch(reference_dir):
     def loadData(filename):
         datadir = os.path.join(reference_dir.new.eqsans, "test_stitch")
         data = os.path.join(datadir, filename)
-        q,y,erry,errq = np.loadtxt(data, skiprows=2).T
-        return q,y,erry,errq
+        q, y, erry, errq = np.loadtxt(data, skiprows=2).T
+        return q, y, erry, errq
     # load test data
     (q1, y1, erry1, errq1) = loadData("sMCM_cc_4m_Iq.txt")
     (q2, y2, erry2, errq2) = loadData("sMCM_cc_hq_Iq.txt")
     # parameters for stitching: overlapping region marked by min and max q values
     startoverlap, stopoverlap = 0.04, 0.08
     # stitch
-    qout, yout, erryout, errqout, scale = stitch(q1,y1,erry1,errq1, q2,y2,erry2,errq2, startoverlap, stopoverlap)
+    qout, yout, erryout, errqout, scale = stitch(q1, y1, erry1, errq1, q2, y2, erry2, errq2, startoverlap, stopoverlap)
     # expected results
-    expected_q,expected_y,expected_err,expected_errq = loadData("sMCM_cc_stitched.txt")
+    expected_q, expected_y, expected_err, expected_errq = loadData("sMCM_cc_stitched.txt")
     # create a figure to plot all relevant curves
     if not headless:
         from matplotlib import pyplot as plt
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         # use log for both x and y axes
         ax.loglog(expected_q, expected_y, '+', label='expected')
         ax.loglog(q1, y1, 'v', mfc='none', label='low q')
@@ -54,7 +53,7 @@ def test_stitch(reference_dir):
     np.testing.assert_almost_equal(yout, expected_y, decimal=4)
     np.testing.assert_almost_equal(erryout, expected_err, decimal=4)
     np.testing.assert_almost_equal(errqout, expected_errq, decimal=7)
-    return
 
 
-if __name__ == '__main__': pytest.main([__file__])
+if __name__ == '__main__':
+    pytest.main([__file__])

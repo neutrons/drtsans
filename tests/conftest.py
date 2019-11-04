@@ -609,7 +609,6 @@ def generic_workspace(generic_IDF, request):
         x = np.array(x).ravel()
     else:
         x = np.zeros(Nx * Ny, dtype=float)
-
     wksp = CreateWorkspace(DataX=x,
                            DataY=y,
                            DataE=e,

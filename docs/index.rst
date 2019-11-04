@@ -10,6 +10,7 @@ Welcome to drt-sans's documentation!
    :maxdepth: 2
 
    /drtsans/index
+   /drtsans/dataobjects
    /drtsans/mono/index
    /drtsans/tof/index
    /developer/index

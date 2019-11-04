@@ -1,25 +1,22 @@
 import sys
 
-r""" Links to Mantid algorithms
-CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
-DeleteWorkspace             <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
-Divide                      <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
-GroupDetectors              <https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v1.html>
-"""
+import drtsans.mono.geometry
+
+# https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/GroupDetectors-v1.html
 from mantid.simpleapi import mtd, CreateSingleValuedWorkspace, DeleteWorkspace, Divide, GroupDetectors
 
 from drtsans.settings import unique_workspace_dundername
-from drtsans.geometry import masked_detectors
-from drtsans import transmission
-from drtsans.mask_utils import circular_mask_from_beam_center
+from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 
 __all__ = ['empty_beam_scaling', ]
 
 
 def empty_beam_intensity(empty_beam_workspace, beam_radius=None, unit='mm', roi=None,
                          attenuator_coefficient=1.0, attenuator_error=0.0, output_workspace=None):
-    r"""
-    Calculate the intensity impinging on the detector, taking into account attenuation.
+    r"""Calculate the intensity impinging on the detector, taking into account attenuation.
 
     It is assumed the center of the detector has been moved to coincide with the center of the beam.
 
@@ -32,15 +29,15 @@ def empty_beam_intensity(empty_beam_workspace, beam_radius=None, unit='mm', roi=
     unit: str
         Units for the beam radius, either meters ('m') or mili-miters ('mm').
     roi: file path, MaskWorkspace, list
-        Region of interest where to collect intensities. If `list`, it is a list of detector ID's. This option
-        overrides beam radius.
+        Region of interest where to collect intensities. If :py:obj:`list`, it is a list of detector ID's.
+        This option overrides beam radius.
     attenuator_coefficient: float
         Fraction of the neutrons allowed to pass through the attenuator. Assumed wavelength independent.
     attenuator_error: float
         Estimated error for the attenuator coefficient.
     output_workspace: str
-        Name of the workspace containing the calculated intensity. If None, a random hidden name will be
-        automatically provided.
+        Name of the workspace containing the calculated intensity. If :py:obj:`None`, a random hidden name
+        will be automatically provided.
 
     Returns
     -------
@@ -52,7 +49,7 @@ def empty_beam_intensity(empty_beam_workspace, beam_radius=None, unit='mm', roi=
 
     # Obtain the beam radius from the logs or calculate from the source and sample apertures
     if beam_radius is None:
-        beam_radius = transmission.beam_radius(empty_beam_workspace, unit=unit)
+        beam_radius = drtsans.mono.geometry.beam_radius(empty_beam_workspace, unit=unit)
 
     det_ids = circular_mask_from_beam_center(empty_beam_workspace, beam_radius, unit=unit)
 
@@ -78,9 +75,7 @@ def empty_beam_scaling(input_workspace, empty_beam_workspace, beam_radius=None, 
 
     **Mantid Algorithms used:**
     :ref:`Divide <algm-CreateWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
     :ref:`DeleteWorkspace <algm-CreateWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 
     Parameters
     ----------
@@ -102,7 +97,7 @@ def empty_beam_scaling(input_workspace, empty_beam_workspace, beam_radius=None, 
 
     Returns
     -------
-        MatrixWorkspace, EventsWorkspace
+    ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)

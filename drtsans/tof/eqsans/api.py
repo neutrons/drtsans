@@ -8,12 +8,11 @@ from drtsans.path import exists as path_exists
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 from drtsans.save_2d import save_nist_dat, save_nexus
-from drtsans.thickness_normalization import normalize_by_thickness  # noqa: F401
 from drtsans.tof.eqsans.correct_frame import smash_monitor_spikes, transform_to_wavelength
 from drtsans.tof.eqsans.load import load_events, load_events_monitor
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 from drtsans.tof.eqsans.mask import apply_mask
-from drtsans.tof.eqsans.normalisation import normalise_by_flux
+from drtsans.tof.eqsans.normalization import normalize_by_flux
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_monitors', 'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -24,11 +23,6 @@ def apply_solid_angle_correction(input_workspace):
     """Apply solid angle correction. This uses :func:`drtsans.solid_angle_correction`."""
     return solid_angle_correction(input_workspace,
                                   detector_type='VerticalTube')
-
-
-def normalize(ws, normalization_type):
-    """Normalize to time, monitor, or proton charge"""
-    raise NotImplementedError()
 
 
 def prepare_monitors(data, bin_width=0.1, output_workspace=None):
@@ -143,7 +137,7 @@ def prepare_data(data,
             prepare_monitors(data, bin_width=bin_width,
                              output_workspace=monitor_workspace)
             kw['monitor_workspace='] = monitor_workspace
-        normalise_by_flux(output_workspace, flux, **kw)
+        normalize_by_flux(output_workspace, flux, **kw)
     apply_mask(output_workspace, panel=mask_panel, mask=mask, **btp)
     if solid_angle is True:
         apply_solid_angle_correction(output_workspace)

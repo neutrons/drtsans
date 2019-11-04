@@ -1,17 +1,22 @@
+from mantid.api import mtd
 
-def normalize_by_thickness(ws, thickness):
+__all__ = ['normalize_by_thickness']
+
+
+def normalize_by_thickness(input_workspace, thickness):
     r"""Normalize input workspace by thickness
 
     Parameters
     ----------
-    ws: Input workspace
-    thickness: thickness of the sample in centimeters.
+    input_workspace: str, ~mantid.api.MatrixWorkspace
+    thickness: float
+        Thickness of the sample in centimeters.
 
     Returns
     -------
-    normalized workspace
+    ~mantid.api.MatrixWorkspace
     """
     if thickness <= 0.0:
         msg = 'Sample thickness should be positive. Got {}'.format(thickness)
         raise ValueError(msg)
-    return ws/thickness
+    return mtd[str(input_workspace)] / thickness

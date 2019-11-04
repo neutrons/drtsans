@@ -93,7 +93,9 @@ def _normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
     # Check monitor counts shape and convert if necessary
     if len(monitor_counts.shape) == 1:
         monitor_counts = monitor_counts.reshape((len(monitor_counts), 1))
-    assert monitor_counts.shape == flood_data.shape[0], 1
+    assert monitor_counts.shape == (flood_data.shape[0], 1), 'Monitor counts must be in shape as ({}, 1} ' \
+                                                             'but not {}'.format(flood_data.shape[0],
+                                                                                 monitor_counts.shape)
 
     return flood_data / monitor_counts, flood_data_error / monitor_counts
 

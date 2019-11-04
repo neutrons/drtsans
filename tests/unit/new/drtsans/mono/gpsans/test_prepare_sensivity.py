@@ -506,8 +506,8 @@ def test_prepare_moving_det_sensitivity():
     matrix_c, sigma_c = test_data_set[4], test_data_set[5]
 
     # convert input data to required format
-    flood_matrix = np.ndarray(shape=(3, len(matrix_a)), dtype=float)
-    flood_error = np.ndarray(shape=(3, len(matrix_a)), dtype=float)
+    flood_matrix = np.ndarray(shape=(3, matrix_a.size), dtype=float)
+    flood_error = np.ndarray(shape=(3, matrix_a.size), dtype=float)
 
     flood_matrix[0] = matrix_a.flatten()
     flood_matrix[1] = matrix_b.flatten()

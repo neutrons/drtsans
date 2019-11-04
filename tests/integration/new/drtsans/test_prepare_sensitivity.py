@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import MaskDetectors
 import pytest
 from drtsans.sensitivity import calculate_sensitivity_correction
 
@@ -120,16 +120,22 @@ def test_prepare_sensitivity(workspace_with_instrument):
     result_uncertainty = result * np.sqrt(np.square(extrapolation_uncertainty/extrapolation) +
                                           np.square(final_sensitivity_uncertainty/final_sensitivity))
 
-
-    x = list(range(1,9))
-    y = list(range(1,9))
-    xv, yv = np.meshgrid(x,y)
-    ws = workspace_with_instrument(axis_values=xv, intensities=ffm_with_mask,
+    ws = workspace_with_instrument(axis_values=[1.,2.], intensities=ffm_with_mask,
                               uncertainties=ffm_uncertainty_with_mask, view='pixel')
-    out = calculate_sensitivity_correction(ws, min_threashold=0.5, max_threshold=1.5, )
-    print(out.extractX().reshape(8,8))
-    print(out.extractY().reshape(8,8))
+
+    y = ws.extractY().flatten()
+    #indices_to_mask = []
+    #for i, yi in enumerate(y):
+    #   if np.isnan(yi):
+    #        indices_to_mask.append(i)
+    indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    #print(y)
+    MaskDetectors(ws, WorkspaceIndexList=indices_to_mask)
     np.set_printoptions(precision=4)
+    #print(ws.extractY().reshape(8, 8))
+    out = calculate_sensitivity_correction(ws, min_threashold=0.5, max_threshold=1.5)
+    print(out.extractY().reshape(8, 8))
+    print(out.extractE().reshape(8, 8))
     print(result)
     print(result_uncertainty)
     assert False

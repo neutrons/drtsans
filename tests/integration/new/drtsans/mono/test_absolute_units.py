@@ -92,6 +92,10 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b):
     workspace_with_instrument(axis_values=test_data_15b.wavelength_bin, intensities=intensities,
                               view='array', output_workspace=empty_beam_workspace)
 
+    ws = mtd[empty_beam_workspace]
+    print(test_data_15b.wavelength_bin)
+    print(intensities)
+    assert False
     # Section to center the detector
     # The tests assumes the beam center is located at the center of the pixel with the highest intensity. Thus,
     # we need to obtain the coordinates of this pixel, in units of meters.

@@ -785,11 +785,13 @@ def serve_events_workspace(reference_dir):
 
 
 def _assert_both_set_or_none(left, right, assert_func, err_msg):
+    '''Either both argumentes are :py:obj:`None` or they are equal to each other'''
     if left is None and right is None:
         return
     if (left is not None) and (right is not None):
         assert_func(left, right, err_msg=err_msg)
     raise AssertionError('{}Either both or neither should be None (left={}, right={})'.format(err_msg, left, right))
+
 
 def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=''):
     '''Generic method for checking equality of two data objects. This has some understanding of
@@ -845,7 +847,13 @@ def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=''):
                 assert_func(left.qy, right.qy, err_msg=err_msg + 'qy', **kwargs)
                 _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + 'delta_qx')
                 _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + 'delta_qy')
-
+            elif id_left == DataType.IQ_CRYSTAL:
+                assert_func(left.qx, right.qx, err_msg=err_msg + 'qx', **kwargs)
+                assert_func(left.qy, right.qy, err_msg=err_msg + 'qy', **kwargs)
+                assert_func(left.qz, right.qz, err_msg=err_msg + 'qz', **kwargs)
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + 'delta_qx')
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + 'delta_qy')
+                _assert_both_set_or_none(left.delta_qz, right.delta_qz, assert_func, err_msg + 'delta_qz')
             else:
                 raise NotImplementedError('Do not know how to compare {} objects'.format(id_left))
     else:

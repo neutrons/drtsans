@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-from mantid.simpleapi import mtd, CreateWorkspace
+from mantid.simpleapi import CreateWorkspace
+from mantid.api import mtd
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
@@ -14,14 +15,25 @@ from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalize_
 
 
 def test_normalize_by_time(reference_dir):
-    w = load_events('EQSANS_68168', data_dir=reference_dir.new.eqsans)
-    d = SampleLogs(w).duration.value
-    w = transform_to_wavelength(w)
-    y, e = sum(w.readY(42)), sum(w.readE(42))
-    w = normalize_by_time(w)
-    assert (sum(w.readY(42)), sum(w.readE(42))) == pytest.approx((y / d, e / d))
-    assert SampleLogs(w).normalizing_duration.value == 'duration'
-    w.delete()
+    r"""
+    Test normalization by time duration.
+    """
+    output_workspace = unique_workspace_dundername()
+    load_events('EQSANS_68168', data_dir=reference_dir.new.eqsans, output_workspace=output_workspace)
+    workspace = transform_to_wavelength(output_workspace)
+    time_duration = SampleLogs(output_workspace).duration.value
+
+    # Let's pick one spectrum (spectrum 42) and verify we are dividing its intensity by the time duration
+    intensity, uncertainty = np.copy(workspace.readY(42)), np.copy(workspace.readE(42))
+    workspace_normalized = normalize_by_time(output_workspace)
+
+    # Verify we selected 'duration' as the log entry to find out the duration of the run
+    assert SampleLogs(output_workspace).normalizing_duration.value == 'duration'
+
+    assert workspace_normalized.readY(42) == pytest.approx(intensity / time_duration, abs=1.e-6)
+    assert workspace_normalized.readE(42) == pytest.approx(uncertainty / time_duration)
+
+    workspace_normalized.delete()  # some cleanup
 
 
 @pytest.fixture(scope='module')

@@ -215,17 +215,15 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
     simple_sum = np.sum(flood_data, axis=0)
 
     s_ij = np.nansum(1. / flood_error ** 2, axis=0)  # summation along axis 1: among files
-    print('DEBUG s_ij.shape = {}'.format(s_ij.shape))
     d_ij = np.nansum(flood_data / flood_error ** 2, axis=0) / s_ij
-    print('DEBUG d_ij.shape = {}'.format(d_ij.shape))
-    s_ij = np.sqrt(s_ij)
-    print('DEBUG s_ij.shape = {}'.format(s_ij.shape))
+    s_ij = 1. / np.sqrt(s_ij)
 
+    # Set to infinity
     s_ij[np.isinf(simple_sum)] = -np.inf
     d_ij[np.isinf(simple_sum)] = -np.inf
 
-    sensitivities = s_ij
-    sensitivities_error = d_ij
+    sensitivities = d_ij
+    sensitivities_error = s_ij
 
     # for ipixel in range(flood_data.shape[1]):
     #     # For each pixel: sum up along axis = 1

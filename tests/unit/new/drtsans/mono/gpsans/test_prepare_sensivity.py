@@ -469,15 +469,15 @@ def test_prepare_moving_det_sensitivity():
 
     # Apply bad pixel threshold to each file
     matrix_a2, sigma_a2 = process_bad_pixels(matrix_a, sigma_a, threshold_min, threshold_max)
-    matrix_b, sigma_b = process_bad_pixels(matrix_b, sigma_b, threshold_min, threshold_max)
-    matrix_c, sigma_c = process_bad_pixels(matrix_c, sigma_c, threshold_min, threshold_max)
+    matrix_b2, sigma_b2 = process_bad_pixels(matrix_b, sigma_b, threshold_min, threshold_max)
+    matrix_c2, sigma_c2 = process_bad_pixels(matrix_c, sigma_c, threshold_min, threshold_max)
 
     #  there is no check for this step
 
     # Correct for beam stop and add N files for non-normalized sensitivities
     matrix_d, sigma_matrix_d = calculate_pixel_wise_sensitivity(matrix_a2, sigma_a2,
-                                                                matrix_b, sigma_b,
-                                                                matrix_c, sigma_c)
+                                                                matrix_b2, sigma_b2,
+                                                                matrix_c2, sigma_c2)
 
     # verify
     gold_d, gold_sigma_d = get_non_normalized_sensitivities()
@@ -526,11 +526,11 @@ def test_prepare_moving_det_sensitivity():
     np.testing.assert_allclose(matrix_a2.flatten(), test_sens_array[0], 1e-7)
     np.testing.assert_allclose(sigma_a2.flatten(), test_sens_sigma_array[0], 1e-7)
 
-    np.testing.assert_allclose(matrix_b.flatten(), test_sens_array[1], 1e-7)
-    np.testing.assert_allclose(sigma_b.flatten(), test_sens_sigma_array[1], 1e-7)
+    np.testing.assert_allclose(matrix_b2.flatten(), test_sens_array[1], 1e-7)
+    np.testing.assert_allclose(sigma_b2.flatten(), test_sens_sigma_array[1], 1e-7)
 
-    np.testing.assert_allclose(matrix_c.flatten(), test_sens_array[1], 1e-7)
-    np.testing.assert_allclose(sigma_c.flatten(), test_sens_sigma_array[1], 1e-7)
+    np.testing.assert_allclose(matrix_c2.flatten(), test_sens_array[2], 1e-7)
+    np.testing.assert_allclose(sigma_c2.flatten(), test_sens_sigma_array[2], 1e-7)
 
     # np.testing.assert_allclose(sensitivities, test_sens_array, 1e-7)
     # np.testing.assert_allclose(sensitivities_error, test_sens_sigma_array, 1e-7)

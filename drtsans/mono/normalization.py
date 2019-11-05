@@ -43,6 +43,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
         except RuntimeError:
             continue  # check next log entry
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=duration_workspace, OutputWorkspace=output_workspace)
+    duration_workspace.delete()  # some cleanup
     return mtd[output_workspace]
 
 

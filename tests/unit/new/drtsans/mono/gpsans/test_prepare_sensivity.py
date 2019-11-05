@@ -453,10 +453,10 @@ def test_prepare_moving_det_sensitivity():
 
     monitor_counts = np.array([monitor_a, monitor_b, monitor_c])
 
-    test_sens_array, test_sens_sigma_array, r_s, sig_s = prepare_sensitivity(flood_matrix, flood_error,
-                                                                             monitor_counts,
-                                                                             threshold_min, threshold_max)
+    test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error, monitor_counts,
+                                                                 threshold_min, threshold_max)
 
+    # verify that the refactored high level method renders the same result from prototype
     np.testing.assert_allclose(sensitivities.flatten(), test_sens_array, 1e-7)
     np.testing.assert_allclose(sensitivities_error.flatten(), test_sens_sigma_array, 1e-7)
 

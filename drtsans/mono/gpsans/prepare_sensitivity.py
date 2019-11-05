@@ -218,8 +218,10 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
 
         print('[DEBUG] Pixel {}: D_ij = {}'.format(ipixel, d_ij_arr))
         print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))))
+        print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))[0]))
+        print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))[0].size))
 
-        if len(np.where(np.isinf(d_ij_arr))) > 0:
+        if np.where(np.isinf(d_ij_arr))[0].size > 0:
             # In case there is at least an inf in this subset of data, set sensitivities to -inf
             sensitivities[ipixel] = -np.inf
             sensitivities_error[ipixel] = -np.inf

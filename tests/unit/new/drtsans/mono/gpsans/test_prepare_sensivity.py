@@ -468,14 +468,14 @@ def test_prepare_moving_det_sensitivity():
                                verbose=True)
 
     # Apply bad pixel threshold to each file
-    matrix_a, sigma_a = process_bad_pixels(matrix_a, sigma_a, threshold_min, threshold_max)
+    matrix_a2, sigma_a2 = process_bad_pixels(matrix_a, sigma_a, threshold_min, threshold_max)
     matrix_b, sigma_b = process_bad_pixels(matrix_b, sigma_b, threshold_min, threshold_max)
     matrix_c, sigma_c = process_bad_pixels(matrix_c, sigma_c, threshold_min, threshold_max)
 
     #  there is no check for this step
 
     # Correct for beam stop and add N files for non-normalized sensitivities
-    matrix_d, sigma_matrix_d = calculate_pixel_wise_sensitivity(matrix_a, sigma_a,
+    matrix_d, sigma_matrix_d = calculate_pixel_wise_sensitivity(matrix_a2, sigma_a2,
                                                                 matrix_b, sigma_b,
                                                                 matrix_c, sigma_c)
 
@@ -523,8 +523,8 @@ def test_prepare_moving_det_sensitivity():
                                                                  threshold_min, threshold_max)
 
     # Test on Matrix A after normalized by weighted average and with bad pixels
-    np.testing.assert_allclose(matrix_a.flatten(), test_sens_array[0], 1e-7)
-    np.testing.assert_allclose(sigma_a.flatten(), test_sens_sigma_array[0], 1e-7)
+    np.testing.assert_allclose(matrix_a2.flatten(), test_sens_array[0], 1e-7)
+    np.testing.assert_allclose(sigma_a2.flatten(), test_sens_sigma_array[0], 1e-7)
 
     np.testing.assert_allclose(matrix_b.flatten(), test_sens_array[1], 1e-7)
     np.testing.assert_allclose(sigma_b.flatten(), test_sens_sigma_array[1], 1e-7)

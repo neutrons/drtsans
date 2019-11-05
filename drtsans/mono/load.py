@@ -4,6 +4,7 @@ import os
 from mantid.simpleapi import LoadHFIRSANS, LoadEventNexus, CloneWorkspace
 from mantid.api import mtd
 
+from drtsans.instruments import instrument_enum_name
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
@@ -30,16 +31,17 @@ def load_events(run, output_workspace=None, data_dir=None, **kwargs):
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
+    instrument_name = str(instrument_enum_name(run))  # elucidate which SANS instrument
     if output_workspace is None:
         if isinstance(run, str):
             output_workspace = os.path.split(run)[-1]
-            output_workspace = 'BIOSANS_' + output_workspace.split('_')[1]
+            output_workspace = instrument_name + '_' + output_workspace.split('_')[1]
             output_workspace = output_workspace.split('.')[0]
         else:
-            output_workspace = 'BIOSANS_{}'.format(run)
+            output_workspace = instrument_name + '_' + str(run)
 
     if isinstance(run, int) or isinstance(run, str):
-        with amend_config({'default.instrument': 'BIOSANS'}, data_dir=data_dir):
+        with amend_config({'default.instrument': instrument_name}, data_dir=data_dir):
             LoadEventNexus(Filename=str(run), OutputWorkspace=output_workspace, LoadMonitors=True, **kwargs)
     else:
         CloneWorkspace(run, OutputWorkspace=output_workspace)

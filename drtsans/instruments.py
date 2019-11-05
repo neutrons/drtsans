@@ -24,7 +24,7 @@ def instrument_enum_name(input_query):
     Parameters
     ----------
     input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
-        string representing a valid instrument name, or a Mantid workspace containing an instrument
+        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
 
     Returns
     -------
@@ -37,9 +37,13 @@ def instrument_enum_name(input_query):
     # convert to a string
     name = str(input_query)
 
-    # convert mantid workspaces into a instrument string
-    if name in mtd:
+    if name in mtd:  # convert mantid workspace into a instrument string
         name = mtd[str(name)].getInstrument().getName()
+    else:  # see if `name` contains any of the instrument labels
+        for instrument_string_label in string_to_enum:
+            if instrument_string_label in name.upper():
+                name = instrument_string_label
+                break
 
     return string_to_enum.get(name.upper(), InstrumentEnumName.UNDEFINED)
 

@@ -8,35 +8,6 @@ import pytest
 # SME - William Heller <hellerwt@ornl.gov>, Lisa
 
 
-def show_diff(test_data, gold_data):
-    """
-
-    Parameters
-    ----------
-    gold_data : ndarray
-        gold data in 2D
-    test_data : ndarray
-        test data in 2D
-
-    Returns
-    -------
-    None
-    """
-    if gold_data.shape != test_data.shape:
-        # Data shape are different
-        print('Gold data and test data are in different dimension: {} vs {}'
-              ''.format(gold_data.shape, test_data.shape))
-
-    else:
-        print('      gold\ttest\tdiff')
-        for m in range(gold_data.shape[0]):
-            for n in range(gold_data.shape[1]):
-                print('({}, {}):  {}\t{}\t{}'
-                      .format(m, n, gold_data[m, n], test_data[m, n], abs(gold_data[m, n] - test_data[m, n])))
-
-    return
-
-
 def generate_test_data():
     """Generate test data from IS (Lisa)
 
@@ -227,7 +198,6 @@ def calculate_weighted_average_with_error(normalized_data, normalized_error):
     weighted_average = weighted_sum / weights_square
     # sigma Avg = 1 / sqrt(b)
     weighted_average_error = 1. / np.sqrt(weights_square)
-    print('[DEBUG] Average = {}, Error = {}'.format(weighted_average, weighted_average_error))
 
     # Normalize data by weighted-average
     avg_norm_data = normalized_data / weighted_average
@@ -265,10 +235,6 @@ def process_bad_pixels(data, data_error, threshold_min, threshold_max):
     """
     data[(data < threshold_min) | (data > threshold_max)] = -np.inf
     data_error[(data < threshold_min) | (data > threshold_max)] = -np.inf
-
-    print('[DEBUG] Process bad pixel:  Q threshold: {}, {}'.format(threshold_min, threshold_max))
-    print(data)
-    print('END')
 
     return data, data_error
 
@@ -313,32 +279,8 @@ def calculate_pixel_wise_sensitivity(data_a, data_a_error, data_b, data_b_error,
                 d_ij = np.sum(d_ij_arr / s_ij_arr**2) / s_ij
                 s_ij = np.sqrt(s_ij)
 
-                print('[DEBUG] ({}, {})  D" = {}, s = {}/{}  <-- {}, {}'
-                      ''.format(i, j, d_ij, s_ij, s_ij**2, d_ij_arr, s_ij_arr))
-
                 sensitivities[i, j] = d_ij
                 sensitivities_error[i, j] = 1. / s_ij
-    # END-FOR
-
-    # Calculate  D, i.e., sensitivity for each pixel
-    # D_avg(m, n) = sum_M^{a, b, c}{M(m, n) / sigma_M^2(m, n)} / sum_M^{A, B, C} 1 / sigma_M(m, n)**2
-    #  sensitivities = (data_a / data_a_error**2 + data_b / data_b_error**2 + data_c / data_c_error**2) / \
-    #                  (1 / data_a_error**2 + 1 / data_b_error**2 + 1 / data_c_error**2)
-
-    # Debug output
-    for i in range(sensitivities.shape[0]):
-        row = ''
-        for j in range(sensitivities.shape[1]):
-            row += '{}\t'.format(sensitivities[i, j])
-        print(row)
-    # END-FOR
-
-    # Debug output
-    for i in range(sensitivities_error.shape[0]):
-        row = ''
-        for j in range(sensitivities_error.shape[1]):
-            row += '{}\t'.format(sensitivities_error[i, j])
-        print(row)
     # END-FOR
 
     return sensitivities, sensitivities_error
@@ -363,18 +305,11 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
         normalized pixel-wise sensitivities, normalized pixel-wise sensitivities error
         scalar sensitivity, error of scalar sensitivity
     """
-    # Filter the matrix:
-    dd_matrix = d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]
-    dd_sigma_matrix = sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]
-    print('Pure D matrix: {}'.format(dd_matrix))
-    print('Pure sigma matrix: {}'.format(dd_sigma_matrix))
-
     # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
     denomiator = np.sum(d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))] /
                         sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]**2)
     nominator = np.sum(1 / sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]**2)
     sens_avg = denomiator / nominator
-    print('[DEBUG] S_avg = {} / {} = {}'.format(denomiator, nominator, sens_avg))
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_matrix / sens_avg
@@ -491,7 +426,6 @@ def test_prepare_moving_det_sensitivity():
     # Normalize pixel-wise sensitivities by weighting-average
     sensitivities, sensitivities_error, avg_sens, avg_sigma_sens = normalize_sensitivities(matrix_d,
                                                                                            sigma_matrix_d)
-    print('[DEBUG] Sensitivity Avg = {}, Sigma Avg = {}'.format(avg_sens, avg_sigma_sens))
 
     gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
     np.testing.assert_allclose(sensitivities, gold_final_sen_matrix, rtol=1e-2, equal_nan=True,
@@ -522,20 +456,6 @@ def test_prepare_moving_det_sensitivity():
     test_sens_array, test_sens_sigma_array, r_s, sig_s = prepare_sensitivity(flood_matrix, flood_error,
                                                                              monitor_counts,
                                                                              threshold_min, threshold_max)
-
-    # # Test on Matrix A after normalized by weighted average and with bad pixels
-    # np.testing.assert_allclose(matrix_a2.flatten(), test_sens_array[0], 1e-7)
-    # np.testing.assert_allclose(sigma_a2.flatten(), test_sens_sigma_array[0], 1e-7)
-    #
-    # np.testing.assert_allclose(matrix_b2.flatten(), test_sens_array[1], 1e-7)
-    # np.testing.assert_allclose(sigma_b2.flatten(), test_sens_sigma_array[1], 1e-7)
-    #
-    # np.testing.assert_allclose(matrix_c2.flatten(), test_sens_array[2], 1e-7)
-    # np.testing.assert_allclose(sigma_c2.flatten(), test_sens_sigma_array[2], 1e-7)
-
-    # Test raw sensitivities: passed
-    np.testing.assert_allclose(matrix_d.flatten(), r_s, 1e-7)
-    np.testing.assert_allclose(sigma_matrix_d.flatten(), sig_s, 1e-7)
 
     np.testing.assert_allclose(sensitivities.flatten(), test_sens_array, 1e-7)
     np.testing.assert_allclose(sensitivities_error.flatten(), test_sens_sigma_array, 1e-7)

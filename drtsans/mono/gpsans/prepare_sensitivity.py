@@ -66,14 +66,11 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
     # correct for beam stop and add all the flood files together to non-normalized sensitivities
     raw_sensitivities, raw_sensitivities_error = _calculate_pixel_wise_sensitivity(flood_data_matrix,
                                                                                    flood_sigma_matrix)
-    bkup_raw_sensitivities = np.copy(raw_sensitivities)
-    bkup_raw_sensitivities_error = np.copy(raw_sensitivities_error)
 
     # apply weighted average to sensitivities
     sensitivities, sensitivities_error,  sens_avg, sigma_sens_avg = _normalize_sensitivities(raw_sensitivities,
                                                                                              raw_sensitivities_error)
-    print('[DEBUG] Sensitivity Avg = {}, Sigma Avg = {}'.format(sens_avg, sigma_sens_avg))
-    return sensitivities, sensitivities_error, bkup_raw_sensitivities, bkup_raw_sensitivities_error
+    return sensitivities, sensitivities_error
 
 
 def _normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
@@ -242,15 +239,12 @@ def _normalize_sensitivities(d_array, sigam_d_array):
     # Filter the matrix:
     dd_matrix = d_array[~(np.isinf(d_array) | np.isnan(d_array))]
     dd_sigma_matrix = sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))]
-    print('Pure D matrix: {}'.format(dd_matrix))
-    print('Pure sigma matrix: {}'.format(dd_sigma_matrix))
 
     # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
     denomiator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
                         sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
     nominator = np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
     sens_avg = denomiator / nominator
-    print('[DEBUG] S_avg = {} / {} = {}'.format(denomiator, nominator, sens_avg))
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_array / sens_avg

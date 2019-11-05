@@ -522,8 +522,18 @@ def test_prepare_moving_det_sensitivity():
     test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error, monitor_counts,
                                                                  threshold_min, threshold_max)
 
-    np.testing.assert_allclose(sensitivities, test_sens_array, 1e-7)
-    np.testing.assert_allclose(sensitivities_error, test_sens_sigma_array, 1e-7)
+    # Test on Matrix A after normalized by weighted average and with bad pixels
+    np.testing.assert_allclose(matrix_a.flatten(), test_sens_array[0], 1e-7)
+    np.testing.assert_allclose(sigma_a.flatten(), test_sens_sigma_array[0], 1e-7)
+
+    np.testing.assert_allclose(matrix_b.flatten(), test_sens_array[1], 1e-7)
+    np.testing.assert_allclose(sigma_b.flatten(), test_sens_sigma_array[1], 1e-7)
+
+    np.testing.assert_allclose(matrix_c.flatten(), test_sens_array[1], 1e-7)
+    np.testing.assert_allclose(sigma_c.flatten(), test_sens_sigma_array[1], 1e-7)
+
+    # np.testing.assert_allclose(sensitivities, test_sens_array, 1e-7)
+    # np.testing.assert_allclose(sensitivities_error, test_sens_sigma_array, 1e-7)
 
     return
 

@@ -212,7 +212,7 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
     # flood_data.shape[0]: number of flood files
     # flood_data.shape[1]: number of pixels
 
-    simple_sum = np.sum(flood_data, axis=1)
+    simple_sum = np.sum(flood_data, axis=0)
 
     s_ij = np.nansum(1. / flood_error ** 2, axis=0)  # summation along axis 1: among files
     print('DEBUG s_ij.shape = {}'.format(s_ij.shape))

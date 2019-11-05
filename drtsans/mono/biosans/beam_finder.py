@@ -113,7 +113,10 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     if sample_det_cent_wing_detector is None or sample_det_cent_wing_detector == 0.:
         sample_det_cent_wing_detector = ws.getInstrument().getComponentByName('wing_detector').getPos().norm()
         if sample_det_cent_wing_detector == 0.:
-            sample_det_cent_wing_detector = ws.getInstrument().getComponentByName('wing_tube_0').getPos().norm()
+            try:  # old IDF
+                sample_det_cent_wing_detector = ws.getInstrument().getComponentByName('wing_tube_0').getPos().norm()
+            except AttributeError:  # new IDF
+                sample_det_cent_wing_detector = ws.getInstrument().getComponentByName('bank49').getPos().norm()
 
     center_y_wing = _beam_center_gravitational_drop(ws, center_y,
                                                     sample_det_cent_main_detector, sample_det_cent_wing_detector)

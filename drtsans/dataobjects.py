@@ -1,8 +1,26 @@
 from collections import namedtuple
+from enum import Enum
+from mantid.simpleapi import mtd
 import numpy as np
 
-__all__ = ['IQmod', 'IQazimuthal', 'IQcrystal']
+__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal']
 
+
+class DataType(Enum):
+    WORKSPACE2D = 'Workspace2D'
+    IQ_MOD = 'IQmod'
+    IQ_AZIMUTHAL = 'IQazimuthal'
+    IQ_CRYSTAL = 'IQcrystal'
+
+
+def getDataType(obj):
+    try:
+        return DataType(obj.id())
+    except AttributeError:
+        name = str(obj)
+        if name not in mtd:
+            raise ValueError('Do not know how to get id from: {}'.format(obj))
+        return DataType(mtd[name].id())
 
 def _check_parallel(*args):
     '''This makes sure that all input arrays are parallel to each
@@ -39,6 +57,10 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
 
         # pass everything to namedtuple
         return super(IQmod, cls).__new__(cls, intensity, error, mod_q, delta_mod_q, wavelength)
+
+    def id(self):
+        return DataType.IQ_MOD
+
 
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
@@ -90,6 +112,10 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
         # pass everything to namedtuple
         return super(IQazimuthal, cls).__new__(cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength)
 
+    def id(self):
+        return DataType.IQ_AZIMUTHAL
+
+
 
 class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx delta_qy delta_qz wavelength')):
     '''This class holds the information for the crystallographic projection, I(Qx, Qy, Qz). All of the
@@ -131,3 +157,6 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
         # pass everything to namedtuple
         return super(IQcrystal, cls).__new__(cls, intensity, error, qx, qy, qz,
                                              delta_qx, delta_qy, delta_qz, wavelength)
+
+    def id(self):
+        return DataType.IQ_CRYSTAL

@@ -97,9 +97,5 @@ def test_IQazimuthal_2d_creation():
         IQazimuthal([[1, 2, 3], [3, 4, 5]], [[4, 5, 6], [6, 7, 8]], [7, 8, 9], [10, 11])
 
 
-def test_IQcrystal_creation():
-    pass
-
-
 if __name__ == '__main__':
     pytest.main([__file__])

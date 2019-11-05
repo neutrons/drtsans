@@ -39,7 +39,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
         try:
             duration = SampleLogs(input_workspace).single_value(log_key)
             duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=unique_workspace_dundername())
-        except AttributeError:
+        except RuntimeError:
             continue  # check next log entry
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=duration_workspace, OutputWorkspace=output_workspace)
     return mtd[output_workspace]

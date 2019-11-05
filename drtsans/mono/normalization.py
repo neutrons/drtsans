@@ -31,12 +31,17 @@ def normalize_by_time(input_workspace, output_workspace=None):
     output_workspace: str
         Optional name of the output workspace. Default is to replace the input workspace
     """
+    log_keys = ('timer', 'duration')  # valid log keys to search for run duration
     input_workspace = str(input_workspace)
     if output_workspace is None:
         output_workspace = input_workspace
-    timer = SampleLogs(input_workspace).timer.value  # seconds
-    timer_workspace = CreateSingleValuedWorkspace(timer, OutputWorkspace=unique_workspace_dundername())
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=timer_workspace, OutputWorkspace=output_workspace)
+    for log_key in log_keys:
+        try:
+            duration = SampleLogs(input_workspace).single_value('log_key')
+            duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=unique_workspace_dundername())
+        except AttributeError:
+            pass
+    Divide(LHSWorkspace=input_workspace, RHSWorkspace=duration_workspace, OutputWorkspace=output_workspace)
     return mtd[output_workspace]
 
 

@@ -37,7 +37,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
         output_workspace = input_workspace
     for log_key in log_keys:
         try:
-            duration = SampleLogs(input_workspace).single_value('log_key')
+            duration = SampleLogs(input_workspace).single_value(log_key)
             duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=unique_workspace_dundername())
         except AttributeError:
             pass

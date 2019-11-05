@@ -253,7 +253,7 @@ def test_normalization_by_monitor(data_test_16a_by_monitor):
 def data_test_16a_by_proton_charge_and_flux():
     r"""
     Input and expected output for the normalization by proton charge test, taken from the intro to issue #174
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalization-by-monitor-spectrum>
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalize-by-proton-charge-and-flux-spectrum>
     """
     return dict(precision=1e-04,  # desired precision for comparisons,
                 n_pixels=25,

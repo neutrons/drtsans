@@ -1,8 +1,19 @@
 import pytest
 
 from mantid import mtd
-from drtsans.mono.biosans import load_histogram
+
+from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
+from drtsans.mono.biosans import load_histogram, load_events
+from drtsans.samplelogs import SampleLogs
+
+
+def test_load_events(reference_dir):
+    # default workspace name is file hint
+    events_workspace = load_events('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans)
+    assert events_workspace.name() == 'BIOSANS_961'
+    sample_logs = SampleLogs(events_workspace)
+    assert sample_logs.monitor.value == 19173627
 
 
 def test_api_load(biosans_f):

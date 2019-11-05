@@ -216,14 +216,17 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
         d_ij_arr = flood_data[:, ipixel]
         s_ij_arr = flood_error[:, ipixel]
 
+        print('[DEBUG] Pixel {}: D_ij = {}'.format(ipixel, d_ij_arr))
+        print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))))
+
         if len(np.where(np.isinf(d_ij_arr))) > 0:
             # In case there is at least an inf in this subset of data, set sensitivities to -inf
             sensitivities[ipixel] = -np.inf
             sensitivities_error[ipixel] = -np.inf
         else:
             # Do weighted summation to the subset by excluding the NaN
-            s_ij = np.sum(1. / s_ij_arr[~np.isnan(s_ij_arr)] ** 2)
-            d_ij = np.sum(d_ij_arr[~np.isnan(d_ij_arr)] / s_ij_arr[~np.isnan(s_ij_arr)] ** 2) / s_ij
+            s_ij = np.nansum(1. / s_ij_arr ** 2)
+            d_ij = np.nansum(d_ij_arr / s_ij_arr ** 2) / s_ij
             s_ij = np.sqrt(s_ij)
             sensitivities[ipixel] = d_ij
             sensitivities_error[ipixel] = 1. / s_ij

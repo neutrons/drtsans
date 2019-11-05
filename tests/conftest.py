@@ -784,6 +784,13 @@ def serve_events_workspace(reference_dir):
     [mtds.DeleteWorkspace(name) for name in wrapper._names]
 
 
+def _assert_both_set_or_none(left, right, assert_func, err_msg):
+    if left is None and right is None:
+        return
+    if (left is not None) and (right is not None):
+        assert_func(left, right, err_msg=err_msg)
+    raise AssertionError('{}Either both or neither should be None (left={}, right={})'.format(err_msg, left, right))
+
 def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=''):
     '''Generic method for checking equality of two data objects. This has some understanding of
     easily convertable types.'''
@@ -826,6 +833,20 @@ def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=''):
             messages = [row['Message'] for row in messages]
             assert cmp, err_msg + '; '.join(messages)
         else:
-            raise NotImplementedError('Do not know how to compare {} objects'.format(id_left))
+            # all the other data objects share some attributes
+            assert_func(left.intensity, right.intensity, err_msg=err_msg + 'intensity', **kwargs)
+            assert_func(left.error, right.error, err_msg=err_msg + 'error', **kwargs)
+            _assert_both_set_or_none(left.wavelength, right.wavelength, assert_func, err_msg + 'wavelength')
+            if id_left == DataType.IQ_MOD:
+                assert_func(left.mod_q, right.mod_q, err_msg=err_msg + 'mod_q', **kwargs)
+                _assert_both_set_or_none(left.delta_mod_q, right.delta_mod_q, assert_func, err_msg + 'delta_mod_q')
+            elif id_left == DataType.IQ_AZIMUTHAL:
+                assert_func(left.qx, right.qx, err_msg=err_msg + 'qx', **kwargs)
+                assert_func(left.qy, right.qy, err_msg=err_msg + 'qy', **kwargs)
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + 'delta_qx')
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + 'delta_qy')
+
+            else:
+                raise NotImplementedError('Do not know how to compare {} objects'.format(id_left))
     else:
         raise NotImplementedError('Do not know how to compare {} and {}'.format(id_left, id_right))

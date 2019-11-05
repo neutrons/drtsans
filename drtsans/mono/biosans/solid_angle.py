@@ -41,9 +41,21 @@ def solid_angle_correction(input_workspace, output_workspace=None):
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    solid_angle.solid_angle_correction(input_workspace, detector_type='VerticalTube', StartWorkspaceIndex=2,
-                                       EndWorkspaceIndex=49153, output_workspace=output_workspace)
+
+    # The first two spectra could contain monitor detectors, e.g. if using LoadEmptyInstrument or if using
+    # LoadInstrument(RewriteSpectraMap=True)
+    shift = 2 if mtd[str(input_workspace)].spectrumInfo().isMonitor(0) is True else 0
+
+    # Apply correction to main detector
+    spectra_in_main_detector = 24 * 8 * 256  # there are 24 eight-packs, 8 tubes/eight-pack, 256 pixels/tube
+    first_index, last_index = shift, shift + spectra_in_main_detector - 1
+    solid_angle.solid_angle_correction(input_workspace, detector_type='VerticalTube',
+                                       StartWorkspaceIndex=first_index, EndWorkspaceIndex=last_index,
+                                       output_workspace=output_workspace)
     # Apply correction to wing detector
-    solid_angle.solid_angle_correction(output_workspace, detector_type='VerticalWing', StartWorkspaceIndex=49154,
-                                       EndWorkspaceIndex=90113)
+    spectra_in_wing_detector = 20 * 8 * 256  # there are 20 eight-packs
+    first_index = shift + spectra_in_main_detector
+    last_index = shift + spectra_in_main_detector + spectra_in_wing_detector - 1
+    solid_angle.solid_angle_correction(output_workspace, detector_type='VerticalWing',
+                                       StartWorkspaceIndex=first_index, EndWorkspaceIndex=last_index)
     return mtd[output_workspace]

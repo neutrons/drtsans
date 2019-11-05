@@ -1,7 +1,28 @@
 from collections import namedtuple
+from drtsans.settings import unique_workspace_dundername as uwd
+from enum import Enum
+# https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
+from mantid.simpleapi import mtd, CreateWorkspace
 import numpy as np
 
-__all__ = ['IQmod', 'IQazimuthal', 'IQcrystal']
+__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal']
+
+
+class DataType(Enum):
+    WORKSPACE2D = 'Workspace2D'
+    IQ_MOD = 'IQmod'
+    IQ_AZIMUTHAL = 'IQazimuthal'
+    IQ_CRYSTAL = 'IQcrystal'
+
+
+def getDataType(obj):
+    try:
+        return DataType(obj.id())
+    except AttributeError:
+        name = str(obj)
+        if name not in mtd:
+            raise ValueError('Do not know how to get id from: {}'.format(obj))
+        return DataType(mtd[name].id())
 
 
 def _check_parallel(*args):
@@ -39,6 +60,18 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
 
         # pass everything to namedtuple
         return super(IQmod, cls).__new__(cls, intensity, error, mod_q, delta_mod_q, wavelength)
+
+    def id(self):
+        return DataType.IQ_MOD
+
+    def toWorkspace(self, name=None):
+        # create a name if one isn't provided
+        if name is None:
+            name = uwd()
+
+        return CreateWorkspace(DataX=self.mod_q, DataY=self.intensity, DataE=self.error,
+                               UnitX='momentumtransfer', OutputWorkspace=name,
+                               EnableLogging=False)
 
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
@@ -90,6 +123,9 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
         # pass everything to namedtuple
         return super(IQazimuthal, cls).__new__(cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength)
 
+    def id(self):
+        return DataType.IQ_AZIMUTHAL
+
 
 class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx delta_qy delta_qz wavelength')):
     '''This class holds the information for the crystallographic projection, I(Qx, Qy, Qz). All of the
@@ -131,3 +167,6 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
         # pass everything to namedtuple
         return super(IQcrystal, cls).__new__(cls, intensity, error, qx, qy, qz,
                                              delta_qx, delta_qy, delta_qz, wavelength)
+
+    def id(self):
+        return DataType.IQ_CRYSTAL

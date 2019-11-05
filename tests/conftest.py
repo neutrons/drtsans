@@ -8,7 +8,8 @@ import numpy as np
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
-from mantid.simpleapi import CreateWorkspace, LoadInstrument, DeleteWorkspace
+from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadInstrument, DeleteWorkspace
+from drtsans.dataobjects import DataType, getDataType
 from drtsans.settings import amend_config, unique_workspace_dundername
 
 # Resolve the path to the "external data"
@@ -781,3 +782,79 @@ def serve_events_workspace(reference_dir):
     wrapper._names = list()  # stores names for all ws produced
     yield wrapper
     [mtds.DeleteWorkspace(name) for name in wrapper._names]
+
+
+def _assert_both_set_or_none(left, right, assert_func, err_msg):
+    '''Either both argumentes are :py:obj:`None` or they are equal to each other'''
+    if left is None and right is None:
+        return
+    if (left is not None) and (right is not None):
+        assert_func(left, right, err_msg=err_msg)
+    raise AssertionError('{}Either both or neither should be None (left={}, right={})'.format(err_msg, left, right))
+
+
+def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=''):
+    '''Generic method for checking equality of two data objects. This has some understanding of
+    easily convertable types.'''
+    id_left = getDataType(left)
+    id_right = getDataType(right)
+
+    # append colon to error message to make errors more readable
+    if err_msg:
+        err_msg += ': '
+
+    # function pointer to make comparison code more flexible
+    if rtol > 0 or atol > 0:
+        assert_func = np.testing.assert_allclose
+        kwargs = {'rtol': rtol, 'atol': atol}
+    else:
+        assert_func = np.testing.assert_equal
+        kwargs = dict()
+
+    # all of the comparison options - mixed modes first
+    if id_left == DataType.WORKSPACE2D and id_right == DataType.IQ_MOD:
+        units = left.getAxis(0).getUnit().caption()
+        assert units == 'q', '{}: Found units="{}" rather than "q"'.format(err_msg, units)
+        assert_func(left.extractX().ravel(), right.mod_q, err_msg=err_msg + 'mod_q', **kwargs)
+        assert_func(left.extractY().ravel(), right.intensity, err_msg=err_msg + 'intensity', **kwargs)
+        assert_func(left.extractE().ravel(), right.error, err_msg=err_msg + 'error', **kwargs)
+    elif id_left == DataType.IQ_MOD and id_right == DataType.WORKSPACE2D:
+        units = right.getAxis(0).getUnit().caption()
+        assert units == 'q', '{}Found units="{}" rather than "q"'.format(err_msg, units)
+        assert_func(left.mod_q, right.extractX().ravel(), err_msg=err_msg + 'mod_q', **kwargs)
+        assert_func(left.intensity, right.extractY().ravel(), err_msg=err_msg + 'intensity', **kwargs)
+        assert_func(left.error, right.extractE().ravel(), err_msg=err_msg + 'error', **kwargs)
+    elif id_left == id_right:  # compare things that are the same type
+        if id_left == DataType.WORKSPACE2D:
+            # let mantid do all the work
+            if atol > 0:
+                cmp, messages = CompareWorkspaces(Workspace1=str(left), Workspace2=str(right), Tolerance=atol)
+            else:
+                cmp, messages = CompareWorkspaces(Workspace1=str(left), Workspace2=str(right),
+                                                  Tolerance=rtol, ToleranceRelErr=True)
+            messages = [row['Message'] for row in messages]
+            assert cmp, err_msg + '; '.join(messages)
+        else:
+            # all the other data objects share some attributes
+            assert_func(left.intensity, right.intensity, err_msg=err_msg + 'intensity', **kwargs)
+            assert_func(left.error, right.error, err_msg=err_msg + 'error', **kwargs)
+            _assert_both_set_or_none(left.wavelength, right.wavelength, assert_func, err_msg + 'wavelength')
+            if id_left == DataType.IQ_MOD:
+                assert_func(left.mod_q, right.mod_q, err_msg=err_msg + 'mod_q', **kwargs)
+                _assert_both_set_or_none(left.delta_mod_q, right.delta_mod_q, assert_func, err_msg + 'delta_mod_q')
+            elif id_left == DataType.IQ_AZIMUTHAL:
+                assert_func(left.qx, right.qx, err_msg=err_msg + 'qx', **kwargs)
+                assert_func(left.qy, right.qy, err_msg=err_msg + 'qy', **kwargs)
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + 'delta_qx')
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + 'delta_qy')
+            elif id_left == DataType.IQ_CRYSTAL:
+                assert_func(left.qx, right.qx, err_msg=err_msg + 'qx', **kwargs)
+                assert_func(left.qy, right.qy, err_msg=err_msg + 'qy', **kwargs)
+                assert_func(left.qz, right.qz, err_msg=err_msg + 'qz', **kwargs)
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + 'delta_qx')
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + 'delta_qy')
+                _assert_both_set_or_none(left.delta_qz, right.delta_qz, assert_func, err_msg + 'delta_qz')
+            else:
+                raise NotImplementedError('Do not know how to compare {} objects'.format(id_left))
+    else:
+        raise NotImplementedError('Do not know how to compare {} and {}'.format(id_left, id_right))

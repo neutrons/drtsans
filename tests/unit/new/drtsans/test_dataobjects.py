@@ -1,5 +1,6 @@
 from drtsans.dataobjects import IQazimuthal, IQmod
 import pytest
+from tests.conftest import assert_wksp_equal
 
 
 def test_IQmod_creation():
@@ -24,6 +25,16 @@ def test_IQmod_creation():
     # not enough arguments
     with pytest.raises(TypeError):
         IQmod([1, 2, 3], [4, 5, 6])
+
+
+def test_IQmod_to_mtd():
+    # create the data object
+    iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    # convert to mantid workspace
+    wksp = iqmod.toWorkspace()
+
+    # verify results
+    assert_wksp_equal(wksp, iqmod)
 
 
 def test_IQazimuthal_1d_creation():
@@ -95,10 +106,6 @@ def test_IQazimuthal_2d_creation():
     # qx and qy are linear and not right dimension
     with pytest.raises(TypeError):
         IQazimuthal([[1, 2, 3], [3, 4, 5]], [[4, 5, 6], [6, 7, 8]], [7, 8, 9], [10, 11])
-
-
-def test_IQcrystal_creation():
-    pass
 
 
 if __name__ == '__main__':

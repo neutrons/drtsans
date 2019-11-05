@@ -211,29 +211,45 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
     #           1/s^2(i, j) = sum_{k}^{A, B, C}1/s_k^2(i, j)
     # flood_data.shape[0]: number of flood files
     # flood_data.shape[1]: number of pixels
-    for ipixel in range(flood_data.shape[1]):
-        # For each pixel: sum up along axis = 1
-        d_ij_arr = flood_data[:, ipixel]
-        s_ij_arr = flood_error[:, ipixel]
 
-        print('[DEBUG] Pixel {}: D_ij = {}'.format(ipixel, d_ij_arr))
-        print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))))
-        print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))[0]))
-        print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))[0].size))
+    simple_sum = np.sum(sensitivities, axis=1)
 
-        if np.where(np.isinf(d_ij_arr))[0].size > 0:
-            # In case there is at least an inf in this subset of data, set sensitivities to -inf
-            sensitivities[ipixel] = -np.inf
-            sensitivities_error[ipixel] = -np.inf
-        else:
-            # Do weighted summation to the subset by excluding the NaN
-            s_ij = np.nansum(1. / s_ij_arr ** 2)
-            d_ij = np.nansum(d_ij_arr / s_ij_arr ** 2) / s_ij
-            s_ij = np.sqrt(s_ij)
-            sensitivities[ipixel] = d_ij
-            sensitivities_error[ipixel] = 1. / s_ij
-        # END-IF-ELSE
-    # END-FOR
+    s_ij = np.nansum(1. / flood_error ** 2, axis=0)  # summation along axis 1: among files
+    print('DEBUG s_ij.shape = {}'.format(s_ij.shape))
+    d_ij = np.nansum(flood_data / flood_error ** 2, axis=0) / s_ij
+    print('DEBUG d_ij.shape = {}'.format(d_ij.shape))
+    s_ij = np.sqrt(s_ij)
+    print('DEBUG s_ij.shape = {}'.format(s_ij.shape))
+
+    s_ij[np.isinf(simple_sum)] = -np.inf
+    d_ij[np.isinf(simple_sum)] = -np.inf
+
+    sensitivities = s_ij
+    sensitivities_error = d_ij
+
+    # for ipixel in range(flood_data.shape[1]):
+    #     # For each pixel: sum up along axis = 1
+    #     d_ij_arr = flood_data[:, ipixel]
+    #     s_ij_arr = flood_error[:, ipixel]
+    #
+    #     print('[DEBUG] Pixel {}: D_ij = {}'.format(ipixel, d_ij_arr))
+    #     print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))))
+    #     print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))[0]))
+    #     print('[DEBUG] INF: {}'.format(np.where(np.isinf(d_ij_arr))[0].size))
+    #
+    #     if np.where(np.isinf(d_ij_arr))[0].size > 0:
+    #         # In case there is at least an inf in this subset of data, set sensitivities to -inf
+    #         sensitivities[ipixel] = -np.inf
+    #         sensitivities_error[ipixel] = -np.inf
+    #     else:
+    #         # Do weighted summation to the subset by excluding the NaN
+    #         s_ij = np.nansum(1. / s_ij_arr ** 2)
+    #         d_ij = np.nansum(d_ij_arr / s_ij_arr ** 2) / s_ij
+    #         s_ij = np.sqrt(s_ij)
+    #         sensitivities[ipixel] = d_ij
+    #         sensitivities_error[ipixel] = 1. / s_ij
+    #     # END-IF-ELSE
+    # # END-FOR
 
     return sensitivities, sensitivities_error
 

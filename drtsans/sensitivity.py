@@ -6,9 +6,10 @@ import os
 from mantid.kernel import Property, logger
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed
+    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, Quadratic
 from drtsans.path import exists as path_exists
-from drtsans.settings import unique_workspace_name
+from drtsans.settings import unique_workspace_name as uwd
+
 
 __all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
 
@@ -264,7 +265,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     d = Detector(flood_ws, component_name)
     # Lets get the output workspace
     output_ws = CloneWorkspace(
-        flood_ws, OutputWorkspace=unique_workspace_name(
+        flood_ws, OutputWorkspace=uwn(
             prefix="__sensitivity_"))
     detector_info_output_ws = output_ws.detectorInfo()
 
@@ -388,7 +389,7 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
 
     # additional masking dependent on threshold
     temp_sensitivity = CloneWorkspace(InputWorkspace=sensitivity_workspace,
-                                      OutputWorkspace=unique_workspace_name(prefix="__sensitivity_"))
+                                      OutputWorkspace=uwn(prefix="__sensitivity_"))
     if min_threshold is not None:
         MaskDetectorsIf(InputWorkspace=temp_sensitivity,
                         Operator='LessEqual',
@@ -473,15 +474,28 @@ def prepare_sensitivity_correction(input_workspace, min_threashold=0.5, max_thre
 
     y = input_workspace.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
-    MaskDetectors(inputworkspace, WorkspaceIndexList=indices_to_mask)
+    MaskDetectors(input_workspace, WorkspaceIndexList=indices_to_mask)
+    F = np.nanmean(y)
+    y = input_workspace.extractY().flatten()
+    n_elements = 0
+    for i in range(input_workspace.getNumberHistograms()):
+        n_elements += len(input_workspace.readY(i))
+    n_elements -= len(indices_to_mask)
 
-    #F = np.nanmean(ffm_with_mask)
-    #n_elements = np.sum(np.logical_not(np.isnan(ffm_with_mask)))
-    #dF = np.sqrt(np.nansum(np.power(ffm_uncertainty_with_mask, 2)))/n_elements
-    #II = ffm_with_mask/F
-    #dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
+    y_uncertainty = input_workspace.extractE().flatten()
+    dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
+    II = Divide(LHSWorkspace=input_workspace, RHSWorkspace=F_ws, OutputWorkspace=uwd())
+    print(II.extractY().reshape(8, 8))
+    #print(II.extractE().reshape(8, 8))
 
+    MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
+                    Mode='SelectIf', Operator='Greater', Value=max_threshold)
 
+    MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
+                    Mode='SelectIf', Operator='Less', Value=min_threshold)
+
+    q = Quadratic()
 
 
     return output_workspace

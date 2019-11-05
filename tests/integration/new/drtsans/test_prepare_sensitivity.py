@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from mantid.simpleapi import MaskDetectors
 import pytest
-from drtsans.sensitivity import calculate_sensitivity_correction
+from drtsans.sensitivity import prepare_sensitivity_correction
 
 
 @pytest.mark.parametrize('workspace_with_instrument',
@@ -32,6 +32,8 @@ def test_prepare_sensitivity(workspace_with_instrument):
     II = ffm_with_mask/F
     dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
 
+    # print(II)
+    # print(dI)
     interp = np.array([[1.15043672, -0.26260662,  0.03137347],
                        [0.34048580,  0.28979423, -0.03532715],
                        [0.18591322,  0.27438438, -0.02357601],
@@ -121,19 +123,20 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                           np.square(final_sensitivity_uncertainty/final_sensitivity))
 
     ws = workspace_with_instrument(axis_values=[1.,2.], intensities=ffm_with_mask,
-                              uncertainties=ffm_uncertainty_with_mask, view='pixel')
-
+                              uncertainties=ffm_uncertainty_with_mask)
     y = ws.extractY().flatten()
     #indices_to_mask = []
     #for i, yi in enumerate(y):
     #   if np.isnan(yi):
     #        indices_to_mask.append(i)
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
-    #print(y)
-    MaskDetectors(ws, WorkspaceIndexList=indices_to_mask)
-    np.set_printoptions(precision=4)
+    #print(ws.getNumberHistograms())
+    #MaskDetectors(ws, WorkspaceIndexList=indices_to_mask)
+    #print(ws.getNumberHistograms())
+    #np.set_printoptions(precision=4)
     #print(ws.extractY().reshape(8, 8))
     out = prepare_sensitivity_correction(ws, min_threashold=0.5, max_threshold=1.5)
+    assert False
     print(out.extractY().reshape(8, 8))
     print(out.extractE().reshape(8, 8))
     print(result)

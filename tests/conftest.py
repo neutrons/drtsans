@@ -9,6 +9,7 @@ from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
 from mantid.simpleapi import CreateWorkspace, LoadInstrument, DeleteWorkspace
+from drtsans.dataobjects import DataType, getDataType
 from drtsans.settings import amend_config, unique_workspace_dundername
 
 # Resolve the path to the "external data"
@@ -781,3 +782,25 @@ def serve_events_workspace(reference_dir):
     wrapper._names = list()  # stores names for all ws produced
     yield wrapper
     [mtds.DeleteWorkspace(name) for name in wrapper._names]
+
+
+def assert_wksp_equal(left, right, err_msg=''):
+    '''Generic method for checking equality of two data objects. This has some understanding of
+    easily convertable types.'''
+    id_left = getDataType(left)
+    id_right = getDataType(right)
+
+    if id_left == DataType.WORKSPACE2D and id_right == DataType.IQ_MOD:
+        units = left.getAxis(0).getUnit().caption()
+        assert units == 'q', '{}: Found units="{}" rather than "q"'.format(err_msg, units)
+        np.testing.assert_equal(left.extractX().ravel(), right.mod_q, err_msg=err_msg)
+        np.testing.assert_equal(left.extractY().ravel(), right.intensity, err_msg=err_msg)
+        np.testing.assert_equal(left.extractE().ravel(), right.error, err_msg=err_msg)
+    elif id_left == DataType.IQ_MOD and id_right == DataType.WORKSPACE2D:
+        units = right.getAxis(0).getUnit().caption()
+        assert units == 'q', '{}: Found units="{}" rather than "q"'.format(err_msg, units)
+        np.testing.assert_equal(left.mod_q, right.extractX().ravel(), err_msg=err_msg)
+        np.testing.assert_equal(left.intensity, right.extractY().ravel(), err_msg=err_msg)
+        np.testing.assert_equal(left.error, right.extractE().ravel(), err_msg=err_msg)
+    else:
+        raise NotImplementedError('Do not know how to compare {} and {}'.format(id_left, id_right))

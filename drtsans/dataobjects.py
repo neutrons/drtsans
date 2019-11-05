@@ -1,6 +1,8 @@
 from collections import namedtuple
+from drtsans.settings import unique_workspace_dundername as uwd
 from enum import Enum
-from mantid.simpleapi import mtd
+# https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
+from mantid.simpleapi import mtd, CreateWorkspace
 import numpy as np
 
 __all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal']
@@ -21,6 +23,7 @@ def getDataType(obj):
         if name not in mtd:
             raise ValueError('Do not know how to get id from: {}'.format(obj))
         return DataType(mtd[name].id())
+
 
 def _check_parallel(*args):
     '''This makes sure that all input arrays are parallel to each
@@ -61,6 +64,14 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
     def id(self):
         return DataType.IQ_MOD
 
+    def toWorkspace(self, name=None):
+        # create a name if one isn't provided
+        if name is None:
+            name = uwd()
+
+        return CreateWorkspace(DataX=self.mod_q, DataY=self.intensity, DataE=self.error,
+                               UnitX='momentumtransfer', OutputWorkspace=name,
+                               EnableLogging=False)
 
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
@@ -114,7 +125,6 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
 
     def id(self):
         return DataType.IQ_AZIMUTHAL
-
 
 
 class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx delta_qy delta_qz wavelength')):

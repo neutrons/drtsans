@@ -5,7 +5,6 @@ from mantid.simpleapi import LoadHFIRSANS, LoadEventNexus, CloneWorkspace
 from mantid.api import mtd
 
 from drtsans.instruments import instrument_enum_name
-from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
 __all__ = ['load_events', 'load_histogram']

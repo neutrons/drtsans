@@ -2,8 +2,6 @@ import pytest
 
 from mantid import mtd
 
-from drtsans.settings import amend_config, unique_workspace_dundername
-from drtsans.samplelogs import SampleLogs
 from drtsans.mono.biosans import load_histogram, load_events
 from drtsans.samplelogs import SampleLogs
 

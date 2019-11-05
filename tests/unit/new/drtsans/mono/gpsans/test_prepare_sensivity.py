@@ -491,7 +491,7 @@ def test_prepare_moving_det_sensitivity():
     # Normalize pixel-wise sensitivities by weighting-average
     sensitivities, sensitivities_error, avg_sens, avg_sigma_sens = normalize_sensitivities(matrix_d,
                                                                                            sigma_matrix_d)
-    print('Avg sensitivities: {} - {} = {}'.format(avg_sens, 1.11E+00, abs(avg_sens - 1.11E+00)))
+    print('[DEBUG] Sensitivity Avg = {}, Sigma Avg = {}'.format(avg_sens, avg_sigma_sens))
 
     gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
     np.testing.assert_allclose(sensitivities, gold_final_sen_matrix, rtol=1e-2, equal_nan=True,
@@ -519,8 +519,9 @@ def test_prepare_moving_det_sensitivity():
 
     monitor_counts = np.array([monitor_a, monitor_b, monitor_c])
 
-    test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error, monitor_counts,
-                                                                 threshold_min, threshold_max)
+    test_sens_array, test_sens_sigma_array, r_s, sig_s = prepare_sensitivity(flood_matrix, flood_error,
+                                                                             monitor_counts,
+                                                                             threshold_min, threshold_max)
 
     # # Test on Matrix A after normalized by weighted average and with bad pixels
     # np.testing.assert_allclose(matrix_a2.flatten(), test_sens_array[0], 1e-7)
@@ -533,11 +534,11 @@ def test_prepare_moving_det_sensitivity():
     # np.testing.assert_allclose(sigma_c2.flatten(), test_sens_sigma_array[2], 1e-7)
 
     # Test raw sensitivities: passed
-    # np.testing.assert_allclose(matrix_d.flatten(), test_sens_array, 1e-7)
-    # np.testing.assert_allclose(sigma_matrix_d.flatten(), test_sens_sigma_array, 1e-7)
+    np.testing.assert_allclose(matrix_d.flatten(), r_s, 1e-7)
+    np.testing.assert_allclose(sigma_matrix_d.flatten(), sig_s, 1e-7)
 
-    np.testing.assert_allclose(sensitivities, test_sens_array, 1e-7)
-    np.testing.assert_allclose(sensitivities_error, test_sens_sigma_array, 1e-7)
+    np.testing.assert_allclose(sensitivities.flatten(), test_sens_array, 1e-7)
+    np.testing.assert_allclose(sensitivities_error.flatten(), test_sens_sigma_array, 1e-7)
 
     return
 

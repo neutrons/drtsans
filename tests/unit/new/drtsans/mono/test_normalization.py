@@ -35,8 +35,7 @@ def test_normalization_time(gpsans_f):
     from mantid import mtd
 
     input_sample_ws_mame = 'input_sample_ws_name'
-    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                 OutputWorkspace=input_sample_ws_mame)
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'], OutputWorkspace=input_sample_ws_mame)
     input_sample_ws = mtd[input_sample_ws_mame]
     # algorithm overwrite input workspace
     sample_logs = SampleLogs(input_sample_ws)

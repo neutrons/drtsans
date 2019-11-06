@@ -62,8 +62,6 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     input_workspace : ~mantid.api.MatrixWorkspace
     output_workspace: str
         Optional name of the output workspace. Default is to replace the input workspace
-    factor_is : float
-        reference number of monitor counts selected by the instrument staff. Default is 10**8
     """
     reference_total_counts = 1.e08  # actual number selected by the instrument team
     input_workspace = str(input_workspace)

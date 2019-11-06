@@ -24,7 +24,7 @@ def test_load_events(reference_dir):
 def test_transform_to_wavelength(reference_dir):
     workspace = load_events('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans)
     workspace = transform_to_wavelength(workspace)
-    assert workspace.getAxis(0).getUnit().caption() == 'wavelength'
+    assert workspace.getAxis(0).getUnit().caption() == 'Wavelength'
 
 
 def test_api_load(biosans_f):

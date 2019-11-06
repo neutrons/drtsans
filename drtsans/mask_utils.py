@@ -96,8 +96,11 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
     instrument = mtd[input_workspace].getInstrument().getName()
     if mask is not None:
         if isinstance(mask, str):
-            mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
-                                      RefWorkspace=input_workspace, OutputWorkspace=unique_workspace_dundername())
+            if os.path.splitext(mask)[1] == '.xml':
+                mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
+                                          RefWorkspace=input_workspace, OutputWorkspace=unique_workspace_dundername())
+            else:
+                mask_workspace = Load(Filename=mask, OutputWorkspace=unique_workspace_dundername())
             MaskDetectors(Workspace=input_workspace, MaskedWorkspace=mask_workspace)
             mask_workspace.delete()  # delete temporary workspace
         elif isinstance(mask, MaskWorkspace):

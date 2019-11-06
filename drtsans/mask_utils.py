@@ -4,14 +4,15 @@ r""" Links to Mantid algorithms
 ExtractMask          <https://docs.mantidproject.org/nightly/algorithms/ExtractMask-v1.html>
 FindDetectorsInShape <https://docs.mantidproject.org/nightly/algorithms/FindDetectorsInShape-v1.html>
 LoadMask             <https://docs.mantidproject.org/nightly/algorithms/LoadMask-v1.html>
+Load                 <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
 MaskBTP              <https://docs.mantidproject.org/nightly/algorithms/MaskBTP-v1.html>
 MaskDetectors        <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html>
 MaskSpectra          <https://docs.mantidproject.org/nightly/algorithms/MaskSpectra-v1.html>
 """
-from mantid.simpleapi import ExtractMask, FindDetectorsInShape, LoadMask, MaskBTP, MaskDetectors, MaskSpectra
+from mantid.simpleapi import ExtractMask, FindDetectorsInShape, LoadMask, MaskBTP, MaskDetectors, MaskSpectra, Load
 from mantid.api import mtd
 from mantid.dataobjects import MaskWorkspace
-
+import os
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
 

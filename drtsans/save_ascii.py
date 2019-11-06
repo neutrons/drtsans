@@ -11,19 +11,19 @@ def save_ascii_binned_1D(filename, title, *args, **kwargs):
         output filename
     title: str
         title to be added on the first line
-    args: namedtuple
+    args: ~drtsans.dataobjects.IQmod
         output from 1D binning
     kwargs:
-        i, sigma, q, dq - 1D numpy arrays of the same length, output from 1D binning
+        intensity, error, mod_q, delta_mod_q - 1D numpy arrays of the same length, output from 1D binning
     """
     try:
         kwargs = args[0]._asdict()
     except AttributeError:
         pass
-    q = kwargs['q']
-    intensity = kwargs['i']
-    error = kwargs['sigma']
-    dq = kwargs['dq']
+    q = kwargs['mod_q']
+    intensity = kwargs['intensity']
+    error = kwargs['error']
+    dq = kwargs['delta_mod_q']
 
     with open(filename, "w+") as f:
         f.write('# ' + title + '\n')

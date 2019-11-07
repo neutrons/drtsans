@@ -23,7 +23,6 @@ def normalize_by_time(input_workspace, output_workspace=None):
 
     **Mantid algorithms used:**
     :ref:`Divide <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
 
     Parameters
     ----------
@@ -53,9 +52,7 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
 
     **Mantid algorithms used:**
     :ref: `CreateSingleValuedWorkspace <algm-CreateSingleValuedWorkspace-v1>
-         <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
     :ref:`Divide <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
 
     Parameters
     ----------

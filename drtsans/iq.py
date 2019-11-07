@@ -46,7 +46,7 @@ def bin_intensity_into_q1d(i_of_q, bin_params,
         bins can be (1) number of bins for linear binning (2) number of steps per decade for logarithm binning
     linear_binning : bool
         flag for linear binning or logarithm binning
-    bin_method : BinningMethod
+    bin_method : ~drtsans.BinningMethod
         weighted binning or no-weight binning method
 
     Returns
@@ -110,7 +110,7 @@ def bin_wedge_into_q1d(i_q, min_wedge_angle, max_wedge_angle, q_bin_params, line
                 logarithm binning: number of steps per decade
     linear_binning : boolean
         flag to use linear binning; otherwise, logarithm binning
-    method : BinningMethod
+    method : ~drtsans.BinningMethod
         binning method, no-weight or weighed
 
     Returns
@@ -170,7 +170,7 @@ def bin_annular_into_q1d(i_q, theta_bin_params, q_min=0.001, q_max=0.4,  method=
 
     Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
 
-   theta_min, theta_max,  bins=100,
+    theta_min, theta_max,  bins=100,
 
     Parameters
     ----------
@@ -178,6 +178,7 @@ def bin_annular_into_q1d(i_q, theta_bin_params, q_min=0.001, q_max=0.4,  method=
          "intensity": intensity, "error": sigma(I), "qx": qx, "qy": qy, "delta_qx": dqx, "delta_qy", dqy
     theta_bin_params : BinningParams
         binning parameters on annular angle 'theta'
+
         theta_min : float
             minimum value of theta/azimuthal angle
         theta_max : float
@@ -195,7 +196,7 @@ def bin_annular_into_q1d(i_q, theta_bin_params, q_min=0.001, q_max=0.4,  method=
         , by default
     q_max : float, optional
         , by default
-    method : BinningMethod
+    method : ~drtsans.BinningMethod
         binning method, no-weight or weighed
 
     Returns
@@ -465,7 +466,7 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
         binning parameters for Qx
     qy_bin_params: BinningParams
         binning parameters for Qy
-    method: BinningMethod
+    method: ~drtsans.BinningMethod
         Weighted binning or no weight binning
 
     Returns

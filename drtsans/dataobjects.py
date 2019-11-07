@@ -69,8 +69,11 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         if name is None:
             name = uwd()
 
+        dq = self.delta_mod_q
+        if dq is None:
+            dq = self.mod_q * 0.
         return CreateWorkspace(DataX=self.mod_q, DataY=self.intensity, DataE=self.error,
-                               UnitX='momentumtransfer', OutputWorkspace=name,
+                               UnitX='momentumtransfer', OutputWorkspace=name, Dx=dq,
                                EnableLogging=False)
 
 

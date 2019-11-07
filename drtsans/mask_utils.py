@@ -4,14 +4,15 @@ r""" Links to Mantid algorithms
 ExtractMask          <https://docs.mantidproject.org/nightly/algorithms/ExtractMask-v1.html>
 FindDetectorsInShape <https://docs.mantidproject.org/nightly/algorithms/FindDetectorsInShape-v1.html>
 LoadMask             <https://docs.mantidproject.org/nightly/algorithms/LoadMask-v1.html>
+Load                 <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
 MaskBTP              <https://docs.mantidproject.org/nightly/algorithms/MaskBTP-v1.html>
 MaskDetectors        <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html>
 MaskSpectra          <https://docs.mantidproject.org/nightly/algorithms/MaskSpectra-v1.html>
 """
-from mantid.simpleapi import ExtractMask, FindDetectorsInShape, LoadMask, MaskBTP, MaskDetectors, MaskSpectra
+from mantid.simpleapi import ExtractMask, FindDetectorsInShape, LoadMask, MaskBTP, MaskDetectors, MaskSpectra, Load
 from mantid.api import mtd
 from mantid.dataobjects import MaskWorkspace
-
+import os
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
 
@@ -96,8 +97,11 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
     instrument = mtd[input_workspace].getInstrument().getName()
     if mask is not None:
         if isinstance(mask, str):
-            mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
-                                      RefWorkspace=input_workspace, OutputWorkspace=unique_workspace_dundername())
+            if os.path.splitext(mask)[1] == '.xml':
+                mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
+                                          RefWorkspace=input_workspace, OutputWorkspace=unique_workspace_dundername())
+            else:
+                mask_workspace = Load(Filename=mask, OutputWorkspace=unique_workspace_dundername())
             MaskDetectors(Workspace=input_workspace, MaskedWorkspace=mask_workspace)
             mask_workspace.delete()  # delete temporary workspace
         elif isinstance(mask, MaskWorkspace):

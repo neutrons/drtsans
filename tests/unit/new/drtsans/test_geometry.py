@@ -70,7 +70,7 @@ def test_detector_translation():
 
 @pytest.mark.parametrize('instrument, component, detmin, detmax',
                          [('EQ-SANS', '', 0, 49151),
-                          ('BIOSANS', '', 0, 90111),
+                          ('BIOSANS', '', 0, 44 * 8 * 256 - 1),
                           ('BIOSANS', 'detector1', 0, 24 * 8 * 256 - 1),
                           ('BIOSANS', 'wing_detector', 24 * 8 * 256, 44 * 8 * 256 - 1)])
 def test_bank_detector_ids(instrument, component, detmin, detmax):
@@ -90,6 +90,21 @@ def test_bank_detector_ids(instrument, component, detmin, detmax):
 
     detIDs = geo.bank_detector_ids(wksp, component=component, masked=True)
     assert len(detIDs) == 0
+
+
+@pytest.mark.parametrize('instrument, component, wksp_index_min, wksp_index_max',
+                         [('EQ-SANS', '', 1, 49151 + 2),
+                          ('BIOSANS', '', 2, 44 * 8 * 256 + 2),
+                          ('BIOSANS', 'detector1', 2, 24 * 8 * 256 + 2),
+                          ('BIOSANS', 'wing_detector', 24 * 8 * 256 + 2, 44 * 8 * 256 + 2)])
+def test_bank_workspace_indices(instrument, component, wksp_index_min, wksp_index_max):
+    wksp = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
+
+    wksp_indices = geo.bank_workspace_index_range(wksp, component)
+    assert wksp_indices[0] >= 0
+    assert wksp_indices[1] <= wksp.getNumberHistograms()
+    assert wksp_indices[0] == wksp_index_min
+    assert wksp_indices[1] == wksp_index_max
 
 
 def test_sample_aperture_diameter(serve_events_workspace):

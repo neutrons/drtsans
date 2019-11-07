@@ -36,6 +36,46 @@ def detector_name(ipt):
     return inst_to_det[instrument_name]
 
 
+def bank_workspace_index_range(input_workspace, component=''):
+    '''
+    Returns the range of workspace indices to for the named component. If no component is
+    specified it is the range for the whole instrument.
+
+    Assumptions: 1. There is one detector per spectrum 2. The detector ids are offset from
+    the workspace indices 3. The lowest detector id is the first one encountered when looping
+    through the spectra
+
+    Parameters
+    ----------
+    input_workspace: ~mantid.api.MatrixWorkspace
+        Input workspace to find the detectors
+    component: str
+        Name of the component to get detector ids from
+
+    Returns
+    -------
+    tuple
+        (workspace_index_min, workspace_index_max)
+    '''
+    detector_ids = bank_detector_ids(input_workspace, component, None)
+    detector_id_first = detector_ids.min()
+
+    input_workspace = mtd[str(input_workspace)]
+    first = None
+    for i in range(input_workspace.getNumberHistograms()):
+        ids = input_workspace.getSpectrum(i).getDetectorIDs()
+        if len(ids) > 1:
+            raise RuntimeError('do not know how to work with more than one '
+                               'detector per spectrum ({})'.format(ids))
+        if ids[0] == detector_id_first:
+            first = i
+            break
+    if first is None:
+        raise RuntimeError('something meaningful goes here')
+    else:
+        return (first, first + detector_ids.size)
+
+
 def bank_detector_ids(input_workspace, component='', masked=None):
     r"""
     Return the ID's for the detectors in detector banks (excludes monitors)

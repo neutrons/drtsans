@@ -22,10 +22,12 @@ from drtsans.tof.eqsans import (load_events, transform_to_wavelength, prepare_mo
                                 normalize_by_proton_charge_and_flux, normalize_by_time, normalize_by_monitor)
 from drtsans.tof.eqsans.normalization import load_beam_flux_file, load_flux_to_monitor_ratio_file
 
+
 @pytest.fixture(scope='module')
 def beam_flux(reference_dir):
     r"""Filepath to the flux file"""
     return pj(reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt')
+
 
 @pytest.fixture(scope='module')
 def flux_to_monitor(reference_dir):

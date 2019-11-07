@@ -347,7 +347,7 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_
     ~drtsans.tof.normalization.normalize_by_proton_charge_and_flux
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
     """
-    test_data = data_test_16a_by_proton_charge_and_flux  #handy shortcut
+    test_data = data_test_16a_by_proton_charge_and_flux  # handy shortcut
     # Input intensities from the test, only one value per detector pixel
     intensities_list = np.array(test_data['I_sam']).flatten()
     errors_list = np.array(test_data['I_sam_err']).flatten()

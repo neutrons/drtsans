@@ -183,6 +183,20 @@ def calculate_sigma_theta_gravity(instrument_parameters, wavelength, delta_wavel
 
     where :math:`B=g m_N^2L_2(L_1+L_2)/(2h^2)`
 
+    Parameters
+    ----------
+
+    instrument_parameters: InstrumentSetupParameters
+        Information abot instrument
+    wavelength: ~np.array
+        the array of wavelengths
+    delta_wavelength: ~np.array
+        the array of wavelength spreads
+
+    Returns
+    -------
+    ~np.array
+        The formula above
     """
     # derived constant where:
     # h = 6.626e-34    # m^2 kg s^-1

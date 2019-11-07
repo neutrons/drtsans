@@ -3,6 +3,7 @@ import os
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.simpleapi import mtd, Load
+import numpy as np
 
 from drtsans.samplelogs import SampleLogs
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
@@ -35,31 +36,60 @@ def detector_name(ipt):
     return inst_to_det[instrument_name]
 
 
-def bank_detector_ids(input_workspace, masked=None):
+def bank_detector_ids(input_workspace, component='', masked=None):
     r"""
     Return the ID's for the detectors in detector banks (excludes monitors)
 
     Parameters
     ----------
-    input_workspace: MatrixWorkspace
+    input_workspace: ~mantid.api.MatrixWorkspace
         Input workspace to find the detectors
-    masked: None or Bool
-        `None` yields all detector ID's; `True` yields all masked
-        detector ID's; `False` yields all unmasked detector ID's
+    component: str
+        Name of the component to get detector ids from
+    masked: None or bool
+        py:obj:`None` yields all detector ID's; ``True`` yields all masked
+        detector ID's; ``False`` yields all unmasked detector ID's
 
     Returns
     -------
-    list
+    ~numpy.ndarray
     """
-    ws = mtd[str(input_workspace)]
-    ids = ws.detectorInfo().detectorIDs()
-    everything = ids[ids >= 0].tolist()
-    if masked is None:
-        return everything  # by convention, monitors have ID < 0
+    # the object in mantid that knows everything
+    detectorInfo = mtd[str(input_workspace)].detectorInfo()
+    # the full list of detector ids. The indices are parallel to this array
+    ids = detectorInfo.detectorIDs()
+
+    # which detector indices to use
+    indices_to_use = np.ndarray((ids.size), dtype=bool)  # everything starts as False
+    indices_to_use.fill(True)
+
+    # sub-select the component wanted
+    if component:
+        componentInfo = mtd[str(input_workspace)].componentInfo()
+        componentIndex = componentInfo.indexOfAny(component)
+        detectorIndices = componentInfo.detectorsInSubtree(componentIndex)
+
+        # set the the indices to only use the detectors we are interested in
+        indices_to_use.fill(False)
+        indices_to_use[detectorIndices] = True
     else:
-        instrument = ws.getInstrument()
-        return [det_id for det_id in everything if
-                masked == instrument.getDetector(det_id).isMasked()]
+        # don't use monitors
+        for i in range(detectorInfo.size()):
+            if detectorInfo.isMonitor(i):
+                indices_to_use[i] = False
+
+    if masked is None:
+        pass
+    elif detectorInfo.hasMaskedDetectors():
+        for i in range(detectorInfo.size()):
+            # use based on masked/not masked
+            indices_to_use[i] = detectorInfo.isMasked(i) == masked
+    else:
+        # if there aren't masked detectors, but they are asked for, return nothing
+        if masked:
+            indices_to_use.fill(False)
+
+    return ids[indices_to_use]
 
 
 def bank_detectors(input_workspace, masked=None):

@@ -68,6 +68,30 @@ def test_detector_translation():
         workspace.delete()
 
 
+@pytest.mark.parametrize('instrument, component, detmin, detmax',
+                         [('EQ-SANS', '', 0, 49151),
+                          ('BIOSANS', '', 0, 90111),
+                          ('BIOSANS', 'detector1', 0, 24 * 8 * 256 - 1),
+                          ('BIOSANS', 'wing_detector', 24 * 8 * 256, 44 * 8 * 256 - 1)])
+def test_bank_detector_ids(instrument, component, detmin, detmax):
+    wksp = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
+    num_detectors = (detmax - detmin + 1)
+
+    # None test
+    detIDs = geo.bank_detector_ids(wksp, component=component, masked=None)
+    assert detIDs.size == num_detectors
+    assert detIDs.min() == detmin
+    assert detIDs.max() == detmax
+
+    detIDs = geo.bank_detector_ids(wksp, component=component, masked=False)
+    assert detIDs.size == num_detectors
+    assert detIDs.min() == detmin
+    assert detIDs.max() == detmax
+
+    detIDs = geo.bank_detector_ids(wksp, component=component, masked=True)
+    assert len(detIDs) == 0
+
+
 def test_sample_aperture_diameter(serve_events_workspace):
     input_workspace = serve_events_workspace('EQSANS_92353')
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters

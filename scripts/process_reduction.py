@@ -18,6 +18,8 @@ if __name__ == '__main__':
         reduction_script = 'sans_reduction_test.py'
         if instrument == 'EQSANS':
             reduction_script = 'eqsans_reduction.py'
+        elif instrument == 'BIOSANS':
+            reduction_script = 'biosans_reduction.py'
         filename_string = json_parameters['outputFilename']
         output_folder = json_parameters['configuration']['outputDir']
         out_log = os.path.join(output_folder,

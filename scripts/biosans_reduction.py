@@ -9,8 +9,8 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 
-import drtsans
-from drtsans.mono import biosans
+import drtsans  # noqa E402
+from drtsans.mono import biosans  # noqa E402
 from drtsans.iq import BinningMethod, BinningParams  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D  # noqa E402
 
@@ -32,11 +32,12 @@ def load_data(filename, is_wing=False, center_x=None, center_y=None, center_y_wi
         msapi.MaskDetectors(ws, ComponentList='detector1')
     else:
         msapi.MaskDetectors(ws, ComponentList='wing_detector')
-        
+
     if center_x is not None and center_y is not None and center_y_wing is not None:
         biosans.center_detector(ws, center_x=center_x, center_y=center_y, center_y_wing=center_y_wing)
 
     return ws
+
 
 def process_data(ws, cfg):
     # Dark current
@@ -72,6 +73,7 @@ def process_data(ws, cfg):
 
     return ws
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise RuntimeError("reduction code requires a parameter json string")
@@ -91,11 +93,11 @@ if __name__ == "__main__":
     config = dict()
     config = json_params['configuration']
 
-    #TODO: We need a way to tell if we need to reduce the main detector, the wing, or both
+    # TODO: We need a way to tell if we need to reduce the main detector, the wing, or both
     config['is_wing'] = False
 
     # Find the beam center
-    #TODO: We need a way to pass a pre-calculated beam center
+    # TODO: We need a way to pass a pre-calculated beam center
     empty_run = json_params["empty"]["runNumber"]
     if empty_run != "":
         # Load and compute beam center position
@@ -140,8 +142,8 @@ if __name__ == "__main__":
 
     # Convert the Q
     q_data = drtsans.convert_to_q(ws, mode='scalar')
-    
-    #TODO: Need to get min/max Q from either drtsans or the frontend
+
+    # TODO: Need to get min/max Q from either drtsans or the frontend
     linear_binning = config["QbinType"] == "linear"
     bin_params = BinningParams(min=0.02, max=.20,
                                bins=int(config["numQBins"]))

@@ -21,7 +21,7 @@ def load_data(filename, is_wing=False, center_x=None, center_y=None, center_y_wi
     """
     # If we didn't get a file path, make sure Mantid can find the file
     if not os.path.isfile(filename):
-        filename = "CG3_{}".format(filename)
+        filename = "BIOSANS{}".format(filename)
 
     ws = msapi.LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, LoadNexusInstrumentXML=False)
     ws = msapi.HFIRSANS2Wavelength(ws, OutputWorkspace=output_workspace)

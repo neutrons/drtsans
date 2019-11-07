@@ -38,6 +38,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
     for log_key in log_keys:
         try:
             duration = SampleLogs(input_workspace).single_value(log_key)
+            # Cast the timer value into a Mantid workspace to later divide the input workspace by this workspace
             duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=unique_workspace_dundername())
             break
         except RuntimeError:
@@ -47,7 +48,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
     return mtd[output_workspace]
 
 
-def normalize_by_monitor(input_workspace, output_workspace=None, factor_is=1.e08):
+def normalize_by_monitor(input_workspace, output_workspace=None):
     """Normalize by the monitor value
 
     **Mantid algorithms used:**
@@ -61,13 +62,13 @@ def normalize_by_monitor(input_workspace, output_workspace=None, factor_is=1.e08
     input_workspace : ~mantid.api.MatrixWorkspace
     output_workspace: str
         Optional name of the output workspace. Default is to replace the input workspace
-    factor_is : float
-        reference number of monitor counts selected by the instrument staff. Default is 10**8
     """
+    reference_total_counts = 1.e08  # actual number selected by the instrument team
     input_workspace = str(input_workspace)
     if output_workspace is None:
         output_workspace = input_workspace
-    monitor = SampleLogs(input_workspace).monitor.value / factor_is  # seconds  # counts
+    monitor = SampleLogs(input_workspace).monitor.value / reference_total_counts
+    # Cast the monitor value into a Mantid workspace to later divide the input workspace by this workspace
     monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=unique_workspace_dundername())
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=monitor_workspace, OutputWorkspace=output_workspace)
     return mtd[output_workspace]

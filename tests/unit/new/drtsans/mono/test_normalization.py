@@ -1,46 +1,58 @@
 import pytest
 
+r"""
+Hyperlinks to Mantid algorithms
+LoadHFIRSANS <https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html>
+"""
+from mantid.simpleapi import LoadHFIRSANS
+from mantid import mtd
 
-@pytest.mark.offline
-def test_normalization_monitor(gpsans_f):
+r"""
+Hyperlinks to drtsans functions
+unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+normalize_by_monitor, normalize_by_time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
+"""  # noqa: E501
+from drtsans.settings import unique_workspace_dundername
+from drtsans.samplelogs import SampleLogs
+from drtsans.mono.gpsans import normalize_by_monitor, normalize_by_time
+
+
+def test_normalize_by_monitor(gpsans_f):
     r"""
+    Load GPSANS file CG2_exp245_scan0010_0001.xml and normalize by monitor count.
     (This test was introduced prior to the testset with the instrument team)
     """
-    from drtsans.mono.normalization import normalize_by_monitor
-    from drtsans.samplelogs import SampleLogs
-    from mantid.simpleapi import LoadHFIRSANS
-    from mantid import mtd
+    input_sample_workspace_mame = unique_workspace_dundername()
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'], OutputWorkspace=input_sample_workspace_mame)
+    input_sample_workspace = mtd[input_sample_workspace_mame]
 
-    input_sample_ws_mame = 'input_sample_ws_name'
-    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'],
-                 OutputWorkspace=input_sample_ws_mame)
-    input_sample_ws = mtd[input_sample_ws_mame]
-    # algorithm overwrites input workspace
-    sample_logs = SampleLogs(input_sample_ws)
+    sample_logs = SampleLogs(input_sample_workspace)
     monitor_counts = sample_logs.monitor.value
-    test_value = input_sample_ws.readY(0)[0] * 10**8 / monitor_counts
-    output_sample_ws = normalize_by_monitor(input_sample_ws)
     assert monitor_counts == 1284652
-    assert output_sample_ws.readY(0)[0] == pytest.approx(test_value)
+
+    unnormalized_values = input_sample_workspace.extractY().flatten()
+    normalized_workspace = normalize_by_monitor(input_sample_workspace)
+    normalized_values = normalized_workspace.extractY().flatten()
+
+    assert normalized_values == pytest.approx(1.e08 * unnormalized_values / monitor_counts, abs=0.1)
 
 
-@pytest.mark.offline
-def test_normalization_time(gpsans_f):
+def test_normalize_by_time(gpsans_f):
     r"""
+    Load GPSANS file CG2_exp245_scan0010_0001.xml and normalize by run duration.
     (This test was introduced prior to the testset with the instrument team)
     """
-    from drtsans.mono.normalization import normalize_by_time
-    from drtsans.samplelogs import SampleLogs
-    from mantid.simpleapi import LoadHFIRSANS
-    from mantid import mtd
+    input_sample_workspace_mame = unique_workspace_dundername()
+    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'], OutputWorkspace=input_sample_workspace_mame)
+    input_sample_workspace = mtd[input_sample_workspace_mame]
 
-    input_sample_ws_mame = 'input_sample_ws_name'
-    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'], OutputWorkspace=input_sample_ws_mame)
-    input_sample_ws = mtd[input_sample_ws_mame]
-    # algorithm overwrite input workspace
-    sample_logs = SampleLogs(input_sample_ws)
-    timer = float(sample_logs.timer.value)
-    test_value = input_sample_ws.readY(612)[0] / timer
-    output_sample_ws = normalize_by_time(input_sample_ws)
-    assert timer == 60.0
-    assert output_sample_ws.readY(612)[0] == pytest.approx(test_value)
+    sample_logs = SampleLogs(input_sample_workspace)
+    run_duration = sample_logs.single_value('timer')
+    assert run_duration == 60.0  # in seconds
+
+    unnormalized_values = input_sample_workspace.extractY().flatten()
+    normalized_workspace = normalize_by_time(input_sample_workspace)
+    normalized_values = normalized_workspace.extractY().flatten()
+
+    assert normalized_values == pytest.approx(unnormalized_values / run_duration, abs=1.-3)

@@ -460,8 +460,8 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     Parameters
     ----------
-    i_q: collections.namedtuple
-        "i": intensity, "sigma": sigma(I), "qx": qx, "qy": qy, "dqx": dqx, "dqy", dqy
+    i_q: ~drtsans.dataobjects.IQazimuthal
+        class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
     qx_bin_params: BinningParams
         binning parameters for Qx
     qy_bin_params: BinningParams
@@ -471,6 +471,8 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     Returns
     -------
+    ~drtsans.dataobjects.IQazimuthal
+        binned IQazimuthal
 
     """
     # Calculate Qx and Qy bin size
@@ -481,11 +483,11 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
-        binned_arrays = _do_2d_no_weight_binning(i_q.qx, i_q.dqx, i_q.qy, i_q.dqy, i_q.i, i_q.sigma,
+        binned_arrays = _do_2d_no_weight_binning(i_q.qx, i_q.delta_qx, i_q.qy, i_q.delta_qy, i_q.i, i_q.sigma,
                                                  qx_bin_edges, qy_bin_edges)
     else:
         # Calculate weighed binning
-        binned_arrays = _do_2d_weighted_binning(i_q.qx, i_q.dqx, i_q.qy, i_q.dqy, i_q.i, i_q.sigma,
+        binned_arrays = _do_2d_weighted_binning(i_q.qx, i_q.delta_qx, i_q.qy, i_q.delta_qy, i_q.i, i_q.sigma,
                                                 qx_bin_edges, qy_bin_edges)
     # END-IF-ELSE
 

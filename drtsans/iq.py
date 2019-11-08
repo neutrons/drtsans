@@ -483,12 +483,12 @@ def bin_iq_into_linear_q2d(i_q, qx_bin_params, qy_bin_params, method=BinningMeth
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
-        binned_arrays = _do_2d_no_weight_binning(i_q.qx, i_q.delta_qx, i_q.qy, i_q.delta_qy, i_q.i, i_q.sigma,
-                                                 qx_bin_edges, qy_bin_edges)
+        binned_arrays = _do_2d_no_weight_binning(i_q.qx, i_q.delta_qx, i_q.qy, i_q.delta_qy, i_q.intensity,
+                                                 i_q.error, qx_bin_edges, qy_bin_edges)
     else:
         # Calculate weighed binning
-        binned_arrays = _do_2d_weighted_binning(i_q.qx, i_q.delta_qx, i_q.qy, i_q.delta_qy, i_q.i, i_q.sigma,
-                                                qx_bin_edges, qy_bin_edges)
+        binned_arrays = _do_2d_weighted_binning(i_q.qx, i_q.delta_qx, i_q.qy, i_q.delta_qy, i_q.intensity,
+                                                i_q.error, qx_bin_edges, qy_bin_edges)
     # END-IF-ELSE
 
     # construct return

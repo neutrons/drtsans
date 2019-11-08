@@ -3,7 +3,7 @@ from drtsans.dataobjects import IQazimuthal, IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_no_weight_binning,\
     BinningMethod, _do_2d_weighted_binning, _do_2d_no_weight_binning,\
-    bin_annular_into_q1d, bin_wedge_into_q1d, BinningParams, bin_intensity_into_q1d
+    bin_annular_into_q1d, bin_wedge_into_q1d, BinningParams, bin_intensity_into_q1d, bin_iq_into_linear_q2d
 import pytest
 
 # This test implements issue #169 to verify
@@ -311,13 +311,14 @@ def test_1d_bin_log_no_wt():
     assert binned_iq.intensity[3] == pytest.approx(70.00000, abs=1.E-12), 'intensity'
 
 
-def test_2d_linear_bin_no_wt():
-    """Test '2D_bin_no_sub_no_wt'
+def test_2d_linear_bin():
+    """Test '2D_bin_no_sub_no_wt' and '2D_bin_no_sub_wt'
 
-    2D linear bin no sub pixel no weighing summation
+    2D linear bin no sub pixel with weighted and no-weight summation
 
     Returns
     -------
+    None
 
     """
     # Calculate and determine the bin edges
@@ -344,7 +345,7 @@ def test_2d_linear_bin_no_wt():
     assert y_edges[1] == pytest.approx(-0.002826, abs=1E-6)
     assert y_edges[2] == pytest.approx(-0.000601, abs=1E-6)
 
-    # Bin 2D
+    # Bin 2D No-weight
     # Get Q1D data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
@@ -365,6 +366,7 @@ def test_2d_linear_bin_no_wt():
     assert binned_iq_2d[2][1][1] == pytest.approx(3.31E-05, abs=2E-7), 'dQx is incorrect'
     assert binned_iq_2d[3][1][1] == pytest.approx(1.75E-05, abs=2E-7), 'dQy is incorrect'
 
+    # Bin 2D Weighted
     # Test for weighted-binning
     binned_iq_2d = _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, intensities, sigmas,
                                            x_edges, y_edges)
@@ -379,6 +381,17 @@ def test_2d_linear_bin_no_wt():
     assert binned_iq_2d[2][1][1] == pytest.approx(3.30E-05, abs=2E-7), 'dQx is incorrect'
     # correct: 1.71877860186208e-05
     assert binned_iq_2d[3][1][1] == pytest.approx(1.75E-05, abs=4E-7), 'dQy is incorrect'
+
+    # Test API for high level method
+    test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
+                           delta_qx=dqx_array, delta_qy=dqy_array)
+    qx_bin_params = BinningParams(qx_min, qx_max, 5)
+    qy_bin_params = BinningParams(qy_min, qy_max, 5)
+    binned_iq_2d_wt = bin_iq_into_linear_q2d(test_i_q, qx_bin_params, qy_bin_params, BinningMethod.WEIGHTED)
+    # verify
+    np.testing.assert_allclose(binned_iq_2d[0], binned_iq_2d_wt.intensity, atol=1E-10)
+
+    return
 
 
 def get_gold_theta_bins():

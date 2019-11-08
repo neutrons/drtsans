@@ -4,10 +4,9 @@ import numpy as np
 r"""
 Hyperlinks to Mantid algorithms
 CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v3.html>
 Stitch1D <https://docs.mantidproject.org/nightly/algorithms/Stitch1D-v3.html>
 """
-from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, Stitch1D
+from mantid.simpleapi import CreateWorkspace, Stitch1D
 
 r"""
 Hyperlinks to drtsans functions

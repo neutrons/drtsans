@@ -75,6 +75,48 @@ def save_xml_1D(wksp, title, filename):
     SaveCanSAS1D(InputWorkspace=wksp, Process=title, Filename=filename)
 
 
+def save_ascii_binned_2D(filename, title, *args, **kwargs):
+    r""" Save I(qx, qy) data in Ascii format
+
+    Parameters
+    ----------
+    filename: str
+        output filename
+    title: str
+        title to be added on the first line
+    args: ~drtsans.dataobjects.IQazimuthal
+        output from 2D binning
+    kwargs:
+        intensity, error, qx, qy, delta_qx, delta_qy - 1D numpy arrays of the same length, output from 1D binning
+    """
+    try:
+        kwargs = args[0]._asdict()
+    except AttributeError:
+        pass
+    qx = kwargs['qx']
+    qy = kwargs['qy']
+    intensity = kwargs['intensity']
+    error = kwargs['error']
+    dqx = kwargs['delta_qx']
+    dqy = kwargs['delta_qy']
+
+    print(qx.shape, qy.shape, intensity.shape)
+    with open(filename, "w+") as f:
+        f.write('# ' + title + '\n')
+        f.write('#Qx (1/A)       Qy (1/A)        I (1/cm)        dI (1/cm)'
+                + '       dQx (1/A)       dQy (1/A)\n')
+        f.write('ASCII data\n\n')
+
+        for i in range(len(qx)):
+            for j in range(len(qy)):
+                f.write('{:.6f}\t'.format(qx[i]))
+                f.write('{:.6f}\t'.format(qy[j]))
+                f.write('{:.6f}\t'.format(intensity[i, j]))
+                f.write('{:.6f}\t'.format(error[i, j]))
+                f.write('{:.6f}\t'.format(dqx[i, j]))
+                f.write('{:.6f}\n'.format(dqy[i, j]))
+
+
 def save_ascii_2D(q2, q2x, q2y, title, filename):
     """Save the I(qx,qy) workspace in Ascii format
 
@@ -96,7 +138,7 @@ def save_ascii_2D(q2, q2x, q2y, title, filename):
     f.write('# ' + title + '\n')
     f.write('#Qx (1/A)       Qy (1/A)        I (1/cm)        dI (1/cm)'
             + '       dQx (1/A)       dQy (1/A)\n')
-    f.write('ASCII data\n\n')
+    f.write('#ASCII data\n\n')
     for i in range(len(q2.readY(0))):
         for j in range(q2.getNumberHistograms()):
             qy = float(q2.getAxis(1).label(j))

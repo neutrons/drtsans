@@ -7,7 +7,7 @@ import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
 from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace, EQSANSCorrectFrame,
-                              MaskBins, Rebin, RebinToWorkspace)
+                              MaskBins, Rebin, RebinToWorkspace, logger)
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 from drtsans.frame_mode import FrameMode
@@ -178,7 +178,7 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
             bands = clipped_bands_from_logs(input_workspace)
             return dict(lead=bands.lead, skip=bands.skip)
         except AttributeError:
-            sys.stderr.write('Clipped bands not present in the logs. Calculating using the chopper settings.')
+            logger.warning('Clipped bands not present in the logs. Calculating using the chopper settings.')
 
     # If necessary, retrieve the clips from the logs
     sample_logs = SampleLogs(input_workspace)

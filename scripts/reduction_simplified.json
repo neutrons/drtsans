@@ -7,7 +7,7 @@
 "background":{"runNumber":"","transmission":{"runNumber":""}},
 "empty":{"runNumber":"88973"},
 "configuration":{
-    "outputDir":"",
+    "outputDir":"/home/3y9/Desktop/eqsans_test",
     "sampleApertureSize":"30",
     "maskFileName":"/SNS/users/m2d/git/analysis_playground/eqsans/notebooks/data/EQSANS_88980_mask.xml",
     "useMaskFileName":true,

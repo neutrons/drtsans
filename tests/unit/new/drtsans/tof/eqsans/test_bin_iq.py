@@ -389,7 +389,7 @@ def test_2d_linear_bin():
     qy_bin_params = BinningParams(qy_min, qy_max, 5)
     binned_iq_2d_wt = bin_iq_into_linear_q2d(test_i_q, qx_bin_params, qy_bin_params, BinningMethod.WEIGHTED)
     # verify
-    np.testing.assert_allclose(binned_iq_2d.intensity, binned_iq_2d_wt.intensity, atol=1E-10)
+    np.testing.assert_allclose(binned_iq_2d[0], binned_iq_2d_wt.intensity, atol=1E-10)
 
     return
 

@@ -65,10 +65,11 @@ def test_beam_finder_larger_workspace(generic_workspace):
     Testing section 3.1 in the master document
     Find beam center of a larger 10(+2) x 10(+2) detector
     Functions to test: drtsans.tof.eqsans.beam_finder.find_beam_center
+
     Underlying Mantid algorithms:
         FindCenterOfMassPosition https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
     dev - Andrei Savici <saviciat@ornl.gov>
-    SME - Venky Pingali <pingalis@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
     """
     ws = generic_workspace
     # masking
@@ -91,10 +92,14 @@ def test_beam_finder_larger_workspace(generic_workspace):
 
 
 def test_center_detector():
-    r""" Testing moving EQSANS detector
+    r""" Testing moving detector using EQSANS instrument
+
     Functions to test: drtsans.tof.eqsans.beam_finder.center_detector
     Underlying Mantid algorithms:
         MoveInstrumentComponent https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
+
+    dev - Andrei Savici <saviciat@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
     """
     # look at the original instrument
     w_eqsans = LoadEmptyInstrument(InstrumentName='EQ-SANS')

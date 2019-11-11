@@ -18,6 +18,8 @@ if __name__ == '__main__':
         reduction_script = 'sans_reduction_test.py'
         if instrument == 'EQSANS':
             reduction_script = 'eqsans_reduction.py'
+        elif instrument == 'CG2':
+            reduction_script = 'gpsans_reduction.py'
         elif instrument == 'CG3':
             reduction_script = 'biosans_reduction.py'
         filename_string = json_parameters['outputFilename']

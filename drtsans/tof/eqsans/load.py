@@ -101,21 +101,17 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     else:
         CloneWorkspace(run, OutputWorkspace=output_workspace)
     #
-    # Correct geometry
+    # Correct the distances between instrument components
     #
-    # issue #72 LoadInstrument here, loading future EQSANS IDF
-    # that moves the detector according to the logs
-    translate_detector_z(output_workspace)  # search logs and translate
+    translate_detector_z(output_workspace)  # search logs and translate if necessary
     translate_detector_by_z(output_workspace, 1e-3 * detector_offset)
     translate_sample_by_z(output_workspace, 1e-3 * sample_offset)
 
-    sl = SampleLogs(output_workspace)
-    sl.insert('source-sample-distance',
-              source_sample_distance(output_workspace, search_logs=False),
-              unit='mm')
-    sl.insert('sample-detector-distance',
-              sample_detector_distance(output_workspace, search_logs=False),
-              unit='mm')
+    sample_logs = SampleLogs(output_workspace)
+    sample_logs.insert('source-sample-distance', source_sample_distance(output_workspace, search_logs=False),
+                       unit='mm')
+    sample_logs.insert('sample-detector-distance', sample_detector_distance(output_workspace, search_logs=False),
+                       unit='mm')
     #
     # Correct TOF of detector
     #

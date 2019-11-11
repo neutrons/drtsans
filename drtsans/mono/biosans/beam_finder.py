@@ -33,10 +33,10 @@ def _calculate_neutron_drop(path_length, wavelength):
 
 
 def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector):
-    """This method is used for correcting for gravitational drop.
-    It is used in the biosans for the correction of the beam center
-    in the wing detector. The center in the wing detector will be higher
-    because the neutrons fall due to gravity until they hit the main detector.
+    """This method is used for correcting for gravitational drop by
+    finding the difference in drop between the main and wing
+    detectors. The center in the wing detector will be higher because
+    the neutrons fall due to gravity until they hit the main detector.
 
     Parameters
     ----------
@@ -55,6 +55,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_dete
     -------
     float
         The new y beam center of the wing detector
+
     """
     sl = SampleLogs(ws)
 

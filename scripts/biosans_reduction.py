@@ -77,7 +77,7 @@ def process_data(filename, cfg, output_workspace=None):
 
     if cfg['center_x'] is not None and cfg['center_y'] is not None:
         sans.center_detector(ws, center_x=cfg['center_x'], center_y=cfg['center_y'],
-                                center_y_wing=cfg['center_y_wing'])
+                             center_y_wing=cfg['center_y_wing'])
 
     # Dark current
     if cfg['useDarkFileName']:
@@ -120,7 +120,7 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
     # TODO: there must be a better way to indicate that we are supplying a transmission value
     try:
         is_value = float(transmission_run) <= 1
-    except:
+    except ValueError:
         is_value = False
 
     if is_value:

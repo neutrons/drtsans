@@ -125,6 +125,6 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
     HFIRSANS2Wavelength(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
 
     # Set initial uncertainties
-    input_workspace = set_init_uncertainties(input_workspace)
+    input_workspace = set_init_uncertainties(output_workspace)
 
     return mtd[output_workspace]

@@ -1,8 +1,7 @@
 from drtsans import solid_angle_correction
-from drtsans.mono.normalization import (normalize_by_time, normalize_by_monitor)
 
 # Functions exposed to the general user (public) API
-__all__ = ['apply_solid_angle_correction', 'normalize_by_flux']
+__all__ = ['apply_solid_angle_correction']
 
 
 def apply_solid_angle_correction(ws):

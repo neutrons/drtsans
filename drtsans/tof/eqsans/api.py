@@ -11,7 +11,7 @@ from drtsans.save_2d import save_nist_dat, save_nexus
 from drtsans.tof.eqsans.correct_frame import smash_monitor_spikes, transform_to_wavelength
 from drtsans.tof.eqsans.load import load_events, load_events_monitor
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
-from drtsans.tof.eqsans.mask import apply_mask
+from drtsans.mask_utils import apply_mask
 from drtsans.tof.eqsans.normalization import normalize_by_flux
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',

@@ -16,6 +16,8 @@ import os
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
 
+__all__ = ['apply_mask']
+
 
 def mask_as_numpy_array(input_workspace, invert=False):
     r"""
@@ -109,7 +111,7 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
         elif isinstance(mask, list):
             MaskDetectors(Workspace=input_workspace, DetectorList=mask)
     if panel:
-        MaskBTP(Workspace=input_workspace, instrument='EQ-SANS', Components=panel + '-panel')
+        MaskBTP(Workspace=input_workspace, Components=panel + '-panel')
     if bool(btp):
         MaskBTP(Workspace=input_workspace, **btp)
     return ExtractMask(InputWorkspace=input_workspace,

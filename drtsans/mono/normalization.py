@@ -14,7 +14,25 @@ SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drts
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
-__all__ = ['normalize_by_time', 'normalize_by_monitor']
+__all__ = ['normalize_by_time', 'normalize_by_monitor', 'normalize_by_flux']
+
+
+def normalize_by_flux(ws, method):
+    """Normalize to time or monitor
+
+    Parameters
+    ----------
+    input_workspace : ~mantid.api.MatrixWorkspace
+    method : str
+        Normalization method: 'time' or 'monitor'
+
+    """
+    if method == "time":
+        return normalize_by_time(input_workspace=ws)
+    elif method == "monitor":
+        return normalize_by_monitor(input_workspace=ws)
+    else:
+        raise NotImplementedError()
 
 
 def normalize_by_time(input_workspace, output_workspace=None):

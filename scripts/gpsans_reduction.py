@@ -9,96 +9,18 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
-import mantid.simpleapi as msapi  # noqa E402
+#import mantid.simpleapi as msapi  # noqa E402
 
 import drtsans  # noqa E402
+
+from drtsans.mono.gpsans import prepare_data
 from drtsans.mono import gpsans as sans  # noqa E402
-from drtsans.iq import BinningMethod, BinningParams  # noqa E402
-from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
+
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
+from common_utils import get_Iq, get_Iqxqy, setup_configuration
 
 INSTRUMENT = 'GPSANS'
-
-
-def load_data(filename, output_workspace=None):
-    """
-        Load data. This should be part of the drtsans.mono API.
-        TODO: Need to deal with detector and sample offsets.
-    """
-    if output_workspace is None:
-        output_workspace = uwd()
-
-    # If we didn't get a file path, make sure Mantid can find the file
-    if not os.path.isfile(filename):
-        filename = "{}{}".format(INSTRUMENT, filename)
-
-    ws = msapi.LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, LoadNexusInstrumentXML=False)
-    ws = msapi.HFIRSANS2Wavelength(ws, OutputWorkspace=output_workspace)
-    ws = msapi.SetUncertainties(ws, "sqrtOrOne", OutputWorkspace=output_workspace)
-
-    return ws
-
-
-def setup_configuration(json_params):
-    """
-        Extract configuration
-    """
-    config = json_params['configuration']
-
-    # Masking
-    # TODO: get default mask from configuration
-    config["mask"] = None
-    default_mask = []
-    w = msapi.LoadEmptyInstrument(InstrumentName=INSTRUMENT, OutputWorkspace=uwd())
-    if config["useDefaultMask"]:
-        for d in default_mask:
-            msapi.MaskBTP(Workspace=w, **d)
-        config["mask"] = msapi.ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
-
-    if config["useMaskBackTubes"]:
-        msapi.logger.notice("Masking back tubes is not implemented")
-
-    return config
-
-
-def process_data(filename, cfg, output_workspace=None):
-    """
-        Load and process data.
-        This should be in drtsans.mono.biosans
-    """
-    ws = load_data(filename,
-                   output_workspace=output_workspace)
-
-    if cfg['center_x'] is not None and cfg['center_y'] is not None:
-        sans.center_detector(ws, center_x=cfg['center_x'], center_y=cfg['center_y'])
-
-    # Dark current
-    if cfg['useDarkFileName']:
-        dark_ws = load_data(cfg['darkFileName'],
-                            output_workspace=uwd())
-        sans.subtract_dark_current(ws, dark_ws)
-        msapi.logger.notice("Dark current subtracted")
-
-    # Normalization
-    if cfg['normalization'] == 'Time':
-        sans.normalize_by_time(ws)
-    elif cfg['normalization'] == 'Monitor':
-        sans.normalize_by_monitor(ws)
-
-    # Solid angle
-    if cfg['useSolidAngleCorrection']:
-        sans.solid_angle_correction(ws)
-        msapi.logger.notice("Solid angle correction performed")
-
-    # Sensitivity
-    sensitivity_filename = cfg['sensitivityFileName']
-    if os.path.isfile(sensitivity_filename):
-        drtsans.apply_sensitivity_correction(ws, sensitivity_filename=cfg['sensitivityFileName'])
-    else:
-        msapi.logger.warning("File doesn't exist: %s" % sensitivity_filename)
-
-    return ws
 
 
 def apply_transmission(ws, transmission_run, empty_run, cfg):
@@ -121,8 +43,8 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         msapi.logger.notice('Applying transmission correction with transmission file.')
 
         # We need to see the beam, which is on the main detector
-        ws_tr_sample = process_data(transmission_run, cfg)
-        ws_tr_direct = process_data(empty_run, cfg)
+        ws_tr_sample = sans.prepare_data(transmission_run, **cfg)
+        ws_tr_direct = sans.prepare_data(empty_run, **cfg)
 
         # TODO: use the number of pixels around the beam spot
         tr_ws = sans.calculate_transmission(ws_tr_sample,
@@ -134,74 +56,12 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
     return ws
 
 
-def get_Iq(ws, json_params, config):
-    """
-        Compute I(q) from corrected workspace
-    """
-    q_data = drtsans.convert_to_q(ws, mode='scalar')
-
-    # TODO: Need to get min/max Q from either drtsans or the frontend
-    linear_binning = config["QbinType"] == "linear"
-    q_min = np.min(q_data.mod_q)
-    q_max = np.max(q_data.mod_q)
-    bin_params = BinningParams(min=q_min, max=q_max,
-                               bins=int(config["numQBins"]))
-    iq_output = sans.bin_intensity_into_q1d(q_data,
-                                            bin_params=bin_params,
-                                            linear_binning=linear_binning,
-                                            bin_method=BinningMethod.NOWEIGHT)
-
-    output_file = os.path.join(config["outputDir"],
-                               json_params["outputFilename"] + '_Iq.txt')
-    save_ascii_binned_1D(output_file, "I(Q)", iq_output)
-
-    fig, ax = plt.subplots()
-    ax.errorbar(iq_output.mod_q, iq_output.intensity, yerr=iq_output.error, label="I(Q)")
-    ax.set_xlabel("$Q (\AA^{-1})$")  # noqa W605
-    plt.ylabel('Intensity')
-    output_file = os.path.join(config["outputDir"],
-                               json_params["outputFilename"] + '_Iq.png')
-
-    fig.savefig(output_file)
-
-
-def get_Iqxqy(ws, json_params, config):
-    """
-        Compute I(qx,qy) from corrected workspace
-    """
-    q_data = drtsans.convert_to_q(ws, mode='azimuthal')
-    qx_min = np.min(q_data.qx)
-    qx_max = np.max(q_data.qx)
-
-    binning_x = BinningParams(qx_min, qx_max, int(config["numQxQyBins"]))
-    qy_min = np.min(q_data.qy)
-    qy_max = np.max(q_data.qy)
-    binning_y = BinningParams(qy_min, qy_max, int(config["numQxQyBins"]))
-
-    iq_output = sans.bin_iq_into_linear_q2d(q_data,
-                                            qx_bin_params=binning_x,
-                                            qy_bin_params=binning_y,
-                                            method=BinningMethod.NOWEIGHT)
-
-    filename = os.path.join(config["outputDir"],
-                            json_params["outputFilename"] + '_Iqxqy.txt')
-    save_ascii_binned_2D(filename, "I(Qx,Qy)", iq_output)
-
-    fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(iq_output.qx, iq_output.qy, iq_output.intensity,
-                        norm=colors.LogNorm())
-    fig.colorbar(pcm, ax=ax)
-    picture_file = os.path.join(config["outputDir"],
-                                json_params["outputFilename"] + '_Iqxqy.png')
-    fig.savefig(picture_file)
-
-
 def reduction(json_params, config):
     """
         Perform the whole reduction
     """
     # Load and prepare scattering data
-    ws = process_data(json_params["runNumber"], config)
+    ws = sans.prepare_data(json_params["runNumber"], **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
@@ -212,7 +72,7 @@ def reduction(json_params, config):
     # Background
     bkg_run = json_params["background"]["runNumber"]
     if bkg_run != "":
-        ws_bck = process_data(json_params["background"]["runNumber"], config)
+        ws_bck = sans.prepare_data(json_params["background"]["runNumber"], **config)
 
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
@@ -225,18 +85,20 @@ def reduction(json_params, config):
         msapi.logger.notice("Background subtracted")
 
     # Final normalization
-    absolute_scale = float(config["absoluteScale"])
+    absolute_scale = float(json_params["configuration"]["absoluteScale"])
     sample_thickness = float(json_params["thickness"])
     ws /= sample_thickness
     ws *= absolute_scale
 
-    # Apply user mask
-    if config['useMaskFileName']:
-        drtsans.mask_utils.apply_mask(ws, mask=config["maskFileName"])
-
     # Convert the Q
-    get_Iq(ws, json_params, config)
-    get_Iqxqy(ws, json_params, config)
+    get_Iq(ws, json_params["configuration"]["outputDir"],
+           json_params["outputFilename"],
+           linear_binning=json_params["configuration"]["QbinType"] == "linear",
+           nbins=int(json_params["configuration"]["numQBins"]))
+
+    get_Iqxqy(ws, json_params["configuration"]["outputDir"],
+              json_params["outputFilename"],
+              nbins=int(json_params["configuration"]["numQxQyBins"]))
 
 
 if __name__ == "__main__":
@@ -255,14 +117,15 @@ if __name__ == "__main__":
     output_file = json_params['outputFilename']
 
     # set up the configuration
-    config = setup_configuration(json_params)
+    config = setup_configuration(json_params, INSTRUMENT)
 
     # Find the beam center
     # TODO: We need a way to pass a pre-calculated beam center
     empty_run = json_params["empty"]["runNumber"]
-    if empty_run != "":
+    if False and empty_run != "":
         # Load and compute beam center position
-        db_ws = load_data(empty_run)
+        db_ws = sans.load_events(empty_run,
+                                 overwrite_instrument=True, output_workspace=uwd())
         center = sans.find_beam_center(db_ws)
 
         # Store the center position for later use
@@ -270,6 +133,9 @@ if __name__ == "__main__":
         config['center_y'] = center[1]
         msapi.logger.notice("Calculated center {}".format(center))
     else:
+        config['center_x'] = 0
+        config['center_y'] = 0
+
         msapi.logger.warning("WE NEED A WAY TO PASS A BEAM CENTER")
 
     reduction(json_params, config)

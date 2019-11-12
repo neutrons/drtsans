@@ -6,7 +6,6 @@ import drtsans
 from drtsans.mask_utils import apply_mask
 from drtsans.mono.load import load_events, transform_to_wavelength
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
-from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.mono.dark_current import subtract_dark_current
 
 # Functions exposed to the general user (public) API
@@ -70,9 +69,6 @@ def prepare_data(data,
     # TODO: missing detector_offset and sample_offset
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace)
     ws = transform_to_wavelength(ws)
-
-    # Set initial uncertainties
-    ws = set_init_uncertainties(ws)
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
         biosans.center_detector(ws, center_x=center_x,

@@ -7,6 +7,7 @@ from mantid.api import mtd
 from drtsans.instruments import instrument_enum_name
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
+from drtsans.process_uncertainties import set_init_uncertainties
 
 __all__ = ['load_events', 'load_histogram', 'transform_to_wavelength']
 
@@ -122,4 +123,8 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
         output_workspace = str(input_workspace)
 
     HFIRSANS2Wavelength(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+
+    # Set initial uncertainties
+    input_workspace = set_init_uncertainties(input_workspace)
+
     return mtd[output_workspace]

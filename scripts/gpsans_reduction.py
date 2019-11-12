@@ -4,21 +4,15 @@
 import json
 import os
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
-#import mantid.simpleapi as msapi  # noqa E402
+import mantid.simpleapi as msapi  # noqa E402
 
 import drtsans  # noqa E402
-
-from drtsans.mono.gpsans import prepare_data
 from drtsans.mono import gpsans as sans  # noqa E402
-
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
-from common_utils import get_Iq, get_Iqxqy, setup_configuration
+from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
 
 INSTRUMENT = 'GPSANS'
 

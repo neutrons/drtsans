@@ -13,13 +13,3 @@ def apply_solid_angle_correction(ws):
     # see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/107
     raise NotImplementedError()
     return solid_angle_correction(ws, detector_type='VerticalTube')
-
-
-def normalize_by_flux(ws, normalization_type):
-    """Normalize to time, monitor, or proton charge"""
-    if normalization_type == "time":
-        return normalize_by_time(input_workspace=ws)
-    elif normalization_type == "monitor":
-        return normalize_by_monitor(input_workspace=ws)
-    else:
-        raise NotImplementedError()

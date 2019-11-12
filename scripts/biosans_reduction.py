@@ -12,7 +12,7 @@ import drtsans  # noqa E402
 from drtsans.mono import biosans as sans  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
-from common_utils import get_Iq, get_Iqxqy, setup_configuration
+from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
 
 INSTRUMENT = 'BIOSANS'
 
@@ -48,6 +48,7 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
                                             radius_unit="mm")
         ws = sans.apply_transmission_correction(ws, trans_workspace=tr_ws)
     return ws
+
 
 def reduction(json_params, config):
     """
@@ -111,7 +112,7 @@ if __name__ == "__main__":
     output_file = json_params['outputFilename']
 
     # set up the configuration
-    config = setup_configuration(json_params)
+    config = setup_configuration(json_params, INSTRUMENT)
 
     # Find the beam center
     # TODO: We need a way to pass a pre-calculated beam center
@@ -141,6 +142,7 @@ if __name__ == "__main__":
     config['is_wing'] = True
     config['mask_detector'] = 'detector1'
     if json_params['configuration']['useSensitivityFileName']:
-        config['sensitivity_file_path'] = json_params['configuration']['sensitivityFileName'].replace('_flood_', '_flood_wing_')
+        filename = json_params['configuration']['sensitivityFileName'].replace('_flood_', '_flood_wing_')
+        config['sensitivity_file_path'] = filename
 
     reduction(json_params, config)

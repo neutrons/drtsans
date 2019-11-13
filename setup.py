@@ -9,10 +9,9 @@ import versioneer
 THIS_DIR = os.path.dirname(__file__)
 
 # get list of scripts to install
-scripts = [item for item in os.listdir(os.path.join(THIS_DIR, 'scripts'))
-           if item.endswith('.py')]
-# prepend directory
-scripts = [os.path.join('scripts', item) for item in scripts]
+scripts = [os.path.join(root, f)
+           for root, _, files in os.walk(os.path.join(THIS_DIR, 'scripts'))
+           for f in files if f.endswith(".py")]
 
 
 def read_requirements_from_file(filepath):

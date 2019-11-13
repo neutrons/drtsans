@@ -38,6 +38,11 @@ class TestIQmod():
         iqmod_2 = iqmod.extract(iqmod.mod_q < 9)
         assert iqmod_2.error == pytest.approx([4, 5])
 
+    def test_concatenate(self):
+        iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        iqmod_2 = iqmod.concatenate(IQmod([4, 5], [7, 8], [10, 11]))
+        assert iqmod_2.mod_q == pytest.approx([7, 8, 9, 10, 11])
+
     def test_IQmod_to_mtd(self):
         # create the data object
         iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])

@@ -35,6 +35,43 @@ def _check_parallel(*args):
             raise TypeError('Shape mismatch ({} != {})'.format(shape, arg.shape))
 
 
+def _nary_operation(iq_objects, operation, unpack=True):
+    r"""
+    Carry out an operation on the component arrays for each of the IQ objects.
+
+    Examples:
+    - _nary_operation((iq_1, iq_2), numpy.append, unpack=True)
+    - _nary_operation((iq_1, iq_2), numpy.concatenate, unpack=False)
+
+    Parameters
+    ----------
+    iq_objects: list
+        A list of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
+        objects.
+    operation: function
+        A function operating on a list of :ref:`~numpy.ndarray` objects, e.g. numpy.concatenate((array1, array2))
+    unpack: bool
+        If set to :py:obj:`True`, then ``operation`` receives an unpacked list of arrays. If set to :py:obj:`False`,
+        then ``operation`` receives the list of arrays as a single argument.
+        Examples: numpy.append(*(array1, array2)) versus numpy.concatenate((array1, array2))
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
+    """
+    assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
+    new_components = list()
+    for i in range(len(iq_objects[0])):  # iterate over the IQ object components
+        i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
+        if True in [i_component is None for i_component in i_components]:  # is any of these None?
+            new_components.append(None)
+        elif unpack is True:
+            new_components.append(operation(*i_components))
+        else:
+            new_components.append(operation(i_components))
+    return iq_objects[0].__class__(*new_components)
+
+
 def _extract(iq_object, selection):
     r"""
     Extract a subset of data points onto a new IQ object.
@@ -112,6 +149,22 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         ~drtsans.dataobjects.IQmod
         """
         return _extract(self, selection)
+
+    def concatenate(self, other):
+        r"""
+        Append additional data points from another ~drtsans.dataobjects.IQmod object and return the composite as a
+        new ~drtsans.dataobjects.IQmod object.
+
+        Parameters
+        ----------
+        other: ~drtsans.dataobjects.IQmod
+            Additional data points.
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQmod
+        """
+        return _nary_operation((self, other), np.concatenate, unpack=False)
 
     def id(self):
         return DataType.IQ_MOD

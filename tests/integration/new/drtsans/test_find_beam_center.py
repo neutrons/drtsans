@@ -5,8 +5,7 @@ from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.sensitivity import apply_sensitivity_correction
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
-from mantid.simpleapi import LoadEmptyInstrument, MaskDetectors, CreateWorkspace, LoadInstrument, \
-    FindCenterOfMassPosition, Divide
+from mantid.simpleapi import LoadEmptyInstrument, MaskDetectors, CreateWorkspace, LoadInstrument
 import numpy as np
 
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
@@ -235,21 +234,9 @@ def test_find_beam_center(arbitrary_assembly_IDF):
                                                                 sensitivity_workspace=workspace_sensitivity,
                                                                 output_workspace='sensitivity_corrected')
 
-    bounding_box_widths = np.array(
-        [workspace.getDetector(i).shape().getBoundingBox().width() for i in range(workspace.getNumberHistograms())])
-    pixel_areas = bounding_box_widths[:, 0] * bounding_box_widths[:, 2]
-
-    workspace_pixelarea = CreateWorkspace(DataX=axis_values, DataY=pixel_areas, Nspec=100, OutputWorkspace='area')
-
-    area_corrected_counts = Divide(LHSWorkspace=sensitivity_corrected_counts, RHSWorkspace=workspace_pixelarea,
-                                   OutputWorkspace='corrected_counts')
-    centerMass = FindCenterOfMassPosition(area_corrected_counts, output='center')
-
-    x_cen = centerMass.row(0)['Value']*1000
-    y_cen = centerMass.row(1)['Value'] * 1000
-
-    assert x_cen == approx(21.48, abs=0.9)
-    assert y_cen == approx(22.5, abs=0.9)
+    x_cen, y_cen = find_beam_center(sensitivity_corrected_counts, DataX=axis_values, number_Of_spectra=100)
+    assert x_cen*1000 == approx(21.48, abs=0.9)
+    assert y_cen*1000 == approx(22.5, abs=0.9)
 
 
 if __name__ == '__main__':

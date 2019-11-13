@@ -59,20 +59,20 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
 
     if area_corection_flag:
         bounding_box_widths = np.array(
-            [input_workspace.getDetector(i).shape().getBoundingBox().width() for i in
-             range(input_workspace.getNumberHistograms())])
+            [flat_ws.getDetector(i).shape().getBoundingBox().width() for i in
+             range(flat_ws.getNumberHistograms())])
         pixel_areas = bounding_box_widths[:, 0] * bounding_box_widths[:, 2]
-        number_Of_spectra = input_workspace.getNumberHistograms()
-        X_axis_values = input_workspace.readX(0)
+        number_Of_spectra = flat_ws.getNumberHistograms()
+        X_axis_values = flat_ws.readX(0)
         workspace_pixelarea = CreateWorkspace(DataX=X_axis_values, DataY=pixel_areas,
                                               Nspec=number_Of_spectra, OutputWorkspace='area')
 
-        area_corrected_counts = Divide(LHSWorkspace=input_workspace, RHSWorkspace=workspace_pixelarea,
+        area_corrected_counts = Divide(LHSWorkspace=flat_ws, RHSWorkspace=workspace_pixelarea,
                                        OutputWorkspace='corrected_counts')
         flat_ws = Integration(area_corrected_counts, OutputWorkspace=uwd())
 
     # find center of mass position
-    center = FindCenterOfMassPosition(InputWorkspace=flat_ws.name(), **centering_options)
+    center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)
     logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(*center))
     return center
 

@@ -169,7 +169,7 @@ radius = [5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00
                          [{'radius': radius, 'height': height,
                            'pixel_centers': pixel_centers}],
                          indirect=True)
-def test_find_beam_center(arbitrary_assembly_IDF):
+def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
     r""" Testing finding the beam center using EQSANS instrument
 
       Underlying Mantid algorithms:

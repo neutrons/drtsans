@@ -37,7 +37,12 @@ schema = {
                 "runNumber": {
                     "type": "string",
                     "description": "the run number for transmission"
+                },
+                "value": {
+                    "type": "string",
+                    "description": "the value to use for transmission"
                 }
+
             },
             "required": ["runNumber"],
             "additionalProperties": False
@@ -55,6 +60,10 @@ schema = {
                         "runNumber": {
                             "type": "string",
                             "description": "the run number for transmission"
+                        },
+                        "value": {
+                            "type": "string",
+                            "description": "the value to use for transmission"
                         }
                     },
                     "required": ["runNumber"],
@@ -164,8 +173,8 @@ schema = {
                     "type": "boolean",
                     "description": "flag to ???"
                 },
-                "nPixelsRadiusForTransmission": {
-                    "type": "string",
+                "mmRadiusForTransmission": {
+                    "type": "number",
                     "description": "??? (should be able to convert to an integer)"
                 },
                 "numQxQyBins": {

@@ -1,4 +1,5 @@
 from collections import namedtuple
+from collections.abc import Iterable
 from drtsans.settings import unique_workspace_dundername as uwd
 from enum import Enum
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
@@ -34,6 +35,37 @@ def _check_parallel(*args):
             raise TypeError('Shape mismatch ({} != {})'.format(shape, arg.shape))
 
 
+def _extract(iq_object, selection):
+    r"""
+    Extract a subset of data points onto a new IQ object.
+
+    Examples:
+    - iq_object.extract(42)  # extract data point number 42
+    - iq_object.extract(slice(None, None, 2))  # extract every other data point
+    - iq_object.extract(IQmod().mod_q < 0.1)  # extract points with Q < 0.1
+
+    Parameters
+    ----------
+    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    selection: int, slice, :ref:`~numpy.ndarray`
+        Any selection that can be passed onto a :ref:`~numpy.ndarray`
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    """
+    component_fragments = list()
+    for component in iq_object:
+        if component is None:
+            component_fragments.append(None)
+        else:
+            fragment = component.__getitem__(selection)
+            if isinstance(fragment, Iterable) is False:  # selection extracts only one data point
+                fragment = [fragment, ]
+            component_fragments.append(fragment)
+    return iq_object.__class__(*component_fragments)
+
+
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
     '''This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
     and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional.'''
@@ -60,6 +92,26 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
 
         # pass everything to namedtuple
         return super(IQmod, cls).__new__(cls, intensity, error, mod_q, delta_mod_q, wavelength)
+
+    def extract(self, selection):
+        r"""
+        Extract a subset of data points onto a new ~drtsans.dataobjects.IQmod object.
+
+        Examples:
+        - IQmod().extract(42)  # extract data point number 42
+        - IQmod().extract(slice(None, None, 2))  # extract every other data point
+        - IQmod().extract(IQmod().mod_q < 0.1)  # extract points with Q < 0.1
+
+        Parameters
+        ----------
+        selection: int, slice, :ref:`~numpy.ndarray`
+            Any selection that can be passed onto a :ref:`~numpy.ndarray`
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQmod
+        """
+        return _extract(self, selection)
 
     def id(self):
         return DataType.IQ_MOD

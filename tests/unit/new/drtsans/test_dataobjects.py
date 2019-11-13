@@ -1,40 +1,51 @@
-from drtsans.dataobjects import IQazimuthal, IQmod
 import pytest
+
+from drtsans.dataobjects import IQazimuthal, IQmod
 from tests.conftest import assert_wksp_equal
 
 
-def test_IQmod_creation():
-    # these are expected to work
-    IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
-    IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])
-    IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15])
-    IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], wavelength=[13, 14, 15])
+class TestIQmod():
 
-    # intensity isn't 1d
-    with pytest.raises(TypeError):
-        IQmod([[1, 2], [3, 4]], [4, 5, 6], [7, 8, 9])
+    def test_IQmod_creation(self):
+        # these are expected to work
+        IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])
+        IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15])
+        IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], wavelength=[13, 14, 15])
 
-    # arrays are not parallel
-    with pytest.raises(TypeError):
-        IQmod([1, 3], [4, 5, 6], [7, 8, 9])
-    with pytest.raises(TypeError):
-        IQmod([1, 2, 3], [4, 6], [7, 8, 9])
-    with pytest.raises(TypeError):
-        IQmod([1, 2, 3], [4, 5, 6], [7, 9])
+        # intensity isn't 1d
+        with pytest.raises(TypeError):
+            IQmod([[1, 2], [3, 4]], [4, 5, 6], [7, 8, 9])
 
-    # not enough arguments
-    with pytest.raises(TypeError):
-        IQmod([1, 2, 3], [4, 5, 6])
+        # arrays are not parallel
+        with pytest.raises(TypeError):
+            IQmod([1, 3], [4, 5, 6], [7, 8, 9])
+        with pytest.raises(TypeError):
+            IQmod([1, 2, 3], [4, 6], [7, 8, 9])
+        with pytest.raises(TypeError):
+            IQmod([1, 2, 3], [4, 5, 6], [7, 9])
 
+        # not enough arguments
+        with pytest.raises(TypeError):
+            IQmod([1, 2, 3], [4, 5, 6])
 
-def test_IQmod_to_mtd():
-    # create the data object
-    iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
-    # convert to mantid workspace
-    wksp = iqmod.toWorkspace()
+    def test_extract(self):
+        iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        iqmod_2 = iqmod.extract(2)
+        assert iqmod_2.mod_q == pytest.approx(9)
+        iqmod_2 = iqmod.extract(slice(None, None, 2))
+        assert iqmod_2.intensity == pytest.approx([1, 3])
+        iqmod_2 = iqmod.extract(iqmod.mod_q < 9)
+        assert iqmod_2.error == pytest.approx([4, 5])
 
-    # verify results
-    assert_wksp_equal(wksp, iqmod)
+    def test_IQmod_to_mtd(self):
+        # create the data object
+        iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        # convert to mantid workspace
+        wksp = iqmod.toWorkspace()
+
+        # verify results
+        assert_wksp_equal(wksp, iqmod)
 
 
 def test_IQazimuthal_1d_creation():

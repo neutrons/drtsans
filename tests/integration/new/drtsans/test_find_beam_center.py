@@ -1,13 +1,12 @@
 import pytest
 from pytest import approx
-import math
 import re
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.sensitivity import apply_sensitivity_correction
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
-from mantid.simpleapi import LoadEmptyInstrument, MaskDetectors,CreateWorkspace, LoadInstrument, FindCenterOfMassPosition, \
-    SaveNexus,Divide
+from mantid.simpleapi import LoadEmptyInstrument, MaskDetectors, CreateWorkspace, LoadInstrument, \
+    FindCenterOfMassPosition, Divide
 import numpy as np
 
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
@@ -119,16 +118,17 @@ def test_center_detector():
     assert inst.getDetector(0).getPos() == approx([0.024185, -1.220957, -0.0316256], abs=1e-5)
     assert inst.getDetector(49151).getPos() == approx([-1.025015, -0.179043, -0.0234656], abs=1e-5)
 
-x= np.array ([ [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
-          [1.5,5.0, 9.9, 15.1, 20.1, 24.9, 30.0, 35.0, 39.9,40],
-          [1.6,5.1, 9.9, 15.2, 20.2, 25.0, 30.0, 35.0, 39.9,40.1],
-          [1.7,5.0, 10.0, 15.0, 20.1, 24.9, 30.1, 35.0, 39.9,40.2],
-         [1.8,4.9, 10.1, 14.9, 20.0, 24.8, 30.2, 35.1, 40.0,40.3],
-         [1.9,5.0, 10.0, 14.9, 20.1, 24.9, 30.1, 34.9, 39.8,40.4],
-         [2.0,5.0, 10.1, 14.8, 20.1, 24.9, 30.2, 34.9, 39.8,40.5],
-         [2.1,4.8, 9.8, 15.0, 19.9, 24.7, 29.9, 35.0, 39.9,40.6],
-         [2.2,4.9, 10.2, 15.0, 20.0, 24.8, 30.3, 35.3, 40.2,40.7],
-         [2.3, 2.4, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 40.8] ])
+
+x = np.array([[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
+              [1.5, 5.0, 9.9, 15.1, 20.1, 24.9, 30.0, 35.0, 39.9, 40],
+              [1.6, 5.1, 9.9, 15.2, 20.2, 25.0, 30.0, 35.0, 39.9, 40.1],
+              [1.7, 5.0, 10.0, 15.0, 20.1, 24.9, 30.1, 35.0, 39.9, 40.2],
+              [1.8, 4.9, 10.1, 14.9, 20.0, 24.8, 30.2, 35.1, 40.0, 40.3],
+              [1.9, 5.0, 10.0, 14.9, 20.1, 24.9, 30.1, 34.9, 39.8, 40.4],
+              [2.0, 5.0, 10.1, 14.8, 20.1, 24.9, 30.2, 34.9, 39.8, 40.5],
+              [2.1, 4.8, 9.8, 15.0, 19.9, 24.7, 29.9, 35.0, 39.9, 40.6],
+              [2.2, 4.9, 10.2, 15.0, 20.0, 24.8, 30.3, 35.3, 40.2, 40.7],
+              [2.3, 2.4, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 40.8]])
 
 y = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 40.2, 40.7, 40.2, 40.0, 39.8, 39.8, 39.9, 40.3, 0],
@@ -223,7 +223,6 @@ def test_find_beam_center(arbitrary_assembly_IDF):
     LoadInstrument(Workspace=workspace, InstrumentXML=arbitrary_assembly_IDF, RewriteSpectraMap=True,
                    InstrumentName=instrument_name)
 
-    SaveNexus(workspace, '/tmp/junk.nxs')
     mask = np.where(np.isnan(given_mask))[0].tolist()
     MaskDetectors(Workspace=workspace, DetectorList=mask)
 
@@ -248,8 +247,9 @@ def test_find_beam_center(arbitrary_assembly_IDF):
 
     x_cen = centerMass.row(0)['Value']*1000
     y_cen = centerMass.row(1)['Value'] * 1000
-    assert math.isclose(x_cen, 21.48, abs_tol=0.9)
-    assert math.isclose(y_cen, 22.5, abs_tol=0.9)
+
+    assert x_cen == approx(21.48, abs=0.9)
+    assert y_cen == approx(22.5, abs=0.9)
 
 
 if __name__ == '__main__':

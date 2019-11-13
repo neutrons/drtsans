@@ -1,6 +1,6 @@
 import pytest
 
-from drtsans.dataobjects import IQazimuthal, IQmod
+from drtsans.dataobjects import IQazimuthal, IQmod, testing
 from tests.conftest import assert_wksp_equal
 
 
@@ -128,6 +128,17 @@ def test_IQazimuthal_2d_creation():
     # qx and qy are linear and not right dimension
     with pytest.raises(TypeError):
         IQazimuthal([[1, 2, 3], [3, 4, 5]], [[4, 5, 6], [6, 7, 8]], [7, 8, 9], [10, 11])
+
+
+class TestTesting:
+
+    def test_assert_all_close(self):
+        iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        iqmod2 = IQmod([1, 2, 3], [4, 5.1, 6], [7, 8, 9.19])
+        testing.assert_allclose(iqmod, iqmod)
+        testing.assert_allclose(iqmod, iqmod2, atol=0.2)
+        with pytest.raises(AssertionError):
+            testing.assert_allclose(iqmod, iqmod2, atol=0.1)
 
 
 if __name__ == '__main__':

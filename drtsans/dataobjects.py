@@ -173,7 +173,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         Parameters
         ----------
         key: str
-            Component prescribing the sorting order.
+            Component prescribing the sorting order. Default sorting is by increasing Q value.
 
         Returns
         -------

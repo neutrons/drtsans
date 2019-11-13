@@ -28,9 +28,6 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     Parameters
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
-    area_corection_flag: str, flag to specify if area correction is needed
-    X_axis_values: dbl list, X-axis data values for workspace.
-    NSpec: number, Number of spectra to divide data into.
     method: str
         Method to calculate the beam center. Available methods are:
         - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`.
@@ -40,6 +37,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         Additional arguments to be passed on to ~drtsans.mask_utils.mask_apply.
     centering_options: dict
         Arguments to be passed on to the centering method.
+    area_corection_flag: str, flag to specify if area correction is needed
 
     Returns
     -------

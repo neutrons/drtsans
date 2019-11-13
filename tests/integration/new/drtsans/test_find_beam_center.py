@@ -118,6 +118,9 @@ def test_center_detector():
     assert inst.getDetector(49151).getPos() == approx([-1.025015, -0.179043, -0.0234656], abs=1e-5)
 
 
+# x_center of the detector given in
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/264/beam_center_testR1.xlsx
+# with additional padding in the boundary
 x = np.array([[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
               [1.5, 5.0, 9.9, 15.1, 20.1, 24.9, 30.0, 35.0, 39.9, 40],
               [1.6, 5.1, 9.9, 15.2, 20.2, 25.0, 30.0, 35.0, 39.9, 40.1],
@@ -129,6 +132,7 @@ x = np.array([[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
               [2.2, 4.9, 10.2, 15.0, 20.0, 24.8, 30.3, 35.3, 40.2, 40.7],
               [2.3, 2.4, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 40.8]])
 
+# y_center of the detector
 y = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 40.2, 40.7, 40.2, 40.0, 39.8, 39.8, 39.9, 40.3, 0],
               [0, 35.0, 35.1, 34.9, 35.1, 34.8, 35.0, 35.0, 35.2, 0],
@@ -140,14 +144,17 @@ y = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 5.0, 4.7, 4.8, 5.1, 5.0, 5.1, 5.2, 5.0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
+# z_center of the detector
 z = np.full((10, 10), 10)
 
 x_ = (x*0.001).reshape(1, -1)
 y_ = (y*0.001).reshape(1, -1)
 z_ = (z*0.001).reshape(1, -1)
 
+# pixel center of the detector with x,y,z coordinates
 pixel_centers = np.vstack((x_, y_, z_)).reshape(3, -1).T.tolist()
 
+# height of the detector
 height = [5.20, 5.60, 5.30, 4.90, 5.00, 4.80, 4.90, 5.10, 5.10, 5.10, 5.10, 5.20, 5.60, 5.30, 4.90, 5.00, 4.80, 4.90,
           5.10, 5.10, 5.10, 4.90, 4.90, 4.90, 4.90, 4.90, 4.90, 4.90, 4.90, 5.10, 5.10, 5.20, 5.60, 5.30, 5.20, 5.00,
           5.10, 5.00, 5.40, 5.10, 5.10, 4.80, 4.80, 4.80, 4.80, 4.80, 4.80, 4.80, 4.80, 5.10, 5.10, 5.10, 4.70, 5.00,
@@ -155,6 +162,7 @@ height = [5.20, 5.60, 5.30, 4.90, 5.00, 4.80, 4.90, 5.10, 5.10, 5.10, 5.10, 5.20
           5.20, 4.80, 4.90, 4.70, 4.80, 5.00, 5.10, 5.10, 5.00, 4.70, 4.80, 5.10, 5.00, 5.10, 5.20, 5.00, 5.10, 5.10,
           5.10, 5.10, 5.10, 5.10, 5.10, 5.10, 5.10, 5.10, 5.10]
 
+# radius of the detector
 radius = [5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.90, 5.20, 5.00, 4.80, 5.10, 5.00,
           4.90, 4.9, 4.9, 5.10, 4.80, 5.30, 5.00, 4.80, 5.00, 5.00, 4.90, 4.9, 4.9, 5.00, 5.00, 5.00, 5.10, 4.80,
           5.20, 4.90, 4.90, 4.9, 4.9, 4.90, 5.20, 4.80, 5.10, 4.80, 5.40, 4.90, 4.90, 4.9, 4.9, 5.00, 5.00, 4.90,
@@ -216,24 +224,30 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
 
     uncertainities_sensitivity = 0.01*sensitivity
 
+    # creating the workspace with counts
     workspace = CreateWorkspace(DataX=axis_values, DataY=intensities, DataE=uncertainities, Nspec=100,
                                 UnitX='wavelength', OutputWorkspace='count')
     instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', arbitrary_assembly_IDF).groups()[0]
     LoadInstrument(Workspace=workspace, InstrumentXML=arbitrary_assembly_IDF, RewriteSpectraMap=True,
                    InstrumentName=instrument_name)
 
+    # Applying masking
     mask = np.where(np.isnan(given_mask))[0].tolist()
     MaskDetectors(Workspace=workspace, DetectorList=mask)
 
+    # creating the workspace with sensitivity
     workspace_sensitivity = CreateWorkspace(DataX=axis_values, DataY=sensitivity, DataE=uncertainities_sensitivity,
                                             Nspec=100, UnitX="wavelength", OutputWorkspace='sensitivity')
 
     LoadInstrument(Workspace=workspace_sensitivity, InstrumentXML=arbitrary_assembly_IDF, RewriteSpectraMap=True,
                    InstrumentName=instrument_name)
+
+    # Applying sensitivity correction
     sensitivity_corrected_counts = apply_sensitivity_correction(input_workspace=workspace,
                                                                 sensitivity_workspace=workspace_sensitivity,
                                                                 output_workspace='sensitivity_corrected')
 
+    # Finding the beam center
     x_cen, y_cen = find_beam_center(sensitivity_corrected_counts, area_corection_flag=True)
     assert x_cen*1000 == approx(21.48, abs=0.9)
     assert y_cen*1000 == approx(22.5, abs=0.9)

@@ -11,7 +11,7 @@ from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noq
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
 
-def setup_configuration(json_params):
+def setup_configuration(json_params, instrument):
     """
         Extract configuration from json file passed through Shaman
     """
@@ -61,7 +61,7 @@ def setup_configuration(json_params):
     # TODO: get default mask from configuration
     if json_params['configuration']["useDefaultMask"]:
         default_mask = []
-        w = msapi.LoadEmptyInstrument(InstrumentName=INSTRUMENT, OutputWorkspace=uwd())
+        w = msapi.LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=uwd())
         for d in default_mask:
             msapi.MaskBTP(Workspace=w, **d)
         config["mask"] = msapi.ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
@@ -113,9 +113,9 @@ def get_Iqxqy(ws, output_dir, output_file, label='', nbins=100):
     binning_y = BinningParams(qy_min, qy_max, nbins)
 
     iq_output = drtsans.iq.bin_iq_into_linear_q2d(q_data,
-                                            qx_bin_params=binning_x,
-                                            qy_bin_params=binning_y,
-                                            method=BinningMethod.NOWEIGHT)
+                                                  qx_bin_params=binning_x,
+                                                  qy_bin_params=binning_y,
+                                                  method=BinningMethod.NOWEIGHT)
 
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.txt')
     save_ascii_binned_2D(filename, "I(Qx,Qy)", iq_output)

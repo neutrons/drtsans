@@ -166,6 +166,21 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         """
         return _nary_operation((self, other), np.concatenate, unpack=False)
 
+    def sort(self, key='mod_q'):
+        r"""
+        Sort the data points according to one of the components of the ~drtsans.dataobjects.IQmod object.
+
+        Parameters
+        ----------
+        key: str
+            Component prescribing the sorting order.
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQmod
+        """
+        return _extract(self, np.argsort(getattr(self, key)))
+
     def id(self):
         return DataType.IQ_MOD
 

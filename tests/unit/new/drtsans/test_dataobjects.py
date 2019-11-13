@@ -43,6 +43,12 @@ class TestIQmod():
         iqmod_2 = iqmod.concatenate(IQmod([4, 5], [7, 8], [10, 11]))
         assert iqmod_2.mod_q == pytest.approx([7, 8, 9, 10, 11])
 
+    def test_sort(self):
+        iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 9, 8])
+        iqmod = iqmod.sort()
+        assert iqmod.mod_q == pytest.approx([7, 8, 9])
+        assert iqmod.intensity == pytest.approx([1, 3, 2])
+
     def test_IQmod_to_mtd(self):
         # create the data object
         iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])

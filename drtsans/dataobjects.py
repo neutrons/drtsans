@@ -35,7 +35,7 @@ def _check_parallel(*args):
             raise TypeError('Shape mismatch ({} != {})'.format(shape, arg.shape))
 
 
-def _nary_operation(iq_objects, operation, unpack=True):
+def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
     r"""
     Carry out an operation on the component arrays for each of the IQ objects.
 
@@ -54,6 +54,8 @@ def _nary_operation(iq_objects, operation, unpack=True):
         If set to :py:obj:`True`, then ``operation`` receives an unpacked list of arrays. If set to :py:obj:`False`,
         then ``operation`` receives the list of arrays as a single argument.
         Examples: numpy.append(*(array1, array2)) versus numpy.concatenate((array1, array2))
+    kwargs: dict
+        Additional options to be passed
 
     Returns
     -------
@@ -293,3 +295,60 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
 
     def id(self):
         return DataType.IQ_CRYSTAL
+
+
+class _Testing:
+    r"""
+    Mimic the numpy.testing module by applying functions of this module to the component arrays
+    """
+
+    @staticmethod
+    def _nary_assertion(iq_objects, assertion_function, unpack=True, **kwargs):
+        r"""
+        Carry out an assertion on the component arrays for each of the IQ objects.
+
+        Examples:
+        - _nary_assertion((iq_1, iq_2), numpy.append, unpack=True)
+        - _nary_assertion((iq_1, iq_2), numpy.concatenate, unpack=False)
+
+        Parameters
+        ----------
+        iq_objects: list
+            A list of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
+            objects.
+        assertion_function: function
+            A function operating on a list of :ref:`~numpy.ndarray` objects, e.g. numpy.concatenate((array1, array2))
+        unpack: bool
+            If set to :py:obj:`True`, then ``assertion_function`` receives an unpacked list of arrays.
+            If set to :py:obj:`False`, then ``assertion_function`` receives the list of arrays as a single argument.
+            Examples: numpy.append(*(array1, array2)) versus numpy.concatenate((array1, array2))
+        kwargs: dict
+            Additional options to be passed
+
+        Raises
+        ------
+        AssertionError
+        """
+        reference_object = iq_objects[0]  # pick the first of the list as reference object
+        assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
+        for i in range(len(reference_object)):  # iterate over the IQ object components
+            component_name = reference_object._fields[i]
+            i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
+            if True in [i_component is None for i_component in i_components]:  # is any of these None?
+                if set(i_components) == set([None]):
+                    continue  # all arrays are actually None, so they are identical
+                else:
+                    raise AssertionError(f'field {component_name} is None for some of the iQ objects')
+            elif unpack is True:
+                assertion_function(*i_components, **kwargs)
+            else:
+                assertion_function(i_components, **kwargs)
+
+    @staticmethod
+    def assert_allclose(actual, desired, **kwargs):
+        r"""Apply :ref:`~numpy.testing.assert_allclose on each component array"""
+        _Testing._nary_assertion((actual, desired), assertion_function=np.testing.assert_allclose, unpack=True,
+                                 **kwargs)
+
+
+testing = _Testing()  # use it as if it were a module, e.g. testing.assert_allclose(iq_1, iq_2, atol=1.e-6)

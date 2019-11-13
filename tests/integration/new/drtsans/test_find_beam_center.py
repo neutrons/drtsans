@@ -171,6 +171,14 @@ radius = [5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00
                            'pixel_centers': pixel_centers}],
                          indirect=True)
 def test_find_beam_center(arbitrary_assembly_IDF):
+    r""" Testing finding the beam center using EQSANS instrument
+
+      Underlying Mantid algorithms:
+          MoveInstrumentComponent https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
+
+      dev - Fahima Islam <islamff@ornl.gov>
+      SME - William Heller <hellerwt@ornl.gov>
+      """
     axis_values = np.array([6.9, 7.1])
     intensities = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 50, 34, 34, 45, 51, 23, 31, 34, 0],

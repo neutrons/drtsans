@@ -15,7 +15,7 @@ from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
 __all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans namespace
 
 
-def find_beam_center(input_workspace, area_corection_flag=False, DataX={}, number_Of_spectra=100,
+def find_beam_center(input_workspace, area_corection_flag=False, X_axis_values={}, number_Of_spectra=100,
                      method='center_of_mass', mask=None, mask_options={}, centering_options={}):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.
@@ -29,7 +29,7 @@ def find_beam_center(input_workspace, area_corection_flag=False, DataX={}, numbe
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
     area_corection_flag: str, flag to specify if area correction is needed
-    DataX: dbl list, X-axis data values for workspace.
+    X_axis_values: dbl list, X-axis data values for workspace.
     NSpec: number, Number of spectra to divide data into.
     method: str
         Method to calculate the beam center. Available methods are:
@@ -63,7 +63,7 @@ def find_beam_center(input_workspace, area_corection_flag=False, DataX={}, numbe
              range(input_workspace.getNumberHistograms())])
         pixel_areas = bounding_box_widths[:, 0] * bounding_box_widths[:, 2]
 
-        workspace_pixelarea = CreateWorkspace(DataX=DataX, DataY=pixel_areas,
+        workspace_pixelarea = CreateWorkspace(DataX=X_axis_values, DataY=pixel_areas,
                                               Nspec=number_Of_spectra, OutputWorkspace='area')
 
         area_corrected_counts = Divide(LHSWorkspace=input_workspace, RHSWorkspace=workspace_pixelarea,

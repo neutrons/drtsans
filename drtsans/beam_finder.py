@@ -15,7 +15,7 @@ from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
 __all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans namespace
 
 
-def find_beam_center(input_workspace, area_corection_flag=True, DataX={}, number_Of_spectra=100,
+def find_beam_center(input_workspace, area_corection_flag=False, DataX={}, number_Of_spectra=100,
                      method='center_of_mass', mask=None, mask_options={}, centering_options={}):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.

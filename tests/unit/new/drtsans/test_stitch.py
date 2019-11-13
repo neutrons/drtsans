@@ -5,11 +5,13 @@ r"""
 Hyperlinks to drtsans functions
 stitch_profiles <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py>
 """
+from drtsans.settings import namedtuplefy
 from drtsans.dataobjects import IQmod, testing
 from drtsans.stitch import stitch_profiles
 
 
 @pytest.fixture(scope='module')
+@namedtuplefy
 def data_test_16b():
     r"""
     Stitch three intensity profiles.

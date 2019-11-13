@@ -87,16 +87,15 @@ def get_Iq(ws, output_dir, output_file, label='', linear_binning=True, nbins=100
                                                   linear_binning=linear_binning,
                                                   bin_method=BinningMethod.NOWEIGHT)
 
-    output_file = os.path.join(output_dir, output_file + label + '_Iq.txt')
-    save_ascii_binned_1D(output_file, "I(Q)", iq_output)
+    filename = os.path.join(output_dir, output_file + label + '_Iq.txt')
+    save_ascii_binned_1D(filename, "I(Q)", iq_output)
 
     fig, ax = plt.subplots()
     ax.errorbar(iq_output.mod_q, iq_output.intensity, yerr=iq_output.error, label="I(Q)")
     ax.set_xlabel("$Q (\AA^{-1})$")  # noqa W605
     plt.ylabel('Intensity')
-    output_file = os.path.join(output_dir, output_file + label + '_Iq.png')
-
-    fig.savefig(output_file)
+    filename = os.path.join(output_dir, output_file + label + '_Iq.png')
+    fig.savefig(filename)
 
 
 def get_Iqxqy(ws, output_dir, output_file, label='', nbins=100):
@@ -106,7 +105,6 @@ def get_Iqxqy(ws, output_dir, output_file, label='', nbins=100):
     q_data = drtsans.convert_to_q(ws, mode='azimuthal')
     qx_min = np.min(q_data.qx)
     qx_max = np.max(q_data.qx)
-
     binning_x = BinningParams(qx_min, qx_max, nbins)
     qy_min = np.min(q_data.qy)
     qy_max = np.max(q_data.qy)

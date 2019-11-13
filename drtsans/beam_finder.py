@@ -2,8 +2,11 @@ r""" Links to mantid algorithms
 FindCenterOfMassPosition <https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v1.html>
 Integration              <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
 MoveInstrumentComponent  <https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html>
+CreateWorkspace          <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+DeleteWorkspace          <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 """
-from mantid.simpleapi import FindCenterOfMassPosition, Integration, MoveInstrumentComponent, CreateWorkspace, Divide
+from mantid.simpleapi import FindCenterOfMassPosition, Integration, MoveInstrumentComponent, CreateWorkspace, \
+    DeleteWorkspace
 from mantid.kernel import logger
 import numpy as np
 
@@ -64,10 +67,8 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         X_axis_values = flat_ws.readX(0)
         workspace_pixelarea = CreateWorkspace(DataX=X_axis_values, DataY=pixel_areas,
                                               Nspec=number_Of_spectra, OutputWorkspace='area')
-
-        area_corrected_counts = Divide(LHSWorkspace=flat_ws, RHSWorkspace=workspace_pixelarea,
-                                       OutputWorkspace='corrected_counts')
-        flat_ws = Integration(area_corrected_counts, OutputWorkspace=uwd())
+        flat_ws /= workspace_pixelarea
+        DeleteWorkspace(workspace_pixelarea)
 
     # find center of mass position
     center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)

@@ -5,6 +5,8 @@ from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.sensitivity import apply_sensitivity_correction
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
+# <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+# https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html
 from mantid.simpleapi import LoadEmptyInstrument, MaskDetectors, CreateWorkspace, LoadInstrument
 import numpy as np
 

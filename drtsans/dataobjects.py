@@ -55,7 +55,7 @@ def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
         then ``operation`` receives the list of arrays as a single argument.
         Examples: numpy.append(*(array1, array2)) versus numpy.concatenate((array1, array2))
     kwargs: dict
-        Additional options to be passed
+        Additional options to be passed to ``operation``.
 
     Returns
     -------
@@ -68,9 +68,9 @@ def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
         if True in [i_component is None for i_component in i_components]:  # is any of these None?
             new_components.append(None)
         elif unpack is True:
-            new_components.append(operation(*i_components))
+            new_components.append(operation(*i_components, **kwargs))
         else:
-            new_components.append(operation(i_components))
+            new_components.append(operation(i_components, **kwargs))
     return iq_objects[0].__class__(*new_components)
 
 

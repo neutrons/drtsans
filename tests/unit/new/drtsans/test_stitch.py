@@ -3,6 +3,8 @@ import pytest
 
 r"""
 Hyperlinks to drtsans functions
+namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+IQmod, testing <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
 stitch_profiles <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py>
 """
 from drtsans.settings import namedtuplefy
@@ -49,26 +51,22 @@ def data_test_16b():
                                  0.000401, 0.000421, 0.000441, 0.000461, 0.000481, 0.000501, 0.000521])],
                 target=0,  # profile of the previous list of IQmod objets defining the overall scale.
                 overlaps=[0.01, 0.014, 0.025, 0.029],  # [(start, end), (start, end)] overlap regions
-                stitched=IQmod([3.16227766e+01, 2.79508497e+00, 6.76200688e-01, 2.47052942e-01,
-                                1.13137085e-01, 5.97682620e-02, 3.48463150e-02, 2.18366010e-02,
-                                1.44594310e-02, 1.00000000e-02, 7.16350600e-03, 6.36406900e-03,
-                                5.28281800e-03, 4.11409700e-03, 3.99207100e-03, 2.79147200e-03,
-                                1.96883600e-03, 1.43333600e-03, 1.07141300e-03, 8.18980000e-04,
-                                6.38134000e-04, 5.05550000e-04, 4.06376000e-04, 3.40064000e-04,
-                                3.30875000e-04, 2.72491000e-04, 2.62621000e-04, 2.06452000e-04,
-                                1.64829000e-04, 1.33402000e-04, 1.09277000e-04, 9.04830000e-05,
-                                7.56480000e-05, 6.37990000e-05, 5.42330000e-05, 4.64350000e-05,
-                                4.00220000e-05, 3.47030000e-05, 3.02600000e-05],
-                               [3.16227766e+01, 2.79508497e+00, 6.76200688e-01, 2.47052942e-01,
-                                1.13137085e-01, 5.97682620e-02, 3.48463150e-02, 2.18366010e-02,
-                                1.44594310e-02, 1.00000000e-02, 7.16350600e-03, 6.36406900e-03,
-                                5.28281800e-03, 4.11409700e-03, 3.99207100e-03, 2.79147200e-03,
-                                1.96883600e-03, 1.43333600e-03, 1.07141300e-03, 8.18980000e-04,
-                                6.38134000e-04, 5.05550000e-04, 4.06376000e-04, 3.40064000e-04,
-                                3.30875000e-04, 2.72491000e-04, 2.62621000e-04, 2.06452000e-04,
-                                1.64829000e-04, 1.33402000e-04, 1.09277000e-04, 9.04830000e-05,
-                                7.56480000e-05, 6.37990000e-05, 5.42330000e-05, 4.64350000e-05,
-                                4.00220000e-05, 3.47030000e-05, 3.02600000e-05],
+                stitched=IQmod([3.16227766e+01, 2.79508497e+00, 6.76200688e-01, 2.47052942e-01, 1.13137085e-01,
+                                5.97682620e-02, 3.48463150e-02, 2.18366010e-02, 1.44594310e-02, 1.00000000e-02,
+                                7.16350600e-03, 6.36406900e-03, 5.28281800e-03, 4.11409700e-03, 3.99207100e-03,
+                                2.79147200e-03, 1.96883600e-03, 1.43333600e-03, 1.07141300e-03, 8.18980000e-04,
+                                6.38134000e-04, 5.05550000e-04, 4.06376000e-04, 3.40064000e-04, 3.30875000e-04,
+                                2.72491000e-04, 2.62621000e-04, 2.06452000e-04, 1.64829000e-04, 1.33402000e-04,
+                                1.09277000e-04, 9.04830000e-05, 7.56480000e-05, 6.37990000e-05, 5.42330000e-05,
+                                4.64350000e-05, 4.00220000e-05, 3.47030000e-05, 3.02600000e-05],
+                               [3.16227766e-01, 2.79508500e-02, 6.76200700e-03, 2.47052900e-03, 1.13137100e-03,
+                                5.97683000e-04, 3.48463000e-04, 2.18366000e-04, 1.44594000e-04, 1.00000000e-04,
+                                7.16350000e-05, 6.36410000e-05, 5.28280000e-05, 4.11410000e-05, 3.99210000e-05,
+                                2.79150000e-05, 1.96880000e-05, 1.43330000e-05, 1.07140000e-05, 8.19000000e-06,
+                                6.38100000e-06, 5.05500000e-06, 4.06400000e-06, 3.40100000e-06, 3.30900000e-06,
+                                2.72500000e-06, 2.62600000e-06, 2.06500000e-06, 1.64800000e-06, 1.33400000e-06,
+                                1.09300000e-06, 9.05000000e-07, 7.56000000e-07, 6.38000000e-07, 5.42000000e-07,
+                                4.64000000e-07, 4.00000000e-07, 3.47000000e-07, 3.03000000e-07],
                                [0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01, 0.011, 0.0113,
                                 0.012, 0.0128, 0.013, 0.0143, 0.0158, 0.0173, 0.0188, 0.0203, 0.0218, 0.0233, 0.0248,
                                 0.0261, 0.0263, 0.0278, 0.0281, 0.0301, 0.0321, 0.0341, 0.0361, 0.0381, 0.0401,
@@ -78,7 +76,7 @@ def data_test_16b():
                                 1.58e-04, 1.73e-04, 1.88e-04, 2.03e-04, 2.18e-04, 2.33e-04, 2.48e-04, 2.61e-04,
                                 2.63e-04, 2.78e-04, 2.81e-04, 3.01e-04, 3.21e-04, 3.41e-04, 3.61e-04, 3.81e-04,
                                 4.01e-04, 4.21e-04, 4.41e-04, 4.61e-04, 4.81e-04, 5.01e-04, 5.21e-04]),
-                precision=1.e-6,
+                tolerance=0.01,  # tolerate differences up to 1%
                 )
 
 
@@ -94,16 +92,15 @@ def test_stitch(data_test_16b):
     SME - Weiren Chen <chenw@ornl.gov>, LiLin He <hel3@ornl.gov>
     """
     data = data_test_16b  # handy shortcut
-
     # call the drtsans function
     result = stitch_profiles(data.profiles, data.overlaps, target_profile=data.target)
-
-    # Check for differences between profiles "result" and "data.stitched". We check for differences in:
+    # Check for differences between "result" and "data.stitched" profiles. We check for differences in:
     # - intensities
-    # - uncertainties in
+    # - uncertainties in intensities
     # - Q values
-    # -
-    testing.assert_allclose(result, data.stitched, atol=data.precision)
+    # - uncertainties in Q values
+    # We tolerate differences up to 1% of the stitched profile given in the test data
+    testing.assert_allclose(result, data.stitched, rtol=data.tolerance, atol=0)
 
 
 if __name__ == '__main__':

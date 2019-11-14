@@ -5,6 +5,10 @@ def stitch_profiles(profiles, overlaps, target_profile=0):
     r"""
     Stitch together a sequence of intensity profiles with overlapping domains, returning a single encompassing profile.
 
+    **drtsans objects used**:
+    ~drtsans.dataobjects.IQmod
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
+
     Parameters
     ----------
     profiles: list
@@ -42,11 +46,11 @@ def stitch_profiles(profiles, overlaps, target_profile=0):
 
         # Rescale the high-Q profile to match the scaling of the low-Q profile
         scaling = sum(low_q_profile.intensity[indexes_in_overlap]) / sum(high_q_interpolated)
-        high_q_profile = scaling * high_q_profile
+        high_q_profile = high_q_profile * scaling
 
         # Discard extrema points
-        low_q_profile = low_q_profile.select(low_q_profile.mod_q < end_q)  # keep data with Q < end_q
-        high_q_profile = high_q_profile.select(high_q_profile.mod_q > start_q)  # keep data with Q > start_q
+        low_q_profile = low_q_profile.extract(low_q_profile.mod_q < end_q)  # keep data with Q < end_q
+        high_q_profile = high_q_profile.extract(high_q_profile.mod_q > start_q)  # keep data with Q > start_q
 
         # Stitch by concatenation followed by sorting, save the result into a new low_q_profile
         low_q_profile = low_q_profile.concatenate(high_q_profile)  # just put one profile after the other
@@ -55,4 +59,4 @@ def stitch_profiles(profiles, overlaps, target_profile=0):
         if i == target_profile:  # we found the profile to which we want to scale all others
             final_scaling = 1. / scaling
 
-    return final_scaling * low_q_profile
+    return low_q_profile * final_scaling

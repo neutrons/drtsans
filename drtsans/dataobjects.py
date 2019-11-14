@@ -156,7 +156,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         return scale_intensity(self, scaling)
 
     def __rmul__(self, scaling):
-        return self.__mul__(scaling)
+        return scale_intensity(self, scaling)
 
     def __truediv__(self, divisor):
         r"""Divide intensities and their uncertainties by a number"""
@@ -216,7 +216,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
     def id(self):
         return DataType.IQ_MOD
 
-    def toWorkspace(self, name=None):
+    def to_workspace(self, name=None):
         # create a name if one isn't provided
         if name is None:
             name = uwd()

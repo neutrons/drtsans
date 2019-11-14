@@ -65,7 +65,7 @@ class TestIQmod():
         # create the data object
         iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
         # convert to mantid workspace
-        wksp = iqmod.toWorkspace()
+        wksp = iqmod.to_workspace()
 
         # verify results
         assert_wksp_equal(wksp, iqmod)

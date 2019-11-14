@@ -29,6 +29,18 @@ class TestIQmod():
         with pytest.raises(TypeError):
             IQmod([1, 2, 3], [4, 5, 6])
 
+    def test_mul(self):
+        iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        iqmod = 2.5 * iqmod
+        assert iqmod.intensity == pytest.approx([2.5, 5, 7.5])
+        iqmod = iqmod * 2
+        assert iqmod.intensity == pytest.approx([5, 10, 15])
+
+    def test_truediv(self):
+        iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        iqmod = iqmod / 2
+        assert iqmod.error == pytest.approx([2, 2.5, 3])
+
     def test_extract(self):
         iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
         iqmod_2 = iqmod.extract(2)

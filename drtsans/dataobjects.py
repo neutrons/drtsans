@@ -1,6 +1,6 @@
 from collections import namedtuple
 from collections.abc import Iterable
-from drtsans.settings import namedtuplefy, unique_workspace_dundername as uwd
+from drtsans.settings import unique_workspace_dundername as uwd
 from enum import Enum
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
@@ -61,9 +61,10 @@ def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
     -------
     ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
     """
+    reference_object = iq_objects[0]
     assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
     new_components = list()
-    for i in range(len(iq_objects[0])):  # iterate over the IQ object components
+    for i in range(len(reference_object)):  # iterate over the IQ object components
         i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
         if True in [i_component is None for i_component in i_components]:  # is any of these None?
             new_components.append(None)
@@ -71,7 +72,7 @@ def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
             new_components.append(operation(*i_components, **kwargs))
         else:
             new_components.append(operation(i_components, **kwargs))
-    return iq_objects[0].__class__(*new_components)
+    return reference_object.__class__(*new_components)
 
 
 def _extract(iq_object, selection):
@@ -105,6 +106,24 @@ def _extract(iq_object, selection):
     return iq_object.__class__(*component_fragments)
 
 
+def scale_intensity(iq_object, scaling):
+    r"""Rescale intensity and error for one IQ object.
+    Relies on fields 'intensity' and 'error' being the first two components
+
+    Parameters
+    ----------
+    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    scaling: float
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    """
+    intensity = scaling * iq_object.intensity
+    error = scaling * iq_object.error
+    return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
+
+
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
     '''This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
     and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional.'''
@@ -131,6 +150,17 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
 
         # pass everything to namedtuple
         return super(IQmod, cls).__new__(cls, intensity, error, mod_q, delta_mod_q, wavelength)
+
+    def __mul__(self, scaling):
+        r"""Scale intensities and their uncertainties by a number"""
+        return scale_intensity(self, scaling)
+
+    def __rmul__(self, scaling):
+        return self.__mul__(scaling)
+
+    def __truediv__(self, divisor):
+        r"""Divide intensities and their uncertainties by a number"""
+        return self.__mul__(1.0 / divisor)
 
     def extract(self, selection):
         r"""

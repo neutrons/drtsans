@@ -1,15 +1,4 @@
-r"""
-Links to Mantid algorithms
-DeleteWorkspace https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
-Divide https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
-SolidAngle https://docs.mantidproject.org/nightly/algorithms/SolidAngle-v1.html
-ReplaceSpecialValues https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
-"""
-from mantid.simpleapi import DeleteWorkspace, Divide, mtd, SolidAngle, ReplaceSpecialValues
-r"""
-Links to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-"""  # noqa: E501
+from mantid.simpleapi import ClearMaskFlag, DeleteWorkspace, Divide, mtd, SolidAngle, ReplaceSpecialValues
 from drtsans.settings import unique_workspace_dundername
 
 __all__ = ['solid_angle_correction']
@@ -21,6 +10,7 @@ def solid_angle_correction(input_workspace, detector_type='VerticalTube', output
     position. The returned workspace is the input workspace normalized (divided) by the pixel solid angles.
 
     **Mantid algorithms used:**
+    :ref:`ClearMaskFlag <algm-ClearMaskFlag-v1>`,
     :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
     :ref:`Divide <algm-Divide-v1>`,
     :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
@@ -49,6 +39,13 @@ def solid_angle_correction(input_workspace, detector_type='VerticalTube', output
         output_workspace = input_workspace
 
     SolidAngle(InputWorkspace=input_workspace, OutputWorkspace=solid_angle_ws, Method=detector_type, **kwargs)
+    if kwargs:  # assume the pixel range was set
+        # set the solid angle of the mystery parts of the instrument as 1 and don't mask them
+        ClearMaskFlag(Workspace=solid_angle_ws)
+        ReplaceSpecialValues(InputWorkspace=solid_angle_ws, OutputWorkspace=solid_angle_ws,
+                             SmallNumberThreshold=1.e-9, SmallNumberValue=1.)
+
+    # correct the input workspace and get rid of nan and infinity
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=solid_angle_ws, OutputWorkspace=output_workspace)
     DeleteWorkspace(solid_angle_ws)
     ReplaceSpecialValues(InputWorkspace=output_workspace, NaNValue=0., InfinityValue=0.,

@@ -1,8 +1,30 @@
 import pytest
 
 from mantid import mtd
-from drtsans.mono.biosans import load_histogram
+
+from drtsans.mono.biosans import load_histogram, load_events, transform_to_wavelength
 from drtsans.samplelogs import SampleLogs
+
+
+def test_load_events(reference_dir):
+    # default workspace name is file hint
+    events_workspace = load_events('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans,
+                                   overwrite_instrument=True)
+
+    assert events_workspace.name() == 'BIOSANS_961'
+
+    sample_logs = SampleLogs(events_workspace)
+    assert sample_logs.monitor.value == 19173627
+
+    x, y, z = events_workspace.getInstrument().getComponentByName('detector1').getPos()
+    assert -1000 * x == pytest.approx(sample_logs.single_value('detector_trans_Readback'), abs=0.001)
+    assert z == pytest.approx(sample_logs.single_value('sample_detector_distance'), abs=0.001)
+
+
+def test_transform_to_wavelength(reference_dir):
+    workspace = load_events('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans)
+    workspace = transform_to_wavelength(workspace)
+    assert workspace.getAxis(0).getUnit().caption() == 'Wavelength'
 
 
 def test_api_load(biosans_f):

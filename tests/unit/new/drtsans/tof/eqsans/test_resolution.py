@@ -6,7 +6,7 @@ from collections import namedtuple
 from scipy import constants
 import pytest
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/convert_to_q.py
-from drtsans.tof.eqsans.convert_to_q import EQSANS_resolution, moderator_time_uncertainty
+from drtsans.tof.eqsans.convert_to_q import eqsans_resolution, moderator_time_uncertainty
 import drtsans.resolution
 
 
@@ -95,11 +95,11 @@ def sigma_neutron(wave_length, delta_wave_length, Qx, Qy, theta, L1, L2, R1, R2,
     return sigma_x, sigma_y
 
 
-def test_EQSANS_resolution():
+def test_eqsans_resolution():
     """
     Test the full resolution calculation for EQSANS
     formula 10.5 and 10.6 in the master document
-    function to test drtsans.tof.eqsans.convert_to_q.EQSANS_resolution
+    function to test drtsans.tof.eqsans.convert_to_q.eqsans_resolution
     """
     l1 = 15.
     l2 = 15.5
@@ -132,7 +132,7 @@ def test_EQSANS_resolution():
                      np.array([np.arctan2(qy, qx)]),
                      np.array([sample_pixel_distance]),
                      np.array([True]))
-    q_x_res, q_y_res = EQSANS_resolution(np.array([qx]),
+    q_x_res, q_y_res = eqsans_resolution(np.array([qx]),
                                          np.array([qy]),
                                          mode='azimuthal',
                                          instrument_parameters=instrument_params,
@@ -141,7 +141,7 @@ def test_EQSANS_resolution():
                                          delta_wavelength=wl_resolution)
     assert q_x_res == pytest.approx(golden_dqx, abs=1e-8)
     assert q_y_res == pytest.approx(golden_dqy, abs=1e-8)
-    q_res = EQSANS_resolution(np.array([qx]),
+    q_res = eqsans_resolution(np.array([qx]),
                               np.array([qy]),
                               mode='scalar',
                               instrument_parameters=instrument_params,

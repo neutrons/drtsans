@@ -12,6 +12,7 @@ Links to drtsans modules and functions
 solid_angle <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/solid_angle.py>
 """  # noqa: E501
 from drtsans import solid_angle
+from drtsans.geometry import bank_workspace_index_range
 
 __all__ = ['solid_angle_correction', ]
 
@@ -41,9 +42,18 @@ def solid_angle_correction(input_workspace, output_workspace=None):
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    solid_angle.solid_angle_correction(input_workspace, detector_type='VerticalTube', StartWorkspaceIndex=2,
-                                       EndWorkspaceIndex=49153, output_workspace=output_workspace)
+
+    # Apply correction to main detector
+    first_index, last_index = bank_workspace_index_range(input_workspace, 'detector1')
+    last_index -= 1  # SolidAngle has inclusive indices
+    solid_angle.solid_angle_correction(input_workspace, detector_type='VerticalTube',
+                                       StartWorkspaceIndex=first_index, EndWorkspaceIndex=last_index,
+                                       output_workspace=output_workspace)
+
     # Apply correction to wing detector
-    solid_angle.solid_angle_correction(output_workspace, detector_type='VerticalWing', StartWorkspaceIndex=49154,
-                                       EndWorkspaceIndex=90113)
+    first_index, last_index = bank_workspace_index_range(input_workspace, 'wing_detector')
+    last_index -= 1  # SolidAngle has inclusive indices
+    solid_angle.solid_angle_correction(output_workspace, detector_type='VerticalWing',
+                                       StartWorkspaceIndex=first_index, EndWorkspaceIndex=last_index)
+
     return mtd[output_workspace]

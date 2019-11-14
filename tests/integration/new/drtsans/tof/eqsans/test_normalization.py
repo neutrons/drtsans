@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-from mantid.simpleapi import mtd, CreateWorkspace
+from mantid.simpleapi import CreateWorkspace
+from mantid.api import mtd
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
@@ -14,14 +15,25 @@ from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalize_
 
 
 def test_normalize_by_time(reference_dir):
-    w = load_events('EQSANS_68168', data_dir=reference_dir.new.eqsans)
-    d = SampleLogs(w).duration.value
-    w = transform_to_wavelength(w)
-    y, e = sum(w.readY(42)), sum(w.readE(42))
-    w = normalize_by_time(w)
-    assert (sum(w.readY(42)), sum(w.readE(42))) == pytest.approx((y / d, e / d))
-    assert SampleLogs(w).normalizing_duration.value == 'duration'
-    w.delete()
+    r"""
+    Test normalization by time duration.
+    """
+    output_workspace = unique_workspace_dundername()
+    load_events('EQSANS_68168', data_dir=reference_dir.new.eqsans, output_workspace=output_workspace)
+    workspace = transform_to_wavelength(output_workspace)
+    time_duration = SampleLogs(output_workspace).duration.value
+
+    # Let's pick one spectrum (spectrum 42) and verify we are dividing its intensity by the time duration
+    intensity, uncertainty = np.copy(workspace.readY(42)), np.copy(workspace.readE(42))
+    workspace_normalized = normalize_by_time(output_workspace)
+
+    # Verify we selected 'duration' as the log entry to find out the duration of the run
+    assert SampleLogs(output_workspace).normalizing_duration.value == 'duration'
+
+    assert workspace_normalized.readY(42) == pytest.approx(intensity / time_duration, abs=1.e-6)
+    assert workspace_normalized.readE(42) == pytest.approx(uncertainty / time_duration)
+
+    workspace_normalized.delete()  # some cleanup
 
 
 @pytest.fixture(scope='module')
@@ -110,11 +122,14 @@ def data_test_16a_by_monitor():
     return dict(precision=1e-04,  # desired precision for comparisons,
                 n_pixels=25,
                 wavelength_bin_boundaries=[2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0],
+                # The intensity in a detector pixel is the same for all wavelength bins. I_sam below shows the
+                # intensity of one wavelength bin on all detectors.
                 I_sam=[[40.,  45.,  50.,  55.,  60.],
                        [65.,  70.,  75.,  80.,  85.],
                        [90.,  95., 100., 105., 110.],
                        [115., 120., 125., 130., 135.],
                        [140., 145., 150., 155., 160.]],
+                # Same as I_sam but now showing the uncertainties.
                 I_sam_err=[[6.3246, 6.7082, 7.0711, 7.4162, 7.746],
                            [8.0623, 8.3666, 8.6603, 8.9443, 9.2195],
                            [9.4868, 9.7468, 10., 10.247, 10.4881],
@@ -175,7 +190,7 @@ def data_test_16a_by_monitor():
                 )
 
 
-def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
+def test_normalization_by_monitor(data_test_16a_by_monitor):
     r"""
     Normalize sample intensities by flux at monitor using also flux-to-monitor ratios.
     Addresses section of the 6.2 the master document
@@ -235,19 +250,22 @@ def test_normalization_by_monitor_spectrum(data_test_16a_by_monitor):
 
 
 @pytest.fixture(scope='module')
-def data_test_16a_by_proton():
+def data_test_16a_by_proton_charge_and_flux():
     r"""
     Input and expected output for the normalization by proton charge test, taken from the intro to issue #174
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalization-by-monitor-spectrum>
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/174#normalize-by-proton-charge-and-flux-spectrum>
     """
     return dict(precision=1e-04,  # desired precision for comparisons,
                 n_pixels=25,
                 wavelength_bin_boundaries=[2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0],
+                # The intensity in a detector pixel is the same for all wavelength bins. I_sam below shows the
+                # intensity of one wavelength bin on all detectors.
                 I_sam=[[40., 45., 50., 55., 60.],
                        [65., 70., 75., 80., 85.],
                        [90., 95., 100., 105., 110.],
                        [115., 120., 125., 130., 135.],
                        [140., 145., 150., 155., 160.]],
+                # Same as I_sam but now showing the uncertainties.
                 I_sam_err=[[6.3246, 6.7082, 7.0711, 7.4162, 7.746],
                            [8.0623, 8.3666, 8.6603, 8.9443, 9.2195],
                            [9.4868, 9.7468, 10., 10.247, 10.4881],
@@ -308,7 +326,7 @@ def data_test_16a_by_proton():
                 )
 
 
-def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton):
+def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_flux):
     r"""
     Normalize sample intensities by flux and proton charge.
     Addresses section of the 6.3 the master document
@@ -329,37 +347,38 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton):
     ~drtsans.tof.normalization.normalize_by_proton_charge_and_flux
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
     """
+    test_data = data_test_16a_by_proton_charge_and_flux  # handy shortcut
     # Input intensities from the test, only one value per detector pixel
-    intensities_list = np.array(data_test_16a_by_proton['I_sam']).flatten()
-    errors_list = np.array(data_test_16a_by_proton['I_sam_err']).flatten()
+    intensities_list = np.array(test_data['I_sam']).flatten()
+    errors_list = np.array(test_data['I_sam_err']).flatten()
 
     # The intensity in a detector pixel is the same for all wavelength bins. Thus, we replicate the one value per
     # detector pixel to be the same for all wavelength bins
-    number_wavelength_bins = len(data_test_16a_by_proton['wavelength_bin_boundaries']) - 1
+    number_wavelength_bins = len(test_data['wavelength_bin_boundaries']) - 1
     intensities_list = np.repeat(intensities_list[:, np.newaxis], number_wavelength_bins, axis=1)
     errors_list = np.repeat(errors_list[:, np.newaxis], number_wavelength_bins, axis=1)
 
     # Create the workspace with the intensities and errors. It has 25 spectra and each spectra has 10 wavelength bins
-    data_workspace = CreateWorkspace(DataX=data_test_16a_by_proton['wavelength_bin_boundaries'],
+    data_workspace = CreateWorkspace(DataX=test_data['wavelength_bin_boundaries'],
                                      DataY=intensities_list,
                                      DataE=errors_list,
-                                     NSpec=data_test_16a_by_proton['n_pixels'],
+                                     NSpec=test_data['n_pixels'],
                                      OutputWorkspace=unique_workspace_dundername())
     # Insert the proton charge in the logs of the workspace
-    SampleLogs(data_workspace).insert('gd_prtn_chrg', data_test_16a_by_proton['proton_sam'])
+    SampleLogs(data_workspace).insert('gd_prtn_chrg', test_data['proton_sam'])
 
     # In the reduction framework, the flux file will be loaded to a Mantid workspace
-    flux_workspace = CreateWorkspace(DataX=data_test_16a_by_proton['wavelength_bin_boundaries'],
-                                     DataY=data_test_16a_by_proton['phi'],
+    flux_workspace = CreateWorkspace(DataX=test_data['wavelength_bin_boundaries'],
+                                     DataY=test_data['phi'],
                                      OutputWorkspace=unique_workspace_dundername())
 
     # Carry out the normalization with the reduction framework
     data_workspace = normalize_by_proton_charge_and_flux(data_workspace, flux_workspace)
 
-    # Compare to test data. Notice that data_test_16a_by_proton['I_samnorm'] has shape (10, 5, 5) but
+    # Compare to test data. Notice that test_data['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary
-    test_intensities = np.transpose(np.array(data_test_16a_by_proton['I_samnorm']).reshape((10, 25)))
-    assert data_workspace.extractY() == pytest.approx(test_intensities, abs=data_test_16a_by_proton['precision'])
+    test_intensities = np.transpose(np.array(test_data['I_samnorm']).reshape((10, 25)))
+    assert data_workspace.extractY() == pytest.approx(test_intensities, abs=test_data['precision'])
 
 
 if __name__ == '__main__':

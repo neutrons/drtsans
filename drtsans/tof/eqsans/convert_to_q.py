@@ -13,7 +13,7 @@ from drtsans.samplelogs import SampleLogs
 from mantid.kernel import logger
 
 
-def EQSANS_resolution(*args, **kwargs):
+def eqsans_resolution(*args, **kwargs):
     r"""
     Function to compute the resolution for EQSANS. Some parts are calculated in drtsans.resolution
 
@@ -70,7 +70,7 @@ def EQSANS_resolution(*args, **kwargs):
     raise NotImplementedError('The mode you selected is not yet implemented')
 
 
-def convert_to_q(ws, mode, resolution_function=EQSANS_resolution, **kwargs):
+def convert_to_q(ws, mode, resolution_function=eqsans_resolution, **kwargs):
     r"""
     Convert a workspace with units of wavelength into a
     series of arrays: intensity, error, q (or q components),

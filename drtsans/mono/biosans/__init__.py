@@ -29,6 +29,7 @@ from ..load import *
 import drtsans.mono.normalization
 from ..normalization import *
 
+from .api import *
 from .beam_finder import *
 from .solid_angle import *
 
@@ -38,6 +39,7 @@ __all__ = [] + drtsans.beam_finder.__all__ \
           + drtsans.iq.__all__\
           + drtsans.thickness_normalization.__all__\
           + drtsans.transmission.__all__\
+          + api.__all__ \
           + drtsans.mono.absolute_units.__all__\
           + drtsans.mono.dark_current.__all__\
           + drtsans.mono.geometry.__all__\

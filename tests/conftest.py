@@ -8,7 +8,8 @@ import numpy as np
 from os.path import join as pjoin
 from collections import namedtuple
 import mantid.simpleapi as mtds
-from mantid.simpleapi import CreateWorkspace, LoadInstrument, DeleteWorkspace
+from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadInstrument, DeleteWorkspace
+from drtsans.dataobjects import DataType, getDataType
 from drtsans.settings import amend_config, unique_workspace_dundername
 
 # Resolve the path to the "external data"
@@ -621,7 +622,7 @@ def generic_workspace(generic_IDF, request):
     return wksp
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='function')  # noqa: C901
 def workspace_with_instrument(generic_IDF, request):
     r"""
     Workspace factory with a given instrument.
@@ -781,3 +782,239 @@ def serve_events_workspace(reference_dir):
     wrapper._names = list()  # stores names for all ws produced
     yield wrapper
     [mtds.DeleteWorkspace(name) for name in wrapper._names]
+
+
+def _assert_both_set_or_none(left, right, assert_func, err_msg):
+    '''Either both argumentes are :py:obj:`None` or they are equal to each other'''
+    if left is None and right is None:
+        return
+    if (left is not None) and (right is not None):
+        assert_func(left, right, err_msg=err_msg)
+    raise AssertionError('{}Either both or neither should be None (left={}, right={})'.format(err_msg, left, right))
+
+
+def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=''):  # noqa: C901
+    '''Generic method for checking equality of two data objects. This has some understanding of
+    easily convertable types.'''
+    id_left = getDataType(left)
+    id_right = getDataType(right)
+
+    # append colon to error message to make errors more readable
+    if err_msg:
+        err_msg += ': '
+
+    # function pointer to make comparison code more flexible
+    if rtol > 0 or atol > 0:
+        assert_func = np.testing.assert_allclose
+        kwargs = {'rtol': rtol, 'atol': atol}
+    else:
+        assert_func = np.testing.assert_equal
+        kwargs = dict()
+
+    # all of the comparison options - mixed modes first
+    if id_left == DataType.WORKSPACE2D and id_right == DataType.IQ_MOD:
+        units = left.getAxis(0).getUnit().caption()
+        assert units == 'q', '{}: Found units="{}" rather than "q"'.format(err_msg, units)
+        assert_func(left.extractX().ravel(), right.mod_q, err_msg=err_msg + 'mod_q', **kwargs)
+        assert_func(left.extractY().ravel(), right.intensity, err_msg=err_msg + 'intensity', **kwargs)
+        assert_func(left.extractE().ravel(), right.error, err_msg=err_msg + 'error', **kwargs)
+    elif id_left == DataType.IQ_MOD and id_right == DataType.WORKSPACE2D:
+        units = right.getAxis(0).getUnit().caption()
+        assert units == 'q', '{}Found units="{}" rather than "q"'.format(err_msg, units)
+        assert_func(left.mod_q, right.extractX().ravel(), err_msg=err_msg + 'mod_q', **kwargs)
+        assert_func(left.intensity, right.extractY().ravel(), err_msg=err_msg + 'intensity', **kwargs)
+        assert_func(left.error, right.extractE().ravel(), err_msg=err_msg + 'error', **kwargs)
+    elif id_left == id_right:  # compare things that are the same type
+        if id_left == DataType.WORKSPACE2D:
+            # let mantid do all the work
+            if atol > 0:
+                cmp, messages = CompareWorkspaces(Workspace1=str(left), Workspace2=str(right), Tolerance=atol)
+            else:
+                cmp, messages = CompareWorkspaces(Workspace1=str(left), Workspace2=str(right),
+                                                  Tolerance=rtol, ToleranceRelErr=True)
+            messages = [row['Message'] for row in messages]
+            assert cmp, err_msg + '; '.join(messages)
+        else:
+            # all the other data objects share some attributes
+            assert_func(left.intensity, right.intensity, err_msg=err_msg + 'intensity', **kwargs)
+            assert_func(left.error, right.error, err_msg=err_msg + 'error', **kwargs)
+            _assert_both_set_or_none(left.wavelength, right.wavelength, assert_func, err_msg + 'wavelength')
+            if id_left == DataType.IQ_MOD:
+                assert_func(left.mod_q, right.mod_q, err_msg=err_msg + 'mod_q', **kwargs)
+                _assert_both_set_or_none(left.delta_mod_q, right.delta_mod_q, assert_func, err_msg + 'delta_mod_q')
+            elif id_left == DataType.IQ_AZIMUTHAL:
+                assert_func(left.qx, right.qx, err_msg=err_msg + 'qx', **kwargs)
+                assert_func(left.qy, right.qy, err_msg=err_msg + 'qy', **kwargs)
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + 'delta_qx')
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + 'delta_qy')
+            elif id_left == DataType.IQ_CRYSTAL:
+                assert_func(left.qx, right.qx, err_msg=err_msg + 'qx', **kwargs)
+                assert_func(left.qy, right.qy, err_msg=err_msg + 'qy', **kwargs)
+                assert_func(left.qz, right.qz, err_msg=err_msg + 'qz', **kwargs)
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + 'delta_qx')
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + 'delta_qy')
+                _assert_both_set_or_none(left.delta_qz, right.delta_qz, assert_func, err_msg + 'delta_qz')
+            else:
+                raise NotImplementedError('Do not know how to compare {} objects'.format(id_left))
+    else:
+        raise NotImplementedError('Do not know how to compare {} and {}'.format(id_left, id_right))
+
+
+def depth(L):
+    '''
+    calculating the depth of the object
+    :param L: the given object (float, integer, list, list of list)
+    :return: integer value of depth
+    '''
+    return (isinstance(L, list) and max(map(depth, L)) + 1)
+
+
+def pixel_block(pixel_number, radius, height):
+    '''
+    generating the cylindrical shape of the detector
+    :param pixel_number:integer of the number of pixels
+    :param radius: float of the radius of cylinder detector in meter
+    :param height: float of the height of the cylinder detector in meter
+    :return: the .xml format generating a cylindrical shape of the detector from height and radius
+    '''
+    return """
+    <type is="detector" name="pixel_{pixel_number}">
+        <cylinder id="cyl-approx">
+            <centre-of-bottom-base x="0" y="-{half_y}" z="0"/>
+            <axis x="0.0" y="1.0" z="0.0"/>
+            <radius val="{radius}"/>
+            <height val="{height}"/>
+        </cylinder>
+        <algebra val="cyl-approx"/>
+    </type>
+""".format(pixel_number=pixel_number, half_y=height*0.5, radius=radius, height=height)
+
+
+def pixel_location(pixel_number, xcenter, ycenter, zcenter):
+    '''
+    specifying the pixel location in the space
+    :param pixel_number: integer of the number of pixels
+    :param xcenter:distance of center along the x axis
+    :param ycenter:distance of center along the y axis
+    :param zcenter:distance of center along the z axis
+    :return: the .xml format of specifying the pixel location in the space
+    '''
+    return """
+        <component type="pixel_{pixel_number}" name="pixel_{pixel_number}">
+            <location y="{ycenter}" x="{xcenter}" z="{zcenter}"/>
+        </component>
+""".format(pixel_number=pixel_number, xcenter=xcenter, ycenter=ycenter, zcenter=zcenter)
+
+
+@pytest.fixture(scope='function')
+def arbitrary_assembly_IDF(request):
+    '''
+    generate a test IDF with a cylindrical detector pixels
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        name: Name of the instrument     (default: GenericSANS)
+        radius : list of radius  in meters            (default 1)
+        height : list of height in meters              (default 1)
+        pixel_center : list of list of distance of center along the x axis,
+                      along the y axis and along the z axis
+        l1 : distance from source to sample       (default -11)
+
+    Note that we use Mantid convention for the orientation
+    '''
+    # try to get the parent in case of sub-requests
+    try:
+        req_params = request.param
+    except AttributeError:
+        try:
+            req_params = request._parent_request.param
+        except AttributeError:
+            req_params = dict()
+
+    # get the parameters from the request object
+    params = {'name': req_params.get('name', 'GenericSANS'),
+              'l1': -1. * abs(float(req_params.get('l1', -11.))),
+              'radius': req_params.get('radius', 0.0025),
+              'height': req_params.get('height', 0.005),
+              'pixel_centers': req_params.get('pixel_centers'),
+              }
+
+    number_pixels = len(params['pixel_centers'])
+
+    # check that nothing is crazy
+    if (depth(params['radius'])) == 0:
+        params['radius'] = [params['radius']]*number_pixels
+    if (depth(params['height'])) == 0:
+        params['height'] = [params['height']] * number_pixels
+    assert (len(params['radius']) > 1 and len(params['radius']) < 300)
+    assert (len({len(params['radius']), len(params['height']),
+                 len(params['pixel_centers'])}) == 1)
+    assert params['radius'] > [0]*number_pixels
+    assert params['height'] > [0]*number_pixels
+    assert list(list(zip(*params['pixel_centers']))[-1]) >= [0]*number_pixels  # zcenter has to be positive
+
+    pixel_blocks = [pixel_block(i, params['radius'][i],
+                                params['height'][i]) for i in range(number_pixels)]
+    pixel_blocks = '\n'.join(pixel_blocks)
+
+    pixel_locations = [pixel_location(i, *params['pixel_centers'][i])
+                       for i in range(number_pixels)]
+
+    pixel_locations = '\n'.join(pixel_locations)
+
+    template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
+<instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
+                               valid-to     ="2100-12-31 23:59:59"
+                               last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>
+        <angle unit="degree"/>
+        <reference-frame>
+        <along-beam axis="z"/>
+        <pointing-up axis="y"/>
+        <handedness val="right"/>
+        <theta-sign axis="x"/>
+        </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="{l1}"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+
+    <!-- Pixel for Detectors-->
+{pixel_blocks}
+
+    <type name="arbitrary_assembly">
+{pixel_locations}
+    </type>
+
+     <!-- Arbitrary Assembly of Cylindrical Detector-->
+    <component type="arbitrary_assembly" name="detector1" idlist="pixel_ids">
+        <location/>
+    </component>
+
+  <!---->
+  <!--LIST OF PIXEL IDs in DETECTOR-->
+  <!---->
+  <idlist idname="pixel_ids">
+    <id end="{max_pixels_id}" start="0"/>
+    </idlist>
+</instrument>'''
+
+    # return the completed template
+    return template_xml.format(name=params['name'], l1=params['l1'],
+                               pixel_blocks=pixel_blocks, pixel_locations=pixel_locations,
+                               max_pixels_id=number_pixels-1)

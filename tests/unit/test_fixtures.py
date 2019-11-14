@@ -344,5 +344,91 @@ class TestWorkspaceWithInstrument(object):
         assert ws.getInstrument().getName() == 'Theod-osius_IV4'
 
 
+@pytest.mark.parametrize('arbitrary_assembly_IDF',
+                         [{'radius': [0.01, 0.02], 'height':0.01,
+                           'pixel_centers': [[0, 0, 0], [0, 0.03, 0]]}],
+                         indirect=True)
+def test_arbitrary_assembly_IDF(arbitrary_assembly_IDF):
+    expected = '''<?xml version='1.0' encoding='UTF-8'?>
+<instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
+                               valid-to     ="2100-12-31 23:59:59"
+                               last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>
+        <angle unit="degree"/>
+        <reference-frame>
+        <along-beam axis="z"/>
+        <pointing-up axis="y"/>
+        <handedness val="right"/>
+        <theta-sign axis="x"/>
+        </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="-11.0"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+
+    <!-- Pixel for Detectors-->
+
+    <type is="detector" name="pixel_0">
+        <cylinder id="cyl-approx">
+            <centre-of-bottom-base x="0" y="-0.005" z="0"/>
+            <axis x="0.0" y="1.0" z="0.0"/>
+            <radius val="0.01"/>
+            <height val="0.01"/>
+        </cylinder>
+        <algebra val="cyl-approx"/>
+    </type>
+
+
+    <type is="detector" name="pixel_1">
+        <cylinder id="cyl-approx">
+            <centre-of-bottom-base x="0" y="-0.005" z="0"/>
+            <axis x="0.0" y="1.0" z="0.0"/>
+            <radius val="0.02"/>
+            <height val="0.01"/>
+        </cylinder>
+        <algebra val="cyl-approx"/>
+    </type>
+
+
+    <type name="arbitrary_assembly">
+
+        <component type="pixel_0" name="pixel_0">
+            <location y="0" x="0" z="0"/>
+        </component>
+
+
+        <component type="pixel_1" name="pixel_1">
+            <location y="0.03" x="0" z="0"/>
+        </component>
+
+    </type>
+
+     <!-- Arbitrary Assembly of Cylindrical Detector-->
+    <component type="arbitrary_assembly" name="detector1" idlist="pixel_ids">
+        <location/>
+    </component>
+
+  <!---->
+  <!--LIST OF PIXEL IDs in DETECTOR-->
+  <!---->
+  <idlist idname="pixel_ids">
+    <id end="1" start="0"/>
+    </idlist>
+</instrument>'''
+    assert arbitrary_assembly_IDF == expected
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

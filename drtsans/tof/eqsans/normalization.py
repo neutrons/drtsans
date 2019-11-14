@@ -38,15 +38,10 @@ def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
 
     **Mantid algorithms used:**
     :ref:`LoadAscii <algm-LoadAscii-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/LoadAscii-v1.html>
     :ref:`ConvertToHistogram <algm-ConvertToHistogram-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/ConvertToHistogram-v1.html>
     :ref:`ConvertToDistribution <algm-ConvertToDistribution-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/ConvertToDistribution-v1.html>
     :ref:`NormaliseToUnity <algm-NormaliseToUnity-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/NormaliseToUnity-v1.html>
     :ref:`RebinToWorkspace <algm-RebinToWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
 
     Parameters
     ----------
@@ -82,13 +77,9 @@ def normalize_by_proton_charge_and_flux(input_workspace, flux, output_workspace=
 
     **Mantid algorithms used:**
     :ref:`RebinToWorkspace <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
     :ref:`Divide <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
     :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
     :ref:`NormaliseByCurrent <algm-NormaliseByCurrent-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/NormaliseByCurrent-v1.html>
 
     Parameters
     ----------
@@ -124,11 +115,8 @@ def load_flux_to_monitor_ratio_file(flux_to_monitor_ratio_file, data_workspace=N
 
     **Mantid algorithms used:**
     :ref:`Load <algm-Load-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
     :ref:`ConvertToHistogram <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/ConvertToHistogram-v1.html>
     :ref:`SplineInterpolation <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/SplineInterpolation-v1.html>
 
     Parameters
     ----------
@@ -166,19 +154,12 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
 
     **Mantid algorithms used:**
     :ref:`RebinToWorkspace <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html>
     :ref:`RemoveSpectra <algm-RemoveSpectra-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/RemoveSpectra-v1.html>
     :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
     :ref:`SplineInterpolation <algm-SplineInterpolation-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/SplineInterpolation-v1.html>
     :ref:`Multiply <algm-Multiply-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Multiply-v1.html>
     :ref:`Divide <algm-Divide-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
-    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
 
     Parameters
     ----------
@@ -240,10 +221,7 @@ def normalize_by_time(input_workspace, log_key=None, output_workspace=None):
     Divide the counts by the duration of the run
 
     **Mantid algorithms used:**
-    :ref:`Scale <algm-Scale-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
-    :ref:`SampleLogs <algm-SampleLogs-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/SampleLogs-v1.html>
+    :ref:`Scale <algm-Scale-v1>`
 
     Parameters
     ----------

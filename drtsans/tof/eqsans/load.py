@@ -54,10 +54,11 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     r"""
     Load events with initial corrections for geometry and time-of-flight
 
-    Note: Detector is translated along the Z-axis by the value
-    specified in keyword ``detectorZ`` of the logs
+    Note: Detector is translated along the Z-axis by the value specified in keyword ``detectorZ`` of the logs. The
+    final sample to detector distance is detectorZ + detector_offset - sample_offset.
 
-    This function contains a call to mantid algorithm LoadEventNexus.
+    **Mantid algorithms used:**
+    :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
 
     Parameters
     ----------
@@ -107,7 +108,7 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     # that moves the detector according to the logs
     translate_detector_z(output_workspace)  # search logs and translate
     translate_detector_by_z(output_workspace, 1e-3 * detector_offset)
-    translate_sample_by_z(output_workspace, 1e-3 * sample_offset)
+    translate_sample_by_z(output_workspace, -1e-3 * sample_offset)
 
     sl = SampleLogs(output_workspace)
     sl.insert('source-sample-distance',

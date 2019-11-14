@@ -1,4 +1,4 @@
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
+from drtsans.dataobjects import getDataType, DataType, IQazimuthal
 from drtsans.settings import unique_workspace_dundername as uwd
 # https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
@@ -28,9 +28,9 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
 
     Parameters
     ----------
-    input_workspace: str, ~mantid.api.MatrixWorkspace
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal
         Sample workspace.
-    background: str, ~mantid.api.MatrixWorkspace
+    background: str, ~mantid.api.MatrixWorkspace, ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal
         Background workspace.
     scale: float
         Rescale background intensities by this multiplicative factor before
@@ -39,51 +39,82 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
         Uncertainty in scale factor
     output_workspace: str
         Name of the sample corrected by the background. If :py:obj:`None`, then
-        ``input_workspace`` will be overwritten.
+        ``input_workspace`` will be overwritten. In the case of using data from
+        :py:obj:`~drtsans.dataobjects`, this parameter is ignored.
 
     Returns
     -------
     ~mantid.api.MatrixWorkspace
     """
-    if output_workspace is None:
-        output_workspace = str(input_workspace)
+    # get the types of input_workspace and background
+    id_input = getDataType(input_workspace)
+    id_background = getDataType(background)
 
-    # get handle on input_workspace
-    input_workspace = mtd[str(input_workspace)]
+    # they must match
+    if id_input != id_background:
+        raise ValueError('Cannot subtract background(type={}) from data(type={})'.format(id_input, id_background))
 
-    workspaces_to_delete = []
+    # convert IQmod to a mantid workspace
+    if id_input == DataType.IQ_MOD:
+        input_workspace = input_workspace.toWorkspace()
+        background = background.toWorkspace()
+        id_input = DataType.WORKSPACE2D
 
-    # make the background match the input_workspace binning if possible
-    if input_workspace.isHistogramData() and background.isHistogramData():
-        # rebin the background to match the input_workspace
-        # this will do nothing if the x-axis is already the same
-        # put it in the output_workspace to save space in memory
-        background_rebinned = RebinToWorkspace(WorkspaceToRebin=background,
-                                               WorkspaceToMatch=input_workspace,
-                                               OutputWorkspace=uwd())
-    else:
-        # subtract will check that the x-axis is identical
-        # otherwise the subtraction will fail
-        background_rebinned = CloneWorkspace(InputWorkspace=background, OutputWorkspace=uwd())
-    workspaces_to_delete.append(str(background_rebinned))
+    # do the math
+    if id_input == DataType.IQ_AZIMUTHAL:
+        # verify that the qx and qy match
+        assert np.all(input_workspace.qx == background.qx), 'Qx must match'
+        assert np.all(input_workspace.qy == background.qy), 'Qy must match'
 
-    # need to create a special object if the uncertainty in the scale was specified
-    if scale_error != 0.:
-        scale = CreateSingleValuedWorkspace(DataValue=scale, ErrorValue=scale_error,
-                                            OutputWorkspace=uwd())
+        # do the math
+        y = input_workspace.intensity - scale * background.intensity
+        e = np.sqrt(np.square(input_workspace.error) + np.square(scale * background.error)
+                    + np.square(scale_error * background.intensity))
+        return IQazimuthal(intensity=y, error=e, qx=input_workspace.qx, qy=input_workspace.qy,
+                           delta_qx=input_workspace.delta_qx, delta_qy=input_workspace.delta_qy,
+                           wavelength=input_workspace.wavelength)
+    elif id_input == DataType.WORKSPACE2D:
+        if output_workspace is None:
+            output_workspace = str(input_workspace)
+
+        # get handle on input_workspace
+        input_workspace = mtd[str(input_workspace)]
+
+        workspaces_to_delete = []
+
+        # make the background match the input_workspace binning if possible
+        if input_workspace.isHistogramData() and background.isHistogramData():
+            # rebin the background to match the input_workspace
+            # this will do nothing if the x-axis is already the same
+            # put it in the output_workspace to save space in memory
+            background_rebinned = RebinToWorkspace(WorkspaceToRebin=background,
+                                                   WorkspaceToMatch=input_workspace,
+                                                   OutputWorkspace=uwd())
+        else:
+            # subtract will check that the x-axis is identical
+            # otherwise the subtraction will fail
+            background_rebinned = CloneWorkspace(InputWorkspace=background, OutputWorkspace=uwd())
+        workspaces_to_delete.append(str(background_rebinned))
+
+        # need to create a special object if the uncertainty in the scale was specified
+        if scale_error != 0.:
+            scale = CreateSingleValuedWorkspace(DataValue=scale, ErrorValue=scale_error,
+                                                OutputWorkspace=uwd())
         workspaces_to_delete.append(str(scale))
 
-    background_rebinned *= scale
+        background_rebinned *= scale
 
-    Minus(LHSWorkspace=input_workspace,
-          RHSWorkspace=background_rebinned,
-          OutputWorkspace=output_workspace)
+        Minus(LHSWorkspace=input_workspace,
+              RHSWorkspace=background_rebinned,
+              OutputWorkspace=output_workspace)
 
-    for name in workspaces_to_delete:
-        if mtd.doesExist(name):
-            mtd.remove(name)
+        for name in workspaces_to_delete:
+            if mtd.doesExist(name):
+                mtd.remove(name)
 
-    return mtd[output_workspace]
+        return mtd[output_workspace]
+    else:
+        raise NotImplementedError('Cannot do operation with "{}"'.format(id_input))
 
 
 def _calc_flipping_ratio(polarization):

@@ -1,22 +1,27 @@
 import os
 import numpy as np
 import pytest
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py
-from drtsans.stitch import stitch
+
+r"""
+Hyperlinks to drtsans functions
+stitch_intensities <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py>
+"""
+from drtsans.stitch import stitch_intensities
 
 headless = 'DISPLAY' not in os.environ or not os.environ['DISPLAY']
 
 
 def test_stitch(reference_dir):
-    '''Test stitching by using a dataset and comparing to expected result.
+    r"""
+    Test stitching by using a dataset and comparing to expected result.
 
     Function tested: drtsans.stitch
     Undelying Mantid algorithms:
         Stitch1D https://docs.mantidproject.org/nightly/algorithms/Stitch1D-v3.html
 
-    dev - Jiao Lin <linjiao@ornl.gov>
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
     SME - Weiren Chen <chenw@ornl.gov>, LiLin He <hel3@ornl.gov>
-    '''
+    """
     # function to load test data
     def loadData(filename):
         datadir = os.path.join(reference_dir.new.eqsans, "test_stitch")
@@ -29,7 +34,8 @@ def test_stitch(reference_dir):
     # parameters for stitching: overlapping region marked by min and max q values
     startoverlap, stopoverlap = 0.04, 0.08
     # stitch
-    qout, yout, erryout, errqout, scale = stitch(q1, y1, erry1, errq1, q2, y2, erry2, errq2, startoverlap, stopoverlap)
+    yout, erryout, qout, errqout, _ = stitch_intensities(intensities=(y1, erry1, q1, errq1, y2, erry2, q2, errq2),
+                                                         overlaps=(startoverlap, stopoverlap))
     # expected results
     expected_q, expected_y, expected_err, expected_errq = loadData("sMCM_cc_stitched.txt")
     # create a figure to plot all relevant curves
@@ -39,7 +45,7 @@ def test_stitch(reference_dir):
         # use log for both x and y axes
         ax.loglog(expected_q, expected_y, '+', label='expected')
         ax.loglog(q1, y1, 'v', mfc='none', label='low q')
-        ax.loglog(q2, y2*scale, 'o', mfc='none', label='high q scaled')
+        ax.loglog(q2, y2*0.01648, 'o', mfc='none', label='high q scaled')  # scale=0.01648
         ax.loglog(qout, yout, label='stitched')
         # mark the overlap q region
         ax.plot([startoverlap, startoverlap], [0, np.max(yout)*10], 'k-')

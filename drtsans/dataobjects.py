@@ -156,7 +156,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         return scale_intensity(self, scaling)
 
     def __rmul__(self, scaling):
-        return scale_intensity(self, scaling)
+        return self.__mul__(scaling)
 
     def __truediv__(self, divisor):
         r"""Divide intensities and their uncertainties by a number"""

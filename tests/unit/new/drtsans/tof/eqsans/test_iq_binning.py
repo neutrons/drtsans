@@ -11,22 +11,24 @@ import pytest
 # DEV - Wenduo Zhou <petersonpf@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>
 
-# TODO - Need to point out where this comes from and blabla
+# All tests data is from William's tests in eqsans_tof_q_binning_tests_R3.xlsx
+# Intensities for a Generic 2D detector at 3 wave lengths
 intensities_matrix = np.array([[[93, 60, 89, 32, 97],
                                 [43, 61, 82, 97, 55],
                                 [78, 34, 50, 54, 67],
                                 [98, 88, 37, 92, 97],
-                                [72, 97, 100, 71, 39]],
+                                [72, 97, 100, 71, 39]],  # 3.0 A
                                [[76, 39, 51, 70, 61],
                                 [64, 54, 78, 35, 30],
                                 [67, 98, 100, 56, 79],
                                 [97, 35, 41, 90, 45],
-                                [30, 41, 68, 34, 51]],
+                                [30, 41, 68, 34, 51]],  # 3.1 A
                                [[78, 36, 46, 75, 91],
                                 [64, 56, 92, 73, 60],
                                 [74, 72, 69, 84, 87],
                                 [36, 78, 40, 68, 72],
-                                [59, 40, 39, 34, 85]]])
+                                [59, 40, 39, 34, 85]]  # 3.2A
+                               ])
 
 uncertainties_matrix = np.sqrt(intensities_matrix)
 
@@ -97,6 +99,28 @@ dqy_matrix = np.array([[[0.000054, 0.000054, 0.000054, 0.000054, 0.000054],
                         [0.000016, 0.000016, 0.000016, 0.000016, 0.000016],
                         [0.000038, 0.000038, 0.000038, 0.000038, 0.000038]]])
 
+# Scalar dQ matrix copied from revision 3's 1D_bin_linear_no_sub_no_wt and 1D_bin_log_no_sub_no_wt
+scalar_dq_matrix = np.array([
+    # 3.0 A
+    [[0.008422833, 0.008422891, 0.008422914, 0.0084229, 0.008422851],
+     [0.008422751, 0.008422809, 0.008422832, 0.008422818, 0.008422769],
+     [0.008422716, 0.008422774, 0.008422797, 0.008422784, 0.008422735],
+     [0.008422729, 0.008422787, 0.00842281, 0.008422797, 0.008422747],
+     [0.008422789, 0.008422847, 0.00842287, 0.008422857, 0.008422808]],
+    # 3.1 A
+    [[0.008151118, 0.008151175, 0.008151196, 0.008151184, 0.008151136],
+     [0.008151046, 0.008151102, 0.008151124, 0.008151111, 0.008151064],
+     [0.008151015, 0.008151072, 0.008151094, 0.008151081, 0.008151033],
+     [0.008151027, 0.008151083, 0.008151105, 0.008151092, 0.008151045],
+     [0.00815108, 0.008151136, 0.008151158, 0.008151145, 0.008151098]],
+    # 3.2 A
+    [[0.007896386, 0.007896441, 0.007896462, 0.00789645, 0.007896404],
+     [0.007896323, 0.007896378, 0.007896399, 0.007896386, 0.00789634],
+     [0.007896296, 0.007896351, 0.007896372, 0.00789636, 0.007896314],
+     [0.007896306, 0.007896361, 0.007896382, 0.007896369, 0.007896323],
+     [0.007896353, 0.007896407, 0.007896429, 0.007896416, 0.00789637]]
+    ])
+
 
 def generate_test_data(q_dimension, drt_standard):
     """Generate test data
@@ -114,30 +138,31 @@ def generate_test_data(q_dimension, drt_standard):
     -------
 
     """
-    # Check input
+    # Check input: dimension must be either 1 or 2
     if q_dimension not in [1, 2]:
         raise RuntimeError('Q-dimension must be 1 or 2')
 
     if q_dimension == 1:
-        # Calculate scalar Q and dQ
+        # Calculate scalar Q
         scalar_q_matrix = np.sqrt(qx_matrix ** 2 + qy_matrix ** 2)
-        scalar_dq_matrix = np.sqrt(dqx_matrix ** 2 + dqy_matrix ** 2)
+        # Scalar dQ is defined
     else:
         # No-op
-        scalar_dq_matrix = scalar_q_matrix = None
+        scalar_q_matrix = None
 
     # Define a None returning object
     returns = None
     if drt_standard:
-        # convert intensities
+        # Convert the Q, dQ, I, sigma I in 2D matrix to 1D arrays to match drtsans binning methods' requirements
         intensity_array = intensities_matrix.flatten()
         sigma_array = uncertainties_matrix.flatten()
         if q_dimension == 1:
-            # 1D: scalar
+            # Q1D: scalar Q and scalar dQ from matrix to 1D array
             scalar_q_array = scalar_q_matrix.flatten()
             scalar_dq_array = scalar_dq_matrix.flatten()
             returns = intensity_array, sigma_array, scalar_q_array, scalar_dq_array
         else:
+            # Q2D: Qx, Qy, dQx and dQy from matrix to 1D array
             qx_array = qx_matrix.flatten()
             qy_array = qy_matrix.flatten()
             dqx_array = dqx_matrix.flatten()
@@ -216,7 +241,7 @@ def get_gold_2d_linear_bins():
 
 
 def test_1d_bin_linear_no_wt():
-    """Test '1D_bin_linear_no_sub_wt'
+    """Test case: '1D_bin_linear_no_sub_wt'
 
     Test methods for 1D linear no-weight binning
 
@@ -248,8 +273,9 @@ def test_1d_bin_linear_no_wt():
     assert binned_iq.intensity[3] == pytest.approx(68.92857, abs=2.E-6), 'intensity'
     # di(0.0035)		2.218889
     assert binned_iq.error[3] == pytest.approx(2.218889, abs=2.E-6), 'error'
-    # sigma_Q(0.0035) = 3.722E-05: This is off as it is the value from EXCEL with some error
-    assert binned_iq.delta_mod_q[3] == pytest.approx(3.722E-05, abs=2.E-5), 'Q resolution'
+    # sigma_Q(0.0035) = 1.130E-02
+    assert binned_iq.delta_mod_q[3] == pytest.approx(1.130E-02, abs=2.E-5), \
+        'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.130E-02)
 
     # Test high level method
     test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array, None)
@@ -297,9 +323,9 @@ def test_1d_bin_log_no_wt():
     assert binned_iq.intensity[3] == pytest.approx(70.00000, abs=1.E-12), 'intensity'
     # dI(0.0022) = 5.9160797831
     assert binned_iq.error[3] == pytest.approx(5.9160797831, abs=1.E-12), 'error'
-    # sigma_Q(0.0022) = 2.529E-05: this value is from EXCEL with error in Q resolution
-    # corrected value shall be   2.5112610804313703e-05
-    assert binned_iq.delta_mod_q[3] == pytest.approx(2.529E-05, abs=2.E-7), 'Q resolution wrong'
+    # sigma_Q(0.0022) = 1.135E-02
+    assert binned_iq.delta_mod_q[3] == pytest.approx(1.135E-02, abs=2.E-5),\
+        'Log binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
 
     # Test the high level method
     test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)

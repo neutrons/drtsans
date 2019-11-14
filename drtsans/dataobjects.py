@@ -1,6 +1,6 @@
 from collections import namedtuple
 from collections.abc import Iterable
-from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.settings import namedtuplefy, unique_workspace_dundername as uwd
 from enum import Enum
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
@@ -299,7 +299,7 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
 
 class _Testing:
     r"""
-    Mimic the numpy.testing module by applying functions of this module to the component arrays
+    Mimic the numpy.testing module by applying functions of this module to the component arrays of the IQ objects
     """
 
     @staticmethod

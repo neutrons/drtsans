@@ -9,7 +9,7 @@ from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
     MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, Quadratic
 from drtsans.path import exists as path_exists
 from drtsans.settings import unique_workspace_name as uwd
-
+from drtsans import detector
 
 __all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
 
@@ -229,7 +229,6 @@ def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
     # errors of the polynomial
     e_new = np.sqrt([np.add.reduce(
         [(e_coeff*n**i)**2 for i, e_coeff in enumerate(e_coeffs)]) for n in x])
-
     return y_new, e_new
 
 
@@ -445,8 +444,8 @@ def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_th
         SaveNexusProcessed(InputWorkspace=output_workspace, Filename=filename)
     return mtd[output_workspace]
 
-def prepare_sensitivity_correction(input_workspace, min_threashold=0.5, max_threshold=2.0,
-                                     filename=None, output_workspace=None):
+def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_threshold=2.0,
+                                     filename=None,  output_workspace=None):
     '''
     Calculate the detector sensitivity
 
@@ -486,7 +485,7 @@ def prepare_sensitivity_correction(input_workspace, min_threashold=0.5, max_thre
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
     II = Divide(LHSWorkspace=input_workspace, RHSWorkspace=F_ws, OutputWorkspace=uwd())
-    print(II.extractY().reshape(8, 8))
+    #print(II.extractY().reshape(8, 8))
     #print(II.extractE().reshape(8, 8))
 
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
@@ -495,7 +494,52 @@ def prepare_sensitivity_correction(input_workspace, min_threashold=0.5, max_thre
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
                     Mode='SelectIf', Operator='Less', Value=min_threshold)
 
-    q = Quadratic()
+    #d_info = II.detectorInfo()
+    #print(d_info.size())
+    #for item in d_info:
+    #   print(item.index)
+    comp_info = II.componentInfo()
+    det_info = II.detectorInfo()
+    #print(comp_info.size())
+    #for item in comp_info:
+    #    print(item.name)
+    comp = detector.Component(II, 'detector1')
+    np.set_printoptions(precision=1)
+    for j in range(0, comp.dim_y):
+        xx = []
+        yy = []
+        ee = []
+        masked_indices = []
+        for i in range(0, comp.dim_x):
+            index = comp.dim_y*j + i
+            if det_info.isMasked(index):
+                masked_indices.append([i+1,index])
+            else:
+                xx.append(i+1)
+                yy.append(II.readY(index)[0])
+                ee.append(II.readE(index)[0])
+        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=1. / np.array(ee), cov=True)
+        # Errors in the least squares is the sqrt of the covariance matrix
+        # (correlation between the coefficients)
+        e_coeffs = np.sqrt(np.diag(cov_matrix))/2.
+        masked_indices = np.array(masked_indices)
+        y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
+        a = masked_indices[:,0]
+        # errors of the polynomial
+        e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
+                        (e_coeffs[0]*masked_indices[:, 0]**2)**2)
+
+        for i, index in enumerate(masked_indices[:, 1]):
+            assert II.readY(int(index))[0] == 0.
+            II.setY(int(index), [y_new[i]])
+            II.setE(int(index), np.array(e_new[i]))
+    for i in range(8):
+        print(II.readY(i)[0])
+    #print(II.extractE().reshape(8, 8)[0])
+
+
+
+
 
 
     return output_workspace

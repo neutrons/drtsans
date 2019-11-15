@@ -2,3 +2,4 @@ mantid
 matplotlib  # is this necessary
 sortedcontainers
 mpld3
+lmfit

@@ -8,6 +8,8 @@ import sys
 from drtsans.mono.load import load_events
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
+from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity
+from drtsans.process_uncertainties import set_init_uncertainties
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -32,12 +34,19 @@ def load_data(data):
         Examples: ``55555`` or ``CG3_55555`` or file path.
     :return: 
     """
-    ws = load_events(data, output_workspace=None, data_dir=None, overwrite_instrument=False)
+    ws_name = str(data)
+    ws = load_events(data, output_workspace=ws_name, data_dir=None, overwrite_instrument=False)
 
     return ws
 
 
-def mask_detectors(data_ws):
+def calculate_beam_center_mask(beam_center_ws):
+    circular_ids = circular_mask_from_beam_center(beam_center_ws, radius=3.1415926, unit='mm')
+
+    return None
+
+
+def mask_detectors(data_ws, beam_center_mask):
     """Mask detectors in a workspace
 
     Mask (1) beam center, (2) top and (3) bottom
@@ -46,14 +55,14 @@ def mask_detectors(data_ws):
     :return:
     """
     # Mask beam centers
-    circular_ids = circular_mask_from_beam_center(data_ws, radius=3.1415926, unit='mm')
-    data_ws = apply_mask(data_ws, mask=circular_ids, panel=None, output_workspace=None)
+    if beam_center_mask is not None:
+        data_ws = apply_mask(data_ws, mask=beam_center_mask, panel=None, output_workspace=None)
 
     # Mask top
 
     # Mask bottom
 
-    return
+    return data_ws
 
 
 def setup_configuration(json_params):
@@ -98,6 +107,45 @@ def center_detector(ws):
     return ws
 
 
+def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
+    """Prepare data
+
+    Find beam center for each flood file
+    Mask top and bottom detectors
+    Set uncertainties to each file
+    Remove direct beam from flood
+
+    :param flood_run_ws_list:
+    :param beam_center_run_ws_list:
+    :return:
+    """
+    num_ws_pairs = len(flood_run_ws_list)
+    num_spec = flood_run_ws_list[0].getNumberHistograms()
+
+    masked_flood_list = list()
+    for i_pair in range(num_ws_pairs):
+        # use beam center run to locate the beam center and do mask
+        bc_ws = beam_center_run_ws_list[i_pair]
+        beam_center_mask = calculate_beam_center_mask(bc_ws)
+
+        # mask flood workspace
+        flood_ws = flood_run_ws_list[i_pair]
+        mask_detectors(flood_ws, beam_center_mask)
+        set_init_uncertainties(flood_ws, flood_ws)
+
+        masked_flood_list.append(flood_ws)
+    # END-FOR
+
+    # Combine to numpy arrays: N, M
+    flood_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
+    sigma_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
+    for f_index in range(num_ws_pairs):
+        flood_array[f_index] = masked_flood_list[f_index].extractY()
+        sigma_array[f_index] = masked_flood_list[f_index].extractE()
+
+    return flood_array, sigma_array
+
+
 def main(argv):
     """Main function
 
@@ -128,23 +176,32 @@ def main(argv):
 
     # Set up the configuration
     flood_runs, beam_center_runs = setup_configuration(json_params)
+    assert len(flood_runs) == len(beam_center_runs)
 
     # Prepare files for preparing sensitivities
 
-    # Load data
-    for data in []:
-        ws = load_data(data)
+    # Load data/runs
+    flood_ws_list = list()
+    beam_center_ws_list = list()
+    num_ws_pairs = len(flood_runs)
+    for f_index in range(num_ws_pairs):
+        # load flood
+        flood_ws_i = load_data(flood_runs[f_index])
+        flood_ws_list.append(flood_ws_i)
 
-    # Mask top and bottom detectors
-    mask_detectors([])
+        # load beam center
+        beam_center_ws_list.append(load_data(beam_center_runs[f_index]))
+    # END-FOR
 
-    # Find beam center for each flood file
-
-    # Mask beam center of each flood file
-
-    # Set uncertainties to each file
+    flood_data_array, flood_sigma_array = prepare_data(flood_ws_list, beam_center_ws_list)
 
     # Calculate sensitivities for each file
+    prepare_sensitivity(flood_data_matrix=flood_data_array, flood_sigma_matrix=flood_sigma_array,
+                        monitor_counts=np.array([1.] * num_ws_pairs),
+                        threshold_min=0,
+                        threshold_max=1000000)
+
+    # Export sensitivities calculated in file to ....
 
 
 def generate_test_json():

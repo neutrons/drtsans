@@ -54,20 +54,15 @@ class Detector(object):
 
         i = self._workspace.getInstrument()
         component = i.getComponentByName(component_name)
-        self.n_tubes = component.nelements()
-
-        if component[0].nelements() == 1:
-            # Handles EQSANS
-            self.n_pixels_per_tube = component[0][0].nelements()
-            self.first_det_id = component[0][0][0].getID()
-            self.last_det_id = component[
-                self.n_tubes - 1][0][self.n_pixels_per_tube-1].getID()
-        else:
-            # Handles BioSANS/GPSANS
-            self.n_pixels_per_tube = component[0].nelements()
-            self.first_det_id = component[0][0].getID()
-            self.last_det_id = component[
-                self.n_tubes - 1][self.n_pixels_per_tube-1].getID()
+        num_pixels = 1
+        # dive into subelements until get a detector
+        while component.type() != 'DetectorComponent' and component.type() != 'GridDetectorPixel':
+            self.n_pixels_per_tube = component.nelements()
+            num_pixels *= self.n_pixels_per_tube
+            component = component[0]
+        self.first_det_id = component.getID()
+        self.last_det_id = self.first_det_id + num_pixels - 1
+        self.n_tubes = int(num_pixels/self.n_pixels_per_tube)
 
     def _detector_id_to_ws_index(self):
         ''' Converts the detector ID of every pixel in workspace indices.
@@ -99,7 +94,7 @@ class Detector(object):
         tube_ws_indices = []
         for tube_idx in range(self.n_tubes):
             first_det_id = self.first_det_id + tube_idx*self.n_pixels_per_tube
-            last_det_id = first_det_id + self.n_pixels_per_tube
+            last_det_id = first_det_id + self.n_pixels_per_tube -1
 
             first_ws_index = self.detector_id_to_ws_index[first_det_id]
             last_ws_index = self.detector_id_to_ws_index[last_det_id]
@@ -136,7 +131,7 @@ class Detector(object):
         '''
 
         return np.array(range(self._current_start_ws_index,
-                              self._current_stop_ws_index))
+                              self._current_stop_ws_index+1))
 
     def get_ws_data(self):
         '''Returns the current tube data and error
@@ -147,9 +142,9 @@ class Detector(object):
             Y and Error
         '''
         return (self.data_y[self._current_start_ws_index:
-                            self._current_stop_ws_index].flatten(),
+                            self._current_stop_ws_index+1].flatten(),
                 self.data_e[self._current_start_ws_index:
-                            self._current_stop_ws_index].flatten())
+                            self._current_stop_ws_index+1].flatten())
 
     def get_pixels_masked(self):
         '''Returns an array of booleans for this tube
@@ -159,9 +154,9 @@ class Detector(object):
         -------
         np.array
         '''
-        detector_info = self._workspace.detectorInfo()
+        detector_info = self._workspace.spectrumInfo()
         return np.array([detector_info.isMasked(idx) for idx in range(
-            self._current_start_ws_index, self._current_stop_ws_index)])
+            self._current_start_ws_index, self._current_stop_ws_index + 1)])
 
     def get_pixels_infinite(self):
         '''Returns an array of booleans for this tube
@@ -173,7 +168,7 @@ class Detector(object):
         '''
         return np.array([self._workspace.readY(idx)[0] == Property.EMPTY_DBL
                          for idx in range(self._current_start_ws_index,
-                                          self._current_stop_ws_index)])
+                                          self._current_stop_ws_index +1 )])
 
     def get_y_coordinates(self):
         '''Return a numpy array of the current tube Y coordinates
@@ -185,10 +180,10 @@ class Detector(object):
         np.array
         '''
         if self._tube_y_coordinates is None:
-            detector_info = self._workspace.detectorInfo()
+            detector_info = self._workspace.spectrumInfo()
             self._tube_y_coordinates = np.array([
                 detector_info.position(idx)[1] for idx in range(
-                    self._current_start_ws_index, self._current_stop_ws_index)
+                    self._current_start_ws_index, self._current_stop_ws_index+1)
             ])
         return self._tube_y_coordinates
 
@@ -218,7 +213,6 @@ def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
 
     # Get the values to calculate the fit
     xx, yy, ee = [arr[~detectors_masked & ~detectors_inf] for arr in (x, y, e)]
-
     polynomial_coeffs, cov_matrix = np.polyfit(
         xx, yy, polynomial_degree, w=1/ee, cov=True)
     y_new = np.polyval(polynomial_coeffs, x)
@@ -266,7 +260,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     output_ws = CloneWorkspace(
         flood_ws, OutputWorkspace=unique_workspace_name(
             prefix="__sensitivity_"))
-    detector_info_output_ws = output_ws.detectorInfo()
+    detector_info_output_ws = output_ws.spectrumInfo()
 
     while True:
         try:
@@ -288,6 +282,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
 
             # Let's fit
             y, e = d.get_ws_data()
+
             y_new, e_new = _interpolate_tube(
                 x, y, e, detectors_masked, detectors_inf, polynomial_degree)
 
@@ -320,7 +315,7 @@ def inf_value_to_mask(ws):
 
     assert ws.blocksize() == 1, "This only supports integrated WS"
 
-    detector_info_input_ws = ws.detectorInfo()
+    detector_info_input_ws = ws.spectrumInfo()
     for i in range(ws.getNumberHistograms()):
         if ws.readY(i)[0] == Property.EMPTY_DBL:
             detector_info_input_ws.setMasked(i, True)

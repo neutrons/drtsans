@@ -155,7 +155,7 @@ def test_beam_finder(biosans_f):
     pos_wing_2 = instrument.getComponentByName("wing_detector").getPos()
 
     assert pos_main_1 == pos_main_2
-    assert pos_wing_2[1] == pos_main_2[1] + (abs(y_gravity) - abs(y) - 0.0135)
+    assert pos_wing_2[1] == pytest.approx(pos_main_2[1] + (abs(y_gravity) - abs(y)), abs=1e-3)
 
     # After the re-centring we should be at (0,0)
     # Note that to give the same results we need to enter the center

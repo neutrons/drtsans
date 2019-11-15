@@ -5,6 +5,9 @@
 import json
 import os
 import sys
+from drtsans.mono.load import load_events
+from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -20,6 +23,37 @@ from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
 
 INSTRUMENT = 'GPSANS'
+
+
+def load_data(data):
+    """Load data
+    
+    :param data: int, str
+        Examples: ``55555`` or ``CG3_55555`` or file path.
+    :return: 
+    """
+    ws = load_events(data, output_workspace=None, data_dir=None, overwrite_instrument=False)
+
+    return ws
+
+
+def mask_detectors(data_ws):
+    """Mask detectors in a workspace
+
+    Mask (1) beam center, (2) top and (3) bottom
+
+    :param data_ws:
+    :return:
+    """
+    # Mask beam centers
+    circular_ids = circular_mask_from_beam_center(data_ws, radius=3.1415926, unit='mm')
+    data_ws = apply_mask(data_ws, mask=circular_ids, panel=None, output_workspace=None)
+
+    # Mask top
+
+    # Mask bottom
+
+    return
 
 
 def setup_configuration(json_params):
@@ -70,8 +104,11 @@ if __name__ == "__main__":
     # Prepare files for preparing sensitivities
 
     # Load data
+    for data in []:
+        ws = load_data(data)
 
     # Mask top and bottom detectors
+    mask_detectors([])
 
     # Find beam center for each flood file
 

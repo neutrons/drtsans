@@ -10,6 +10,7 @@ import mantid.simpleapi as msapi  # noqa E402
 
 import drtsans  # noqa E402
 from drtsans.mono import biosans as sans  # noqa E402
+from drtsans.mono.convert_to_q import convert_to_q  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
@@ -86,12 +87,14 @@ def reduction(json_params, config):
 
     # Convert the Q
     wing_label = '_wing' if config['is_wing'] else ''
-    get_Iq(ws, json_params["configuration"]["outputDir"],
+    q_data = convert_to_q(ws, mode='scalar')
+    get_Iq(q_data, json_params["configuration"]["outputDir"],
            json_params["outputFilename"], label=wing_label,
            linear_binning=json_params["configuration"]["QbinType"] == "linear",
            nbins=int(json_params["configuration"]["numQBins"]))
 
-    get_Iqxqy(ws, json_params["configuration"]["outputDir"],
+    q_data = convert_to_q(ws, mode='azimuthal')
+    get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
               json_params["outputFilename"], label=wing_label,
               nbins=int(json_params["configuration"]["numQxQyBins"]))
 

@@ -1,4 +1,3 @@
-mantid
 matplotlib  # is this necessary
 sortedcontainers
 mpld3

@@ -74,11 +74,10 @@ def setup_configuration(json_params, instrument):
     return config
 
 
-def get_Iq(ws, output_dir, output_file, label='', linear_binning=True, nbins=100):
+def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, nbins=100):
     """
         Compute I(q) from corrected workspace
     """
-    q_data = drtsans.convert_to_q(ws, mode='scalar')
     q_min = np.min(q_data.mod_q)
     q_max = np.max(q_data.mod_q)
     bin_params = BinningParams(min=q_min, max=q_max, bins=nbins)
@@ -98,11 +97,10 @@ def get_Iq(ws, output_dir, output_file, label='', linear_binning=True, nbins=100
     fig.savefig(filename)
 
 
-def get_Iqxqy(ws, output_dir, output_file, label='', nbins=100):
+def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
     """
         Compute I(qx,qy) from corrected workspace
     """
-    q_data = drtsans.convert_to_q(ws, mode='azimuthal')
     qx_min = np.min(q_data.qx)
     qx_max = np.max(q_data.qx)
     binning_x = BinningParams(qx_min, qx_max, nbins)

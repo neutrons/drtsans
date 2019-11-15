@@ -68,8 +68,8 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         # Thus, bounding_box_widths[:, 0] are the widths of the detectors along the first axis (X-axis),
         # bounding_box_widths[:, 1] are the widths of the detectors along the second axis (Y-axis) and
         # bounding_box_widths[:, 2] are the widths of the detectors along the third axis (Z-axis).
-        # The pixel area should be the width along the X-axis multiplied by the width along the Y-axis.
-        pixel_areas = bounding_box_widths[:, 0] * bounding_box_widths[:, 1]
+        # The pixel area should be the width along the X-axis multiplied by the width along the Z-axis.
+        pixel_areas = bounding_box_widths[:, 0] * bounding_box_widths[:, 2]
 
         # creating the workspace with pixel area
         number_Of_spectra = flat_ws.getNumberHistograms()

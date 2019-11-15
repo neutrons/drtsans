@@ -2,9 +2,13 @@ r""" Links to mantid algorithms
 FindCenterOfMassPosition <https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v1.html>
 Integration              <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
 MoveInstrumentComponent  <https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html>
+CreateWorkspace          <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+DeleteWorkspace          <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 """
-from mantid.simpleapi import FindCenterOfMassPosition, Integration, MoveInstrumentComponent
+from mantid.simpleapi import FindCenterOfMassPosition, Integration, MoveInstrumentComponent, CreateWorkspace, \
+    DeleteWorkspace
 from mantid.kernel import logger
+import numpy as np
 
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername as uwd
@@ -14,7 +18,8 @@ from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
 __all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans namespace
 
 
-def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={}, centering_options={}):
+def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={},
+                     centering_options={}, area_corection_flag=True):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.
     Usually employed for a direct beam run (no sample and not sample holder).
@@ -35,6 +40,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         Additional arguments to be passed on to ~drtsans.mask_utils.mask_apply.
     centering_options: dict
         Arguments to be passed on to the centering method.
+    area_corection_flag: str, flag to specify if area correction is needed
 
     Returns
     -------
@@ -52,8 +58,20 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         mask_workspace = apply_mask(flat_ws, mask=mask, **mask_options)
         mask_workspace.delete()  # we don't need the mask workspace so keep it clean
 
+    if area_corection_flag:
+        bounding_box_widths = np.array(
+            [flat_ws.getDetector(i).shape().getBoundingBox().width() for i in
+             range(flat_ws.getNumberHistograms())])
+        pixel_areas = bounding_box_widths[:, 0] * bounding_box_widths[:, 2]
+        number_Of_spectra = flat_ws.getNumberHistograms()
+        X_axis_values = flat_ws.readX(0)
+        workspace_pixelarea = CreateWorkspace(DataX=X_axis_values, DataY=pixel_areas,
+                                              Nspec=number_Of_spectra, OutputWorkspace='area')
+        flat_ws /= workspace_pixelarea
+        DeleteWorkspace(workspace_pixelarea)
+
     # find center of mass position
-    center = FindCenterOfMassPosition(InputWorkspace=flat_ws.name(), **centering_options)
+    center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)
     logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(*center))
     return center
 

@@ -62,7 +62,7 @@ def test_beam_finder_excel(generic_workspace):
     # within .1mm
     assert x == pytest.approx(0.5331, abs=0.0001)
     assert y == pytest.approx(0.5468, abs=0.0001)
-    assert y_gravity == pytest.approx(0.54675 + 0.002694 + 0.001, abs=0.0001)
+    assert y_gravity == pytest.approx(0.54675 + 0.002694 + 0.0135, abs=0.0001)
 
 
 @pytest.mark.parametrize('generic_workspace',
@@ -108,7 +108,7 @@ def test_beam_finder_excel2(generic_workspace):
     # within .1mm
     assert x == pytest.approx(0.0131, abs=0.0001)
     assert y == pytest.approx(-0.0102, abs=0.0001)
-    assert y_gravity == pytest.approx(-0.0102 + 0.002694 + 0.001, abs=0.0001)
+    assert y_gravity == pytest.approx(-0.0102 + 0.002694 + 0.0135, abs=0.0001)
 
 
 def test_beam_finder(biosans_f):
@@ -128,7 +128,7 @@ def test_beam_finder(biosans_f):
 
     assert x == pytest.approx(0.0014, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
-    assert y_gravity == pytest.approx(-0.0216 + 0.001, abs=1e-3)
+    assert y_gravity == pytest.approx(-0.0216 + 0.0135, abs=1e-3)
 
     instrument = ws.getInstrument()
     pos_main = instrument.getComponentByName("detector1").getPos()

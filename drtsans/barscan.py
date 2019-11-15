@@ -1,7 +1,46 @@
 import numpy as np
 
-# drtsans imports
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
 from drtsans.settings import namedtuplefy
+
+
+def _consecutive_true_values(values, how_many, reverse=False,
+                             message='Could not find pixel index'):
+    r"""
+    Find first array index of consecutive `how_many` True values.
+
+    Parameters
+    ----------
+    values: list
+        list of `True` and `False` items
+    how_many: int
+        Number of desired consecutive `True` values
+    message: str
+        Exception message
+
+    Returns
+    -------
+    int
+
+    Raises
+    ------
+    IndexError
+        If no index is found for any of the edges
+    RuntimeError
+        If a faulty tube is found
+    """
+    # use the array or the reverse one
+    truth_array = values[::-1] if reverse else values
+    # create a sub-array of length how_many of True values that we want to find
+    pattern = [True]*how_many
+    # loop over the input data and return the first index where the next
+    # how_many elements match the pattern
+    for i in range(len(truth_array) - how_many):
+        if truth_array[i: i + how_many] == pattern:
+            return len(values) - i - 1 if reverse else i
+    # raise an error if the pattern is not found
+    else:
+        raise IndexError(message)
 
 
 @namedtuplefy
@@ -39,66 +78,38 @@ def find_edges(intensities, tube_threshold=0.2, shadow_threshold=0.3,
         - bottom_shadow_pixel: first shadowed pixel
         - above_shadow_pixel= first illuminated pixel above the shadow region
     """
-    def find_n_truth(truths, repeats, reverse=False,
-                     message='Could not find pixel index'):
-        r"""
-        Find first array index of consecutive `repeats` True values.
-
-        Parameters
-        ----------
-        truths: list
-            list of `True` and `False` items
-        repeats: int
-            Number of desired consecutive `True` values
-        message: str
-            Exception message
-
-        Returns
-        -------
-        int
-
-        Raises
-        ------
-        IndexError
-            If no index is found for any of the edges
-        RuntimeError
-            If a faulty tube is found
-        """
-        truth_array = truths[::-1] if reverse else truths
-        pat = [True]*repeats
-        for i in range(len(truth_array) - repeats):
-            if truth_array[i: i + repeats] == pat:
-                return len(truths) - i - 1 if reverse else i
-        else:
-            raise IndexError(message)
-
+    # calculate minimum intensity thresholds for tube ends and shaddows
     av = np.average(intensities)
     end_threshold = tube_threshold * av
     shadow_threshold = shadow_threshold * av
 
-    # Find edges of the tube
+    # Find edges of the tube: want at least tube_edge_min_width pixels
+    # (starting from the top or bottom of a tube) that have intensities greater
+    # than the threshold
     illuminated = [bool(i > end_threshold) for i in intensities]
-    bottom_pixel = find_n_truth(illuminated, tube_edge_min_width,
-                                message='Could not find bottom tube edge')
-    top_pixel = find_n_truth(illuminated, tube_edge_min_width,
-                             message='Could not find top tube edge',
-                             reverse=True)
+    bottom_pixel = _consecutive_true_values(illuminated, tube_edge_min_width,
+                                            message='Could not find bottom tube edge')
+    top_pixel = _consecutive_true_values(illuminated, tube_edge_min_width,
+                                         message='Could not find top tube edge',
+                                         reverse=True)
 
-    # Find the shadow region
+    # Find the shadow region: similar to tube edges, but in this case
+    # we want shadow_edge_min_width intensities less than the shadow threshold,
+    # followed by at least one intensity greater than the threshold
     active = intensities[bottom_pixel: top_pixel - tube_edge_min_width]
     shadowed = [bool(i < shadow_threshold) for i in active]
     bottom_shadow_pixel = bottom_pixel +\
-        find_n_truth(shadowed, shadow_edge_min_width,
-                     message='Could not find bottom shadow edge')
+        _consecutive_true_values(shadowed, shadow_edge_min_width,
+                                 message='Could not find bottom shadow edge')
 
     active = intensities[bottom_shadow_pixel + shadow_edge_min_width:
                          top_pixel - tube_edge_min_width]
     illuminated = [bool(i > shadow_threshold) for i in active]
     above_shadow_pixel = bottom_shadow_pixel + shadow_edge_min_width +\
-        find_n_truth(illuminated, 1,
-                     message='could not find above shadow region')
+        _consecutive_true_values(illuminated, 1,
+                                 message='could not find above shadow region')
 
-    # Check for a faulty tube
+    # Check for a faulty tube: we want a certain number of pixels not in the bar shaddow
     active_tube_length = top_pixel - bottom_pixel + 1
     shadow_length = above_shadow_pixel - bottom_shadow_pixel
     if active_tube_length < min_illuminated_length + shadow_length:

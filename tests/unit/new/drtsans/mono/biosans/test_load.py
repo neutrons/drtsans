@@ -8,8 +8,8 @@ from drtsans.samplelogs import SampleLogs
 
 def test_load_events(reference_dir):
     # default workspace name is file hint
-    events_workspace = load_events('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans,
-                                   overwrite_instrument=True)
+    #events_workspace = load_events('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    events_workspace = load_events('CG3_961', data_dir=reference_dir.new.biosans, overwrite_instrument=True)
 
     assert events_workspace.name() == 'BIOSANS_961'
 

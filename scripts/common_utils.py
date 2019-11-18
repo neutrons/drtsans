@@ -117,7 +117,7 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
     save_ascii_binned_2D(filename, "I(Qx,Qy)", iq_output)
 
     fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(iq_output.qx, iq_output.qy, iq_output.intensity,
+    pcm = ax.pcolormesh(iq_output.qx, iq_output.qy, iq_output.intensity.T,
                         norm=colors.LogNorm())
     fig.colorbar(pcm, ax=ax)
     picture_file = os.path.join(output_dir, output_file + label + '_Iqxqy.png')

@@ -131,7 +131,7 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
         # mask flood workspace
         flood_ws = flood_run_ws_list[i_pair]
         mask_detectors(flood_ws, beam_center_mask)
-        set_init_uncertainties(flood_ws, flood_ws)
+        flood_ws = set_init_uncertainties(flood_ws, flood_ws)
 
         masked_flood_list.append(flood_ws)
     # END-FOR
@@ -140,8 +140,8 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
     flood_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
     sigma_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
     for f_index in range(num_ws_pairs):
-        flood_array[f_index] = masked_flood_list[f_index].extractY()
-        sigma_array[f_index] = masked_flood_list[f_index].extractE()
+        flood_array[f_index][:] = masked_flood_list[f_index].extractY().transpose()[0]
+        sigma_array[f_index][:] = masked_flood_list[f_index].extractE().transpose()[0]
 
     return flood_array, sigma_array
 
@@ -186,22 +186,27 @@ def main(argv):
     num_ws_pairs = len(flood_runs)
     for f_index in range(num_ws_pairs):
         # load flood
-        flood_ws_i = load_data(flood_runs[f_index])
+        flood_ws_i = load_data('/HFIR/CG2/IPTS-23801/nexus/CG2_{}.nxs.h5'.format(flood_runs[f_index]))
         flood_ws_list.append(flood_ws_i)
 
         # load beam center
-        beam_center_ws_list.append(load_data(beam_center_runs[f_index]))
+        beam_center_ws_list.append(load_data('/HFIR/CG2/IPTS-23801/nexus/CG2_{}.nxs.h5'
+                                             ''.format(beam_center_runs[f_index])))
     # END-FOR
 
     flood_data_array, flood_sigma_array = prepare_data(flood_ws_list, beam_center_ws_list)
 
     # Calculate sensitivities for each file
-    prepare_sensitivity(flood_data_matrix=flood_data_array, flood_sigma_matrix=flood_sigma_array,
-                        monitor_counts=np.array([1.] * num_ws_pairs),
-                        threshold_min=0,
-                        threshold_max=1000000)
+    sens_set = prepare_sensitivity(flood_data_matrix=flood_data_array, flood_sigma_matrix=flood_sigma_array,
+                                   monitor_counts=np.array([1.] * num_ws_pairs),
+                                   threshold_min=0, threshold_max=1000000)
 
     # Export sensitivities calculated in file to ....
+    sensitivities, sensitivities_error = sens_set
+    print(sensitivities)
+    print(sensitivities_error)
+    print(len(np.where(np.isnan(sensitivities))))
+    print(len(np.where(np.isinf(sensitivities))))
 
 
 def generate_test_json():

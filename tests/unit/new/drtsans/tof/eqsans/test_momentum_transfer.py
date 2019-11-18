@@ -139,7 +139,7 @@ def test_convert_to_q_eqsans(workspace_with_instrument):
     error = result.error.reshape((5, 5, 3))
     assert error == approx(np.sqrt(expected_intensities), abs=1e-6)
     qx = result.qx.reshape((5, 5, 3))
-    assert qx == approx(-expected_qx, abs=1e-6)
+    assert qx == approx(expected_qx, abs=1e-6)
     qy = result.qy.reshape((5, 5, 3))
     assert qy == approx(expected_qy, abs=1e-6)
     dqx = result.delta_qx.reshape((5, 5, 3))

@@ -155,7 +155,7 @@ def test_momentum_and_resolution(generic_workspace):
             mod_q = 4 * np.pi * np.sin(0.5 * tt) / wavelength
             expected_qx = mod_q * np.cos(azi)
             expected_qy = mod_q * np.sin(azi)
-            assert qx[i, j] == pytest.approx(expected_qx, abs=1e-8)
+            assert qx[i, j] * (-1) == pytest.approx(expected_qx, abs=1e-8)
             assert qy[i, j] == pytest.approx(expected_qy, abs=1e-8)
             # expected resolution
             sigma_x, sigma_y = sigma_neutron(wavelength, delta_lambda,

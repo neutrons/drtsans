@@ -10,7 +10,6 @@ import mantid.simpleapi as msapi  # noqa E402
 
 import drtsans  # noqa E402
 from drtsans.mono import gpsans as sans  # noqa E402
-from drtsans.mono.convert_to_q import convert_to_q  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
@@ -86,13 +85,13 @@ def reduction(json_params, config):
     ws *= absolute_scale
 
     # Convert the Q
-    q_data = convert_to_q(ws, mode='scalar')
+    q_data = sans.convert_to_q(ws, mode='scalar')
     get_Iq(q_data, json_params["configuration"]["outputDir"],
            json_params["outputFilename"],
            linear_binning=json_params["configuration"]["QbinType"] == "linear",
            nbins=int(json_params["configuration"]["numQBins"]))
 
-    q_data = convert_to_q(ws, mode='azimuthal')
+    q_data = sans.convert_to_q(ws, mode='azimuthal')
     get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
               json_params["outputFilename"],
               nbins=int(json_params["configuration"]["numQxQyBins"]))

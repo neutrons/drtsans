@@ -1,9 +1,9 @@
 # flake8: noqa
+#######
+# Ordered alphabetically within each tree-level (drtsans/, drtsans.mono/, drtsans.mono.gpsans/)
+#######
 import drtsans.absolute_units
 from ...absolute_units import *
-
-import drtsans.momentum_transfer
-from ...momentum_transfer import *
 
 import drtsans.iq
 from ...iq import *
@@ -26,6 +26,9 @@ from ..geometry import *
 import drtsans.mono.load
 from ..load import *
 
+import drtsans.mono.momentum_transfer  # overrides drtsans.momentum_transfer
+from ..momentum_transfer import *
+
 import drtsans.mono.normalization
 from ..normalization import *
 
@@ -35,7 +38,6 @@ from .solid_angle import *  # overrides drtsans.solid_angle
 
 
 __all__ = [] + drtsans.absolute_units.__all__\
-          + drtsans.momentum_transfer.__all__\
           + drtsans.iq.__all__\
           + drtsans.thickness_normalization.__all__\
           + drtsans.transmission.__all__\
@@ -43,6 +45,7 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.mono.dark_current.__all__\
           + drtsans.mono.geometry.__all__\
           + drtsans.mono.load.__all__\
+          + drtsans.mono.momentum_transfer.__all__\
           + drtsans.mono.normalization.__all__ \
           + api.__all__\
           + beam_finder.__all__\

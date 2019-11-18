@@ -1,5 +1,7 @@
 # flake8: noqa
-
+#######
+# Ordered alphabetically within each tree-level (drtsans/, drtsans.mono/, drtsans.mono.gpsans/)
+#######
 import drtsans.absolute_units
 from ...absolute_units import *
 
@@ -24,7 +26,7 @@ from .correct_frame import *
 from .dark_current import *
 from .geometry import *
 from .load import *
-from .momentum_transfer import *
+from .momentum_transfer import *  # overrides drtsans.momentum_transfer
 from .normalization import *
 from .transmission import *
 

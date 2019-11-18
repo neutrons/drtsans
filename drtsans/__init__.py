@@ -2,16 +2,17 @@
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
-
-
+#######
+# Ordered alphabetically
+#######
 from .api import *
 from .beam_finder import *
 from .instruments import *
+from .momentum_transfer import *
+from .reductionlog import *
+from .resolution import *
 from .sensitivity import *
 from .solid_angle import *
-from .reductionlog import *
-from .momentum_transfer import *
-from .resolution import *
 from .thickness_normalization import *
 
 # FIXME the functions done as strings can't be done via __all__ because module and function have same name

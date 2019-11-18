@@ -1,6 +1,6 @@
 import numpy as np
 from collections import namedtuple
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/convert_to_q.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py
 import drtsans.momentum_transfer
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
@@ -12,7 +12,7 @@ from drtsans import geometry as sans_geometry
 from drtsans.samplelogs import SampleLogs
 from mantid.kernel import logger
 
-__all__ = ['convert_to_q', ]
+__all__ = ['convert_to_q', 'split_by_frame']
 
 
 def eqsans_resolution(*args, **kwargs):
@@ -104,7 +104,7 @@ def convert_to_q(ws, mode, resolution_function=eqsans_resolution, **kwargs):
        Qz_=\frac{2\pi}{\lambda}(\cos(2\theta)-1)
 
 
-    It calls drtsans.convert_to_q.convert_to_q
+    It calls drtsans.momentum_transfer.convert_to_q
 
     Parameters
     ----------
@@ -134,11 +134,8 @@ def convert_to_q(ws, mode, resolution_function=eqsans_resolution, **kwargs):
     pixel_sizes = kwargs.get('pixel_sizes', None)
     # get the InstrumentSetupParameters
     instrument_setup = retrieve_instrument_setup(ws, pixel_sizes)
-    return drtsans.convert_to_q(ws,
-                                mode,
-                                resolution_function,
-                                instrument_parameters=instrument_setup,
-                                **kwargs)
+    return drtsans.momentum_transfer.convert_to_q(ws, mode, resolution_function,
+                                                  instrument_parameters=instrument_setup, **kwargs)
 
 
 def retrieve_instrument_setup(ws, pixel_sizes=None):

@@ -5,9 +5,9 @@ import os
 # import mantid
 from mantid import mtd
 from mantid.simpleapi import AddSampleLog, ConfigService, Rebin  # ExtractSpectra MaskAngle,
-from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalization, transform_to_wavelength)
+from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalization, transform_to_wavelength,
+                                convert_to_q)
 from drtsans.iq import BinningMethod, bin_intensity_into_q1d, BinningParams
-from drtsans.momentum_transfer import convert_to_q
 from drtsans.dataobjects import IQmod
 
 

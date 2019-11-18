@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from pytest import approx
-from drtsans.momentum_transfer import convert_to_q
+from drtsans.tof.eqsans import convert_to_q
 from mantid.simpleapi import MaskDetectors
 
 

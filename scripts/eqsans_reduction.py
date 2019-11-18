@@ -8,7 +8,6 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
-from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_iq_into_linear_q2d, BinningParams  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
@@ -158,10 +157,10 @@ if __name__ == "__main__":
         msapi.SaveNexus(ws, filenamews)
 
     # convert to momentum transfer and split by frame
-    all_I_of_q = convert_to_q(ws, mode="scalar")
-    all_I_of_qxqy = convert_to_q(ws, mode="azimuthal")
-    I_of_q_by_frame = split_by_frame(ws, all_I_of_q)
-    I_of_qxqy_by_frame = split_by_frame(ws, all_I_of_qxqy)
+    all_I_of_q = eqsans.convert_to_q(ws, mode="scalar")
+    all_I_of_qxqy = eqsans.convert_to_q(ws, mode="azimuthal")
+    I_of_q_by_frame = eqsans.split_by_frame(ws, all_I_of_q)
+    I_of_qxqy_by_frame = eqsans.split_by_frame(ws, all_I_of_qxqy)
 
     # do the binning and save the files
     numQBins1D = int(json_conf["numQBins"])

@@ -5,7 +5,7 @@ import scipy.constants
 from collections import namedtuple
 from mantid.simpleapi import AddSampleLog
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/convert_to_q.py
-from drtsans.mono.convert_to_q import mono_resolution, convert_to_q
+from drtsans.mono.momentum_transfer import mono_resolution, convert_to_q
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
 

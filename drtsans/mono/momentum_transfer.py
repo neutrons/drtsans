@@ -8,6 +8,8 @@ from drtsans.geometry import source_sample_distance, sample_detector_distance
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
+__all__ = ['convert_to_q']
+
 
 def mono_resolution(*args, **kwargs):
     r"""

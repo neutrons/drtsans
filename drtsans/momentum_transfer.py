@@ -3,6 +3,8 @@ from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod
 from drtsans.settings import namedtuplefy
 import numpy as np
 
+__all__ = ['convert_to_q', ]
+
 
 def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     r"""

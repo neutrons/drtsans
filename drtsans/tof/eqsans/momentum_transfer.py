@@ -1,7 +1,7 @@
 import numpy as np
 from collections import namedtuple
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/convert_to_q.py
-import drtsans.convert_to_q
+import drtsans.momentum_transfer
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py
@@ -11,6 +11,8 @@ from drtsans import geometry as sans_geometry
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 from mantid.kernel import logger
+
+__all__ = ['convert_to_q', ]
 
 
 def eqsans_resolution(*args, **kwargs):

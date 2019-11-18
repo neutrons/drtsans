@@ -8,7 +8,7 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
-from drtsans.tof.eqsans.convert_to_q import convert_to_q, split_by_frame  # noqa E402
+from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_iq_into_linear_q2d, BinningParams  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402

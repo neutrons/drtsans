@@ -1,7 +1,13 @@
 # flake8: noqa
+import drtsans.absolute_units
+from ...absolute_units import *
+
 
 import drtsans.beam_finder
 from drtsans.beam_finder import *
+
+import drtsans.momentum_transfer
+from ...momentum_transfer import *
 
 import drtsans.iq
 from ...iq import *
@@ -33,20 +39,22 @@ from ..load import *
 import drtsans.mono.normalization
 from ..normalization import *
 
-from .load import *  # noqa: F403
-from .api import *  # noqa: F403
+from .api import *
+from .load import *
 
 
-__all__ = [] + drtsans.beam_finder.__all__ \
+__all__ = [] + drtsans.absolute_units.__all__\
+          + drtsans.beam_finder.__all__ \
+          + drtsans.momentum_transfer.__all__\
           + drtsans.iq.__all__\
           + drtsans.solid_angle.__all__\
           + drtsans.thickness_normalization.__all__\
           + drtsans.transmission.__all__\
-          + drtsans.absolute_units.__all__\
           + drtsans.mono.absolute_units.__all__\
           + drtsans.mono.dark_current.__all__\
           + drtsans.mono.geometry.__all__\
           + drtsans.mono.load.__all__\
           + drtsans.mono.normalization.__all__\
-          + api.__all__ + load.__all__
+          + api.__all__\
+          + load.__all__
 

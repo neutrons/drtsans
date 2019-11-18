@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from pytest import approx
-from drtsans.tof.eqsans.convert_to_q import convert_to_q, retrieve_instrument_setup
+from drtsans.tof.eqsans.momentum_transfer import convert_to_q, retrieve_instrument_setup
 from mantid.simpleapi import AddSampleLog
 
 intensities_array = np.array([[[93, 60, 89, 32, 97],

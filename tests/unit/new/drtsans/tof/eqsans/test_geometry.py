@@ -2,12 +2,10 @@ import os
 import pytest
 r"""
 Hyperlinks to Mantid algorithms
-LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
 LoadInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
 """
-from mantid.simpleapi import LoadEventNexus, LoadInstrument
+from mantid.simpleapi import LoadInstrument
 
-from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.geometry import main_detector_panel
 from drtsans.tof.eqsans.geometry import (detector_id, pixel_coordinates, sample_aperture_diameter,
                                          source_aperture_diameter, source_monitor_distance, translate_detector_z)

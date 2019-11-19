@@ -768,45 +768,93 @@ def test_1d_bin_log_wedge_no_wt():
 
 
 # TODO - make this one work with
-def prototype_log_bins_calculator():
+def test_log_bins_calculator():
+    """
+
+    Returns
+    -------
+
+    """
+    def _determine_log_bins(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_center=False):
+        """Determine logarithm bins
+
+        Including bin edge and bin center
+
+        Parameters
+        ----------
+        x_min : float
+            Positive float for minimum
+        x_max : float
+            Positive float
+        n_bins : int
+            Positive integer for number of step per decade
+        decade_on_center : bool
+            Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
+
+        Returns
+        -------
+        numpy.ndarray, numpy.ndarray
+            bin centers, bin edges
+        """
+        # Calculate C min and max on decade and contain X min and X max in the range
+        c_min = np.log10(x_min)  # c_min may not be on decade!
+        c_max = np.ceil(np.log10(x_max))
+
+        print('[TEST] C min = {}, C max = {}'.format(c_min, c_max))
+
+        # Calculate total number of bins
+        total_num_bins = (c_max - c_min) * n_bins
+        print('[TEST] Number of total bins = {}'.format(total_num_bins))
+
+        # Calculate Delta L
+        delta_l = (c_max - c_max) / total_num_bins
+        print('[TEST] Bin size DeltaL = {}'.format(delta_l))
+
+        if decade_on_center:
+            # x_min and 10^{c_max} on the first and last bin center
+            # Call Equation 11.31 ...
+            pass
+
+        else:
+            # x_min and 10^{c_max} on the first and last bin boundary
+            pass
+
+        # Example 1
+
+        # Example 2
+        # Equation 11.29 - 11.30
+        return c_min, c_max, total_num_bins, delta_l
+
     # Example 1
-    # Q_min = None = 0.0001
-    # Q_max = 0.036398139
-    q_min = 0.0001
-    q_max = 0.036398139
-    n_bins = 10
+    print('[TEST] Example 1')
+    q_min_example1 = 0.0001
+    q_max_example1 = 0.036398139
+    n_bins_example1 = 10
 
-    # Suggestion argument name: min_max_c_on_center
-    c_min = np.log10(q_min)
-    c_max = np.ceil(np.log10(q_max))
-
-    total_num_bins = (c_max - c_min) * n_bins
-
-    delta_l = (c_max - c_max) / total_num_bins
-
-    # Example 1
-    # Equaltion 11.31 ...
-
-    # Example 2
-    # Equation 11.29 - 11.30
+    test_set = _determine_log_bins(q_min_example1, q_max_example1, n_bins_example1, True)
+    assert test_set
 
     # Example 3
     q_min = 0.0015
     q_max = 0.036398139
 
-    assert abs(delta_l - 0.046166264) < 1E-8
+    test_set = _determine_log_bins(q_min, q_max, n_bins_example1, True)
+    test_delta_l = test_set[3]
+    assert abs(test_delta_l - 0.046166264) < 1E-8
 
     # Example 4: Cmin and Cmax are not on decades!
     q_min = 0.000436726
     q_max = 0.036398139
 
-    assert abs(c_min - (-3.359790455)) < 1E-8
+    test_set = _determine_log_bins(q_min, q_max, n_bins_example1, True)
+    test_c_min = test_set[0]
+    test_delta_l = test_set[3]
 
-    # But total_num_bins = 30 still
+    assert abs(test_c_min - (-3.359790455)) < 1E-8
+    assert abs(test_delta_l - 0.064028988) < 1E-8
 
-    assert abs(delta_l - 0.064028988) < 1E-8
+    assert 'Passed' == 'TEST'
 
-    return
 
 if __name__ == '__main__':
     pytest.main([__file__])

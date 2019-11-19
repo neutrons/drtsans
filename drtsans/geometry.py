@@ -250,7 +250,8 @@ def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
     if search_logs is True:
         log_keys = ('source-sample-distance', 'source_sample-distance',
                     'source_sample_distance', 'sample-source-distance',
-                    'sample_source-distance', 'sample_source_distance')
+                    'sample_source-distance', 'sample_source_distance',
+                    'sample_aperture_sample_distance')
         if log_key is not None:
             log_keys = (log_key)
         sl = SampleLogs(source)

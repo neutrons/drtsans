@@ -134,15 +134,15 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     """
     # TODO: check if this will work with the new nexus files
     # Retrieve L1 and L2 from instrument geometry
-    l1 = source_sample_distance(ws, unit='m', search_logs=False)
-    l2 = sample_detector_distance(ws, unit='m', search_logs=False)
+    l1 = source_sample_distance(ws, unit='m')
+    l2 = sample_detector_distance(ws, unit='m')
     sl = SampleLogs(ws)
-    try:  # Old file
-        r1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
-        r2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
-    except RuntimeError:
+    try:  # New file
         r1 = 1. / 1000. * sl.find_log_with_units('source_aperture_radius', 'mm')
         r2 = 1. / 1000. * sl.find_log_with_units('sample_aperture_radius', 'mm')
+    except RuntimeError:
+        r1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
+        r2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy

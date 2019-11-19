@@ -70,7 +70,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_dete
 
     new_beam_center_y = beam_center_y + drop_main - drop_wing + (vertical_offset)
     logger.information("Beam Center Y before gravity (drop = {:.3}): {:.3}"
-                       " after = {:.3} and vertical offset between main and wing detector= {:.3}".format(
+                       " after = {:.3} and vertical offset between main and wing detector= {:.3}.".format(
                             drop_main-drop_wing, beam_center_y, new_beam_center_y, vertical_offset))
 
     return new_beam_center_y

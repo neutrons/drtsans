@@ -24,28 +24,35 @@ def translate_sample_by_z(ws, z):
                             RelativePosition=True)
 
 
-def translate_detector_z(ws, z=None, relative=True):
+def translate_detector_z(input_workspace, z=None, relative=True):
     r"""
-    Adjust Z-coordinate of detector bank in instrument file.
+    Adjust the Z-coordinate of the detector.
 
 
     Parameters
     ----------
-    ws: ~mantid.api.MatrixWorkspace
+    input_workspace: ~mantid.api.MatrixWorkspace
         Input workspace containing instrument file
     z: float
-        Translation to be applied, in units of meters. If :py:obj:`None`, log_key
-        stored in ``detector_z_log`` is used
+        Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in log_key
+        ~drtsans.tof.eqsans.geometry.detector_z_log is used, unless the detector has already been translated by this
+        quantity.
     relative: bool
         If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
         the current z-coordinate with the new value.
     """
     if z is None:
-        sl = SampleLogs(ws)
-        z = 1e-3 * sl.single_value(detector_z_log)  # assumed in mili-meters
+        sample_logs = SampleLogs(input_workspace)
+        translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in mili meters
+        # Has the detector already been translated by this quantity?
+        main_detector_array = detector_name(input_workspace)
+        _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
+        if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one mili meter
+            z = translation_from_log
 
-    MoveInstrumentComponent(Workspace=ws, Z=z, ComponentName=detector_name(ws),
-                            RelativePosition=relative)
+    if z is not None:
+        MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
+                                RelativePosition=relative)
 
 
 def translate_detector_by_z(ws, z, **kwargs):

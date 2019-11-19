@@ -36,6 +36,23 @@ def detector_name(ipt):
     return inst_to_det[instrument_name]
 
 
+def main_detector_panel(source):
+    r"""
+    Return the main detector panel of the instrument
+
+    Parameters
+    ----------
+    source: PyObject
+        Instrument object, ~mantid.api.MatrixWorkspace,  ~mantid.api.IEventsWorkspace, workspace name, file path,
+        run number
+
+    Returns
+    -------
+    ~mantid.geometry.CompAssembly
+    """
+    return get_instrument(source).getComponentByName(detector_name(source))
+
+
 def bank_workspace_index_range(input_workspace, component=''):
     '''
     Returns the range of workspace indices to for the named component. If no component is

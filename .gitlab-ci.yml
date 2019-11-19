@@ -64,7 +64,7 @@ docker-update-test:
   before_script:
     - sudo yum install -y nfs-utils
     - sudo mkdir -p /SNS/EQSANS
-    - grep -qs 'EQSANS' /proc/mounts || sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS
+    - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
@@ -80,7 +80,7 @@ docker-no-update-test:
   before_script:
     - sudo yum install -y nfs-utils
     - sudo mkdir -p /SNS/EQSANS
-    - grep -qs 'EQSANS' /proc/mounts || sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS
+    - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
@@ -141,7 +141,7 @@ code-unit-test:
     - dockerbuild
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - grep -qs 'EQSANS' /proc/mounts || sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS
+    - sudo bash scripts/eqsans-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -168,7 +168,7 @@ code-integration-test:
     - dockerbuild
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - grep -qs 'EQSANS' /proc/mounts || sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS
+    - sudo bash scripts/eqsans-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -196,7 +196,7 @@ code-pylint:
     - dockerbuild
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - grep -qs 'EQSANS' /proc/mounts || sudo mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" snsdata.ornl.gov:/stornext/snfs1/instruments/EQSANS /SNS/EQSANS
+    - sudo bash scripts/eqsans-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend

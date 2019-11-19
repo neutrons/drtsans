@@ -58,7 +58,7 @@ def reduction(json_params, config):
         Perform the whole reduction
     """
     # Load and prepare scattering data
-
+    # all the run numbers are associated with instrument name
     ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"], **config)
 
     # Transmission

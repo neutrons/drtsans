@@ -65,12 +65,12 @@ if __name__ == "__main__":
             for d in default_mask:
                 msapi.MaskBTP(Workspace=db_ws, **d)
         center = eqsans.find_beam_center(db_ws)
-        config["x_center"] = center[0]
-        config["y_center"] = center[1]
+        config["center_x"] = center[0]
+        config["center_y"] = center[1]
         msapi.logger.notice("calculated center {}".format(center))
     else:
-        config["x_center"] = 0.025239
-        config["y_center"] = 0.0170801
+        config["center_x"] = 0.025239
+        config["center_y"] = 0.0170801
 
     # load and prepare scattering data
     sample_run = json_params["runNumber"]

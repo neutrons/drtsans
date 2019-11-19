@@ -56,8 +56,8 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
 
     # convert IQmod to a mantid workspace
     if id_input == DataType.IQ_MOD:
-        input_workspace = input_workspace.toWorkspace()
-        background = background.toWorkspace()
+        input_workspace = input_workspace.to_workspace()
+        background = background.to_workspace()
         id_input = DataType.WORKSPACE2D
 
     # do the math

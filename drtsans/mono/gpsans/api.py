@@ -24,7 +24,7 @@ def prepare_data(data,
                  sensitivity_file_path=None,
                  output_workspace=None, **kwargs):
     r"""
-    Load a BIOSANS data file and bring the data to a point where it can be used. This includes applying basic
+    Load a GPSANS data file and bring the data to a point where it can be used. This includes applying basic
     corrections that are always applied regardless of whether the data is background or scattering data.
 
     Parameters

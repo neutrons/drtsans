@@ -85,12 +85,14 @@ def reduction(json_params, config):
     ws *= absolute_scale
 
     # Convert the Q
-    get_Iq(ws, json_params["configuration"]["outputDir"],
+    q_data = sans.convert_to_q(ws, mode='scalar')
+    get_Iq(q_data, json_params["configuration"]["outputDir"],
            json_params["outputFilename"],
            linear_binning=json_params["configuration"]["QbinType"] == "linear",
            nbins=int(json_params["configuration"]["numQBins"]))
 
-    get_Iqxqy(ws, json_params["configuration"]["outputDir"],
+    q_data = sans.convert_to_q(ws, mode='azimuthal')
+    get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
               json_params["outputFilename"],
               nbins=int(json_params["configuration"]["numQxQyBins"]))
 

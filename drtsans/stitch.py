@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def stitch_profiles(profiles, overlaps, target_profile=0):
+def stitch_profiles(profiles, overlaps, target_profile_index=0):
     r"""
     Stitch together a sequence of intensity profiles with overlapping domains, returning a single encompassing profile.
 
@@ -12,51 +12,78 @@ def stitch_profiles(profiles, overlaps, target_profile=0):
     Parameters
     ----------
     profiles: list
-        A list of  ~drtsans.dataobjects.IQmod objects.
+        A list of  ~drtsans.dataobjects.IQmod objects, ordered with increasing Q-values
     overlaps: list
-        A list of overlap regions in the shape (start_1, end_1, start_2, end_2, start_3, end_3,...)
-    target_profile: int
-        Index of the ``profiles`` list indicating which profile sets the final scaling.
+        A list of overlap regions in the shape (start_1, end_1, start_2, end_2, start_3, end_3,...).
+    target_profile_index: int
+        Index of the ``profiles`` list indicating the target profile, that is, the profile defining the final scaling.
 
     Returns
     -------
     ~drtsans.dataobjects.IQmod
     """
+    # Guard clause to verify the profiles are ordered with increasing Q-values
+    first_q_values = np.array([profile.mod_q[0] for profile in profiles])  # collect first Q-value for each profile
+    if np.all(np.diff(first_q_values) > 0) is False:
+        raise ValueError('The profiles are not ordered with increasing Q-values')
+
     # Guard clause to validate that the number of overlap boundaries is congruent with the number of intensity profiles
     if len(overlaps) != 2 * (len(profiles) - 1):
         raise ValueError('The number of overlaps is not appropriate to the number of intensity profiles')
 
-    final_scaling = 1  # scaling that must be used to scale the stitched profile to the scale of the desired profile
-    low_q_profile = profiles[0]
-    # low_q_profile is an IQmod object with the following attributes:
-    #   low_q_profile.intensity: array of intensities
-    #   low_q_profile.error: array of uncertainties for the intensities
-    #   low_q_profile.mod_q: array of Q values
-    #   low_q_profile.delta_mod_q: array of uncertainties for the Q values
-    for i in range(1, len(profiles)):  # iterate, stitching two profiles at each iteration
-        start_q, end_q = overlaps.pop(0), overlaps.pop(0)  # pick the first overal region from the list of overlaps
-        high_q_profile = profiles[i]  # another IQmod object
+    # Pair the overlaps into (start_q, end_q) pairs
+    overlaps = [overlaps[i:i+2] for i in range(0, len(overlaps), 2)]
 
-        # Find the data points of the low-Q profile in the overlap region
-        indexes_in_overlap = (low_q_profile.mod_q > start_q) & (low_q_profile.mod_q < end_q)
-        q_values_in_overlap = low_q_profile.mod_q[indexes_in_overlap]
+    def scaling(target, to_target, starting_q, ending_q):
+        r"""Utility function to find the scaling factor bringing the to_target profile to the target profile scaling"""
+        # Find the data points of the "target" profile in the overlap region
+        indexes_in_overlap = (target.mod_q > starting_q) & (target.mod_q < ending_q)
+        q_values_in_overlap = target.mod_q[indexes_in_overlap]
+        # Interpolate the "to_target" profile intensities at the previously found Q values
+        to_target_interpolated = np.interp(q_values_in_overlap, to_target.mod_q, to_target.intensity)
+        return sum(target_profile.intensity[indexes_in_overlap]) / sum(to_target_interpolated)
 
-        # Interpolate the high-Q profile intensities at the previously found Q values
-        high_q_interpolated = np.interp(q_values_in_overlap, high_q_profile.mod_q, high_q_profile.intensity)
+    # We begin stitching to the target profile the neighboring profile with lower Q-values, then proceed until we
+    # run out of profiles with lower Q-values than the target profile
+    target_profile = profiles[target_profile_index]
+    current_index = target_profile_index - 1
+    while current_index >= 0:
+        to_target_profile = profiles[current_index]
+        start_q, end_q = overlaps[current_index]
 
-        # Rescale the high-Q profile to match the scaling of the low-Q profile
-        scaling = sum(low_q_profile.intensity[indexes_in_overlap]) / sum(high_q_interpolated)
-        high_q_profile = high_q_profile * scaling
+        # Rescale the "to_target" profile to match the scaling of the target profile
+        to_target_profile = to_target_profile * scaling(target_profile, to_target_profile, start_q, end_q)
 
         # Discard extrema points
-        low_q_profile = low_q_profile.extract(low_q_profile.mod_q < end_q)  # keep data with Q < end_q
-        high_q_profile = high_q_profile.extract(high_q_profile.mod_q > start_q)  # keep data with Q > start_q
+        to_target_profile = to_target_profile.extract(to_target_profile.mod_q < end_q)  # keep data with Q < end_q
+        target_profile = target_profile.extract(target_profile.mod_q > start_q)  # keep data with Q > start_q
 
-        # Stitch by concatenation followed by sorting, save the result into a new low_q_profile
-        low_q_profile = low_q_profile.concatenate(high_q_profile)  # just put one profile after the other
-        low_q_profile = low_q_profile.sort()  # sort data points by increasing Q
+        # Stitch by concatenation followed by sorting, save the result into a new target profile
+        target_profile = to_target_profile.concatenate(target_profile)  # just put one profile after the other
+        target_profile = target_profile.sort()  # sort data points by increasing Q
 
-        if i == target_profile:  # we found the profile to which we want to scale all others
-            final_scaling = 1. / scaling
+        # Move to the next to-target profile
+        current_index = current_index - 1
 
-    return low_q_profile * final_scaling
+    # We continue stitching to the target profile the neighboring profile with higher Q-values, then proceed until we
+    # run out of profiles with higher Q-values than the target profile
+    current_index = target_profile_index + 1
+    while current_index < len(profiles):
+        to_target_profile = profiles[current_index]
+        start_q, end_q = overlaps[current_index - 1]
+
+        # Rescale the "to_target" profile to match the scaling of the target profile
+        to_target_profile = to_target_profile * scaling(target_profile, to_target_profile, start_q, end_q)
+
+        # Discard extrema points
+        to_target_profile = to_target_profile.extract(to_target_profile.mod_q > start_q)  # keep data with Q < end_q
+        target_profile = target_profile.extract(target_profile.mod_q < end_q)  # keep data with Q > start_q
+
+        # Stitch by concatenation followed by sorting, save the result into a new target profile
+        target_profile = target_profile.concatenate(to_target_profile)  # just put one profile after the other
+        target_profile = target_profile.sort()  # sort data points by increasing Q
+
+        # Move to the next to-target profile
+        current_index = current_index + 1
+
+    return target_profile

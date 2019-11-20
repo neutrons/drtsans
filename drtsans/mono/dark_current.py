@@ -13,6 +13,8 @@ duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsan
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.dark_current import duration
+from drtsans.mono.load import load_mono
+from drtsans.path import exists, registered_workspace
 
 __all__ = ['subtract_dark_current', 'normalize_dark_current']
 
@@ -54,7 +56,7 @@ def normalize_dark_current(dark_workspace, output_workspace=None):
     return mtd[output_workspace]
 
 
-def subtract_dark_current(data_workspace, dark_workspace, output_workspace=None):
+def subtract_dark_current(data_workspace, dark, output_workspace=None):
     r"""
     Subtract normalized dark from data, taking into account the duration of both the data and dark runs.
 
@@ -69,8 +71,9 @@ def subtract_dark_current(data_workspace, dark_workspace, output_workspace=None)
     ----------
     data_workspace: MatrixWorkspace
         Sample scattering with intensities versus wavelength.
-    dark_workspace: MatrixWorkspace
-        dark current workspace
+    dark: int, str, ~mantid.api.MatrixWorkspace
+        run number, file path, workspace name, or :py:obj:`~mantid.api.MatrixWorkspace`
+        for dark current.
     output_workspace : str
         Name of the output workspace. If None, the name of the input
         workspace `data_workspace` is chosen (and the input workspace is overwritten).
@@ -81,6 +84,14 @@ def subtract_dark_current(data_workspace, dark_workspace, output_workspace=None)
     """
     if output_workspace is None:
         output_workspace = str(data_workspace)
+
+    if registered_workspace(dark):
+        dark_workspace = dark
+    elif (isinstance(dark, str) and exists(dark)) or isinstance(dark, int):
+        dark_workspace = load_mono(dark, output_workspace=unique_workspace_dundername())
+    else:
+        message = 'Unable to find or load the dark current {}'.format(dark)
+        raise RuntimeError(message)
 
     # Normalize the dark current
     normalized_dark_current = unique_workspace_dundername()  # temporary workspace

@@ -128,7 +128,7 @@ scalar_dq_matrix = np.array([
 
 
 # Euation 11.31
-gold_log_bins_example1 = np.ndarray([
+gold_log_bins_example1 = np.array([
     [0.000089, 0.000100, 0.000113],
     [0.000113, 0.000126, 0.000142],
     [0.000142, 0.000158, 0.000179],
@@ -163,7 +163,7 @@ gold_log_bins_example1 = np.ndarray([
 
 
 # Equation 11.29 - 11.30
-gold_log_bins_example2 = np.ndarray([
+gold_log_bins_example2 = np.array([
     [0.000100, 0.000112, 0.000127],
     [0.000127, 0.000141, 0.000160],
     [0.000160, 0.000178, 0.000201],
@@ -197,7 +197,7 @@ gold_log_bins_example2 = np.ndarray([
 
 
 # Equation 11.29 - 11.30
-gold_log_bins_example3 = np.ndarray([
+gold_log_bins_example3 = np.array([
     [0.001500, 0.001582, 0.001671],
     [0.001671, 0.001759, 0.001858],
     [0.001858, 0.001957, 0.002066],
@@ -231,7 +231,7 @@ gold_log_bins_example3 = np.ndarray([
 
 
 # Equation 11.29 - 11.30
-gold_log_bins_example4 = np.ndarray([
+gold_log_bins_example4 = np.array([
     [0.000437, 0.000470, 0.000507],
     [0.000507, 0.000545, 0.000588],
     [0.000588, 0.000631, 0.000682],

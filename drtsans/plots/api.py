@@ -62,7 +62,18 @@ def _saveFile(figure, filename, backend, show=False):
             mpld3.show(figure)
 
 
-def plot_IQmod(workspaces, filename='', backend='d3'):
+def _q_label(backend, subscript=''):
+    label = 'Q'
+    if subscript:
+        label += '_' + str(subscript)
+
+    if backend == Backend.MATPLOTLIB:
+        return '$' + label + r' (\AA^{-1})$'
+    else:  # mpld3
+        return label + ' (1/{})'.format(u'\u212B')
+
+
+def plot_IQmod(workspaces, filename, backend='d3'):
     backend = Backend.getMode(backend)
     for workspace in workspaces:
         datatype = getDataType(workspace)
@@ -72,15 +83,34 @@ def plot_IQmod(workspaces, filename='', backend='d3'):
     fig, ax = plt.subplots()
     for workspace in workspaces:
         ax.errorbar(workspace.mod_q, workspace.intensity, yerr=workspace.error)
-    ax.set_xlabel(r'$Q (\AA^{-1})$')
+    ax.set_xlabel(_q_label(backend))
     ax.set_ylabel('Intensity')
 
     _saveFile(fig, filename, backend)
 
 
-def plot_IQazimuthal():
-    pass
+def plot_IQazimuthal(workspace, filename, backend='d3'):
+    backend = Backend.getMode(backend)
+    datatype = getDataType(workspace)
+    if datatype != DataType.IQ_AZIMUTHAL:
+        raise RuntimeError('Do not know how to plot type="{}"'.format(datatype))
+
+    qxmin = workspace.qx.min()
+    qxmax = workspace.qx.max()
+    qymin = workspace.qy.min()
+    qymax = workspace.qy.max()
+
+    fig, ax = plt.subplots()
+    current_cmap = matplotlib.cm.get_cmap()
+    current_cmap.set_bad(color='grey')
+    pcm = ax.imshow(workspace.intensity, extent=(qxmin, qxmax, qymin, qymax),
+                    origin='lower', aspect='auto')
+    fig.colorbar(pcm, ax=ax)
+    ax.set_xlabel(_q_label(backend, 'x'))
+    ax.set_ylabel(_q_label(backend, 'y'))
+
+    _saveFile(fig, filename, backend)
 
 
-def plot_detector():
-    pass
+def plot_detector(workspace, filename, backend='d3'):
+    raise NotImplementedError()

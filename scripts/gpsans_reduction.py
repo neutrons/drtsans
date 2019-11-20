@@ -1,5 +1,5 @@
 """
-    BIOSANS reduction script
+    GPSANS reduction script
 """
 import json
 import os

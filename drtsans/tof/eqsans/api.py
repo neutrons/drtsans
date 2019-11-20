@@ -52,7 +52,7 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
 def prepare_data(data,
                  detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
-                 x_center=None, y_center=None,
+                 center_x=None, center_y=None,
                  dark_current=None,
                  flux_method=None, flux=None,
                  mask=None, mask_panel=None, btp=dict(),
@@ -79,11 +79,11 @@ def prepare_data(data,
     high_tof_clip: float
         Ignore events with a time-of-flight (TOF) bigger than the maximal
         TOF minus this quantity.
-    x_center: float
+    center_x: float
         Move the center of the detector to this X-coordinate. If :py:obj:`None`, the
         detector will be moved such that the X-coordinate of the intersection
         point between the neutron beam and the detector array will have ``x=0``.
-    y_center: float
+    center_y: float
         Move the center of the detector to this X-coordinate. If :py:obj:`None`, the
         detector will be moved such that the X-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
@@ -121,10 +121,10 @@ def prepare_data(data,
     transform_to_wavelength(output_workspace, bin_width=bin_width,
                             low_tof_clip=low_tof_clip,
                             high_tof_clip=high_tof_clip)
-    if x_center is None or y_center is None:
+    if center_x is None or center_y is None:
         # TODO see if additional parameters should be insluded
-        x_center, y_center = find_beam_center(output_workspace, mask=mask)
-    center_detector(output_workspace, center_x=x_center, center_y=y_center)
+        center_x, center_y = find_beam_center(output_workspace, mask=mask)
+    center_detector(output_workspace, center_x=center_x, center_y=center_y)
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
     # Normalization by flux

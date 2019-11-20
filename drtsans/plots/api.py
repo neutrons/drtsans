@@ -157,7 +157,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3'):
     fig, ax = plt.subplots()
     current_cmap = matplotlib.cm.get_cmap()
     current_cmap.set_bad(color='grey')
-    pcm = ax.imshow(workspace.intensityT, extent=(qxmin, qxmax, qymin, qymax),
+    pcm = ax.imshow(workspace.intensity.T, extent=(qxmin, qxmax, qymin, qymax),
                     norm=LogNorm(), origin='lower', aspect='auto')
     fig.colorbar(pcm, ax=ax)
     ax.set_xlabel(_q_label(backend, 'x'))

@@ -24,6 +24,7 @@ if mpld3.__version__ == '0.3':
 
 
 class Backend(Enum):
+    '''Class for denoting which back-end to save the plot using'''
     MPLD3 = 'd3'     # read-only
     MATPLOTLIB = 'mpl'  # read and write
 
@@ -32,7 +33,7 @@ class Backend(Enum):
 
     @staticmethod
     def getMode(mode):
-        '''Private function to convert anything into :py:obj:`HidraProjectFileMode`'''
+        '''Public function to convert anything into :py:obj:`Backend`'''
         if mode in Backend:
             return mode
         else:
@@ -46,6 +47,21 @@ class Backend(Enum):
 
 
 def _saveFile(figure, filename, backend, show=False):
+    '''Convenience method for the common bits of saving the file based on
+    the selected backend.
+
+    Parameters
+    ----------
+    figure: ~matplotlib.pyplot.figure
+        The figure to save to a file
+    filename: str
+        The name of the file to save to
+    backend: Backend
+        Which :py:obj:`Backend` to use for saving
+    show: bool
+        Whether or not to show the figure rather than saving. This is only
+        available if the :py:obj:`~Backend.MPLD3` backend is selected.
+    '''
     if backend == Backend.MATPLOTLIB:
         figure.savefig(filename)
         if show:
@@ -63,6 +79,17 @@ def _saveFile(figure, filename, backend, show=False):
 
 
 def _q_label(backend, subscript=''):
+    '''mpld3 doesn't currently support latex markup. This generates an
+    acceptable label for the supplied backend.
+
+    Parameters
+    ----------
+    backend: Backend
+        Which :py:obj:`Backend` to generate the caption for
+    subscript: str
+        The subscript on the "Q" label. If none is specified then no
+        subscript will be displayed
+    '''
     label = 'Q'
     if subscript:
         label += '_' + str(subscript)
@@ -74,6 +101,20 @@ def _q_label(backend, subscript=''):
 
 
 def plot_IQmod(workspaces, filename, backend='d3'):
+    '''Save a plot representative of the supplied workspaces
+
+    Parameters
+    ----------
+    workspaces: list, tuple
+        A collection of :py:obj:`~drtsans.dataobjects.IQmod` workspaces to
+        plot. If only one is desired, it must still be supplied in a
+        :py:obj:`list` or :py:obj:`tuple`.
+    filename: str
+        The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
+        backend, the type of file is determined from the file extension
+    backend: Backend
+        Which backend to save the file using
+    '''
     backend = Backend.getMode(backend)
     for workspace in workspaces:
         datatype = getDataType(workspace)
@@ -90,6 +131,18 @@ def plot_IQmod(workspaces, filename, backend='d3'):
 
 
 def plot_IQazimuthal(workspace, filename, backend='d3'):
+    '''Save a plot representative of the supplied workspace
+
+    Parameters
+    ----------
+    workspaces: ~drtsans.dataobjects.IQazimuthal
+        The workspace to plot. This assumes the data is binned on a constant grid.
+    filename: str
+        The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
+        backend, the type of file is determined from the file extension
+    backend: Backend
+        Which backend to save the file using
+    '''
     backend = Backend.getMode(backend)
     datatype = getDataType(workspace)
     if datatype != DataType.IQ_AZIMUTHAL:
@@ -113,4 +166,16 @@ def plot_IQazimuthal(workspace, filename, backend='d3'):
 
 
 def plot_detector(workspace, filename, backend='d3'):
+    '''Save a plot representative of the supplied workspace
+
+    Parameters
+    ----------
+    workspaces: ~mantid.api.MatrixWorkspace
+        The workspace to plot
+    filename: str
+        The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
+        backend, the type of file is determined from the file extension
+    backend: Backend
+        Which backend to save the file using
+    '''
     raise NotImplementedError()

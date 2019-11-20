@@ -1,12 +1,11 @@
 """ Common utility functions for all SANS """
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 
 import drtsans  # noqa E402
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.iq import BinningMethod, BinningParams  # noqa E402
+from drtsans.plots import plot_IQmod, plot_IQazimuthal
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
@@ -89,12 +88,8 @@ def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, nbins
     filename = os.path.join(output_dir, output_file + label + '_Iq.txt')
     save_ascii_binned_1D(filename, "I(Q)", iq_output)
 
-    fig, ax = plt.subplots()
-    ax.errorbar(iq_output.mod_q, iq_output.intensity, yerr=iq_output.error, label="I(Q)")
-    ax.set_xlabel("$Q (\AA^{-1})$")  # noqa W605
-    plt.ylabel('Intensity')
     filename = os.path.join(output_dir, output_file + label + '_Iq.png')
-    fig.savefig(filename)
+    plot_IQmod(iq_output, filename, backend='mpl')
 
 
 def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
@@ -116,9 +111,5 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.txt')
     save_ascii_binned_2D(filename, "I(Qx,Qy)", iq_output)
 
-    fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(iq_output.qx, iq_output.qy, iq_output.intensity.T,
-                        norm=colors.LogNorm())
-    fig.colorbar(pcm, ax=ax)
-    picture_file = os.path.join(output_dir, output_file + label + '_Iqxqy.png')
-    fig.savefig(picture_file)
+    filename = os.path.join(output_dir, output_file + label + '_Iqxqy.png')
+    plot_IQazimuthal(iq_output, filename, backend='mpl')

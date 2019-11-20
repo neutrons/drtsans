@@ -7,6 +7,7 @@ from mpld3 import plugins # noqa E402
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt # noqa E402
+from matplotlib.colors import LogNorm # noqa E402
 
 
 __all__ = ['plot_IQmod', 'plot_IQazimuthal', 'plot_detector']
@@ -156,8 +157,9 @@ def plot_IQazimuthal(workspace, filename, backend='d3'):
     fig, ax = plt.subplots()
     current_cmap = matplotlib.cm.get_cmap()
     current_cmap.set_bad(color='grey')
+    # TODO should the data be `workspace.intensity.T`?
     pcm = ax.imshow(workspace.intensity, extent=(qxmin, qxmax, qymin, qymax),
-                    origin='lower', aspect='auto')
+                    norm=LogNorm(), origin='lower', aspect='auto')
     fig.colorbar(pcm, ax=ax)
     ax.set_xlabel(_q_label(backend, 'x'))
     ax.set_ylabel(_q_label(backend, 'y'))

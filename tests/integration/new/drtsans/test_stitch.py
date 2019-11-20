@@ -88,7 +88,7 @@ def test_stitch(data_test_16b):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py>
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
-    SME - Weiren Chen <chenw@ornl.gov>, LiLin He <hel3@ornl.gov>
+    SME - Wei-Ren Chen <chenw@ornl.gov>, LiLin He <hel3@ornl.gov>
     """
     data = data_test_16b  # handy shortcut
     # call the drtsans function

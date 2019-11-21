@@ -412,9 +412,8 @@ def test_1d_bin_linear_no_wt():
     # Calculate and verify
     # I(0.0035) = 68.92857:    drtsans: 68.92857142857143
     print(binned_iq.delta_mod_q)
-    assert abs(binned_iq.delta_mod_q[3] - 0.002239) < 1E-6, 'sigmaQ[3] {} shall be {} +/- 1e-6' \
-                                                            ''.format(binned_iq.delta_mod_q[3],
-                                                                      0.002239)
+    assert abs(binned_iq.mod_q[3] - 0.002239) < 1E-6, 'Q[3] {} shall be {} +/- 1e-6' \
+                                                      ''.format(binned_iq.delta_mod_q[3], 0.002239)
     assert abs(binned_iq.intensity[3] - 70.) < 1E-6, 'Intensity[3] shall be 70 but not {}' \
                                                      ''.format(binned_iq.intensity[3])
     #
@@ -811,7 +810,7 @@ def test_log_bins_calculator():
         print('[TEST] Number of total bins = {}'.format(total_num_bins))
 
         # Calculate Delta L
-        delta_l = (c_max - c_max) / total_num_bins
+        delta_l = (c_max - c_min) / total_num_bins
         print('[TEST] Bin size DeltaL = {}'.format(delta_l))
         # Define an array of k, i.e., [0, 1, 2, ...]
         if decade_on_center:

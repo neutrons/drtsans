@@ -411,11 +411,16 @@ def test_1d_bin_linear_no_wt():
 
     # Calculate and verify
     # I(0.0035) = 68.92857:    drtsans: 68.92857142857143
-    assert binned_iq.intensity[3] == pytest.approx(68.92857, abs=2.E-6), 'intensity'
-    # di(0.0035), , 2.218889
-    assert binned_iq.error[3] == pytest.approx(2.218889, abs=2.E-6), 'error'
-    # sigma_Q(0.0035) = 1.130E-02
-    assert binned_iq.delta_mod_q[3] == pytest.approx(1.130E-02, abs=2.E-5), \
+    print(binned_iq.delta_mod_q)
+    assert abs(binned_iq.delta_mod_q[3] - 0.002239) < 1E-6, 'sigmaQ[3] {} shall be {} +/- 1e-6' \
+                                                            ''.format(binned_iq.delta_mod_q[3],
+                                                                      0.002239)
+    assert abs(binned_iq.intensity[3] - 70.) < 1E-6, 'Intensity[3] shall be 70 but not {}' \
+                                                     ''.format(binned_iq.intensity[3])
+    #
+    assert abs(binned_iq.error[3] - 5.916079783) < 1E-8, 'error'
+    # sigma_Q(0.0035) = 1.135E-02
+    assert binned_iq.delta_mod_q[3] == pytest.approx(1.135e-02, abs=2.E-5), \
         'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.130E-02)
 
     # Test high level method
@@ -823,7 +828,7 @@ def test_log_bins_calculator():
 
         # Calculate bin boundaries from bin center
         # Equation 11.30
-        bin_edges = np.ndarray(shape=(bin_centers.shpae[0]+1,), dtype=float)
+        bin_edges = np.ndarray(shape=(bin_centers.shape[0]+1,), dtype=float)
         bin_edges[1:-1] = 0.5 * (bin_centers[:-1] + bin_centers[1:])
 
         if decade_on_center:

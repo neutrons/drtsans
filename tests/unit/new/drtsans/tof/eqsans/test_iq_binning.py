@@ -391,6 +391,7 @@ def test_1d_bin_linear_no_wt():
     None
 
     """
+    # From Tab '1D_bin_linear_no_sub_wt'
     q_min = 0.000
     q_max = 0.010
     num_bins = 10
@@ -411,16 +412,17 @@ def test_1d_bin_linear_no_wt():
 
     # Calculate and verify
     # I(0.0035) = 68.92857:    drtsans: 68.92857142857143
-    print(binned_iq.delta_mod_q)
-    assert abs(binned_iq.mod_q[3] - 0.002239) < 1E-6, 'Q[3] {} shall be {} +/- 1e-6' \
-                                                      ''.format(binned_iq.delta_mod_q[3], 0.002239)
-    assert abs(binned_iq.intensity[3] - 70.) < 1E-6, 'Intensity[3] shall be 70 but not {}' \
-                                                     ''.format(binned_iq.intensity[3])
-    #
-    assert abs(binned_iq.error[3] - 5.916079783) < 1E-8, 'error'
-    # sigma_Q(0.0035) = 1.135E-02
+    # verify Q[3]
+    assert abs(binned_iq.mod_q[3] - 0.0035) < 1E-6, 'Q[3] {} shall be {} +/- 1e-6' \
+                                                    ''.format(binned_iq.delta_mod_q[3], 0.0035)
+    # verify I[3]
+    assert abs(binned_iq.intensity[3] - 68.92857) < 1E-6, 'Intensity[3] shall be 68.92857 but not {}' \
+                                                          ''.format(binned_iq.intensity[3])
+    # verify sigmaI[3] = 2.218889:
+    assert abs(binned_iq.error[3] - 2.218889) < 1E-7, 'error'
+    # verify sigma_Q[3] = 1.154E-02
     assert binned_iq.delta_mod_q[3] == pytest.approx(1.135e-02, abs=2.E-5), \
-        'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.130E-02)
+        'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
 
     # Test high level method
     test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array, None)
@@ -444,7 +446,7 @@ def test_1d_bin_log_no_wt():
     -------
 
     """
-    # Define Q range
+    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
     q_min = 0.001  # Edge
     q_max = 0.010  # Edge
     num_steps_per_10 = 10  # 10 steps per decade
@@ -859,7 +861,7 @@ def test_log_bins_calculator():
 
     print(test_set[5])
     print(gold_log_bins_example1[:, 0])
-    diffs = np.sqrt(np.power(test_set - gold_log_bins_example1, 2))
+    diffs = np.abs(test_set - gold_log_bins_example1)
     print('Max Mean Diff = {}'.format(np.max(diffs)))
 
     # Verify with expected value

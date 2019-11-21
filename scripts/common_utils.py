@@ -89,7 +89,10 @@ def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, nbins
     save_ascii_binned_1D(filename, "I(Q)", iq_output)
 
     filename = os.path.join(output_dir, output_file + label + '_Iq.png')
-    plot_IQmod(iq_output, filename, backend='mpl')
+    plot_IQmod([iq_output], filename, backend='mpl')
+    filename = os.path.join(output_dir, output_file + label + '_Iq.json')
+    plot_IQmod([iq_output], filename, backend='d3')
+    return iq_output
 
 
 def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
@@ -113,3 +116,5 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
 
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.png')
     plot_IQazimuthal(iq_output, filename, backend='mpl')
+    filename = os.path.join(output_dir, output_file + label + '_Iqxqy.json')
+    plot_IQazimuthal(iq_output, filename, backend='d3')

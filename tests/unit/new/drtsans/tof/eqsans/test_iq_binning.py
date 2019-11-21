@@ -71,7 +71,6 @@ qy_matrix = np.array([[[0.004962, 0.004962, 0.004962, 0.004962, 0.004962],
                        [-0.001606, -0.001606, -0.001606, -0.001606, -0.001606],
                        [-0.003693, -0.003693, -0.003693, -0.003693, -0.003693]]])
 
-
 dqx_matrix = np.array([[[0.000066, 0.000035, 0.000005, 0.000027, 0.000058],
                         [0.000066, 0.000035, 0.000005, 0.000027, 0.000058],
                         [0.000066, 0.000035, 0.000005, 0.000027, 0.000058],
@@ -107,27 +106,27 @@ dqy_matrix = np.array([[[0.000054, 0.000054, 0.000054, 0.000054, 0.000054],
 # Scalar dQ matrix copied from revision 3's 1D_bin_linear_no_sub_no_wt and 1D_bin_log_no_sub_no_wt
 scalar_dq_matrix = np.array([
     # 3.0 A
-    [[0.008422833, 0.008422891, 0.008422914, 0.0084229, 0.008422851],
-     [0.008422751, 0.008422809, 0.008422832, 0.008422818, 0.008422769],
-     [0.008422716, 0.008422774, 0.008422797, 0.008422784, 0.008422735],
-     [0.008422729, 0.008422787, 0.00842281, 0.008422797, 0.008422747],
-     [0.008422789, 0.008422847, 0.00842287, 0.008422857, 0.008422808]],
+    [[0.011912, 0.011912, 0.011912, 0.011912, 0.011912],
+     [0.011912, 0.011912, 0.011912, 0.011912, 0.011912],
+     [0.011912, 0.011912, 0.011912, 0.011912, 0.011912],
+     [0.011912, 0.011912, 0.011912, 0.011912, 0.011912],
+     [0.011912, 0.011912, 0.011912, 0.011912, 0.011912]],
     # 3.1 A
-    [[0.008151118, 0.008151175, 0.008151196, 0.008151184, 0.008151136],
-     [0.008151046, 0.008151102, 0.008151124, 0.008151111, 0.008151064],
-     [0.008151015, 0.008151072, 0.008151094, 0.008151081, 0.008151033],
-     [0.008151027, 0.008151083, 0.008151105, 0.008151092, 0.008151045],
-     [0.00815108, 0.008151136, 0.008151158, 0.008151145, 0.008151098]],
+    [[0.011527, 0.011527, 0.011527, 0.011527, 0.011527],
+     [0.011527, 0.011527, 0.011527, 0.011527, 0.011527],
+     [0.011527, 0.011527, 0.011527, 0.011527, 0.011527],
+     [0.011527, 0.011527, 0.011527, 0.011527, 0.011527],
+     [0.011527, 0.011527, 0.011527, 0.011527, 0.011527]],
     # 3.2 A
-    [[0.007896386, 0.007896441, 0.007896462, 0.00789645, 0.007896404],
-     [0.007896323, 0.007896378, 0.007896399, 0.007896386, 0.00789634],
-     [0.007896296, 0.007896351, 0.007896372, 0.00789636, 0.007896314],
-     [0.007896306, 0.007896361, 0.007896382, 0.007896369, 0.007896323],
-     [0.007896353, 0.007896407, 0.007896429, 0.007896416, 0.00789637]]
+    [[0.011167, 0.011167, 0.011167, 0.011167, 0.011167],
+     [0.011167, 0.011167, 0.011167, 0.011167, 0.011167],
+     [0.011167, 0.011167, 0.011167, 0.011167, 0.011167],
+     [0.011167, 0.011167, 0.011167, 0.011167, 0.011167],
+     [0.011167, 0.011167, 0.011167, 0.011167, 0.011167]]
     ])
 
 
-# Euation 11.31
+# Equation 11.31
 gold_log_bins_example1 = np.array([
     [0.000089, 0.000100, 0.000113],
     [0.000113, 0.000126, 0.000142],
@@ -809,21 +808,40 @@ def test_log_bins_calculator():
         # Calculate Delta L
         delta_l = (c_max - c_max) / total_num_bins
         print('[TEST] Bin size DeltaL = {}'.format(delta_l))
-
+        # Define an array of k, i.e., [0, 1, 2, ...]
         if decade_on_center:
             # x_min and 10^{c_max} on the first and last bin center
-            # Call Equation 11.31 ...
-            pass
-
+            # Equation 11.31: number of bins will be N + 1 for bin on the center
+            vec_k = np.arange(total_num_bins + 1).astype(float)
+            bin_centers = np.power(10, delta_l * vec_k + c_min)
         else:
             # x_min and 10^{c_max} on the first and last bin boundary
-            pass
+            # Equation 11.29
+            vec_k = np.arange(total_num_bins).astype(float)
+            bin_centers = np.power(10, delta_l * (vec_k + 0.5) + c_min)
+        # END-IF-ELSE
 
-        # Example 1
+        # Calculate bin boundaries from bin center
+        # Equation 11.30
+        bin_edges = np.ndarray(shape=(bin_centers.shpae[0]+1,), dtype=float)
+        bin_edges[1:-1] = 0.5 * (bin_centers[:-1] + bin_centers[1:])
 
-        # Example 2
-        # Equation 11.29 - 11.30
-        return c_min, c_max, total_num_bins, delta_l
+        if decade_on_center:
+            # x_min and 10^{c_max} are on the first and last bin center
+            # then first and last bin edges/boundaries are defined as
+            # 10^{C_min - deltaL / 2 } and 10^{C_max + deltaL / 2}
+            # according to the paragraph after equation 11.31
+            bin_edges[0] = np.power(10, c_min - 0.5 * delta_l)
+            bin_edges[-1] = np.power(10, c_max + 0.5 * delta_l)
+        else:
+            # x_min and 10^{c_max} on the first and last bin boundary
+            # then first and last bin edges/boundaries are defined as
+            # Q_min and Q_max (or X_min and X_max in generalized form)
+            bin_edges[0] = x_min
+            bin_edges[-1] = x_max
+        # END-IF-ELSE
+
+        return c_min, c_max, total_num_bins, delta_l, bin_centers, bin_edges
 
     # Example 1
     print('[TEST] Example 1')
@@ -832,7 +850,11 @@ def test_log_bins_calculator():
     n_bins_example1 = 10
 
     test_set = _determine_log_bins(q_min_example1, q_max_example1, n_bins_example1, True)
-    assert test_set
+    print(gold_log_bins_example1[:, 1])
+    print(test_set[4])
+    print(gold_log_bins_example1[:, 0])
+    print(test_set[5])
+    np.testing.assert_allclose(test_set[4], gold_log_bins_example1[:, 1], rtol=1e-7, atol=1e-10)
 
     # Example 3
     q_min = 0.0015

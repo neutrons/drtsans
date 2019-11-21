@@ -179,4 +179,33 @@ def plot_detector(workspace, filename, backend='d3'):
     backend: Backend
         Which backend to save the file using
     '''
-    raise NotImplementedError()
+    from drtsans.sensitivity import Detector  # to get number of tubes, pixels, etc
+
+    backend = Backend.getMode(backend)
+
+    isBIOSANS = workspace.getInstrument().getName() in ['CG3', 'BIOSANS']
+    detector_names = ['detector1']
+    if isBIOSANS:
+        detector_names.append('wing_detector')
+
+    fig = plt.figure()
+    for i, det_name in enumerate(detector_names):
+        ax = fig.add_subplot(len(detector_names), 1, i+1)
+        det_info = Detector(workspace, det_name)
+        n_pix = det_info.n_pixels_per_tube
+        det_start = det_info.first_det_id
+        det_end = det_info.last_det_id
+        data = workspace.extractY()[det_start:det_end+1, 0]
+        data[data < 1e-10] = 1e-10
+        spectrum_info = workspace.spectrumInfo()
+        mask = [spectrum_info.isMasked(index) for index in range(det_start, det_end+1)]
+        data = np.ma.masked_where(mask, data)
+        data = data.reshape(-1, 8, n_pix)[:, [0, 4, 1, 5, 2, 6, 3, 7], :].reshape(-1, n_pix).T
+        im = ax.imshow(data, norm=LogNorm(vmin=1), aspect='auto', origin='lower')
+        im.cmap.set_bad(alpha=0.5)
+        ax.set_xlabel('tube')
+        ax.set_ylabel('pixel')
+        ax.set_title(f'{det_name}')
+        fig.colorbar(im, ax=ax)
+    fig.tight_layout()
+    _saveFile(fig, filename, backend)

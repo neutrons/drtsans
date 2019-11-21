@@ -854,10 +854,23 @@ def test_log_bins_calculator():
     n_bins_example1 = 10
 
     test_set = _determine_log_bins(q_min_example1, q_max_example1, n_bins_example1, True)
-    print(gold_log_bins_example1[:, 1])
     print(test_set[4])
-    print(gold_log_bins_example1[:, 0])
+    print(gold_log_bins_example1[:, 1])
+
     print(test_set[5])
+    print(gold_log_bins_example1[:, 0])
+    diffs = np.sqrt(np.power(test_set - gold_log_bins_example1, 2))
+    print('Max Mean Diff = {}'.format(np.max(diffs)))
+
+    # Verify with expected value
+    gold_c_min = -4
+    gold_c_max = -1
+    gold_n_bins = 30
+    gold_delta_l = 0.1
+    assert abs(test_set[0]) < 1E-10, '{} != {}'.format(test_set[0], gold_c_min)
+    assert abs(test_set[1]) < 1E-10, '{} != {}'.format(test_set[1], gold_c_max)
+    assert abs(test_set[2]) < 1E-10, '{} != {}'.format(test_set[2], gold_n_bins)
+    assert abs(test_set[3]) < 1E-10, '{} != {}'.format(test_set[3], gold_delta_l)
     np.testing.assert_allclose(test_set[4], gold_log_bins_example1[:, 1], rtol=1e-7, atol=1e-10)
 
     # Example 3

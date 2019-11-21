@@ -120,7 +120,7 @@ def test_center_detector():
     assert inst.getDetector(49151).getPos() == approx([-1.025015, -0.179043, -0.0234656], abs=1e-5)
 
 
-# x_center of the detector given in
+# center_x of the detector given in
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/264/beam_center_testR1.xlsx
 # with additional padding in the boundary
 x = np.array([[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
@@ -134,7 +134,7 @@ x = np.array([[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
               [2.2, 4.9, 10.2, 15.0, 20.0, 24.8, 30.3, 35.3, 40.2, 40.7],
               [2.3, 2.4, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 40.8]])
 
-# y_center of the detector
+# center_y of the detector
 y = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 40.2, 40.7, 40.2, 40.0, 39.8, 39.8, 39.9, 40.3, 0],
               [0, 35.0, 35.1, 34.9, 35.1, 34.8, 35.0, 35.0, 35.2, 0],

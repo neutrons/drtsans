@@ -1,6 +1,5 @@
 # import numpy as np
 import pytest
-
 r"""
 Hyperlinks to drtsans functions
 namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
@@ -49,7 +48,7 @@ def data_test_16b():
                                  0.0441, 0.0461, 0.0481, 0.0501, 0.0521],
                                 [0.000241, 0.000261, 0.000281, 0.000301, 0.000321, 0.000341, 0.000361, 0.000381,
                                  0.000401, 0.000421, 0.000441, 0.000461, 0.000481, 0.000501, 0.000521])],
-                target=0,  # profile of the previous list of IQmod objets defining the overall scale.
+                target_index=0,  # profile of the previous list of IQmod objets defining the overall scale.
                 overlaps=[0.01, 0.014, 0.025, 0.029],  # [(start, end), (start, end)] overlap regions
                 stitched=IQmod([3.16227766e+01, 2.79508497e+00, 6.76200688e-01, 2.47052942e-01, 1.13137085e-01,
                                 5.97682620e-02, 3.48463150e-02, 2.18366010e-02, 1.44594310e-02, 1.00000000e-02,
@@ -89,11 +88,11 @@ def test_stitch(data_test_16b):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py>
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
-    SME - Weiren Chen <chenw@ornl.gov>, LiLin He <hel3@ornl.gov>
+    SME - Wei-Ren Chen <chenw@ornl.gov>, LiLin He <hel3@ornl.gov>
     """
     data = data_test_16b  # handy shortcut
     # call the drtsans function
-    result = stitch_profiles(data.profiles, data.overlaps, target_profile=data.target)
+    result = stitch_profiles(data.profiles, data.overlaps, target_profile_index=data.target_index)
     # Check for differences between "result" and "data.stitched" profiles. We check for differences in:
     # - intensities
     # - uncertainties in intensities

@@ -9,7 +9,7 @@ from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
 from drtsans.process_uncertainties import set_init_uncertainties
 
-__all__ = ['load_events', 'load_histogram', 'transform_to_wavelength']
+__all__ = ['load_events', 'load_histogram', 'transform_to_wavelength', 'load_mono']
 
 
 def load_events(run, output_workspace=None, data_dir=None, overwrite_instrument=False, **kwargs):
@@ -128,3 +128,24 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
     input_workspace = set_init_uncertainties(output_workspace)
 
     return mtd[output_workspace]
+
+
+def load_mono(filename, **kwargs):
+    r"""
+    Loads a SANS data file produce by the HFIR instruments at ORNL.
+
+    Parameters
+    ----------
+
+    filename: int, str
+        Examples: ``55555`` or ``CG3_55555`` or file path.
+    kwargs:
+        keyword arguments for load_events or load_histogram.
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+    """
+    try:
+        return load_events(filename, **kwargs)
+    except RuntimeError:
+        return load_histogram(filename, **kwargs)

@@ -10,7 +10,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 
 import drtsans  # noqa E402
-from drtsans.stitch import stitch_profiles
+from drtsans.stitch import stitch_profiles  # noqa E402
 from drtsans.plots import plot_IQmod  # noqa E402
 from drtsans.mono import biosans as sans  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     # Stitch the main detector and the wing
     overlap = 0.2
-    q_start = np.max(iq_1.mod_q) -overlap * (np.max(iq_1.mod_q) - np.min(iq_1.mod_q))
+    q_start = np.max(iq_1.mod_q) - overlap * (np.max(iq_1.mod_q) - np.min(iq_1.mod_q))
     q_end = overlap * (np.max(iq_2.mod_q) - np.min(iq_2.mod_q)) + np.min(iq_2.mod_q)
     merged_profile = stitch_profiles(profiles=[iq_1, iq_2],
                                      overlaps=[q_start, q_end])

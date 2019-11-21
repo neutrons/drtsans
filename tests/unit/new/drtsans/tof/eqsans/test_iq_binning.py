@@ -421,7 +421,7 @@ def test_1d_bin_linear_no_wt():
     # verify sigmaI[3] = 2.218889:
     assert abs(binned_iq.error[3] - 2.218889) < 1E-6, 'error'
     # verify sigma_Q[3] = 1.154E-02
-    assert binned_iq.delta_mod_q[3] == pytest.approx(1.135e-02, abs=2.E-5), \
+    assert binned_iq.delta_mod_q[3] == pytest.approx(1.154e-02, abs=2.E-5), \
         'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
 
     # Test high level method
@@ -869,11 +869,11 @@ def test_log_bins_calculator():
     gold_c_max = -1
     gold_n_bins = 30
     gold_delta_l = 0.1
-    assert abs(test_set[0]) < 1E-10, '{} != {}'.format(test_set[0], gold_c_min)
-    assert abs(test_set[1]) < 1E-10, '{} != {}'.format(test_set[1], gold_c_max)
-    assert abs(test_set[2]) < 1E-10, '{} != {}'.format(test_set[2], gold_n_bins)
-    assert abs(test_set[3]) < 1E-10, '{} != {}'.format(test_set[3], gold_delta_l)
-    np.testing.assert_allclose(test_set[4], gold_log_bins_example1[:, 1], rtol=1e-7, atol=1e-10)
+    assert abs(test_set[0] - gold_c_min) < 1E-10, '{} != {}'.format(test_set[0], gold_c_min)
+    assert abs(test_set[1] - gold_c_max) < 1E-10, '{} != {}'.format(test_set[1], gold_c_max)
+    assert abs(test_set[2] - gold_n_bins) < 1E-10, '{} != {}'.format(test_set[2], gold_n_bins)
+    assert abs(test_set[3] - gold_delta_l) < 1E-10, '{} != {}'.format(test_set[3], gold_delta_l)
+    np.testing.assert_allclose(test_set[4], gold_log_bins_example1[:, 1], rtol=1e-7, atol=1e-6)
 
     # Example 3
     q_min = 0.0015

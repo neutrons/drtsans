@@ -416,10 +416,10 @@ def test_1d_bin_linear_no_wt():
     assert abs(binned_iq.mod_q[3] - 0.0035) < 1E-6, 'Q[3] {} shall be {} +/- 1e-6' \
                                                     ''.format(binned_iq.delta_mod_q[3], 0.0035)
     # verify I[3]
-    assert abs(binned_iq.intensity[3] - 68.92857) < 1E-6, 'Intensity[3] shall be 68.92857 but not {}' \
+    assert abs(binned_iq.intensity[3] - 68.92857) < 1E-5, 'Intensity[3] shall be 68.92857 but not {}' \
                                                           ''.format(binned_iq.intensity[3])
     # verify sigmaI[3] = 2.218889:
-    assert abs(binned_iq.error[3] - 2.218889) < 1E-7, 'error'
+    assert abs(binned_iq.error[3] - 2.218889) < 1E-6, 'error'
     # verify sigma_Q[3] = 1.154E-02
     assert binned_iq.delta_mod_q[3] == pytest.approx(1.135e-02, abs=2.E-5), \
         'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
@@ -858,11 +858,11 @@ def test_log_bins_calculator():
     test_set = _determine_log_bins(q_min_example1, q_max_example1, n_bins_example1, True)
     print(test_set[4])
     print(gold_log_bins_example1[:, 1])
+    diffs = np.abs(test_set[4] - gold_log_bins_example1[:, 1])
+    print('Max Mean Diff = {}'.format(np.max(diffs)))
 
     print(test_set[5])
     print(gold_log_bins_example1[:, 0])
-    diffs = np.abs(test_set - gold_log_bins_example1)
-    print('Max Mean Diff = {}'.format(np.max(diffs)))
 
     # Verify with expected value
     gold_c_min = -4

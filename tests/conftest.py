@@ -555,6 +555,7 @@ def generic_IDF(request):
     """
     return idf_xml_factory('rectangular detector', request)
 
+
 @pytest.fixture()
 def generic_workspace(generic_IDF, request):
     '''

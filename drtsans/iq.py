@@ -398,13 +398,13 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
     Parameters
     ----------
     q_array: ndarray
-        scaler momentum transfer Q
+        scalar momentum transfer Q in 1D array flattened from 2D detector
     dq_array: ndarray
-        scaler momentum transfer (Q) resolution
+        scalar momentum transfer (Q) resolution in 1D array flattened from 2D detector
     iq_array: ndarray
-        I(Q)
+        I(Q) in 1D array flattened from 2D detector
     sigmaq_array: ndarray
-        sigma I(Q)
+        sigma I(Q) in 1D array flattened from 2D detector
     bin_centers: numpy.ndarray
         bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
     bin_edges: numpy.ndarray
@@ -412,12 +412,13 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
     Returns
     -------
     ~drtsans.dataobjects.IQmod
-        the one dimensional data as a named tuple
+        IQmod is a class for holding 1D binned data.
+
     """
     # check input
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
 
-    # Number of I(q) in each target Q bin
+    # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
     num_pt_array, bin_x = np.histogram(q_array, bins=bin_edges)
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
@@ -426,16 +427,17 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
     # Square of summed uncertainties for each bin
     sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array ** 2)
 
-    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
-    #       sigma = 1/sqrt(w_k)
+    # Final I(Q):     I_k       = \frac{I_{k, raw}}{N_k}
     i_final_array = i_raw_array / num_pt_array
+    # Final sigma(Q): sigmaI_k  = \frac{sigmaI_{k, raw}}{N_k}
     sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
 
     # Calculate Q resolution of binned
     binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
     bin_q_resolution = binned_dq / num_pt_array
 
-    # Get the final result
+    # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
+    # IQmod is a class for holding 1D binned data.
     return IQmod(intensity=i_final_array, error=sigma_final_array,
                  mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 
@@ -448,13 +450,13 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
     Parameters
     ----------
     q_array: ndarray
-        scaler momentum transfer Q
+        scalar momentum transfer Q in 1D array flattened from 2D detector
     dq_array: ndarray
-        scaler momentum transfer (Q) resolution
+        scalar momentum transfer (Q) resolution in 1D array flattened from 2D detector
     iq_array: ndarray
-        I(Q)
+        I(Q) in 1D array flattened from 2D detector
     sigma_iq_array: ndarray
-        sigma I(Q)
+        sigma I(Q) in 1D array flattened from 2D detector
     bin_centers: numpy.ndarray
         bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
     bin_edges: numpy.ndarray
@@ -462,7 +464,8 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
     Returns
     -------
     ~drtsans.dataobjects.IQmod
-        the one dimensional data as a named tuple
+        IQmod is a class for holding 1D binned data.
+
     """
     # check input
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
@@ -487,7 +490,8 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
     binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
     bin_q_resolution = binned_dq / i_raw_array
 
-    # Get the final result
+    # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
+    # IQmod is a class for holding 1D binned data.
     return IQmod(intensity=i_final_array, error=sigma_final_array,
                  mod_q=bin_centers, delta_mod_q=bin_q_resolution)
 

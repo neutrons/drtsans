@@ -723,11 +723,12 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         y_center = float(req_params.get('y_center', 0))
         z_center = float(req_params.get('z_center', 5.0))
         l1 = float(req_params.get('l1', 5.0))
+        max_pixel_index = number_tubes * number_pixels - 1
         #
         # Generate the tube type
         y_start = - number_pixels * (pixel_height / 2.)
         y_end = y_start + number_pixels * pixel_height
-        locations = [f'        <location name="pixel{i}" y="{y}/>'
+        locations = [f'        <location name="pixel{i}" y="{y:.5f}"/>'
                      for i, y in enumerate(np.linspace(y_start, y_end, number_pixels))]
         tube_type = r'''<type outline="yes" name="tube">
     <properties/>
@@ -737,9 +738,9 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
   </type>'''.format(locations_str='\n'.join(locations))
         #
         # Generate the n-pack type
-        x_start = - number_tubes * (tube_center_spacing / 2.)
-        x_end = x_start + number_tubes * tube_center_spacing
-        locations = [f'        <location name="tube{i}" x="{x}"/>'
+        x_start = - (number_tubes - 1) * (tube_center_spacing / 2.)
+        x_end = x_start + (number_tubes - 1) * tube_center_spacing
+        locations = [f'        <location name="tube{i}" x="{x:.5f}"/>'
                      for i, x in enumerate(np.linspace(x_start, x_end, number_tubes))]
         n_pack_type = r'''  <type name="n_pack">
     <properties/>
@@ -752,7 +753,9 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         geometry_params = {'instrument_name': instrument_name, 'l1': l1, 'pixel_radius': pixel_radius,
                            'pixel_height': pixel_height, 'tube_type': tube_type, 'n_pack_type': n_pack_type,
                            'x_center': x_center, 'y_center': y_center, 'z_center': z_center,
-                           'dx_mm': 2000 * pixel_radius, 'dy_mm': 1000 * pixel_height}
+                           'dx_mm': 2000 * pixel_radius, 'dy_mm': 1000 * pixel_height,
+                           'max_pixel_index': max_pixel_index
+                           }
         template_xml = r'''<?xml version="1.0" encoding="UTF-8"?>
 <instrument name="{instrument_name}" valid-from="1900-01-31 23:59:59" valid-to="2100-12-31 23:59:59"
  last-modified="2019-07-12 00:00:00">
@@ -780,7 +783,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     <type name="pixel" is="detector">
         <cylinder id="cyl-approx">
             <centre-of-bottom-base r="0.0" t="0.0" p="0.0"/> <axis x="0.00000" y="1.00000" z="0.00000"/>
-            <radius val="{pixel_radius}}"/> <height val="{pixel_height}"/>
+            <radius val="{pixel_radius}"/> <height val="{pixel_height}"/>
         </cylinder>
       <algebra val="cyl-approx"/>
     </type>
@@ -801,8 +804,13 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     <component type="n_pack" idlist="n_panel_ids" name="detector1">
         <location x="{x_center}" y="{y_center}" z="{z_center}" rot="180.0" axis-x="0" axis-y="1" axis-z="0">
         </location>
-  </component>
+    </component>
 
+    <!--DETECTOR IDs-->
+    <idlist idname="n_panel_ids">
+        <id start="0" end="{max_pixel_index}"/>
+    </idlist>
+  
     <parameter name="x-pixel-size">
         <value val="{dx_mm}"/>
     </parameter>

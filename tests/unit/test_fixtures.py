@@ -1,8 +1,8 @@
 import numpy as np
-from mantid.kernel import V3D
 import pytest
 from pytest import approx
 
+from mantid.kernel import V3D
 
 @pytest.mark.skip(reason="only for debugging")
 def test_eqsans_w(eqsans_w):
@@ -167,6 +167,13 @@ def test_generate_IDF_defaults(generic_IDF):
 
 def test_generate_IDF_minimal(generic_IDF):
     assert generic_IDF
+
+
+@pytest.mark.parametrize('n_pack_IDF', [{'n_tubes': 4, 'spacing': 0.0, 'z_center': 0.0}], indirect=True)
+def test_n_pack_IDF(n_pack_IDF):
+    expected = ''''''
+    open('/tmp/junk_Definition.xml', 'w').write(n_pack_IDF)
+    assert n_pack_IDF == expected
 
 
 def test_generate_workspace_defaults(generic_workspace):

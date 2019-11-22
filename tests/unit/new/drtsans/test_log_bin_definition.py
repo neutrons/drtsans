@@ -250,7 +250,7 @@ def test_example1():
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example1[:, 2], rtol=1e-7, atol=1e-6)
 
 
-def test_example2():
+def next_test_example2():
     # Test data for both Example 1 and Example 2
     q_min_example1 = 0.0001
     q_max_example1 = 0.036398139
@@ -261,7 +261,7 @@ def test_example2():
     # Verify with expected value
     gold_c_min = -4
     gold_c_max = -1
-    gold_n_bins = 31
+    gold_n_bins = 30
     gold_delta_l = 0.1
     assert abs(test_set[0] - gold_c_min) < 1E-10, '{} != {}'.format(test_set[0], gold_c_min)
     assert abs(test_set[1] - gold_c_max) < 1E-10, '{} != {}'.format(test_set[1], gold_c_max)
@@ -279,7 +279,7 @@ def test_example2():
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example2[:, 2], rtol=1e-7, atol=1e-6)
 
 
-def test_example3():
+def next_test_example3():
     # Example 3
     print('[TEST] Example 3: Min Q and Max Q on bin boundaries')
     q_min_example3 = 0.0015

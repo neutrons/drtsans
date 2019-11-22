@@ -533,6 +533,26 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
 
 @pytest.fixture(scope='function')
 def generic_IDF(request):
+    r"""
+    Rectangular detector with Nx X Ny pixels
+
+    Parameters
+    ----------
+
+    request is a dictionary containing the following keys:
+
+        name: Name of the instrument     (default: GenericSANS)
+        Nx : number of columns                      (default 3)
+        Ny : number of rows                         (default 3)
+        dx : width of a column in meters            (default 1)
+        dy : height of a row in meters              (default 1)
+        xc : distance of center along the x axis    (default 0)
+        yc : distance of center along the y axis    (default 0)
+        zc : distance of center along the z axis    (default 5)
+        l1 : distance from source to sample       (default -11)
+
+    Note that we use Mantid convention for the orientation
+    """
     return idf_xml_factory('rectangular detector', request)
 
 @pytest.fixture()

@@ -179,13 +179,6 @@ class Detector(object):
         detector_info = self._workspace.spectrumInfo()
         return np.array([detector_info.position(int(idx))[1] for idx in self.get_current_ws_indices_range()])
 
-    @property
-    def _tube_y_coordinates(self):
-        r"""
-        Syntactic sugar for getter function and for backwards compatibility.
-        """
-        return self.get_y_coordinates()
-
 
 def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
                       polynomial_degree):

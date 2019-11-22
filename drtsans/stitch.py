@@ -1,5 +1,7 @@
 import numpy as np
 
+__all__ = ['stitch_profiles', ]
+
 
 def stitch_profiles(profiles, overlaps, target_profile_index=0):
     r"""

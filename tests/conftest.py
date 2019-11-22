@@ -381,68 +381,76 @@ def _getDataDimensions(req_params):
                 return Nx, Ny, 1
 
 
-@pytest.fixture(scope='function')
-def generic_IDF(request):
-    '''
-    generate a test IDF with a rectangular detector
-    with Nx X Ny pixels
+def idf_xml_factory(idf_xml_name, request):  # noqa: C901
+    r"""
+    Produces an instrument definition file in XML format.
 
     Parameters
     ----------
+    idf_xml_name: str
+        Instrument geometry. Available options are:
+        - 'rectangular detector' for a flat pixelated detector.
+    request: ~pytest.request
+        Parameters of the instrument.
 
-    request is a dictionary containing the following keys:
+    Returns
+    -------
+    str
+    """
+    #################
+    # Below comes the functions in charge of creating specific instrument geometries
+    #################
+    def rectangular_detector(req_params):
+        r"""
+        Rectangular detector with Nx X Ny pixels
 
-        name: Name of the instrument     (default: GenericSANS)
-        Nx : number of columns                      (default 3)
-        Ny : number of rows                         (default 3)
-        dx : width of a column in meters            (default 1)
-        dy : height of a row in meters              (default 1)
-        xc : distance of center along the x axis    (default 0)
-        yc : distance of center along the y axis    (default 0)
-        zc : distance of center along the z axis    (default 5)
-        l1 : distance from source to sample       (default -11)
+        Parameters
+        ----------
 
-    Note that we use Mantid convention for the orientation
-    '''
-    # try to get the parent in case of sub-requests
-    try:
-        req_params = request.param
-    except AttributeError:
-        try:
-            req_params = request._parent_request.param
-        except AttributeError:
-            req_params = dict()
+        request is a dictionary containing the following keys:
 
-    # use hidden attibutes to get data dimension, Nx and Ny can override this
-    Nx, Ny, _ = _getDataDimensions(req_params)
+            name: Name of the instrument     (default: GenericSANS)
+            Nx : number of columns                      (default 3)
+            Ny : number of rows                         (default 3)
+            dx : width of a column in meters            (default 1)
+            dy : height of a row in meters              (default 1)
+            xc : distance of center along the x axis    (default 0)
+            yc : distance of center along the y axis    (default 0)
+            zc : distance of center along the z axis    (default 5)
+            l1 : distance from source to sample       (default -11)
 
-    # get the parameters from the request object
-    params = {'name': req_params.get('name', 'GenericSANS'),
-              'l1': -1. * abs(float(req_params.get('l1', -11.))),
-              'Nx': Nx,
-              'Ny': Ny,
-              'dx': float(req_params.get('dx', 1.)),
-              'dy': float(req_params.get('dy', 1.)),
-              'xcenter': float(req_params.get('xc', 0.)),
-              'ycenter': float(req_params.get('yc', 0.)),
-              'zcenter': float(req_params.get('zc', 5.))}
-    params['dx_mm'] = params['dx'] * 1000.
-    params['dy_mm'] = params['dy'] * 1000.
+        Note that we use Mantid convention for the orientation
+        """
+        # use hidden attibutes to get data dimension, Nx and Ny can override this
+        Nx, Ny, _ = _getDataDimensions(req_params)
 
-    # check that nothing is crazy
-    assert (params['Nx'] > 1 and params['Nx'] < 300)
-    assert (params['Ny'] >= 1 and params['Ny'] < 300)
-    assert params['dx'] > 0.
-    assert params['dy'] > 0.
-    assert params['zcenter'] >= 0.
+        # get the parameters from the request object
+        params = {'name': req_params.get('name', 'GenericSANS'),
+                  'l1': -1. * abs(float(req_params.get('l1', -11.))),
+                  'Nx': Nx,
+                  'Ny': Ny,
+                  'dx': float(req_params.get('dx', 1.)),
+                  'dy': float(req_params.get('dy', 1.)),
+                  'xcenter': float(req_params.get('xc', 0.)),
+                  'ycenter': float(req_params.get('yc', 0.)),
+                  'zcenter': float(req_params.get('zc', 5.))}
+        params['dx_mm'] = params['dx'] * 1000.
+        params['dy_mm'] = params['dy'] * 1000.
 
-    # derived parameters
-    params['half_dx'] = params['dx'] * .5
-    params['half_dy'] = params['dy'] * .5
-    params['xstart'] = -(params['Nx']-1) * params['half_dx']
-    params['ystart'] = -(params['Ny']-1) * params['half_dy']
+        # check that nothing is crazy
+        assert (params['Nx'] > 1 and params['Nx'] < 300)
+        assert (params['Ny'] >= 1 and params['Ny'] < 300)
+        assert params['dx'] > 0.
+        assert params['dy'] > 0.
+        assert params['zcenter'] >= 0.
 
-    template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
+        # derived parameters
+        params['half_dx'] = params['dx'] * .5
+        params['half_dy'] = params['dy'] * .5
+        params['xstart'] = -(params['Nx'] - 1) * params['half_dx']
+        params['ystart'] = -(params['Ny'] - 1) * params['half_dy']
+
+        template_xml = '''<?xml version="1.0" encoding="UTF-8"?>
 <instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
@@ -504,10 +512,28 @@ def generic_IDF(request):
         <value val="{dy_mm}"/>
     </parameter>
 </instrument>'''
+        # return the completed template
+        return template_xml.format(**params)
 
-    # return the completed template
-    return template_xml.format(**params)
+    ###############
+    # Below comes the calling to the specific instrument geometry constructor
+    ###############
+    # try to get the parent request, in case of sub-requests
+    try:
+        req_params = request.param
+    except AttributeError:
+        try:
+            req_params = request._parent_request.param
+        except AttributeError:
+            req_params = dict()
+    # Select the instrument geometry and apply the constructor
+    constructor = {'rectangular detector': rectangular_detector}
+    return constructor[idf_xml_name](req_params)
 
+
+@pytest.fixture(scope='function')
+def generic_IDF(request):
+    return idf_xml_factory('rectangular detector', request)
 
 @pytest.fixture()
 def generic_workspace(generic_IDF, request):

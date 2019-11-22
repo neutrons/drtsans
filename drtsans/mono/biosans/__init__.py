@@ -8,6 +8,9 @@ from ...absolute_units import *
 import drtsans.iq
 from ...iq import *
 
+import drtsans.stitch
+from ...stitch import *
+
 import drtsans.thickness_normalization
 from ...thickness_normalization import *
 
@@ -39,6 +42,7 @@ from .solid_angle import *  # overrides drtsans.solid_angle
 
 __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.iq.__all__\
+          + drtsans.stitch.__all__\
           + drtsans.thickness_normalization.__all__\
           + drtsans.transmission.__all__\
           + drtsans.mono.absolute_units.__all__\

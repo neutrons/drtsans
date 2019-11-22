@@ -307,7 +307,7 @@ def test_example3():
     q_min_example4 = 0.000436726
     q_max_example4 = 0.036398139
 
-    test_set = define_log_bin(q_min_example4, q_max_example4, n_bins_example1, False)
+    test_set = define_log_bin(q_min_example4, q_max_example4, n_bins_example3, False)
     # Verify with expected value
     gold_c_min = -3.359790455
     gold_c_max = -1.438920817

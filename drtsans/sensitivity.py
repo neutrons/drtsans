@@ -186,16 +186,6 @@ class Detector(object):
         """
         return self.get_y_coordinates()
 
-    @property
-    def pixel_widths(self):
-        r"""
-        Widths for each pixel of the currently considered tube.
-
-        Returns
-        -------
-        ~numpy.ndarray
-        """
-
 
 def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
                       polynomial_degree):

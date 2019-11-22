@@ -29,7 +29,7 @@ def test_frame_skipper(frame_skipper):
                          [{'Nx': 4, 'Ny': 4}],
                          indirect=True)
 def test_generate_IDF(generic_IDF):
-    expected = '''<?xml version=\'1.0\' encoding=\'UTF-8\'?>
+    expected = '''<?xml version="1.0" encoding="UTF-8"?>
 <instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
@@ -99,7 +99,7 @@ def test_generate_IDF(generic_IDF):
                          [{}],
                          indirect=True)
 def test_generate_IDF_defaults(generic_IDF):
-    expected = '''<?xml version=\'1.0\' encoding=\'UTF-8\'?>
+    expected = '''<?xml version="1.0" encoding="UTF-8"?>
 <instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">

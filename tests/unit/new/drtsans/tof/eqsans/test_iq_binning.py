@@ -3,7 +3,7 @@ from drtsans.dataobjects import IQazimuthal, IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import _determine_1d_linear_bins, _determine_1d_log_bins, _do_1d_no_weight_binning,\
     BinningMethod, _do_2d_weighted_binning, _do_2d_no_weight_binning,\
-    bin_annular_into_q1d, bin_wedge_into_q1d, BinningParams, bin_intensity_into_q1d, bin_iq_into_linear_q2d
+    bin_annular_into_q1d, bin_wedge_into_q1d, BinningParams, bin_intensity_into_q1d, bin_intensity_into_q2d
 import pytest
 
 # This test implements issue #169 to verify
@@ -420,7 +420,7 @@ def test_2d_linear_bin():
                            delta_qx=dqx_array, delta_qy=dqy_array)
     qx_bin_params = BinningParams(qx_min, qx_max, 5)
     qy_bin_params = BinningParams(qy_min, qy_max, 5)
-    binned_iq_2d_wt = bin_iq_into_linear_q2d(test_i_q, qx_bin_params, qy_bin_params, BinningMethod.WEIGHTED)
+    binned_iq_2d_wt = bin_intensity_into_q2d(test_i_q, qx_bin_params, qy_bin_params, BinningMethod.WEIGHTED)
     # verify
     np.testing.assert_allclose(binned_iq_2d[0], binned_iq_2d_wt.intensity, atol=1E-10)
 

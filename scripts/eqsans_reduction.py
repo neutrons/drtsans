@@ -8,7 +8,7 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
-from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_iq_into_linear_q2d, BinningParams  # noqa E402
+from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d, BinningParams  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         qy_max = np.max(result.qy)
         binning_y = BinningParams(qy_min, qy_max, numQBins2D)
 
-        binned_i_of_qxqy = bin_iq_into_linear_q2d(result, binning_x, binning_y, BinningMethod.WEIGHTED)
+        binned_i_of_qxqy = bin_intensity_into_q2d(result, binning_x, binning_y, BinningMethod.WEIGHTED)
         fig, ax = plt.subplots()
         pcm = ax.pcolormesh(binned_i_of_qxqy.qx, binned_i_of_qxqy.qy, binned_i_of_qxqy.intensity,
                             norm=colors.LogNorm())

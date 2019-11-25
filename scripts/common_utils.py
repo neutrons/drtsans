@@ -106,7 +106,7 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
     qy_max = np.max(q_data.qy)
     binning_y = BinningParams(qy_min, qy_max, nbins)
 
-    iq_output = drtsans.iq.bin_iq_into_linear_q2d(q_data,
+    iq_output = drtsans.iq.bin_intensity_into_q2d(q_data,
                                                   qx_bin_params=binning_x,
                                                   qy_bin_params=binning_y,
                                                   method=BinningMethod.NOWEIGHT)

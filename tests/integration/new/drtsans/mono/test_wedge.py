@@ -3,7 +3,7 @@ import numpy as np
 from collections import namedtuple
 from mantid.simpleapi import CreateWorkspace, SaveNexus
 from drtsans.dataobjects import IQazimuthal
-from drtsans.mono.wedge import _toQmodAndPhi
+from drtsans.mono.wedge import _toQmodAndPhi, _binInQAndPhi
 from drtsans.settings import unique_workspace_dundername
 
 
@@ -37,7 +37,7 @@ def _create_2d_data():
     return data2d
 
 
-def test_qmod_and_phi():
+def test_calc_qmod_and_phi():
     data2d = _create_2d_data()
 
     # convert to q and phi
@@ -69,10 +69,264 @@ def test_qmod_and_phi():
                         [211, 217, 225, 236, 252, 270, 288, 304, 315, 323, 329],
                         [219, 225, 233, 243, 256, 270, 284, 297, 307, 315, 321],
                         [225, 231, 239, 248, 259, 270, 281, 292, 301, 309, 315]], dtype=float)
-    phi = np.rad2deg(phi)  # makes comparing with spreadsheet easier
 
     np.testing.assert_allclose(qmod, q_exp, atol=.005)
     np.testing.assert_allclose(phi, phi_exp, atol=.5)
+
+def test_bin_into_q_and_phi():
+    data2d = _create_2d_data()
+    num_phi = int(545./5) + 1
+    num_q = 8
+    q_min = .5
+
+    # get the histogrammed data
+    intensity, error, phi, q = _binInQAndPhi(data2d, q_min=q_min, q_max=6.5, q_delta=1, phi_delta=5)
+
+    # verify generic shape and range values
+    assert intensity.shape == (num_phi-1, num_q-1)
+    assert error.shape == (num_phi-1, num_q-1)
+    #assert phi.min() == 0.
+    #assert phi.max() == 545. # using bin boundaries
+    assert phi.shape == (num_phi,)
+    assert len(phi) == num_phi
+    assert q.min() == q_min
+    assert q.max() == 7.5 # using bin boundaries
+    assert len(q) == num_q
+    assert q.shape == (num_q,)
+
+    # numbers taken from the spreadsheet
+    intensity_exp = np.array([[3000, 2300, 1300, 800, 500, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 400, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 700, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 1000, np.nan, 350, np.nan, np.nan],
+                              [np.nan, 1500, np.nan, 600, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 330, np.nan],
+                              [np.nan, np.nan, np.nan, 700, 380, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 310, np.nan],
+                              [220, np.nan, 240, 400, np.nan, 280, 180],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 190, np.nan],
+                              [np.nan, np.nan, np.nan, 290, 180, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 210, np.nan],
+                              [np.nan, 320, np.nan, 300, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 280, np.nan, 250, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 190, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 230, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [180, 320, 380, 290, 210, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 220, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 230, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 430, np.nan, 190, np.nan, np.nan],
+                              [np.nan, 220, np.nan, 230, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 150, np.nan],
+                              [np.nan, np.nan, np.nan, 210, 220, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 190, np.nan],
+                              [200, np.nan, 200, 300, np.nan, 150, 200],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 180, np.nan],
+                              [np.nan, np.nan, np.nan, 420, 200, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 200, np.nan],
+                              [np.nan, 1500, np.nan, 550, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 1100, np.nan, 400, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 600, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 500, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [3100, 2200, 1500, 700, 600, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 500, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 600, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 1200, np.nan, 400, np.nan, np.nan],
+                              [np.nan, 1500, np.nan, 550, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 250, np.nan],
+                              [np.nan, np.nan, np.nan, 230, 320, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 200, np.nan],
+                              [400, np.nan, 280, 220, np.nan, 220, 150],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 190, np.nan],
+                              [np.nan, np.nan, np.nan, 220, 180, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 220, np.nan],
+                              [np.nan, 380, np.nan, 200, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 250, np.nan, 180, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 300, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 190, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [250, 240, 340, 330, 280, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 220, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 230, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 340, np.nan, 290, np.nan, np.nan],
+                              [np.nan, 200, np.nan, 300, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 220, np.nan],
+                              [np.nan, np.nan, np.nan, 290, 180, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 220, np.nan],
+                              [240, np.nan, 220, 220, np.nan, 280, 150],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 320, np.nan],
+                              [np.nan, np.nan, np.nan, 700, 220, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 300, np.nan],
+                              [np.nan, 1500, np.nan, 600, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 1000, np.nan, 350, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 700, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 400, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [3000, 2300, 1300, 800, 500, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 400, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 700, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 1000, np.nan, 350, np.nan, np.nan],
+                              [np.nan, 1500, np.nan, 600, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 330, np.nan],
+                              [np.nan, np.nan, np.nan, 700, 380, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 310, np.nan],
+                              [220, np.nan, 240, 400, np.nan, 280, 180],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 190, np.nan],
+                              [np.nan, np.nan, np.nan, 290, 180, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 210, np.nan],
+                              [np.nan, 320, np.nan, 300, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 280, np.nan, 250, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 190, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 230, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [180, 320, 380, 290, 210, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 220, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 230, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 430, np.nan, 190, np.nan, np.nan],
+                              [np.nan, 220, np.nan, 230, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 150, np.nan],
+                              [np.nan, np.nan, np.nan, 210, 220, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 190, np.nan],
+                              [200, np.nan, 200, 300, np.nan, 150, 200],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 180, np.nan],
+                              [np.nan, np.nan, np.nan, 420, 200, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, 200, np.nan],
+                              [np.nan, 1500, np.nan, 550, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, 1100, np.nan, 400, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, 600, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, 500, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [3100, 2200, 1500, 700, 600, np.nan, np.nan]], dtype=float)
+
+    error_exp = np.array([[54.8, 48.0, 36.1, 28.3, 22.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 20.0, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 26.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 31.6, np.nan, 18.7, np.nan, np.nan],
+                          [np.nan, 38.7, np.nan, 24.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 18.2, np.nan],
+                          [np.nan, np.nan, np.nan, 26.5, 19.5, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 17.6, np.nan],
+                          [14.8, np.nan, 15.5, 20.0, np.nan, 16.7, 13.4],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 13.8, np.nan],
+                          [np.nan, np.nan, np.nan, 17.0, 13.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.5, np.nan],
+                          [np.nan, 17.9, np.nan, 17.3, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 16.7, np.nan, 15.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 13.8, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 15.2, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [13.4, 17.9, 19.5, 17.0, 14.5, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 14.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 15.2, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 20.7, np.nan, 13.8, np.nan, np.nan],
+                          [np.nan, 14.8, np.nan, 15.2, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 12.2, np.nan],
+                          [np.nan, np.nan, np.nan, 14.5, 14.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 13.8, np.nan],
+                          [14.1, np.nan, 14.1, 17.3, np.nan, 12.2, 14.1],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 13.4, np.nan],
+                          [np.nan, np.nan, np.nan, 20.5, 14.1, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.1, np.nan],
+                          [np.nan, 38.7, np.nan, 23.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 33.2, np.nan, 20.0, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 24.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 22.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [55.7, 46.9, 38.7, 26.5, 24.5, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 22.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 24.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 34.6, np.nan, 20.0, np.nan, np.nan],
+                          [np.nan, 38.7, np.nan, 23.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 15.8, np.nan],
+                          [np.nan, np.nan, np.nan, 15.2, 17.9, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.1, np.nan],
+                          [20.0, np.nan, 16.7, 14.8, np.nan, 14.8, 12.2],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 13.8, np.nan],
+                          [np.nan, np.nan, np.nan, 14.8, 13.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.8, np.nan],
+                          [np.nan, 19.5, np.nan, 14.1, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 15.8, np.nan, 13.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 17.3, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 13.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [15.8, 15.5, 18.4, 18.2, 16.7, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 14.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 15.2, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 18.4, np.nan, 17.0, np.nan, np.nan],
+                          [np.nan, 14.1, np.nan, 17.3, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.8, np.nan],
+                          [np.nan, np.nan, np.nan, 17.0, 13.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.8, np.nan],
+                          [15.5, np.nan, 14.8, 14.8, np.nan, 16.7, 12.2],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 17.9, np.nan],
+                          [np.nan, np.nan, np.nan, 26.5, 14.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 17.3, np.nan],
+                          [np.nan, 38.7, np.nan, 24.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 31.6, np.nan, 18.7, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 26.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 20.0, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [54.8, 48.0, 36.1, 28.3, 22.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 20.0, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 26.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 31.6, np.nan, 18.7, np.nan, np.nan],
+                          [np.nan, 38.7, np.nan, 24.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 18.2, np.nan],
+                          [np.nan, np.nan, np.nan, 26.5, 19.5, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 17.6, np.nan],
+                          [14.8, np.nan, 15.5, 20.0, np.nan, 16.7, 13.4],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 13.8, np.nan],
+                          [np.nan, np.nan, np.nan, 17.0, 13.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.5, np.nan],
+                          [np.nan, 17.9, np.nan, 17.3, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 16.7, np.nan, 15.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 13.8, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 15.2, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [13.4, 17.9, 19.5, 17.0, 14.5, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 14.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 15.2, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 20.7, np.nan, 13.8, np.nan, np.nan],
+                          [np.nan, 14.8, np.nan, 15.2, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 12.2, np.nan],
+                          [np.nan, np.nan, np.nan, 14.5, 14.8, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 13.8, np.nan],
+                          [14.1, np.nan, 14.1, 17.3, np.nan, 12.2, 14.1],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 13.4, np.nan],
+                          [np.nan, np.nan, np.nan, 20.5, 14.1, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, 14.1, np.nan],
+                          [np.nan, 38.7, np.nan, 23.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, 33.2, np.nan, 20.0, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, 24.5, np.nan, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, 22.4, np.nan, np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [55.7, 46.9, 38.7, 26.5, 24.5, np.nan, np.nan]], dtype=float)
+    assert intensity_exp.shape == error_exp.shape
+
+    print('requested Q={}'.format(q))
+
+    # validate results
+    assert intensity.shape == intensity_exp.shape
+    #for i in [0, 1] + list(range(3, len(intensity)-3)):
+    for i in range(len(intensity)):
+        np.testing.assert_allclose(intensity[i], intensity_exp[i], atol=.05, equal_nan=True,
+                                   err_msg='i={} phi={}deg'.format(i, phi[i]))
+    np.testing.assert_allclose(intensity, intensity_exp, atol=.05, equal_nan=True)
+    assert error.shape == error_exp.shape
+    np.testing.assert_allclose(error, error_exp, atol=.05, equal_nan=True)
 
 
 def test_wedge():

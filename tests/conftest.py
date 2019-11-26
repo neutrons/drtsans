@@ -389,6 +389,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     ----------
     idf_xml_name: str
         Instrument geometry. Available options are:
+        - :py:obj:`None` for a search of value associated to key 'instrument_geometry' within parameter ``request``.
         - 'rectangular detector' for a flat pixelated detector.
         - 'arbitrary assembly' for a collection of cylindrical pixels with arbitrary arrangement in space.
         - 'n-pack' for a flat detector made up of n tubes.
@@ -398,7 +399,14 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
 
     Returns
     -------
-    str
+    dict
+        Keys and descriptions:
+        - idf_xml: instrument in XML format
+        - Nx: number of pixels along X-dimension, number of tubes, 1 for 'arbitrary assembly'.
+        - Ny: number of pixels along Y-dimension, number of pixels per tube, number of pixels in 'arbitrary assembly'.
+        - view: either 'array' or 'pixel'. In array-view the first index of the input data arrays travels each tube
+            from top to bottom, and the second index travels across tubes. In pixel-view the first index travels
+            across tubes and the second index travels each tube from bottom to top. (default 'pixel').
     """
     #################
     # Below comes the functions in charge of creating specific instrument geometries
@@ -515,8 +523,8 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         <value val="{dy_mm}"/>
     </parameter>
 </instrument>'''
-        # return the completed template
-        return template_xml.format(**params)
+        # return the completed template and the parameter interface
+        return {'idf_xml': template_xml.format(**params), 'Nx': Nx, 'Ny': Ny}
 
     def arbitrary_assembly(req_params):
         r"""
@@ -670,9 +678,9 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     </idlist>
 </instrument>'''
         # return the completed template
-        return template_xml.format(name=params['name'], l1=params['l1'],
-                                   pixel_blocks=pixel_blocks, pixel_locations=pixel_locations,
-                                   max_pixels_id=number_pixels - 1)
+        return {'idf_xml': template_xml.format(name=params['name'], l1=params['l1'], pixel_blocks=pixel_blocks,
+                                               pixel_locations=pixel_locations, max_pixels_id=number_pixels - 1),
+                'Nx': 1, 'Ny': number_pixels}
 
     def n_pack(req_params):
         r"""
@@ -819,7 +827,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         <value val="{dy_mm}"/>
     </parameter>
 </instrument>'''
-        return template_xml.format(**geometry_params)
+        return {'idf_xml': template_xml.format(**geometry_params), 'Nx': number_tubes, 'Ny': number_pixels}
 
     ###############
     # Below comes the calling to the specific instrument geometry constructor
@@ -836,7 +844,11 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     constructor = {'rectangular detector': rectangular_detector,
                    'arbitrary assembly': arbitrary_assembly,
                    'n-pack': n_pack}
-    return constructor[idf_xml_name](req_params)
+    if idf_xml_name is None:
+        idf_xml_name = req_params.get('instrument_geometry', 'rectangular detector')
+    idf_interface = constructor[idf_xml_name](req_params)
+    idf_interface.update({'view': req_params.pop('view', 'pixel')})
+    return idf_interface
 
 
 @pytest.fixture(scope='function')
@@ -861,7 +873,7 @@ def generic_IDF(request):
 
     Note that we use Mantid convention for the orientation
     """
-    return idf_xml_factory('rectangular detector', request)
+    return idf_xml_factory('rectangular detector', request)['idf_xml']
 
 
 @pytest.fixture(scope='function')
@@ -886,7 +898,7 @@ def arbitrary_assembly_IDF(request):
 
     Note that we use Mantid convention for the orientation
     """
-    return idf_xml_factory('arbitrary assembly', request)
+    return idf_xml_factory('arbitrary assembly', request)['idf_xml']
 
 
 @pytest.fixture(scope='function')
@@ -926,7 +938,7 @@ def n_pack_IDF(request):
     str
         IDF in XML format
     """
-    return idf_xml_factory('n-pack', request)
+    return idf_xml_factory('n-pack', request)['idf_xml']
 
 
 @pytest.fixture()

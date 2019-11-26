@@ -1,7 +1,8 @@
 import numpy as np
-from mantid.kernel import V3D
 import pytest
 from pytest import approx
+
+from mantid.kernel import V3D
 
 
 @pytest.mark.skip(reason="only for debugging")
@@ -167,6 +168,86 @@ def test_generate_IDF_defaults(generic_IDF):
 
 def test_generate_IDF_minimal(generic_IDF):
     assert generic_IDF
+
+
+@pytest.mark.parametrize('n_pack_IDF', [{'n_tubes': 2, 'n_pixels': 2, 'spacing': 0.0, 'z_center': 0.0}], indirect=True)
+def test_n_pack_IDF(n_pack_IDF):
+    expected = '''<?xml version="1.0" encoding="UTF-8"?>
+<instrument name="GenericSANS" valid-from="1900-01-31 23:59:59" valid-to="2100-12-31 23:59:59"
+ last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>  <angle unit="degree"/> <reference-frame> <along-beam axis="z"/>
+        <pointing-up axis="y"/> <handedness val="right"/> <theta-sign axis="x"/>  </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="5.0"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+    <!---->
+    <!--TYPE: PIXEL FOR STANDARD PIXEL TUBE-->
+    <!---->
+    <type name="pixel" is="detector">
+        <cylinder id="cyl-approx">
+            <centre-of-bottom-base r="0.0" t="0.0" p="0.0"/> <axis x="0.00000" y="1.00000" z="0.00000"/>
+            <radius val="0.004025"/> <height val="0.00225"/>
+        </cylinder>
+      <algebra val="cyl-approx"/>
+    </type>
+
+    <!---->
+    <!--TYPE: STANDARD PIXEL TUBE-->
+    <!---->
+    <type outline="yes" name="tube">
+    <properties/>
+    <component type="pixel">
+        <location name="pixel0" y="-0.00225"/>
+        <location name="pixel1" y="0.00225"/>
+    </component>
+  </type>
+
+    <!---->
+    <!--TYPE: N-PACK-->
+    <!---->
+      <type name="n_pack">
+    <properties/>
+    <component type="tube">
+        <location name="tube0" x="-0.00402"/>
+        <location name="tube1" x="0.00402"/>
+    </component>
+    </type>
+
+    <!---->
+    <!--COMPONENT: N-PACK-->
+    <!---->
+    <component type="n_pack" idlist="n_panel_ids" name="detector1">
+        <location x="0.0" y="0.0" z="0.0" rot="180.0" axis-x="0" axis-y="1" axis-z="0">
+        </location>
+    </component>
+
+    <!--DETECTOR IDs-->
+    <idlist idname="n_panel_ids">
+        <id start="0" end="3"/>
+    </idlist>
+
+    <parameter name="x-pixel-size">
+        <value val="8.05"/>
+    </parameter>
+
+    <parameter name="y-pixel-size">
+        <value val="2.25"/>
+    </parameter>
+</instrument>'''
+    assert n_pack_IDF == expected
 
 
 def test_generate_workspace_defaults(generic_workspace):

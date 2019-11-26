@@ -391,6 +391,8 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         Instrument geometry. Available options are:
         - 'rectangular detector' for a flat pixelated detector.
         - 'arbitrary assembly' for a collection of cylindrical pixels with arbitrary arrangement in space.
+        - 'n-pack' for a flat detector made up of n tubes.
+
     request: ~pytest.request
         Parameters of the instrument.
 
@@ -672,6 +674,153 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
                                    pixel_blocks=pixel_blocks, pixel_locations=pixel_locations,
                                    max_pixels_id=number_pixels - 1)
 
+    def n_pack(req_params):
+        r"""
+        Rectangular detector with variable number of tubes pixels per tube.
+
+        Note that we use Mantid convention for the orientation.
+
+        Parameters
+        ----------
+        request: dict
+            Keys and description:
+            name: str
+                Name of the instrument (default: GenericSANS)
+            n_tubes: int
+                Number of tubes (default 4)
+            n_pixels: int
+                Number of pixels per tube (default 256)
+            radius: float
+                Width of a tube in meters (default 0.00805)
+            height: float
+                Height of a pixel in meters (default 0.00409)
+            spacing: float
+                Spacing between tube edges, in meters (default 0.00295)
+            x_center: float
+                Detector center x-coordinate (default 0)
+            y_center: float
+                Detector center y-coordinate (default 0)
+            z_center: float
+                Detector center z-coordinate (default 5)
+            l1 : float
+                Distance from source to sample (default -11)
+
+        Returns
+        -------
+        str
+            IDF in XML format
+        """
+        #
+        # Gather the geometry parameters
+        instrument_name = req_params.get('name', 'GenericSANS')
+        number_tubes = int(req_params.get('n_tubes', 4))
+        number_pixels = int(req_params.get('n_pixels', 256))
+        pixel_radius = float(req_params.get('radius', 0.00805)) / 2.0
+        pixel_height = float(req_params.get('height', 0.00225))
+        # distance between tube centers along the X-axis
+        tube_center_spacing = 2 * pixel_radius + float(req_params.get('spacing', 0.00295))
+        x_center = float(req_params.get('x_center', 0))
+        y_center = float(req_params.get('y_center', 0))
+        z_center = float(req_params.get('z_center', 5.0))
+        l1 = float(req_params.get('l1', 5.0))
+        max_pixel_index = number_tubes * number_pixels - 1
+        #
+        # Generate the tube type
+        y_start = - number_pixels * (pixel_height / 2.)
+        y_end = y_start + number_pixels * pixel_height
+        locations = [f'        <location name="pixel{i}" y="{y:.5f}"/>'
+                     for i, y in enumerate(np.linspace(y_start, y_end, number_pixels))]
+        tube_type = r'''<type outline="yes" name="tube">
+    <properties/>
+    <component type="pixel">
+{locations_str}
+    </component>
+  </type>'''.format(locations_str='\n'.join(locations))
+        #
+        # Generate the n-pack type
+        x_start = - (number_tubes - 1) * (tube_center_spacing / 2.)
+        x_end = x_start + (number_tubes - 1) * tube_center_spacing
+        locations = [f'        <location name="tube{i}" x="{x:.5f}"/>'
+                     for i, x in enumerate(np.linspace(x_start, x_end, number_tubes))]
+        n_pack_type = r'''  <type name="n_pack">
+    <properties/>
+    <component type="tube">
+{locations_str}
+    </component>
+    </type>'''.format(locations_str='\n'.join(locations))
+        #
+        # Put everything together
+        geometry_params = {'instrument_name': instrument_name, 'l1': l1, 'pixel_radius': pixel_radius,
+                           'pixel_height': pixel_height, 'tube_type': tube_type, 'n_pack_type': n_pack_type,
+                           'x_center': x_center, 'y_center': y_center, 'z_center': z_center,
+                           'dx_mm': 2000 * pixel_radius, 'dy_mm': 1000 * pixel_height,
+                           'max_pixel_index': max_pixel_index
+                           }
+        template_xml = r'''<?xml version="1.0" encoding="UTF-8"?>
+<instrument name="{instrument_name}" valid-from="1900-01-31 23:59:59" valid-to="2100-12-31 23:59:59"
+ last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>  <angle unit="degree"/> <reference-frame> <along-beam axis="z"/>
+        <pointing-up axis="y"/> <handedness val="right"/> <theta-sign axis="x"/>  </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="{l1}"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+    <!---->
+    <!--TYPE: PIXEL FOR STANDARD PIXEL TUBE-->
+    <!---->
+    <type name="pixel" is="detector">
+        <cylinder id="cyl-approx">
+            <centre-of-bottom-base r="0.0" t="0.0" p="0.0"/> <axis x="0.00000" y="1.00000" z="0.00000"/>
+            <radius val="{pixel_radius}"/> <height val="{pixel_height}"/>
+        </cylinder>
+      <algebra val="cyl-approx"/>
+    </type>
+
+    <!---->
+    <!--TYPE: STANDARD PIXEL TUBE-->
+    <!---->
+    {tube_type}
+
+    <!---->
+    <!--TYPE: N-PACK-->
+    <!---->
+    {n_pack_type}
+
+    <!---->
+    <!--COMPONENT: N-PACK-->
+    <!---->
+    <component type="n_pack" idlist="n_panel_ids" name="detector1">
+        <location x="{x_center}" y="{y_center}" z="{z_center}" rot="180.0" axis-x="0" axis-y="1" axis-z="0">
+        </location>
+    </component>
+
+    <!--DETECTOR IDs-->
+    <idlist idname="n_panel_ids">
+        <id start="0" end="{max_pixel_index}"/>
+    </idlist>
+
+    <parameter name="x-pixel-size">
+        <value val="{dx_mm}"/>
+    </parameter>
+
+    <parameter name="y-pixel-size">
+        <value val="{dy_mm}"/>
+    </parameter>
+</instrument>'''
+        return template_xml.format(**geometry_params)
+
     ###############
     # Below comes the calling to the specific instrument geometry constructor
     ###############
@@ -685,7 +834,8 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
             req_params = dict()
     # Select the instrument geometry and apply the constructor
     constructor = {'rectangular detector': rectangular_detector,
-                   'arbitrary assembly': arbitrary_assembly}
+                   'arbitrary assembly': arbitrary_assembly,
+                   'n-pack': n_pack}
     return constructor[idf_xml_name](req_params)
 
 
@@ -737,6 +887,46 @@ def arbitrary_assembly_IDF(request):
     Note that we use Mantid convention for the orientation
     """
     return idf_xml_factory('arbitrary assembly', request)
+
+
+@pytest.fixture(scope='function')
+def n_pack_IDF(request):
+    r"""
+    Rectangular detector with variable number of tubes pixels per tube.
+
+    Note that we use Mantid convention for the orientation.
+
+    Parameters
+    ----------
+    request: dict
+        Keys and description:
+        name: str
+            Name of the instrument (default: GenericSANS)
+        n_tubes: int
+            Number of tubes (default 4)
+        n_pixels: int
+            Number of pixels per tube (default 256)
+        radius: float
+            Width of a tube in meters (default 0.00805)
+        height: float
+            Height of a pixel in meters (default 0.00409)
+        spacing: float
+            Spacing between tube edges, in meters (default 0.00295)
+        x_center: float
+            Detector center x-coordinate (default 0)
+        y_center: float
+            Detector center y-coordinate (default 0)
+        z_center: float
+            Detector center z-coordinate (default 5)
+        l1 : float
+            Distance from source to sample (default -11)
+
+    Returns
+    -------
+    str
+        IDF in XML format
+    """
+    return idf_xml_factory('n-pack', request)
 
 
 @pytest.fixture()
@@ -855,15 +1045,22 @@ def generic_workspace(generic_IDF, request):
 @pytest.fixture(scope='function')  # noqa: C901
 def workspace_with_instrument(generic_IDF, request):
     r"""
-    Workspace factory with a given instrument.
+    Factory of workspaces for a an instrument of a selected geometry.
 
-    The fixture is used by passing arguments to the `generic_IDF` fixture as a dictionary. For instance:
+    The fixture is used by passing arguments to the fixture as a dictionary. For instance:
 
     .. :code:block:
 
-       @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
+       @pytest.mark.parametrize('workspace_with_instrument',
+                               [{'instrument_geometry': 'arbitrary assembly', 'Nx': 1, 'Ny': 256}], indirect=True)
 
-    Once inside the test function, the factory is called with the following optional arguments:
+    Key 'instrument_geometry' determines which IDF to use. Available options are:
+        - 'rectangular detector' for a flat pixelated detector.
+        - 'arbitrary assembly' for a collection of cylindrical pixels with arbitrary arrangement in space.
+        - 'n-pack' for a flat detector made up of n tubes.
+    If key 'instrument_geometry' is missing, a 'rectangular detector' geometry will be selected.
+
+    Once inside the test function, the workspace factory is called with the following optional arguments:
         output_workspace: Name of the workspace (default: random name prefixed with '__')
         axis_values : 1D array or list of the independent axis for the data. It will be copied across
             all spectra (default 0 for all spectra)
@@ -883,12 +1080,14 @@ def workspace_with_instrument(generic_IDF, request):
     Parameters
     ----------
     request: str
-        A dictionary containing the following keys:
+        A dictionary containing these keys common to all instrument geometries:
+            instrument_geometry: key for the instrument factory (default: 'rectangular detector')
             name: Name of the instrument     (default: GenericSANS)
             Nx : number of columns (a.k.a number of tubes) (default 3)
-            Ny : number of rows (a.k.a tube length)     (default 3)
-            dx : width of a column in meters            (default 1)
-            dy : height of a row in meters              (default 1)
+            Ny : number of rows (a.k.a pixels per tube)    (default 3)
+        The following keys are common to 'rectangular detector' and 'n-pack':
+            dx : width of a column (tube) in meters            (default 1)
+            dy : height of a row (tube) in meters              (default 1)
             xc : distance of center along the x axis    (default 0)
             yc : distance of center along the y axis    (default 0)
             zc : distance of center along the z axis    (default 5)

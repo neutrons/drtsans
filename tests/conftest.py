@@ -390,6 +390,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     idf_xml_name: str
         Instrument geometry. Available options are:
         - 'rectangular detector' for a flat pixelated detector.
+        - 'arbitrary assembly' for a collection of cylindrical pixels with arbitrary arrangement in space.
     request: ~pytest.request
         Parameters of the instrument.
 
@@ -515,6 +516,162 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         # return the completed template
         return template_xml.format(**params)
 
+    def arbitrary_assembly(req_params):
+        r"""
+        generate a test IDF with a cylindrical detector pixels
+
+        Parameters
+        ----------
+        req_params: dict
+            Keys and description:
+            name: str
+                Name of the instrument (default: GenericSANS)
+            radius: list
+                Pixel radii in meters (default 1)
+            height: list
+                Pixel heights in meters (default 1)
+            pixel_center: list
+                Pixel center positions given as a list of X-coordinates, a list of Y-coords, and a list of Z-coords.
+            l1 : float
+                Distance from source to sample  (default -11)
+
+        Note that we use Mantid convention for the orientation
+        """
+
+        def pixel_location(pixel_number, xcenter, ycenter, zcenter):
+            r"""
+            Utility function to specify the pixel location in the space
+
+            Parameters
+            ----------
+            pixel_number: int
+                Number of pixels
+            xcenter: float
+                Distance of center along the x axis
+            ycenter: float
+                Distance of center along the y axis
+            zcenter: float
+                Distance of center along the z axis
+
+            Returns
+            -------
+            str
+                A component pixel in .xml format of specifying the pixel location in space
+            """
+            return """
+        <component type="pixel_{pixel_number}" name="pixel_{pixel_number}">
+            <location y="{ycenter}" x="{xcenter}" z="{zcenter}"/>
+        </component>
+""".format(pixel_number=pixel_number, xcenter=xcenter, ycenter=ycenter, zcenter=zcenter)
+
+        def pixel_block(pixel_number, radius, height):
+            r"""
+            Utility function for generating the cylindrical shape of the detector
+
+            Parameters
+            ----------
+            pixel_number: int
+                Number of pixels.
+            radius: float
+                Radius of cylinder detector in meters
+            height: float
+                Height of the cylinder detector in meters
+
+            Returns
+            -------
+            str
+                A type for a cylindrical detector
+            """
+            return """
+    <type is="detector" name="pixel_{pixel_number}">
+        <cylinder id="cyl-approx">
+            <centre-of-bottom-base x="0" y="-{half_y}" z="0"/>
+            <axis x="0.0" y="1.0" z="0.0"/>
+            <radius val="{radius}"/>
+            <height val="{height}"/>
+        </cylinder>
+        <algebra val="cyl-approx"/>
+    </type>
+""".format(pixel_number=pixel_number, half_y=height * 0.5, radius=radius, height=height)
+
+        # get the parameters from the request object
+        params = {'name': req_params.get('name', 'GenericSANS'),
+                  'l1': -1. * abs(float(req_params.get('l1', -11.))),
+                  'radius': req_params.get('radius', 0.0025),
+                  'height': req_params.get('height', 0.005),
+                  'pixel_centers': req_params.get('pixel_centers'),
+                  }
+        number_pixels = len(params['pixel_centers'])
+        # check that nothing is crazy
+        if (depth(params['radius'])) == 0:
+            params['radius'] = [params['radius']] * number_pixels
+        if (depth(params['height'])) == 0:
+            params['height'] = [params['height']] * number_pixels
+        assert (len(params['radius']) > 1 and len(params['radius']) < 300)
+        assert (len({len(params['radius']), len(params['height']),
+                     len(params['pixel_centers'])}) == 1)
+        assert params['radius'] > [0] * number_pixels
+        assert params['height'] > [0] * number_pixels
+        assert list(list(zip(*params['pixel_centers']))[-1]) >= [0] * number_pixels  # zcenter has to be positive
+        pixel_blocks = [pixel_block(i, params['radius'][i],
+                                    params['height'][i]) for i in range(number_pixels)]
+        pixel_blocks = '\n'.join(pixel_blocks)
+        pixel_locations = [pixel_location(i, *params['pixel_centers'][i])
+                           for i in range(number_pixels)]
+        pixel_locations = '\n'.join(pixel_locations)
+        template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
+<instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
+                               valid-to     ="2100-12-31 23:59:59"
+                               last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>
+        <angle unit="degree"/>
+        <reference-frame>
+        <along-beam axis="z"/>
+        <pointing-up axis="y"/>
+        <handedness val="right"/>
+        <theta-sign axis="x"/>
+        </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="{l1}"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+
+    <!-- Pixel for Detectors-->
+{pixel_blocks}
+
+    <type name="arbitrary_assembly">
+{pixel_locations}
+    </type>
+
+     <!-- Arbitrary Assembly of Cylindrical Detector-->
+    <component type="arbitrary_assembly" name="detector1" idlist="pixel_ids">
+        <location/>
+    </component>
+
+  <!---->
+  <!--LIST OF PIXEL IDs in DETECTOR-->
+  <!---->
+  <idlist idname="pixel_ids">
+    <id end="{max_pixels_id}" start="0"/>
+    </idlist>
+</instrument>'''
+        # return the completed template
+        return template_xml.format(name=params['name'], l1=params['l1'],
+                                   pixel_blocks=pixel_blocks, pixel_locations=pixel_locations,
+                                   max_pixels_id=number_pixels - 1)
+
     ###############
     # Below comes the calling to the specific instrument geometry constructor
     ###############
@@ -527,7 +684,8 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         except AttributeError:
             req_params = dict()
     # Select the instrument geometry and apply the constructor
-    constructor = {'rectangular detector': rectangular_detector}
+    constructor = {'rectangular detector': rectangular_detector,
+                   'arbitrary assembly': arbitrary_assembly}
     return constructor[idf_xml_name](req_params)
 
 
@@ -554,6 +712,31 @@ def generic_IDF(request):
     Note that we use Mantid convention for the orientation
     """
     return idf_xml_factory('rectangular detector', request)
+
+
+@pytest.fixture(scope='function')
+def arbitrary_assembly_IDF(request):
+    r"""
+    generate a test IDF with a cylindrical detector pixels
+
+    Parameters
+    ----------
+    request: dict
+        Keys and description:
+        name: str
+            Name of the instrument (default: GenericSANS)
+        radius: list
+            Pixel radii in meters (default 1)
+        height: list
+            Pixel heights in meters (default 1)
+        pixel_center: list
+            Pixel center positions given as a list of X-coordinates, a list of Y-coords, and a list of Z-coords.
+        l1 : float
+            Distance from source to sample  (default -11)
+
+    Note that we use Mantid convention for the orientation
+    """
+    return idf_xml_factory('arbitrary assembly', request)
 
 
 @pytest.fixture()
@@ -914,154 +1097,3 @@ def depth(L):
     :return: integer value of depth
     '''
     return (isinstance(L, list) and max(map(depth, L)) + 1)
-
-
-def pixel_block(pixel_number, radius, height):
-    '''
-    generating the cylindrical shape of the detector
-    :param pixel_number:integer of the number of pixels
-    :param radius: float of the radius of cylinder detector in meter
-    :param height: float of the height of the cylinder detector in meter
-    :return: the .xml format generating a cylindrical shape of the detector from height and radius
-    '''
-    return """
-    <type is="detector" name="pixel_{pixel_number}">
-        <cylinder id="cyl-approx">
-            <centre-of-bottom-base x="0" y="-{half_y}" z="0"/>
-            <axis x="0.0" y="1.0" z="0.0"/>
-            <radius val="{radius}"/>
-            <height val="{height}"/>
-        </cylinder>
-        <algebra val="cyl-approx"/>
-    </type>
-""".format(pixel_number=pixel_number, half_y=height*0.5, radius=radius, height=height)
-
-
-def pixel_location(pixel_number, xcenter, ycenter, zcenter):
-    '''
-    specifying the pixel location in the space
-    :param pixel_number: integer of the number of pixels
-    :param xcenter:distance of center along the x axis
-    :param ycenter:distance of center along the y axis
-    :param zcenter:distance of center along the z axis
-    :return: the .xml format of specifying the pixel location in the space
-    '''
-    return """
-        <component type="pixel_{pixel_number}" name="pixel_{pixel_number}">
-            <location y="{ycenter}" x="{xcenter}" z="{zcenter}"/>
-        </component>
-""".format(pixel_number=pixel_number, xcenter=xcenter, ycenter=ycenter, zcenter=zcenter)
-
-
-@pytest.fixture(scope='function')
-def arbitrary_assembly_IDF(request):
-    '''
-    generate a test IDF with a cylindrical detector pixels
-
-    Parameters
-    ----------
-
-    request is a dictionary containing the following keys:
-
-        name: Name of the instrument     (default: GenericSANS)
-        radius : list of radius  in meters            (default 1)
-        height : list of height in meters              (default 1)
-        pixel_center : list of list of distance of center along the x axis,
-                      along the y axis and along the z axis
-        l1 : distance from source to sample       (default -11)
-
-    Note that we use Mantid convention for the orientation
-    '''
-    # try to get the parent in case of sub-requests
-    try:
-        req_params = request.param
-    except AttributeError:
-        try:
-            req_params = request._parent_request.param
-        except AttributeError:
-            req_params = dict()
-
-    # get the parameters from the request object
-    params = {'name': req_params.get('name', 'GenericSANS'),
-              'l1': -1. * abs(float(req_params.get('l1', -11.))),
-              'radius': req_params.get('radius', 0.0025),
-              'height': req_params.get('height', 0.005),
-              'pixel_centers': req_params.get('pixel_centers'),
-              }
-
-    number_pixels = len(params['pixel_centers'])
-
-    # check that nothing is crazy
-    if (depth(params['radius'])) == 0:
-        params['radius'] = [params['radius']]*number_pixels
-    if (depth(params['height'])) == 0:
-        params['height'] = [params['height']] * number_pixels
-    assert (len(params['radius']) > 1 and len(params['radius']) < 300)
-    assert (len({len(params['radius']), len(params['height']),
-                 len(params['pixel_centers'])}) == 1)
-    assert params['radius'] > [0]*number_pixels
-    assert params['height'] > [0]*number_pixels
-    assert list(list(zip(*params['pixel_centers']))[-1]) >= [0]*number_pixels  # zcenter has to be positive
-
-    pixel_blocks = [pixel_block(i, params['radius'][i],
-                                params['height'][i]) for i in range(number_pixels)]
-    pixel_blocks = '\n'.join(pixel_blocks)
-
-    pixel_locations = [pixel_location(i, *params['pixel_centers'][i])
-                       for i in range(number_pixels)]
-
-    pixel_locations = '\n'.join(pixel_locations)
-
-    template_xml = '''<?xml version='1.0' encoding='UTF-8'?>
-<instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
-                               valid-to     ="2100-12-31 23:59:59"
-                               last-modified="2019-07-12 00:00:00">
-    <!--DEFAULTS-->
-    <defaults>
-        <length unit="metre"/>
-        <angle unit="degree"/>
-        <reference-frame>
-        <along-beam axis="z"/>
-        <pointing-up axis="y"/>
-        <handedness val="right"/>
-        <theta-sign axis="x"/>
-        </reference-frame>
-    </defaults>
-
-    <!--SOURCE-->
-    <component type="moderator">
-        <location z="{l1}"/>
-    </component>
-    <type name="moderator" is="Source"/>
-
-    <!--SAMPLE-->
-    <component type="sample-position">
-        <location y="0.0" x="0.0" z="0.0"/>
-    </component>
-    <type name="sample-position" is="SamplePos"/>
-
-
-    <!-- Pixel for Detectors-->
-{pixel_blocks}
-
-    <type name="arbitrary_assembly">
-{pixel_locations}
-    </type>
-
-     <!-- Arbitrary Assembly of Cylindrical Detector-->
-    <component type="arbitrary_assembly" name="detector1" idlist="pixel_ids">
-        <location/>
-    </component>
-
-  <!---->
-  <!--LIST OF PIXEL IDs in DETECTOR-->
-  <!---->
-  <idlist idname="pixel_ids">
-    <id end="{max_pixels_id}" start="0"/>
-    </idlist>
-</instrument>'''
-
-    # return the completed template
-    return template_xml.format(name=params['name'], l1=params['l1'],
-                               pixel_blocks=pixel_blocks, pixel_locations=pixel_locations,
-                               max_pixels_id=number_pixels-1)

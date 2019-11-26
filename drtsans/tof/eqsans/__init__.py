@@ -11,6 +11,9 @@ from ...beam_finder import *
 import drtsans.iq
 from ...iq import *
 
+import drtsans.stitch
+from ...stitch import *
+
 import drtsans.thickness_normalization
 from ...thickness_normalization import *
 
@@ -33,6 +36,7 @@ from .transmission import *
 __all__ = [] + drtsans.absolute_units.__all__ \
           + drtsans.beam_finder.__all__ \
           + drtsans.iq.__all__ \
+          + drtsans.stitch.__all__\
           + drtsans.thickness_normalization.__all__ \
           + drtsans.transmission.__all__ \
           + drtsans.mask_utils.__all__ \

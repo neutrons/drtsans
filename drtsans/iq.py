@@ -71,7 +71,7 @@ def determine_1d_linear_bins(x_min, x_max, bins, x_array=None):
     ----------
     x_min : float
         Q min of bin edge
-    x_max : float
+    x_max : float or None
         Q max of bin edge
     bins : integer
         number of bins

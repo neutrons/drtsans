@@ -4,7 +4,7 @@ import numpy as np
 
 import drtsans  # noqa E402
 import mantid.simpleapi as msapi  # noqa E402
-from drtsans.iq import BinningMethod, BinningParams  # noqa E402
+from drtsans.iq import BinningMethod, determine_1d_linear_bins  # noqa E402
 from drtsans.plots import plot_IQmod, plot_IQazimuthal
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
@@ -79,11 +79,8 @@ def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, nbins
     """
     q_min = np.min(q_data.mod_q)
     q_max = np.max(q_data.mod_q)
-    bin_params = BinningParams(min=q_min, max=q_max, bins=nbins)
-    iq_output = drtsans.iq.bin_intensity_into_q1d(q_data,
-                                                  bin_params=bin_params,
-                                                  linear_binning=linear_binning,
-                                                  bin_method=BinningMethod.NOWEIGHT)
+    linear_bins = determine_1d_linear_bins(q_min, q_max, nbins)
+    iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, linear_bins, bin_method=BinningMethod.NOWEIGHT)
 
     filename = os.path.join(output_dir, output_file + label + '_Iq.txt')
     save_ascii_binned_1D(filename, "I(Q)", iq_output)
@@ -101,14 +98,12 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
     """
     qx_min = np.min(q_data.qx)
     qx_max = np.max(q_data.qx)
-    binning_x = BinningParams(qx_min, qx_max, nbins)
+    linear_x_bins = determine_1d_linear_bins(qx_min, qx_max, nbins)
     qy_min = np.min(q_data.qy)
     qy_max = np.max(q_data.qy)
-    binning_y = BinningParams(qy_min, qy_max, nbins)
+    linear_y_bins = determine_1d_linear_bins(qy_min, qy_max, nbins)
 
-    iq_output = drtsans.iq.bin_intensity_into_q2d(q_data,
-                                                  qx_bin_params=binning_x,
-                                                  qy_bin_params=binning_y,
+    iq_output = drtsans.iq.bin_intensity_into_q2d(q_data, linear_x_bins, linear_y_bins,
                                                   method=BinningMethod.NOWEIGHT)
 
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.txt')

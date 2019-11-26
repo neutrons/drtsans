@@ -219,9 +219,9 @@ def select_i_of_q_by_wedge(i_of_q, min_wedge_angle, max_wedge_angle):
     wedge_i_of_q = IQazimuthal(i_of_q.intensity[wedge_indexes],
                                i_of_q.error[wedge_indexes],
                                i_of_q.qx[wedge_indexes],
-                               i_of_q.qy[wedge_indexes,
+                               i_of_q.qy[wedge_indexes],
                                i_of_q.delta_qx[wedge_indexes],
-                               i_of_q.delta_qy[wedge_indexes]])
+                               i_of_q.delta_qy[wedge_indexes])
 
     return wedge_i_of_q
 

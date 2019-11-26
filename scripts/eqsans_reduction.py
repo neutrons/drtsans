@@ -8,7 +8,8 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
-from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d, BinningParams  # noqa E402
+from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
+from drtsans.iq import determine_1d_linear_bins  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
@@ -177,8 +178,8 @@ if __name__ == "__main__":
         if linear_binning:
             q_min = np.min(result.mod_q)
             q_max = np.max(result.mod_q)
-            binning = BinningParams(q_min, q_max, numQBins1D)
-            binned_i_of_q = bin_intensity_into_q1d(result, binning, True, BinningMethod.WEIGHTED)
+            linear_q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
+            binned_i_of_q = bin_intensity_into_q1d(result, linear_q_bins, BinningMethod.WEIGHTED)
             if len(I_of_q_by_frame) > 1:
                 label = f"frame_{frame_number+1}"
                 save_suffix = f"_frame_{frame_number+1}"
@@ -202,12 +203,12 @@ if __name__ == "__main__":
     for frame_number, result in enumerate(I_of_qxqy_by_frame):
         qx_min = np.min(result.qx)
         qx_max = np.max(result.qx)
-        binning_x = BinningParams(qx_min, qx_max, numQBins2D)
+        qx_bins = determine_1d_linear_bins(qx_min, qx_max, numQBins2D)
         qy_min = np.min(result.qy)
         qy_max = np.max(result.qy)
-        binning_y = BinningParams(qy_min, qy_max, numQBins2D)
+        qy_bins = determine_1d_linear_bins(qy_min, qy_max, numQBins2D)
 
-        binned_i_of_qxqy = bin_intensity_into_q2d(result, binning_x, binning_y, BinningMethod.WEIGHTED)
+        binned_i_of_qxqy = bin_intensity_into_q2d(result, qx_bins, qy_bins, BinningMethod.WEIGHTED)
         fig, ax = plt.subplots()
         pcm = ax.pcolormesh(binned_i_of_qxqy.qx, binned_i_of_qxqy.qy, binned_i_of_qxqy.intensity,
                             norm=colors.LogNorm())

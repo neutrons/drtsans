@@ -16,7 +16,7 @@ __all__ = ['bin_intensity_into_q1d', 'select_i_of_q_by_wedge',
 # bins shall be integer as number of bins
 BinningParams = namedtuple('BinningParams', 'min max bins')
 # Define structure (namedtuple) for bins: bin edges and bin boundaries
-# Both bin edge and bin boundaries shall be 1-dimensional 1D array
+# Both bin edge and bin boundaries shall be 1-dimensional 1D array and 'edges' size is 1 larger than centers
 Bins = namedtuple('Bins', 'edges centers')
 
 
@@ -230,16 +230,14 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     """Annular 1D binning
 
     Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
-
-    theta_min, theta_max,  bins=100,
+    Given I(Qx, Qy) and will convert to I(Q) in the code
 
     Parameters
     ----------
-    i_of_q :  ~collections.namedtuple
-         "intensity": intensity, "error": sigma(I), "qx": qx, "qy": qy, "delta_qx": dqx, "delta_qy", dqy
+    i_of_q :  drtsans.dataobjects.IQazimuthal
+        I(Qx, Qy), sigma I(Qx, Qy), Qx, Qy, dQx and dQy
     theta_bin_params : BinningParams
         binning parameters on annular angle 'theta'
-
         theta_min : float
             minimum value of theta/azimuthal angle
         theta_max : float

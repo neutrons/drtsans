@@ -260,3 +260,35 @@ def get_gold_wedge_angles():
 
     return wedge_angle_array
 
+
+def get_gold_theta_bins():
+    """Get theta bins from EXCEL
+
+    Returns
+    -------
+    ndarray, ndarray
+        bin edges, bin centers
+
+    """
+    theta_centers = np.array([18, 54, 90, 126, 162, 198, 234, 270, 306, 342])
+    theta_edges = np.array([0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360])
+
+    return theta_edges, theta_centers
+
+
+def get_gold_azimuthal_values():
+    """Get the azimuthal values from EXCEL
+
+    Returns
+    -------
+
+    """
+    gold_theta_array = np.array([141.026949, 123.2554061, 94.31432613, 63.21170404, 42.66018375,
+                                 155.9524823, 139.9324658, 97.78839725, 47.53052642, 26.94261266,
+                                 175.230287, 171.0616985, 126.183895, 11.5457636, 5.429158913,
+                                 195.6073192, 207.7689884, 257.6752727, 325.6314615, 342.3498758,
+                                 212.7055538, 230.4368877, 264.5704513, 302.460102, 323.8180773])
+
+    return gold_theta_array
+
+

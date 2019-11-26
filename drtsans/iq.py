@@ -10,7 +10,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 __all__ = ['bin_intensity_into_q1d', 'select_i_of_q_by_wedge',
            'bin_annular_into_q1d', 'bin_intensity_into_q2d', 'BinningMethod', 'check_iq_for_binning',
-           'determine_1d_linear_bins', 'determine_1d_log_bins']
+           'determine_1d_linear_bins', 'determine_1d_log_bins', 'BinningParams']
 
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
@@ -263,11 +263,8 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
 
     Returns
     -------
-    IofQ
-        named tuple for Q, dQ, I(Q), sigma_I(Q)
-        numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray
-        Q, dQ, I, dI
-        Q, Q resolution, I, uncertainty of I
+    drtsans.dataobjects.IQmod
+        Annular-binned I(Q) in 1D
 
     """
     # Determine azimuthal angle bins (i.e., theta bins)

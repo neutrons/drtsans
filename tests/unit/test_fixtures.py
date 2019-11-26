@@ -4,6 +4,7 @@ from pytest import approx
 
 from mantid.kernel import V3D
 
+
 @pytest.mark.skip(reason="only for debugging")
 def test_eqsans_w(eqsans_w):
     pass

@@ -810,7 +810,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     <idlist idname="n_panel_ids">
         <id start="0" end="{max_pixel_index}"/>
     </idlist>
-  
+
     <parameter name="x-pixel-size">
         <value val="{dx_mm}"/>
     </parameter>

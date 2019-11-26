@@ -290,5 +290,3 @@ def get_gold_azimuthal_values():
                                  212.7055538, 230.4368877, 264.5704513, 302.460102, 323.8180773])
 
     return gold_theta_array
-
-

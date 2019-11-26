@@ -4,7 +4,6 @@ from collections import namedtuple
 from drtsans.dataobjects import IQazimuthal, IQmod
 from enum import Enum
 import numpy as np
-from string import Template
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -621,4 +620,3 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
     dqy_final_array = dqy_raw_array / w_2d_array
 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
-

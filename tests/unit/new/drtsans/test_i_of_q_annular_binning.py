@@ -8,6 +8,15 @@ from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data,
 import pytest
 
 
+# This module supports testing data for issue #239.
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/246
+
+# DEV - Wenduo Zhou <petersonpf@ornl.gov>
+# SME - William Heller <hellerwt@ornl.gov>
+
+# All tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
+
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/246
 def test_1d_annular_no_wt():
     """Test '1D_annular_no_sub_no_wt'

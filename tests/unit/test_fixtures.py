@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 from pytest import approx
-
 from mantid.kernel import V3D
 
 
@@ -211,7 +210,7 @@ def test_n_pack_IDF(n_pack_IDF):
     <properties/>
     <component type="pixel">
         <location name="pixel0" y="-0.00225"/>
-        <location name="pixel1" y="0.00225"/>
+        <location name="pixel1" y="0.00000"/>
     </component>
   </type>
 
@@ -336,6 +335,7 @@ def test_serve_events_workspace(serve_events_workspace):
 class TestWorkspaceWithInstrument(object):
 
     def test_workspace_with_instrument_defaults(self, workspace_with_instrument):
+        r"""Default instrument is a rectangular 3x3 detector panel"""
         ws = workspace_with_instrument()
         assert ws
         assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
@@ -354,7 +354,10 @@ class TestWorkspaceWithInstrument(object):
             assert ws2.readY(i).tolist() == y[i]
             assert ws2.readE(i).tolist() == np.sqrt(y[i])
 
-    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
+    @pytest.mark.parametrize('workspace_with_instrument',
+                             [{'instrument_geometry': 'n-pack', 'n_tubes': 3, 'n_pixels': 2,
+                               'diameter': 1.0, 'height': 1.0, 'spacing': 0.0, 'z_center': 0.0}],
+                             indirect=True)
     def test_generate_workspace_mono(self, workspace_with_instrument):
         ws = workspace_with_instrument()  # give it a friendly name
         assert ws
@@ -380,8 +383,8 @@ class TestWorkspaceWithInstrument(object):
         assert ws2.readY(1) == 4.
         assert ws2.readY(3) == 16.
         spectum_info = ws.spectrumInfo()
-        assert spectum_info.position(0) == V3D(1., -.5, 5.)  # row=0, col=0
-        assert spectum_info.position(3) == V3D(0., .5, 5.)  # row=1, col=0
+        assert spectum_info.position(0) == V3D(1., -1., 0.)  # row=0, col=0
+        assert spectum_info.position(3) == V3D(0., 0., 0.)  # row=1, col=0
 
     @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
     def test_generate_workspace_tof(self, workspace_with_instrument):

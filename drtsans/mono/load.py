@@ -145,5 +145,5 @@ def load_mono(filename, **kwargs):
     """
     try:
         return load_events(filename, **kwargs)
-    except RuntimeError:
+    except Exception:
         return load_histogram(filename, **kwargs)

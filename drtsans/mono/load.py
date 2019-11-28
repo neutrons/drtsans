@@ -4,7 +4,7 @@ import os
 from mantid.simpleapi import LoadHFIRSANS, LoadEventNexus, CloneWorkspace, LoadInstrument, HFIRSANS2Wavelength
 from mantid.api import mtd
 
-from drtsans.instruments import instrument_enum_name
+from drtsans.instruments import extract_run_number, instrument_enum_name
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
 from drtsans.process_uncertainties import set_init_uncertainties
@@ -18,8 +18,8 @@ def load_events(run, output_workspace=None, data_dir=None, overwrite_instrument=
 
     Parameters
     ----------
-    run: int, str
-        Examples: ``55555`` or ``CG3_55555`` or file path.
+    run: str, ~mantid.api.IEventWorkspace
+        Examples: ``CG3_55555``, ``CG355555`` or file path.
     output_workspace: str
         If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
     data_dir: str, list
@@ -36,25 +36,23 @@ def load_events(run, output_workspace=None, data_dir=None, overwrite_instrument=
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
-    instrument_name = str(instrument_enum_name(run))  # elucidate which SANS instrument
-    if output_workspace is None:
-        if isinstance(run, str):
-            output_workspace = os.path.split(run)[-1]
-            output_workspace = instrument_name + '_' + output_workspace.split('_')[1]
-            output_workspace = output_workspace.split('.')[0]
-        else:
-            output_workspace = instrument_name + '_' + str(run)
+    instrument_unique_name = str(instrument_enum_name(run))  # elucidate which SANS instrument
+    run_number = str(extract_run_number(run)) if isinstance(run, str) else ''
 
-    if isinstance(run, int) or isinstance(run, str):
-        with amend_config({'default.instrument': instrument_name}, data_dir=data_dir):
+    if output_workspace is None:
+        output_workspace = instrument_unique_name + '_' + run_number
+
+    if isinstance(run, str):
+        with amend_config({'default.instrument': instrument_unique_name}, data_dir=data_dir):
             if overwrite_instrument is not False:
                 kwargs['LoadNexusInstrumentXML'] = False
-            LoadEventNexus(Filename=str(run), OutputWorkspace=output_workspace, LoadMonitors=True, **kwargs)
+            LoadEventNexus(Filename=instrument_unique_name + run_number, OutputWorkspace=output_workspace,
+                           LoadMonitors=True, **kwargs)
     else:
         CloneWorkspace(run, OutputWorkspace=output_workspace)
 
     if overwrite_instrument is not False:
-        optional_arguments = dict(InstrumentName=instrument_name) if overwrite_instrument is True else dict(
+        optional_arguments = dict(InstrumentName=instrument_unique_name) if overwrite_instrument is True else dict(
             Filename=overwrite_instrument)
         LoadInstrument(Workspace=output_workspace, RewriteSpectraMap=False, **optional_arguments)
 
@@ -147,5 +145,5 @@ def load_mono(filename, **kwargs):
     """
     try:
         return load_events(filename, **kwargs)
-    except RuntimeError:
+    except Exception:
         return load_histogram(filename, **kwargs)

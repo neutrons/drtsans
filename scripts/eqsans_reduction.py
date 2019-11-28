@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     # find the beam center
     empty_run = json_params["empty"]["runNumber"]
-    empty_fn = "EQSANS_{}".format(empty_run)
+    empty_fn = json_params["instrumentName"] + empty_run
     # TODO apply empty flag?
     if empty_run != "":
         db_ws = eqsans.load_events(empty_fn)

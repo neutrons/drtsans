@@ -392,13 +392,21 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         - 'rectangular detector' for a flat pixelated detector.
         - 'arbitrary assembly' for a collection of cylindrical pixels with arbitrary arrangement in space.
         - 'n-pack' for a flat detector made up of n tubes.
+        - :py:obj:`None` for a search of value associated to key 'instrument_geometry' within parameter ``request``.
 
     request: ~pytest.request
         Parameters of the instrument.
 
     Returns
     -------
-    str
+    dict
+        Keys and descriptions:
+        - idf_xml: instrument in XML format
+        - Nx: number of pixels along X-dimension, number of tubes, 1 for 'arbitrary assembly'.
+        - Ny: number of pixels along Y-dimension, number of pixels per tube, number of pixels in 'arbitrary assembly'.
+        - view: either 'array' or 'pixel'. In array-view the first index of the input data arrays travels each tube
+            from top to bottom, and the second index travels across tubes. In pixel-view the first index travels
+            across tubes and the second index travels each tube from bottom to top. (default 'pixel').
     """
     #################
     # Below comes the functions in charge of creating specific instrument geometries
@@ -515,8 +523,8 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         <value val="{dy_mm}"/>
     </parameter>
 </instrument>'''
-        # return the completed template
-        return template_xml.format(**params)
+        # return the completed template and the parameter interface
+        return {'idf_xml': template_xml.format(**params), 'Nx': Nx, 'Ny': Ny}
 
     def arbitrary_assembly(req_params):
         r"""
@@ -670,9 +678,9 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     </idlist>
 </instrument>'''
         # return the completed template
-        return template_xml.format(name=params['name'], l1=params['l1'],
-                                   pixel_blocks=pixel_blocks, pixel_locations=pixel_locations,
-                                   max_pixels_id=number_pixels - 1)
+        return {'idf_xml': template_xml.format(name=params['name'], l1=params['l1'], pixel_blocks=pixel_blocks,
+                                               pixel_locations=pixel_locations, max_pixels_id=number_pixels - 1),
+                'Nx': 1, 'Ny': number_pixels}
 
     def n_pack(req_params):
         r"""
@@ -690,7 +698,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
                 Number of tubes (default 4)
             n_pixels: int
                 Number of pixels per tube (default 256)
-            radius: float
+            diameter: float
                 Width of a tube in meters (default 0.00805)
             height: float
                 Height of a pixel in meters (default 0.00409)
@@ -715,7 +723,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         instrument_name = req_params.get('name', 'GenericSANS')
         number_tubes = int(req_params.get('n_tubes', 4))
         number_pixels = int(req_params.get('n_pixels', 256))
-        pixel_radius = float(req_params.get('radius', 0.00805)) / 2.0
+        pixel_radius = float(req_params.get('diameter', 0.00805)) / 2.0
         pixel_height = float(req_params.get('height', 0.00225))
         # distance between tube centers along the X-axis
         tube_center_spacing = 2 * pixel_radius + float(req_params.get('spacing', 0.00295))
@@ -726,8 +734,10 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         max_pixel_index = number_tubes * number_pixels - 1
         #
         # Generate the tube type
-        y_start = - number_pixels * (pixel_height / 2.)
-        y_end = y_start + number_pixels * pixel_height
+        # The reference frame for each pixel is located at the bottom base, hence
+        # the explicit `-(pixel_height / 2.)` last term in the `y_start` assignment expression.
+        y_start = - (number_pixels - 1) * (pixel_height / 2.) - pixel_height / 2.
+        y_end = y_start + (number_pixels - 1) * pixel_height
         locations = [f'        <location name="pixel{i}" y="{y:.5f}"/>'
                      for i, y in enumerate(np.linspace(y_start, y_end, number_pixels))]
         tube_type = r'''<type outline="yes" name="tube">
@@ -754,8 +764,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
                            'pixel_height': pixel_height, 'tube_type': tube_type, 'n_pack_type': n_pack_type,
                            'x_center': x_center, 'y_center': y_center, 'z_center': z_center,
                            'dx_mm': 2000 * pixel_radius, 'dy_mm': 1000 * pixel_height,
-                           'max_pixel_index': max_pixel_index
-                           }
+                           'max_pixel_index': max_pixel_index}
         template_xml = r'''<?xml version="1.0" encoding="UTF-8"?>
 <instrument name="{instrument_name}" valid-from="1900-01-31 23:59:59" valid-to="2100-12-31 23:59:59"
  last-modified="2019-07-12 00:00:00">
@@ -819,7 +828,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         <value val="{dy_mm}"/>
     </parameter>
 </instrument>'''
-        return template_xml.format(**geometry_params)
+        return {'idf_xml': template_xml.format(**geometry_params), 'Nx': number_tubes, 'Ny': number_pixels}
 
     ###############
     # Below comes the calling to the specific instrument geometry constructor
@@ -836,7 +845,11 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     constructor = {'rectangular detector': rectangular_detector,
                    'arbitrary assembly': arbitrary_assembly,
                    'n-pack': n_pack}
-    return constructor[idf_xml_name](req_params)
+    if idf_xml_name is None:
+        idf_xml_name = req_params.get('instrument_geometry', 'rectangular detector')
+    idf_interface = constructor[idf_xml_name](req_params)
+    idf_interface.update({'view': req_params.pop('view', 'pixel')})
+    return idf_interface
 
 
 @pytest.fixture(scope='function')
@@ -861,7 +874,7 @@ def generic_IDF(request):
 
     Note that we use Mantid convention for the orientation
     """
-    return idf_xml_factory('rectangular detector', request)
+    return idf_xml_factory('rectangular detector', request)['idf_xml']
 
 
 @pytest.fixture(scope='function')
@@ -886,7 +899,7 @@ def arbitrary_assembly_IDF(request):
 
     Note that we use Mantid convention for the orientation
     """
-    return idf_xml_factory('arbitrary assembly', request)
+    return idf_xml_factory('arbitrary assembly', request)['idf_xml']
 
 
 @pytest.fixture(scope='function')
@@ -906,7 +919,7 @@ def n_pack_IDF(request):
             Number of tubes (default 4)
         n_pixels: int
             Number of pixels per tube (default 256)
-        radius: float
+        diameter: float
             Width of a tube in meters (default 0.00805)
         height: float
             Height of a pixel in meters (default 0.00409)
@@ -926,7 +939,7 @@ def n_pack_IDF(request):
     str
         IDF in XML format
     """
-    return idf_xml_factory('n-pack', request)
+    return idf_xml_factory('n-pack', request)['idf_xml']
 
 
 @pytest.fixture()
@@ -1043,7 +1056,7 @@ def generic_workspace(generic_IDF, request):
 
 
 @pytest.fixture(scope='function')  # noqa: C901
-def workspace_with_instrument(generic_IDF, request):
+def workspace_with_instrument(request):
     r"""
     Factory of workspaces for a an instrument of a selected geometry.
 
@@ -1098,22 +1111,14 @@ def workspace_with_instrument(generic_IDF, request):
     A function that can be used to generate multiple workspaces with the same instrument
 
     """
-    try:
-        instrument_params = request.param
-    except AttributeError:
-        try:
-            instrument_params = request._parent_request.param
-        except AttributeError:
-            instrument_params = dict()
-
-    # set up the default 'view' for the factory
-    view = instrument_params.pop('view', 'pixel')
+    idf_interface = idf_xml_factory(None, request)
+    idf_xml, n_x, n_y, view = [idf_interface[p] for p in ('idf_xml', 'Nx', 'Ny', 'view')]
 
     workspace_inventory = list()  # holds created workspaces
 
     def factory(output_workspace=None, axis_units='wavelength',
                 axis_values=None, intensities=None, uncertainties=None, view=view,
-                number_x_pixels=instrument_params.get('Nx', 3), number_y_pixels=instrument_params.get('Ny', 3)):
+                number_x_pixels=n_x, number_y_pixels=n_y):
         # Initialization of these options within the function signature results in the interpreter assigning a
         # function signature preserved through function call.
         if output_workspace is None:
@@ -1157,8 +1162,8 @@ def workspace_with_instrument(generic_IDF, request):
         n_pixels = number_x_pixels * number_y_pixels
         workspace = CreateWorkspace(DataX=axis_values, DataY=intensities, DataE=uncertainties, Nspec=n_pixels,
                                     UnitX=axis_units, OutputWorkspace=output_workspace)
-        instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', generic_IDF).groups()[0]
-        LoadInstrument(Workspace=workspace, InstrumentXML=generic_IDF, RewriteSpectraMap=True,
+        instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', idf_xml).groups()[0]
+        LoadInstrument(Workspace=workspace, InstrumentXML=idf_xml, RewriteSpectraMap=True,
                        InstrumentName=instrument_name)
         workspace_inventory.append(output_workspace)
         return workspace

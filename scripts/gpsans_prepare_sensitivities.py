@@ -20,6 +20,7 @@ import mantid.simpleapi as msapi  # noqa E402
 import h5py
 
 import drtsans  # noqa E402
+from drtsans.mono.normalization import normalize_by_monitor
 from drtsans.mono import gpsans as sans  # noqa E402
 from drtsans.iq import BinningMethod, BinningParams  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
@@ -62,6 +63,9 @@ def load_data(nexus_file_name):
     """
     ws_name = os.path.basename(nexus_file_name).split('.')[0]
     ws = load_events(nexus_file_name, output_workspace=ws_name, data_dir=None, overwrite_instrument=False)
+
+    # Normalize by monitor
+    ws = normalize_by_monitor(ws)
 
     return ws
 
@@ -154,7 +158,7 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
     num_ws_pairs = len(flood_run_ws_list)
     num_spec = flood_run_ws_list[0].getNumberHistograms()
 
-    masked_flood_list = list()
+    masked_flood_list = [None] * num_ws_pairs
     for i_pair in range(num_ws_pairs):
         # use beam center run to locate the beam center and then do mask to data workspace
         bc_ws = beam_center_run_ws_list[i_pair]
@@ -164,7 +168,7 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
         # set uncertainties
         masked_flood_ws = set_init_uncertainties(flood_ws, masked_flood_ws)
         # append
-        masked_flood_list.append(masked_flood_ws)
+        masked_flood_list[i_pair] = masked_flood_ws
     # END-FOR
 
     # Combine to numpy arrays: N, M
@@ -230,6 +234,10 @@ def main(argv):
     flood_group.create_dataset('flood error', data=flood_sigma_array)
 
     # Calculate sensitivities for each file
+    print(flood_data_array.shape)
+    print(np.max(flood_data_array))
+    print(np.min(flood_data_array))
+    print('Starting to calculate.......')
     sens_set = prepare_sensitivity(flood_data_matrix=flood_data_array, flood_sigma_matrix=flood_sigma_array,
                                    monitor_counts=monitor_array,
                                    threshold_min=0.5, threshold_max=1.5)
@@ -275,8 +283,8 @@ def generate_test_json():
     # Set up the dictionary for JSON
 
     json_dict = {'IPTS-Number': 24664,
-                 'Flood Runs': [1697, 1699, 1701],
-                 'Direct Beam Runs': [1698, 1700, 1702],
+                 'Flood Runs': [1697, 1701, 1699],
+                 'Direct Beam Runs': [1698, 1702, 1700],
                  'Monitor': [1., 1., 1],
                  'output_file_name': 'test_gp_sensitivity.nxs'}
     json_str = json.dumps(json_dict)

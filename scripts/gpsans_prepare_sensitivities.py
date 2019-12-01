@@ -5,7 +5,8 @@
 import json
 import os
 import sys
-from mantid.simpleapi import SaveNexusProcessed
+import drtsans  # noqa E402
+from drtsans.mono.normalization import normalize_by_monitor
 from drtsans.mono.load import load_events
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
@@ -13,32 +14,38 @@ from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity
 from drtsans.process_uncertainties import set_init_uncertainties
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
+from mantid.api import AnalysisDataService as mtd
 import mantid.simpleapi as msapi  # noqa E402
+from mantid.simpleapi import SaveNexusProcessed
 import h5py
 
-import drtsans  # noqa E402
-from drtsans.mono.normalization import normalize_by_monitor
-from drtsans.mono import gpsans as sans  # noqa E402
-from drtsans.iq import BinningMethod, BinningParams  # noqa E402
-from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
-from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
+
+DEBUGMODE = True
 
 
-INSTRUMENT = 'GPSANS'
+# from drtsans.mono import gpsans as sans  # noqa E402
+# from drtsans.iq import BinningMethod, BinningParams  # noqa E402
+# from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
+# from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
 
 def export_detector_view(ws, png_name):
-    """Export detector view
+    """Export detector view to a PNG file
+
+    This method is for debugging purpose
 
     Parameters
     ----------
     ws : ~mantid.api.MatrixWorkspace
+        Workspace to plot in detector view
+    png_name : str
+        Path of the output PNG file
 
     Returns
     -------
+    None
 
     """
     if isinstance(ws, np.ndarray):
@@ -56,10 +63,17 @@ def export_detector_view(ws, png_name):
 
 def load_data(nexus_file_name):
     """Load data
-    
-    :param nexus_file_name: int, str
+
+    Parameters
+    ----------
+    nexus_file_name : int, str
         Examples: ``55555`` or ``CG3_55555`` or file path.
-    :return: 
+
+    Returns
+    -------
+    ~mantid.dataobjects.EventWorkspace
+        Normalized event workspace where data file is loaded to
+
     """
     ws_name = os.path.basename(nexus_file_name).split('.')[0]
     ws = load_events(nexus_file_name, output_workspace=ws_name, data_dir=None, overwrite_instrument=False)
@@ -70,15 +84,17 @@ def load_data(nexus_file_name):
     return ws
 
 
-def mask_data(data_ws, beam_center_mask):
+def mask_data(data_ws, beam_center_ws):
     """Mask detectors in a workspace
 
     Mask (1) beam center, (2) top and (3) bottom
 
     Parameters
     ----------
-    data_ws
-    beam_center_mask
+    data_ws : ~mantid.api.MatrixWorkspace
+        Flood data workspace
+    beam_center_ws : ~mantid.api.MatrixWorkspace
+        Beam center workspace used to generate beam center mask
 
     Returns
     -------
@@ -86,21 +102,24 @@ def mask_data(data_ws, beam_center_mask):
 
     """
     # Use beam center ws to find beam center
-    xc, yc = gp.find_beam_center(beam_center_mask)
+    xc, yc = gp.find_beam_center(beam_center_ws)
 
     # Center detector to the data workspace (change in geometry)
     gp.center_detector(data_ws, xc, yc)
 
     # Mask the new beam center by 65 mm (Lisa's magic number)
-    det = list(drtsans.mask_utils.circular_mask_from_beam_center(data_ws, 65))
+    det = list(circular_mask_from_beam_center(data_ws, 65))
     drtsans.mask_utils.apply_mask(data_ws, mask=det)
 
-    # Mask top and bottom
+    # Mask top and bottom: both 8 rows
+    data_ws_name = data_ws.name()
     apply_mask(data_ws, Pixel='1-8,249-256')
+    data_ws = mtd[data_ws_name]
 
-    # Optionally as a debugging step, save the workspace with masked applied
-    SaveNexusProcessed(InputWorkspace=data_ws, Filename='{}_masked.nxs'.format(data_ws))
-    export_detector_view(data_ws, '{}_masked.png'.format(data_ws))
+    if DEBUGMODE:
+        # Optionally as a debugging step, save the workspace with masked applied
+        SaveNexusProcessed(InputWorkspace=data_ws, Filename='{}_masked.nxs'.format(data_ws))
+        export_detector_view(data_ws, '{}_masked.png'.format(data_ws))
 
     return data_ws
 
@@ -167,6 +186,12 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
         masked_flood_ws = mask_data(flood_ws, bc_ws)
         # set uncertainties
         masked_flood_ws = set_init_uncertainties(flood_ws, masked_flood_ws)
+        # check uncertainties
+        print('DEBUG Workspace: {}'.format(masked_flood_ws.name()))
+        print('DEBUG Number of NaN in Y = {}'.format(len(np.where(np.isnan(masked_flood_ws.extractY()))[0])))
+        print('DEBUG Number of NaN in E = {}'.format(len(np.where(np.isnan(masked_flood_ws.extractE()))[0])))
+        print('DEBUG Number of 0   in E = {}'.format(np.where(masked_flood_ws.extractE(0) < 1E-16)[0]))
+        # solution: TODO - Add a check in prepare_gspans_sensitivity() such that all the NaN Y will result in Nan E
         # append
         masked_flood_list[i_pair] = masked_flood_ws
     # END-FOR
@@ -180,6 +205,22 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
 
     return flood_array, sigma_array
 
+
+def save_to_nexus(parent_ws, sensitivities, sensitivities_error, output_file):
+    """
+
+    Parameters
+    ----------
+    parent_ws : ~mantid.api.MatrixWorkspace
+        Parent GSPANS workspace serving as
+    sensitivities
+    sensitivities_error
+    output_file
+
+    Returns
+    -------
+
+    """
 
 def main(argv):
     """Main function
@@ -259,6 +300,9 @@ def main(argv):
     sens_group.create_dataset('sensitivities error', data=sensitivities_error)
     sens_h5.close()
 
+    # Export to the NeXus file
+    save_to_nexus(flood_ws_list[0], sensitivities, sensitivities_error, output_file)
+
     return
 
 
@@ -295,9 +339,9 @@ def generate_test_json():
 if __name__ == "__main__":
     # set up a test case if there is no JSON filled in
     if len(sys.argv) == 1:
-        argv = ['', generate_test_json()]
+        script_argv = ['', generate_test_json()]
     else:
-        argv = sys.argv
+        script_argv = sys.argv
 
     # Call main
-    main(argv)
+    main(script_argv)

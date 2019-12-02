@@ -5,7 +5,6 @@
 import json
 import os
 import sys
-import drtsans  # noqa E402
 from drtsans.mono.normalization import normalize_by_monitor
 from drtsans.mono.load import load_events
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
@@ -19,6 +18,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 from mantid.api import AnalysisDataService as mtd
 import mantid.simpleapi as msapi  # noqa E402
 from mantid.simpleapi import SaveNexusProcessed
+from mantid.simpleapi import CreateWorkspace, MaskDetectors
 import h5py
 
 
@@ -109,7 +109,8 @@ def mask_data(data_ws, beam_center_ws):
 
     # Mask the new beam center by 65 mm (Lisa's magic number)
     det = list(circular_mask_from_beam_center(data_ws, 65))
-    drtsans.mask_utils.apply_mask(data_ws, mask=det)
+    masks = apply_mask(data_ws, mask=det)
+    print('DEBUG masks: {}'.format(masks))
 
     # Mask top and bottom: both 8 rows
     data_ws_name = data_ws.name()
@@ -184,13 +185,15 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
         flood_ws = flood_run_ws_list[i_pair]
         # mask
         masked_flood_ws = mask_data(flood_ws, bc_ws)
-        # set uncertainties
+        # set uncertainties:
+        # output: masked are zero intensity and zero error
         masked_flood_ws = set_init_uncertainties(flood_ws, masked_flood_ws)
         # check uncertainties
         print('DEBUG Workspace: {}'.format(masked_flood_ws.name()))
         print('DEBUG Number of NaN in Y = {}'.format(len(np.where(np.isnan(masked_flood_ws.extractY()))[0])))
+        print('DEBUG Number of 0   in Y = {}'.format(len(np.where(masked_flood_ws.extractY() < 1E-16)[0])))
         print('DEBUG Number of NaN in E = {}'.format(len(np.where(np.isnan(masked_flood_ws.extractE()))[0])))
-        print('DEBUG Number of 0   in E = {}'.format(np.where(masked_flood_ws.extractE(0) < 1E-16)[0]))
+        print('DEBUG Number of 0   in E = {}'.format(len(np.where(masked_flood_ws.extractE() < 1E-16)[0])))
         # solution: TODO - Add a check in prepare_gspans_sensitivity() such that all the NaN Y will result in Nan E
         # append
         masked_flood_list[i_pair] = masked_flood_ws
@@ -202,6 +205,14 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
     for f_index in range(num_ws_pairs):
         flood_array[f_index][:] = masked_flood_list[f_index].extractY().transpose()[0]
         sigma_array[f_index][:] = masked_flood_list[f_index].extractE().transpose()[0]
+
+    # Convert all to NaN
+    masked_items = np.where(sigma_array < 1E-16)
+    print('Number of masked items = {}'.format(len(masked_items[0])))
+
+    # set values
+    flood_array[masked_items] = np.nan
+    sigma_array[masked_items] = np.nan
 
     return flood_array, sigma_array
 
@@ -221,6 +232,38 @@ def save_to_nexus(parent_ws, sensitivities, sensitivities_error, output_file):
     -------
 
     """
+    # Create a workspace for sensitivities
+    vec_x = parent_ws.extractX().flatten()
+    num_spec = parent_ws.getNumberHistograms()
+    sens_ws_name = 'sensitivities'
+
+    nexus_ws = CreateWorkspace(DataX=vec_x, DataY=sensitivities, DataE=sensitivities_error,
+                               NSpec=num_spec, ParentWorkspace=parent_ws,
+                               OutputWorkspace=sens_ws_name)
+
+    # Check masks
+    num_masked_pixels = 0
+    for i in range(nexus_ws.getNumberHistograms()):
+        if nexus_ws.getDetector(i).isMasked():
+            num_masked_pixels += 1
+    print('Original masked: {}'.format(num_masked_pixels))
+
+    # Mask
+    masked_ws_list = np.where(np.isnan(sensitivities))[0]
+    MaskDetectors(Workspace=sens_ws_name, WorkspaceIndexList=masked_ws_list)
+
+    # Check masks
+    num_masked_pixels = 0
+    for i in range(nexus_ws.getNumberHistograms()):
+        if nexus_ws.getDetector(i).isMasked():
+            num_masked_pixels += 1
+    print('Output masked: {}'.format(num_masked_pixels))
+
+    # Export
+    SaveNexusProcessed(InputWorkspace=sens_ws_name, Filename=output_file)
+
+    return
+
 
 def main(argv):
     """Main function
@@ -301,7 +344,7 @@ def main(argv):
     sens_h5.close()
 
     # Export to the NeXus file
-    save_to_nexus(flood_ws_list[0], sensitivities, sensitivities_error, output_file)
+    save_to_nexus(beam_center_ws_list[0], sensitivities, sensitivities_error, output_file)
 
     return
 

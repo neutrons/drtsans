@@ -25,12 +25,6 @@ import h5py
 DEBUGMODE = True
 
 
-# from drtsans.mono import gpsans as sans  # noqa E402
-# from drtsans.iq import BinningMethod, BinningParams  # noqa E402
-# from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
-# from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
-
-
 def export_detector_view(ws, png_name):
     """Export detector view to a PNG file
 
@@ -188,13 +182,6 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
         # set uncertainties:
         # output: masked are zero intensity and zero error
         masked_flood_ws = set_init_uncertainties(flood_ws, masked_flood_ws)
-        # check uncertainties
-        print('DEBUG Workspace: {}'.format(masked_flood_ws.name()))
-        print('DEBUG Number of NaN in Y = {}'.format(len(np.where(np.isnan(masked_flood_ws.extractY()))[0])))
-        print('DEBUG Number of 0   in Y = {}'.format(len(np.where(masked_flood_ws.extractY() < 1E-16)[0])))
-        print('DEBUG Number of NaN in E = {}'.format(len(np.where(np.isnan(masked_flood_ws.extractE()))[0])))
-        print('DEBUG Number of 0   in E = {}'.format(len(np.where(masked_flood_ws.extractE() < 1E-16)[0])))
-        # solution: TODO - Add a check in prepare_gspans_sensitivity() such that all the NaN Y will result in Nan E
         # append
         masked_flood_list[i_pair] = masked_flood_ws
     # END-FOR
@@ -208,7 +195,6 @@ def prepare_data(flood_run_ws_list, beam_center_run_ws_list):
 
     # Convert all to NaN
     masked_items = np.where(sigma_array < 1E-16)
-    print('Number of masked items = {}'.format(len(masked_items[0])))
 
     # set values
     flood_array[masked_items] = np.nan
@@ -318,10 +304,6 @@ def main(argv):
     flood_group.create_dataset('flood error', data=flood_sigma_array)
 
     # Calculate sensitivities for each file
-    print(flood_data_array.shape)
-    print(np.max(flood_data_array))
-    print(np.min(flood_data_array))
-    print('Starting to calculate.......')
     sens_set = prepare_sensitivity(flood_data_matrix=flood_data_array, flood_sigma_matrix=flood_sigma_array,
                                    monitor_counts=monitor_array,
                                    threshold_min=0.5, threshold_max=1.5)
@@ -329,11 +311,6 @@ def main(argv):
     # Export sensitivities calculated in file to ....
     sensitivities, sensitivities_error = sens_set
 
-    print(sensitivities)
-    print(sensitivities_error)
-    print('Number of NaN: {}'.format(len(np.where(np.isnan(sensitivities))[0])))
-    print('Number of Infinity: {}'.format(len(np.where(np.isinf(sensitivities))[0])))
-    print(sensitivities.shape)
     # Export 2D view
     export_detector_view(sensitivities, 'Sensitivity.png')
     # Export to hdf5

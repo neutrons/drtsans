@@ -2,6 +2,7 @@ import functools
 from inspect import signature
 import numpy as np
 
+from mantid.kernel import V3D
 from mantid.api import mtd
 
 
@@ -88,13 +89,51 @@ class PixelInfo(ElementComponentInfo):
             raise AttributeError('Detector info can be initialized only once')
         self._detector_info = det_info
 
-    @functools.cached_property
+    @property
+    def position(self):
+        return self._component_info(self._component_info_index).position()
+
+    @position.setter
+    def position(self, xyz=None, x=None, y=None, z=None):
+        r"""Update the coordinates of the pixel
+
+        Parameters
+        ----------
+        xyz: list
+            A 3-number iterable with the new coordinates
+        x, y, z: float
+            Update only coordinates along these axes"""
+        new_position = self.position
+        if xyz is not None:
+            new_position = xyz
+        for coord, index in zip((x, y, z), (0, 1, 2)):
+            if coord is not None:
+                new_position[index] = coord
+        self.setPosition(V3D(*list(new_position)))
+
+    @property
     def width(self):
         return self.scaleFactor(0) * self.getBoundingBox.width(0)
 
-    @functools.cached_property
+    @width.setter
+    def width(self, w):
+        scale_factor = self.scaleFactor
+        scale_factor[0] = w / self.getBoundingBox.width(0)
+        self.setScaleFactor(V3D(*scale_factor))
+
+    @property
     def height(self):
         return self.scaleFactor(1) * self.getBoundingBox.width(1)
+
+    @height.setter
+    def height(self, h):
+        scale_factor = self.scaleFactor
+        scale_factor[1] = h / self.getBoundingBox.width(1)
+        self.setScaleFactor(V3D(*scale_factor))
+
+    @property
+    def area(self):
+        return self.width * self.height
 
 
 class TubeInfo(ElementComponentInfo):
@@ -111,14 +150,17 @@ class TubeInfo(ElementComponentInfo):
 
     def __init__(self, component_info, component_info_index):
         r"""Wrapper of ~mantid.ExperimentInfo.ComponentInfo when the component is a tube of detector pixels."""
+        self._pixels = None
         if self.is_valid_tube(component_info, component_info_index) is False:
             raise ValueError('The component index is not associated to a valid tube')
         super(self).__init__(component_info, component_info_index)
 
-    @functools.cached_property
+    @property
     def pixels(self):
-        component_indexes = self._component_info.children(self._component_info_index)  # component indexes of pixels
-        return [PixelInfo(self._component_info, component_index) for component_index in component_indexes]
+        if self._pixels is None:
+            component_indexes = self._component_info.children(self._component_info_index)
+            self._pixels = [PixelInfo(self._component_info, component_index) for component_index in component_indexes]
+        return self._pixels
 
     def __getitem__(self, item):
         return self.pixels[item]  # iterate over the pixels
@@ -127,7 +169,7 @@ class TubeInfo(ElementComponentInfo):
 class TubeCollection(ElementComponentInfo):
 
     def __init__(self, input_workspace, component_name):
-        self._tubes = list()
+        self._tubes = None
         self._sorting_permutations = {}
         self.input_workspace = mtd[str(input_workspace)]
         component_info = self._input_workspace.componentInfo()
@@ -138,28 +180,43 @@ class TubeCollection(ElementComponentInfo):
             if component_info.isDetector(component_index) is True:
                 raise RuntimeError(f'Could not find a component with name "{component_name}"')
 
-    def _find_tubes(self):
-        r"""Find out which components in the main component are the tubes"""
-        detector_info = self._input_workspace.detectorInfo()
-        for component_index in sorted(list(set(self.componentsInSubtree) - set(self.detectorsInSubtree))):
-            try:
-                tube = TubeInfo(self._component_info, component_index)
-                [pixel.detector_info = detector_info for pixel in tube]
-                self._tubes.append(tube)
-            except ValueError:  # the component index is not associated to a tube
-                continue
-        return self._tubes
+    def __getitem__(self, item):
+        return self.tubes[item]
 
     @property
     def tubes(self):
         r"""List of TubeInfo objects ordered using their component index, from smallest to highest index."""
-        return self._find_tubes() if len(self._tubes) == 0 else self._tubes
+        if self._tubes is None:
+            detector_info = self._input_workspace.detectorInfo()
+            for component_index in sorted(list(set(self.componentsInSubtree) - set(self.detectorsInSubtree))):
+                try:
+                    tube = TubeInfo(self._component_info, component_index)
+                    for pixel in tube:
+                        pixel.detector_info = detector_info
+                    self._tubes.append(tube)
+                except ValueError:  # the component index is not associated to a tube
+                    continue
+        return self._tubes
 
     @property
     def sorted_views(self):
         return self._sorting_permutations.keys()
 
     def sorted(self, key=None, reverse=False, view='increasing X'):
+        r"""
+        List of tubes in the prescribed order
+
+        Parameters
+        ----------
+        key: :py:obj:`function`
+            Function of one argument to extract a comparison key from each element in ``self.tubes``. If None, then
+            the selected ``view`` determines the order
+        reverse: bool
+            Reverse the order resulting from application of ``key`` or ``view``
+        view: str
+            Built-in permutations of the tubes prescribing a particular order. Valid views are:
+            'increasing X' order the tubes by increasing X-coordinate. This view flattens a double detector panel.
+        """
         if key is not None:
             return sorted(self._tubes, key=key, reverse=reverse)
         permutation = self._sorting_permutations.get(view, None)

@@ -13,13 +13,13 @@ from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity
 from drtsans.process_uncertainties import set_init_uncertainties
 import numpy as np
 import matplotlib.pyplot as plt
-import warnings
-warnings.simplefilter(action="ignore", category=FutureWarning)
 from mantid.api import AnalysisDataService as mtd
 import mantid.simpleapi as msapi  # noqa E402
 from mantid.simpleapi import SaveNexusProcessed
 from mantid.simpleapi import CreateWorkspace, MaskDetectors
 import h5py
+import warnings
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 DEBUGMODE = True

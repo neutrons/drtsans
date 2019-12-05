@@ -13,7 +13,7 @@ class ElementComponentInfo:
 
         Parameters
         ----------
-        component_info: ~mantid.ExperimentInfo.ComponentInfo
+        component_info: ~mantid.geometry.ComponentInfo
         component_info_index: int
             Index to be used with the component_info object
         """
@@ -21,6 +21,25 @@ class ElementComponentInfo:
         self.component_info_index = component_info_index
 
     def _decrement_arity(self, attribute, alternate_index=None):
+        r"""
+        Decrement the arity of a function ``attribute`` by either evaluating the function or creating a partial
+        function.
+
+        If the arity of the function is one, then we evaluate the function by passing an index as argument,
+        and return the value resulting from the evaluation. If the arity is bigger than one, then we create a
+        partial function by passing an index as the first argument of the function.
+
+        Parameters
+        ----------
+        attribute: function
+            Callable to evaluate or reduce it's arity with a partial function.
+        alternate_index: int
+            Use this index instead of attribute ``component_info_index``.
+
+        Returns
+        -------
+        PyObject, function
+        """
         index = self.component_info_index if alternate_index is None else alternate_index
         if callable(attribute) is True:
             try:
@@ -43,13 +62,13 @@ class ElementComponentInfo:
 
     def __getattr__(self, item):
         r"""
-        Overload methods of ~mantid.ExperimentInfo.ComponentInfo so that they act as methods of ElementComponentInfo.
+        Overload methods of ~mantid.geometry.ComponentInfo so that they act as methods of ElementComponentInfo.
 
-        Methods of ~mantid.ExperimentInfo.ComponentInfo with only one argument, the component info index, become
+        Methods of ~mantid.geometry.ComponentInfo with only one argument, the component info index, become
         read-only properties of ElementComponentInfo. Example: ``component_info.children(90177)``
          becomes ``element_component_info.children``
 
-        Methods of ~mantid.ExperimentInfo.ComponentInfo with more than one argument where the first argument is the
+        Methods of ~mantid.geometry.ComponentInfo with more than one argument where the first argument is the
         component info index become methods of ElementComponentInfo with this argument removed. Example:
         ``component_info.setPosition(90177, V3D(0.0, 0.0, 0.0)) becomes
         ``element_component_info.setPosition(V3D(0.0, 0.0, 0.0))``
@@ -64,7 +83,16 @@ class ElementComponentInfo:
 
 class PixelInfo(ElementComponentInfo):
     def __init__(self, component_info, component_info_index, detector_info=None):
-        r"""Wrapper of ~mantid.ExperimentInfo.ComponentInfo when the component is a detector pixel."""
+        r"""
+        Wrapper of ~mantid.geometry.ComponentInfo when the component is a detector pixel.
+
+        Parameters
+        ----------
+        component_info: ~mantid.geometry.ComponentInfo
+        component_info_index: int
+            Index corresponding to the desired detector pixel, to be used in conjunction with ``component_info``.
+        detector_info: ~mantid.api.DetectorInfo
+        """
         super().__init__(component_info, component_info_index)
         self._detector_info = detector_info
         # Attributes pertaining to spectrumInfo. Maybe better if separate on another class
@@ -73,17 +101,26 @@ class PixelInfo(ElementComponentInfo):
 
     def __getattr__(self, item):
         r"""
-        Overload methods of ~mantid.ExperimentInfo.ComponentInfo and ~mantid.ExperimentInfo.DetectorInfo so that they
-        act as methods of ElementComponentInfo.
+        Overload methods of ~mantid.geometry.ComponentInfo, ~mantid.geometry.DetectorInfo, and
+        ~mantid.api.SpectrumInfo so that they behave as methods of ElementComponentInfo.
 
-        Methods of ~mantid.ExperimentInfo.ComponentInfo with only one argument, the component info index, become
+        Methods of ~mantid.geometry.ComponentInfo with only one argument, the component info index, become
         read-only properties of ElementComponentInfo. Example: ``component_info.children(90177)``
          becomes ``element_component_info.children``
 
-        Methods of ~mantid.ExperimentInfo.ComponentInfo with more than one argument where the first argument is the
+        Methods of ~mantid.geometry.ComponentInfo with more than one argument where the first argument is the
         component info index become methods of ElementComponentInfo with this argument removed. Example:
         ``component_info.setPosition(90177, V3D(0.0, 0.0, 0.0)) becomes
         ``element_component_info.setPosition(V3D(0.0, 0.0, 0.0))``
+
+        The previous considerations are applied to methods of ~mantid.geometry.DetectorInfo and
+        ~mantid.api.SpectrumInfo.
+
+        The sequence in which a match for ``item`` is carried out is the following:
+        1. search for attributes of ~mantid.geometry.ComponentInfo
+        2. search for attributes of ~mantid.geometry.DetectorInfo
+        3. search for attributes of ~mantid.api.SpectrumInfo
+        4. search for attributes of ``PixelInfo``
         """
         try:  # try method of componentInfo
             _component_info = self.__dict__['_component_info']
@@ -104,6 +141,7 @@ class PixelInfo(ElementComponentInfo):
 
     @property
     def detector_info(self):
+        r"""Object of type ~mantid.geometry.DetectorInfo associated to this pixel detector"""
         return self._detector_info
 
     @detector_info.setter
@@ -114,6 +152,11 @@ class PixelInfo(ElementComponentInfo):
 
     @property
     def position(self):
+        r"""Cartesian coordinates of the pixel detector.
+
+        Coordinates typically correspond to the center of a cuboid detector, or the center for the base of a
+        cylindrical pixels.
+        """
         return np.array(self._component_info.position(self.component_info_index))
 
     @position.setter
@@ -137,6 +180,7 @@ class PixelInfo(ElementComponentInfo):
 
     @property
     def width(self):
+        r"""Extent of the pixel detector along the Y-axis"""
         return self.scaleFactor[0] * self.shape.getBoundingBox().width()[0]
 
     @width.setter
@@ -147,6 +191,7 @@ class PixelInfo(ElementComponentInfo):
 
     @property
     def height(self):
+        r"""Extent of the pixel detector along the Z-axis"""
         return self.scaleFactor[1] * self.shape.getBoundingBox().width()[1]
 
     @height.setter
@@ -157,12 +202,25 @@ class PixelInfo(ElementComponentInfo):
 
     @property
     def area(self):
+        r"""Product of pixel width and height"""
         return self.width * self.height
 
     #######
     #  Methods pertaining to spectrumInfo. Maybe better if separate on another class
     #######
     def insert_spectrum(self, spectrum_info, spectrum_index):
+        r"""
+        Initialize attributes ``_spectrum_info`` and ``spectrum_index``.
+
+        This initialization gives access to all methods of objects of they type ~mantid.api.SpectrumInfo,
+        as well as store the spectrum index (workspace index) associated to this pixel detector.
+
+        Parameters
+        ----------
+        spectrum_info: ~mantid.api.SpectrumInfo
+        spectrum_index: int
+            Spectrum index (workspace index) associated to this detector pixel.
+        """
         if self._spectrum_info is not None:
             raise ValueError('Spectrum Info has already been inserted')
         self._spectrum_info = spectrum_info
@@ -173,6 +231,23 @@ class TubeInfo(ElementComponentInfo):
 
     @staticmethod
     def is_valid_tube(component_info, component_index):
+        r"""
+        Determine if all the immediate children-components are detectors, as in the case of a tube.
+
+        Warnings
+        --------
+        This function does not invalidate other components than tubes whose immediate children-components are
+        all detectors.
+
+        Parameters
+        ----------
+        component_info: ~mantid.geometry.ComponentInfo
+        component_index: int
+
+        Returns
+        -------
+        bool
+        """
         children_indexes = [int(i) for i in component_info.children(component_index)]
         if len(children_indexes) == 0:
             return False  # we hit a detector
@@ -184,7 +259,14 @@ class TubeInfo(ElementComponentInfo):
         return True
 
     def __init__(self, component_info, component_info_index):
-        r"""Wrapper of ~mantid.ExperimentInfo.ComponentInfo when the component is a tube of detector pixels."""
+        r"""Wrapper of ~mantid.geometry.ComponentInfo when the component is a tube of detector pixels.
+
+        Parameters
+        ----------
+        component_info: ~mantid.geometry.ComponentInfo
+        component_info_index: int
+            Index corresponding to the tube, to be used with the component_info object
+        """
         super().__init__(component_info, component_info_index)
         self._pixels = None
         if self.is_valid_tube(component_info, component_info_index) is False:
@@ -192,6 +274,12 @@ class TubeInfo(ElementComponentInfo):
 
     @property
     def pixels(self):
+        r"""List of ~drtsans.tubecollection.PixelInfo objects making up the tube.
+
+        Returns
+        -------
+        list
+        """
         if self._pixels is None:
             self._pixels = [PixelInfo(self._component_info, int(i)) for i in self.children]
         return self._pixels
@@ -204,17 +292,34 @@ class TubeCollection(ElementComponentInfo):
 
     @staticmethod
     def map_detector_to_spectrum(input_workspace):
-        r"""A map from detectorInfo index (or componentInfo index) to workspace spectrum index"""
-        spectra = input_workspace.getSpectrum
-        detector_info = input_workspace.detectorInfo()
+        r"""A mapping from detectorInfo index (or componentInfo index) to spectrum index (or workspace index)
+
+        Parameters
+        ----------
+        input_workspace: ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+
+        Returns
+        -------
+        dict
+        """
+        spectrum_info = input_workspace.spectrumInfo()
         detector_to_spectrum = dict()
         for spectrum_index in range(input_workspace.getNumberHistograms()):
-            detector_id = spectra(spectrum_index).getDetectorIDs()[0]
-            detector_info_index = detector_info.indexOf(detector_id)  # detector ID and detector index may be different
+            detector_info_index = spectrum_info.getSpectrumDefinition(spectrum_index)[0][0]
             detector_to_spectrum[detector_info_index] = spectrum_index
         return detector_to_spectrum
 
     def __init__(self, input_workspace, component_name):
+        r"""
+        A list of ~drtsans.tubecollection.TubeInfo objects making up one of the instrument components, such as the
+        front panel, a double panel, or the whole instrument.
+
+        Parameters
+        ----------
+        input_workspace: ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+        component_name: str
+            One of the named components in the instrument geometry file.
+        """
         workspace_handle = mtd[str(input_workspace)]
         component_info = workspace_handle.componentInfo()
         for component_index in range(component_info.root(), -1, -1):
@@ -234,7 +339,8 @@ class TubeCollection(ElementComponentInfo):
 
     @property
     def tubes(self):
-        r"""List of TubeInfo objects ordered using their component index, from smallest to highest index."""
+        r"""List of ~drtsans.tubecollection.TubeInfo objects ordered using their component info indexes,
+        from smallest to highest index."""
         if len(self._tubes) == 0:
             # Find the mapping between spectrum indexes and detectorInfo indexes
             spectrum_info = self._input_workspace.spectrumInfo()
@@ -253,11 +359,13 @@ class TubeCollection(ElementComponentInfo):
 
     @property
     def sorted_views(self):
+        r"""Dictionary mapping a particular sorting of the tubes to the permutation of their component info indexes
+        required to attaing the desired sorting."""
         return self._sorting_permutations.keys()
 
     def sorted(self, key=None, reverse=False, view='decreasing X'):
         r"""
-        List of tubes in the prescribed order
+        Sort the list of ~drtsans.tubecollection.TubeInfo objects in the prescribed order.
 
         Parameters
         ----------
@@ -268,9 +376,9 @@ class TubeCollection(ElementComponentInfo):
             Reverse the order resulting from application of ``key`` or ``view``
         view: str
             Built-in permutations of the tubes prescribing a particular order. Valid views are:
-            - 'decreasing X' order the tubes by decreasing X-coordinate. This view flattens a double detector panel and
-              is viewed 'from left to right' when viewed from the sample.
-            - 'spectrum index' order the tubes by increasing spectrum index (workspace index)
+            - 'decreasing X': order the tubes by decreasing X-coordinate. This view can "flatten" a double
+            detector panel when viewed from the sample "from left to right".
+            - 'spectrum index': order the tubes by increasing spectrum index (workspace index).
         """
         if key is not None:
             return sorted(self._tubes, key=key, reverse=reverse)

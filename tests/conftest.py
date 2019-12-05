@@ -1058,7 +1058,7 @@ def generic_workspace(generic_IDF, request):
 @pytest.fixture(scope='function')  # noqa: C901
 def workspace_with_instrument(request):
     r"""
-    Factory of workspaces for a an instrument of a selected geometry.
+    Factory of workspaces for an instrument with a selected geometry.
 
     The fixture is used by passing arguments to the fixture as a dictionary. For instance:
 

@@ -278,7 +278,7 @@ class TubeCollection(ElementComponentInfo):
         if permutation is None:
             if view == 'decreasing X':  # initialize this view
                 x_coords = [tube[0].position[0] for tube in self.tubes]  # X coords for first pixel of each tube
-                permutation = np.flip(np.argsort(x_coords)).tolist()
+                permutation = np.flip(np.argsort(x_coords), axis=0).tolist()
                 self._sorting_permutations['decreasing X'] = permutation
             elif view == 'spectrum index':  # initialize this view
                 # spectrum index of first pixel for each tube

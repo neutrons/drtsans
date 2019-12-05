@@ -16,8 +16,9 @@ from drtsans.tubecollection import ElementComponentInfo, PixelInfo, TubeInfo, Tu
 @pytest.fixture(scope='function')
 def simple_panel(workspace_with_instrument):
     workspace = workspace_with_instrument(axis_values=[1.0, 2.0],
-                                          intensities=np.random.rand(3072).reshape((3072, 1)))
-    return dict(workspace=workspace, component_info=workspace.componentInfo(), detector_info=workspace.detectorInfo())
+                                          intensities=np.random.rand(9).reshape((9, 1)))
+    return dict(workspace=workspace, component_info=workspace.componentInfo(),
+                detector_info=workspace.detectorInfo(), spectrum_info=workspace.spectrumInfo())
 
 
 @pytest.mark.parametrize('workspace_with_instrument',
@@ -82,6 +83,12 @@ class TestPixelInfo(object):
         pixel = PixelInfo(simple_panel['component_info'], 4, simple_panel['detector_info'])
         pixel.height, pixel.width = 1.42, 1.42
         assert pixel.area == 1.42**2
+
+    def test_spectrum_info(self, simple_panel):
+        pixel = PixelInfo(simple_panel['component_info'], 4, simple_panel['detector_info'])
+        # component_info_index and workspace spectrum_index coincide for this simple detector array. Thus we use "4"
+        pixel.insert_spectrum(simple_panel['spectrum_info'], 4)
+        assert pixel.hasUniqueDetector is True  # a method of spectrumInfo
 
 
 @pytest.mark.parametrize('workspace_with_instrument',

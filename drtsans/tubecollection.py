@@ -20,7 +20,8 @@ class ElementComponentInfo:
         self._component_info = component_info
         self.component_info_index = component_info_index
 
-    def _decrement_arity(self, attribute):
+    def _decrement_arity(self, attribute, alternate_index=None):
+        index = self.component_info_index if alternate_index is None else alternate_index
         if callable(attribute) is True:
             try:
                 parameters = signature(attribute).parameters
@@ -36,8 +37,8 @@ class ElementComponentInfo:
                         break
                 parameters = re.findall(',', doc_string[first_index: last_index])[0: -1]
             if len(parameters) == 0:
-                return attribute(self.component_info_index)
-            return functools.partial(attribute, self.component_info_index)
+                return attribute(index)
+            return functools.partial(attribute, index)
         return attribute
 
     def __getattr__(self, item):
@@ -66,6 +67,9 @@ class PixelInfo(ElementComponentInfo):
         r"""Wrapper of ~mantid.ExperimentInfo.ComponentInfo when the component is a detector pixel."""
         super().__init__(component_info, component_info_index)
         self._detector_info = detector_info
+        # Attributes pertaining to spectrumInfo. Maybe better if separate on another class
+        self._spectrum_info = None
+        self.spectrum_index = None
 
     def __getattr__(self, item):
         r"""
@@ -81,17 +85,22 @@ class PixelInfo(ElementComponentInfo):
         ``component_info.setPosition(90177, V3D(0.0, 0.0, 0.0)) becomes
         ``element_component_info.setPosition(V3D(0.0, 0.0, 0.0))``
         """
-        try:
+        try:  # try method of componentInfo
             _component_info = self.__dict__['_component_info']
             attribute = getattr(_component_info, item)
             return self._decrement_arity(attribute)
         except AttributeError:
-            try:
+            try:  # try method of detectorInfo
                 _detector_info = self.__dict__['_detector_info']
                 attribute = getattr(_detector_info, item)
                 return self._decrement_arity(attribute)
             except AttributeError:
-                return getattr(self, item)
+                try:  # try method of spectrumInfo
+                    _spectrum_info = self.__dict__['_spectrum_info']
+                    attribute = getattr(_spectrum_info, item)
+                    return self._decrement_arity(attribute, alternate_index=self.__dict__['spectrum_index'])
+                except AttributeError:
+                    return getattr(self, item)
 
     @property
     def detector_info(self):
@@ -150,6 +159,15 @@ class PixelInfo(ElementComponentInfo):
     def area(self):
         return self.width * self.height
 
+    #######
+    #  Methods pertaining to spectrumInfo. Maybe better if separate on another class
+    #######
+    def insert_spectrum(self, spectrum_info, spectrum_index):
+        if self._spectrum_info is not None:
+            raise ValueError('Spectrum Info has already been inserted')
+        self._spectrum_info = spectrum_info
+        self.spectrum_index = spectrum_index
+
 
 class TubeInfo(ElementComponentInfo):
 
@@ -184,8 +202,21 @@ class TubeInfo(ElementComponentInfo):
 
 class TubeCollection(ElementComponentInfo):
 
+    @staticmethod
+    def map_detector_to_spectrum(input_workspace):
+        r"""A map from detectorInfo index (or componentInfo index) to workspace spectrum index"""
+        spectra = input_workspace.getSpectrum
+        detector_info = input_workspace.detectorInfo()
+        detector_to_spectrum = dict()
+        for spectrum_index in range(input_workspace.getNumberHistograms()):
+            detector_id = spectra(spectrum_index).getDetectorIDs()[0]
+            detector_info_index = detector_info.indexOf(detector_id)  # detector ID and detector index may be different
+            detector_to_spectrum[detector_info_index] = spectrum_index
+        return detector_to_spectrum
+
     def __init__(self, input_workspace, component_name):
-        component_info = mtd[str(input_workspace)].componentInfo()
+        workspace_handle = mtd[str(input_workspace)]
+        component_info = workspace_handle.componentInfo()
         for component_index in range(component_info.root(), -1, -1):
             if component_info.name(component_index) == component_name:
                 super().__init__(component_info, component_index)
@@ -194,7 +225,9 @@ class TubeCollection(ElementComponentInfo):
                 raise RuntimeError(f'Could not find a component with name "{component_name}"')
         self._tubes = list()
         self._sorting_permutations = {}
-        self._input_workspace = mtd[str(input_workspace)]
+        self._input_workspace = workspace_handle
+        # A map from detectorInfo index (or componentInfo index) to workspace spectrum index
+        self.detector_to_spectrum = self.map_detector_to_spectrum(workspace_handle)
 
     def __getitem__(self, item):
         return self.tubes[item]
@@ -203,6 +236,8 @@ class TubeCollection(ElementComponentInfo):
     def tubes(self):
         r"""List of TubeInfo objects ordered using their component index, from smallest to highest index."""
         if len(self._tubes) == 0:
+            # Find the mapping between spectrum indexes and detectorInfo indexes
+            spectrum_info = self._input_workspace.spectrumInfo()
             detector_info = self._input_workspace.detectorInfo()
             non_detector_indexes = sorted([int(i) for i in set(self.componentsInSubtree)-set(self.detectorsInSubtree)])
             for component_index in non_detector_indexes:
@@ -212,8 +247,8 @@ class TubeCollection(ElementComponentInfo):
                     continue
                 for pixel in tube:
                     pixel.detector_info = detector_info
+                    pixel.insert_spectrum(spectrum_info, self.detector_to_spectrum[pixel.component_info_index])
                 self._tubes.append(tube)
-
         return self._tubes
 
     @property
@@ -233,8 +268,9 @@ class TubeCollection(ElementComponentInfo):
             Reverse the order resulting from application of ``key`` or ``view``
         view: str
             Built-in permutations of the tubes prescribing a particular order. Valid views are:
-            'decreasing X' order the tubes by decreasing X-coordinate. This view flattens a double detector panel and
-            is viewed 'from left to right' when viewed from the sample.
+            - 'decreasing X' order the tubes by decreasing X-coordinate. This view flattens a double detector panel and
+              is viewed 'from left to right' when viewed from the sample.
+            - 'spectrum index' order the tubes by increasing spectrum index (workspace index)
         """
         if key is not None:
             return sorted(self._tubes, key=key, reverse=reverse)
@@ -244,5 +280,9 @@ class TubeCollection(ElementComponentInfo):
                 x_coords = [tube[0].position[0] for tube in self.tubes]  # X coords for first pixel of each tube
                 permutation = np.flip(np.argsort(x_coords)).tolist()
                 self._sorting_permutations['decreasing X'] = permutation
+            elif view == 'spectrum index':  # initialize this view
+                # spectrum index of first pixel for each tube
+                permutation = np.argsort([tube[0].spectrum_index for tube in self.tubes])
+                self._sorting_permutations['spectrum index'] = permutation
         sorted_list = [self._tubes[i] for i in permutation]
         return sorted_list if reverse is False else sorted_list[::-1]

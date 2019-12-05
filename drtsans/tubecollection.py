@@ -205,12 +205,10 @@ class TubeCollection(ElementComponentInfo):
     @staticmethod
     def map_detector_to_spectrum(input_workspace):
         r"""A map from detectorInfo index (or componentInfo index) to workspace spectrum index"""
-        spectra = input_workspace.getSpectrum
-        detector_info = input_workspace.detectorInfo()
+        spectrum_info = input_workspace.spectrumInfo()
         detector_to_spectrum = dict()
         for spectrum_index in range(input_workspace.getNumberHistograms()):
-            detector_id = spectra(spectrum_index).getDetectorIDs()[0]
-            detector_info_index = detector_info.indexOf(detector_id)  # detector ID and detector index may be different
+            detector_info_index = spectrum_info.getSpectrumDefinition(spectrum_index)[0][0]
             detector_to_spectrum[detector_info_index] = spectrum_index
         return detector_to_spectrum
 

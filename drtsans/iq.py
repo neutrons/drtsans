@@ -40,8 +40,6 @@ def check_iq_for_binning(i_of_q):
 
     :param i_of_q:  ~drtsans.dataobjects.IQmod or IQazimuthal
         I(Q)
-    :return:
-    None
 
     """
     error_message = ''
@@ -236,8 +234,9 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     ----------
     i_of_q :  drtsans.dataobjects.IQazimuthal
         I(Qx, Qy), sigma I(Qx, Qy), Qx, Qy, dQx and dQy
-    theta_bin_params : BinningParams
+    theta_bin_params : ~drtsans.BinningParams
         binning parameters on annular angle 'theta'
+
         theta_min : float
             minimum value of theta/azimuthal angle
         theta_max : float
@@ -251,6 +250,7 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
             bin edge areassigned to bin number 0, values beyond the highest bin
             are assigned to ``bins[-1]``.  If the bin edges are specified,
             the number of bins will be, (nx = len(bins)-1).
+
     q_min : float, optional
         , by default
     q_max : float, optional

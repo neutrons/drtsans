@@ -173,8 +173,8 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
 
         Parameters
         ----------
-        selection: int, slice, :ref:`~numpy.ndarray`
-            Any selection that can be passed onto a :ref:`~numpy.ndarray`
+        selection: int, slice, ~numpy.ndarray
+            Any selection that can be passed onto a ~numpy.ndarray
 
         Returns
         -------

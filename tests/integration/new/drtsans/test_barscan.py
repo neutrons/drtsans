@@ -130,7 +130,7 @@ def test_fit_positions():
 @pytest.fixture(scope='module')
 @namedtuplefy
 def data_apparent_tube_width():
-    r"""Flood run to be used as input data for 'test_pixel_width'"""
+    r"""Flood run to be used as input data for 'test_apparent_tube_width'"""
     return dict(flood_intensities=[[105, 96, 105, 101, 94, 102, 110, float('nan'), 105, 91],
                                    [110, 90, 104, 102, 99, 106, 108, float('nan'), 90, 93],
                                    [103, 105, 99, 101, 108, 104, 100, float('nan'), 93, 90],
@@ -159,7 +159,7 @@ def data_apparent_tube_width():
                            'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0}], indirect=True)
 def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument):
     r"""
-    Test for determining the apparent pixel width from Appendix 2, section 2 of the master document.
+    Test for determining the apparent tube width, from Appendix 2, Section 2 of the master document.
     <https://www.dropbox.com/s/2mz0gy60pp9ehqm/Master%20document_110819.pdf?dl=0>
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
@@ -169,10 +169,12 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     - We use a flat detector made up of 10 tubes, each tube containing 10 pixels.
     - Even tubes make up the front panel, odd tubes make up the back panel.
 
+    **Mantid algorithms used:**
+        :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
+
     **drtsans components used:**
     ~drtsans.tubecollection.TubeCollection
         <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
-
     """
     data = data_apparent_tube_width  # shortcut
 

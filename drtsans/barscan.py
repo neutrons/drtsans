@@ -187,6 +187,8 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256):
 
 def apparent_tube_width(input_workspace, output_workspace=None):
     r"""
+    Determine the tube widhth most efficient for detecting neutrons. An effective tube (or pixel) diameter is
+    determined for tubes in the front panel, and likewise for the tubes in the back panel.
 
     Parameters
     ----------

@@ -1,12 +1,19 @@
 import pytest
 import numpy as np
 
+r""" Hyperlinks to mantid algorithms
+DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspaces-v1.html>
+"""
 from mantid.simpleapi import DeleteWorkspaces
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py
+r"""
+Hyperlinks to drtsans functions
+apparent_tube_width, find_edges, fit_positions <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py>
+namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+"""  # noqa: E501
+from drtsans.barscan import apparent_tube_width, find_edges, fit_positions
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
-
-from drtsans.barscan import find_edges, fit_positions, apparent_tube_width
 from drtsans.tubecollection import TubeCollection
 
 r"""Finding the edges of the barscan in a single tube,

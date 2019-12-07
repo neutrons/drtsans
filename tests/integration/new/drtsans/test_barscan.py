@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 
 r""" Hyperlinks to mantid algorithms
-DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspaces-v1.html>
+DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 """
-from mantid.simpleapi import DeleteWorkspaces
+from mantid.simpleapi import DeleteWorkspace
 
 r"""
 Hyperlinks to drtsans functions
@@ -205,7 +205,7 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
     assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
 
-    DeleteWorkspaces(flood_workspace, modified_flood_workspace)
+    DeleteWorkspace(modified_flood_workspace)  # flood_workspace is garbage collected upon test completion
 
 
 if __name__ == '__main__':

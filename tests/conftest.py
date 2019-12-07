@@ -738,7 +738,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         # the explicit `-(pixel_height / 2.)` last term in the `y_start` assignment expression.
         y_start = - (number_pixels - 1) * (pixel_height / 2.) - pixel_height / 2.
         y_end = y_start + (number_pixels - 1) * pixel_height
-        locations = [f'        <location name="pixel{i}" y="{y:.5f}"/>'
+        locations = [f'        <location name="pixel{i}" y="{y:.8f}"/>'
                      for i, y in enumerate(np.linspace(y_start, y_end, number_pixels))]
         tube_type = r'''<type outline="yes" name="tube">
     <properties/>
@@ -750,7 +750,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         # Generate the n-pack type
         x_start = - (number_tubes - 1) * (tube_center_spacing / 2.)
         x_end = x_start + (number_tubes - 1) * tube_center_spacing
-        locations = [f'        <location name="tube{i}" x="{x:.5f}"/>'
+        locations = [f'        <location name="tube{i}" x="{x:.8f}"/>'
                      for i, x in enumerate(np.linspace(x_start, x_end, number_tubes))]
         n_pack_type = r'''  <type name="n_pack">
     <properties/>

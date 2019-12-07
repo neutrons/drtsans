@@ -1,7 +1,14 @@
 import pytest
 import numpy as np
+
+from mantid.api import mtd
+from mantid.simpleapi import Integration, ReplaceSpecialValues, MaskDetectorsIf, MaskDetectors, SaveNexus
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
+
 from drtsans.barscan import find_edges, fit_positions
+from drtsans.tubecollection import TubeCollection
 
 r"""Finding the edges of the barscan in a single tube,
 then calculate the position and width of the pixels
@@ -112,6 +119,121 @@ def test_fit_positions():
     # fit_positions calculates also the expected position for pixel 0, not in the table
     assert new_positions[1:] == pytest.approx(expected_positions, abs=1e-2)
     assert new_heights[1:] == pytest.approx(expected_heights, abs=1e-2)
+
+
+@pytest.fixture(scope='module')
+@namedtuplefy
+def data_pixel_width_test():
+    r"""Flood run to be used as input data for 'test_pixel_width'"""
+    return dict(flood_intensities=[[105, 96, 105, 101, 94, 102, 110, float('nan'), 105, 91],
+                                   [110, 90, 104, 102, 99, 106, 108, float('nan'), 90, 93],
+                                   [103, 105, 99, 101, 108, 104, 100, float('nan'), 93, 90],
+                                   [94, 107, 102, 110, 98, 99, 101, float('nan'), 96, 109],
+                                   [104, 101, 105, 105, 98, 110, 100, float('nan'), 109, 98],
+                                   [101, 103, 102, 110, 106, 99, 93, float('nan'), 98, 94],
+                                   [92, 108, float('nan'), 101, 108, 98, 105, float('nan'), 103, 98],
+                                   [98, 92, float('nan'), 99, 101, 110, 93, float('nan'), 90, 110],
+                                   [90, 103, 98, 104, 91, 105, 96, float('nan'), 96, 98],
+                                   [95, 97, 109, 109, 104, 100, 95, float('nan'), 90, 97]],
+                wavelength_bin_boundaries=[1.0, 2.0],  # actual numbers are irrelevant
+                c_tube=[23.6190476190476, 23.8571428571429, 24.5238095238095, 24.8095238095238, 23.9761904761905,
+                        24.5952380952381, 23.8333333333333, float('nan'), 23.0952380952381, 23.2857142857143],
+                c_ave=23.9550264550265,
+                c_front=23.8095238095238,
+                c_back=24.136902499999998,
+                w_front=5.46659304251795,
+                w_back=5.54175869685257,
+                precision=2.e-02,  # precision to compare reduction framework to test results
+                )
+
+
+@pytest.mark.parametrize('workspace_with_instrument',
+                         [{'instrument_geometry': 'n-pack', 'n_tubes': 10, 'n_pixels': 10,
+                           'diameter': 5.5e-03, 'height': 4.2e-03, 'spacing': 0.0,
+                           'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0}], indirect=True)
+def test_pixel_width(data_pixel_width_test, workspace_with_instrument):
+    r"""
+    Test for determining the apparent pixel width from Appendix 2, section 2 of the master document.
+    <https://www.dropbox.com/s/2mz0gy60pp9ehqm/Master%20document_110819.pdf?dl=0>
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
+
+    Description:
+    - We use a flat detector made up of 10 tubes, each tube containing 10 pixels.
+    - Even tubes make up the front panel, odd tubes make up the back panel.
+
+    **drtsans components used:**
+    ~drtsans.tubecollection.TubeCollection
+        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+
+    """
+    data = data_pixel_width_test  # shortcut
+
+    # Load the flood data into a Mantid workspace
+    #
+    flood_workspace = unique_workspace_dundername()  # random name for the workspace
+    intensities = np.array(data.flood_intensities).reshape((10, 10, 1))
+    workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, intensities=intensities,
+                              uncertainties=np.sqrt(intensities), view='array', axis_units='wavelength',
+                              output_workspace=flood_workspace)
+    # Integration is not necessary in this case. It is necessary if the flood workspace contained wavelength-dependent
+    # spectra. In this case we must integrate for all wavelength bins.
+    Integration(InputWorkspace=flood_workspace, OutputWorkspace=flood_workspace)
+
+    # Mask non-finite intensities. They can't be used in the calculation.
+    #
+    # Flag non-finite intensities with a negative intensity of -1
+    ReplaceSpecialValues(InputWorkspace=flood_workspace, OutputWorkspace=flood_workspace,
+                         NanValue=-1, NanError=-1, InfinityValue=-1, InfinityError=-1)
+    # Mask detectors with negative intensity
+    mask_workspace = unique_workspace_dundername()
+    MaskDetectorsIf(InputWorkspace=flood_workspace, Operator='Less', Value=0., OutputWorkspace=mask_workspace)
+    MaskDetectors(Workspace=flood_workspace, MaskedWorkspace=mask_workspace)
+    SaveNexus(flood_workspace, '/tmp/junk.nxs')
+
+    # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated
+    # intensity is stored as nan.
+    #
+    # Sort the 10 tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
+    # sample and iterating over the tubes "from left to right"
+    collection = TubeCollection(flood_workspace, 'detector1').sorted(view='decreasing X')
+    intensities = mtd[flood_workspace].extractY().flatten()
+    count_densities = list()
+    for tube in collection:
+        d = np.mean([intensities[pixel.spectrum_index] / pixel.height for pixel in tube if pixel.isMasked is False])
+        count_densities.append(d)
+    count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
+    # Compare to test data. Factor 1.e-03 is necessary because units for Mantid instrument are meters, not mili-meters.
+    assert abs(max(count_densities * 1.e-03 - np.array(data.c_tube))) < data.precision
+
+    # Determine the count densities per panel and for the whole detector array, then compare to test data
+    # We must be careful to pick only tubes with finite densities (avoid 'nan')
+    average_count_density = np.mean(count_densities[np.isfinite(count_densities)])
+    front_count_density = np.mean(count_densities[::2][np.isfinite(count_densities[::2])])  # front tubes, even indexes
+    back_count_density = np.mean(count_densities[1::2][np.isfinite(count_densities[1::2])])  # back tubes, odd indexes
+
+    assert average_count_density * 1.e-03 == pytest.approx(data.c_ave, abs=data.precision)
+    assert front_count_density * 1.e-03 == pytest.approx(data.c_front, abs=data.precision)
+    assert back_count_density * 1.e-03 == pytest.approx(data.c_back, abs=data.precision)
+
+    # Determine the front and back pixel widths, then compare to test data
+    nominal_width = collection[0][0].width  # width of the first pixel in the first tube
+    front_width = (front_count_density / average_count_density) * nominal_width
+    back_width = (back_count_density / average_count_density) * nominal_width
+    assert front_width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
+    assert back_width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
+
+    # Insert the updated pixel widths in the workspace
+    for tube in collection[::2]:  # front tubes
+        for pixel in tube:
+            pixel.width = front_width
+    for tube in collection[1::2]:  # back tubes
+        for pixel in tube:
+            pixel.width = back_width
+    # Compare widths for the very first and very last pixels with test data
+    assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
+    assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
 
 
 if __name__ == '__main__':

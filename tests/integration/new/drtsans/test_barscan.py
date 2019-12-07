@@ -1,13 +1,12 @@
 import pytest
 import numpy as np
 
-from mantid.api import mtd
-from mantid.simpleapi import Integration, ReplaceSpecialValues, MaskDetectorsIf, MaskDetectors, SaveNexus
+from mantid.simpleapi import DeleteWorkspaces
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 
-from drtsans.barscan import find_edges, fit_positions
+from drtsans.barscan import find_edges, fit_positions, apparent_tube_width
 from drtsans.tubecollection import TubeCollection
 
 r"""Finding the edges of the barscan in a single tube,
@@ -123,7 +122,7 @@ def test_fit_positions():
 
 @pytest.fixture(scope='module')
 @namedtuplefy
-def data_pixel_width_test():
+def data_apparent_tube_width():
     r"""Flood run to be used as input data for 'test_pixel_width'"""
     return dict(flood_intensities=[[105, 96, 105, 101, 94, 102, 110, float('nan'), 105, 91],
                                    [110, 90, 104, 102, 99, 106, 108, float('nan'), 90, 93],
@@ -151,7 +150,7 @@ def data_pixel_width_test():
                          [{'instrument_geometry': 'n-pack', 'n_tubes': 10, 'n_pixels': 10,
                            'diameter': 5.5e-03, 'height': 4.2e-03, 'spacing': 0.0,
                            'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0}], indirect=True)
-def test_pixel_width(data_pixel_width_test, workspace_with_instrument):
+def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument):
     r"""
     Test for determining the apparent pixel width from Appendix 2, section 2 of the master document.
     <https://www.dropbox.com/s/2mz0gy60pp9ehqm/Master%20document_110819.pdf?dl=0>
@@ -168,7 +167,7 @@ def test_pixel_width(data_pixel_width_test, workspace_with_instrument):
         <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 
     """
-    data = data_pixel_width_test  # shortcut
+    data = data_apparent_tube_width  # shortcut
 
     # Load the flood data into a Mantid workspace
     #
@@ -177,63 +176,27 @@ def test_pixel_width(data_pixel_width_test, workspace_with_instrument):
     workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, intensities=intensities,
                               uncertainties=np.sqrt(intensities), view='array', axis_units='wavelength',
                               output_workspace=flood_workspace)
-    # Integration is not necessary in this case. It is necessary if the flood workspace contained wavelength-dependent
-    # spectra. In this case we must integrate for all wavelength bins.
-    Integration(InputWorkspace=flood_workspace, OutputWorkspace=flood_workspace)
 
-    # Mask non-finite intensities. They can't be used in the calculation.
-    #
-    # Flag non-finite intensities with a negative intensity of -1
-    ReplaceSpecialValues(InputWorkspace=flood_workspace, OutputWorkspace=flood_workspace,
-                         NanValue=-1, NanError=-1, InfinityValue=-1, InfinityError=-1)
-    # Mask detectors with negative intensity
-    mask_workspace = unique_workspace_dundername()
-    MaskDetectorsIf(InputWorkspace=flood_workspace, Operator='Less', Value=0., OutputWorkspace=mask_workspace)
-    MaskDetectors(Workspace=flood_workspace, MaskedWorkspace=mask_workspace)
-    SaveNexus(flood_workspace, '/tmp/junk.nxs')
+    # Find apparent tube widths and modify the pixel widths in the instrument object embedded in the workspace.
+    # We save the modifications to a new workspace
+    modified_flood_workspace = unique_workspace_dundername()
+    apparent_tube_width(flood_workspace, output_workspace=modified_flood_workspace)
 
-    # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated
-    # intensity is stored as nan.
-    #
-    # Sort the 10 tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
+    # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
+    collection = TubeCollection(modified_flood_workspace, 'detector1').sorted(view='decreasing X')
+    # compare the width of the first pixel in the first tube to the test data
+    assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
+    # compare the width of the last pixel in the last tube to the test data
+    assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
+
+    # We do the same but now we overwrite the instrument embedded in the input workspace
+    apparent_tube_width(flood_workspace)
     collection = TubeCollection(flood_workspace, 'detector1').sorted(view='decreasing X')
-    intensities = mtd[flood_workspace].extractY().flatten()
-    count_densities = list()
-    for tube in collection:
-        d = np.mean([intensities[pixel.spectrum_index] / pixel.height for pixel in tube if pixel.isMasked is False])
-        count_densities.append(d)
-    count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
-    # Compare to test data. Factor 1.e-03 is necessary because units for Mantid instrument are meters, not mili-meters.
-    assert abs(max(count_densities * 1.e-03 - np.array(data.c_tube))) < data.precision
-
-    # Determine the count densities per panel and for the whole detector array, then compare to test data
-    # We must be careful to pick only tubes with finite densities (avoid 'nan')
-    average_count_density = np.mean(count_densities[np.isfinite(count_densities)])
-    front_count_density = np.mean(count_densities[::2][np.isfinite(count_densities[::2])])  # front tubes, even indexes
-    back_count_density = np.mean(count_densities[1::2][np.isfinite(count_densities[1::2])])  # back tubes, odd indexes
-
-    assert average_count_density * 1.e-03 == pytest.approx(data.c_ave, abs=data.precision)
-    assert front_count_density * 1.e-03 == pytest.approx(data.c_front, abs=data.precision)
-    assert back_count_density * 1.e-03 == pytest.approx(data.c_back, abs=data.precision)
-
-    # Determine the front and back pixel widths, then compare to test data
-    nominal_width = collection[0][0].width  # width of the first pixel in the first tube
-    front_width = (front_count_density / average_count_density) * nominal_width
-    back_width = (back_count_density / average_count_density) * nominal_width
-    assert front_width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
-    assert back_width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
-
-    # Insert the updated pixel widths in the workspace
-    for tube in collection[::2]:  # front tubes
-        for pixel in tube:
-            pixel.width = front_width
-    for tube in collection[1::2]:  # back tubes
-        for pixel in tube:
-            pixel.width = back_width
-    # Compare widths for the very first and very last pixels with test data
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
     assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
+
+    DeleteWorkspaces(flood_workspace, modified_flood_workspace)
 
 
 if __name__ == '__main__':

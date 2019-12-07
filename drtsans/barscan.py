@@ -1,7 +1,14 @@
 import numpy as np
 
+from mantid.api import mtd
+from mantid.simpleapi import (Integration, ReplaceSpecialValues, MaskDetectorsIf, MaskDetectors, DeleteWorkspaces,
+                              CloneWorkspace)
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
-from drtsans.settings import namedtuplefy
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.tubecollection import TubeCollection
+
+__all__ = ['apparent_tube_width']
 
 
 def _consecutive_true_values(values, how_many, reverse=False,
@@ -163,3 +170,73 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256):
     calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
 
     return dict(calculated_positions=calculated_positions, calculated_heights=calculated_heights)
+
+
+def apparent_tube_width(input_workspace, output_workspace=None):
+    r"""
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Input workspace, usually a flood run.
+    output_workspace: str
+        Optional name of the output workspace. if :py:obj:`None`, the name of ``input_workspace`` is used, thus
+        calibrating the pixel widths of the input workspace.
+
+    Returns
+    -------
+    ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+    """
+    if output_workspace is None:
+        output_workspace = str(input_workspace)
+
+    integrated_intensities = unique_workspace_dundername()
+    Integration(InputWorkspace=input_workspace, OutputWorkspace=integrated_intensities)
+
+    # Mask non-finite intensities (nan, inf). They can't be used in the calculation.
+    #
+    # Replace non-finite intensities with a value of -1
+    ReplaceSpecialValues(InputWorkspace=integrated_intensities, OutputWorkspace=integrated_intensities,
+                         NanValue=-1, NanError=-1, InfinityValue=-1, InfinityError=-1)
+    # Mask detectors with negative intensities
+    mask_workspace = unique_workspace_dundername()
+    MaskDetectorsIf(InputWorkspace=integrated_intensities, Operator='Less', Value=0., OutputWorkspace=mask_workspace)
+    MaskDetectors(Workspace=integrated_intensities, MaskedWorkspace=mask_workspace)
+
+    # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated
+    # intensity is stored as nan.
+    #
+    # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
+    # sample and iterating over the tubes "from left to right"
+    collection = TubeCollection(integrated_intensities, 'detector1').sorted(view='decreasing X')
+    intensities = mtd[integrated_intensities].extractY().flatten()
+    count_densities = list()
+    for tube in collection:
+        d = np.mean([intensities[pixel.spectrum_index] / pixel.height for pixel in tube if pixel.isMasked is False])
+        count_densities.append(d)
+    count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
+
+    # Determine the count densities per panel and for the whole detector array.
+    # We must be careful to pick only tubes with finite densities (avoid 'nan')
+    average_count_density = np.mean(count_densities[np.isfinite(count_densities)])
+    front_count_density = np.mean(count_densities[::2][np.isfinite(count_densities[::2])])  # front tubes, even indexes
+    back_count_density = np.mean(count_densities[1::2][np.isfinite(count_densities[1::2])])  # back tubes, odd indexes
+
+    # Determine the front and back pixel widths, then compare to test data
+    nominal_width = collection[0][0].width  # width of the first pixel in the first tube
+    front_width = (front_count_density / average_count_density) * nominal_width
+    back_width = (back_count_density / average_count_density) * nominal_width
+
+    # Insert the updated pixel widths in the output workspace.
+    if output_workspace != str(input_workspace):  # are we overwriting the pixel widths of the input workspace?
+        CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+    collection = TubeCollection(output_workspace, 'detector1').sorted(view='decreasing X')
+    for tube in collection[::2]:  # front tubes
+        for pixel in tube:
+            pixel.width = front_width
+    for tube in collection[1::2]:  # back tubes
+        for pixel in tube:
+            pixel.width = back_width
+
+    DeleteWorkspaces(integrated_intensities, mask_workspace)
+    return mtd[output_workspace]

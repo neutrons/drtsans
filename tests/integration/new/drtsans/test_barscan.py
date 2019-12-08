@@ -1,7 +1,20 @@
 import pytest
 import numpy as np
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py
-from drtsans.barscan import find_edges, fit_positions
+
+r""" Hyperlinks to mantid algorithms
+DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+"""
+from mantid.simpleapi import DeleteWorkspace
+
+r"""
+Hyperlinks to drtsans functions
+apparent_tube_width, find_edges, fit_positions <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py>
+namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+"""  # noqa: E501
+from drtsans.barscan import apparent_tube_width, find_edges, fit_positions
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.tubecollection import TubeCollection
 
 r"""Finding the edges of the barscan in a single tube,
 then calculate the position and width of the pixels
@@ -112,6 +125,87 @@ def test_fit_positions():
     # fit_positions calculates also the expected position for pixel 0, not in the table
     assert new_positions[1:] == pytest.approx(expected_positions, abs=1e-2)
     assert new_heights[1:] == pytest.approx(expected_heights, abs=1e-2)
+
+
+@pytest.fixture(scope='module')
+@namedtuplefy
+def data_apparent_tube_width():
+    r"""Flood run to be used as input data for 'test_apparent_tube_width'"""
+    return dict(flood_intensities=[[105, 96, 105, 101, 94, 102, 110, float('nan'), 105, 91],
+                                   [110, 90, 104, 102, 99, 106, 108, float('nan'), 90, 93],
+                                   [103, 105, 99, 101, 108, 104, 100, float('nan'), 93, 90],
+                                   [94, 107, 102, 110, 98, 99, 101, float('nan'), 96, 109],
+                                   [104, 101, 105, 105, 98, 110, 100, float('nan'), 109, 98],
+                                   [101, 103, 102, 110, 106, 99, 93, float('nan'), 98, 94],
+                                   [92, 108, float('nan'), 101, 108, 98, 105, float('nan'), 103, 98],
+                                   [98, 92, float('nan'), 99, 101, 110, 93, float('nan'), 90, 110],
+                                   [90, 103, 98, 104, 91, 105, 96, float('nan'), 96, 98],
+                                   [95, 97, 109, 109, 104, 100, 95, float('nan'), 90, 97]],
+                wavelength_bin_boundaries=[1.0, 2.0],  # actual numbers are irrelevant
+                c_tube=[23.6190476190476, 23.8571428571429, 24.5238095238095, 24.8095238095238, 23.9761904761905,
+                        24.5952380952381, 23.8333333333333, float('nan'), 23.0952380952381, 23.2857142857143],
+                c_ave=23.9550264550265,
+                c_front=23.8095238095238,
+                c_back=24.136902499999998,
+                w_front=5.46659304251795,
+                w_back=5.54175869685257,
+                precision=2.e-02,  # precision to compare reduction framework to test results
+                )
+
+
+@pytest.mark.parametrize('workspace_with_instrument',
+                         [{'instrument_geometry': 'n-pack', 'n_tubes': 10, 'n_pixels': 10,
+                           'diameter': 5.5e-03, 'height': 4.2e-03, 'spacing': 0.0,
+                           'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0}], indirect=True)
+def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument):
+    r"""
+    Test for determining the apparent tube width, from Appendix 2, Section 2 of the master document.
+    <https://www.dropbox.com/s/2mz0gy60pp9ehqm/Master%20document_110819.pdf?dl=0>
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
+
+    Description:
+    - We use a flat detector made up of 10 tubes, each tube containing 10 pixels.
+    - Even tubes make up the front panel, odd tubes make up the back panel.
+
+    **Mantid algorithms used:**
+        :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
+
+    **drtsans components used:**
+    ~drtsans.tubecollection.TubeCollection
+        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+    """
+    data = data_apparent_tube_width  # shortcut
+
+    # Load the flood data into a Mantid workspace
+    #
+    flood_workspace = unique_workspace_dundername()  # random name for the workspace
+    intensities = np.array(data.flood_intensities).reshape((10, 10, 1))
+    workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, intensities=intensities,
+                              uncertainties=np.sqrt(intensities), view='array', axis_units='wavelength',
+                              output_workspace=flood_workspace)
+
+    # Find apparent tube widths and modify the pixel widths in the instrument object embedded in the workspace.
+    # We save the modifications to a new workspace
+    modified_flood_workspace = unique_workspace_dundername()
+    apparent_tube_width(flood_workspace, output_workspace=modified_flood_workspace)
+
+    # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
+    # sample and iterating over the tubes "from left to right"
+    collection = TubeCollection(modified_flood_workspace, 'detector1').sorted(view='decreasing X')
+    # compare the width of the first pixel in the first tube to the test data
+    assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
+    # compare the width of the last pixel in the last tube to the test data
+    assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
+
+    # We do the same but now we overwrite the instrument embedded in the input workspace
+    apparent_tube_width(flood_workspace)
+    collection = TubeCollection(flood_workspace, 'detector1').sorted(view='decreasing X')
+    assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
+    assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
+
+    DeleteWorkspace(modified_flood_workspace)  # flood_workspace is garbage collected upon test completion
 
 
 if __name__ == '__main__':

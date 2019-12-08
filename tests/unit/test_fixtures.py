@@ -209,8 +209,8 @@ def test_n_pack_IDF(n_pack_IDF):
     <type outline="yes" name="tube">
     <properties/>
     <component type="pixel">
-        <location name="pixel0" y="-0.00225"/>
-        <location name="pixel1" y="0.00000"/>
+        <location name="pixel0" y="-0.00225000"/>
+        <location name="pixel1" y="0.00000000"/>
     </component>
   </type>
 
@@ -220,8 +220,8 @@ def test_n_pack_IDF(n_pack_IDF):
       <type name="n_pack">
     <properties/>
     <component type="tube">
-        <location name="tube0" x="-0.00402"/>
-        <location name="tube1" x="0.00402"/>
+        <location name="tube0" x="-0.00402500"/>
+        <location name="tube1" x="0.00402500"/>
     </component>
     </type>
 

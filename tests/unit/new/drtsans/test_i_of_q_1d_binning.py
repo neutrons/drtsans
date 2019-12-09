@@ -1,8 +1,7 @@
 import numpy as np
 from drtsans.dataobjects import IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
-from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, _do_1d_no_weight_binning,\
-    BinningMethod, bin_intensity_into_q1d
+from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_linear_bins,\
     get_gold_1d_log_bins

@@ -19,7 +19,7 @@ __all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans name
 
 
 def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={},
-                     centering_options={}, area_corection_flag=True):
+                     centering_options={}, area_correction_flag=True):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.
     Usually employed for a direct beam run (no sample and not sample holder).
@@ -40,7 +40,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         Additional arguments to be passed on to ~drtsans.mask_utils.mask_apply.
     centering_options: dict
         Arguments to be passed on to the centering method.
-    area_corection_flag: str, flag to specify if area correction is needed
+    area_correction_flag: bool, flag to specify if area correction is needed
 
     Returns
     -------
@@ -50,7 +50,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     if method != 'center_of_mass':
         raise NotImplementedError()  # (f'{method} is not implemented')
 
-    # flatten the workspace
+    # integrate the TOF
     flat_ws = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
     mask_spectra_with_special_values(flat_ws)
 
@@ -58,7 +58,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         mask_workspace = apply_mask(flat_ws, mask=mask, **mask_options)
         mask_workspace.delete()  # we don't need the mask workspace so keep it clean
 
-    if area_corection_flag:
+    if area_correction_flag:
         # determining the bounding box of the area
         bounding_box_widths = np.array(
             [flat_ws.getDetector(i).shape().getBoundingBox().width() for i in
@@ -92,8 +92,8 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
 
 
 def center_detector(input_workspace, center_x, center_y, component='detector1'):
-    """Center the detector. Move the `component` by (-center_x, -centery)
-    from the current position (relative motion).
+    """Translate the beam center currently located at (center_x, center_y) by an amount
+    (-center_x, -center_y), so that the beam center is relocated to the origin of coordinates on the XY-plane
 
     **Mantid algorithms used:**
     :ref:`MoveInstrumentComponent <algm-MoveInstrumentComponent-v1>`,

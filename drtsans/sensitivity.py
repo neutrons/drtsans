@@ -6,7 +6,8 @@ import os
 from mantid.kernel import Property, logger
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, Quadratic
+    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, Quadratic, \
+    Fit
 from drtsans.path import exists as path_exists
 from drtsans.settings import unique_workspace_name as uwd
 from drtsans import detector
@@ -492,6 +493,19 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     #    print(item.name)
     comp = detector.Component(II, 'detector1')
     np.set_printoptions(precision=1)
+
+
+    #for j in range(0, comp.dim_y):
+    #    s_x = j*comp.dim_x
+    #    e_x = (j+1)*comp.dim_x -1
+    #    print(s_x, e_x)
+    #    d0, costFuncVal, d1, d2, d3, d4, d5 = Fit(InputWorkspace=II, WorkspaceIndex=0,
+    #        StartX=s_x, EndX=e_x, Output='fit',
+    #        Function='name=Quadratic',
+    #        Minimizer='Conjugate gradient (Fletcher-Reeves imp.)')
+    #    print(d0)
+
+
     for j in range(0, comp.dim_y):
         xx = []
         yy = []
@@ -500,7 +514,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
         for i in range(0, comp.dim_x):
             index = comp.dim_y*j + i
             if det_info.isMasked(index):
-                masked_indices.append([i+1,index])
+                masked_indices.append([i+1, index])
             else:
                 xx.append(i+1)
                 yy.append(II.readY(index)[0])
@@ -515,7 +529,6 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
         # errors of the polynomial
         e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
                         (e_coeffs[0]*masked_indices[:, 0]**2)**2)
-
         for i, index in enumerate(masked_indices[:, 1]):
             assert II.readY(int(index))[0] == 0.
             II.setY(int(index), [y_new[i]])

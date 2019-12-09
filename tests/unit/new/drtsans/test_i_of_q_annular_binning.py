@@ -74,7 +74,10 @@ def test_1d_annular_no_wt():
     assert binned_iq.intensity[1] == pytest.approx(63.66666667, abs=1E-8), 'Binned intensity is wrong'
     assert binned_iq.error[1] == pytest.approx(3.257470048, abs=1E-8), 'Binned sigma I is wrong'
     # 4.70549611605334e-05 calculated vs 4.717e-05
-    assert binned_iq.delta_mod_q[1] == pytest.approx(4.717E-05, abs=1.5E-7), 'Binned Q resolution is wrong'
+    assert binned_iq.delta_mod_q[1] == pytest.approx(1.154E-02, abs=1E-5), 'Binned Q resolution {} ' \
+                                                                           'is incorrect comparing to {}.' \
+                                                                           ''.format(binned_iq.delta_mod_q[1],
+                                                                                     0.01154)
 
     # Test the high level method
     # Define input data

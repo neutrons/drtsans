@@ -66,8 +66,10 @@ def test_2d_linear_bin():
 
     # verify dQx and dQy
     # correct: 3.2999999999999996e-05
-    assert binned_iq_2d[2][1][1] == pytest.approx(3.31E-05, abs=2E-7), 'dQx is incorrect'
-    assert binned_iq_2d[3][1][1] == pytest.approx(1.75E-05, abs=2E-7), 'dQy is incorrect'
+    assert binned_iq_2d[2][1][1] == pytest.approx(0.00816, abs=1E-5), 'dQx {} is incorrect comparing to {}.' \
+                                                                      ''.format(binned_iq_2d[2][1][1], 0.00816)
+    assert binned_iq_2d[3][1][1] == pytest.approx(0.00816, abs=1E-5), 'dQy {}is incorrect comparing to {}.' \
+                                                                      ''.format(binned_iq_2d[3][1][1], 0.00816)
 
     # Bin 2D Weighted
     # Test for weighted-binning
@@ -81,9 +83,9 @@ def test_2d_linear_bin():
         'Weighted-binned sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
-    assert binned_iq_2d[2][1][1] == pytest.approx(3.30E-05, abs=2E-7), 'dQx is incorrect'
+    assert binned_iq_2d[2][1][1] == pytest.approx(0.00815, abs=1E-5), 'dQx is incorrect'
     # correct: 1.71877860186208e-05
-    assert binned_iq_2d[3][1][1] == pytest.approx(1.75E-05, abs=4E-7), 'dQy is incorrect'
+    assert binned_iq_2d[3][1][1] == pytest.approx(0.00815, abs=1E-5), 'dQy is incorrect'
 
     # Test API for high level method
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,

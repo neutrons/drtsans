@@ -93,4 +93,3 @@ def determine_1d_log_bins(x_min, x_max, step_per_decade):
     log_bins = Bins(bin_edges, bin_centers)
 
     return log_bins
-

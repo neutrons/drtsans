@@ -1,4 +1,3 @@
-from collections import namedtuple
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
 from drtsans.dataobjects import IQazimuthal, IQmod
@@ -53,7 +52,6 @@ def check_iq_for_binning(i_of_q):
 
     if len(error_message) > 0:
         raise RuntimeError('Input I(Q) for binning does not meet assumption:\n{}'.format(error_message))
-
 
 
 def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.WEIGHTED):

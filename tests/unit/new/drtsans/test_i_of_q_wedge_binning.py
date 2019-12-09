@@ -80,7 +80,10 @@ def test_1d_bin_log_wedge_no_wt():
     """
     assert binned_iq.intensity[7] == pytest.approx(67.7, abs=1E-10)
     assert binned_iq.error[7] == pytest.approx(2.601922, abs=1E-5)
-    assert binned_iq.delta_mod_q[7] == pytest.approx(5.84793186e-05, abs=1E-10)
+    assert binned_iq.delta_mod_q[7] == pytest.approx(5.84793186e-05, abs=1E-10), 'Q resolution (Q[7] = {}) is ' \
+                                                                                 'incorrect comparing to {}.' \
+                                                                                 ''.format(binned_iq.delta_mod_q[7],
+                                                                                           5.84793186e-05)
 
     # Test high level method
     # Define input data

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from pytest import approx
-from drtsans.convert_to_q import convert_to_q
+from drtsans.momentum_transfer import convert_to_q
 from mantid.simpleapi import MaskDetectors
 
 
@@ -90,13 +90,13 @@ def test_convert_q_azimuthal(generic_workspace):
     assert result.wavelength == approx([6, 6, 6], abs=1e-5)
     two_theta = np.arccos(5./np.sqrt(25.5))
     q = 4. * np.pi * np.sin(two_theta * 0.5) / 6.
-    assert result.qx == approx([q * np.sqrt(0.5), q*np.sqrt(0.5), -q*np.sqrt(0.5)], abs=1e-5)
+    assert result.qx * (-1) == approx([q * np.sqrt(0.5), q*np.sqrt(0.5), -q*np.sqrt(0.5)], abs=1e-5)
     assert result.qy == approx([-q * np.sqrt(0.5), q*np.sqrt(0.5), q*np.sqrt(0.5)], abs=1e-5)
 
     # test with simple resolution
     result = convert_to_q(ws, mode='azimuthal', resolution_function=fake_resolution1)
-    assert result.delta_qx == approx([0, q * np.sqrt(2.), 0], abs=1e-5)
-    assert result.delta_qy == approx([q * np.sqrt(2.), 0, -q * np.sqrt(2.)], abs=1e-5)
+    assert result.delta_qx == approx([-q * np.sqrt(2.), 0, q * np.sqrt(2.)], abs=1e-5)
+    assert result.delta_qy == approx([0, -q * np.sqrt(2.), 0], abs=1e-5)
 
 
 @pytest.mark.parametrize('generic_workspace',

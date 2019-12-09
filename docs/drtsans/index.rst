@@ -8,6 +8,7 @@
    /drtsans/dataobjects
    /drtsans/mono/index
    /drtsans/tof/index
+   /drtsans/plots
 
 API Documentation
 =================

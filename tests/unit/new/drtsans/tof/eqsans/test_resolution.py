@@ -6,7 +6,7 @@ from collections import namedtuple
 from scipy import constants
 import pytest
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/convert_to_q.py
-from drtsans.tof.eqsans.convert_to_q import eqsans_resolution, moderator_time_uncertainty
+from drtsans.tof.eqsans.momentum_transfer import eqsans_resolution, moderator_time_uncertainty
 import drtsans.resolution
 
 

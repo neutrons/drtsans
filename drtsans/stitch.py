@@ -1,107 +1,91 @@
-import collections
 import numpy as np
 
-r"""
-Hyperlinks to Mantid algorithms
-CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
-Stitch1D <https://docs.mantidproject.org/nightly/algorithms/Stitch1D-v3.html>
-"""
-from mantid.simpleapi import CreateWorkspace, Stitch1D
-
-r"""
-Hyperlinks to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-IQmod <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
-"""  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
-from drtsans.dataobjects import IQmod
+__all__ = ['stitch_profiles', ]
 
 
-def stitch_intensities(intensities=None, overlaps=None):
+def stitch_profiles(profiles, overlaps, target_profile_index=0):
     r"""
-    Stitch together a sequence of intensity profiles with overlapping domains to return a single encompassing profile.
+    Stitch together a sequence of intensity profiles with overlapping domains, returning a single encompassing profile.
+
+    **drtsans objects used**:
+    ~drtsans.dataobjects.IQmod
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
 
     Parameters
     ----------
-    intensities: list
-        A list of I(Q) intensities. You can pass objets of type ~drtsans.dataobjects.IQmod and/or all the four
-        components separately and in this order: intensity, error, mod_q, delta_mod_q. Each of these components must be
-        a one-dimensional array.
-        Allowed syntax for this list:
-        - (intensity_1, error_1 mod_q_1 delta_mod_q_1, intensity_2 error_2 mod_q_2 delta_mod_q_2,...)
-        - (IQmod_1, IQmod_2, IQmod_3,...)
-        - (IQmod_1, intensity_2 error_2 mod_q_2 delta_mod_q_2, IQmod_3,...)
+    profiles: list
+        A list of  ~drtsans.dataobjects.IQmod objects, ordered with increasing Q-values
     overlaps: list
-        A list of overlap regions. Allowed syntax for this list:
-        - ((start_1, end_1), (start_2, end_2), (start_3, end_3),...)
-        - (start_1, end_1, start_2, end_2, start_3, end_3,...)
-
-    **Mantid algorithms used:**
-    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
-    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
-    :ref:`Stitch1D <algm-Stitch1D-v3>`,
+        A list of overlap regions in the shape (start_1, end_1, start_2, end_2, start_3, end_3,...).
+    target_profile_index: int
+        Index of the ``profiles`` list indicating the target profile, that is, the profile defining the final scaling.
 
     Returns
     -------
     ~drtsans.dataobjects.IQmod
     """
-    # We convert the list of intensities to a list of IQmod objects, i.e [IQmod_1, IQmod_2,...]
-    # We need to iterate the list of intensities and whenever we found an item that it's not an IQmod object, we
-    # create one by replacing the four components of the intensity profile.
-    intensities = list(intensities)  # convert to list, necessary if passing a tuple
-    index = 0
-    while len(intensities) > index:
-        if isinstance(intensities[index], IQmod) is False:
-            # we found the four components: intensity, error, mod_q, and delta_mod_q
-            new_intensity_profile = IQmod(*intensities[index: index+4])
-            intensities = intensities[0:index] + [new_intensity_profile] + intensities[index+4:]
-        index += 1
-
-    # We convert the list of overlap regions to a single list of alternating boundaries,
-    # i.e. [start_1, end_1, start_2, end_2,...]
-    overlaps = list(overlaps)  # convert to list, necessary if passing a tuple
-    if isinstance(overlaps[0], collections.Sequence):  # we're passing ((start_1, end_1), (start_2, end_2),...)
-        overlaps = [boundary for overlap_region in overlaps for boundary in overlap_region]
+    # Guard clause to verify the profiles are ordered with increasing Q-values
+    first_q_values = np.array([profile.mod_q[0] for profile in profiles])  # collect first Q-value for each profile
+    if np.all(np.diff(first_q_values) > 0) is False:
+        raise ValueError('The profiles are not ordered with increasing Q-values')
 
     # Guard clause to validate that the number of overlap boundaries is congruent with the number of intensity profiles
-    if len(overlaps) != 2 * (len(intensities) - 1):
+    if len(overlaps) != 2 * (len(profiles) - 1):
         raise ValueError('The number of overlaps is not appropriate to the number of intensity profiles')
 
-    # Stitch together the first two intensity profiles
-    i_of_q_1, i_of_q_2 = intensities.pop(0), intensities.pop(0)
-    start_overlap, end_overlap = overlaps.pop(0), overlaps.pop(0)
+    # Pair the overlaps into (start_q, end_q) pairs
+    overlaps = [overlaps[i:i+2] for i in range(0, len(overlaps), 2)]
 
-    # first interpolate the data in the overlap region
-    interpolation_domain = np.linspace(start_overlap, end_overlap, 100)  # will 100 be always enough?
-    low_q_workspace = CreateWorkspace(DataX=interpolation_domain, NSpec=1, EnableLogging=False,
-                                      DataY=np.interp(interpolation_domain, i_of_q_1.mod_q, i_of_q_1.intensity),
-                                      OutputWorkspace=unique_workspace_dundername())
-    high_q_workspace = CreateWorkspace(DataX=interpolation_domain, NSpec=1, EnableLogging=False,
-                                       DataY=np.interp(interpolation_domain, i_of_q_2.mod_q, i_of_q_2.intensity),
-                                       OutputWorkspace=unique_workspace_dundername())
+    def scaling(target, to_target, starting_q, ending_q):
+        r"""Utility function to find the scaling factor bringing the to_target profile to the target profile scaling"""
+        # Find the data points of the "target" profile in the overlap region
+        indexes_in_overlap = (target.mod_q > starting_q) & (target.mod_q < ending_q)
+        q_values_in_overlap = target.mod_q[indexes_in_overlap]
+        # Interpolate the "to_target" profile intensities at the previously found Q values
+        to_target_interpolated = np.interp(q_values_in_overlap, to_target.mod_q, to_target.intensity)
+        return sum(target_profile.intensity[indexes_in_overlap]) / sum(to_target_interpolated)
 
-    # Stitch with Mantid's Stich1D to find out by how much we have to scale the high-Q profile
-    _, scale = Stitch1D(LHSWorkspace=low_q_workspace, RHSWorkspace=high_q_workspace,
-                        StartOverlap=start_overlap, EndOverlap=end_overlap)
+    # We begin stitching to the target profile the neighboring profile with lower Q-values, then proceed until we
+    # run out of profiles with lower Q-values than the target profile
+    target_profile = profiles[target_profile_index]
+    current_index = target_profile_index - 1
+    while current_index >= 0:
+        to_target_profile = profiles[current_index]
+        start_q, end_q = overlaps[current_index]
 
-    # Fuse the two intensity profiles as the concatenation of low_q_spectrum[q<start_overlap]
-    # and high_q_spectrum[q>start_overlap]
-    low_q_range = i_of_q_1.mod_q < start_overlap
-    high_q_range = i_of_q_2.mod_q > start_overlap
-    merged_q_range = np.concatenate((i_of_q_1.mod_q[low_q_range], i_of_q_2.mod_q[high_q_range]))
-    stitched_intensity = np.concatenate((i_of_q_1.intensity[low_q_range], scale*i_of_q_2.intensity[high_q_range]))
-    error_in_intensity = np.concatenate((i_of_q_1.error[low_q_range], scale*i_of_q_2.error[high_q_range]))
-    error_in_q = np.concatenate((i_of_q_1.delta_mod_q[low_q_range], i_of_q_2.delta_mod_q[high_q_range]))
-    new_intensity_profile = IQmod(stitched_intensity, error_in_intensity, merged_q_range, error_in_q)
+        # Rescale the "to_target" profile to match the scaling of the target profile
+        to_target_profile = to_target_profile * scaling(target_profile, to_target_profile, start_q, end_q)
 
-    # clean up temporary workspaces
-    [workspace.delete() for workspace in (low_q_workspace, high_q_workspace)]
+        # Discard extrema points
+        to_target_profile = to_target_profile.extract(to_target_profile.mod_q < end_q)  # keep data with Q < end_q
+        target_profile = target_profile.extract(target_profile.mod_q > start_q)  # keep data with Q > start_q
 
-    if len(intensities) > 0:  # there are intensity profiles left that need stitching
-        # insert the stitched profile in the list of intensities at the top of the list
-        intensities.insert(0, IQmod(stitched_intensity, error_in_intensity, merged_q_range, error_in_q))
-        # A recursive call will stitch the newly create stitched profile to the next intensity profile down the]
-        # list of intensities. Note that at this moment we have reduced the number of intensity profiles by one.
-        stitch_intensities(intensities, overlaps)
-    else:
-        return new_intensity_profile
+        # Stitch by concatenation followed by sorting, save the result into a new target profile
+        target_profile = to_target_profile.concatenate(target_profile)  # just put one profile after the other
+        target_profile = target_profile.sort()  # sort data points by increasing Q
+
+        # Move to the next to-target profile
+        current_index = current_index - 1
+
+    # We continue stitching to the target profile the neighboring profile with higher Q-values, then proceed until we
+    # run out of profiles with higher Q-values than the target profile
+    current_index = target_profile_index + 1
+    while current_index < len(profiles):
+        to_target_profile = profiles[current_index]
+        start_q, end_q = overlaps[current_index - 1]
+
+        # Rescale the "to_target" profile to match the scaling of the target profile
+        to_target_profile = to_target_profile * scaling(target_profile, to_target_profile, start_q, end_q)
+
+        # Discard extrema points
+        to_target_profile = to_target_profile.extract(to_target_profile.mod_q > start_q)  # keep data with Q < end_q
+        target_profile = target_profile.extract(target_profile.mod_q < end_q)  # keep data with Q > start_q
+
+        # Stitch by concatenation followed by sorting, save the result into a new target profile
+        target_profile = target_profile.concatenate(to_target_profile)  # just put one profile after the other
+        target_profile = target_profile.sort()  # sort data points by increasing Q
+
+        # Move to the next to-target profile
+        current_index = current_index + 1
+
+    return target_profile

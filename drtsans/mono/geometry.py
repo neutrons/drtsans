@@ -1,6 +1,5 @@
 from mantid import mtd, logger
 
-from drtsans.samplelogs import SampleLogs
 
 __all__ = ['beam_radius']
 
@@ -34,21 +33,14 @@ def beam_radius(input_workspace, unit='mm',
     float
     """
     from drtsans.tof.eqsans.geometry import beam_radius as eqsans_beam_radius
+    from drtsans.mono.momentum_transfer import retrieve_instrument_setup
     ws = mtd[str(input_workspace)]
     if ws.getInstrument().getName() == 'EQ-SANS':
         return eqsans_beam_radius(ws, unit='mm')
 
-    # Apertures, assumed to be in mili-meters
-    sample_logs = SampleLogs(ws)
-    radius_sample_aperture = sample_logs[sample_aperture_diameter_log].value / 2.
-    radius_source_aperture = sample_logs[source_aperture_diameter_log].value / 2.
+    inst = retrieve_instrument_setup(ws)
+    radius = inst.sample_aperture_radius + inst.sample_det_center_distance * (inst.sample_aperture_radius
+                                                                              + inst.source_aperture_radius) / inst.l1
 
-    # Distances
-    ssd = sample_logs[ssd_log].value
-    sdd = sample_logs[sdd_log].value
-
-    # Calculate beam radius
-    radius = radius_sample_aperture + sdd * (radius_sample_aperture + radius_source_aperture) / ssd
-
-    logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius))
-    return radius if unit == 'mm' else 1e-3 * radius
+    logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3))
+    return radius if unit == 'm' else 1e3 * radius

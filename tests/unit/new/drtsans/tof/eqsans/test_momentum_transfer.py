@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
 from pytest import approx
-from drtsans.tof.eqsans.convert_to_q import convert_to_q, retrieve_instrument_setup
+from drtsans.tof.eqsans import convert_to_q
+from drtsans.tof.eqsans.momentum_transfer import retrieve_instrument_setup
 from mantid.simpleapi import AddSampleLog
 
 intensities_array = np.array([[[93, 60, 89, 32, 97],
@@ -139,7 +140,7 @@ def test_convert_to_q_eqsans(workspace_with_instrument):
     error = result.error.reshape((5, 5, 3))
     assert error == approx(np.sqrt(expected_intensities), abs=1e-6)
     qx = result.qx.reshape((5, 5, 3))
-    assert qx == approx(-expected_qx, abs=1e-6)
+    assert qx == approx(expected_qx, abs=1e-6)
     qy = result.qy.reshape((5, 5, 3))
     assert qy == approx(expected_qy, abs=1e-6)
     dqx = result.delta_qx.reshape((5, 5, 3))

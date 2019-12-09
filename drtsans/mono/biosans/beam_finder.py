@@ -32,7 +32,8 @@ def _calculate_neutron_drop(path_length, wavelength):
     return wavelength**2 * l_2
 
 
-def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector):
+def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector,
+                                    vertical_offset=0.0135):
     """This method is used for correcting for gravitational drop by
     finding the difference in drop between the main and wing
     detectors. The center in the wing detector will be higher because
@@ -50,6 +51,8 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_dete
     sample_det_cent_wing_detector : float
         :ref:`sample to detector center distance <devdocs-standardnames>` of the wing detector
         in meters
+    vertical_offset: float
+        :vertical offset between main detector and wing detector in m
 
     Returns
     -------
@@ -65,10 +68,10 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_dete
     drop_main = _calculate_neutron_drop(sample_det_cent_main_detector, wavelength)
     drop_wing = _calculate_neutron_drop(sample_det_cent_wing_detector, wavelength)
 
-    new_beam_center_y = beam_center_y + drop_main - drop_wing
+    new_beam_center_y = beam_center_y + drop_main - drop_wing + (vertical_offset)
     logger.information("Beam Center Y before gravity (drop = {:.3}): {:.3}"
-                       " after = {:.3}.".format(
-                            drop_main-drop_wing, beam_center_y, new_beam_center_y))
+                       " after = {:.3} and vertical offset between main and wing detector= {:.3}.".format(
+                            drop_main-drop_wing, beam_center_y, new_beam_center_y, vertical_offset))
 
     return new_beam_center_y
 

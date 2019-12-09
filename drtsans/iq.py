@@ -171,11 +171,12 @@ def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.WEIGHTED):
     drtsans.dataobjects.IQmod
         the one dimensional data as a named tuple
     """
+    # Check input I(Q) whether it meets assumptions
+    check_iq_for_binning(i_of_q)
+
     # bin I(Q)
     if bin_method == BinningMethod.WEIGHTED:
         # weighed binning
-        # Check input I(Q) whether it meets assumptions
-        check_iq_for_binning(i_of_q)
         binned_q = _do_1d_weighted_binning(i_of_q.mod_q, i_of_q.delta_mod_q, i_of_q.intensity, i_of_q.error,
                                            q_bins.centers, q_bins.edges)
     else:
@@ -417,8 +418,6 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
     """
     # check input
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
-
-    # print('[DB...BAT] Log bin edges: {}'.format(bin_edges))
 
     # calculate 1/sigma^2 for multiple uses
     invert_sigma2_array = 1. / (sigma_iq_array ** 2)

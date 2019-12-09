@@ -100,7 +100,7 @@ dqy_matrix = np.array([[[0.000054, 0.000054, 0.000054, 0.000054, 0.000054],
                         [0.000016, 0.000016, 0.000016, 0.000016, 0.000016],
                         [0.000038, 0.000038, 0.000038, 0.000038, 0.000038]]])
 
-# Scalar dQ matrix copied from revision 3's 1D_bin_linear_no_sub_no_wt and 1D_bin_log_no_sub_no_wt
+# Scalar dQ matrix copied from revision 4's 1D_bin_linear_no_sub_no_wt and 1D_bin_log_no_sub_no_wt
 scalar_dq_matrix = np.array([
     # 3.0 A
     [[0.011912, 0.011912, 0.011912, 0.011912, 0.011912],
@@ -236,6 +236,7 @@ def get_gold_2d_linear_bins():
     """
     qx_center = np.array([-0.006134, -0.003254, -0.000374, 0.002505, 0.005385])
 
+    # Qy shall increase monotonically
     qy_center = np.array([0.004962, 0.002737, 0.000512, -0.001713, -0.003939])
     qy_center = qy_center[::-1]
 

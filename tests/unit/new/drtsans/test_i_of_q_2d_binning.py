@@ -66,12 +66,10 @@ def test_2d_linear_bin():
 
     # verify dQx and dQy
     # correct: 3.2999999999999996e-05
-    assert binned_iq_2d[2][1][1] == pytest.approx(0.00816E-05, abs=1E-5), 'dQx {} is incorrect comparing to {}.' \
-                                                                          ''.format(binned_iq_2d[2][1][1],
-                                                                                    0.00816)
-    assert binned_iq_2d[3][1][1] == pytest.approx(0.00816E-05, abs=1E-5), 'dQy {}is incorrect comparing to {}.' \
-                                                                          ''.format(binned_iq_2d[3][1][1],
-                                                                                    0.00816)
+    assert binned_iq_2d[2][1][1] == pytest.approx(0.00816, abs=1E-5), 'dQx {} is incorrect comparing to {}.' \
+                                                                      ''.format(binned_iq_2d[2][1][1], 0.00816)
+    assert binned_iq_2d[3][1][1] == pytest.approx(0.00816, abs=1E-5), 'dQy {}is incorrect comparing to {}.' \
+                                                                      ''.format(binned_iq_2d[3][1][1], 0.00816)
 
     # Bin 2D Weighted
     # Test for weighted-binning

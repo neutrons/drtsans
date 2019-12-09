@@ -23,8 +23,8 @@ config['bin_width'] = 0.5
 empty_fn = 'EQSANS_88973'
 db_ws = eqsans.load_events(empty_fn)
 center = eqsans.center_detector(db_ws)
-config['x_center'] = center[0]
-config['y_center'] = center[1]
+config['center_x'] = center[0]
+config['center_y'] = center[1]
 
 # load and prepare scattering data
 sample_file = "EQSANS_88980"

@@ -1,5 +1,5 @@
 """
-    BIOSANS reduction script
+    GPSANS reduction script
 """
 import json
 import os
@@ -55,24 +55,26 @@ def reduction(json_params, config):
         Perform the whole reduction
     """
     # Load and prepare scattering data
-    ws = sans.prepare_data(json_params["runNumber"], **config)
+    ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"], **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
     if transmission_run.strip() is not '':
-        empty_run = json_params["empty"]["runNumber"]
-        apply_transmission(ws, transmission_run, empty_run, config)
+        transmission_fn = json_params["instrumentName"] + json_params["transmission"]["runNumber"]
+        empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+        apply_transmission(ws, transmission_fn, empty_run, config)
 
     # Background
-    bkg_run = json_params["background"]["runNumber"]
+    bkg_run = json_params["instrumentName"] + json_params["background"]["runNumber"]
     if bkg_run != "":
-        ws_bck = sans.prepare_data(json_params["background"]["runNumber"], **config)
+        ws_bck = sans.prepare_data(bkg_run, **config)
 
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
         if transmission_run.strip() is not '':
-            empty_run = json_params["empty"]["runNumber"]
-            apply_transmission(ws_bck, transmission_run, empty_run, config)
+            transmission_fn = json_params["instrumentName"] + json_params["background"]["transmission"]["runNumber"]
+            empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+            apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
         ws = drtsans.subtract_background(ws, background=ws_bck)
@@ -85,12 +87,14 @@ def reduction(json_params, config):
     ws *= absolute_scale
 
     # Convert the Q
-    get_Iq(ws, json_params["configuration"]["outputDir"],
+    q_data = sans.convert_to_q(ws, mode='scalar')
+    get_Iq(q_data, json_params["configuration"]["outputDir"],
            json_params["outputFilename"],
            linear_binning=json_params["configuration"]["QbinType"] == "linear",
            nbins=int(json_params["configuration"]["numQBins"]))
 
-    get_Iqxqy(ws, json_params["configuration"]["outputDir"],
+    q_data = sans.convert_to_q(ws, mode='azimuthal')
+    get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
               json_params["outputFilename"],
               nbins=int(json_params["configuration"]["numQxQyBins"]))
 
@@ -115,7 +119,7 @@ if __name__ == "__main__":
 
     # Find the beam center
     # TODO: We need a way to pass a pre-calculated beam center
-    empty_run = json_params["empty"]["runNumber"]
+    empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
     if False and empty_run != "":
         # Load and compute beam center position
         db_ws = sans.load_events(empty_run,

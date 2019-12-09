@@ -3,6 +3,8 @@ from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod
 from drtsans.settings import namedtuplefy
 import numpy as np
 
+__all__ = ['convert_to_q', ]
+
 
 def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     r"""
@@ -21,7 +23,7 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
 
     .. math::
 
-       Q_x=\frac{4\pi}{\lambda}\sin\theta\cos\phi
+       Q_x=-\frac{4\pi}{\lambda}\sin\theta\cos\phi
 
        Q_y=\frac{4\pi}{\lambda}\sin\theta\sin\phi
 
@@ -34,6 +36,9 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
        Q_y=\frac{2\pi}{\lambda}\sin(2\theta)\sin\phi
 
        Qz_=\frac{2\pi}{\lambda}(\cos(2\theta)-1)
+
+    Note the minus sign in :math:`Q_x` in the azimuthal mode, so it increases
+    to the right when looking at the detector.
 
     Parameters
     ----------
@@ -188,7 +193,7 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     two_theta = np.repeat(info.two_theta, number_of_bins).reshape(-1, number_of_bins)
     mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
     azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
-    qx = mod_q * np.cos(azimuthal)
+    qx = -mod_q * np.cos(azimuthal)  # note the convention for the left handed reference frame
     qy = mod_q * np.sin(azimuthal)
 
     # calculate the  resolution

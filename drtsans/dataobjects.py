@@ -1,4 +1,5 @@
 from collections import namedtuple
+from collections.abc import Iterable
 from drtsans.settings import unique_workspace_dundername as uwd
 from enum import Enum
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
@@ -34,6 +35,95 @@ def _check_parallel(*args):
             raise TypeError('Shape mismatch ({} != {})'.format(shape, arg.shape))
 
 
+def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
+    r"""
+    Carry out an operation on the component arrays for each of the IQ objects.
+
+    Examples:
+    - _nary_operation((iq_1, iq_2), numpy.append, unpack=True)
+    - _nary_operation((iq_1, iq_2), numpy.concatenate, unpack=False)
+
+    Parameters
+    ----------
+    iq_objects: list
+        A list of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
+        objects.
+    operation: function
+        A function operating on a list of :ref:`~numpy.ndarray` objects, e.g. numpy.concatenate((array1, array2))
+    unpack: bool
+        If set to :py:obj:`True`, then ``operation`` receives an unpacked list of arrays. If set to :py:obj:`False`,
+        then ``operation`` receives the list of arrays as a single argument.
+        Examples: numpy.append(*(array1, array2)) versus numpy.concatenate((array1, array2))
+    kwargs: dict
+        Additional options to be passed to ``operation``.
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
+    """
+    reference_object = iq_objects[0]
+    assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
+    new_components = list()
+    for i in range(len(reference_object)):  # iterate over the IQ object components
+        i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
+        if True in [i_component is None for i_component in i_components]:  # is any of these None?
+            new_components.append(None)
+        elif unpack is True:
+            new_components.append(operation(*i_components, **kwargs))
+        else:
+            new_components.append(operation(i_components, **kwargs))
+    return reference_object.__class__(*new_components)
+
+
+def _extract(iq_object, selection):
+    r"""
+    Extract a subset of data points onto a new IQ object.
+
+    Examples:
+    - iq_object.extract(42)  # extract data point number 42
+    - iq_object.extract(slice(None, None, 2))  # extract every other data point
+    - iq_object.extract(IQmod().mod_q < 0.1)  # extract points with Q < 0.1
+
+    Parameters
+    ----------
+    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    selection: int, slice, :ref:`~numpy.ndarray`
+        Any selection that can be passed onto a :ref:`~numpy.ndarray`
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    """
+    component_fragments = list()
+    for component in iq_object:
+        if component is None:
+            component_fragments.append(None)
+        else:
+            fragment = component.__getitem__(selection)
+            if isinstance(fragment, Iterable) is False:  # selection extracts only one data point
+                fragment = [fragment, ]
+            component_fragments.append(fragment)
+    return iq_object.__class__(*component_fragments)
+
+
+def scale_intensity(iq_object, scaling):
+    r"""Rescale intensity and error for one IQ object.
+    Relies on fields 'intensity' and 'error' being the first two components
+
+    Parameters
+    ----------
+    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    scaling: float
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    """
+    intensity = scaling * iq_object.intensity
+    error = scaling * iq_object.error
+    return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
+
+
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
     '''This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
     and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional.'''
@@ -61,10 +151,72 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         # pass everything to namedtuple
         return super(IQmod, cls).__new__(cls, intensity, error, mod_q, delta_mod_q, wavelength)
 
+    def __mul__(self, scaling):
+        r"""Scale intensities and their uncertainties by a number"""
+        return scale_intensity(self, scaling)
+
+    def __rmul__(self, scaling):
+        return self.__mul__(scaling)
+
+    def __truediv__(self, divisor):
+        r"""Divide intensities and their uncertainties by a number"""
+        return self.__mul__(1.0 / divisor)
+
+    def extract(self, selection):
+        r"""
+        Extract a subset of data points onto a new ~drtsans.dataobjects.IQmod object.
+
+        Examples:
+        - IQmod().extract(42)  # extract data point number 42
+        - IQmod().extract(slice(None, None, 2))  # extract every other data point
+        - IQmod().extract(IQmod().mod_q < 0.1)  # extract points with Q < 0.1
+
+        Parameters
+        ----------
+        selection: int, slice, ~numpy.ndarray
+            Any selection that can be passed onto a ~numpy.ndarray
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQmod
+        """
+        return _extract(self, selection)
+
+    def concatenate(self, other):
+        r"""
+        Append additional data points from another ~drtsans.dataobjects.IQmod object and return the composite as a
+        new ~drtsans.dataobjects.IQmod object.
+
+        Parameters
+        ----------
+        other: ~drtsans.dataobjects.IQmod
+            Additional data points.
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQmod
+        """
+        return _nary_operation((self, other), np.concatenate, unpack=False)
+
+    def sort(self, key='mod_q'):
+        r"""
+        Sort the data points according to one of the components of the ~drtsans.dataobjects.IQmod object.
+
+        Parameters
+        ----------
+        key: str
+            Component prescribing the sorting order. Default sorting is by increasing Q value.
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQmod
+        """
+        return _extract(self, np.argsort(getattr(self, key)))
+
     def id(self):
         return DataType.IQ_MOD
 
-    def toWorkspace(self, name=None):
+    def to_workspace(self, name=None):
         # create a name if one isn't provided
         if name is None:
             name = uwd()
@@ -173,3 +325,60 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
 
     def id(self):
         return DataType.IQ_CRYSTAL
+
+
+class _Testing:
+    r"""
+    Mimic the numpy.testing module by applying functions of this module to the component arrays of the IQ objects
+    """
+
+    @staticmethod
+    def _nary_assertion(iq_objects, assertion_function, unpack=True, **kwargs):
+        r"""
+        Carry out an assertion on the component arrays for each of the IQ objects.
+
+        Examples:
+        - _nary_assertion((iq_1, iq_2), numpy.append, unpack=True)
+        - _nary_assertion((iq_1, iq_2), numpy.concatenate, unpack=False)
+
+        Parameters
+        ----------
+        iq_objects: list
+            A list of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
+            objects.
+        assertion_function: function
+            A function operating on a list of :ref:`~numpy.ndarray` objects, e.g. numpy.concatenate((array1, array2))
+        unpack: bool
+            If set to :py:obj:`True`, then ``assertion_function`` receives an unpacked list of arrays.
+            If set to :py:obj:`False`, then ``assertion_function`` receives the list of arrays as a single argument.
+            Examples: numpy.append(*(array1, array2)) versus numpy.concatenate((array1, array2))
+        kwargs: dict
+            Additional options to be passed
+
+        Raises
+        ------
+        AssertionError
+        """
+        reference_object = iq_objects[0]  # pick the first of the list as reference object
+        assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
+        for i in range(len(reference_object)):  # iterate over the IQ object components
+            component_name = reference_object._fields[i]
+            i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
+            if True in [i_component is None for i_component in i_components]:  # is any of these None?
+                if set(i_components) == set([None]):
+                    continue  # all arrays are actually None, so they are identical
+                else:
+                    raise AssertionError(f'field {component_name} is None for some of the iQ objects')
+            elif unpack is True:
+                assertion_function(*i_components, **kwargs)
+            else:
+                assertion_function(i_components, **kwargs)
+
+    @staticmethod
+    def assert_allclose(actual, desired, **kwargs):
+        r"""Apply :ref:`~numpy.testing.assert_allclose on each component array"""
+        _Testing._nary_assertion((actual, desired), assertion_function=np.testing.assert_allclose, unpack=True,
+                                 **kwargs)
+
+
+testing = _Testing()  # use it as if it were a module, e.g. testing.assert_allclose(iq_1, iq_2, atol=1.e-6)

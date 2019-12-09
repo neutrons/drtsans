@@ -119,10 +119,21 @@ def test_center_detector():
     assert inst.getDetector(0).getPos() == approx([0.024185, -1.220957, -0.0316256], abs=1e-5)
     assert inst.getDetector(49151).getPos() == approx([-1.025015, -0.179043, -0.0234656], abs=1e-5)
 
+# Detector pixel geometry (x_center, y_center, z-center, height and width) are defined outside of the function
+# (test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF)) as they are needed to constract the
+# assembly of the detector which we enter the test  function as argument to the function.
+# Thus the data must be defined outside the test function.
+# If we need to write the code that constructs the detector geometry inside the test function,
+# then we would have to rewrite the code every time we needed an arbitrary assembly of detectors.
+# We are following one of the basic principles of software engineering, which is "reuse reuse reuse".
+# By writing encapsulating the code that constructs the detector geometry in a fixture,
+# we write the code once and then can call this fixture as many times as we want.
 
-# center_x of the detector given in
+# x_center of the detector given in
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/264/beam_center_testR1.xlsx
 # with additional padding in the boundary
+
+
 x = np.array([[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
               [1.5, 5.0, 9.9, 15.1, 20.1, 24.9, 30.0, 35.0, 39.9, 40],
               [1.6, 5.1, 9.9, 15.2, 20.2, 25.0, 30.0, 35.0, 39.9, 40.1],
@@ -134,7 +145,7 @@ x = np.array([[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.10, 1.20, 1.30, 1.40],
               [2.2, 4.9, 10.2, 15.0, 20.0, 24.8, 30.3, 35.3, 40.2, 40.7],
               [2.3, 2.4, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 40.8]])
 
-# center_y of the detector
+# y_center of the detector
 y = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 40.2, 40.7, 40.2, 40.0, 39.8, 39.8, 39.9, 40.3, 0],
               [0, 35.0, 35.1, 34.9, 35.1, 34.8, 35.0, 35.0, 35.2, 0],
@@ -146,17 +157,14 @@ y = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 5.0, 4.7, 4.8, 5.1, 5.0, 5.1, 5.2, 5.0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
-# z_center of the detector
+# z_center of the detector (though the z_center was not specified by the instrument scientist,
+# however, to define an instrument in Mantid, an arbitrary z center of 10 mm is defined)
 z = np.full((10, 10), 10)
 
-x_ = (x*0.001).reshape(1, -1)
-y_ = (y*0.001).reshape(1, -1)
-z_ = (z*0.001).reshape(1, -1)
-
 # pixel center of the detector with x,y,z coordinates
-pixel_centers = np.vstack((x_, y_, z_)).reshape(3, -1).T.tolist()
+pixel_centers = np.vstack((x*0.001, y*0.001, z*0.001)).reshape(3, -1).T.tolist()
 
-# height of the detector
+# height of the detector pixels
 height = [5.20, 5.60, 5.30, 4.90, 5.00, 4.80, 4.90, 5.10, 5.10, 5.10, 5.10, 5.20, 5.60, 5.30, 4.90, 5.00, 4.80, 4.90,
           5.10, 5.10, 5.10, 4.90, 4.90, 4.90, 4.90, 4.90, 4.90, 4.90, 4.90, 5.10, 5.10, 5.20, 5.60, 5.30, 5.20, 5.00,
           5.10, 5.00, 5.40, 5.10, 5.10, 4.80, 4.80, 4.80, 4.80, 4.80, 4.80, 4.80, 4.80, 5.10, 5.10, 5.10, 4.70, 5.00,
@@ -164,19 +172,19 @@ height = [5.20, 5.60, 5.30, 4.90, 5.00, 4.80, 4.90, 5.10, 5.10, 5.10, 5.10, 5.20
           5.20, 4.80, 4.90, 4.70, 4.80, 5.00, 5.10, 5.10, 5.00, 4.70, 4.80, 5.10, 5.00, 5.10, 5.20, 5.00, 5.10, 5.10,
           5.10, 5.10, 5.10, 5.10, 5.10, 5.10, 5.10, 5.10, 5.10]
 
-# radius of the detector
-radius = [5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.90, 5.20, 5.00, 4.80, 5.10, 5.00,
-          4.90, 4.9, 4.9, 5.10, 4.80, 5.30, 5.00, 4.80, 5.00, 5.00, 4.90, 4.9, 4.9, 5.00, 5.00, 5.00, 5.10, 4.80,
-          5.20, 4.90, 4.90, 4.9, 4.9, 4.90, 5.20, 4.80, 5.10, 4.80, 5.40, 4.90, 4.90, 4.9, 4.9, 5.00, 5.00, 4.90,
-          5.20, 4.80, 5.20, 4.80, 4.90, 5.00, 5.00, 5.00, 5.10, 4.70, 5.30, 4.80, 5.30, 4.70, 4.90, 4.9, 4.9, 4.80,
-          5.00, 5.20, 4.90, 4.80, 5.20, 5.10, 4.90, 4.9, 4.9, 4.90, 5.30, 4.80, 5.00, 4.80, 5.50, 5.00, 4.90, 5.00,
-          5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00]
+# width of the detector pixels
+width = [5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.90, 5.20, 5.00, 4.80, 5.10, 5.00,
+         4.90, 4.9, 4.9, 5.10, 4.80, 5.30, 5.00, 4.80, 5.00, 5.00, 4.90, 4.9, 4.9, 5.00, 5.00, 5.00, 5.10, 4.80,
+         5.20, 4.90, 4.90, 4.9, 4.9, 4.90, 5.20, 4.80, 5.10, 4.80, 5.40, 4.90, 4.90, 4.9, 4.9, 5.00, 5.00, 4.90,
+         5.20, 4.80, 5.20, 4.80, 4.90, 5.00, 5.00, 5.00, 5.10, 4.70, 5.30, 4.80, 5.30, 4.70, 4.90, 4.9, 4.9, 4.80,
+         5.00, 5.20, 4.90, 4.80, 5.20, 5.10, 4.90, 4.9, 4.9, 4.90, 5.30, 4.80, 5.00, 4.80, 5.50, 5.00, 4.90, 5.00,
+         5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00]
 
 # TODO test for moving wing detector
 
 
 @pytest.mark.parametrize('arbitrary_assembly_IDF',
-                         [{'radius': radius, 'height': height,
+                         [{'width': width, 'height': height,
                            'pixel_centers': pixel_centers}],
                          indirect=True)
 def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):

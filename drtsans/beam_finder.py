@@ -59,15 +59,30 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         mask_workspace.delete()  # we don't need the mask workspace so keep it clean
 
     if area_corection_flag:
+        # determining the bounding box of the area
         bounding_box_widths = np.array(
             [flat_ws.getDetector(i).shape().getBoundingBox().width() for i in
              range(flat_ws.getNumberHistograms())])
+
+        # bounding_box_widths is an array of shape=(N, 3) where N is the number of detectors.
+        # Thus, bounding_box_widths[:, 0] are the widths of the detectors along the first axis (X-axis),
+        # bounding_box_widths[:, 1] are the widths of the detectors along the second axis (Y-axis) and
+        # bounding_box_widths[:, 2] are the widths of the detectors along the third axis (Z-axis).
+        # The pixel area should be the width along the X-axis multiplied by the width along the Z-axis.
         pixel_areas = bounding_box_widths[:, 0] * bounding_box_widths[:, 2]
+
+        # creating the workspace with pixel area
         number_Of_spectra = flat_ws.getNumberHistograms()
         X_axis_values = flat_ws.readX(0)
         workspace_pixelarea = CreateWorkspace(DataX=X_axis_values, DataY=pixel_areas,
                                               Nspec=number_Of_spectra, OutputWorkspace='area')
+
+        # Mantid allows to work with handles to workspaces or with the strings containing the names of the workspaces.
+        # If using handles, the '/' operator is used. If using strings, Divide algorithm is used.
+        # Here we need the handle, so we simply used '/' operator to normalize the workspace by pixel area
         flat_ws /= workspace_pixelarea
+
+        # cleaning the memory by deleting 'workspace_pixelarea' that no longer needed.
         DeleteWorkspace(workspace_pixelarea)
 
     # find center of mass position

@@ -37,7 +37,6 @@ def test_2d_linear_bin():
 
     # verify
     gold_x_centers, gold_y_centers = get_gold_2d_linear_bins()
-    gold_y_centers = gold_y_centers[::-1]
 
     np.testing.assert_allclose(qx_bins.centers, gold_x_centers, atol=5E-6)
     np.testing.assert_allclose(qy_bins.centers, gold_y_centers, atol=5E-6)

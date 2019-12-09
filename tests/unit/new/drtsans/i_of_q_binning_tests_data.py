@@ -5,7 +5,7 @@ import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/245
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/246
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/247
-# DEV - Wenduo Zhou <petersonpf@ornl.gov>
+# DEV - Wenduo Zhou <zhouw@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>
 
 # All tests data is from William's tests in eqsans_tof_q_binning_tests_R4.xlsx
@@ -14,7 +14,7 @@ import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
 # eqsans_tof_q_binning_tests_R4.xlsx
 
-# The workspace is assued to have 3 wave lengths
+# The workspace is assumed to have 3 wavelengths
 intensities_matrix = np.array([[[93, 60, 89, 32, 97],
                                 [43, 61, 82, 97, 55],
                                 [78, 34, 50, 54, 67],
@@ -237,6 +237,7 @@ def get_gold_2d_linear_bins():
     qx_center = np.array([-0.006134, -0.003254, -0.000374, 0.002505, 0.005385])
 
     qy_center = np.array([0.004962, 0.002737, 0.000512, -0.001713, -0.003939])
+    qy_center = qy_center[::-1]
 
     return qx_center, qy_center
 

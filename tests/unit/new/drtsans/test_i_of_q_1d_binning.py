@@ -1,8 +1,8 @@
 import numpy as np
 from drtsans.dataobjects import IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
-from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, _do_1d_no_weight_binning,\
-    BinningMethod, bin_intensity_into_q1d
+from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_linear_bins,\
     get_gold_1d_log_bins
 import pytest
@@ -10,7 +10,7 @@ import pytest
 # This module supports testing data for issue #239.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/239
 
-# DEV - Wenduo Zhou <petersonpf@ornl.gov>
+# DEV - Wenduo Zhou <zhouw@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>
 
 # All tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
@@ -42,8 +42,12 @@ def test_1d_bin_linear_no_wt():
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
 
     # Binned I(Q) no-weight
-    binned_iq = _do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
-                                         linear_bins.centers, linear_bins.edges)
+    # binned_iq = _do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
+    #                                      linear_bins.centers, linear_bins.edges)
+
+    # Test high level method
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array, None)
+    binned_iq = bin_intensity_into_q1d(test_iq, linear_bins, BinningMethod.NOWEIGHT)
 
     # Calculate and verify
     # I(0.0035) = 68.92857:    drtsans: 68.92857142857143
@@ -59,14 +63,10 @@ def test_1d_bin_linear_no_wt():
     assert binned_iq.delta_mod_q[3] == pytest.approx(1.154e-02, abs=2.E-5), \
         'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
 
-    # Test high level method
-    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array, None)
-    binned_iq2 = bin_intensity_into_q1d(test_iq, linear_bins, BinningMethod.NOWEIGHT)
-
     # verify
-    np.testing.assert_allclose(binned_iq2.intensity, binned_iq.intensity, rtol=1e-8,
-                               equal_nan=True, err_msg='High level method cannot have same result from low levels',
-                               verbose=True)
+    # np.testing.assert_allclose(binned_iq2.intensity, binned_iq.intensity, rtol=1e-8,
+    #                            equal_nan=True, err_msg='High level method cannot have same result from low levels',
+    #                            verbose=True)
 
     return
 
@@ -96,8 +96,12 @@ def test_1d_bin_log_no_wt():
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
 
     # Binned I(Q) no-weight
-    binned_iq = _do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
-                                         log_bins.centers, log_bins.edges)
+    # binned_iq = _do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
+    #                                      log_bins.centers, log_bins.edges)
+
+    # Test the high level method
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
+    binned_iq = bin_intensity_into_q1d(test_iq, log_bins, BinningMethod.NOWEIGHT)
 
     # Verify: 2 I(Q) in bin: Q(3, 2, 3.1), Q(3, 2, 3.2)
     # I(0.0022) = 70.00000
@@ -107,11 +111,6 @@ def test_1d_bin_log_no_wt():
     # sigma_Q(0.0022) = 1.135E-02
     assert binned_iq.delta_mod_q[3] == pytest.approx(1.135E-02, abs=2.E-5), \
         'Log binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
-
-    # Test the high level method
-    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
-    binned_iq = bin_intensity_into_q1d(test_iq, log_bins, BinningMethod.NOWEIGHT)
-    assert binned_iq.intensity[3] == pytest.approx(70.00000, abs=1.E-12), 'intensity'
 
 
 if __name__ == '__main__':

@@ -203,7 +203,9 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     apparent_tube_width(flood_workspace)
     collection = TubeCollection(flood_workspace, 'detector1').sorted(view='decreasing X')
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
-    assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
+    last_tube_index = len(collection) - 1  # number of tubes, minus one because indexes begin at zero, not one
+    last_pixel_index = len(collection[0]) - 1  # number of pixels in each tube, minus one
+    assert collection[last_tube_index][last_pixel_index].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
 
     DeleteWorkspace(modified_flood_workspace)  # flood_workspace is garbage collected upon test completion
 

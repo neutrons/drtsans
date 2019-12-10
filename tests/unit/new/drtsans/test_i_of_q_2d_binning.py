@@ -59,11 +59,10 @@ def test_2d_bin_no_sub_no_wt():
     assert binned_iq_2d.error[1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
-    # correct: 3.2999999999999996e-05
     assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00816, abs=1E-5), 'dQx {} is incorrect comparing to {}.' \
-                                                                      ''.format(binned_iq_2d[2][1][1], 0.00816)
+                                                                            ''.format(binned_iq_2d[2][1][1], 0.00816)
     assert binned_iq_2d.delta_qy[1][1] == pytest.approx(0.00816, abs=1E-5), 'dQy {}is incorrect comparing to {}.' \
-                                                                      ''.format(binned_iq_2d[3][1][1], 0.00816)
+                                                                            ''.format(binned_iq_2d[3][1][1], 0.00816)
 
     return
 

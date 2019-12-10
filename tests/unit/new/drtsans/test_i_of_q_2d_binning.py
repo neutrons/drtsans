@@ -41,14 +41,10 @@ def test_2d_bin_no_sub_no_wt():
     # Get Q1D data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
-    # Test for no-weight binning
-    # Test API for high level method
+    # Bin I(Qx, Qy) with no-weight binning algorithm
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
                            delta_qx=dqx_array, delta_qy=dqy_array)
     binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT)
-
-    # binned_iq_2d = _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, intensities, sigmas,
-    #                                         qx_bins.edges, qy_bins.edges)
 
     # Verify Qx and Qy
     assert qx_bins.centers[1] == pytest.approx(-0.003254, abs=1.E-6), 'Qx is not correct'
@@ -91,17 +87,12 @@ def test_2d_bin_no_sub_wt():
     # Get Q1D data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
-    # Bin 2D with weighted binning method
-    # binned_iq_2d = _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, intensities, sigmas,
-    #                                        qx_bins.edges, qy_bins.edges)
-
-    # Test API for high level method
+    # Bin I(Qx, Qy)
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
                            delta_qx=dqx_array, delta_qy=dqy_array)
     binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.WEIGHTED)
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
-    # test value: 56.86602493293357
     assert binned_iq_2d.intensity[1][1] == pytest.approx(56.8660, abs=1E-4), 'Weighted-binned I(Qx, Qy) is incorrect'
     assert binned_iq_2d.error[1][1] == pytest.approx(4.353773265, abs=1E-8), \
         'Weighted-binned sigma I(Qx, Qy) is incorrect'

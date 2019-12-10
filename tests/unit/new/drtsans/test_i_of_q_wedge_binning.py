@@ -1,10 +1,10 @@
 import numpy as np
 from drtsans.dataobjects import IQmod, IQazimuthal
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
-from drtsans.iq import determine_1d_log_bins, _do_1d_no_weight_binning, BinningMethod, bin_intensity_into_q1d,\
+from drtsans.iq import determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d,\
     select_i_of_q_by_wedge
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins,\
-    get_gold_wedge_angles
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_wedge_angles
 import pytest
 
 # This module supports testing data for issue #239.

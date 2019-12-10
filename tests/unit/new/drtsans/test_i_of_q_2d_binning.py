@@ -1,9 +1,8 @@
-import numpy as np
 from drtsans.dataobjects import IQazimuthal
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
-from drtsans.iq import determine_1d_linear_bins, BinningMethod, _do_2d_weighted_binning,\
-    _do_2d_no_weight_binning, bin_intensity_into_q2d
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_2d_linear_bins
+from drtsans.iq import determine_1d_linear_bins, BinningMethod, bin_intensity_into_q2d
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
 import pytest
 
 # This module supports testing data for issue #239.

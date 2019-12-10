@@ -11,8 +11,62 @@ from tests.unit.new.drtsans.i_of_q_binning_tests_data import get_gold_2d_linear_
 # SME - William Heller <hellerwt@ornl.gov>
 
 # Some tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
+def test_log_bins_from_wedge_no_wt():
+    """Test generating log bins from '1D_bin_log_wedget_no_sub_no_wt'
+    """
+    # Define Q range
+    q_min = 0.001  # Edge
+    q_max = 0.010  # Edge
+    step_per_decade = 10  # 10 steps per decade
 
-# Equation 11.31
+    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade)
+    gold_edges, gold_centers = get_gold_1d_log_bins()
+    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
+    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
+
+    return
+
+
+# Test EXCEL can be found at
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
+# eqsans_tof_q_binning_tests_R4.xlsx
+def test_linear_bin_determination():
+    """Test linear bin determination from '2D_bin_no_sub_no_wt'
+
+    2D linear bin no sub pixel with weighted and no-weight summation
+
+    Returns
+    -------
+    None
+
+    """
+    # Calculate and determine the bin edges
+    # range of binned (Qx, Qy) is taken from William's Excel
+    qx_min = -0.007573828
+    qx_max = 0.006825091
+    qy_min = -0.005051412
+    qy_max = 0.00607504
+
+    qx_bins = determine_1d_linear_bins(qx_min, qx_max, 5)
+    qy_bins = determine_1d_linear_bins(qy_min, qy_max, 5)
+
+    # verify
+    gold_x_centers, gold_y_centers = get_gold_2d_linear_bins()
+
+    np.testing.assert_allclose(qx_bins.centers, gold_x_centers, atol=5E-6)
+    np.testing.assert_allclose(qy_bins.centers, gold_y_centers, atol=5E-6)
+
+    # Check X
+    assert qx_bins.edges[1] == pytest.approx(-0.004694044, abs=1E-8)
+    assert qx_bins.edges[2] == pytest.approx(-0.001814261, abs=1E-8)
+    # Check Y
+    assert qy_bins.edges[1] == pytest.approx(-0.002826, abs=1E-6)
+    assert qy_bins.edges[2] == pytest.approx(-0.000601, abs=1E-6)
+
+
+# Tests from ... ...
+# All tests' gold data below have 3 columns as bin's left boundary, center and right boundary
+# Example 1: Equation 11.31
 gold_log_bins_example1 = np.array([
     [0.000089, 0.000100, 0.000113],
     [0.000113, 0.000126, 0.000142],
@@ -149,7 +203,7 @@ gold_log_bins_example4 = np.array([
     [0.031494, 0.033812, 0.036398]])
 
 
-def define_log_bin(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_center=False):
+def determine_log_bin_prototype(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_center=False, even_decade=True):
     """Determine logarithm bins
 
     Including bin edge and bin center
@@ -171,13 +225,17 @@ def define_log_bin(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_center=False):
         bin centers, bin edges
     """
     # Calculate C min and max on decade and contain X min and X max in the range
-    c_min = np.log10(x_min)  # c_min may not be on decade!
-    c_max = np.ceil(np.log10(x_max))
+    if decade_on_center or even_decade:
+        c_min = np.floor(np.log10(x_min))  # c_min may not be on decade!
+        c_max = np.ceil(np.log10(x_max))
+    else:
+        c_min = np.log10(x_min)  # c_min may not be on decade!
+        c_max = np.log10(x_max)
 
     print('[TEST] C min = {}, C max = {}'.format(c_min, c_max))
 
     # Calculate total number of bins
-    total_num_bins = (c_max - c_min) * n_bins
+    total_num_bins = (int(np.ceil(c_max) - np.floor(c_min))) * n_bins
     print('[TEST] Number of total bins = {}'.format(total_num_bins))
 
     # Calculate Delta L
@@ -209,10 +267,14 @@ def define_log_bin(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_center=False):
         # according to the paragraph after equation 11.31
         bin_edges[0] = np.power(10, c_min - 0.5 * delta_l)
         bin_edges[-1] = np.power(10, c_max + 0.5 * delta_l)
-    else:
+    elif even_decade:
         # x_min and 10^{c_max} on the first and last bin boundary
         # then first and last bin edges/boundaries are defined as
         # Q_min and Q_max (or X_min and X_max in generalized form)
+        bin_edges[0] = 10**c_min
+        bin_edges[-1] = 10**c_max
+    else:
+        # use user x min and x max
         bin_edges[0] = x_min
         bin_edges[-1] = x_max
     # END-IF-ELSE
@@ -221,7 +283,11 @@ def define_log_bin(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_center=False):
 
 
 def test_example1():
-    """
+    """Example 1 from ...
+
+    10^c_min and 10^_max will be on decade.
+    And 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+
 
     Returns
     -------
@@ -232,17 +298,8 @@ def test_example1():
     q_max_example1 = 0.036398139
     n_bins_example1 = 10
 
-    # Example 1: Max/Min on Bin Centers'
-    print('[TEST] Example 1: Max/Min on Bin Centers')
-    test_set = define_log_bin(q_min_example1, q_max_example1, n_bins_example1, True)
-    print(test_set[4])
-    print(gold_log_bins_example1[:, 1])
-    diffs = np.abs(test_set[4] - gold_log_bins_example1[:, 1])
-    print('Max Mean Diff = {}'.format(np.max(diffs)))
-
-    print(test_set[5])
-    print(gold_log_bins_example1[:, 0])
-
+    # Test with prototype: will be removed after all test cases are passed
+    test_set = determine_log_bin_prototype(q_min_example1, q_max_example1, n_bins_example1, True)
     # Verify with expected value
     gold_c_min = -4
     gold_c_max = -1
@@ -259,53 +316,82 @@ def test_example1():
     # verify bin boundaries max
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example1[:, 2], rtol=1e-7, atol=1e-6)
 
+    # Test drtsans.determine_bins.determine_1d_log_bins
+    test_bin = determine_1d_log_bins(q_min_example1, q_max_example1, n_bins_example1, decade_on_center=True,
+                                     even_decade=True)
+    # verify bin center
+    np.testing.assert_allclose(test_bin.centers, gold_log_bins_example1[:, 1], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries min
+    np.testing.assert_allclose(test_bin.edges[:-1], gold_log_bins_example1[:, 0], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries max
+    np.testing.assert_allclose(test_bin.edges[1:], gold_log_bins_example1[:, 2], rtol=1e-7, atol=1e-6)
 
-def next_test_example2():
+
+def test_example2():
+    """Example 2
+
+    Example 2 has the same initial condition as example 1's.
+    But the 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+
+    Returns
+    -------
+
+    """
     # Test data for both Example 1 and Example 2
     q_min_example1 = 0.0001
     q_max_example1 = 0.036398139
     n_bins_example1 = 10
-    # Example 2
-    print('[TEST] Example 2: Max/Min on Bin Boundaries')
-    test_set = define_log_bin(q_min_example1, q_max_example1, n_bins_example1, False)
+
+    # TODO - prototype will be deleted after all tess are passed
+    # prototype test
+    test_set = determine_log_bin_prototype(q_min_example1, q_max_example1, n_bins_example1, decade_on_center=False,
+                                           even_decade=True)
     # Verify with expected value
     gold_c_min = -4
     gold_c_max = -1
     gold_n_bins = 30
     gold_delta_l = 0.1
-    assert abs(test_set[0] - gold_c_min) < 1E-10, '{} != {}'.format(test_set[0], gold_c_min)
-    assert abs(test_set[1] - gold_c_max) < 1E-10, '{} != {}'.format(test_set[1], gold_c_max)
-    assert abs(test_set[2] - gold_n_bins) < 1E-10, '{} != {}'.format(test_set[2], gold_n_bins)
-    assert abs(test_set[3] - gold_delta_l) < 1E-10, '{} != {}'.format(test_set[3], gold_delta_l)
-    # verify bin center
+    assert abs(test_set[0] - gold_c_min) < 1E-10, 'cmin {} != {}'.format(test_set[0], gold_c_min)
+    assert abs(test_set[1] - gold_c_max) < 1E-10, 'cmax {} != {}'.format(test_set[1], gold_c_max)
+    assert abs(test_set[2] - gold_n_bins) < 1E-10, 'number of bins {} != {}'.format(test_set[2], gold_n_bins)
+    assert abs(test_set[3] - gold_delta_l) < 1E-10, 'delta L {} != {}'.format(test_set[3], gold_delta_l)
+
+    # verify bin center: same number ....
     np.testing.assert_allclose(test_set[4], gold_log_bins_example2[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min
     np.testing.assert_allclose(test_set[5][:-1], gold_log_bins_example2[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    set_a = test_set[5][1:]
-    set_b = gold_log_bins_example2[:, 2]
-    print(np.abs(set_a - set_b))
-    print(np.max(np.abs(set_a - set_b)))
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example2[:, 2], rtol=1e-7, atol=1e-6)
 
+    # Test drtsans.determine_bins.determine_1d_log_bins
+    test_bin = determine_1d_log_bins(q_min_example1, q_max_example1, n_bins_example1, decade_on_center=False,
+                                     even_decade=True)
+    # verify bin center
+    np.testing.assert_allclose(test_bin.centers, gold_log_bins_example2[:, 1], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries min
+    np.testing.assert_allclose(test_bin.edges[:-1], gold_log_bins_example2[:, 0], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries max
+    np.testing.assert_allclose(test_bin.edges[1:], gold_log_bins_example2[:, 2], rtol=1e-7, atol=1e-6)
 
-def next_test_example3():
+
+def to_discuss_test_example3():
     # Example 3
     print('[TEST] Example 3: Min Q and Max Q on bin boundaries')
     q_min_example3 = 0.0015
     q_max_example3 = 0.036398139
     n_bins_example3 = 10
 
-    test_set = define_log_bin(q_min_example3, q_max_example3, n_bins_example3, False)
+    test_set = determine_log_bin_prototype(q_min_example3, q_max_example3, n_bins_example3, decade_on_center=False,
+                                           even_decade=False)
     # Verify with expected value
     gold_c_min = -2.823908741
     gold_c_max = -1.438920817
     gold_n_bins = 30
     gold_delta_l = 0.046166264
     assert abs(test_set[0] - gold_c_min) < 1E-10, '{} != {}'.format(test_set[0], gold_c_min)
-    assert abs(test_set[1] - gold_c_max) < 1E-10, '{} != {}'.format(test_set[1], gold_c_max)
-    assert abs(test_set[2] - gold_n_bins) < 1E-10, '{} != {}'.format(test_set[2], gold_n_bins)
-    assert abs(test_set[3] - gold_delta_l) < 1E-10, '{} != {}'.format(test_set[3], gold_delta_l)
+    assert abs(test_set[1] - gold_c_max) < 1E-7, 'CMAX {} != {}'.format(test_set[1], gold_c_max)
+    assert abs(test_set[2] - gold_n_bins) < 1E-10, 'TOTAL BINS {} != {}'.format(test_set[2], gold_n_bins)
+    assert abs(test_set[3] - gold_delta_l) < 1E-10, 'DELTA L {} != {}'.format(test_set[3], gold_delta_l)
     # verify bin center
     np.testing.assert_allclose(test_set[4], gold_log_bins_example3[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min
@@ -317,7 +403,7 @@ def next_test_example3():
     q_min_example4 = 0.000436726
     q_max_example4 = 0.036398139
 
-    test_set = define_log_bin(q_min_example4, q_max_example4, n_bins_example3, False)
+    test_set = determine_log_bin_prototype(q_min_example4, q_max_example4, n_bins_example3, False)
     # Verify with expected value
     gold_c_min = -3.359790455
     gold_c_max = -1.438920817
@@ -337,57 +423,52 @@ def next_test_example3():
     return
 
 
-def test_log_bins_from_wedge_no_wt():
-    """Test generating log bins from '1D_bin_log_wedget_no_sub_no_wt'
-    """
-    # Define Q range
-    q_min = 0.001  # Edge
-    q_max = 0.010  # Edge
-    step_per_decade = 10  # 10 steps per decade
+def test_example4():
+    """Test case from example 4
 
-    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade)
-    gold_edges, gold_centers = get_gold_1d_log_bins()
-    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
-    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
-
-    return
-
-
-# Test EXCEL can be found at
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-# eqsans_tof_q_binning_tests_R4.xlsx
-def test_linear_bin_determination():
-    """Test linear bin determination from '2D_bin_no_sub_no_wt'
-
-    2D linear bin no sub pixel with weighted and no-weight summation
+    X min and X max shall be on the bin boundaries;
+    User specified X min and X max are used as X min/max exactly.
 
     Returns
     -------
-    None
 
     """
-    # Calculate and determine the bin edges
-    # range of binned (Qx, Qy) is taken from William's Excel
-    qx_min = -0.007573828
-    qx_max = 0.006825091
-    qy_min = -0.005051412
-    qy_max = 0.00607504
+    # Example 4
+    q_min_example4 = 0.0004367265
+    q_max_example4 = 0.0363981393
+    n_bins_example = 10
 
-    qx_bins = determine_1d_linear_bins(qx_min, qx_max, 5)
-    qy_bins = determine_1d_linear_bins(qy_min, qy_max, 5)
+    # Prototype test: TODO - delete after all tests are passed
+    test_set = determine_log_bin_prototype(q_min_example4, q_max_example4, n_bins_example, decade_on_center=False,
+                                           even_decade=False)
+    # Verify with expected value
+    gold_c_min = -3.359790455
+    gold_c_max = -1.438920817
+    gold_n_bins = 30
+    gold_delta_l = 0.064028988
+    assert abs(test_set[0] - gold_c_min) < 1E-7, 'CMIN {} != {}'.format(test_set[0], gold_c_min)
+    assert abs(test_set[1] - gold_c_max) < 1E-7, 'CMAX {} != {}'.format(test_set[1], gold_c_max)
+    assert abs(test_set[2] - gold_n_bins) < 1E-10, 'TOTAL BINS {} != {}'.format(test_set[2], gold_n_bins)
+    assert abs(test_set[3] - gold_delta_l) < 1E-7, 'DELTA L {} != {}'.format(test_set[3], gold_delta_l)
+    # verify bin center
+    np.testing.assert_allclose(test_set[4], gold_log_bins_example4[:, 1], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries min
+    np.testing.assert_allclose(test_set[5][:-1], gold_log_bins_example4[:, 0], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries max
+    np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example4[:, 2], rtol=1e-7, atol=1e-6)
 
-    # verify
-    gold_x_centers, gold_y_centers = get_gold_2d_linear_bins()
+    # Test drtsans.determine_bins.determine_1d_log_bins
+    test_bin = determine_1d_log_bins(q_min_example4, q_max_example4, n_bins_example, decade_on_center=False,
+                                     even_decade=False)
 
-    np.testing.assert_allclose(qx_bins.centers, gold_x_centers, atol=5E-6)
-    np.testing.assert_allclose(qy_bins.centers, gold_y_centers, atol=5E-6)
+    # verify bin center: center column of the gold data
+    np.testing.assert_allclose(test_bin.centers, gold_log_bins_example4[:, 1], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries min: left column of the gold data
+    np.testing.assert_allclose(test_bin.edges[:-1], gold_log_bins_example4[:, 0], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries max: right column of the gold data
+    np.testing.assert_allclose(test_bin.edges[1:], gold_log_bins_example4[:, 2], rtol=1e-7, atol=1e-6)
 
-    # Check X
-    assert qx_bins.edges[1] == pytest.approx(-0.004694044, abs=1E-8)
-    assert qx_bins.edges[2] == pytest.approx(-0.001814261, abs=1E-8)
-    # Check Y
-    assert qy_bins.edges[1] == pytest.approx(-0.002826, abs=1E-6)
-    assert qy_bins.edges[2] == pytest.approx(-0.000601, abs=1E-6)
+    return
 
 
 if __name__ == '__main__':

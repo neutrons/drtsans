@@ -115,6 +115,7 @@ def determine_1d_log_bins(x_min, x_max, n_bins=10, decade_on_center=False, even_
     bin_edges = np.ndarray(shape=(bin_centers.shape[0] + 1,), dtype=float)
     bin_edges[1:-1] = 0.5 * (bin_centers[:-1] + bin_centers[1:])
 
+    # Set the min and max of bins explicitly
     if decade_on_center:
         # x_min and 10^{c_max} are on the first and last bin center
         # then first and last bin edges/boundaries are defined as

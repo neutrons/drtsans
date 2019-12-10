@@ -9,7 +9,7 @@ import numpy as np
 # SME - William Heller <hellerwt@ornl.gov>
 
 # All tests data is from William's tests in eqsans_tof_q_binning_tests_R4.xlsx
-# Intensities for a Generic 2D detector at 3 wave lengths
+# Intensities for a Generic 2D detector at 3 wavelengths
 # Test EXCEL can be found at
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
 # eqsans_tof_q_binning_tests_R4.xlsx

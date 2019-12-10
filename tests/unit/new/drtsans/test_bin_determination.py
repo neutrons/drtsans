@@ -1,6 +1,16 @@
 import numpy as np
 import pytest
+from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import get_gold_2d_linear_bins, get_gold_1d_log_bins
 
+
+# This module supports testing data for issue #239.
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/???
+
+# DEV - Wenduo Zhou <zhouw@ornl.gov>
+# SME - William Heller <hellerwt@ornl.gov>
+
+# Some tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
 
 # Equation 11.31
 gold_log_bins_example1 = np.array([
@@ -325,6 +335,59 @@ def next_test_example3():
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example4[:, 2], rtol=1e-7, atol=1e-6)
 
     return
+
+
+def test_log_bins_from_wedge_no_wt():
+    """Test generating log bins from '1D_bin_log_wedget_no_sub_no_wt'
+    """
+    # Define Q range
+    q_min = 0.001  # Edge
+    q_max = 0.010  # Edge
+    step_per_decade = 10  # 10 steps per decade
+
+    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade)
+    gold_edges, gold_centers = get_gold_1d_log_bins()
+    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
+    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
+
+    return
+
+
+# Test EXCEL can be found at
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
+# eqsans_tof_q_binning_tests_R4.xlsx
+def test_linear_bin_determination():
+    """Test linear bin determination from '2D_bin_no_sub_no_wt'
+
+    2D linear bin no sub pixel with weighted and no-weight summation
+
+    Returns
+    -------
+    None
+
+    """
+    # Calculate and determine the bin edges
+    # range of binned (Qx, Qy) is taken from William's Excel
+    qx_min = -0.007573828
+    qx_max = 0.006825091
+    qy_min = -0.005051412
+    qy_max = 0.00607504
+
+    qx_bins = determine_1d_linear_bins(qx_min, qx_max, 5)
+    qy_bins = determine_1d_linear_bins(qy_min, qy_max, 5)
+
+    # verify
+    gold_x_centers, gold_y_centers = get_gold_2d_linear_bins()
+
+    np.testing.assert_allclose(qx_bins.centers, gold_x_centers, atol=5E-6)
+    np.testing.assert_allclose(qy_bins.centers, gold_y_centers, atol=5E-6)
+
+    # Check X
+    assert qx_bins.edges[1] == pytest.approx(-0.004694044, abs=1E-8)
+    assert qx_bins.edges[2] == pytest.approx(-0.001814261, abs=1E-8)
+    # Check Y
+    assert qy_bins.edges[1] == pytest.approx(-0.002826, abs=1E-6)
+    assert qy_bins.edges[2] == pytest.approx(-0.000601, abs=1E-6)
 
 
 if __name__ == '__main__':

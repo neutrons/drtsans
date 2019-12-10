@@ -3,6 +3,7 @@
 from drtsans.dataobjects import IQazimuthal, IQmod
 from enum import Enum
 import numpy as np
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
 from drtsans.determine_bins import determine_1d_linear_bins, determine_1d_log_bins, BinningParams
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')

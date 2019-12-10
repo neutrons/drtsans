@@ -55,14 +55,14 @@ def test_2d_bin_no_sub_no_wt():
     assert qy_bins.centers[1] == pytest.approx(-0.001713, abs=1.E-6), 'Qy is not correct'
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
-    assert binned_iq_2d[0][1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
-    assert binned_iq_2d[1][1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
+    assert binned_iq_2d.intensity[1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
+    assert binned_iq_2d.error[1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
     # correct: 3.2999999999999996e-05
-    assert binned_iq_2d[2][1][1] == pytest.approx(0.00816, abs=1E-5), 'dQx {} is incorrect comparing to {}.' \
+    assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00816, abs=1E-5), 'dQx {} is incorrect comparing to {}.' \
                                                                       ''.format(binned_iq_2d[2][1][1], 0.00816)
-    assert binned_iq_2d[3][1][1] == pytest.approx(0.00816, abs=1E-5), 'dQy {}is incorrect comparing to {}.' \
+    assert binned_iq_2d.delta_qy[1][1] == pytest.approx(0.00816, abs=1E-5), 'dQy {}is incorrect comparing to {}.' \
                                                                       ''.format(binned_iq_2d[3][1][1], 0.00816)
 
     return
@@ -103,14 +103,13 @@ def test_2d_bin_no_sub_wt():
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
     # test value: 56.86602493293357
-    assert binned_iq_2d[0][1][1] == pytest.approx(56.8660, abs=1E-4), 'Weighted-binned I(Qx, Qy) is incorrect'
-    assert binned_iq_2d[1][1][1] == pytest.approx(4.353773265, abs=1E-8), \
+    assert binned_iq_2d.intensity[1][1] == pytest.approx(56.8660, abs=1E-4), 'Weighted-binned I(Qx, Qy) is incorrect'
+    assert binned_iq_2d.error[1][1] == pytest.approx(4.353773265, abs=1E-8), \
         'Weighted-binned sigma I(Qx, Qy) is incorrect'
 
     # verify dQx and dQy
-    assert binned_iq_2d[2][1][1] == pytest.approx(0.00815, abs=1E-5), 'dQx is incorrect'
-    # correct: 1.71877860186208e-05
-    assert binned_iq_2d[3][1][1] == pytest.approx(0.00815, abs=1E-5), 'dQy is incorrect'
+    assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00815, abs=1E-5), 'dQx is incorrect'
+    assert binned_iq_2d.delta_qy[1][1] == pytest.approx(0.00815, abs=1E-5), 'dQy is incorrect'
 
     return
 

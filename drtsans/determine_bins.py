@@ -52,6 +52,42 @@ def determine_1d_linear_bins(x_min, x_max, bins, x_array=None):
     return linear_bins
 
 
+def _determine_1d_log_bins_lisa(q_min, q_max, step_per_decade):
+    """Lisa's algorithm tot determine 1D log bins
+
+    Parameters
+    ----------
+    q_min
+    q_max
+    step_per_decade: float
+        step per decade (ex. 0.1 to 1.0 is one decade); denoted as 'j' in document
+    Returns
+    -------
+    ndarray, ndarray
+        bin centers, bin edges
+
+    """
+    # Calculate step and align q_min to q0, a decade (power of 10) nearest to q_min but less than q_min
+    # 20191016 IS: "0.2% error is allowed.  This formula ensure that the number of steps per decade is respected"
+    delta = np.power(10., 1. / step_per_decade)
+    q0 = np.power(delta, np.floor(step_per_decade * np.log10(q_min)))
+
+    # Determine number of bins
+    num_bins = 1 + int(np.ceil(step_per_decade * np.log(q_max / q0) / np.log(10)))
+
+    # Calculate bin centers
+    bin_centers = np.arange(num_bins).astype('float')
+    bin_centers = q0 * np.power(delta, bin_centers)
+
+    # Calculate bin boundaries
+    delta_q_array = 2. * (delta - 1) / (delta + 1) * bin_centers
+    bin_edges = np.zeros((num_bins + 1,), dtype='float')
+    bin_edges[1:] = bin_centers[:] + 0.5 * delta_q_array[:]
+    bin_edges[0] = bin_centers[0] - 0.5 * delta_q_array[0]
+
+    return bin_centers, bin_edges
+
+
 def determine_1d_log_bins(x_min, x_max, step_per_decade):
     """Determine the logarithm bins
 

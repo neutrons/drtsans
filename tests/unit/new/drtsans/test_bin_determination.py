@@ -260,23 +260,24 @@ def test_example1():
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example1[:, 2], rtol=1e-7, atol=1e-6)
 
 
-def next_test_example2():
+def test_example2():
     # Test data for both Example 1 and Example 2
     q_min_example1 = 0.0001
     q_max_example1 = 0.036398139
     n_bins_example1 = 10
     # Example 2
     print('[TEST] Example 2: Max/Min on Bin Boundaries')
-    test_set = define_log_bin(q_min_example1, q_max_example1, n_bins_example1, False)
+    # c_min, c_max, total_num_bins, delta_l, bin_centers, bin_edges
+    test_set = define_log_bin(q_min_example1, q_max_example1, n_bins_example1, decade_on_center=False)
     # Verify with expected value
     gold_c_min = -4
     gold_c_max = -1
     gold_n_bins = 30
     gold_delta_l = 0.1
-    assert abs(test_set[0] - gold_c_min) < 1E-10, '{} != {}'.format(test_set[0], gold_c_min)
-    assert abs(test_set[1] - gold_c_max) < 1E-10, '{} != {}'.format(test_set[1], gold_c_max)
-    assert abs(test_set[2] - gold_n_bins) < 1E-10, '{} != {}'.format(test_set[2], gold_n_bins)
-    assert abs(test_set[3] - gold_delta_l) < 1E-10, '{} != {}'.format(test_set[3], gold_delta_l)
+    assert abs(test_set[0] - gold_c_min) < 1E-10, 'cmin {} != {}'.format(test_set[0], gold_c_min)
+    assert abs(test_set[1] - gold_c_max) < 1E-10, 'cmax {} != {}'.format(test_set[1], gold_c_max)
+    assert abs(test_set[2] - gold_n_bins) < 1E-10, 'number of bins {} != {}'.format(test_set[2], gold_n_bins)
+    assert abs(test_set[3] - gold_delta_l) < 1E-10, 'delta L {} != {}'.format(test_set[3], gold_delta_l)
     # verify bin center
     np.testing.assert_allclose(test_set[4], gold_log_bins_example2[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min

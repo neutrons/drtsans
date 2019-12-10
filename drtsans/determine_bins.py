@@ -52,43 +52,96 @@ def determine_1d_linear_bins(x_min, x_max, bins, x_array=None):
     return linear_bins
 
 
-def _determine_1d_log_bins_lisa(q_min, q_max, step_per_decade):
-    """Lisa's algorithm tot determine 1D log bins
+def determine_1d_log_bins(x_min, x_max, n_bins=10, decade_on_center=False, even_decade=True):
+    """Determine logarithm bins
+
+    Including bin edge and bin center
 
     Parameters
     ----------
-    q_min
-    q_max
-    step_per_decade: float
-        step per decade (ex. 0.1 to 1.0 is one decade); denoted as 'j' in document
+    x_min : float
+        Positive float for minimum
+    x_max : float
+        Positive float
+    n_bins : int
+        Positive integer for number of step per decade
+    decade_on_center : bool
+        Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
+    even_decade : bool
+        Flag to have even decade for minimum and maximum value in the generated bins
+
     Returns
     -------
-    ndarray, ndarray
-        bin centers, bin edges
+    ~drtsans.iq.Bins
+        Bins including bin centers and bin edges
 
     """
-    # Calculate step and align q_min to q0, a decade (power of 10) nearest to q_min but less than q_min
-    # 20191016 IS: "0.2% error is allowed.  This formula ensure that the number of steps per decade is respected"
-    delta = np.power(10., 1. / step_per_decade)
-    q0 = np.power(delta, np.floor(step_per_decade * np.log10(q_min)))
+    # Calculate C min and max on decade and contain X min and X max in the range
+    # From Chapter 11 of the master document
+    if even_decade:
+        # both c_min and c_max shall be on even decade
+        # x_min and x_max shall be enclosed in the range of (10^c_min, 10^c_max)
+        c_min = np.log10(x_min)
+        c_max = np.ceil(np.log10(x_max))
+    else:
+        # c_min and c_max are from x_min and x_max directly
+        c_min = np.log10(x_min)
+        c_max = np.log10(x_max)
 
-    # Determine number of bins
-    num_bins = 1 + int(np.ceil(step_per_decade * np.log(q_max / q0) / np.log(10)))
+    # Calculate total number of bins
+    # Number of bins shall contain all the decade from c_min to c_max
+    # Thus, floor to c_min and ciel to c_max shall make sure the calculation is correct
+    total_num_bins = (int(np.ceil(c_max) - np.floor(c_min))) * n_bins
 
-    # Calculate bin centers
-    bin_centers = np.arange(num_bins).astype('float')
-    bin_centers = q0 * np.power(delta, bin_centers)
+    # Calculate Delta L: Equation 11.28 (master document)
+    delta_l = (c_max - c_min) / total_num_bins
 
-    # Calculate bin boundaries
-    delta_q_array = 2. * (delta - 1) / (delta + 1) * bin_centers
-    bin_edges = np.zeros((num_bins + 1,), dtype='float')
-    bin_edges[1:] = bin_centers[:] + 0.5 * delta_q_array[:]
-    bin_edges[0] = bin_centers[0] - 0.5 * delta_q_array[0]
+    # Define an array of k, i.e., [0, 1, 2, ...]
+    if decade_on_center:
+        # x_min and 10^{c_max} on the first and last bin center
+        # Equation 11.31: number of bins will be N + 1 for bin on the center
+        total_num_bins += 1
+        vec_k = np.arange(total_num_bins).astype(float)
+        bin_centers = np.power(10, delta_l * vec_k + c_min)
+    else:
+        # x_min and 10^{c_max} on the first and last bin boundary
+        # Equation 11.29
+        vec_k = np.arange(total_num_bins).astype(float)
+        bin_centers = np.power(10, delta_l * (vec_k + 0.5) + c_min)
+    # END-IF-ELSE
 
-    return bin_centers, bin_edges
+    # Calculate bin boundaries from bin center
+    # Equation 11.30
+    bin_edges = np.ndarray(shape=(bin_centers.shape[0] + 1,), dtype=float)
+    bin_edges[1:-1] = 0.5 * (bin_centers[:-1] + bin_centers[1:])
+
+    if decade_on_center:
+        # x_min and 10^{c_max} are on the first and last bin center
+        # then first and last bin edges/boundaries are defined as
+        # 10^{C_min - deltaL / 2 } and 10^{C_max + deltaL / 2}
+        # according to the paragraph after equation 11.31
+        bin_edges[0] = np.power(10, c_min - 0.5 * delta_l)
+        bin_edges[-1] = np.power(10, c_max + 0.5 * delta_l)
+    elif even_decade:
+        # x_min and 10^{c_max} on the first and last bin boundary
+        # then first and last bin edges/boundaries are defined as
+        # Q_min and Q_max (or X_min and X_max in generalized form)
+        bin_edges[0] = 10**c_min
+        bin_edges[-1] = 10**c_max
+    else:
+        # use user x min and x max
+        bin_edges[0] = x_min
+        bin_edges[-1] = x_max
+    # END-IF-ELSE
+
+    # Construct Bins instance
+    log_bins = Bins(bin_edges, bin_centers)
+
+    return log_bins
 
 
-def determine_1d_log_bins(x_min, x_max, step_per_decade):
+# TODO - Delete after all tests are passed
+def determine_1d_log_bins_old(x_min, x_max, step_per_decade):
     """Determine the logarithm bins
 
     The algorithm to calculate bins are from 11.28 and 11.29 in master document

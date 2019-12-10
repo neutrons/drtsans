@@ -172,7 +172,7 @@ def determine_log_bin_prototype(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_ce
     """
     # Calculate C min and max on decade and contain X min and X max in the range
     if decade_on_center or even_decade:
-        c_min = np.log10(x_min)  # c_min may not be on decade!
+        c_min = np.floor(np.log10(x_min))  # c_min may not be on decade!
         c_max = np.ceil(np.log10(x_max))
     else:
         c_min = np.log10(x_min)  # c_min may not be on decade!
@@ -229,7 +229,11 @@ def determine_log_bin_prototype(x_min=0.0001, x_max=0.1, n_bins=10, decade_on_ce
 
 
 def test_example1():
-    """
+    """Example 1 from ...
+
+    10^c_min and 10^_max will be on decade.
+    And 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+
 
     Returns
     -------
@@ -240,17 +244,8 @@ def test_example1():
     q_max_example1 = 0.036398139
     n_bins_example1 = 10
 
-    # Example 1: Max/Min on Bin Centers'
-    print('[TEST] Example 1: Max/Min on Bin Centers')
+    # Test with prototype: will be removed after all test cases are passed
     test_set = determine_log_bin_prototype(q_min_example1, q_max_example1, n_bins_example1, True)
-    print(test_set[4])
-    print(gold_log_bins_example1[:, 1])
-    diffs = np.abs(test_set[4] - gold_log_bins_example1[:, 1])
-    print('Max Mean Diff = {}'.format(np.max(diffs)))
-
-    print(test_set[5])
-    print(gold_log_bins_example1[:, 0])
-
     # Verify with expected value
     gold_c_min = -4
     gold_c_max = -1
@@ -267,15 +262,34 @@ def test_example1():
     # verify bin boundaries max
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example1[:, 2], rtol=1e-7, atol=1e-6)
 
+    # Test drtsans.determine_bins.determine_1d_log_bins
+    test_bin = determine_1d_log_bins(q_min_example1, q_max_example1, n_bins_example1, decade_on_center=True,
+                                     even_decade=True)
+    # verify bin center
+    np.testing.assert_allclose(test_bin.centers, gold_log_bins_example1[:, 1], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries min
+    np.testing.assert_allclose(test_bin.edges[:-1], gold_log_bins_example1[:, 0], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries max
+    np.testing.assert_allclose(test_bin.edges[1:], gold_log_bins_example1[:, 2], rtol=1e-7, atol=1e-6)
+
 
 def test_example2():
+    """Example 2
+
+    Example 2 has the same initial condition as example 1's.
+    But the 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+
+    Returns
+    -------
+
+    """
     # Test data for both Example 1 and Example 2
     q_min_example1 = 0.0001
     q_max_example1 = 0.036398139
     n_bins_example1 = 10
-    # Example 2
-    print('[TEST] Example 2: Max/Min on Bin Boundaries')
-    # c_min, c_max, total_num_bins, delta_l, bin_centers, bin_edges
+
+    # TODO - prototype will be deleted after all tess are passed
+    # prototype test
     test_set = determine_log_bin_prototype(q_min_example1, q_max_example1, n_bins_example1, decade_on_center=False,
                                            even_decade=True)
     # Verify with expected value
@@ -293,15 +307,17 @@ def test_example2():
     # verify bin boundaries min
     np.testing.assert_allclose(test_set[5][:-1], gold_log_bins_example2[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    set_a = test_set[5][1:]
-    set_b = gold_log_bins_example2[:, 2]
-
-    for i in range(30):
-        print(test_set[5][i+1], gold_log_bins_example2[:, 2][i])
-
-    print(np.abs(set_a - set_b))
-    print(np.max(np.abs(set_a - set_b)))
     np.testing.assert_allclose(test_set[5][1:], gold_log_bins_example2[:, 2], rtol=1e-7, atol=1e-6)
+
+    # Test drtsans.determine_bins.determine_1d_log_bins
+    test_bin = determine_1d_log_bins(q_min_example1, q_max_example1, n_bins_example1, decade_on_center=False,
+                                     even_decade=True)
+    # verify bin center
+    np.testing.assert_allclose(test_bin.centers, gold_log_bins_example2[:, 1], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries min
+    np.testing.assert_allclose(test_bin.edges[:-1], gold_log_bins_example2[:, 0], rtol=1e-7, atol=1e-6)
+    # verify bin boundaries max
+    np.testing.assert_allclose(test_bin.edges[1:], gold_log_bins_example2[:, 2], rtol=1e-7, atol=1e-6)
 
 
 def to_discuss_test_example3():

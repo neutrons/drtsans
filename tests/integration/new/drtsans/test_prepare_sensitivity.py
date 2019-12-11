@@ -12,8 +12,8 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                         [7, 4, 6, 5, 5, 5,  4, 5],
                                         [3, 5, 7, 4, 6, 6,  5, 4],
                                         [6, 7, 5, 5, 4, 7,  4, 5],
-                                        [3, 5, 7, 6, 7, 5,  6, 6],
-                                        [7, 6, 5, 5, 6, 6,  56, 5],
+                                        [3, 5, 7, 6, 7, 5,  56, 6],
+                                        [7, 6, 5, 5, 6, 6,  4, 5],
                                         [4, 5, 4, 6, 5, 5,  5, 7],
                                         [5, 7, 6, 5, 6, 1,  4, 6]])
     flood_field_measurement_uncertainty = np.sqrt(flood_field_measurement)
@@ -112,11 +112,6 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                               (interp_uncertainty[7, 2]*1.**2)**2)
 
     extrapolation_uncertainty[4, 6] = np.nan
-    np.set_printoptions(precision=1)
-    print('\n')
-    print(extrapolation)
-    print(extrapolation_uncertainty)
-    assert False
 
     final_sensitivity = np.nanmean(extrapolation)
     n_elements = np.sum(np.logical_not(np.isnan(extrapolation_uncertainty)))
@@ -127,21 +122,22 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     ws = workspace_with_instrument(axis_values=[1.,2.], intensities=ffm_with_mask,
                               uncertainties=ffm_uncertainty_with_mask, view='array')
-    y = ws.extractY().flatten()
+    #y = ws.extractY().flatten()
     #indices_to_mask = []
     #for i, yi in enumerate(y):
     #   if np.isnan(yi):
     #        indices_to_mask.append(i)
-    indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    #indices_to_mask = np.arange(len(y))[np.isnan(y)]
     #print(ws.getNumberHistograms())
     #MaskDetectors(ws, WorkspaceIndexList=indices_to_mask)
     #print(ws.getNumberHistograms())
     #np.set_printoptions(precision=4)
     #print(ws.extractY().reshape(8, 8))
-    #out = prepare_sensitivity_correction(ws, min_threshold=0.5, max_threshold=2.0)
+    out = prepare_sensitivity_correction(ws, min_threshold=0.45, max_threshold=2.0)
     #assert False
     #print(out.extractY().reshape(8, 8))
     #print(out.extractE().reshape(8, 8))
-    print(result)
-    print(result_uncertainty)
-    #assert False
+    #print('')
+    #print(result)
+    #print(result_uncertainty)
+    assert False

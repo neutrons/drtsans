@@ -461,20 +461,20 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
     y = input_workspace.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
-    MaskDetectors(input_workspace, WorkspaceIndexList=indices_to_mask)
     F = np.nanmean(y)
-    y = input_workspace.extractY().flatten()
+    MaskDetectors(input_workspace, WorkspaceIndexList=indices_to_mask)
     n_elements = 0
     for i in range(input_workspace.getNumberHistograms()):
         n_elements += len(input_workspace.readY(i))
     n_elements -= len(indices_to_mask)
-
     y_uncertainty = input_workspace.extractE().flatten()
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
     II = Divide(LHSWorkspace=input_workspace, RHSWorkspace=F_ws, OutputWorkspace=uwd())
-    #print(II.extractY().reshape(8, 8))
-    #print(II.extractE().reshape(8, 8))
+    print('')
+    np.set_printoptions(precision=1)
+    print(II.extractY().reshape(8, 8))
+    print(II.extractE().reshape(8, 8))
 
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
                     Mode='SelectIf', Operator='Greater', Value=max_threshold)
@@ -482,29 +482,22 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
                     Mode='SelectIf', Operator='Less', Value=min_threshold)
 
-    #d_info = II.detectorInfo()
+    d_info = II.detectorInfo()
     #print(d_info.size())
     #for item in d_info:
     #   print(item.index)
     comp_info = II.componentInfo()
     det_info = II.detectorInfo()
     #print(comp_info.size())
+    #meow = []
     #for item in comp_info:
-    #    print(item.name)
+    #    meow.append(item.name)
+    #meow = np.array(meow)
+    #print(meow)
+    #print(meow[:64].reshape(8, 8))
+
     comp = detector.Component(II, 'detector1')
     np.set_printoptions(precision=1)
-
-
-    #for j in range(0, comp.dim_y):
-    #    s_x = j*comp.dim_x
-    #    e_x = (j+1)*comp.dim_x -1
-    #    print(s_x, e_x)
-    #    d0, costFuncVal, d1, d2, d3, d4, d5 = Fit(InputWorkspace=II, WorkspaceIndex=0,
-    #        StartX=s_x, EndX=e_x, Output='fit',
-    #        Function='name=Quadratic',
-    #        Minimizer='Conjugate gradient (Fletcher-Reeves imp.)')
-    #    print(d0)
-
 
     for j in range(0, comp.dim_y):
         xx = []
@@ -519,23 +512,28 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
                 xx.append(i+1)
                 yy.append(II.readY(index)[0])
                 ee.append(II.readE(index)[0])
-        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=1. / np.array(ee), cov=True)
-        # Errors in the least squares is the sqrt of the covariance matrix
-        # (correlation between the coefficients)
-        e_coeffs = np.sqrt(np.diag(cov_matrix))/2.
+        try:
+            polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=1. / np.array(ee), cov=True)
+            # Errors in the least squares is the sqrt of the covariance matrix
+            # (correlation between the coefficients)
+            e_coeffs = np.sqrt(np.diag(cov_matrix))/2.
+        except ValueError:
+            polynomial_coeffs = np.polyfit(xx, yy, 2, w=1. / np.array(ee), cov=False)
+            e_coeffs = np.ones(3)
         masked_indices = np.array(masked_indices)
         y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
-        a = masked_indices[:,0]
+        a = masked_indices[:, 0]
         # errors of the polynomial
         e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
                         (e_coeffs[0]*masked_indices[:, 0]**2)**2)
         for i, index in enumerate(masked_indices[:, 1]):
-            assert II.readY(int(index))[0] == 0.
+            #assert II.readY(int(index))[0] == 0.
             II.setY(int(index), [y_new[i]])
             II.setE(int(index), np.array(e_new[i]))
-    for i in range(8):
-        print(II.readY(i)[0])
-    #print(II.extractE().reshape(8, 8)[0])
+    #for i in range(8):
+    #    print(II.readY(i)[0])
+    print(II.extractY().reshape(8, 8))
+    print(II.extractE().reshape(8, 8))
 
 
 

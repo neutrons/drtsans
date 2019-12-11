@@ -11,32 +11,31 @@ from drtsans.tof import eqsans  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
 from drtsans.iq import determine_1d_linear_bins  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
-from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
+from drtsans.tof.eqsans import cfg  # noqa E402
 
 debug_mode = False
-# TODO: move it to read from a configuration file
-default_mask = [{'Bank': '2, 26'}, {'Bank': '19', 'Tube': '2'}, {'Pixel': '1-8, 249-256'}]
-
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise RuntimeError("reduction code requires a parameter json string")
-
-    json_string = " ".join(sys.argv[1:])
-    json_params = json.loads(json_string)
+    if os.path.isfile(sys.argv[1]):
+        print(sys.argv[1])
+        with open(sys.argv[1], 'r') as fd:
+            json_params = json.load(fd)
+    else:
+        json_string = " ".join(sys.argv[1:])
+        json_params = json.loads(json_string)
     msapi.logger.notice(json.dumps(json_params, indent=2))
 
     output_file = json_params["outputFilename"]
-
+    sample_run = json_params["runNumber"]
+    configuration_file_parameters = cfg.load_config(source=sample_run)
     # set up the configuration
     config = dict()
     json_conf = json_params["configuration"]
     config["mask"] = None
-    w = msapi.LoadEmptyInstrument(InstrumentName='EQ-SANS', OutputWorkspace=uwd())
     if json_conf["useDefaultMask"]:
-        for d in default_mask:
-            msapi.MaskBTP(Workspace=w, **d)
-        config["mask"] = msapi.ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
+        config["mask"] = configuration_file_parameters['combined mask']  # list of masked detector ids
 
     config["flux"] = json_conf["beamFluxFileName"]
     config["sensitivity_file_path"] = json_conf["sensitivityFileName"]
@@ -63,8 +62,7 @@ if __name__ == "__main__":
     if empty_run != "":
         db_ws = eqsans.load_events(empty_fn)
         if json_conf["useDefaultMask"]:
-            for d in default_mask:
-                msapi.MaskBTP(Workspace=db_ws, **d)
+            eqsans.apply_mask(db_ws, mask=config['mask'])
         center = eqsans.find_beam_center(db_ws)
         config["center_x"] = center[0]
         config["center_y"] = center[1]
@@ -74,7 +72,6 @@ if __name__ == "__main__":
         config["center_y"] = 0.0170801
 
     # load and prepare scattering data
-    sample_run = json_params["runNumber"]
     sample_file = "EQSANS_{}".format(sample_run)
     if not output_file:
         output_file = sample_file + "_log.hdf5"

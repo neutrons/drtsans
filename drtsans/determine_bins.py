@@ -52,7 +52,7 @@ def determine_1d_linear_bins(x_min, x_max, bins, x_array=None):
     return linear_bins
 
 
-def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=10, n_bins=None, decade_on_center=False, even_decade=True):
+def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None, decade_on_center=False, even_decade=True):
     """Determine logarithm bins
 
     Including bin edge and bin center.

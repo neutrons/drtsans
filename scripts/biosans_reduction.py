@@ -163,3 +163,6 @@ if __name__ == "__main__":
     filename = os.path.join(json_params["configuration"]["outputDir"],
                             json_params['outputFilename'] + '_merged_Iq.png')
     plot_IQmod([merged_profile], filename, backend='mpl')
+    filename = os.path.join(json_params["configuration"]["outputDir"],
+                            json_params['outputFilename'] + '_merged_Iq.json')
+    plot_IQmod([merged_profile], filename, backend='d3')

@@ -399,11 +399,11 @@ def test_example3():
                                       decade_on_center=False, even_decade=False)
 
     # verify bin center
-    np.testing.assert_allclose(test_bins.centers, gold_log_bins_example4[:, 1], rtol=1e-7, atol=1e-6)
+    np.testing.assert_allclose(test_bins.centers, gold_log_bins_example3[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min (left boundary)
-    np.testing.assert_allclose(test_bins.edges[:-1], gold_log_bins_example4[:, 0], rtol=1e-7, atol=1e-6)
+    np.testing.assert_allclose(test_bins.edges[:-1], gold_log_bins_example3[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max (right boundary)
-    np.testing.assert_allclose(test_bins.edges[1:], gold_log_bins_example4[:, 2], rtol=1e-7, atol=1e-6)
+    np.testing.assert_allclose(test_bins.edges[1:], gold_log_bins_example3[:, 2], rtol=1e-7, atol=1e-6)
 
     # test_set = determine_log_bin_prototype(q_min_example3, q_max_example3,  , decade_on_center=False,
     #                                        even_decade=False)

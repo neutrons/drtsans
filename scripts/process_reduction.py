@@ -43,11 +43,17 @@ if __name__ == '__main__':
         proc.communicate()
         logFile.close()
         errFile.close()
-        rc = proc.returncode
-        if rc:
-            exit(rc)
+
+        # remove empty error logfile
         if os.path.isfile(out_err) and os.stat(out_err).st_size == 0:
             os.remove(out_err)
-        exit(os.path.isfile(out_err))
+
+        # if the program returned non-zero, exit with that code
+        rc = proc.returncode
+        if (not rc) and os.path.isfile(out_err):
+            rc = 255  # return 255 if the error logfile is non-empty
+
+        # exit with the final return code
+        exit(rc)
     else:
         raise RuntimeError("A parameter json string is required as input")

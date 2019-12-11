@@ -52,10 +52,12 @@ def determine_1d_linear_bins(x_min, x_max, bins, x_array=None):
     return linear_bins
 
 
-def determine_1d_log_bins(x_min, x_max, n_bins=10, decade_on_center=False, even_decade=True):
+def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None, decade_on_center=False, even_decade=True):
     """Determine logarithm bins
 
-    Including bin edge and bin center
+    Including bin edge and bin center.
+
+    n_bins_per_decade and n_bins cannot be defined simultaneously, but one of them must be specified.
 
     Parameters
     ----------
@@ -63,8 +65,11 @@ def determine_1d_log_bins(x_min, x_max, n_bins=10, decade_on_center=False, even_
         Positive float for minimum
     x_max : float
         Positive float
-    n_bins : int
-        Positive integer for number of step per decade
+    n_bins_per_decade : int or None
+        Positive integer for number of step per decade. Total number of bins will be this value multiplied by
+        number of decades from X min to X max
+    n_bins : int or None
+        Positive integer for total number of bins.
     decade_on_center : bool
         Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
     even_decade : bool
@@ -89,9 +94,17 @@ def determine_1d_log_bins(x_min, x_max, n_bins=10, decade_on_center=False, even_
         c_max = np.log10(x_max)
 
     # Calculate total number of bins
-    # Number of bins shall contain all the decade from c_min to c_max
-    # Thus, floor to c_min and ciel to c_max shall make sure the calculation is correct
-    total_num_bins = (int(np.ceil(c_max) - np.floor(c_min))) * n_bins
+    if n_bins_per_decade is not None and n_bins_per_decade > 0 and n_bins is None:
+        # Number of bins shall contain all the decade from c_min to c_max
+        # Thus, floor to c_min and ciel to c_max shall make sure the calculation is correct
+        total_num_bins = (int(np.ceil(c_max) - np.floor(c_min))) * n_bins_per_decade
+    elif n_bins_per_decade is None and n_bins is not None and n_bins > 0:
+        # Use user specified total number of bins
+        total_num_bins = n_bins
+    else:
+        # Non-supported case
+        raise RuntimeError('n_bins_per_decade ({}) and n_bins ({}) cannot be both specified or not specified.'
+                           'and they must be positive integers'.format(n_bins_per_decade, n_bins))
 
     # Calculate Delta L: Equation 11.28 (master document)
     delta_l = (c_max - c_min) / total_num_bins

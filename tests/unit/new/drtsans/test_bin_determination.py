@@ -395,8 +395,8 @@ def test_example3():
     q_max_example3 = 0.036398139
     n_bins_example3 = 30
 
-    test_bins = determine_1d_log_bins(q_min_example3, q_max_example3, n_bins=None, decade_on_center=False,
-                                      even_decade=False)
+    test_bins = determine_1d_log_bins(q_min_example3, q_max_example3, n_bins=n_bins_example3,
+                                      decade_on_center=False, even_decade=False)
 
     # verify bin center
     np.testing.assert_allclose(test_bins.centers, gold_log_bins_example4[:, 1], rtol=1e-7, atol=1e-6)

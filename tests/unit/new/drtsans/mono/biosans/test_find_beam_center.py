@@ -129,16 +129,23 @@ def test_beam_finder(biosans_f):
     assert x == pytest.approx(0.0014, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
     assert y_gravity == pytest.approx(-0.0216, abs=1e-3)
-
+    # The position of the main detector and wing detector is retrieved
+    # The geometry of the detector setup is accessed through a workspace handle.
+    # To access the detector geometry we must go through the instrument and
+    # The vectors returned by getPos() act like 3D vectors and can be added
+    # and subtracted in a manner one would expect.
     instrument = ws.getInstrument()
     pos_main = instrument.getComponentByName("detector1").getPos()
     pos_wing = instrument.getComponentByName("wing_detector").getPos()
 
     # Let's center the instrument and get the new center:
-    # Move down and left
+    # Move down and left because the beam center currently located at (center_x, center_y), by translating
+    # the beam center by an amount (-center_x, -center_y), the beam center is relocated to the origin of coordinates
+    # on the XY-plane
     MoveInstrumentComponent(
         Workspace=ws, ComponentName='detector1', X=-x, Y=-y)
-
+    # The position of the main detector and wing detector is retrieved after
+    # relocating the beam center on the main detector to the origin of coordinates
     pos_main_1 = instrument.getComponentByName("detector1").getPos()
     pos_wing_1 = instrument.getComponentByName("wing_detector").getPos()
 
@@ -150,7 +157,8 @@ def test_beam_finder(biosans_f):
     # Relative movement up words
     MoveInstrumentComponent(
         Workspace=ws, ComponentName='wing_detector', X=-x, Y=-y_gravity)
-
+    # The position of the main detector and wing detector is retrieved after
+    # relocating the beam center on the wing detector to the origin of coordinates
     pos_main_2 = instrument.getComponentByName("detector1").getPos()
     pos_wing_2 = instrument.getComponentByName("wing_detector").getPos()
 

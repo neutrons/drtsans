@@ -94,11 +94,11 @@ def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None, dec
         c_max = np.log10(x_max)
 
     # Calculate total number of bins
-    if n_bins_per_decade > 0 and n_bins is None:
+    if n_bins_per_decade is not None and n_bins_per_decade > 0 and n_bins is None:
         # Number of bins shall contain all the decade from c_min to c_max
         # Thus, floor to c_min and ciel to c_max shall make sure the calculation is correct
         total_num_bins = (int(np.ceil(c_max) - np.floor(c_min))) * n_bins_per_decade
-    elif n_bins_per_decade is None and n_bins > 0:
+    elif n_bins_per_decade is None and n_bins is not None and n_bins > 0:
         # Use user specified total number of bins
         total_num_bins = n_bins
     else:

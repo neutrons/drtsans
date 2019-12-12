@@ -8,21 +8,35 @@ from drtsans.sensitivity import prepare_sensitivity_correction
 @pytest.mark.parametrize('workspace_with_instrument',
                           [dict(name='EQSANS', Nx=8, Ny=8)], indirect=True)
 def test_prepare_sensitivity(workspace_with_instrument):
-    flood_field_measurement = np.array([[5, 6, 7, 4, 6, 6,  5, 3],
-                                        [7, 4, 6, 5, 5, 5,  4, 5],
-                                        [3, 5, 7, 4, 6, 6,  5, 4],
-                                        [6, 7, 5, 5, 4, 7,  4, 5],
-                                        [3, 5, 7, 6, 7, 5,  56, 6],
-                                        [7, 6, 5, 5, 6, 6,  4, 5],
-                                        [4, 5, 4, 6, 5, 5,  5, 7],
-                                        [5, 7, 6, 5, 6, 1,  4, 6]])
+
+    flood_field_measurement = np.array([[65, 68, 66, 75, 71,  68, 66, 70],
+                                        [69, 65, 69, 71, 71,  68, 68, 66],
+                                        [75, 69, 70, 67, 66,  74, 71, 70],
+                                        [66, 71, 71, 70, 71,  68, 66, 65],
+                                        [67, 69, 66, 74, 75,  72, 71, 68],
+                                        [73, 69, 68, 71, 66,  72, 70, 73],
+                                        [67, 6,	 66, 74, 74,  65, 65, 70],
+                                        [72, 67, 69, 71, 74,  68, 75, 68],
+                                        [71, 75, 72, 73, 73,  69, 69, 67],
+                                        [69, 69, 70, 66, 72,  72, 67, 74],
+                                        [72, 75, 70, 67, 74,  67, 68, 73],
+                                        [69, 66, 67, 68, 68,  75, 71, 73],
+                                        [70, 71, 73, 74, 67, 492, 70, 75],
+                                        [73, 65, 72, 66, 70,  67, 66, 70],
+                                        [69, 68, 71, 68, 70,  72, 67, 70],
+                                        [66, 72, 69, 70, 66,  66, 70, 74],
+                                        [65, 65, 67, 72, 69,  75, 75, 73],
+                                        [65, 72, 72, 75, 67,  73, 75, 72],
+                                        [67, 65, 69, 71, 68,  65, 71, 70],
+                                        [72, 72, 65, 75, 68,  74, 75, 71]])
+
     flood_field_measurement_uncertainty = np.sqrt(flood_field_measurement)
 
     mask = np.ones((8, 8))
     mask[0, :] = np.nan
-    mask[3, 3] = np.nan
-    mask[4, 3] = np.nan
-    mask[7, :] = np.nan
+    mask[10, 3] = np.nan
+    mask[11, 3] = np.nan
+    mask[19, :] = np.nan
 
     ffm_with_mask = mask*flood_field_measurement
     ffm_uncertainty_with_mask = mask*flood_field_measurement_uncertainty
@@ -32,14 +46,14 @@ def test_prepare_sensitivity(workspace_with_instrument):
     II = ffm_with_mask/F
     dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
 
-    interp = np.array([[1.15043672, -0.26260662,  0.03137347],
-                       [0.34048580,  0.28979423, -0.03532715],
-                       [0.18591322,  0.27438438, -0.02357601],
-                       [1.59838943, -0.39991784,  0.04023418],
-                       [0.77215433,  0.05200745, -0.00730179],
-                       [0.41601759,  0.23002406, -0.02466000],
-                       [0.87065504, -0.08449276,  0.00819643],
-                       [1.46153994, -0.24633847,  0.02046666]])
+    interp = np.array([[-5.548e-4, 1.372e-2, 0.892136],
+                       [-6.662e-4, 1.299e-2, 0.909756],
+                       [-8.893e-05,4.709e-4, 0.967607],
+                       [2.956e-04,-5.993e-3, 0.998236],
+                       [-6.629e-04,1.560e-2, 0.899285],
+                       [-4.301e-7,-6.149e-5, 0.968977],
+                       [4.342e-4,-1.082e-2, 1.017300],
+                       [-5.709e-4,6.707e-2, 0.980344]])
 
     interp_uncertainty = np.array([[1.01238129, 0.50205366, 0.05655452],
                                    [1.09729141, 0.53499255, 0.05800269],

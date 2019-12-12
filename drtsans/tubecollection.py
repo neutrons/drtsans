@@ -80,6 +80,9 @@ class ElementComponentInfo:
         except AttributeError:
             return getattr(self, item)
 
+    def __len__(self):
+        return len(self.children)
+
 
 class PixelInfo(ElementComponentInfo):
     def __init__(self, component_info, component_info_index, detector_info=None):

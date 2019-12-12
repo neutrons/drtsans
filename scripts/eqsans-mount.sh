@@ -13,3 +13,4 @@ if ! grep -qs 'EQSANS' /proc/mounts; then
     fi
   done
 fi
+ls /SNS/EQSANS

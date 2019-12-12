@@ -8,35 +8,34 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
-from drtsans.tof.eqsans.convert_to_q import convert_to_q, split_by_frame  # noqa E402
-from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_iq_into_linear_q2d, BinningParams  # noqa E402
+from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
+from drtsans.iq import determine_1d_linear_bins  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
-from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
+from drtsans.tof.eqsans import cfg  # noqa E402
 
 debug_mode = False
-# TODO: move it to read from a configuration file
-default_mask = [{'Bank': '2, 26'}, {'Bank': '19', 'Tube': '2'}, {'Pixel': '1-8, 249-256'}]
-
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise RuntimeError("reduction code requires a parameter json string")
-
-    json_string = " ".join(sys.argv[1:])
-    json_params = json.loads(json_string)
+    if os.path.isfile(sys.argv[1]):
+        print(sys.argv[1])
+        with open(sys.argv[1], 'r') as fd:
+            json_params = json.load(fd)
+    else:
+        json_string = " ".join(sys.argv[1:])
+        json_params = json.loads(json_string)
     msapi.logger.notice(json.dumps(json_params, indent=2))
 
     output_file = json_params["outputFilename"]
-
+    sample_run = json_params["runNumber"]
+    configuration_file_parameters = cfg.load_config(source=sample_run)
     # set up the configuration
     config = dict()
     json_conf = json_params["configuration"]
     config["mask"] = None
-    w = msapi.LoadEmptyInstrument(InstrumentName='EQ-SANS', OutputWorkspace=uwd())
     if json_conf["useDefaultMask"]:
-        for d in default_mask:
-            msapi.MaskBTP(Workspace=w, **d)
-        config["mask"] = msapi.ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
+        config["mask"] = configuration_file_parameters['combined mask']  # list of masked detector ids
 
     config["flux"] = json_conf["beamFluxFileName"]
     config["sensitivity_file_path"] = json_conf["sensitivityFileName"]
@@ -58,23 +57,21 @@ if __name__ == "__main__":
 
     # find the beam center
     empty_run = json_params["empty"]["runNumber"]
-    empty_fn = "EQSANS_{}".format(empty_run)
+    empty_fn = json_params["instrumentName"] + empty_run
     # TODO apply empty flag?
     if empty_run != "":
         db_ws = eqsans.load_events(empty_fn)
         if json_conf["useDefaultMask"]:
-            for d in default_mask:
-                msapi.MaskBTP(Workspace=db_ws, **d)
+            eqsans.apply_mask(db_ws, mask=config['mask'])
         center = eqsans.find_beam_center(db_ws)
-        config["x_center"] = center[0]
-        config["y_center"] = center[1]
+        config["center_x"] = center[0]
+        config["center_y"] = center[1]
         msapi.logger.notice("calculated center {}".format(center))
     else:
-        config["x_center"] = 0.025239
-        config["y_center"] = 0.0170801
+        config["center_x"] = 0.025239
+        config["center_y"] = 0.0170801
 
     # load and prepare scattering data
-    sample_run = json_params["runNumber"]
     sample_file = "EQSANS_{}".format(sample_run)
     if not output_file:
         output_file = sample_file + "_log.hdf5"
@@ -158,10 +155,10 @@ if __name__ == "__main__":
         msapi.SaveNexus(ws, filenamews)
 
     # convert to momentum transfer and split by frame
-    all_I_of_q = convert_to_q(ws, mode="scalar")
-    all_I_of_qxqy = convert_to_q(ws, mode="azimuthal")
-    I_of_q_by_frame = split_by_frame(ws, all_I_of_q)
-    I_of_qxqy_by_frame = split_by_frame(ws, all_I_of_qxqy)
+    all_I_of_q = eqsans.convert_to_q(ws, mode="scalar")
+    all_I_of_qxqy = eqsans.convert_to_q(ws, mode="azimuthal")
+    I_of_q_by_frame = eqsans.split_by_frame(ws, all_I_of_q)
+    I_of_qxqy_by_frame = eqsans.split_by_frame(ws, all_I_of_qxqy)
 
     # do the binning and save the files
     numQBins1D = int(json_conf["numQBins"])
@@ -178,8 +175,8 @@ if __name__ == "__main__":
         if linear_binning:
             q_min = np.min(result.mod_q)
             q_max = np.max(result.mod_q)
-            binning = BinningParams(q_min, q_max, numQBins1D)
-            binned_i_of_q = bin_intensity_into_q1d(result, binning, True, BinningMethod.WEIGHTED)
+            linear_q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
+            binned_i_of_q = bin_intensity_into_q1d(result, linear_q_bins, BinningMethod.WEIGHTED)
             if len(I_of_q_by_frame) > 1:
                 label = f"frame_{frame_number+1}"
                 save_suffix = f"_frame_{frame_number+1}"
@@ -203,12 +200,12 @@ if __name__ == "__main__":
     for frame_number, result in enumerate(I_of_qxqy_by_frame):
         qx_min = np.min(result.qx)
         qx_max = np.max(result.qx)
-        binning_x = BinningParams(qx_min, qx_max, numQBins2D)
+        qx_bins = determine_1d_linear_bins(qx_min, qx_max, numQBins2D)
         qy_min = np.min(result.qy)
         qy_max = np.max(result.qy)
-        binning_y = BinningParams(qy_min, qy_max, numQBins2D)
+        qy_bins = determine_1d_linear_bins(qy_min, qy_max, numQBins2D)
 
-        binned_i_of_qxqy = bin_iq_into_linear_q2d(result, binning_x, binning_y, BinningMethod.WEIGHTED)
+        binned_i_of_qxqy = bin_intensity_into_q2d(result, qx_bins, qy_bins, BinningMethod.WEIGHTED)
         fig, ax = plt.subplots()
         pcm = ax.pcolormesh(binned_i_of_qxqy.qx, binned_i_of_qxqy.qy, binned_i_of_qxqy.intensity,
                             norm=colors.LogNorm())

@@ -132,5 +132,28 @@ def test_apply_mask_simple_histogram(generic_IDF):
     ws.delete()
 
 
+@pytest.mark.parametrize('generic_workspace',
+                         [{'name': 'EQ-SANS', 'dx': 0.01, 'dy': 0.01,
+                           'Nx': 192, 'Ny': 256}],
+                         indirect=True)
+def test_apply_mask_btp_and_angle(generic_workspace):
+    r"""
+    Apply a circular mask
+    """
+    w = generic_workspace
+    apply_mask(w, Pixel="1-8", MaxAngle=10)
+    spectrum_info = w.spectrumInfo()
+    for i in range(256):  # central tube
+        if i < 8:
+            # bottom 8 pixels should be masked
+            spectrum_info.isMasked(i + 96 * 256)
+        else:
+            # only detectors with two theta<10 degrees should be masked
+            if spectrum_info.twoTheta(i + 96 * 256) > np.radians(10.):
+                assert not spectrum_info.isMasked(i + 96 * 256)
+            else:
+                assert spectrum_info.isMasked(i + 96 * 256)
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

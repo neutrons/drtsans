@@ -50,14 +50,14 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
     id_input = getDataType(input_workspace)
     id_background = getDataType(background)
 
-    # they must match
+    # the data types must be the same
     if id_input != id_background:
         raise ValueError('Cannot subtract background(type={}) from data(type={})'.format(id_input, id_background))
 
     # convert IQmod to a mantid workspace
     if id_input == DataType.IQ_MOD:
-        input_workspace = input_workspace.toWorkspace()
-        background = background.toWorkspace()
+        input_workspace = input_workspace.to_workspace()
+        background = background.to_workspace()
         id_input = DataType.WORKSPACE2D
 
     # do the math
@@ -82,6 +82,8 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
 
         workspaces_to_delete = []
 
+        # prepare to scale the background out-of-place so the background is not modified for subsequent calls
+
         # make the background match the input_workspace binning if possible
         if input_workspace.isHistogramData() and background.isHistogramData():
             # rebin the background to match the input_workspace
@@ -102,8 +104,11 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
                                                 OutputWorkspace=uwd())
         workspaces_to_delete.append(str(scale))
 
+        # this takes care of the uncertainties as well
         background_rebinned *= scale
 
+        # the minus algorithm makes sure the workspaces are compatible
+        # and does the correct thing with the uncertainties
         Minus(LHSWorkspace=input_workspace,
               RHSWorkspace=background_rebinned,
               OutputWorkspace=output_workspace)
@@ -114,6 +119,8 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
 
         return mtd[output_workspace]
     else:
+        # DataType.IQ_CRYSTAL is not implemented currently
+        # this will catch other types if they are added later as well
         raise NotImplementedError('Cannot do operation with "{}"'.format(id_input))
 
 

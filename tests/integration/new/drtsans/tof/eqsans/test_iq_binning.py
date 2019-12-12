@@ -100,7 +100,8 @@ def test_iq_binning_serial(reference_dir):
     # Bin I(Q)
     final_q_min = 0
     test_iq = IQmod(iq_array, sigma_iq_array, q_array, dq_array, None)
-    linear_bins = determine_1d_linear_bins(final_q_min, None, 10, test_iq.mod_q)
+    q_max = test_iq.mod_q.max()
+    linear_bins = determine_1d_linear_bins(final_q_min, q_max, 10)
     i_of_q = bin_intensity_into_q1d(test_iq, linear_bins, bin_method=BinningMethod.WEIGHTED)
     assert i_of_q
 

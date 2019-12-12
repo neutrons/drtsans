@@ -11,8 +11,20 @@ from tests.unit.new.drtsans.i_of_q_binning_tests_data import get_gold_2d_linear_
 # SME - William Heller <hellerwt@ornl.gov>
 
 # Some tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
-def test_log_bins_from_wedge_no_wt():
-    """Test generating log bins from '1D_bin_log_wedget_no_sub_no_wt'
+def test_log_bins_backward_compatible():
+    """Test log bins determination with 'old' API
+
+    Method determine_1d_log_bins() has been refactored from its previous version by adding more
+    method parameters.  While by default value, this method shall be backward compatible such that
+    with x-min, x-max and step-per-decade defined, it shall generate a set of bins same as before.
+
+    Here by using data '1D_bin_log_wedget_no_sub_no_wt' (from
+    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
+    eqsans_tof_q_binning_tests_R4.xlsx), this method is tested
+
+    Returns
+    -------
+
     """
     # Define Q range
     q_min = 0.001  # Edge
@@ -213,7 +225,7 @@ def test_example1():
     """Example 1 from ...
 
     10^c_min and 10^_max will be on decade.
-    And 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+    And 10^c_min and 10^c_max will be on bin boundaries but not bin centers (example 1)
 
 
     Returns
@@ -240,7 +252,7 @@ def test_example2():
     """Example 2
 
     Example 2 has the same initial condition as example 1's.
-    But the 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+    But the 10^c_min and 10^c_max will be on bin boundaries but not bin centers (example 1)
 
     Returns
     -------

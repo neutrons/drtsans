@@ -218,6 +218,10 @@ def get_gold_1d_linear_bins():
 def get_gold_1d_log_bins():
     """Get the gold array for 1D logarithm bins
 
+    The gold data comes from test '1D_bin_log_wedget_no_sub_no_wt' in
+    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
+    eqsans_tof_q_binning_tests_R4.xlsx
+
     This is to test the method to create logarithm bins
 
     Returns
@@ -249,8 +253,7 @@ def get_gold_2d_linear_bins():
     qx_center = np.array([-0.006134, -0.003254, -0.000374, 0.002505, 0.005385])
 
     # Qy shall increase monotonically
-    qy_center = np.array([0.004962, 0.002737, 0.000512, -0.001713, -0.003939])
-    qy_center = qy_center[::-1]
+    qy_center = np.array([-0.003939, -0.001713,  0.000512,  0.002737,  0.004962])
 
     return qx_center, qy_center
 

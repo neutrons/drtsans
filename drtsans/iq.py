@@ -216,7 +216,11 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
 
 def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
     """ Bin I(Q) by given bin edges and do no-weight binning
+
     This method implements equation 11.34, 11.35 and 11.36 in master document.
+
+    If there is no Q in a certain Qk bin, NaN will be set to both I(Qk) and sigma I(Qk)
+
     Parameters
     ----------
     q_array: ndarray
@@ -266,6 +270,8 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
 
 def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
     """ Bin I(Q) by given bin edges and do weighted binning
+
+    This method implements equation 11.42, 11.35 and 11.36 in master document.
 
     If there is no Q in a certain Qk bin, NaN will be set to both I(Qk) and sigma I(Qk)
 

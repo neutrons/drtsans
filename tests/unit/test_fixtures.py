@@ -1,7 +1,7 @@
 import numpy as np
-from mantid.kernel import V3D
 import pytest
 from pytest import approx
+from mantid.kernel import V3D
 
 
 @pytest.mark.skip(reason="only for debugging")
@@ -29,7 +29,7 @@ def test_frame_skipper(frame_skipper):
                          [{'Nx': 4, 'Ny': 4}],
                          indirect=True)
 def test_generate_IDF(generic_IDF):
-    expected = '''<?xml version=\'1.0\' encoding=\'UTF-8\'?>
+    expected = '''<?xml version="1.0" encoding="UTF-8"?>
 <instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
@@ -99,7 +99,7 @@ def test_generate_IDF(generic_IDF):
                          [{}],
                          indirect=True)
 def test_generate_IDF_defaults(generic_IDF):
-    expected = '''<?xml version=\'1.0\' encoding=\'UTF-8\'?>
+    expected = '''<?xml version="1.0" encoding="UTF-8"?>
 <instrument name="GenericSANS" valid-from   ="1900-01-31 23:59:59"
                                valid-to     ="2100-12-31 23:59:59"
                                last-modified="2019-07-12 00:00:00">
@@ -167,6 +167,86 @@ def test_generate_IDF_defaults(generic_IDF):
 
 def test_generate_IDF_minimal(generic_IDF):
     assert generic_IDF
+
+
+@pytest.mark.parametrize('n_pack_IDF', [{'n_tubes': 2, 'n_pixels': 2, 'spacing': 0.0, 'z_center': 0.0}], indirect=True)
+def test_n_pack_IDF(n_pack_IDF):
+    expected = '''<?xml version="1.0" encoding="UTF-8"?>
+<instrument name="GenericSANS" valid-from="1900-01-31 23:59:59" valid-to="2100-12-31 23:59:59"
+ last-modified="2019-07-12 00:00:00">
+    <!--DEFAULTS-->
+    <defaults>
+        <length unit="metre"/>  <angle unit="degree"/> <reference-frame> <along-beam axis="z"/>
+        <pointing-up axis="y"/> <handedness val="right"/> <theta-sign axis="x"/>  </reference-frame>
+    </defaults>
+
+    <!--SOURCE-->
+    <component type="moderator">
+        <location z="5.0"/>
+    </component>
+    <type name="moderator" is="Source"/>
+
+    <!--SAMPLE-->
+    <component type="sample-position">
+        <location y="0.0" x="0.0" z="0.0"/>
+    </component>
+    <type name="sample-position" is="SamplePos"/>
+
+    <!---->
+    <!--TYPE: PIXEL FOR STANDARD PIXEL TUBE-->
+    <!---->
+    <type name="pixel" is="detector">
+        <cylinder id="cyl-approx">
+            <centre-of-bottom-base r="0.0" t="0.0" p="0.0"/> <axis x="0.00000" y="1.00000" z="0.00000"/>
+            <radius val="0.004025"/> <height val="0.00225"/>
+        </cylinder>
+      <algebra val="cyl-approx"/>
+    </type>
+
+    <!---->
+    <!--TYPE: STANDARD PIXEL TUBE-->
+    <!---->
+    <type outline="yes" name="tube">
+    <properties/>
+    <component type="pixel">
+        <location name="pixel0" y="-0.00225000"/>
+        <location name="pixel1" y="0.00000000"/>
+    </component>
+  </type>
+
+    <!---->
+    <!--TYPE: N-PACK-->
+    <!---->
+      <type name="n_pack">
+    <properties/>
+    <component type="tube">
+        <location name="tube0" x="-0.00402500"/>
+        <location name="tube1" x="0.00402500"/>
+    </component>
+    </type>
+
+    <!---->
+    <!--COMPONENT: N-PACK-->
+    <!---->
+    <component type="n_pack" idlist="n_panel_ids" name="detector1">
+        <location x="0.0" y="0.0" z="0.0" rot="180.0" axis-x="0" axis-y="1" axis-z="0">
+        </location>
+    </component>
+
+    <!--DETECTOR IDs-->
+    <idlist idname="n_panel_ids">
+        <id start="0" end="3"/>
+    </idlist>
+
+    <parameter name="x-pixel-size">
+        <value val="8.05"/>
+    </parameter>
+
+    <parameter name="y-pixel-size">
+        <value val="2.25"/>
+    </parameter>
+</instrument>'''
+    assert n_pack_IDF == expected
 
 
 def test_generate_workspace_defaults(generic_workspace):
@@ -255,6 +335,7 @@ def test_serve_events_workspace(serve_events_workspace):
 class TestWorkspaceWithInstrument(object):
 
     def test_workspace_with_instrument_defaults(self, workspace_with_instrument):
+        r"""Default instrument is a rectangular 3x3 detector panel"""
         ws = workspace_with_instrument()
         assert ws
         assert ws.getAxis(0).getUnit().caption() == 'Wavelength'
@@ -273,7 +354,10 @@ class TestWorkspaceWithInstrument(object):
             assert ws2.readY(i).tolist() == y[i]
             assert ws2.readE(i).tolist() == np.sqrt(y[i])
 
-    @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
+    @pytest.mark.parametrize('workspace_with_instrument',
+                             [{'instrument_geometry': 'n-pack', 'n_tubes': 3, 'n_pixels': 2,
+                               'diameter': 1.0, 'height': 1.0, 'spacing': 0.0, 'z_center': 0.0}],
+                             indirect=True)
     def test_generate_workspace_mono(self, workspace_with_instrument):
         ws = workspace_with_instrument()  # give it a friendly name
         assert ws
@@ -299,8 +383,8 @@ class TestWorkspaceWithInstrument(object):
         assert ws2.readY(1) == 4.
         assert ws2.readY(3) == 16.
         spectum_info = ws.spectrumInfo()
-        assert spectum_info.position(0) == V3D(1., -.5, 5.)  # row=0, col=0
-        assert spectum_info.position(3) == V3D(0., .5, 5.)  # row=1, col=0
+        assert spectum_info.position(0) == V3D(1., -1., 0.)  # row=0, col=0
+        assert spectum_info.position(3) == V3D(0., 0., 0.)  # row=1, col=0
 
     @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 2}], indirect=True)
     def test_generate_workspace_tof(self, workspace_with_instrument):

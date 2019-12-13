@@ -5,16 +5,20 @@ ExtractMask          <https://docs.mantidproject.org/nightly/algorithms/ExtractM
 FindDetectorsInShape <https://docs.mantidproject.org/nightly/algorithms/FindDetectorsInShape-v1.html>
 LoadMask             <https://docs.mantidproject.org/nightly/algorithms/LoadMask-v1.html>
 Load                 <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
+MaskAngle            <https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html>
 MaskBTP              <https://docs.mantidproject.org/nightly/algorithms/MaskBTP-v1.html>
 MaskDetectors        <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html>
 MaskSpectra          <https://docs.mantidproject.org/nightly/algorithms/MaskSpectra-v1.html>
 """
-from mantid.simpleapi import ExtractMask, FindDetectorsInShape, LoadMask, MaskBTP, MaskDetectors, MaskSpectra, Load
+from mantid.simpleapi import (ExtractMask, FindDetectorsInShape, LoadMask,
+                              MaskBTP, MaskDetectors, MaskSpectra, Load, MaskAngle)
 from mantid.api import mtd
 from mantid.dataobjects import MaskWorkspace
 import os
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
+
+__all__ = ['apply_mask']
 
 
 def mask_as_numpy_array(input_workspace, invert=False):
@@ -84,7 +88,8 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
     output_workspace: str
         Name of the output ~mantid.api.MatrixWorkspace. If ``None``, a random name will be provided for the workspace.
     btp: dict
-        Options to Mantid algorithm :ref:`MaskBTP <algm-MaskBTP-v1>`. Will be used if  ``mask=None``
+        Options to Mantid algorithm :ref:`MaskBTP <algm-MaskBTP-v1>` or :ref:`MaskAngle <algm-MaskAngle-v1>`.
+        Will be used if  ``mask=None``
 
     Returns
     -------
@@ -109,9 +114,15 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
         elif isinstance(mask, list):
             MaskDetectors(Workspace=input_workspace, DetectorList=mask)
     if panel:
-        MaskBTP(Workspace=input_workspace, instrument='EQ-SANS', Components=panel + '-panel')
+        MaskBTP(Workspace=input_workspace, Components=panel + '-panel')
     if bool(btp):
-        MaskBTP(Workspace=input_workspace, **btp)
+        min_angle = btp.pop('MinAngle', None)
+        max_angle = btp.pop('MaxAngle', None)
+        angle = btp.pop('Angle', 'TwoTheta')
+        if min_angle is not None or max_angle is not None:
+            MaskAngle(Workspace=input_workspace, MinAngle=min_angle, MaxAngle=max_angle, Angle=angle)
+        if bool(btp):  # see if any parameters are left
+            MaskBTP(Workspace=input_workspace, **btp)
     return ExtractMask(InputWorkspace=input_workspace,
                        OutputWorkspace=output_workspace).OutputWorkspace
 

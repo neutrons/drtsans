@@ -60,8 +60,8 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
 
     # apply bad pixel threshold to each file
     # inputs: (N, M) array; outputs: (N, M) array
-    flood_data_matrix, flood_sigma_matrix = _process_bad_pixels(flood_data_matrix, flood_sigma_matrix,
-                                                                threshold_min, threshold_max)
+    flood_data_matrix, flood_sigma_matrix = _apply_sensitivity_thresholds(flood_data_matrix, flood_sigma_matrix,
+                                                                          threshold_min, threshold_max)
 
     # correct for beam stop and add all the flood files together to non-normalized sensitivities
     raw_sensitivities, raw_sensitivities_error = _calculate_pixel_wise_sensitivity(flood_data_matrix,
@@ -142,7 +142,7 @@ def _calculate_weighted_average_with_error(normalized_data, normalized_error):
     return avg_norm_data, avg_norm_error, weighted_average, weighted_average_error
 
 
-def _process_bad_pixels(data, data_error, threshold_min, threshold_max):
+def _apply_sensitivity_thresholds(data, data_error, threshold_min, threshold_max):
     """Apply bad pixel threshold to each data set including error
 
     If any pixel with counts falling out of allowed threshold, i.e., out of range (min, max)

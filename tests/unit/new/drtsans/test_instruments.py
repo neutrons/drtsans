@@ -3,7 +3,7 @@ import pytest
 from mantid.simpleapi import CreateWorkspace
 
 from drtsans.settings import unique_workspace_dundername
-from drtsans.instruments import InstrumentEnumName, instrument_enum_name, is_time_of_flight
+from drtsans.instruments import InstrumentEnumName, extract_run_number, instrument_enum_name, is_time_of_flight
 
 
 def test_instrument_name(serve_events_workspace):
@@ -23,6 +23,11 @@ def test_is_time_of_flight(serve_events_workspace):
         assert is_time_of_flight(query) is True
     for query in ('GPSANS', 'CG2', 'BIOSANS', 'CG3'):
         assert is_time_of_flight(query) is False
+
+
+def test_extract_run_number():
+    for query in ('/HFIR/CG3/CG3_961.nxs.h5', 'CG3_961.nxs.h5', 'CG3961', 'CG3_961'):
+        assert extract_run_number(query) == 961
 
 
 if __name__ == '__main__':

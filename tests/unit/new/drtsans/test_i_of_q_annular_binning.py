@@ -1,11 +1,8 @@
-import numpy as np
 from drtsans.dataobjects import IQazimuthal
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
-from drtsans.iq import determine_1d_linear_bins, _do_1d_no_weight_binning, BinningMethod,\
-    BinningParams, bin_annular_into_q1d
+from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_theta_bins,\
-    get_gold_azimuthal_values
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
 import pytest
 
 

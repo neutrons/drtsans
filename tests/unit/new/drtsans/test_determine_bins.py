@@ -11,8 +11,20 @@ from tests.unit.new.drtsans.i_of_q_binning_tests_data import get_gold_2d_linear_
 # SME - William Heller <hellerwt@ornl.gov>
 
 # Some tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
-def test_log_bins_from_wedge_no_wt():
-    """Test generating log bins from '1D_bin_log_wedget_no_sub_no_wt'
+def test_log_bins_backward_compatible():
+    """Test log bins determination with 'old' API
+
+    Method determine_1d_log_bins() has been refactored from its previous version by adding more
+    method parameters.  While by default value, this method shall be backward compatible such that
+    with x-min, x-max and step-per-decade defined, it shall generate a set of bins same as before.
+
+    Here by using data '1D_bin_log_wedget_no_sub_no_wt' (from
+    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
+    eqsans_tof_q_binning_tests_R4.xlsx), this method is tested
+
+    Returns
+    -------
+
     """
     # Define Q range
     q_min = 0.001  # Edge
@@ -69,7 +81,9 @@ def test_linear_bin_determination():
 # log_bin_definition_testsR1.xlsx
 # All tests' gold data below have 3 columns as bin's left boundary, center and right boundary,
 # which are exactly same in the test Excel file
-# Example 1: Equation 11.31
+
+# Example 1: Qmin and Qmax are even decade; Qmin and Qmax are bin centers
+#            User defines number of bins per decade
 gold_log_bins_example1 = np.array([
     [0.000089, 0.000100, 0.000113],
     [0.000113, 0.000126, 0.000142],
@@ -104,8 +118,8 @@ gold_log_bins_example1 = np.array([
     [0.089716, 0.100000, 0.112202]])
 
 
-# Example 2
-# Equation 11.29 - 11.30
+# Example 2: Qmin and Qmax are even decade; Qmin and Qmax are on bin boundaries.
+#            User defines number of bins per decade
 gold_log_bins_example2 = np.array([
     [0.000100, 0.000112, 0.000127],
     [0.000127, 0.000141, 0.000160],
@@ -139,8 +153,8 @@ gold_log_bins_example2 = np.array([
     [0.079960, 0.089125, 0.100000]])
 
 
-# Example 3
-# Equation 11.29 - 11.30
+# Example 3: Qmin and Qmax are exact as user specified (may not on decade).
+#            User defines total number of bins.
 gold_log_bins_example3 = np.array([
     [0.001500, 0.001582, 0.001671],
     [0.001671, 0.001759, 0.001858],
@@ -174,8 +188,8 @@ gold_log_bins_example3 = np.array([
     [0.032774, 0.034514, 0.036398]])
 
 
-# Example 4
-# Equation 11.29 - 11.30
+# Example 4: Qmin and Qmax are exact as user specified (may not on decade).
+#            User defines number of bins per decade
 gold_log_bins_example4 = np.array([
     [0.000437, 0.000470, 0.000507],
     [0.000507, 0.000545, 0.000588],
@@ -213,7 +227,7 @@ def test_example1():
     """Example 1 from ...
 
     10^c_min and 10^_max will be on decade.
-    And 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+    And 10^c_min and 10^c_max will be on bin boundaries but not bin centers (example 1)
 
 
     Returns
@@ -240,7 +254,7 @@ def test_example2():
     """Example 2
 
     Example 2 has the same initial condition as example 1's.
-    But the 10^c_min and 10^c_max will be on bin boundaries but nto bin centers (example 1)
+    But the 10^c_min and 10^c_max will be on bin boundaries but not bin centers (example 1)
 
     Returns
     -------
@@ -263,9 +277,12 @@ def test_example2():
 
 
 def test_example3():
-    """Test for example 3 from log_bin_definition_testsR1.xlsx
+    """Example 3
 
-    In this case, total number of bins are not calculated from bin per decade but given by user
+    X min and X max are exact as user specified (not on decade).  User defines total number of bins (30).
+    Both Xmin and X max are on the bin boundaries.
+
+    Test from Example 3 in log_bin_definition_testsR1.xlsx
 
     Returns
     -------
@@ -291,10 +308,12 @@ def test_example3():
 
 
 def test_example4():
-    """Test case from example 4
+    """Example 4
 
     X min and X max shall be on the bin boundaries;
     User specified X min and X max are used as X min/max exactly.
+
+    Test from Example 4 in log_bin_definition_testsR1.xlsx
 
     Returns
     -------

@@ -189,6 +189,9 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     # Filter by q_min and q_max
     allowed_q_index = (q_array > q_min) & (q_array < q_max)
 
+    # Check input I(Q) whether it meets assumptions
+    check_iq_for_binning(i_of_q)
+
     # binning
     if method == BinningMethod.NOWEIGHT:
         # no weight binning
@@ -199,8 +202,6 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
                                              theta_bins.centers, theta_bins.edges)
     elif method == BinningMethod.WEIGHTED:
         # weighted binning
-        # Check input I(Q) whether it meets assumptions
-        check_iq_for_binning(i_of_q)
         binned_iq = _do_1d_weighted_binning(theta_array[allowed_q_index],
                                             dq_array[allowed_q_index],
                                             i_of_q.intensity[allowed_q_index],

@@ -5,7 +5,7 @@ import pytest
 # https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.htm
 from mantid.simpleapi import (FindCenterOfMassPosition, LoadHFIRSANS,
                               MoveInstrumentComponent)
-from drtsans.mono.biosans import beam_finder
+from drtsans.mono.biosans import beam_finder, center_detector
 from drtsans.samplelogs import SampleLogs
 
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
@@ -129,41 +129,25 @@ def test_beam_finder(biosans_f):
     assert x == pytest.approx(0.0014, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
     assert y_gravity == pytest.approx(-0.0216+0.0135, abs=1e-3)
-    # The position of the main detector and wing detector is retrieved
+    # The position of the main detector is retrieved
     # The geometry of the detector setup is accessed through a workspace handle.
     # To access the detector geometry we must go through the instrument and
     # The vectors returned by getPos() act like 3D vectors and can be added
     # and subtracted in a manner one would expect.
     instrument = ws.getInstrument()
     pos_main = instrument.getComponentByName("detector1").getPos()
-    pos_wing = instrument.getComponentByName("wing_detector").getPos()
 
     # Let's center the instrument and get the new center:
-    # Move down and left because the beam center currently located at (center_x, center_y), by translating
-    # the beam center by an amount (-center_x, -center_y), the beam center is relocated to the origin of coordinates
-    # on the XY-plane
-    MoveInstrumentComponent(
-        Workspace=ws, ComponentName='detector1', X=-x, Y=-y)
+    center_detector(ws, x, y, y_gravity)
+
     # The position of the main detector and wing detector is retrieved after
-    # relocating the beam center on the main detector to the origin of coordinates
-    pos_main_1 = instrument.getComponentByName("detector1").getPos()
-    pos_wing_1 = instrument.getComponentByName("wing_detector").getPos()
+    # relocating the beam center  to the origin of coordinates
+    pos_main_centered = instrument.getComponentByName("detector1").getPos()
+    pos_wing_centered = instrument.getComponentByName("wing_detector").getPos()
 
-    assert pos_main[0] - pos_main_1[0] == x
-    assert pos_main[1] - pos_main_1[1] == y
-    assert pos_wing == pos_wing_1  # we did not touch it
-
-    # Now let's correct the wing detector for the gravity drop
-    # Relative movement up words
-    MoveInstrumentComponent(
-        Workspace=ws, ComponentName='wing_detector', X=-x, Y=-y_gravity)
-    # The position of the main detector and wing detector is retrieved after
-    # relocating the beam center on the wing detector to the origin of coordinates
-    pos_main_2 = instrument.getComponentByName("detector1").getPos()
-    pos_wing_2 = instrument.getComponentByName("wing_detector").getPos()
-
-    assert pos_main_1 == pos_main_2
-    assert pos_wing_2[1] == pytest.approx(pos_main_2[1] + (abs(y_gravity) - abs(y)), abs=1e-3)
+    assert pos_main[0] - pos_main_centered[0] == x
+    assert pos_main[1] - pos_main_centered[1] == y
+    assert pos_wing_centered[1] == pytest.approx(pos_main_centered[1] + (abs(y_gravity) - abs(y)), abs=1e-3)
 
     # After the re-centring we should be at (0,0)
     # Note that to give the same results we need to enter the center

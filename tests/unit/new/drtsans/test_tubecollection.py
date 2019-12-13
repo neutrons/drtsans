@@ -29,7 +29,7 @@ def simple_tubes_panel(workspace_with_instrument):
 class TestElementComponentInfo(object):
 
     def test_init(self, simple_tubes_panel):
-        assert ElementComponentInfo(simple_tubes_panel['component_info'], 4)
+        assert isinstance(ElementComponentInfo(simple_tubes_panel['component_info'], 4), ElementComponentInfo)
 
     def test_decorate_component_method(self, simple_tubes_panel):
         el = ElementComponentInfo(simple_tubes_panel['component_info'], 4)
@@ -48,7 +48,8 @@ class TestElementComponentInfo(object):
 class TestPixelInfo(object):
 
     def test_init(self, simple_tubes_panel):
-        assert PixelInfo(simple_tubes_panel['component_info'], 4, simple_tubes_panel['detector_info'])
+        assert isinstance(PixelInfo(simple_tubes_panel['component_info'], 4, simple_tubes_panel['detector_info']),
+                          PixelInfo)
 
     def test_detector_info(self, simple_tubes_panel):
         pixel = PixelInfo(simple_tubes_panel['component_info'], 4, simple_tubes_panel['detector_info'])
@@ -126,7 +127,7 @@ class TestTubeCollection(object):
 
     def test_init(self, simple_tubes_panel):
         collection = TubeCollection(simple_tubes_panel['workspace'], 'detector1')
-        assert collection
+        assert isinstance(collection, TubeCollection)
 
     def test_tubes(self, simple_tubes_panel):
         collection = TubeCollection(simple_tubes_panel['workspace'], 'detector1')

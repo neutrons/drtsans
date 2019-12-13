@@ -180,15 +180,13 @@ width = [5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00,
          5.00, 5.20, 4.90, 4.80, 5.20, 5.10, 4.90, 4.9, 4.9, 4.90, 5.30, 4.80, 5.00, 4.80, 5.50, 5.00, 4.90, 5.00,
          5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00]
 
-# TODO test for moving wing detector
-
 
 @pytest.mark.parametrize('arbitrary_assembly_IDF',
                          [{'width': width, 'height': height,
                            'pixel_centers': pixel_centers}],
                          indirect=True)
 def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
-    r""" Testing finding the beam center using EQSANS instrument
+    r""" Testing finding the beam center using EQSANS instrument for arbitrary assembly of pixels
 
       Underlying Mantid algorithms:
           MoveInstrumentComponent https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html

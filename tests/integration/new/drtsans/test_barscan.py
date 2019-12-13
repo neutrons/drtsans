@@ -194,10 +194,13 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
     collection = TubeCollection(modified_flood_workspace, 'detector1').sorted(view='decreasing X')
+    last_tube_index = len(collection) - 1  # number of tubes, minus one because indexes begin at zero, not one
+    last_pixel_index = len(collection[0]) - 1  # number of pixels in each tube, minus one
+
     # compare the width of the first pixel in the first tube to the test data
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
     # compare the width of the last pixel in the last tube to the test data
-    assert collection[-1][-1].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
+    assert collection[last_tube_index][last_pixel_index].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
 
     # We do the same but now we overwrite the instrument embedded in the input workspace
     apparent_tube_width(flood_workspace)

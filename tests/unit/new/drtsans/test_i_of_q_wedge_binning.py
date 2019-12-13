@@ -4,7 +4,7 @@ from drtsans.dataobjects import IQmod, IQazimuthal
 from drtsans.iq import determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d,\
     select_i_of_q_by_wedge
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_wedge_angles
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
 import pytest
 
 # This module supports testing data for issue #239.
@@ -16,30 +16,18 @@ import pytest
 # All tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
 
 
-def test_determine_wedge():
-    """Test and prototype algorithm to create wedge from '1D_bin_log_wedget_no_sub_no_wt'
+def test_1d_bin_log_wedge_no_wt():
+    """Test the methods to select I(Qx, Qy) by wedge angles and do the binning
+
+    The test data comes from example in '1D_bin_log_wedge_no_sub_no_wt' from eqsans_tof_q_binning_tests_R4.xlsx.
+    File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
+                   eqsans_tof_q_binning_tests_R4.xlsx
 
     Returns
     -------
 
     """
-    # Get data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
-
-    # Calculate wedge angles for each I(Qx, Qy)
-    # calculate azimuthal angles from -180 to 180 degrees
-    azimuthal_array = np.arctan2(qy_array, qx_array) * 180. / np.pi
-    # correct azimuthal angles to -90 to 270 degrees
-    azimuthal_array[azimuthal_array < -90.] += 360.
-
-    # Azimuthal angles
-    gold_angles = get_gold_wedge_angles()
-    np.testing.assert_allclose(azimuthal_array[:gold_angles.shape[0]], gold_angles,
-                               rtol=1e-3, err_msg='Wedge angles do no match to gold data')
-
-
-def test_1d_bin_log_wedge_no_wt():
-    """Test '1D_bin_log_wedget_no_sub_no_wt'
+    """Test '1D_bin_log_wedge_no_sub_no_wt'
     """
     # Define Q range
     q_min = 0.001  # Edge
@@ -60,7 +48,10 @@ def test_1d_bin_log_wedge_no_wt():
     # Select I(Q) inside wedge
     wedge_i_of_q = select_i_of_q_by_wedge(test_i_q, min_wedge_angle, max_wedge_angle)
 
-    # Convert from Q2D to Q1d
+    # Convert from Q2D to Q1d because the test case expects to I(Q)
+    # Re-construct a IQmod  by
+    # (1) Q = sqrt(Qx**2 + Qy**2)
+    # (2) sigmaQ = sqrt(sigmaQx**2 + sigmaQy**2)
     test_i_q1d = IQmod(intensity=wedge_i_of_q.intensity,
                        error=wedge_i_of_q.error,
                        mod_q=np.sqrt(wedge_i_of_q.qx**2 + wedge_i_of_q.qy**2),

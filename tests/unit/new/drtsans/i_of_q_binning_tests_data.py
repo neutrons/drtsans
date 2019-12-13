@@ -218,7 +218,7 @@ def get_gold_1d_linear_bins():
 def get_gold_1d_log_bins():
     """Get the gold array for 1D logarithm bins
 
-    The gold data comes from test '1D_bin_log_wedget_no_sub_no_wt' in
+    The gold data comes from test '1D_bin_log_wedge_no_sub_no_wt' in
     https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
     eqsans_tof_q_binning_tests_R4.xlsx
 
@@ -256,26 +256,6 @@ def get_gold_2d_linear_bins():
     qy_center = np.array([-0.003939, -0.001713,  0.000512,  0.002737,  0.004962])
 
     return qx_center, qy_center
-
-
-def get_gold_wedge_angles():
-    """Get wedge angles from Excel for test
-
-    Returns
-    -------
-    ndarray
-        Wedge angles for all the pixels
-
-    """
-    wedge_angle_array = np.array([
-        141.026949, 123.2554061, 94.31432613, 63.21170404, 42.66018375,
-        155.9524823, 139.9324658, 97.78839725, 47.53052642, 26.94261266,
-        175.230287, 171.0616985, 126.183895, 11.5457636, 5.429158913,
-        195.6073192, 207.7689884, 257.6752727, -34.3685385, -17.65012424,
-        212.7055538, 230.4368877, 264.5704513, -57.539898, -36.18192273,
-    ])
-
-    return wedge_angle_array
 
 
 def get_gold_theta_bins():

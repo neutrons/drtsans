@@ -78,10 +78,10 @@ def test_eqsans(configfile, basename):
     proc.communicate()
 
     # 0 = ok
-    # 255 = non-empty error log file. This is the case for developers running the test on
+    # 127 = non-empty error log file. This is the case for developers running the test on
     # the console without a special configuration of their logging
     returncode = proc.returncode
-    assert returncode in [0, 255]
+    assert returncode in [0, 127]
 
     print('standard extensions:', STD_EXTENSIONS)
     print('other extensions:', EXTENSIONS[basename])

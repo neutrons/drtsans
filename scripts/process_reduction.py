@@ -51,7 +51,7 @@ if __name__ == '__main__':
         # if the program returned non-zero, exit with that code
         rc = proc.returncode
         if (not rc) and os.path.isfile(out_err):
-            rc = 255  # return 255 if the error logfile is non-empty
+            rc = 127  # value denoting the error logfile is non-empty
 
         # exit with the final return code
         exit(rc)

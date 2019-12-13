@@ -128,7 +128,7 @@ def test_beam_finder(biosans_f):
 
     assert x == pytest.approx(0.0014, abs=1e-3)
     assert y == pytest.approx(-0.0243, abs=1e-3)
-    assert y_gravity == pytest.approx(-0.0216, abs=1e-3)
+    assert y_gravity == pytest.approx(-0.0217, abs=1e-3)
     # The position of the main detector and wing detector is retrieved
     # The geometry of the detector setup is accessed through a workspace handle.
     # To access the detector geometry we must go through the instrument and

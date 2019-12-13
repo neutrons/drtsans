@@ -7,7 +7,7 @@ from tempfile import gettempdir
 # this should point to the root directory of the code repository
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../../'))
 # extensions that every reduction should output
-STD_EXTENSIONS = ['.err', '.out']
+STD_EXTENSIONS = ['.out']
 # specific extensions for given basenames
 EXTENSIONS = {'EQSANS_88980': ['.png', '_bkg_88974_trans.txt', '_frame_1_Iq.txt', '_frame_2_Iq.txt',
                                '_frame_2_Iqxqy.txt', '_qxqy1.png', '_qxqy2.png', '_trans.txt'],
@@ -90,6 +90,11 @@ def test_eqsans(configfile, basename):
         filename = os.path.join(outputdir, basename + extension)
         assert os.path.isfile(filename), '"{}" does not exist'.format(filename)
         os.remove(filename)
+
+    # remove the error log if it was created, it is not required to exist
+    errlog = os.path.join(outputdir, basename + '.err')
+    if os.path.isfile(errlog):
+        os.remove(errlog)
 
 
 if __name__ == '__main__':

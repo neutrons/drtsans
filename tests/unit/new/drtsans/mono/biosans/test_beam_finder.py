@@ -2,9 +2,7 @@ import pytest
 
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
-# https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.htm
-from mantid.simpleapi import (FindCenterOfMassPosition, LoadHFIRSANS,
-                              MoveInstrumentComponent)
+from mantid.simpleapi import FindCenterOfMassPosition, LoadHFIRSANS
 from drtsans.mono.biosans import beam_finder, center_detector
 from drtsans.samplelogs import SampleLogs
 

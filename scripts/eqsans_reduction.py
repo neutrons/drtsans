@@ -93,8 +93,10 @@ if __name__ == "__main__":
         else:
             msapi.logger.notice('...applying transmission correction with transmission file.')
             transmission_fn = "EQSANS_{}".format(transmission_run)
-            ws_tr_sample = eqsans.prepare_data(transmission_fn, **config)
-            ws_tr_direct = eqsans.prepare_data(empty_fn, **config)
+            ws_tr_sample = eqsans.prepare_data(transmission_fn,
+                                               output_workspace='_trans_sample_{}'.format(transmission_fn), **config)
+            ws_tr_direct = eqsans.prepare_data(empty_fn,
+                                               output_workspace='_trans_direct_{}'.format(empty_fn), **config)
             tr_ws = eqsans.calculate_transmission(ws_tr_sample,
                                                   ws_tr_direct,
                                                   radius=None,

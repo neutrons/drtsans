@@ -40,8 +40,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         # We need to see the beam, which is on the main detector
         _mask_detector = cfg['mask_detector']
         cfg['mask_detector'] = 'wing_detector'
-        ws_tr_sample = sans.prepare_data(transmission_run, **cfg)
-        ws_tr_direct = sans.prepare_data(empty_run, **cfg)
+        ws_tr_sample = sans.prepare_data(transmission_run,
+                                         output_workspace='_trans_sample_{}'.format(transmission_run), **cfg)
+        ws_tr_direct = sans.prepare_data(empty_run,
+                                         output_workspace='_trans_direct_{}'.format(empty_run), **cfg)
         cfg['mask_detector'] = _mask_detector
 
         # TODO: use the number of pixels around the beam spot

@@ -32,10 +32,10 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     flood_field_measurement_uncertainty = np.sqrt(flood_field_measurement)
 
-    mask = np.ones((8, 8))
+    mask = np.ones((20, 8))
     mask[0, :] = np.nan
-    mask[10, 3] = np.nan
-    mask[11, 3] = np.nan
+    mask[8, 3] = np.nan
+    mask[9, 3] = np.nan
     mask[19, :] = np.nan
 
     ffm_with_mask = mask*flood_field_measurement
@@ -46,23 +46,28 @@ def test_prepare_sensitivity(workspace_with_instrument):
     II = ffm_with_mask/F
     dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
 
-    interp = np.array([[-5.548e-4, 1.372e-2, 0.892136],
-                       [-6.662e-4, 1.299e-2, 0.909756],
-                       [-8.893e-05,4.709e-4, 0.967607],
-                       [2.956e-04,-5.993e-3, 0.998236],
-                       [-6.629e-04,1.560e-2, 0.899285],
-                       [-4.301e-7,-6.149e-5, 0.968977],
-                       [4.342e-4,-1.082e-2, 1.017300],
-                       [-5.709e-4,6.707e-2, 0.980344]])
+    print()
+    print(F, dF)
+    print(II)
+    print(dI)
+    assert False
+    interp = np.array([[-5.548e-4,  1.372e-2, 0.892136],
+                       [-6.662e-4,  1.299e-2, 0.909756],
+                       [-8.893e-5,  4.709e-4, 0.967607],
+                       [ 2.956e-4, -5.993e-3, 0.998236],
+                       [-6.629e-4,  1.560e-2, 0.899285],
+                       [-4.301e-7, -6.149e-5, 0.968977],
+                       [ 4.342e-4, -1.082e-2, 1.017300],
+                       [-5.709e-4,  6.707e-2, 0.980344]])
 
-    interp_uncertainty = np.array([[1.01238129, 0.50205366, 0.05655452],
-                                   [1.09729141, 0.53499255, 0.05800269],
-                                   [1.04925415, 0.53275939, 0.05971851],
-                                   [1.50183618, 0.79881347, 0.08807186],
-                                   [1.08092149, 0.52927402, 0.05830330],
-                                   [1.11487596, 0.54760600, 0.05991147],
-                                   [1.10841878, 0.55543075, 0.06096038],
-                                   [1.20327041, 0.57251127, 0.06194882]])
+    interp_uncertainty = np.array([[4.010e-4, 7.881e-3, 0.032898],
+                                   [4.985e-4, 9.797e-3, 0.040248],
+                                   [3.194e-4, 6.248e-3, 0.025796],
+                                   [4.721e-4, 9.217e-3, 0.035958],
+                                   [4.097e-4, 8.022e-3, 0.033377],
+                                   [5.534e-4, 1.076e-2, 0.043730],
+                                   [4.398e-4, 8.599e-3, 0.034995],
+                                   [3.527e-4, 6.872e-3, 0.028257]])
 
     extrapolation = copy.deepcopy(II)
     extrapolation_uncertainty = copy.deepcopy(dI)

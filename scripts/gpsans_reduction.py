@@ -37,8 +37,9 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         msapi.logger.notice('Applying transmission correction with transmission file.')
 
         # We need to see the beam, which is on the main detector
-        ws_tr_sample = sans.prepare_data(transmission_run, **cfg)
-        ws_tr_direct = sans.prepare_data(empty_run, **cfg)
+        ws_tr_sample = sans.prepare_data(transmission_run,
+                                         output_workspace='_trans_sample_{}'.format(transmission_run), **cfg)
+        ws_tr_direct = sans.prepare_data(empty_run, output_workspace='_trans_direct_{}'.format(empty_run), **cfg)
 
         # TODO: use the number of pixels around the beam spot
         tr_ws = sans.calculate_transmission(ws_tr_sample,

@@ -6,8 +6,6 @@ from tempfile import gettempdir
 
 # this should point to the root directory of the code repository
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../../'))
-# extensions that every reduction should output
-STD_EXTENSIONS = ['.out']
 # specific extensions for given basenames
 EXTENSIONS = {'EQSANS_88980': ['.png', '_bkg_88974_trans.txt', '_frame_1_Iq.txt', '_frame_2_Iq.txt',
                                '_frame_2_Iqxqy.txt', '_qxqy1.png', '_qxqy2.png', '_trans.txt'],
@@ -83,18 +81,17 @@ def test_eqsans(configfile, basename):
     returncode = proc.returncode
     assert returncode in [0, 127]
 
-    print('standard extensions:', STD_EXTENSIONS)
-    print('other extensions:', EXTENSIONS[basename])
     # verify that the output files were created and cleanup
-    for extension in STD_EXTENSIONS + EXTENSIONS[basename]:
+    for extension in EXTENSIONS[basename]:
         filename = os.path.join(outputdir, basename + extension)
         assert os.path.isfile(filename), '"{}" does not exist'.format(filename)
         os.remove(filename)
 
-    # remove the error log if it was created, it is not required to exist
-    errlog = os.path.join(outputdir, basename + '.err')
-    if os.path.isfile(errlog):
-        os.remove(errlog)
+    # remove the output and error logs if they were created, neither is required to exist
+    for ext in ['.out', '.err']:
+        logname = os.path.join(outputdir, basename + ext)
+        if os.path.isfile(logname):
+            os.remove(logname)
 
 
 if __name__ == '__main__':

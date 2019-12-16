@@ -46,13 +46,8 @@ def test_prepare_sensitivity(workspace_with_instrument):
     II = ffm_with_mask/F
     dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
 
-    print()
-    print(F, dF)
-    print(II)
-    print(dI)
-    assert False
     interp = np.array([[-5.548e-4,  1.372e-2, 0.892136],
-                       [-6.662e-4,  1.299e-2, 0.909756],
+                       [-6.552e-4,  1.299e-2, 0.909756],
                        [-8.893e-5,  4.709e-4, 0.967607],
                        [ 2.956e-4, -5.993e-3, 0.998236],
                        [-6.629e-4,  1.560e-2, 0.899285],
@@ -72,65 +67,58 @@ def test_prepare_sensitivity(workspace_with_instrument):
     extrapolation = copy.deepcopy(II)
     extrapolation_uncertainty = copy.deepcopy(dI)
 
-    extrapolation[0, 0] = interp[0, 0] + interp[0, 1]*8. + interp[0, 2]*8.**2
-    extrapolation[7, 0] = interp[0, 0] + interp[0, 1]*1. + interp[0, 2]*1.**2
-    extrapolation[0, 1] = interp[1, 0] + interp[1, 1]*8. + interp[1, 2]*8.**2
-    extrapolation[7, 1] = interp[1, 0] + interp[1, 1]*1. + interp[1, 2]*1.**2
-    extrapolation[0, 2] = interp[2, 0] + interp[2, 1]*8. + interp[2, 2]*8.**2
-    extrapolation[7, 2] = interp[2, 0] + interp[2, 1]*1. + interp[2, 2]*1.**2
-    extrapolation[0, 3] = interp[3, 0] + interp[3, 1]*8. + interp[3, 2]*8.**2
-    extrapolation[3, 3] = interp[3, 0] + interp[3, 1]*3. + interp[3, 2]*3.**2
-    extrapolation[4, 3] = interp[3, 0] + interp[3, 1]*4. + interp[3, 2]*4.**2
-    extrapolation[7, 3] = interp[3, 0] + interp[3, 1]*1. + interp[3, 2]*1.**2
-    extrapolation[0, 4] = interp[4, 0] + interp[4, 1]*8. + interp[4, 2]*8.**2
-    extrapolation[7, 4] = interp[4, 0] + interp[4, 1]*1. + interp[4, 2]*1.**2
-    extrapolation[0, 5] = interp[5, 0] + interp[5, 1]*8. + interp[5, 2]*8.**2
-    extrapolation[7, 5] = interp[5, 0] + interp[5, 1]*1. + interp[5, 2]*1.**2
-    extrapolation[0, 6] = interp[6, 0] + interp[6, 1]*8. + interp[6, 2]*8.**2
-    extrapolation[7, 6] = interp[6, 0] + interp[6, 1]*1. + interp[6, 2]*1.**2
-    extrapolation[0, 7] = interp[7, 0] + interp[7, 1]*8. + interp[7, 2]*8.**2
-    extrapolation[7, 7] = interp[7, 0] + interp[7, 1]*1. + interp[7, 2]*1.**2
+    extrapolation[0,  0] = interp[0, 2] + interp[0, 1]*19. + interp[0, 0]*19.**2
+    extrapolation[19, 0] = interp[0, 2]
+    extrapolation[0,  1] = interp[1, 2] + interp[1, 1]*19. + interp[1, 0]*19.**2
+    extrapolation[19, 1] = interp[1, 2]
+    extrapolation[0,  2] = interp[2, 2] + interp[2, 1]*19. + interp[2, 0]*19.**2
+    extrapolation[19, 2] = interp[2, 2]
+    extrapolation[0, 3] = interp[3, 2] + interp[3, 1]*19. + interp[3, 0]*19.**2
+    extrapolation[19, 3] = interp[3, 2]
+    extrapolation[0, 4] = interp[4, 2] + interp[4, 1]*19. + interp[4, 0]*19.**2
+    extrapolation[19, 4] = interp[4, 2]
+    extrapolation[0, 5] = interp[5, 2] + interp[5, 1]*19. + interp[5, 0]*19.**2
+    extrapolation[19, 5] = interp[5, 2]
+    extrapolation[0, 6] = interp[6, 2] + interp[6, 1]*19. + interp[6, 0]*19.**2
+    extrapolation[19, 6] = interp[6, 2]
+    extrapolation[0, 7] = interp[7, 2] + interp[7, 1]*19. + interp[7, 0]*19.**2
+    extrapolation[19, 7] = interp[7, 2]
 
-    extrapolation[4, 6] = np.nan
+    extrapolation[13, 1] = np.nan
+    extrapolation[7,  5] = np.nan
 
-    extrapolation_uncertainty[0, 0] = np.sqrt(interp_uncertainty[0, 0]**2 + (interp_uncertainty[0, 1]*8.)**2 +
-                                              (interp_uncertainty[0, 2]*8.**2)**2)
-    extrapolation_uncertainty[7, 0] = np.sqrt(interp_uncertainty[0, 0]**2 + (interp_uncertainty[0, 1]*1.)**2 +
-                                              (interp_uncertainty[0, 2]*1.**2)**2)
-    extrapolation_uncertainty[0, 1] = np.sqrt(interp_uncertainty[1, 0]**2 + (interp_uncertainty[1, 1]*8.)**2 +
-                                              (interp_uncertainty[1, 2]*8.**2)**2)
-    extrapolation_uncertainty[7, 1] = np.sqrt(interp_uncertainty[1, 0]**2 + (interp_uncertainty[1, 1]*1.)**2 +
-                                              (interp_uncertainty[1, 2]*1.**2)**2)
-    extrapolation_uncertainty[0, 2] = np.sqrt(interp_uncertainty[2, 0]**2 + (interp_uncertainty[2, 1]*8.)**2 +
-                                              (interp_uncertainty[2, 2]*8.**2)**2)
-    extrapolation_uncertainty[7, 2] = np.sqrt(interp_uncertainty[2, 0]**2 + (interp_uncertainty[2, 1]*1.)**2 +
-                                              (interp_uncertainty[2, 2]*1.**2)**2)
-    extrapolation_uncertainty[0, 3] = np.sqrt(interp_uncertainty[3, 0]**2 + (interp_uncertainty[3, 1]*8.)**2 +
-                                              (interp_uncertainty[3, 2]*8.**2)**2)
-    extrapolation_uncertainty[3, 3] = np.sqrt(interp_uncertainty[3, 0]**2 + (interp_uncertainty[3, 1]*3.)**2 +
-                                              (interp_uncertainty[3, 2]*3.**2)**2)
-    extrapolation_uncertainty[4, 3] = np.sqrt(interp_uncertainty[3, 0]**2 + (interp_uncertainty[3, 1]*4.)**2 +
-                                              (interp_uncertainty[3, 2]*4.**2)**2)
-    extrapolation_uncertainty[7, 3] = np.sqrt(interp_uncertainty[3, 0]**2 + (interp_uncertainty[3, 1]*1.)**2 +
-                                              (interp_uncertainty[3, 2]*1.**2)**2)
-    extrapolation_uncertainty[0, 4] = np.sqrt(interp_uncertainty[4, 0]**2 + (interp_uncertainty[4, 1]*8.)**2 +
-                                              (interp_uncertainty[4, 2]*8.**2)**2)
-    extrapolation_uncertainty[7, 4] = np.sqrt(interp_uncertainty[4, 0]**2 + (interp_uncertainty[4, 1]*1.)**2 +
-                                              (interp_uncertainty[4, 2]*1.**2)**2)
-    extrapolation_uncertainty[0, 5] = np.sqrt(interp_uncertainty[5, 0]**2 + (interp_uncertainty[5, 1]*8.)**2 +
-                                              (interp_uncertainty[5, 2]*8.**2)**2)
-    extrapolation_uncertainty[7, 5] = np.sqrt(interp_uncertainty[5, 0]**2 + (interp_uncertainty[5, 1]*1.)**2 +
-                                              (interp_uncertainty[5, 2]*1.**2)**2)
-    extrapolation_uncertainty[0, 6] = np.sqrt(interp_uncertainty[6, 0]**2 + (interp_uncertainty[6, 1]*8.)**2 +
-                                              (interp_uncertainty[6, 2]*8.**2)**2)
-    extrapolation_uncertainty[7, 6] = np.sqrt(interp_uncertainty[6, 0]**2 + (interp_uncertainty[6, 1]*1.)**2 +
-                                              (interp_uncertainty[6, 2]*1.**2)**2)
-    extrapolation_uncertainty[0, 7] = np.sqrt(interp_uncertainty[7, 0]**2 + (interp_uncertainty[7, 1]*8.)**2 +
-                                              (interp_uncertainty[7, 2]*8.**2)**2)
-    extrapolation_uncertainty[7, 7] = np.sqrt(interp_uncertainty[7, 0]**2 + (interp_uncertainty[7, 1]*1.)**2 +
-                                              (interp_uncertainty[7, 2]*1.**2)**2)
+    extrapolation_uncertainty[0, 0] = np.sqrt(interp_uncertainty[0, 2]**2 + (interp_uncertainty[0, 1]*19.)**2 +
+                                              (interp_uncertainty[0, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 0] = np.sqrt(interp_uncertainty[0, 2]**2)
+    extrapolation_uncertainty[0, 1] = np.sqrt(interp_uncertainty[1, 2]**2 + (interp_uncertainty[1, 1]*19.)**2 +
+                                              (interp_uncertainty[1, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 1] = np.sqrt(interp_uncertainty[1, 2]**2)
+    extrapolation_uncertainty[0, 2] = np.sqrt(interp_uncertainty[2, 2]**2 + (interp_uncertainty[2, 1]*19.)**2 +
+                                              (interp_uncertainty[2, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 2] = np.sqrt(interp_uncertainty[2, 2]**2)
+    extrapolation_uncertainty[0, 3] = np.sqrt(interp_uncertainty[3, 2]**2 + (interp_uncertainty[3, 1]*19.)**2 +
+                                              (interp_uncertainty[3, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 3] = np.sqrt(interp_uncertainty[3, 2]**2)
+    extrapolation_uncertainty[0, 4] = np.sqrt(interp_uncertainty[4, 2]**2 + (interp_uncertainty[4, 1]*19.)**2 +
+                                              (interp_uncertainty[4, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 4] = np.sqrt(interp_uncertainty[4, 2]**2)
+    extrapolation_uncertainty[0, 5] = np.sqrt(interp_uncertainty[5, 2]**2 + (interp_uncertainty[5, 1]*19.)**2 +
+                                              (interp_uncertainty[5, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 5] = np.sqrt(interp_uncertainty[5, 2]**2)
+    extrapolation_uncertainty[0, 6] = np.sqrt(interp_uncertainty[6, 2]**2 + (interp_uncertainty[6, 1]*19.)**2 +
+                                              (interp_uncertainty[6, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 6] = np.sqrt(interp_uncertainty[6, 2]**2)
+    extrapolation_uncertainty[0, 7] = np.sqrt(interp_uncertainty[7, 2]**2 + (interp_uncertainty[7, 1]*19.)**2 +
+                                              (interp_uncertainty[7, 0]*19.**2)**2)
+    extrapolation_uncertainty[19, 7] = np.sqrt(interp_uncertainty[7, 2]**2)
 
-    extrapolation_uncertainty[4, 6] = np.nan
+    extrapolation[13, 1] = np.nan
+    extrapolation[7,  5] = np.nan
+
+    print()
+    print(extrapolation)
+    print()
+    assert False
 
     final_sensitivity = np.nanmean(extrapolation)
     n_elements = np.sum(np.logical_not(np.isnan(extrapolation_uncertainty)))

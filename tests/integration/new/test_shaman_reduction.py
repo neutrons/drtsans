@@ -2,7 +2,8 @@ import json
 import os
 import pytest
 import subprocess
-from tempfile import gettempdir
+from tempfile import gettempdir, NamedTemporaryFile
+import time
 
 # this should point to the root directory of the code repository
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../../'))
@@ -24,7 +25,7 @@ def write_configfile(input_json_file, basename):
     Parameters
     ----------
     input_json_file: str
-        Full path to the json file to modify
+        json file to modify. Expected to be in ``ROOT_DIR/scripts``
     basename: str
         The value of ``outputFilename``. This makes it significantly easier to find the output files.
 
@@ -33,8 +34,15 @@ def write_configfile(input_json_file, basename):
     str, str
         The name of the output directory and the name of the (re)configured json file
     '''
+    # get the full path to a configuration file
+    input_json_file = os.path.join(ROOT_DIR, 'scripts', input_json_file)
+    assert os.path.exists(input_json_file), 'Could not find "{}"'.format(input_json_file)
+
+    # temporary directory is always readable
     outputdir = gettempdir()
-    output_json_file = os.path.join(outputdir, os.path.basename(input_json_file))
+    output_json_file = NamedTemporaryFile(prefix=os.path.basename(input_json_file).replace('.json', '_'),
+                                          suffix='.json', delete=False).name
+    print('Reconfigured json file set to {}'.format(output_json_file))
 
     # read the existing file in
     with open(input_json_file, 'r') as handle:
@@ -55,32 +63,30 @@ def write_configfile(input_json_file, basename):
     return outputdir, output_json_file
 
 
-@pytest.mark.parametrize('configfile, basename',
-                         [('reduction.json', 'EQSANS_88980'),
-                          ('biosans_reduction.json', 'CG3_1433')],
-                         ids=['EQSANS', 'BIOSANS'])
-def test_eqsans(configfile, basename):
-    # get the full path to a configuration file
-    json_file = os.path.join(ROOT_DIR, 'scripts', configfile)
-    assert os.path.exists(json_file), 'Could not find "{}"'.format(json_file)
-
-    outputdir, json_file = write_configfile(json_file, basename)
+def run_reduction(pythonscript, json_file):
+    # determine python script with full path
+    scriptdir = os.path.join(os.path.abspath(os.path.curdir), 'scripts')
+    pythonscript = os.path.join(scriptdir, pythonscript)
+    assert os.path.exists(pythonscript), 'Could not find "{}"'.format(pythonscript)
 
     # run the script
-    cmd = 'process_reduction.py {}'.format(json_file)
+    cmd = 'python {} {}'.format(pythonscript, json_file)
+    print('Running "{}"'.format(cmd))
+    start = time.clock()
     proc = subprocess.Popen(cmd,
                             shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT,
                             universal_newlines=True)
     proc.communicate()
 
     # 0 = ok
-    # 127 = non-empty error log file. This is the case for developers running the test on
+    # 42 = non-empty error log file. This is the case for developers running the test on
     # the console without a special configuration of their logging
     returncode = proc.returncode
-    assert returncode in [0, 127]
+    assert returncode in [0, 42]
+    print(pythonscript, 'took', time.clock() - start, 'seconds')
 
+
+def check_and_cleanup(outputdir, basename):
     # verify that the output files were created and cleanup
     for extension in EXTENSIONS[basename]:
         filename = os.path.join(outputdir, basename + extension)
@@ -92,6 +98,30 @@ def test_eqsans(configfile, basename):
         logname = os.path.join(outputdir, basename + ext)
         if os.path.isfile(logname):
             os.remove(logname)
+
+
+@pytest.mark.parametrize('configfile, basename',
+                         [('reduction.json', 'EQSANS_88980')],
+                         ids=['88980'])
+def test_eqsans(configfile, basename):
+    # modify the config file and get the output directory and the full path to the new configuration file
+    outputdir, json_file = write_configfile(configfile, basename)
+
+    run_reduction('eqsans_reduction.py', json_file)
+
+    check_and_cleanup(outputdir, basename)
+
+
+@pytest.mark.parametrize('configfile, basename',
+                         [('biosans_reduction.json', 'CG3_1433')],
+                         ids=['1433'])
+def test_biosans(configfile, basename):
+    # modify the config file and get the output directory and the full path to the new configuration file
+    outputdir, json_file = write_configfile(configfile, basename)
+
+    run_reduction('biosans_reduction.py', json_file)
+
+    check_and_cleanup(outputdir, basename)
 
 
 if __name__ == '__main__':

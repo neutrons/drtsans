@@ -1,4 +1,5 @@
 matplotlib  # is this necessary
+numexpr
 sortedcontainers
 mpld3
 lmfit

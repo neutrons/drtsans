@@ -1,4 +1,5 @@
 import numpy as np
+import numexpr
 
 r""" Hyperlinks to mantid algorithms
 CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
@@ -9,7 +10,7 @@ MaskDetectorsIf <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors
 ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html>
 """
 from mantid.simpleapi import (CloneWorkspace, DeleteWorkspaces, Integration, MaskDetectors, MaskDetectorsIf,
-                              ReplaceSpecialValues)
+                              ReplaceSpecialValues, Load)
 from mantid.api import mtd
 
 r"""
@@ -19,6 +20,8 @@ TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/
 """  # noqa: E501
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tubecollection import TubeCollection
+from drtsans.samplelogs import SampleLogs
+from drtsans.sensitivity import Detector
 
 
 __all__ = ['apparent_tube_width', 'find_edges', 'fit_positions']
@@ -116,14 +119,14 @@ def find_edges(intensities, tube_threshold=0.2, shadow_threshold=0.3,
     # Find the shadow region: similar to tube edges, but in this case
     # we want shadow_edge_min_width intensities less than the shadow threshold,
     # followed by at least one intensity greater than the threshold
-    active = intensities[bottom_pixel: top_pixel - tube_edge_min_width]
+    active = intensities[bottom_pixel: top_pixel+1]
     shadowed = [bool(i < shadow_threshold) for i in active]
     bottom_shadow_pixel = bottom_pixel +\
         _consecutive_true_values(shadowed, shadow_edge_min_width,
                                  message='Could not find bottom shadow edge')
 
     active = intensities[bottom_shadow_pixel + shadow_edge_min_width:
-                         top_pixel - tube_edge_min_width]
+                         top_pixel + 1]
     illuminated = [bool(i > shadow_threshold) for i in active]
     above_shadow_pixel = bottom_shadow_pixel + shadow_edge_min_width +\
         _consecutive_true_values(illuminated, 1,
@@ -141,10 +144,10 @@ def find_edges(intensities, tube_threshold=0.2, shadow_threshold=0.3,
 
 
 @namedtuplefy
-def fit_positions(edge_pixels, bar_positions, tube_pixels=256):
+def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5):
     r"""
     Fit the position and heights of the pixels in a tube. The bar_positions as a function of
-    edge pixels are fitted to a 5th degree polynomial. The positions of the pixels along the
+    edge pixels are fitted to a nth order polynomial (by default n=5). The positions of the pixels along the
     tube are the values of the polynomial at integer points, while the heights are the derivatives.
 
     Description from the master requirements document, section A2.1
@@ -162,6 +165,8 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256):
         the bar position from the logs for each file in the bar scan
     tube_pixels: integer
         number of pixels for which to calculate positions and heights
+    order: integer
+        the order of polynomial to be used in the fit (default 5)
 
     Returns
     -------
@@ -171,10 +176,10 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256):
         - calculated_heights: calculated pixel heights
     """
     message_len = 'The positions of the bar and edge pixels have to be the same length'
-    assert len(edge_pixels == bar_positions), message_len
+    assert len(edge_pixels) == len(bar_positions), message_len
 
     # fit the bar positions to a 5th degree polynomial in edge_pixels
-    coefficients = np.polynomial.polynomial.polyfit(edge_pixels, bar_positions, 5)
+    coefficients = np.polynomial.polynomial.polyfit(edge_pixels, bar_positions, int(order))
     # calculate the coefficients of the derivative
     deriv_coefficients = np.polynomial.polynomial.polyder(coefficients)
     # evalutae the positions
@@ -183,6 +188,46 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256):
     calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
 
     return dict(calculated_positions=calculated_positions, calculated_heights=calculated_heights)
+
+
+def calculate_barscan_calibration(data_filenames, output_filename, component='detector1', sample_log = 'dcal',
+                                  formula='565-dcal', order=5, tube_pixels=256):
+    r"""
+    
+    """
+    if len(data_filenames) <= order:
+        raise ValueError(f"There are not enough files to fo a fit with a polynomyal of order {order}.")
+    bar_positions = []
+    bottom_shadow_pixels = []
+    ws_name = unique_workspace_dundername()
+    # loop over data_filenames
+    for filename in data_filenames:
+        w = Load(filename, OutputWorkspace=ws_name)
+        sl = SampleLogs(w)
+        dcal = sl.find_log_with_units('dcal','mm')
+        bar_pos = numexpr.evaluate(formula)
+        bar_positions.append(float(bar_pos))
+        # create array of intensities for all tubes
+        d = Detector(w,component)
+        intensity = w.extractY()[d.first_det_id:d.last_det_id+1].reshape(-1, d.n_pixels_per_tube)
+        # find bottom shaddow pixel for each tube
+        bsp = []
+        for i in range(d.n_tubes):
+            try:
+                bsp.append(find_edges(intensity[i]).bottom_shadow_pixel)
+            except Exception as e:
+                bsp.append(np.nan)
+        bottom_shadow_pixels.append(bsp)
+    # fit pixel positions for each tube
+    d = Detector(mtd[ws_name],component)
+    bottom_shadow_pixels = np.array(bottom_shadow_pixels)
+    for i in range(d.n_tubes):
+        d.next_tube()
+        start_ws_index, stop_ws_index = d.get_current_ws_indices()
+        pixel_pos, pixel_heights = fit_positions(bottom_shadow_pixels[:,i], bar_positions,
+                                                 tube_pixels=tube_pixels, order=order)
+        
+    return pixel_pos, pixel_heights
 
 
 def apparent_tube_width(input_workspace, output_workspace=None):

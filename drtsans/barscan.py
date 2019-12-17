@@ -235,7 +235,8 @@ def apparent_tube_width(input_workspace, output_workspace=None):
     intensities = mtd[integrated_intensities].extractY().flatten()
     count_densities = list()
     for tube in collection:
-        d = np.mean([intensities[pixel.spectrum_index] / pixel.height for pixel in tube if pixel.isMasked is False])
+        weighted_intensities = tube.readY.ravel() / tube.pixel_heights
+        d = np.mean(weighted_intensities[~tube.isMasked])
         count_densities.append(d)
     count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
 

@@ -1,3 +1,4 @@
+import sys
 import functools
 from inspect import signature
 import numpy as np
@@ -101,7 +102,7 @@ class SpectrumInfo:
             if callable(arity_decremented_attributes[0]) is True:  # attribute's arity was bigger than one
                 # A partial function that will call each arity-decremented attribute with remaining method arguments
                 return functools.partial(_inverse_map, arity_decremented_attributes)
-            return arity_decremented_attributes  # attribute's arity was less than two
+            return np.array(arity_decremented_attributes)  # attribute's arity was less than two
         except AttributeError:
             return super().__getattr__(item)  # Next class in the Method Resolution Order
 
@@ -141,6 +142,8 @@ class SpectrumInfo:
         return self._iterate_with_indexes('readE')
 
     def __len__(self):
+        if isinstance(self.spectrum_info_index, int):
+            return 1
         return len(self.spectrum_info_index)
 
 
@@ -362,6 +365,16 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     def __getitem__(self, item):
         return self.pixels[item]  # iterate over the pixels
 
+    @property
+    def pixel_heights(self):
+        r"""Convenience property to get the pixel heights"""
+        return np.array([pixel.height for pixel in self.pixels])
+
+    @property
+    def pixel_widths(self):
+        r"""Convenience property to get the pixel widths"""
+        return np.array([pixel.width for pixel in self.pixels])
+
 
 class TubeCollection(ElementComponentInfo):
 
@@ -470,7 +483,7 @@ class TubeCollection(ElementComponentInfo):
                 self._sorting_permutations['decreasing X'] = permutation
             elif view == 'workspace index':  # initialize this view
                 # spectrum index of first pixel for each tube
-                permutation = np.argsort([tube[0].spectrum_info_index for tube in self.tubes])
-                self._sorting_permutations['spectrum index'] = permutation
+                permutation = np.argsort([tube.spectrum_info_index[0] for tube in self.tubes])
+                self._sorting_permutations['workspace index'] = permutation
         sorted_list = [self._tubes[i] for i in permutation]
         return sorted_list if reverse is False else sorted_list[::-1]

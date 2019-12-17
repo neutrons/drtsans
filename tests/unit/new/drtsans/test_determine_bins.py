@@ -20,7 +20,7 @@ def test_log_bins_backward_compatible():
 
     Here by using data '1D_bin_log_wedget_no_sub_no_wt' (from
     https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-    eqsans_tof_q_binning_tests_R4.xlsx), this method is tested
+    eqsans_tof_q_binning_tests_R5.xlsx), this method is tested
 
     Returns
     -------
@@ -41,7 +41,7 @@ def test_log_bins_backward_compatible():
 
 # Test EXCEL can be found at
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-# eqsans_tof_q_binning_tests_R4.xlsx
+# eqsans_tof_q_binning_tests_R5.xlsx
 def test_linear_bin_determination():
     """Test linear bin determination from '2D_bin_no_sub_no_wt'
 

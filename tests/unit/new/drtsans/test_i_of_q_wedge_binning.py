@@ -19,9 +19,9 @@ import pytest
 def test_1d_bin_log_wedge_no_wt():
     """Test the methods to select I(Qx, Qy) by wedge angles and do the binning
 
-    The test data comes from example in '1D_bin_log_wedge_no_sub_no_wt' from eqsans_tof_q_binning_tests_R4.xlsx.
+    The test data comes from example in '1D_bin_log_wedge_no_sub_no_wt' from eqsans_tof_q_binning_tests_R5.xlsx.
     File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-                   eqsans_tof_q_binning_tests_R4.xlsx
+                   eqsans_tof_q_binning_tests_R5.xlsx
 
     Returns
     -------

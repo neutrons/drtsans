@@ -14,7 +14,7 @@ import pytest
 # All tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
 # Test EXCEL can be found at
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-# eqsans_tof_q_binning_tests_R4.xlsx
+# eqsans_tof_q_binning_tests_R5.xlsx
 
 
 def test_2d_bin_no_sub_no_wt():

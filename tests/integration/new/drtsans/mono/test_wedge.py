@@ -73,30 +73,14 @@ def test_calc_qmod_and_phi():
     np.testing.assert_allclose(qmod, q_exp, atol=.005)
     np.testing.assert_allclose(phi, phi_exp, atol=.5)
 
+
 def test_bin_into_q_and_phi():
+    # get the test data
     data2d = _create_2d_data()
-    num_phi = int(545./5) + 1
-    num_q = 8
-    q_min = .5
-
-    # get the histogrammed data
-    intensity, error, phi, q = _binInQAndPhi(data2d, q_min=q_min, q_max=6.5, q_delta=1, phi_delta=5)
-
-    # verify generic shape and range values
-    assert intensity.shape == (num_phi-1, num_q-1)
-    assert error.shape == (num_phi-1, num_q-1)
-    #assert phi.min() == 0.
-    #assert phi.max() == 545. # using bin boundaries
-    assert phi.shape == (num_phi,)
-    assert len(phi) == num_phi
-    assert q.min() == q_min
-    assert q.max() == 7.5 # using bin boundaries
-    assert len(q) == num_q
-    assert q.shape == (num_q,)
 
     # numbers taken from the spreadsheet
     intensity_exp = np.array([[3000, 2300, 1300, 800, 500, np.nan, np.nan],
-                          [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                              [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                               [np.nan, np.nan, np.nan, np.nan, 400, np.nan, np.nan],
                               [np.nan, np.nan, np.nan, 700, np.nan, np.nan, np.nan],
                               [np.nan, np.nan, 1000, np.nan, 350, np.nan, np.nan],
@@ -316,17 +300,33 @@ def test_bin_into_q_and_phi():
                           [55.7, 46.9, 38.7, 26.5, 24.5, np.nan, np.nan]], dtype=float)
     assert intensity_exp.shape == error_exp.shape
 
-    print('requested Q={}'.format(q))
+    # parameters for phi
+    phi_delta = 5.
+
+    # parameters for q
+    q_min = .5
+    q_max = 7.5
+    q_delta = 1.
+
+    # get the histogrammed data
+    intensity, error, phi, q = _binInQAndPhi(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta, phi_delta=phi_delta)
+
+    # verify generic shape and range values
+    assert phi.min() == -0.5 * phi_delta  # phi bins are centered on [0, 5, 10, ...]
+    assert phi.max() == 540. + 0.5 * phi_delta
+    assert q.min() == q_min
+    assert q.max() == q_max  # using bin boundaries
+
+    assert intensity.shape == intensity_exp.shape
+    assert error.shape == error_exp.shape
+    # verify shape is consistent with histogramming
+    assert intensity.shape == (len(phi) - 1, len(q) - 1)
 
     # validate results
-    assert intensity.shape == intensity_exp.shape
-    #for i in [0, 1] + list(range(3, len(intensity)-3)):
-    for i in range(len(intensity)):
-        np.testing.assert_allclose(intensity[i], intensity_exp[i], atol=.05, equal_nan=True,
-                                   err_msg='i={} phi={}deg'.format(i, phi[i]))
-    np.testing.assert_allclose(intensity, intensity_exp, atol=.05, equal_nan=True)
-    assert error.shape == error_exp.shape
-    np.testing.assert_allclose(error, error_exp, atol=.05, equal_nan=True)
+    for i in range(len(intensity)):  # loop over rows to make debugging easier
+        msg = 'i={} | {}deg <= phi < {}deg'.format(i+3, phi[i], phi[i+1])
+        np.testing.assert_allclose(intensity[i], intensity_exp[i], atol=.05, equal_nan=True, err_msg=msg)
+        np.testing.assert_allclose(error[i], error_exp[i], atol=.05, equal_nan=True, err_msg=msg)
 
 
 def test_wedge():

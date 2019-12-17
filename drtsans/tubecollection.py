@@ -1,4 +1,3 @@
-import sys
 import functools
 from inspect import signature
 import numpy as np

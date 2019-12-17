@@ -232,7 +232,6 @@ def apparent_tube_width(input_workspace, output_workspace=None):
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
     collection = TubeCollection(integrated_intensities, 'detector1').sorted(view='decreasing X')
-    intensities = mtd[integrated_intensities].extractY().flatten()
     count_densities = list()
     for tube in collection:
         weighted_intensities = tube.readY.ravel() / tube.pixel_heights

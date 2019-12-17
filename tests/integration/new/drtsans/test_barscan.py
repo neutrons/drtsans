@@ -257,39 +257,35 @@ def test_generate_calibration(workspace_with_instrument, cleanfile):
                              7.0, 96.0, 98.0, 104.0, 100.0, 95.0, 104.0, 100.0, 99.0, 104.0, 103.0,
                              103.0, 97.0, 19.4, 20.0, 19.6, 19.4, 100.0, 104.0, 4.0])  # tube3
 
-    ws1 = workspace_with_instrument(axis_values=[6.], intensities=intensities1.reshape(20,4), view='pixel')
-    AddSampleLog(Workspace=ws1, LogName='dcal', LogText='50.', LogType='Number Series',LogUnit='mm')
+    ws1 = workspace_with_instrument(axis_values=[6.], intensities=intensities1.reshape(20, 4), view='pixel')
+    AddSampleLog(Workspace=ws1, LogName='dcal', LogText='50.', LogType='Number Series', LogUnit='mm')
     filename1 = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
     cleanfile(filename1)
-    SaveNexus(InputWorkspace = ws1, Filename=filename1)
+    SaveNexus(InputWorkspace=ws1, Filename=filename1)
     assert (os.path.exists(filename1))
 
-    ws2 = workspace_with_instrument(axis_values=[6.], intensities=intensities2.reshape(20,4), view='pixel')
-    AddSampleLog(Workspace=ws2, LogName='dcal', LogText='100.', LogType='Number Series',LogUnit='mm')
+    ws2 = workspace_with_instrument(axis_values=[6.], intensities=intensities2.reshape(20, 4), view='pixel')
+    AddSampleLog(Workspace=ws2, LogName='dcal', LogText='100.', LogType='Number Series', LogUnit='mm')
     filename2 = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
     cleanfile(filename2)
-    SaveNexus(InputWorkspace = ws2, Filename=filename2)
+    SaveNexus(InputWorkspace=ws2, Filename=filename2)
     assert (os.path.exists(filename2))
 
-    ws3 = workspace_with_instrument(axis_values=[6.], intensities=intensities3.reshape(20,4), view='pixel')
-    AddSampleLog(Workspace=ws3, LogName='dcal', LogText='150.', LogType='Number Series',LogUnit='mm')
+    ws3 = workspace_with_instrument(axis_values=[6.], intensities=intensities3.reshape(20, 4), view='pixel')
+    AddSampleLog(Workspace=ws3, LogName='dcal', LogText='150.', LogType='Number Series', LogUnit='mm')
     filename3 = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
     cleanfile(filename3)
-    SaveNexus(InputWorkspace = ws3, Filename=filename3)
+    SaveNexus(InputWorkspace=ws3, Filename=filename3)
     assert (os.path.exists(filename3))
 
-    barpos=calculate_barscan_calibration([filename1, filename2, filename3],'test',
-                                         order=2, formula='dcal+565', tube_pixels=20)
-    print(barpos[0])
-    print(barpos[1])
-    assert (barpos==3)
+    barpos = calculate_barscan_calibration([filename1, filename2, filename3], 'test',
+                                           order=2, formula='dcal+565', tube_pixels=20)
+    assert barpos == 3
     # find edges
     edges = find_edges(intensities3[60:])
     # check expected values
     assert (edges.bottom_pixel, edges.top_pixel) == (1, 18)
     assert (edges.bottom_shadow_pixel == 5)
-
-
 
 
 if __name__ == '__main__':

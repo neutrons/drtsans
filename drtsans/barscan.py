@@ -190,10 +190,9 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5):
     return dict(calculated_positions=calculated_positions, calculated_heights=calculated_heights)
 
 
-def calculate_barscan_calibration(data_filenames, output_filename, component='detector1', sample_log = 'dcal',
+def calculate_barscan_calibration(data_filenames, output_filename, component='detector1', sample_log='dcal',
                                   formula='565-dcal', order=5, tube_pixels=256):
     r"""
-    
     """
     if len(data_filenames) <= order:
         raise ValueError(f"There are not enough files to fo a fit with a polynomyal of order {order}.")
@@ -204,11 +203,11 @@ def calculate_barscan_calibration(data_filenames, output_filename, component='de
     for filename in data_filenames:
         w = Load(filename, OutputWorkspace=ws_name)
         sl = SampleLogs(w)
-        dcal = sl.find_log_with_units('dcal','mm')
-        bar_pos = numexpr.evaluate(formula)
+        dcal = sl.find_log_with_units('dcal', 'mm')
+        bar_pos = numexpr.evaluate(formula, local_dict=dict(dcal=dcal))
         bar_positions.append(float(bar_pos))
         # create array of intensities for all tubes
-        d = Detector(w,component)
+        d = Detector(w, component)
         intensity = w.extractY()[d.first_det_id:d.last_det_id+1].reshape(-1, d.n_pixels_per_tube)
         # find bottom shaddow pixel for each tube
         bsp = []
@@ -219,14 +218,13 @@ def calculate_barscan_calibration(data_filenames, output_filename, component='de
                 bsp.append(np.nan)
         bottom_shadow_pixels.append(bsp)
     # fit pixel positions for each tube
-    d = Detector(mtd[ws_name],component)
+    d = Detector(mtd[ws_name], component)
     bottom_shadow_pixels = np.array(bottom_shadow_pixels)
     for i in range(d.n_tubes):
         d.next_tube()
         start_ws_index, stop_ws_index = d.get_current_ws_indices()
-        pixel_pos, pixel_heights = fit_positions(bottom_shadow_pixels[:,i], bar_positions,
+        pixel_pos, pixel_heights = fit_positions(bottom_shadow_pixels[:, i], bar_positions,
                                                  tube_pixels=tube_pixels, order=order)
-        
     return pixel_pos, pixel_heights
 
 

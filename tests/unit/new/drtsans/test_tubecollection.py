@@ -81,9 +81,9 @@ class TestSpectrumInfo:
         # Test for more than one workspace index
         s = tubecollection.SpectrumInfo(simple_tubes_panel['workspace'], [1, 4, 7])
         assert s.l1 == pytest.approx([5.0, 5.0, 5.0])
-        assert s.isMasked == [False, True, False]  # remember we changed before the mask for workspace index 4
+        assert list(s.isMasked) == [False, True, False]  # remember we changed before the mask for workspace index 4
         assert s.setMasked(True)  # mask all spectra
-        assert s.isMasked == [True, True, True]
+        assert list(s.isMasked) == [True, True, True]
         assert s.readX == pytest.approx(np.array([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0]]))
         assert s.readY == pytest.approx(np.array([[1.], [4.], [7.]]))
         assert len(s) == 3
@@ -213,11 +213,11 @@ class TestTubeSpectrum(object):
     def test_spectrum_info(self, simple_tubes_panel):
         # test some of spectrum info's methods
         tube = tubecollection.TubeSpectrum(simple_tubes_panel['workspace'], 11, [0, 1, 2])
-        assert tube.hasUniqueDetector == [True, True, True]
+        assert list(tube.hasUniqueDetector) == [True, True, True]
         tube[1].setMasked(True)
-        assert tube.isMasked == [False, True, False]
+        assert list(tube.isMasked) == [False, True, False]
         assert tube.setMasked(True)  # mask all spectra
-        assert tube.isMasked == [True, True, True]
+        assert list(tube.isMasked) == [True, True, True]
         assert tube.readX == pytest.approx(np.array([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0]]))
         assert tube.readY == pytest.approx(np.array([[0.], [1.], [2.]]))
 

@@ -28,21 +28,21 @@ def tube_collection(reference_dir):
 class TestTubeCollection(object):
 
     def test_tubes(self, tube_collection):
-        assert len(tube_collection.tubes) == 192
+        assert len(tube_collection) == 192
 
     def test_getitem(self, tube_collection):
-        assert tube_collection.tubes[0][0].position == pytest.approx([0.53, -0.52, 3.05], abs=0.01)  # first pixel
-        assert tube_collection.tubes[-1][-1].position == pytest.approx([-0.54, 0.52, 3.06], abs=0.01)  # last pixel
+        assert tube_collection[0][0].position == pytest.approx([0.53, -0.52, 3.05], abs=0.01)  # first pixel
+        assert tube_collection[-1][-1].position == pytest.approx([-0.54, 0.52, 3.06], abs=0.01)  # last pixel
 
     def test_sorted(self, tube_collection):
         # Sort by decreasing tube position along the X-axis
         sorted_tubes = tube_collection.sorted(view='decreasing X')
-        x_coords = [tube[0].position[0] for tube in sorted_tubes]  # X coord for the first pixel of each tube
+        x_coords = [tube.position[0] for tube in sorted_tubes]  # X coord for the first pixel of each tube
         assert np.all(x_coords[1:] < x_coords[:-1])  # x_coords strictly decreasing
         # Sort by increasing spectrum index
-        sorted_tubes = tube_collection.sorted(view='spectrum index')
-        spectrum_indexes = [tube[0].spectrum_index for tube in sorted_tubes]
-        assert np.all(spectrum_indexes[1:] > spectrum_indexes[:-1])
+        sorted_tubes = tube_collection.sorted(view='workspace index')
+        spectrum_info_indexes = [tube[0].spectrum_info_index for tube in sorted_tubes]
+        assert np.all(spectrum_info_indexes[1:] > spectrum_info_indexes[:-1])
 
 
 if __name__ == '__main__':

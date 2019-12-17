@@ -18,9 +18,9 @@ import pytest
 def test_1d_annular_no_wt():
     """Test annular binning I(Qx, Qy) with no-weight binning method
 
-    The test data comes from example in '1D_annular_no_sub_no_wt' eqsans_tof_q_binning_tests_R4.xlsx
+    The test data comes from example in '1D_annular_no_sub_no_wt' eqsans_tof_q_binning_tests_R5.xlsx
     File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-                   eqsans_tof_q_binning_tests_R4.xlsx
+                   eqsans_tof_q_binning_tests_R5.xlsx
     Returns
     -------
     None

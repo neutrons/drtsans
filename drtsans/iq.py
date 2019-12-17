@@ -275,6 +275,18 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
 
     If there is no Q in a certain Qk bin, NaN will be set to both I(Qk) and sigma I(Qk)
 
+    General description of algorithm:
+
+    I(x', y')      = sum_{x, y, lambda}^{K} (I(x, y, lambda) / sigma(x, y, lambda)^2) /
+                     sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
+    sigmaI(x', y') = sqrt(sum_{x, y, lambda}^{K} (sigma(x, y, lambda / sigma(x, y, lambda)^2)^2) /
+                     sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
+                   = sqrt(sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)) /
+                     sum_{x, y, lambda}^{K}(1/sigma(x, y, lambda)^2)
+                   = 1 / sqrt(sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2))
+    sigmaQ(x', y') = sum_{x, y, lambda}^{K}(sigmaQ(x, y, lambda)/sigma^2(x, y, lambda)^2) /
+                     sum_{x, y, lambda}^{K}(1/sigma(x, y, lambda)^2)
+
     Parameters
     ----------
     q_array: ndarray
@@ -310,6 +322,8 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{w_k}
     #       sigma = 1/sqrt(w_k)
     i_final_array = i_raw_array / w_array
+
+    # Calculate sigmaI according to equation 11.23 in master document
     sigma_final_array = 1 / np.sqrt(w_array)
 
     # Calculate Q resolution of binned
@@ -347,14 +361,15 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
         binned IQazimuthal
 
     """
+    # Check input I(Q) whether it meets assumptions
+    check_iq_for_binning(i_of_q)
+
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
         binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                  i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
     else:
         # Calculate weighed binning
-        # Check input I(Q) whether it meets assumptions
-        check_iq_for_binning(i_of_q)
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                 i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
     # END-IF-ELSE
@@ -431,10 +446,17 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, 
 
     General description of algorithm:
 
-      I^{raw}_{i, j} = sum^{(i,j)}_{k} I_{k} / sigma^2(I)_k
-      weight_{i, j} = sum^{(i, j)}_k 1 / sigma^2(I)_k
-      I^{weight}_{i, j} = I^{raw}_{(i, j)} / weight_{i, j}
-      sigma I^{weight}_{i, j} = 1 / sqrt(weight_{i, j})
+    I(x', y')      = sum_{x, y, lambda}^{K} (I(x, y, lambda) / sigma(x, y, lambda)^2) /
+                     sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
+    sigmaI(x', y') = sqrt(sum_{x, y, lambda}^{K} (sigma(x, y, lambda / sigma(x, y, lambda)^2)^2) /
+                     sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
+                   = sqrt(sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)) /
+                     sum_{x, y, lambda}^{K}(1/sigma(x, y, lambda)^2)
+                   = 1 / sqrt(sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2))
+    sigmaQ(x', y') = sum_{x, y, lambda}^{K}(sigmaQ(x, y, lambda)/sigma^2(x, y, lambda)^2) /
+                     sum_{x, y, lambda}^{K}(1/sigma(x, y, lambda)^2)
+
+    where K is the set of (x, y, sigma) such that (x, y, sigma) in the same Q_bin
 
     Parameters
     ----------

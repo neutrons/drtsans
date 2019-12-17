@@ -8,11 +8,11 @@ import numpy as np
 # DEV - Wenduo Zhou <zhouw@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>
 
-# All tests data is from William's tests in eqsans_tof_q_binning_tests_R4.xlsx
+# All tests data is from William's tests in eqsans_tof_q_binning_tests_R5.xlsx
 # Intensities for a Generic 2D detector at 3 wavelengths
 # Test EXCEL can be found at
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-# eqsans_tof_q_binning_tests_R4.xlsx
+# eqsans_tof_q_binning_tests_R5.xlsx
 
 # The workspace is assumed to have 3 wavelengths
 intensities_matrix = np.array([[[93, 60, 89, 32, 97],
@@ -220,7 +220,7 @@ def get_gold_1d_log_bins():
 
     The gold data comes from test '1D_bin_log_wedge_no_sub_no_wt' in
     https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-    eqsans_tof_q_binning_tests_R4.xlsx
+    eqsans_tof_q_binning_tests_R5.xlsx
 
     This is to test the method to create logarithm bins
 

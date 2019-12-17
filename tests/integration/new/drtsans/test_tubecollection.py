@@ -37,11 +37,11 @@ class TestTubeCollection(object):
     def test_sorted(self, tube_collection):
         # Sort by decreasing tube position along the X-axis
         sorted_tubes = tube_collection.sorted(view='decreasing X')
-        x_coords = [tube.position[0] for tube in sorted_tubes]  # X coord for the first pixel of each tube
+        x_coords = [tube.position[0] for tube in sorted_tubes]  # X coord for the center of each tube
         assert np.all(x_coords[1:] < x_coords[:-1])  # x_coords strictly decreasing
         # Sort by increasing spectrum index
         sorted_tubes = tube_collection.sorted(view='workspace index')
-        spectrum_info_indexes = [tube[0].spectrum_info_index for tube in sorted_tubes]
+        spectrum_info_indexes = [tube.spectrum_info_index[0] for tube in sorted_tubes]
         assert np.all(spectrum_info_indexes[1:] > spectrum_info_indexes[:-1])
 
 

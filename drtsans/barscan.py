@@ -214,7 +214,7 @@ def calculate_barscan_calibration(data_filenames, output_filename, component='de
         for i in range(d.n_tubes):
             try:
                 bsp.append(find_edges(intensity[i]).bottom_shadow_pixel)
-            except Exception as e:
+            except Exception:
                 bsp.append(np.nan)
         bottom_shadow_pixels.append(bsp)
     # fit pixel positions for each tube

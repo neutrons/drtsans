@@ -141,7 +141,7 @@ class SpectrumInfo:
         return self._iterate_with_indexes('readE')
 
     def __len__(self):
-        return len(self.children)
+        return len(self.spectrum_info_index)
 
 
 class ElementComponentInfo:
@@ -180,6 +180,9 @@ class ElementComponentInfo:
     @property
     def children(self):
         return [int(index) for index in self._component_info.children(self.component_info_index)]  # cast to int
+
+    def __len__(self):
+        return len(self.children)
 
 
 def _resolve_indexes(input_workspace, component_info_index, workspace_index):
@@ -358,9 +361,6 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
 
     def __getitem__(self, item):
         return self.pixels[item]  # iterate over the pixels
-
-    def __len__(self):
-        return len(self.spectrum_info_index)
 
 
 class TubeCollection(ElementComponentInfo):

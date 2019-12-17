@@ -77,6 +77,7 @@ class TestSpectrumInfo:
         assert s.twoTheta == pytest.approx(1.57, abs=0.01)
         assert s.readX == pytest.approx([1.0, 2.0])  # method borrowed from methods of the workspace object
         assert s.readY == pytest.approx([4.0])
+        assert len(s) == 1
         # Test for more than one workspace index
         s = tubecollection.SpectrumInfo(simple_tubes_panel['workspace'], [1, 4, 7])
         assert s.l1 == pytest.approx([5.0, 5.0, 5.0])
@@ -85,6 +86,7 @@ class TestSpectrumInfo:
         assert s.isMasked == [True, True, True]
         assert s.readX == pytest.approx(np.array([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0]]))
         assert s.readY == pytest.approx(np.array([[1.], [4.], [7.]]))
+        assert len(s) == 3
 
 
 @pytest.mark.parametrize('workspace_with_instrument',

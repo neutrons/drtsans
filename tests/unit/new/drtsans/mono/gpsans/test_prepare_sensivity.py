@@ -11,6 +11,9 @@ import pytest
 
 # All testing data are from
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/906bfc358e1d6eb12a78439aef615f03/sensitivity_math.xlsx
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/fccd9ac3b9611acda0e4d9efe52ff4f4/
+# Test_for_Preparing_Sensitivity_file_for_GP-SANS.pdf
+
 def generate_test_data():
     """Generate test data, 3 flood runs and errors, from sensitivity_math.xlsx
 
@@ -335,11 +338,15 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg
 
 
-def test_prepare_moving_det_sensitivity():
-    """Test main algorithm to prepare sensitivity for instrument with moving detector
+def test_prepare_moving_det_sensitivity_prototype():
+    """Test the prototype functions involved in preparing sensitivities
+
+    Against the tests from master document, test_for_Preparing_Sensitivity_file_for_GP-SANS.pdf and
+    sensitivity_math.xlsx
 
     Returns
     -------
+    None
 
     """
     # Set up the test data
@@ -442,7 +449,23 @@ def test_prepare_moving_det_sensitivity():
     # np.testing.assert_allclose(sensitivities_error, gold_final_sigma_matrix, rtol=1e-2, equal_nan=True,
     #                            err_msg='Final sensitivities error matrix not match', verbose=True)
 
-    # Test high level method
+
+def test_prepare_moving_det_sensitivity():
+    """Test main algorithm to prepare sensitivity for instrument with moving detector
+
+    Returns
+    -------
+    None
+
+    """
+    # Set up the test data
+    test_data_set = generate_test_data()
+    monitor_a = 10
+    monitor_b = 10
+    monitor_c = 10
+    threshold_min = 0.5
+    threshold_max = 1.5
+
     # Normalize the flood field data by monitor: A, B and C
     matrix_a, sigma_a = test_data_set[0], test_data_set[1]
     matrix_a, sigma_a = normalize_by_monitor(matrix_a, sigma_a, monitor_a)
@@ -458,8 +481,6 @@ def test_prepare_moving_det_sensitivity():
     flood_matrix = np.ndarray(shape=(3, matrix_a.size), dtype=float)
     flood_error = np.ndarray(shape=(3, matrix_a.size), dtype=float)
 
-    # normalize data
-
     flood_matrix[0] = matrix_a.flatten()
     flood_matrix[1] = matrix_b.flatten()
     flood_matrix[2] = matrix_c.flatten()
@@ -468,14 +489,16 @@ def test_prepare_moving_det_sensitivity():
     flood_error[1] = sigma_b.flatten()
     flood_error[2] = sigma_c.flatten()
 
-    # monitor_counts = np.array([monitor_a, monitor_b, monitor_c])
-
+    # Test drtsans.mono.gpsans.prepare_sensitivity()
     test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error,
                                                                  threshold_min, threshold_max)
 
+    # Get gold data as the sensitivities and error
+    gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
+
     # verify that the refactored high level method renders the same result from prototype
-    np.testing.assert_allclose(sensitivities.flatten(), test_sens_array, 1e-7)
-    np.testing.assert_allclose(sensitivities_error.flatten(), test_sens_sigma_array, 1e-7)
+    np.testing.assert_allclose(gold_final_sen_matrix.flatten(), test_sens_array, 1e-7)
+    np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, 1e-7)
 
     return
 

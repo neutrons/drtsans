@@ -8,7 +8,13 @@ from numpy.testing import assert_allclose
 @pytest.mark.parametrize('workspace_with_instrument',
                           [dict(name='EQSANS', Nx=20, Ny=8)], indirect=True)
 def test_prepare_sensitivity(workspace_with_instrument):
+    """This tests that prepare_sensitivity gives the expected result.
 
+    dev - Steven Hahn <hahnse@ornl.gov>
+    SME - William Heller <hellerwt@ornl.gov>
+    """
+
+    # Consider a flood field measurement giving the following counts.
     flood_field_measurement = np.array([[65, 68, 66, 75, 71,  68, 66, 70],
                                         [69, 65, 69, 71, 71,  68, 68, 66],
                                         [75, 69, 70, 67, 66,  74, 71, 70],
@@ -30,14 +36,18 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                         [67, 65, 69, 71, 68,  65, 71, 70],
                                         [72, 72, 65, 75, 68,  74, 75, 71]])
 
+    # The uncertainties are as follows
     flood_field_measurement_uncertainty = np.sqrt(flood_field_measurement)
 
+    # Next, we apply a mask to the beamstop and the upper/lower edges.
     mask = np.ones((20, 8))
     mask[0, :] = np.nan
     mask[8, 3] = np.nan
     mask[9, 3] = np.nan
     mask[19, :] = np.nan
 
+    # The first cut of the sensitivity S1(m,n) is given by II
+    # The uncertainties in the first cut of sensitivity dS1(m,n) is given by dI.
     ffm_with_mask = mask*flood_field_measurement
     ffm_uncertainty_with_mask = mask*flood_field_measurement_uncertainty
     F = np.nanmean(ffm_with_mask)
@@ -66,6 +76,13 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     extrapolation = copy.deepcopy(II)
     extrapolation_uncertainty = copy.deepcopy(dI)
+
+    # We apply the thresholds to S1(m,n).  The masked pixels are set to NaN
+    extrapolation[6, 1] = np.nan
+    extrapolation[12, 5] = np.nan
+    extrapolation_uncertainty[6, 1] = np.nan
+    extrapolation_uncertainty[12, 5] = np.nan
+
 
     extrapolation[0,  0] = interp[0, 2] + interp[0, 1]*19. + interp[0, 0]*19.**2
     extrapolation[19, 0] = interp[0, 2]
@@ -115,11 +132,6 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                               (interp_uncertainty[7, 0]*19.**2)**2)
     extrapolation_uncertainty[19, 7] = np.sqrt(interp_uncertainty[7, 2]**2)
 
-    extrapolation[6, 1] = np.nan
-    extrapolation[12, 5] = np.nan
-    extrapolation_uncertainty[6, 1] = np.nan
-    extrapolation_uncertainty[12, 5] = np.nan
-
     final_sensitivity = np.nanmean(extrapolation)
     n_elements = np.sum(np.logical_not(np.isnan(extrapolation_uncertainty)))
     final_sensitivity_uncertainty = np.sqrt(np.nansum(np.power(extrapolation_uncertainty, 2)))/n_elements
@@ -127,7 +139,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
     result_uncertainty = result * np.sqrt(np.square(extrapolation_uncertainty/extrapolation) +
                                           np.square(final_sensitivity_uncertainty/final_sensitivity))
 
-    ws = workspace_with_instrument(axis_values=[1.,2.], intensities=ffm_with_mask,
+    ws = workspace_with_instrument(axis_values=[1., 2.], intensities=ffm_with_mask,
                               uncertainties=ffm_uncertainty_with_mask, view='array')
     out = prepare_sensitivity_correction(ws, min_threshold=0.5, max_threshold=2.0)
 

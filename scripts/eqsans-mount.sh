@@ -10,7 +10,7 @@ if ! grep -qs 'EQSANS' /proc/mounts; then
     sleep 10
     COUNT=$((COUNT + 1))
     if [[ ${COUNT} == 5 ]]; then
-      exit 1
+      sudo reboot
     fi
   done
 fi

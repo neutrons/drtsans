@@ -137,6 +137,7 @@ docs-next:
 
 code-unit-test:
   stage: test
+  retry: 2
   dependencies:
     - dockerbuild
   before_script:
@@ -164,6 +165,7 @@ code-unit-test:
 
 code-integration-test:
   stage: test
+  retry: 2
   dependencies:
     - dockerbuild
   before_script:

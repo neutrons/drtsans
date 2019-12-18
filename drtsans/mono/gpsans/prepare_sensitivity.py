@@ -8,7 +8,7 @@ __all__ = ['prepare_sensitivity']
 
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
-def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, threshold_min, threshold_max):
+def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, threshold_max):
     """Prepare sensitivity for moving detector
 
     Data files are processed such that intensities and errors are stored in numpy.ndarray with shape (N, M), where
@@ -16,7 +16,8 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
     - M: number of pixels (aka spectra) in instrument's detector;
          The 2D data from 2D detector are flattened to 1D in implementation
 
-    Prerequisite of the input files:
+    Prerequisite of the input data:
+    - Input data has been normalized by monitor counts already
     - top and bottom of the detector shall be masked (set to value as NaN) due to edge effects
     - in each file, beam center shall be found  and masked out
     - errors are then calculated from the flood intensities
@@ -34,8 +35,6 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
         multiple set of flood data intensities with shape = N, M
     flood_sigma_matrix : ~numpy.ndaray
         multiple set of flood data intensities' error with shape = N, M
-    monitor_counts : ~numpy.ndaray
-        monitor counts for each data file in 1D array with size N
     threshold_min : float
         minimum allowed detector counts to mask out 'bad' pixels
     threshold_max : float
@@ -47,10 +46,10 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
         sensitivities, sensitivities error
 
     """
-    # normalize the flood field data by monitor
+    # normalize the flood field data by monitor: Normalization is removed from this algorithm to integration
     # inputs: (N, M) array; outputs: (N, M) array
-    flood_data_matrix, flood_sigma_matrix = _normalize_by_monitor(flood_data_matrix, flood_sigma_matrix,
-                                                                  monitor_counts)
+    # flood_data_matrix, flood_sigma_matrix = _normalize_by_monitor(flood_data_matrix, flood_sigma_matrix,
+    #                                                               monitor_counts)
 
     # find weighted average for each fie and error
     # inputs: (N, M) array; outputs: (N, M) array
@@ -73,30 +72,30 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
     return sensitivities, sensitivities_error
 
 
-def _normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
-    """Normalize the flood data field data by monitor
-
-    Parameters
-    ----------
-    flood_data: ndarray
-        flood data
-    flood_data_error: ndarray
-        flood data error
-    monitor_counts: int/float
-        monitor counts
-    Returns
-    -------
-    ndarray, ndarray
-        normalized flood data, normalized flood data error
-    """
-    # Check monitor counts shape and convert if necessary
-    if len(monitor_counts.shape) == 1:
-        monitor_counts = monitor_counts.reshape((len(monitor_counts), 1))
-    assert monitor_counts.shape == (flood_data.shape[0], 1), 'Monitor counts must be in shape as ({}, 1} ' \
-                                                             'but not {}'.format(flood_data.shape[0],
-                                                                                 monitor_counts.shape)
-
-    return flood_data / monitor_counts, flood_data_error / monitor_counts
+# def _normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
+#     """Normalize the flood data field data by monitor
+#
+#     Parameters
+#     ----------
+#     flood_data: ndarray
+#         flood data
+#     flood_data_error: ndarray
+#         flood data error
+#     monitor_counts: int/float
+#         monitor counts
+#     Returns
+#     -------
+#     ndarray, ndarray
+#         normalized flood data, normalized flood data error
+#     """
+#     # Check monitor counts shape and convert if necessary
+#     if len(monitor_counts.shape) == 1:
+#         monitor_counts = monitor_counts.reshape((len(monitor_counts), 1))
+#     assert monitor_counts.shape == (flood_data.shape[0], 1), 'Monitor counts must be in shape as ({}, 1} ' \
+#                                                              'but not {}'.format(flood_data.shape[0],
+#                                                                                  monitor_counts.shape)
+#
+#     return flood_data / monitor_counts, flood_data_error / monitor_counts
 
 
 def _calculate_weighted_average_with_error(normalized_data, normalized_error):
@@ -237,10 +236,11 @@ def _normalize_sensitivities(d_array, sigam_d_array):
         scalar sensitivity, error of scalar sensitivity
     """
     # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
-    denomiator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
-                        sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
+    # denominator = sum_{m, n}{D(m, n) / sigma^2(m, n)}
+    denominator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
+                         sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
     nominator = np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
-    sens_avg = denomiator / nominator
+    sens_avg = denominator / nominator
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_array / sens_avg

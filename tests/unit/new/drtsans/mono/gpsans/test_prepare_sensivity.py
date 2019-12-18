@@ -435,13 +435,22 @@ def test_prepare_moving_det_sensitivity():
     #                            err_msg='Final sensitivities error matrix not match', verbose=True)
 
     # Test high level method
+    # Normalize the flood field data by monitor: A, B and C
     matrix_a, sigma_a = test_data_set[0], test_data_set[1]
+    matrix_a, sigma_a = normalize_by_monitor(matrix_a, sigma_a, monitor_a)
+
     matrix_b, sigma_b = test_data_set[2], test_data_set[3]
+    matrix_b, sigma_b = normalize_by_monitor(matrix_b, sigma_b, monitor_b)
+
     matrix_c, sigma_c = test_data_set[4], test_data_set[5]
+    matrix_c, sigma_c = normalize_by_monitor(matrix_c, sigma_c, monitor_c)
 
     # convert input data to required format
+    # Prepare data
     flood_matrix = np.ndarray(shape=(3, matrix_a.size), dtype=float)
     flood_error = np.ndarray(shape=(3, matrix_a.size), dtype=float)
+
+    # normalize data
 
     flood_matrix[0] = matrix_a.flatten()
     flood_matrix[1] = matrix_b.flatten()
@@ -453,7 +462,7 @@ def test_prepare_moving_det_sensitivity():
 
     monitor_counts = np.array([monitor_a, monitor_b, monitor_c])
 
-    test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error, monitor_counts,
+    test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error,
                                                                  threshold_min, threshold_max)
 
     # verify that the refactored high level method renders the same result from prototype

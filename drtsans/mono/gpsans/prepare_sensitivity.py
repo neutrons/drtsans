@@ -235,18 +235,28 @@ def _normalize_sensitivities(d_array, sigam_d_array):
         normalized pixel-wise sensitivities, normalized pixel-wise sensitivities error
         scalar sensitivity, error of scalar sensitivity
     """
-    # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
-    # denominator = sum_{m, n}{D(m, n) / sigma^2(m, n)}
+    # Calculate wighted-average of pixel-wise sensitivities: i.e., do the summation on the all pixels
+    # since the 2D detector is treated as a 1D array in this method.
+    # Each (m, n) has a unique value p to be mapped to.
+
+    # Any NaN terms and Infinity terms (for bad pixels) shall be excluded from summation
+    # ~(np.isinf(d_array) | np.isnan(d_array) gives out the indexes of elements in d_array that are not NaN or Inf
+    # calculate denominator: denominator = sum_{m, n}{D(m, n) / sigma^2(m, n)} = sum_p D(p) / sigma^2(p)
     denominator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
                          sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
+    # calculate nominator: nominator = sum_{m, n}{1 / sigma^2(m, n)}
     nominator = np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
     sens_avg = denominator / nominator
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_array / sens_avg
 
-    # Calculate scalar sensitivity's error
+    # Calculate scalar sensitivity's error:
     # sigma_S_avg = sqrt(1 / sum_{m, n}(1 / sigma_D(m, n)^2))
+    # for all D(m, n) are not NaN
+    # Thus, all the NaN terms shall be excluded from summation
+    # All the infinity terms shall be ignored because (1/inf) is zero and has no contribution in summation
+    # d_array[~(np.isinf(d_array) | np.isnan(d_array))] excludes all items that are either infinity or Nan
     sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))]))
 
     # Propagate the sensitivities

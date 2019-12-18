@@ -460,7 +460,7 @@ def test_prepare_moving_det_sensitivity():
     flood_error[1] = sigma_b.flatten()
     flood_error[2] = sigma_c.flatten()
 
-    monitor_counts = np.array([monitor_a, monitor_b, monitor_c])
+    # monitor_counts = np.array([monitor_a, monitor_b, monitor_c])
 
     test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error,
                                                                  threshold_min, threshold_max)

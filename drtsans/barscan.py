@@ -254,12 +254,8 @@ def apparent_tube_width(input_workspace, output_workspace=None):
     if output_workspace != str(input_workspace):  # are we overwriting the pixel widths of the input workspace?
         CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
     collection = TubeCollection(output_workspace, 'detector1').sorted(view='decreasing X')
-    for tube in collection[::2]:  # front tubes
-        for pixel in tube:
-            pixel.width = front_width
-    for tube in collection[1::2]:  # back tubes
-        for pixel in tube:
-            pixel.width = back_width
+    for i, tube in enumerate(collection):
+        tube.pixel_widths = front_width if i % 2 == 0 else back_width  # front tubes have even index
 
     DeleteWorkspaces(integrated_intensities, mask_workspace)
     return mtd[output_workspace]

@@ -232,10 +232,10 @@ def apparent_tube_width(input_workspace, output_workspace=None):
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
     collection = TubeCollection(integrated_intensities, 'detector1').sorted(view='decreasing X')
-    intensities = mtd[integrated_intensities].extractY().flatten()
     count_densities = list()
     for tube in collection:
-        d = np.mean([intensities[pixel.spectrum_index] / pixel.height for pixel in tube if pixel.isMasked is False])
+        weighted_intensities = tube.readY.ravel() / tube.pixel_heights
+        d = np.mean(weighted_intensities[~tube.isMasked])
         count_densities.append(d)
     count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
 
@@ -254,12 +254,8 @@ def apparent_tube_width(input_workspace, output_workspace=None):
     if output_workspace != str(input_workspace):  # are we overwriting the pixel widths of the input workspace?
         CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
     collection = TubeCollection(output_workspace, 'detector1').sorted(view='decreasing X')
-    for tube in collection[::2]:  # front tubes
-        for pixel in tube:
-            pixel.width = front_width
-    for tube in collection[1::2]:  # back tubes
-        for pixel in tube:
-            pixel.width = back_width
+    for i, tube in enumerate(collection):
+        tube.pixel_widths = front_width if i % 2 == 0 else back_width  # front tubes have even index
 
     DeleteWorkspaces(integrated_intensities, mask_workspace)
     return mtd[output_workspace]

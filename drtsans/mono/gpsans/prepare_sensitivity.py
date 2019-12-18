@@ -118,22 +118,31 @@ def _calculate_weighted_average_with_error(normalized_data, normalized_error):
         data normalized by average, data's error normalized by average, Average, sigma(Average)
 
     """
-    # Calculate weighted average
-    # a = sum_{m, n} I(m, n) / sigma^2(m, n)
+    # Calculate weighted average for each flood file/run (average = sum_{i, j} I(i, j) / sigma^2(i, j))
+    # For m-th flood file/run
+    # where (i, j) is the index of a pixel on 2D detector and n is the index of same pixel as the 2D array
+    # is flattened to 1D.
+    # np.nansum() is used to exclude NaN from summation
+    # np.nansum():  https://docs.scipy.org/doc/numpy/reference/generated/numpy.nansum.html
+    # Summation is done along axis=1, the return, weighted_sum, is a 1D array with shape (M,)
+
+    # calculate:  sum_{n} I(m, n) / sigma^2(m, n)
     weighted_sum = np.nansum(normalized_data / normalized_error**2, axis=1)  # summing in row
-    # b = sum 1 / sigma^2(m, n)
+    # calculate: sum_n(1 / sigma^2(m, n))
     weights_square = np.nansum(1. / normalized_error**2, axis=1)
-    # Avg = a / b
+    # average[m] == sum_{n}(I(m, n) / sigma^2(m, n)) / sum_{n}(1 / sigma^2(m, n))
     weighted_average = weighted_sum / weights_square
+    # reshape to (M, 1) for division to input 2D array with shape (M, N)
     weighted_average = weighted_average.reshape((normalized_data.shape[0], 1))  # reshape to (N, 1) for division
-    # sigma Avg = 1 / sqrt(b)
+    # calculate: error for weighted average: sigma_avg[m] = 1 / sqrt(sum_{n}(1 / sigma^2(m, n)))
     weighted_average_error = 1. / np.sqrt(weights_square)
+    # reshape to (M, 1) for division to input 2D array with shape (M, N)
     weighted_average_error = weighted_average_error.reshape((normalized_data.shape[0], 1))
 
     # Normalize data by weighted-average
     avg_norm_data = normalized_data / weighted_average
 
-    # Propagate uncertainties: sigma S(m, n) = I(m, n) / avg * [(error(m, n)/I(m, n))^2 + (sigma Avg/Avg)^2]^1/2
+    # Propagate uncertainties: sigma S(n) = I(m, n) / avg * [(error(m, n)/I(m, n))^2 + (sigma Avg/Avg)^2]^1/2
     # in the sqrt operation, first term is a N x M array and second term is a N x 1 array
     avg_norm_error = normalized_data / weighted_average * np.sqrt((normalized_error / normalized_data)**2
                                                                   + (weighted_average_error / weighted_average)**2)
@@ -165,6 +174,8 @@ def _apply_sensitivity_thresholds(data, data_error, threshold_min, threshold_max
         data with bad pixels set to INF,
         data error with bad pixels set to INF
     """
+    # (data < threshold_min) | (data > threshold_max) returns the list of indexes in array data whose values
+    # are either smaller than minimum threshold or larger than maximum threshold.
     data[(data < threshold_min) | (data > threshold_max)] = -np.inf
     data_error[(data < threshold_min) | (data > threshold_max)] = -np.inf
 
@@ -196,17 +207,22 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
         1D array as all the flood files are summed
 
     """
-    # Keep a record on the array elements with np.inf
+    # Keep a record on the array elements with np.inf long axis=0, i.e., same detector pixel among different
+    # flood files
     simple_sum = np.sum(flood_data, axis=0)
 
     # Calculate D'(i, j)    = sum_{k}^{A, B, C}M_k(i, j)/s_k^2(i, j)
     #           1/s^2(i, j) = sum_{k}^{A, B, C}1/s_k^2(i, j)
-    # Do weighted summation to the subset by excluding the NaN
+    # Do weighted summation to the subset and exclude the NaN by np.nansum()
+    # np.nansum():  https://docs.scipy.org/doc/numpy/reference/generated/numpy.nansum.html
+    # If there is any element in array that is infinity, the summation of all elements on the specified axis
+    # i.e., among all flood data files/runs, could be messed up (though every likely the summed value is inf).
     s_ij = np.nansum(1. / flood_error ** 2, axis=0)  # summation along axis 1: among files
     d_ij = np.nansum(flood_data / flood_error ** 2, axis=0) / s_ij
     s_ij = 1. / np.sqrt(s_ij)
 
-    # In case there is at least an inf in this subset of data, set sensitivities to -inf
+    # In case there is at least an inf in this subset of data along axis=0, i.e., among various flood runs/files,
+    # set sensitivities to -inf in case nansum() messes up
     s_ij[np.isinf(simple_sum)] = -np.inf
     d_ij[np.isinf(simple_sum)] = -np.inf
 
@@ -220,28 +236,29 @@ def _normalize_sensitivities(d_array, sigam_d_array):
     """Do weighted average to pixel-wise sensitivities and propagate the error
     And then apply the average to sensitivity
 
-    S_avg = sum_{m, n}{D(m, n) / sigma^2(m, n)} / sum_{m, n}{1 / sigma^2(m, n)}
+    S_avg = sum_{i, j}{D(i, j) / sigma^2(i, j)} / sum_{i, j}{1 / sigma^2(i, j)}
 
     Parameters
     ----------
     d_array : ndarray
-        pixel-wise sensitivities
+        pixel-wise sensitivities in 1D array with shape (N,) where N is the number of pixels
     sigam_d_array : ndarray
-        pixel-wise sensitivities error
+        pixel-wise sensitivities error in 1D array with shape (N,) where N is the number of pixels
 
     Returns
     -------
     ndarray, ndarray, float, float
         normalized pixel-wise sensitivities, normalized pixel-wise sensitivities error
         scalar sensitivity, error of scalar sensitivity
+
     """
     # Calculate wighted-average of pixel-wise sensitivities: i.e., do the summation on the all pixels
     # since the 2D detector is treated as a 1D array in this method.
-    # Each (m, n) has a unique value p to be mapped to.
+    # Each (i, j) has a unique value p to be mapped to n.
 
     # Any NaN terms and Infinity terms (for bad pixels) shall be excluded from summation
     # ~(np.isinf(d_array) | np.isnan(d_array) gives out the indexes of elements in d_array that are not NaN or Inf
-    # calculate denominator: denominator = sum_{m, n}{D(m, n) / sigma^2(m, n)} = sum_p D(p) / sigma^2(p)
+    # calculate denominator: denominator = sum_{i, j}{D(i, j) / sigma^2(i, j)} = sum_{n}(D(n) / sigma^2(n))
     denominator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
                          sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
     # calculate nominator: nominator = sum_{m, n}{1 / sigma^2(m, n)}

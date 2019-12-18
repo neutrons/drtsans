@@ -1,4 +1,5 @@
 import numpy as np
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/gpsans/prepare_sensitivity.py
 from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity
 import pytest
 
@@ -8,8 +9,10 @@ import pytest
 # SME - William Heller <hellerwt@ornl.gov>, Lisa
 
 
+# All testing data are from
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/906bfc358e1d6eb12a78439aef615f03/sensitivity_math.xlsx
 def generate_test_data():
-    """Generate test data from IS (Lisa)
+    """Generate test data, 3 flood runs and errors, from sensitivity_math.xlsx
 
     Returns
     -------
@@ -38,7 +41,9 @@ def generate_test_data():
 
 
 def get_weighted_averaged_matrix_abc():
-    """Get the weighted average for 3 test files A, B, C with the uncertainties
+    """Get the gold weighted average for 3 test files A, B, C with the uncertainties
+
+    Data is from sensitivity_math.xlsx as gold data to test weighted average method
 
     Returns
     -------
@@ -86,6 +91,8 @@ def get_weighted_averaged_matrix_abc():
 def get_non_normalized_sensitivities():
     """Get the gold data for non-normalized pixel-wise sensitivities.
 
+    Data is from sensitivity_math.xlsx as gold data to test methods to calculate non-normalized sensitivities
+
     Matrix D and sigmaD in Lisa's test document
 
     Returns
@@ -110,7 +117,8 @@ def get_non_normalized_sensitivities():
 def get_final_sensitivities():
     """Get the final sensitivities and sigma
 
-    "Apply another weighted average and propate the error"
+    Data is from sensitivity_math.xlsx as gold data to test methods to calculate non-normalized sensitivities
+    From PDF: "Apply another weighted average and propate the error"
 
     Returns
     -------
@@ -132,23 +140,23 @@ def get_final_sensitivities():
     return sen_matrix, sen_sigma_matrix
 
 
-def verify_result(sensitivity, sensitivity_error):
-    """Verify the test result
-
-    Parameters
-    ----------
-    sensitivity: ndarray
-        sensitivity
-    sensitivity_error: ndarray
-        propagated sensitivity error
-
-    Returns
-    -------
-    boolean
-        result is same as gold value
-    """
-    assert sensitivity
-    assert sensitivity_error
+# def verify_result(sensitivity, sensitivity_error):
+#     """Verify the test result
+#
+#     Parameters
+#     ----------
+#     sensitivity: ndarray
+#         sensitivity
+#     sensitivity_error: ndarray
+#         propagated sensitivity error
+#
+#     Returns
+#     -------
+#     boolean
+#         result is same as gold value
+#     """
+#     assert sensitivity
+#     assert sensitivity_error
 
 
 def normalize_by_monitor(flood_data, flood_data_error, monitor_counts):

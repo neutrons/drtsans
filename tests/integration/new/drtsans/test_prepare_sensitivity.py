@@ -3,10 +3,10 @@ import copy
 from mantid.simpleapi import MaskDetectors
 import pytest
 from drtsans.sensitivity import prepare_sensitivity_correction
-
+from numpy.testing import assert_allclose
 
 @pytest.mark.parametrize('workspace_with_instrument',
-                          [dict(name='EQSANS', Nx=8, Ny=8)], indirect=True)
+                          [dict(name='EQSANS', Nx=20, Ny=8)], indirect=True)
 def test_prepare_sensitivity(workspace_with_instrument):
 
     flood_field_measurement = np.array([[65, 68, 66, 75, 71,  68, 66, 70],
@@ -46,23 +46,23 @@ def test_prepare_sensitivity(workspace_with_instrument):
     II = ffm_with_mask/F
     dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
 
-    interp = np.array([[-5.548e-4,  1.372e-2, 0.892136],
-                       [-6.552e-4,  1.299e-2, 0.909756],
-                       [-8.893e-5,  4.709e-4, 0.967607],
-                       [ 2.956e-4, -5.993e-3, 0.998236],
-                       [-6.629e-4,  1.560e-2, 0.899285],
-                       [-4.301e-7, -6.149e-5, 0.968977],
-                       [ 4.342e-4, -1.082e-2, 1.017300],
-                       [-5.709e-4,  6.707e-2, 0.980344]])
+    interp = np.array([[-5.55e-4,  1.3720e-2, 0.892143],
+                       [-6.55e-4,  1.2996e-2, 0.909765],
+                       [ -8.9e-5,  4.72e-4, 0.967609],
+                       [ 2.96e-4, -5.991e-3, 0.998240],
+                       [-6.63e-4,  1.5604e-2, 0.899279],
+                       [0.000000, -6.4e-5, 0.969006],
+                       [ 4.34e-4, -1.0815e-2, 1.017307],
+                       [-5.71e-4,  6.709e-3, 0.980341]])
 
-    interp_uncertainty = np.array([[4.010e-4, 7.881e-3, 0.032898],
-                                   [4.985e-4, 9.797e-3, 0.040248],
-                                   [3.194e-4, 6.248e-3, 0.025796],
-                                   [4.721e-4, 9.217e-3, 0.035958],
-                                   [4.097e-4, 8.022e-3, 0.033377],
-                                   [5.534e-4, 1.076e-2, 0.043730],
-                                   [4.398e-4, 8.599e-3, 0.034995],
-                                   [3.527e-4, 6.872e-3, 0.028257]])
+    interp_uncertainty = np.array([[4.01e-4, 7.882e-3, 0.032903],
+                                   [4.99e-4, 9.798e-3, 0.040252],
+                                   [3.19e-4, 6.248e-3, 0.025796],
+                                   [4.72e-4, 9.217e-3, 0.035956],
+                                   [4.10e-4, 8.021e-3, 0.033378],
+                                   [5.53e-4, 1.0765e-2, 0.043732],
+                                   [4.40e-4, 8.559e-3, 0.034993],
+                                   [3.53e-4, 6.872e-3, 0.028256]])
 
     extrapolation = copy.deepcopy(II)
     extrapolation_uncertainty = copy.deepcopy(dI)
@@ -74,6 +74,8 @@ def test_prepare_sensitivity(workspace_with_instrument):
     extrapolation[0,  2] = interp[2, 2] + interp[2, 1]*19. + interp[2, 0]*19.**2
     extrapolation[19, 2] = interp[2, 2]
     extrapolation[0, 3] = interp[3, 2] + interp[3, 1]*19. + interp[3, 0]*19.**2
+    extrapolation[8, 3] = interp[3, 2] + interp[3, 1]*11. + interp[3, 0]*11.**2
+    extrapolation[9, 3] = interp[3, 2] + interp[3, 1]*10. + interp[3, 0]*10.**2
     extrapolation[19, 3] = interp[3, 2]
     extrapolation[0, 4] = interp[4, 2] + interp[4, 1]*19. + interp[4, 0]*19.**2
     extrapolation[19, 4] = interp[4, 2]
@@ -83,9 +85,6 @@ def test_prepare_sensitivity(workspace_with_instrument):
     extrapolation[19, 6] = interp[6, 2]
     extrapolation[0, 7] = interp[7, 2] + interp[7, 1]*19. + interp[7, 0]*19.**2
     extrapolation[19, 7] = interp[7, 2]
-
-    extrapolation[13, 1] = np.nan
-    extrapolation[7,  5] = np.nan
 
     extrapolation_uncertainty[0, 0] = np.sqrt(interp_uncertainty[0, 2]**2 + (interp_uncertainty[0, 1]*19.)**2 +
                                               (interp_uncertainty[0, 0]*19.**2)**2)
@@ -98,6 +97,10 @@ def test_prepare_sensitivity(workspace_with_instrument):
     extrapolation_uncertainty[19, 2] = np.sqrt(interp_uncertainty[2, 2]**2)
     extrapolation_uncertainty[0, 3] = np.sqrt(interp_uncertainty[3, 2]**2 + (interp_uncertainty[3, 1]*19.)**2 +
                                               (interp_uncertainty[3, 0]*19.**2)**2)
+    extrapolation_uncertainty[8, 3] = np.sqrt(interp_uncertainty[3, 2]**2 + (interp_uncertainty[3, 1]*11.)**2 +
+                                              (interp_uncertainty[3, 0]*11.**2)**2)
+    extrapolation_uncertainty[9, 3] = np.sqrt(interp_uncertainty[3, 2]**2 + (interp_uncertainty[3, 1]*10.)**2 +
+                                              (interp_uncertainty[3, 0]*10.**2)**2)
     extrapolation_uncertainty[19, 3] = np.sqrt(interp_uncertainty[3, 2]**2)
     extrapolation_uncertainty[0, 4] = np.sqrt(interp_uncertainty[4, 2]**2 + (interp_uncertainty[4, 1]*19.)**2 +
                                               (interp_uncertainty[4, 0]*19.**2)**2)
@@ -112,13 +115,10 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                               (interp_uncertainty[7, 0]*19.**2)**2)
     extrapolation_uncertainty[19, 7] = np.sqrt(interp_uncertainty[7, 2]**2)
 
-    extrapolation[13, 1] = np.nan
-    extrapolation[7,  5] = np.nan
-
-    print()
-    print(extrapolation)
-    print()
-    assert False
+    extrapolation[6, 1] = np.nan
+    extrapolation[12, 5] = np.nan
+    extrapolation_uncertainty[6, 1] = np.nan
+    extrapolation_uncertainty[12, 5] = np.nan
 
     final_sensitivity = np.nanmean(extrapolation)
     n_elements = np.sum(np.logical_not(np.isnan(extrapolation_uncertainty)))
@@ -129,22 +129,10 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     ws = workspace_with_instrument(axis_values=[1.,2.], intensities=ffm_with_mask,
                               uncertainties=ffm_uncertainty_with_mask, view='array')
-    #y = ws.extractY().flatten()
-    #indices_to_mask = []
-    #for i, yi in enumerate(y):
-    #   if np.isnan(yi):
-    #        indices_to_mask.append(i)
-    #indices_to_mask = np.arange(len(y))[np.isnan(y)]
-    #print(ws.getNumberHistograms())
-    #MaskDetectors(ws, WorkspaceIndexList=indices_to_mask)
-    #print(ws.getNumberHistograms())
-    #np.set_printoptions(precision=4)
-    #print(ws.extractY().reshape(8, 8))
-    out = prepare_sensitivity_correction(ws, min_threshold=0.45, max_threshold=2.0)
-    #assert False
-    #print(out.extractY().reshape(8, 8))
-    #print(out.extractE().reshape(8, 8))
-    #print('')
-    #print(result)
-    #print(result_uncertainty)
-    assert False
+    out = prepare_sensitivity_correction(ws, min_threshold=0.5, max_threshold=2.0)
+
+    out_result = np.flip(np.transpose(out.extractY().reshape(8, 20)), 0)
+    out_uncertainty = np.flip(np.transpose(out.extractE().reshape(8, 20)), 0)
+
+    assert_allclose(result, out_result, equal_nan=True, atol=0.001)
+    assert_allclose(result_uncertainty, out_uncertainty, equal_nan=True, atol=0.001)

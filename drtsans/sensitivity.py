@@ -461,6 +461,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
     y = input_workspace.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    original_mask = np.isnan(y)
     F = np.nanmean(y)
     MaskDetectors(input_workspace, WorkspaceIndexList=indices_to_mask)
     n_elements = 0
@@ -471,10 +472,6 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
     II = Divide(LHSWorkspace=input_workspace, RHSWorkspace=F_ws, OutputWorkspace=uwd())
-    print('')
-    np.set_printoptions(precision=1)
-    print(II.extractY().reshape(8, 8))
-    print(II.extractE().reshape(8, 8))
 
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
                     Mode='SelectIf', Operator='Greater', Value=max_threshold)
@@ -482,22 +479,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
                     Mode='SelectIf', Operator='Less', Value=min_threshold)
 
-    d_info = II.detectorInfo()
-    #print(d_info.size())
-    #for item in d_info:
-    #   print(item.index)
-    comp_info = II.componentInfo()
     det_info = II.detectorInfo()
-    #print(comp_info.size())
-    #meow = []
-    #for item in comp_info:
-    #    meow.append(item.name)
-    #meow = np.array(meow)
-    #print(meow)
-    #print(meow[:64].reshape(8, 8))
-
     comp = detector.Component(II, 'detector1')
-    np.set_printoptions(precision=1)
 
     for j in range(0, comp.dim_y):
         xx = []
@@ -505,39 +488,43 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
         ee = []
         masked_indices = []
         for i in range(0, comp.dim_x):
-            index = comp.dim_y*j + i
+            index = comp.dim_x*j + i
             if det_info.isMasked(index):
-                masked_indices.append([i+1, index])
+                masked_indices.append([i, index])
             else:
-                xx.append(i+1)
+                xx.append(i)
                 yy.append(II.readY(index)[0])
                 ee.append(II.readE(index)[0])
-        try:
-            polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=1. / np.array(ee), cov=True)
-            # Errors in the least squares is the sqrt of the covariance matrix
-            # (correlation between the coefficients)
-            e_coeffs = np.sqrt(np.diag(cov_matrix))/2.
-        except ValueError:
-            polynomial_coeffs = np.polyfit(xx, yy, 2, w=1. / np.array(ee), cov=False)
-            e_coeffs = np.ones(3)
+
+        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=np.array(ee), cov=True)
+        # Errors in the least squares is the sqrt of the covariance matrix
+        # (correlation between the coefficients)
+        e_coeffs = np.sqrt(np.diag(cov_matrix))
         masked_indices = np.array(masked_indices)
+
         y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
         a = masked_indices[:, 0]
         # errors of the polynomial
         e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
                         (e_coeffs[0]*masked_indices[:, 0]**2)**2)
-        for i, index in enumerate(masked_indices[:, 1]):
-            #assert II.readY(int(index))[0] == 0.
-            II.setY(int(index), [y_new[i]])
-            II.setE(int(index), np.array(e_new[i]))
-    #for i in range(8):
-    #    print(II.readY(i)[0])
-    print(II.extractY().reshape(8, 8))
-    print(II.extractE().reshape(8, 8))
+        for i, index in enumerate(masked_indices[:,1]):
+            if original_mask[index]:
+              det_info.setMasked(int(index), False)
+              II.setY(int(index), [y_new[i]])
+              II.setE(int(index), np.array(e_new[i]))
+            else:
+              II.setY(int(index), [np.nan])
+              II.setE(int(index), np.array(np.nan))
 
-
-
-
-
-
+    y = II.extractY().flatten()
+    indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    F = np.nanmean(y)
+    n_elements = 0
+    for i in range(input_workspace.getNumberHistograms()):
+        n_elements += len(input_workspace.readY(i))
+    n_elements -= len(indices_to_mask)
+    y_uncertainty = II.extractE().flatten()
+    dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
+    output_workspace = Divide(LHSWorkspace=II, RHSWorkspace=F_ws, OutputWorkspace=uwd())
     return output_workspace

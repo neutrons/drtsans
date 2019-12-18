@@ -1,3 +1,4 @@
+import numbers
 import functools
 from inspect import signature
 import numpy as np
@@ -43,17 +44,27 @@ def _decrement_arity(attribute, index):
             if parameters[0][-4:] == 'self':  # `attribute` is a bound method
                 parameters.pop()
         if len(parameters) == 0:
-            result = attribute()
+            result = attribute()  # attribute is a function of no arguments
             return np.array(result) if isinstance(result, V3D) else result
         if len(parameters) == 1:
-            result = attribute(index)
-            return np.array(result) if isinstance(result, V3D) else result
-        return functools.partial(attribute, index)
+            result = attribute(index)  # attribute is a function of only one argument
+            return np.array(result) if isinstance(result, V3D) else result  # who wants to handle V3D objects?
+        return functools.partial(attribute, index)  # attribute is a function of more than one argument
     return attribute  # nothing to do is `attribute` is not callable
 
 
 def _inverse_map(list_of_functions, *args, **kwargs):
-    r"""Apply a list of functions to a set of given arguments"""
+    r"""Apply a list of functions to a set of given arguments
+
+    Parameters
+    ----------
+    list_of_functions: list
+        List whose items are callables.
+    args: list
+        Required argumens to be passed on to the functions of '`list_of_functions``.
+    kwargs: dict
+        Optional argumens to be passed on to the functions of '`list_of_functions``.
+    """
     return [function(*args, **kwargs) for function in list_of_functions]
 
 
@@ -63,8 +74,11 @@ class SpectrumInfo:
         r"""Wrapper to ~mantid.api.SpectrumInfo. We reduce the arity for the methods of `SpectrumInfo`, thus
         converting them into methods of `SpectrumInfo`.
 
+        Example: function ~mantid.api.SpectrumInfo.isMasked(index) becomes simple attribute SpectrumInfo.isMasked.
+
         The class contains additional methods for SpectrumInfo that are wrappers to methods
-        of ~mantid.api.Workspace such as `readY`
+        of ~mantid.api.Workspace. For example, function ~mantid.api.Workspace.readY(index) become simple
+        attribute SpectrumInfo.readY.
 
         Parameters
         ----------
@@ -82,7 +96,7 @@ class SpectrumInfo:
 
         Methods of ~mantid.api.SpectrumInfo with only one argument, the component info index, become
         read-only properties of SpectrumInfo. Example: ``spectrum_info.hasUniqueDetectors(90177)``
-         becomes ``element_component_info.hasUniqueDetectors``
+         becomes ``SpectrumInfo.hasUniqueDetectors``
 
         Methods of ~mantid.geometry.SpectrumInfo with more than one argument where the first argument is the
         component info index become methods of SpectrumInfo with this argument removed.
@@ -90,6 +104,7 @@ class SpectrumInfo:
         Parameters
         ----------
         item: str
+            Name of anyone of the functions of ~mantid.geometry.SpectrumInfo.
         """
         _spectrum_info = self.__dict__['_spectrum_info']
         try:
@@ -104,6 +119,11 @@ class SpectrumInfo:
             return np.array(arity_decremented_attributes)  # attribute's arity was less than two
         except AttributeError:
             return super().__getattr__(item)  # Next class in the Method Resolution Order
+
+    def __len__(self):
+        if isinstance(self.spectrum_info_index, int):
+            return 1
+        return len(self.spectrum_info_index)
 
     def _iterate_with_indexes(self, function_name, array_type=np.array):
         r"""
@@ -139,11 +159,6 @@ class SpectrumInfo:
     @property
     def readE(self):
         return self._iterate_with_indexes('readE')
-
-    def __len__(self):
-        if isinstance(self.spectrum_info_index, int):
-            return 1
-        return len(self.spectrum_info_index)
 
 
 class ElementComponentInfo:
@@ -364,15 +379,56 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     def __getitem__(self, item):
         return self.pixels[item]  # iterate over the pixels
 
+    # Below are a few properties to hide complexity when coding for the bar-scan calibration
     @property
     def pixel_heights(self):
-        r"""Convenience property to get the pixel heights"""
+        r"""Convenience property to get/set the pixel heights"""
         return np.array([pixel.height for pixel in self.pixels])
+
+    @pixel_heights.setter
+    def pixel_heights(self, heights):
+        r"""
+        Parameters
+        ----------
+        heights: float or list
+            Either a list of heights or a single number if all pixel heights are to be the same.
+        """
+        heights = [heights, ] * len(self) if isinstance(heights, numbers.Real) else heights
+        for pixel, height in zip(self.pixels, heights):
+            pixel.height = height
 
     @property
     def pixel_widths(self):
-        r"""Convenience property to get the pixel widths"""
+        r"""Convenience property to get/set the pixel widths"""
         return np.array([pixel.width for pixel in self.pixels])
+
+    @pixel_widths.setter
+    def pixel_widths(self, widths):
+        r"""
+        Parameters
+        ----------
+        widths: float or list
+            Either a list of widths or a single number if all pixel widths are to be the same.
+        """
+        widths = [widths, ] * len(self) if isinstance(widths, numbers.Real) else widths
+        for pixel, width in zip(self.pixels, widths):
+            pixel.width = width
+
+    @property
+    def pixel_y(self):
+        r"""Convenience property to get/set the pixel Y-coordinate"""
+        return np.array([pixel.position[1] for pixel in self.pixels])
+
+    @pixel_y.setter
+    def pixel_y(self, y_coordinates):
+        r"""
+        Parameters
+        ----------
+        y_coordinates: list
+            List, or any other iterable, to update the Y-coordinates of the pixels in the tube.
+        """
+        for pixel, y in zip(self.pixels, y_coordinates):
+            pixel.position = ('y', y)
 
 
 class TubeCollection(ElementComponentInfo):

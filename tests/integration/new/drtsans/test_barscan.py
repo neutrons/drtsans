@@ -3,15 +3,16 @@ import numpy as np
 import tempfile
 
 r""" Hyperlinks to mantid algorithms
-DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
-SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 AddSampleLog <https://docs.mantidproject.org/nightly/algorithms/AddSampleLog-v1.html>
+DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
+SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import DeleteWorkspace, SaveNexus, LoadNexus, Load, AddSampleLog
+from mantid.simpleapi import AddSampleLog, DeleteWorkspace, LoadNexus, SaveNexus
 
 r"""
 Hyperlinks to drtsans functions
-apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration, apply_barscan_calibration    
+apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration, apply_barscan_calibration
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py>
 namedtuplefy, unique_workspace_dundername
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>

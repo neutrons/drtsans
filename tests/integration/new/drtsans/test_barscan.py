@@ -1,40 +1,38 @@
 import pytest
 import numpy as np
 import tempfile
-import os
 
 r""" Hyperlinks to mantid algorithms
 DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 AddSampleLog <https://docs.mantidproject.org/nightly/algorithms/AddSampleLog-v1.html>
 """
-from mantid.simpleapi import DeleteWorkspace, SaveNexus, AddSampleLog
+from mantid.simpleapi import DeleteWorkspace, SaveNexus, LoadNexus, Load, AddSampleLog
 
 r"""
 Hyperlinks to drtsans functions
-apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration
+apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration, apply_barscan_calibration    
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py>
-namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+namedtuplefy, unique_workspace_dundername
+    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
-from drtsans.barscan import apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration
+from drtsans.barscan import (apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration,
+                             apply_barscan_calibration)
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tubecollection import TubeCollection
 
-r"""Finding the edges of the barscan in a single tube,
-then calculate the position and width of the pixels
-
-based on BarScanShadow_test_KCL_SVP.xlsx and BarScanFitTest_KCL.xlsx
-Testing appendix 2.1 in the master document
-
-devs - Andrei Savici <saviciat@ornl.gov>,
-       Jose Borreguero <borreguerojm@ornl.gov>
-SME  - Ken Littrell <littrellkc@ornl.gov>
-"""
-
 
 def test_find_edges():
-    r"""Check the algorithm for finding edges in a tube as part of a barscan
+    r"""Finding the edges of the barscan in a single tube,
+    then calculate the position and width of the pixels
+
+    based on BarScanShadow_test_KCL_SVP.xlsx and BarScanFitTest_KCL.xlsx
+    Testing appendix 2.1 in the master document
+
+    devs - Andrei Savici <saviciat@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
+    SME  - Ken Littrell <littrellkc@ornl.gov>
     """
     # tube intensities
     intensities = np.array([2, 2, 38, 38, 38, 34, 38, 41, 35, 3, 4, 3, 3, 4,
@@ -77,56 +75,11 @@ def test_fit_positions():
     # fit the positions
     new_positions, new_heights = fit_positions(edge_pixel, pos, tube_pixels=26)
     # compare to the expected data
-    expected_positions = [-119.659,
-                          -109.907,
-                          -98.892,
-                          -86.953,
-                          -74.396,
-                          -61.496,
-                          -48.494,
-                          -35.599,
-                          -22.989,
-                          -10.808,
-                          0.8303,
-                          11.846,
-                          22.189,
-                          31.846,
-                          40.831,
-                          49.193,
-                          57.013,
-                          64.403,
-                          71.508,
-                          78.506,
-                          85.606,
-                          93.049,
-                          101.109,
-                          110.094,
-                          120.340]
-    expected_heights = [9.001,
-                        10.443,
-                        11.530,
-                        12.296,
-                        12.771,
-                        12.989,
-                        12.981,
-                        12.779,
-                        12.417,
-                        11.926,
-                        11.337,
-                        10.685,
-                        10.000,
-                        9.315,
-                        8.663,
-                        8.075,
-                        7.583,
-                        7.221,
-                        7.019,
-                        7.011,
-                        7.228,
-                        7.704,
-                        8.469,
-                        9.556,
-                        10.998]
+    expected_positions = [-119.659, -109.907, -98.892, -86.953, -74.396, -61.496, -48.494, -35.599, -22.989, -10.808,
+                          0.8303, 11.846, 22.189, 31.846, 40.831, 49.193, 57.013, 64.403, 71.508, 78.506, 85.606,
+                          93.049, 101.109, 110.094, 120.340]
+    expected_heights = [9.001, 10.443, 11.530, 12.296, 12.771, 12.989, 12.981, 12.779, 12.417, 11.926, 11.337, 10.685,
+                        10.000, 9.315, 8.663, 8.075, 7.583, 7.221, 7.019, 7.011, 7.228, 7.704, 8.469, 9.556, 10.998]
     # fit_positions calculates also the expected position for pixel 0, not in the table
     assert new_positions[1:] == pytest.approx(expected_positions, abs=1e-2)
     assert new_heights[1:] == pytest.approx(expected_heights, abs=1e-2)
@@ -218,74 +171,123 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     DeleteWorkspace(modified_flood_workspace)  # flood_workspace is garbage collected upon test completion
 
 
+@pytest.fixture(scope='module')
+@namedtuplefy
+def data_generate_calibration():
+    r"""Data to be used for `test_generate_calibration"""
+    return dict(scans=[np.array([5.0, 96.0, 97.0, 97.0, 105.0, 21.0, 20.2, 20.0, 20.4, 104.0,
+                                 105.0, 101.0, 99.0, 98.0, 97.0, 97.0, 98.0, 103.0, 97.0, 4.0,  # tube 0
+                                 7.0, 103.0, 101.0, 104.0, 99.0, 19.2, 20.0, 20.8, 19.6, 103.0,
+                                 101.0, 102.0, 97.0, 95.0, 105.0, 105.0, 102.0, 96.0, 103.0, 7.0,  # tube 1
+                                 2.0, 97.0, 101.0, 103.0, 103.0, 19.8, 20.6, 19.8, 19.8, 98.0,
+                                 95.0, 99.0, 103.0, 100.0, 98.0, 97.0, 96.0, 95.0, 97.0, 2.0,  # tube 2
+                                 6.0, 103.0, 96.0, 98.0, 98.0, 19.6, 19.0, 20.6, 20.4, 101.0,
+                                 100.0, 97.0, 103.0, 95.0, 103.0, 101.0, 97.0, 99.0, 96.0, 8.0]),  # tube3
+                       np.array([3.0, 97.0, 96.0, 98.0, 103.0, 99.0, 97.0, 97.0, 21.0, 19.2, 19.8,
+                                 20.6, 104.0, 99.0, 96.0, 100.0, 100.0, 95.0, 101.0, 7.0,  # tube 0
+                                 5.0, 100.0, 104.0, 102.0, 97.0, 103.0, 95.0, 104.0, 19.0, 20.2,
+                                 19.8, 19.4, 105.0, 104.0, 104.0, 95.0, 98.0, 103.0, 105.0, 4.0,  # tube 1
+                                 3.0, 95.0, 100.0, 104.0, 101.0, 95.0, 102.0, 102.0, 19.8, 20.6,
+                                 20.0, 20.6, 101.0, 103.0, 97.0, 105.0, 103.0, 96.0, 98.0, 5.0,  # tube 2
+                                 6.0, 96.0, 95.0, 97.0, 101.0, 99.0, 99.0, 102.0, 21.0, 19.2,
+                                 19.8, 19.6, 105.0, 98.0, 101.0, 97.0, 96.0, 103.0, 95.0, 5.0]),  # tube3
+                       np.array([4.0, 97.0, 104.0, 101.0, 104.0, 101.0, 100.0, 96.0, 98.0, 95.0,
+                                 105.0, 103.0, 95.0, 19.2, 19.0, 19.4, 19.8, 104.0, 105.0, 5.0,  # tube 0
+                                 8.0, 98.0, 96.0, 104.0, 96.0, 104.0, 98.0, 96.0, 97.0, 98.0,
+                                 95.0, 99.0, 99.0, 20.8, 19.0, 19.8, 21.0, 99.0, 102.0, 4.0,  # tube 1
+                                 6.0, 104.0, 104.0, 98.0, 102.0, 105.0, 101.0, 101.0, 99.0,
+                                 101.0, 98.0, 101.0, 97.0, 19.0, 20.8, 20.4, 19.4, 95.0, 96.0, 1.0,  # tube 2
+                                 7.0, 96.0, 98.0, 104.0, 100.0, 95.0, 104.0, 100.0, 99.0, 104.0, 103.0,
+                                 103.0, 97.0, 19.4, 20.0, 19.6, 19.4, 100.0, 104.0, 4.0])],  # tube3
+                dcals=[50, 100., 150.],  # bar positions with respect to lowest position of the bar
+                wavelength_bin_boundaries=[6.0, 7.0],
+                bottom_pixels=[(5, 5, 5, 5), (8, 8, 8, 8), (13, 13, 13, 13)],  # expected bottom pixels
+                coefficients=(498.333, 27.500, -0.833),
+                # fitted y-coordinates for each pixel
+                positions=np.array([[498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
+                                     700., 708.333, 715., 720., 723.333, 725., 725., 723.333, 720.],
+                                    [498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
+                                     700., 708.333, 715., 720., 723.333, 725., 725., 723.333, 720.],
+                                    [498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
+                                     700., 708.333, 715., 720., 723.333, 725., 725., 723.333, 720.],
+                                    [498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
+                                     700., 708.333, 715., 720., 723.333, 725., 725., 723.333, 720.]]),
+                # fitted heights for each pixel
+                heights=np.array([[27.5, 25.8333, 24.1666, 22.5, 20.8333, 19.1666, 17.5,  15.8333, 14.1666, 12.5,
+                                   10.8333,  9.1666,  7.5, 5.8333,  4.1666, 2.5,  0.8333, -0.8333, -2.5, -4.1666],
+                                  [27.5, 25.8333, 24.1666, 22.5, 20.8333, 19.1666, 17.5, 15.8333, 14.1666, 12.5,
+                                   10.8333, 9.1666, 7.5, 5.8333, 4.1666, 2.5, 0.8333, -0.8333, -2.5, -4.1666],
+                                  [27.5, 25.8333, 24.1666, 22.5, 20.8333, 19.1666, 17.5, 15.8333, 14.1666, 12.5,
+                                   10.8333, 9.1666, 7.5, 5.8333, 4.1666, 2.5, 0.8333, -0.8333, -2.5, -4.1666],
+                                  [27.5, 25.8333, 24.1666, 22.5, 20.8333, 19.1666, 17.5, 15.8333, 14.1666, 12.5,
+                                   10.8333, 9.1666, 7.5, 5.8333, 4.1666, 2.5, 0.8333, -0.8333, -2.5, -4.1666]]),
+                precision=1.e-03  # one micron precision when comparing calculations with this data
+                )
+
+
 @pytest.mark.parametrize('workspace_with_instrument',
                          [{'instrument_geometry': 'n-pack', 'n_tubes': 4, 'n_pixels': 20,
                            'diameter': 5.5e-03, 'height': 4.2e-03, 'spacing': 0.0,
                            'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0}], indirect=True)
-def test_generate_calibration(workspace_with_instrument, cleanfile):
+def test_generate_calibration(data_generate_calibration, workspace_with_instrument, cleanfile):
     r"""
     Test to determine pixel position and height from from Appendix 2, Section 1 of the master document.
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/documents/Master_requirements_document.pdf>
 
     devs - Andrei Savici <saviciat@ornl.gov>
+           Jose Borreguero <borreguerojm@ornl.gov>
     SME  - William Heller <hellerwt@ornl.gov>
            Ken Littrell <littrellkc@ornl.gov>
     """
-    # create data files
-    intensities1 = np.array([5.0, 96.0, 97.0, 97.0, 105.0, 21.0, 20.2, 20.0, 20.4, 104.0,
-                             105.0, 101.0, 99.0, 98.0, 97.0, 97.0, 98.0, 103.0, 97.0, 4.0,  # tube 0
-                             7.0, 103.0, 101.0, 104.0, 99.0, 19.2, 20.0, 20.8, 19.6, 103.0,
-                             101.0, 102.0, 97.0, 95.0, 105.0, 105.0, 102.0, 96.0, 103.0, 7.0,  # tube 1
-                             2.0, 97.0, 101.0, 103.0, 103.0, 19.8, 20.6, 19.8, 19.8, 98.0,
-                             95.0, 99.0, 103.0, 100.0, 98.0, 97.0, 96.0, 95.0, 97.0, 2.0,  # tube 2
-                             6.0, 103.0, 96.0, 98.0, 98.0, 19.6, 19.0, 20.6, 20.4, 101.0,
-                             100.0, 97.0, 103.0, 95.0, 103.0, 101.0, 97.0, 99.0, 96.0, 8.0])  # tube3
-    intensities2 = np.array([3.0, 97.0, 96.0, 98.0, 103.0, 99.0, 97.0, 97.0, 21.0, 19.2, 19.8,
-                             20.6, 104.0, 99.0, 96.0, 100.0, 100.0, 95.0, 101.0, 7.0,  # tube 0
-                             5.0, 100.0, 104.0, 102.0, 97.0, 103.0, 95.0, 104.0, 19.0, 20.2,
-                             19.8, 19.4, 105.0, 104.0, 104.0, 95.0, 98.0, 103.0, 105.0, 4.0,  # tube 1
-                             3.0, 95.0, 100.0, 104.0, 101.0, 95.0, 102.0, 102.0, 19.8, 20.6,
-                             20.0, 20.6, 101.0, 103.0, 97.0, 105.0, 103.0, 96.0, 98.0, 5.0,  # tube 2
-                             6.0, 96.0, 95.0, 97.0, 101.0, 99.0, 99.0, 102.0, 21.0, 19.2,
-                             19.8, 19.6, 105.0, 98.0, 101.0, 97.0, 96.0, 103.0, 95.0, 5.0])  # tube3
-    intensities3 = np.array([4.0, 97.0, 104.0, 101.0, 104.0, 101.0, 100.0, 96.0, 98.0, 95.0,
-                             105.0, 103.0, 95.0, 19.2, 19.0, 19.4, 19.8, 104.0, 105.0, 5.0,  # tube 0
-                             8.0, 98.0, 96.0, 104.0, 96.0, 104.0, 98.0, 96.0, 97.0, 98.0,
-                             95.0, 99.0, 99.0, 20.8, 19.0, 19.8, 21.0, 99.0, 102.0, 4.0,  # tube 1
-                             6.0, 104.0, 104.0, 98.0, 102.0, 105.0, 101.0, 101.0, 99.0,
-                             101.0, 98.0, 101.0, 97.0, 19.0, 20.8, 20.4, 19.4, 95.0, 96.0, 1.0,  # tube 2
-                             7.0, 96.0, 98.0, 104.0, 100.0, 95.0, 104.0, 100.0, 99.0, 104.0, 103.0,
-                             103.0, 97.0, 19.4, 20.0, 19.6, 19.4, 100.0, 104.0, 4.0])  # tube3
+    data = data_generate_calibration  # short nickname
 
-    ws1 = workspace_with_instrument(axis_values=[6.], intensities=intensities1.reshape(20, 4), view='pixel')
-    AddSampleLog(Workspace=ws1, LogName='dcal', LogText='50.', LogType='Number Series', LogUnit='mm')
-    filename1 = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
-    cleanfile(filename1)
-    SaveNexus(InputWorkspace=ws1, Filename=filename1)
-    assert (os.path.exists(filename1))
+    def _scan_to_file(intensities, dcal):
+        r"""Convenience function to cast a scan into a workspace, then save it to file"""
+        workspace = unique_workspace_dundername()
+        workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, output_workspace=workspace,
+                                  intensities=intensities.reshape(20, 4), view='pixel')
+        AddSampleLog(Workspace=workspace, LogName='dcal', LogText=str(dcal), LogType='Number Series', LogUnit='mm')
+        filename = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
+        cleanfile(filename)
+        SaveNexus(InputWorkspace=workspace, Filename=filename)
+        return filename
 
-    ws2 = workspace_with_instrument(axis_values=[6.], intensities=intensities2.reshape(20, 4), view='pixel')
-    AddSampleLog(Workspace=ws2, LogName='dcal', LogText='100.', LogType='Number Series', LogUnit='mm')
-    filename2 = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
-    cleanfile(filename2)
-    SaveNexus(InputWorkspace=ws2, Filename=filename2)
-    assert (os.path.exists(filename2))
+    # The plan is to have bar scans saved into nexus files
+    file_names = [_scan_to_file(scan, dcal) for scan, dcal in zip(data.scans, data.dcals)]
 
-    ws3 = workspace_with_instrument(axis_values=[6.], intensities=intensities3.reshape(20, 4), view='pixel')
-    AddSampleLog(Workspace=ws3, LogName='dcal', LogText='150.', LogType='Number Series', LogUnit='mm')
-    filename3 = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
-    cleanfile(filename3)
-    SaveNexus(InputWorkspace=ws3, Filename=filename3)
-    assert (os.path.exists(filename3))
+    # Let's find the bottom-edge pixels for each tube in each scan and, compare with the expected data
+    bottom_pixels_multi_scan = list()
+    workspace = unique_workspace_dundername()
+    for scan_index, file_name in enumerate(file_names):
+        LoadNexus(Filename=file_name, OutputWorkspace=workspace)
+        # The main detector panel is called 'detector1', made up of four tubes which we gather into a TubeCollection
+        collection = TubeCollection(workspace, component_name='detector1').sorted(view='decreasing X')
+        bottom_pixels = [find_edges(tube.readY.ravel()).bottom_shadow_pixel for tube in collection]
+        assert bottom_pixels == pytest.approx(data.bottom_pixels[scan_index])
+        bottom_pixels_multi_scan.append(bottom_pixels)
 
-    barpos = calculate_barscan_calibration([filename1, filename2, filename3], 'test',
-                                           order=2, formula='dcal+565', tube_pixels=20)
-    assert barpos == 3
-    # find edges
-    edges = find_edges(intensities3[60:])
-    # check expected values
-    assert (edges.bottom_pixel, edges.top_pixel) == (1, 18)
-    assert (edges.bottom_shadow_pixel == 5)
+    # Let's fit the positions of the bottom-edge pixels in tube with index 0, with a second order polynomial
+    bottom_pixels_multi_scan = np.array(bottom_pixels_multi_scan)
+    dcals = [565 + dcal for dcal in data.dcals]  # add offset to each bar position
+    fit = fit_positions(bottom_pixels_multi_scan[:, 0], dcals, tube_pixels=20, order=2)
+    assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
+
+    # Let's do the whole calibration. The result is a calibration dictionary that looks like this:
+    # {'detector1': {'positions': [y0,..,y19], 'heights': [h0,..,h19]}}
+    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula='565+{dcal}')
+    assert np.array(calibration['detector1']['positions']) == pytest.approx(data.positions, abs=data.precision)
+    assert np.array(calibration['detector1']['heights']) == pytest.approx(data.heights, abs=data.precision)
+
+    # Let's use the pixel positions and heights to update our temporary workspace
+    apply_barscan_calibration(workspace, calibration)
+    # Now verify the pixels positions and heights in the workspace have indeed been updated
+    collection = TubeCollection(workspace, component_name='detector1').sorted(view='decreasing X')
+    positions, heights = list(), list()
+    for tube in collection:
+        positions.append([1000 * y for y in tube.pixel_y])  # from meters to mili-meters
+        heights.append([1000 * h for h in tube.pixel_heights])
+    assert np.array(positions) == pytest.approx(data.positions, abs=data.precision)
+    assert np.array(heights) == pytest.approx(data.heights, abs=data.precision)
 
 
 if __name__ == '__main__':

@@ -9,7 +9,8 @@ from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
     MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, Quadratic, \
     Fit
 from drtsans.path import exists as path_exists
-from drtsans.settings import unique_workspace_name as uwd
+from drtsans.settings import unique_workspace_name as uwn
+from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans import detector
 
 __all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']

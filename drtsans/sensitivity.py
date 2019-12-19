@@ -438,7 +438,6 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     Calculate the detector sensitivity
 
     **Mantid algorithms used:**
-    :ref:`CalculateEfficiency <algm-CalculateEfficiency-v1>`,
     :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
     :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
 
@@ -527,4 +526,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
     output_workspace = Divide(LHSWorkspace=II, RHSWorkspace=F_ws, OutputWorkspace=uwd())
+    if filename:
+        path = os.path.join(os.path.expanduser("~"), filename)
+        SaveNexusProcessed(InputWorkspace=output_workspace, Filename=path)
     return output_workspace

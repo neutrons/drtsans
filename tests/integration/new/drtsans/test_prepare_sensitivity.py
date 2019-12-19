@@ -56,6 +56,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
     II = ffm_with_mask/F
     dI = II * np.sqrt(np.square(ffm_uncertainty_with_mask/ffm_with_mask) + np.square(dF/F))
 
+    # Using numpy.polyfit() with a 2nd-degree polynomial, one finds the following coefficients and uncertainties.
     interp = np.array([[-5.55e-4,  1.3720e-2, 0.892143],
                        [-6.55e-4,  1.2996e-2, 0.909765],
                        [ -8.9e-5,  4.72e-4, 0.967609],
@@ -83,7 +84,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
     extrapolation_uncertainty[6, 1] = np.nan
     extrapolation_uncertainty[12, 5] = np.nan
 
-
+    # The patch is applied to the results of the previous step to produce S2(m,n).
     extrapolation[0,  0] = interp[0, 2] + interp[0, 1]*19. + interp[0, 0]*19.**2
     extrapolation[19, 0] = interp[0, 2]
     extrapolation[0,  1] = interp[1, 2] + interp[1, 1]*19. + interp[1, 0]*19.**2
@@ -103,6 +104,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
     extrapolation[0, 7] = interp[7, 2] + interp[7, 1]*19. + interp[7, 0]*19.**2
     extrapolation[19, 7] = interp[7, 2]
 
+    # The associated uncertainties, dS2(m,n) are given by the following.
     extrapolation_uncertainty[0, 0] = np.sqrt(interp_uncertainty[0, 2]**2 + (interp_uncertainty[0, 1]*19.)**2 +
                                               (interp_uncertainty[0, 0]*19.**2)**2)
     extrapolation_uncertainty[19, 0] = np.sqrt(interp_uncertainty[0, 2]**2)
@@ -132,6 +134,8 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                               (interp_uncertainty[7, 0]*19.**2)**2)
     extrapolation_uncertainty[19, 7] = np.sqrt(interp_uncertainty[7, 2]**2)
 
+    # The final sensivity, S(m,n), is produced by dividing this result
+    # by the average value per Equations A3.13 and A3.14
     final_sensitivity = np.nanmean(extrapolation)
     n_elements = np.sum(np.logical_not(np.isnan(extrapolation_uncertainty)))
     final_sensitivity_uncertainty = np.sqrt(np.nansum(np.power(extrapolation_uncertainty, 2)))/n_elements

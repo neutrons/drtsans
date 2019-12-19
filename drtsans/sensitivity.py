@@ -6,8 +6,7 @@ import os
 from mantid.kernel import Property, logger
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, Quadratic, \
-    Fit
+    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace
 from drtsans.path import exists as path_exists
 from drtsans.settings import unique_workspace_name as uwn
 from drtsans.settings import unique_workspace_dundername as uwd
@@ -16,7 +15,7 @@ from drtsans import detector
 __all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
 
 
-class Detector(object):
+class Detector:
     r"""
     Auxiliary class that has all the information about a detector
     It allows to read tube by tube.
@@ -506,18 +505,17 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
         # The patch is applied to the results of the previous step to produce S2(m,n).
         y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
-        a = masked_indices[:, 0]
         # errors of the polynomial
         e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
                         (e_coeffs[0]*masked_indices[:, 0]**2)**2)
         for i, index in enumerate(masked_indices[:,1]):
             if original_mask[index]:
-              det_info.setMasked(int(index), False)
-              II.setY(int(index), [y_new[i]])
-              II.setE(int(index), np.array(e_new[i]))
+                det_info.setMasked(int(index), False)
+                II.setY(int(index), [y_new[i]])
+                II.setE(int(index), np.array(e_new[i]))
             else:
-              II.setY(int(index), [np.nan])
-              II.setE(int(index), np.array(np.nan))
+                II.setY(int(index), [np.nan])
+                II.setE(int(index), np.array(np.nan))
 
     # The final sensivity, S(m,n), is produced by dividing this result by the average value per Equations A3.13 and A3.14
     y = II.extractY().flatten()

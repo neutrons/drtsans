@@ -74,8 +74,8 @@ def empty_beam_scaling(input_workspace, empty_beam_workspace, beam_radius=None, 
     taking into account attenuation.
 
     **Mantid Algorithms used:**
-    :ref:`Divide <algm-CreateWorkspace-v1>`,
-    :ref:`DeleteWorkspace <algm-CreateWorkspace-v1>`,
+    :ref:`Divide <algm-Divide-v1>`,
+    :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`,
 
     Parameters
     ----------

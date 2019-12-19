@@ -441,7 +441,6 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
     :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
 
-
     Parameters
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace
@@ -458,6 +457,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
+    # Calculate and apply the first cut of the sensitivity S1(m,n)
     y = input_workspace.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
     original_mask = np.isnan(y)
@@ -471,6 +471,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
     II = Divide(LHSWorkspace=input_workspace, RHSWorkspace=F_ws, OutputWorkspace=uwd())
+
+    # Apply the thresholds to S1(m,n).
 
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
                     Mode='SelectIf', Operator='Greater', Value=max_threshold)
@@ -494,13 +496,14 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
                 xx.append(i)
                 yy.append(II.readY(index)[0])
                 ee.append(II.readE(index)[0])
-
+        # Using numpy.polyfit() with a 2nd-degree polynomial, one finds the following coefficients and uncertainties.
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=np.array(ee), cov=True)
         # Errors in the least squares is the sqrt of the covariance matrix
         # (correlation between the coefficients)
         e_coeffs = np.sqrt(np.diag(cov_matrix))
         masked_indices = np.array(masked_indices)
 
+        # The patch is applied to the results of the previous step to produce S2(m,n).
         y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
         a = masked_indices[:, 0]
         # errors of the polynomial
@@ -515,6 +518,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
               II.setY(int(index), [np.nan])
               II.setE(int(index), np.array(np.nan))
 
+    # The final sensivity, S(m,n), is produced by dividing this result by the average value per Equations A3.13 and A3.14
     y = II.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
     F = np.nanmean(y)

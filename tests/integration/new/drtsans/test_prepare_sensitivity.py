@@ -1,12 +1,12 @@
 import numpy as np
 import copy
-from mantid.simpleapi import MaskDetectors
 import pytest
 from drtsans.sensitivity import prepare_sensitivity_correction
 from numpy.testing import assert_allclose
 
+
 @pytest.mark.parametrize('workspace_with_instrument',
-                          [dict(name='EQSANS', Nx=20, Ny=8)], indirect=True)
+                         [dict(name='EQSANS', Nx=20, Ny=8)], indirect=True)
 def test_prepare_sensitivity(workspace_with_instrument):
     """This tests that prepare_sensitivity gives the expected result.
 
@@ -59,11 +59,11 @@ def test_prepare_sensitivity(workspace_with_instrument):
     # Using numpy.polyfit() with a 2nd-degree polynomial, one finds the following coefficients and uncertainties.
     interp = np.array([[-5.55e-4,  1.3720e-2, 0.892143],
                        [-6.55e-4,  1.2996e-2, 0.909765],
-                       [ -8.9e-5,  4.72e-4, 0.967609],
-                       [ 2.96e-4, -5.991e-3, 0.998240],
+                       [-8.9e-5,   4.72e-4, 0.967609],
+                       [2.96e-4,  -5.991e-3, 0.998240],
                        [-6.63e-4,  1.5604e-2, 0.899279],
                        [0.000000, -6.4e-5, 0.969006],
-                       [ 4.34e-4, -1.0815e-2, 1.017307],
+                       [4.34e-4,  -1.0815e-2, 1.017307],
                        [-5.71e-4,  6.709e-3, 0.980341]])
 
     interp_uncertainty = np.array([[4.01e-4, 7.882e-3, 0.032903],
@@ -144,7 +144,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                           np.square(final_sensitivity_uncertainty/final_sensitivity))
 
     ws = workspace_with_instrument(axis_values=[1., 2.], intensities=ffm_with_mask,
-                              uncertainties=ffm_uncertainty_with_mask, view='array')
+                                   uncertainties=ffm_uncertainty_with_mask, view='array')
     out = prepare_sensitivity_correction(ws, min_threshold=0.5, max_threshold=2.0)
 
     out_result = np.flip(np.transpose(out.extractY().reshape(8, 20)), 0)

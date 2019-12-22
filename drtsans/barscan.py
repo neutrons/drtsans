@@ -365,8 +365,8 @@ def apply_barscan_calibration(input_workspace, calibration, output_workspace=Non
         - unit: str, the units for the positions and heights. Usually 'mm' for mili-meters.
     output_workspace: str
         Name of the workspace containing the updated pixel positions and pixel heights. If :py:obj:`None`, the name of
-        ``input_workspace`` is used, therefore modifiying the input workspace. If not :py:obj:`None`, then a clone of ``input_workspace``
-        is produced, but with updated pixel positions and heights.
+        ``input_workspace`` is used, therefore modifiying the input workspace. If not :py:obj:`None`, then a clone
+         of ``input_workspace`` is produced, but with updated pixel positions and heights.
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)  # pixel positions and heights to be updated for the input workspace

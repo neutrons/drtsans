@@ -275,8 +275,6 @@ def test_generate_calibration(data_generate_calibration, workspace_with_instrume
 
     # Let's fit the positions of the extended bottom-edge pixels with the extended Y-coordinates
     # and verify the coefficients of the fit.
-    #dcals = [565 + dcal for dcal in data.dcals]  # add offset to each bar position
-    #fit = fit_positions(bottom_pixels_multi_scan[:, 0], dcals, tube_pixels=20, order=2)
     dcals = [565 + dcal for dcal in data.extended_dcals]  # add offset to each bar position
     fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)

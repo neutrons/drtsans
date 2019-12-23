@@ -35,6 +35,9 @@ def _consecutive_true_values(values, how_many, reverse=False,
     r"""
     Find first array index of consecutive `how_many` True values.
 
+    devs - Andrei Savici <saviciat@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
+
     Parameters
     ----------
     values: list
@@ -78,6 +81,9 @@ def find_edges(intensities, tube_threshold=0.2, shadow_threshold=0.3,
 
     All pixel indexes start from the bottom of the tube, with the first
     index being zero.
+
+    devs - Andrei Savici <saviciat@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -160,6 +166,8 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5):
 
     Uses :ref:`~numpy.polynomial.polynomial.polyfit`.
 
+    devs - Andrei Savici <saviciat@ornl.gov>,
+
     Parameters
     ----------
     edge_pixels: list (or numpy array)
@@ -206,6 +214,9 @@ def calculate_barscan_calibration(data_filenames, component='detector1', sample_
     **Mantid Algorithms used:**
     :ref:`Load <algm-Load-v1>`,
 
+    devs - Andrei Savici <saviciat@ornl.gov>,
+           Jose Borreguero <borreguerojm@ornl.gov>
+
     Parameters
     ----------
     data_filenames: list
@@ -238,30 +249,43 @@ def calculate_barscan_calibration(data_filenames, component='detector1', sample_
     if len(data_filenames) <= order:
         raise ValueError(f"There are not enough files to fo a fit with a polynomyal of order {order}.")
     bar_positions = []  # Y-coordinates of the bar for each scan
-    bottom_shadow_pixels = []  # 2D array defining the position of the bar on the detector in pixel coordinates
+    # 2D array defining the position of the bar on the detector, in pixel coordinates
+    # The first index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes)
+    # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tubes
+    bottom_shadow_pixels = []
     workspace_name = unique_workspace_dundername()
-    # loop over data_filenames
+    # loop over each barscan run, stored in each of the data_filenames
     for filename in data_filenames:
         Load(filename, OutputWorkspace=workspace_name)
+        # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
         formula_dcal_inserted = formula.format(dcal=SampleLogs(workspace_name).find_log_with_units(sample_log, 'mm'))
         bar_positions.append(float(numexpr.evaluate(formula_dcal_inserted)))
-        bottom_shadow_pixels_per_scan = []
+        bottom_shadow_pixels_per_scan = []  # For the current scan, we have one bottom shadow pixel for each tube
+        # A TubeCollection is a list of TubeSpectrum objects, representing a physical tube. Here we obtain the
+        # list of tubes for the main double-detector-panel.
+        # The view 'decreasing X' sort the tubes by decreasing value of their corresponding X-coordinate. In this view,
+        # a double detector panel looks like a single detector panel. When looking at the panel standing at the
+        # sample, the leftmost tube has the highest X-coordinate, so the 'decreasing X' view orders the tubes
+        # from left to right.
         collection = TubeCollection(workspace_name, component).sorted(view='decreasing X')
-        for tube in collection:
+        for tube in collection:  # iterate over each tube in the collection of tubes
             try:
+                # Find the bottom shadow pixel for the current tube and current barscan run
                 bottom_shadow_pixels_per_scan.append(find_edges(tube.readY.ravel()).bottom_shadow_pixel)
             except Exception:
-                bottom_shadow_pixels_per_scan.append(np.nan)
+                bottom_shadow_pixels_per_scan.append(np.nan)  # this tube may be malfunctioning for the current barscan
         bottom_shadow_pixels.append(bottom_shadow_pixels_per_scan)
-    bottom_shadow_pixels = np.array(bottom_shadow_pixels)  # first changes is Y, second changes X (a.k.a tube index)
+    bottom_shadow_pixels = np.array(bottom_shadow_pixels)
 
     # fit pixel positions for each tube and output in a dictionary
-    calibration = {component: dict(positions=[], heights=[], unit=unit)}
+    calibration = {component: dict(positions=[], heights=[], unit=unit)}  # data structure to store the calibration
     collection = TubeCollection(workspace_name, component)
     number_pixels_in_tube = len(collection[0])  # length of first tube
-    for tube_index in range(len(collection)):
+    for tube_index in range(len(collection)):  # iterate over the tubes in the collection
+        # Fit the pixel numbers and Y-coordinates of the bar for the current tube with a polynomial
         fit_results = fit_positions(bottom_shadow_pixels[:, tube_index], bar_positions, order=order,
                                     tube_pixels=number_pixels_in_tube)
+        # Store the fitted Y-coordinates and heights of each pixel in the current tube
         calibration[component]['positions'].append(fit_results.calculated_positions)
         calibration[component]['heights'].append(fit_results.calculated_heights)
 
@@ -271,6 +295,8 @@ def calculate_barscan_calibration(data_filenames, component='detector1', sample_
 def save_barscan_calibration(calibration, output_json_file):
     r"""
     Save a calibration to file.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -287,6 +313,8 @@ def save_barscan_calibration(calibration, output_json_file):
 def load_barscan_calibration(input_json_file):
     r"""
     Load a calibration stored in disk.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -319,6 +347,8 @@ def apply_barscan_calibration(input_workspace, calibration, output_workspace=Non
     **Mantid Algorithms used:**
     :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`,
 
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+
     Parameters
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
@@ -334,24 +364,39 @@ def apply_barscan_calibration(input_workspace, calibration, output_workspace=Non
           list is the number of tubes in a double panel. If a tube was not calibrated, the heights are 'nan'.
         - unit: str, the units for the positions and heights. Usually 'mm' for mili-meters.
     output_workspace: str
-        Name of the workspace containing the calculated intensity. If :py:obj:`None`, the name of ``input_workspace``
-        is used, therefore modifiying the input workspace. If not :py:obj:`None`, then a clone of ``input_workspace``
-        is produced, but with updated pixel positions and heights.
+        Name of the workspace containing the updated pixel positions and pixel heights. If :py:obj:`None`, the name of
+        ``input_workspace`` is used, therefore modifiying the input workspace. If not :py:obj:`None`, then a clone
+         of ``input_workspace`` is produced, but with updated pixel positions and heights.
     """
     if output_workspace is None:
-        output_workspace = str(input_workspace)
+        output_workspace = str(input_workspace)  # pixel positions and heights to be updated for the input workspace
     else:
+        # A new workspace identical to the input workspace except in regards to pixel  positions and heights.
         CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
 
+    # Iterate over the items in the calibration dictionary. Usually there's only one item because most instruments
+    # have only one main double-detector-panel. CG3 will contain one item for the main detector and one item for
+    # the wing detector panel.
+    # In the line below, 'component' is a string, usually "detector1" denoting the main double-detector-panel.
+    # calibration_component is a dictionary storing the pixel positions and heights for the component.
     for component, calibration_component in calibration.items():  # usually one component, but CG3 has two
+        # 2D array of pixel Y-coordinates. The first index is the tube-index
         pixel_positions = calibration_component['positions']
+        # 2D array of pixel heights. The first index is the tube-index
         pixel_heights = calibration_component['heights']
-        factor = 1.e-03 if calibration_component['unit'] == 'mm' else 1.0
+        factor = 1.e-03 if calibration_component['unit'] == 'mm' else 1.0  # from mili-meters to meters
+        # A TubeCollection is a list of TubeSpectrum objects, representing a physical tube. Here we obtain the
+        # list of tubes for the main double-detector-panel.
+        # The view 'decreasing X' sort the tubes by decreasing value of their corresponding X-coordinate. In this view,
+        # a double detector panel looks like a single detector panel. When looking at the panel standing at the
+        # sample, the leftmost tube has the highest X-coordinate, so the 'decreasing X' view orders the tubes
+        # from left to right.
         collection = TubeCollection(output_workspace, component).sorted(view='decreasing X')
         for tube_index, tube in enumerate(collection):
             if True in np.isnan(pixel_positions[tube_index]):  # this tube was not calibrated
                 continue
-            tube.pixel_y = [factor * y for y in pixel_positions[tube_index]]  # update Y-coord of pixels in this tube
+            # update Y-coord of pixels in this tube. "factor" ensures the units are in meters
+            tube.pixel_y = [factor * y for y in pixel_positions[tube_index]]
             tube.pixel_heights = [factor * h for h in pixel_heights[tube_index]]
 
 
@@ -360,6 +405,7 @@ def apparent_tube_width(input_workspace, component='detector1', output_workspace
     Determine the tube width most efficient for detecting neutrons. An effective tube (or pixel) diameter is
     determined for tubes in the front panel, and likewise for the tubes in the back panel.
 
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------

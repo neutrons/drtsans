@@ -202,9 +202,13 @@ def data_generate_calibration():
                                  7.0, 96.0, 98.0, 104.0, 100.0, 95.0, 104.0, 100.0, 99.0, 104.0, 103.0,
                                  103.0, 97.0, 19.4, 20.0, 19.6, 19.4, 100.0, 104.0, 4.0])],  # tube3
                 dcals=[50, 100., 150.],  # bar positions with respect to lowest position of the bar
+                # bar pixel positions allowing fitting with a fith-degree polynomial
+                extended_bottom_edges=[5, 8, 10, 11, 13, 14, 16],
+                # bar Y-coords allowing fitting with a fith-degree polynomial
+                extended_dcals=[50, 100, 125, 135, 150, 155, 160],
                 wavelength_bin_boundaries=[6.0, 7.0],
                 bottom_pixels=[(5, 5, 5, 5), (8, 8, 8, 8), (13, 13, 13, 13)],  # expected bottom pixels
-                coefficients=(498.333, 27.500, -0.833),
+                coefficients=(498.333, 27.500, -0.833, 0.000, 0.000, 0.000),
                 # fitted y-coordinates for each pixel
                 positions=np.array([[498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
                                      700., 708.333, 715., 720., 723.333, 725., 725., 723.333, 720.],
@@ -267,11 +271,12 @@ def test_generate_calibration(data_generate_calibration, workspace_with_instrume
         bottom_pixels = [find_edges(tube.readY.ravel()).bottom_shadow_pixel for tube in collection]
         assert bottom_pixels == pytest.approx(data.bottom_pixels[scan_index])
         bottom_pixels_multi_scan.append(bottom_pixels)
-
-    # Let's fit the positions of the bottom-edge pixels in tube with index 0, with a second order polynomial
     bottom_pixels_multi_scan = np.array(bottom_pixels_multi_scan)
-    dcals = [565 + dcal for dcal in data.dcals]  # add offset to each bar position
-    fit = fit_positions(bottom_pixels_multi_scan[:, 0], dcals, tube_pixels=20, order=2)
+
+    # Let's fit the positions of the extended bottom-edge pixels with the extended Y-coordinates
+    # and verify the coefficients of the fit.
+    dcals = [565 + dcal for dcal in data.extended_dcals]  # add offset to each bar position
+    fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 
     # Let's do the whole calibration. The result is a calibration dictionary that looks like this:

@@ -25,7 +25,7 @@ from drtsans.settings import unique_workspace_name as uwn
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans import detector
 
-__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
+__all__ = ['apply_sensitivity_correction', 'prepare_sensitivity_correction']
 
 
 class Detector:
@@ -410,41 +410,6 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     return mtd[output_workspace]
 
 
-def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_threshold=2.0,
-                                     filename=None, output_workspace=None):
-    '''
-    Calculate the detector sensitivity
-
-    **Mantid algorithms used:**
-    :ref:`CalculateEfficiency <algm-CalculateEfficiency-v1>`,
-    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
-    :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
-
-
-    Parameters
-    ----------
-    input_workspace: str, ~mantid.api.MatrixWorkspace
-        Workspace to calculate the sensitivity from
-    min_threashold: float
-        Minimum threshold for efficiency value.
-    max_threashold: float
-        Maximum threshold for efficiency value
-    filename: str
-        Name of the file to save the sensitivity calculation to
-    output_workspace: ~mantid.api.MatrixWorkspace
-        The calculated sensitivity workspace
-    '''
-    if output_workspace is None:
-        output_workspace = '{}_sensitivity'.format(input_workspace)
-
-    CalculateEfficiency(InputWorkspace=input_workspace, OutputWorkspace=output_workspace,
-                        MinThreshold=min_threashold, MaxThreshold=max_threshold)
-    MaskDetectorsIf(InputWorkspace=output_workspace, OutputWorkspace=output_workspace,
-                    Mode='SelectIf', Operator='Equal', Value=Property.EMPTY_DBL)
-    if filename is not None:
-        SaveNexusProcessed(InputWorkspace=output_workspace, Filename=filename)
-    return mtd[output_workspace]
-
 def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_threshold=2.0,
                                      filename=None,  output_workspace=None):
     """
@@ -474,6 +439,9 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     # to equations A3.1 and A3.2
     if input_workspace.blocksize() != 1:
         input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
+        delete_input_workspace = True
+    else:
+        delete_input_workspace = False
 
     # The average and uncertainty in the average are determined from the masked pattern
     # according to equations A3.3 and A3.4
@@ -543,6 +511,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14
+    # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
     y = II.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
     F = np.nanmean(y)
@@ -556,6 +525,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     output_workspace = Divide(LHSWorkspace=II, RHSWorkspace=F_ws, OutputWorkspace=uwd())
     DeleteWorkspace(F_ws)
     DeleteWorkspace(II)
+    if delete_input_workspace:
+        DeleteWorkspace(input_workspace)
     if filename:
         path = os.path.join(os.path.expanduser("~"), filename)
         SaveNexusProcessed(InputWorkspace=output_workspace, Filename=path)

@@ -14,10 +14,12 @@ https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
+https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 """
-from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
+from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency, \
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace
+    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, \
+    Integration
 from drtsans.path import exists as path_exists
 from drtsans.settings import unique_workspace_name as uwn
 from drtsans.settings import unique_workspace_dundername as uwd
@@ -445,7 +447,7 @@ def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_th
 
 def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_threshold=2.0,
                                      filename=None,  output_workspace=None):
-    '''
+    """
     Calculate the detector sensitivity
 
     **Mantid algorithms used:**
@@ -464,13 +466,23 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
         Name of the file to save the sensitivity calculation to
     output_workspace: ~mantid.api.MatrixWorkspace
         The calculated sensitivity workspace
-    '''
+    """
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
-    # Calculate and apply the first cut of the sensitivity S1(m,n)
+    # Wavelength bins are summed together to remove the time-of-flight nature according
+    # to equations A3.1 and A3.2
+    if input_workspace.blocksize() != 1:
+        input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
+
+    # The average and uncertainty in the average are determined from the masked pattern
+    # according to equations A3.3 and A3.4
+    # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
     y = input_workspace.extractY().flatten()
+    np.where(y == np.NINF, np.nan, y)
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    # Will later need to differentiate between pixels initially masked
+    # and pixels marked outside the threshold
     original_mask = np.isnan(y)
     F = np.nanmean(y)
     MaskDetectors(input_workspace, WorkspaceIndexList=indices_to_mask)
@@ -482,9 +494,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
     II = Divide(LHSWorkspace=input_workspace, RHSWorkspace=F_ws, OutputWorkspace=uwd())
-
-    # Apply the thresholds to S1(m,n).
-
+    DeleteWorkspace(F_ws)
+    # Any pixel in II less than min_threshold or greater than max_threshold is masked.
     MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
                     Mode='SelectIf', Operator='Greater', Value=max_threshold)
 
@@ -494,6 +505,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     det_info = II.detectorInfo()
     comp = detector.Component(II, 'detector1')
 
+    # The next step is to fit the data in each tube with a second order polynomial as shown in
+    # Equations A3.9 and A3.10. Use result to fill in NaN values.
     for j in range(0, comp.dim_y):
         xx = []
         yy = []
@@ -528,7 +541,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
                 II.setY(int(index), [np.nan])
                 II.setE(int(index), np.array(np.nan))
 
-    # The final sensivity, S(m,n), is produced by dividing this result by the average value per Equations A3.13 and A3.14
+    # The final sensitivity, S(m,n), is produced by dividing this result by the average value
+    # per Equations A3.13 and A3.14
     y = II.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
     F = np.nanmean(y)
@@ -540,6 +554,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
     output_workspace = Divide(LHSWorkspace=II, RHSWorkspace=F_ws, OutputWorkspace=uwd())
+    DeleteWorkspace(F_ws)
+    DeleteWorkspace(II)
     if filename:
         path = os.path.join(os.path.expanduser("~"), filename)
         SaveNexusProcessed(InputWorkspace=output_workspace, Filename=path)

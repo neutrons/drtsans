@@ -25,7 +25,7 @@ from drtsans.settings import unique_workspace_name as uwn
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans import detector
 
-__all__ = ['apply_sensitivity_correction', 'prepare_sensitivity_correction']
+__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
 
 
 class Detector:
@@ -410,6 +410,42 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     return mtd[output_workspace]
 
 
+def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_threshold=2.0,
+                                     filename=None, output_workspace=None):
+    '''
+    Calculate the detector sensitivity
+
+    **Mantid algorithms used:**
+    :ref:`CalculateEfficiency <algm-CalculateEfficiency-v1>`,
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
+    :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
+
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace
+        Workspace to calculate the sensitivity from
+    min_threashold: float
+        Minimum threshold for efficiency value.
+    max_threashold: float
+        Maximum threshold for efficiency value
+    filename: str
+        Name of the file to save the sensitivity calculation to
+    output_workspace: ~mantid.api.MatrixWorkspace
+        The calculated sensitivity workspace
+    '''
+    if output_workspace is None:
+        output_workspace = '{}_sensitivity'.format(input_workspace)
+
+    CalculateEfficiency(InputWorkspace=input_workspace, OutputWorkspace=output_workspace,
+                        MinThreshold=min_threashold, MaxThreshold=max_threshold)
+    MaskDetectorsIf(InputWorkspace=output_workspace, OutputWorkspace=output_workspace,
+                    Mode='SelectIf', Operator='Equal', Value=Property.EMPTY_DBL)
+    if filename is not None:
+        SaveNexusProcessed(InputWorkspace=output_workspace, Filename=filename)
+    return mtd[output_workspace]
+
+
 def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_threshold=2.0,
                                      filename=None,  output_workspace=None):
     """
@@ -437,6 +473,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
     # Wavelength bins are summed together to remove the time-of-flight nature according
     # to equations A3.1 and A3.2
+    input_workspace = mtd[str(input_workspace)]
     if input_workspace.blocksize() != 1:
         input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
         delete_input_workspace = True
@@ -454,10 +491,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     original_mask = np.isnan(y)
     F = np.nanmean(y)
     MaskDetectors(input_workspace, WorkspaceIndexList=indices_to_mask)
-    n_elements = 0
-    for i in range(input_workspace.getNumberHistograms()):
-        n_elements += len(input_workspace.readY(i))
-    n_elements -= len(indices_to_mask)
+    n_elements = input_workspace.getNumberHistograms() - len(indices_to_mask)
     y_uncertainty = input_workspace.extractE().flatten()
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
@@ -475,12 +509,12 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
     # The next step is to fit the data in each tube with a second order polynomial as shown in
     # Equations A3.9 and A3.10. Use result to fill in NaN values.
-    for j in range(0, comp.dim_y):
+    for j in range(0, comp.dim_x):
         xx = []
         yy = []
         ee = []
         masked_indices = []
-        for i in range(0, comp.dim_x):
+        for i in range(0, comp.dim_y):
             index = comp.dim_x*j + i
             if det_info.isMasked(index):
                 masked_indices.append([i, index])
@@ -490,6 +524,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
                 ee.append(II.readE(index)[0])
         # Using numpy.polyfit() with a 2nd-degree polynomial, one finds the following coefficients and uncertainties.
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=np.array(ee), cov=True)
+
         # Errors in the least squares is the sqrt of the covariance matrix
         # (correlation between the coefficients)
         e_coeffs = np.sqrt(np.diag(cov_matrix))
@@ -515,9 +550,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     y = II.extractY().flatten()
     indices_to_mask = np.arange(len(y))[np.isnan(y)]
     F = np.nanmean(y)
-    n_elements = 0
-    for i in range(input_workspace.getNumberHistograms()):
-        n_elements += len(input_workspace.readY(i))
+    n_elements = input_workspace.getNumberHistograms() - len(indices_to_mask)
     n_elements -= len(indices_to_mask)
     y_uncertainty = II.extractE().flatten()
     dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements

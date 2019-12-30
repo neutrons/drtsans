@@ -515,7 +515,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
         ee = []
         masked_indices = []
         for i in range(0, comp.dim_x):
-            index = comp.dim_y*j + i
+            index = comp.dim_x*j + i
             if det_info.isMasked(index):
                 masked_indices.append([i, index])
             else:

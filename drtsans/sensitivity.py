@@ -509,13 +509,13 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
     # The next step is to fit the data in each tube with a second order polynomial as shown in
     # Equations A3.9 and A3.10. Use result to fill in NaN values.
-    for j in range(0, comp.dim_x):
+    for j in range(0, comp.dim_y):
         xx = []
         yy = []
         ee = []
         masked_indices = []
-        for i in range(0, comp.dim_y):
-            index = comp.dim_x*j + i
+        for i in range(0, comp.dim_x):
+            index = comp.dim_y*j + i
             if det_info.isMasked(index):
                 masked_indices.append([i, index])
             else:

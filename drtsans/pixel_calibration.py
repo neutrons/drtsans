@@ -1,4 +1,3 @@
-import json
 import numpy as np
 import numexpr
 import tinydb
@@ -228,6 +227,8 @@ def load_calibration(instrument, run=None, component='detector1'):
     component: str
         Name of the double panel detector array for which the calibration was performed
 
+    devs - Jose Borreguero <borreguerojm@ornl.gov>,
+
     Returns
     -------
     dict
@@ -368,8 +369,8 @@ def calculate_barscan_calibration(barscan_files, component='detector1', sample_l
     bottom_shadow_pixels = np.array(bottom_shadow_pixels)
 
     # fit pixel positions for each tube and output in a dictionary
-    positions=[]
-    heights=[]
+    positions = []
+    heights = []
     collection = TubeCollection(workspace_name, component)
     number_pixels_in_tube = len(collection[0])  # length of first tube
     for tube_index in range(len(collection)):  # iterate over the tubes in the collection
@@ -535,7 +536,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
 
 def apply_apparent_tube_width(input_workspace, calibration, output_workspace=None):
     r"""
-    Update the pixel widths with effective tube diameters.
+    Update the pixel widths with effective tube widths.
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
@@ -586,6 +587,8 @@ def calculate_pixel_calibration(barscan_files, flood_file, component='detector1'
     r"""
     Calculate pixel positions (only Y-coordinae), pixel heights, and tube widths most efficient for detecting
     neutrons.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -641,6 +644,8 @@ def load_and_apply_pixel_calibration(input_workspace, output_workspace=None, com
     r"""
     Update pixel positions and heights, as well as front and back tube widths, for a specific
     double panel detector array.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------

@@ -11,6 +11,9 @@ from drtsans.beam_finder import *
 import drtsans.iq
 from ...iq import *
 
+import drtsans.pixel_calibration
+from ...pixel_calibration import *
+
 import drtsans.stitch
 from ...stitch import *
 
@@ -51,6 +54,7 @@ from .load import *
 __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.beam_finder.__all__ \
           + drtsans.iq.__all__\
+          + drtsans.pixel_calibration.__all__ \
           + drtsans.stitch.__all__\
           + drtsans.solid_angle.__all__\
           + drtsans.thickness_normalization.__all__\

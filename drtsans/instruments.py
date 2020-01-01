@@ -3,7 +3,7 @@ import os
 from mantid.kernel import ConfigService
 from mantid.api import mtd
 
-__all__ = ['InstrumentEnumName', 'instrument_enum_name', 'is_time_of_flight']
+__all__ = ['InstrumentEnumName', 'instrument_enum_name', 'instrument_standard_name', 'is_time_of_flight']
 
 
 @enum.unique
@@ -47,6 +47,23 @@ def instrument_enum_name(input_query):
                 break
 
     return string_to_enum.get(name.upper(), InstrumentEnumName.UNDEFINED)
+
+
+def instrument_standard_name(input_query):
+    r"""
+    Resolve the standard instrument name.
+
+    Parameters
+    ----------
+    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
+
+    Returns
+    -------
+    str
+        The name of the instrument as the string representation of one of the InstrumentName enumerations
+    """
+    return str(instrument_enum_name(input_query))
 
 
 def instrument_label(input_query):

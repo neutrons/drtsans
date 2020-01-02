@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+import random
 import tempfile
 
 r""" Hyperlinks to mantid algorithms
@@ -12,14 +13,16 @@ from mantid.simpleapi import AddSampleLog, DeleteWorkspace, LoadNexus, SaveNexus
 
 r"""
 Hyperlinks to drtsans functions
-apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration, apply_barscan_calibration
+calculate_apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration, apply_barscan_calibration
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py>
 namedtuplefy, unique_workspace_dundername
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
-from drtsans.barscan import (apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration,
-                             apply_barscan_calibration)
+from drtsans.pixel_calibration import (apply_apparent_tube_width, apply_barscan_calibration,
+                                       calculate_apparent_tube_width, calculate_barscan_calibration,
+                                       find_edges, fit_positions)
+from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tubecollection import TubeCollection
 
@@ -145,11 +148,15 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, intensities=intensities,
                               uncertainties=np.sqrt(intensities), view='array', axis_units='wavelength',
                               output_workspace=flood_workspace)
+    SampleLogs(flood_workspace).insert('run_number', 42)  # The flood run will have some run number, which is required
 
-    # Find apparent tube widths and modify the pixel widths in the instrument object embedded in the workspace.
-    # We save the modifications to a new workspace
+    # Calculate apparent tube widths using the pixel positions and heights of `flood_workspace` instesad of
+    # retrieving them from the pixel-calibration database
     modified_flood_workspace = unique_workspace_dundername()
-    apparent_tube_width(flood_workspace, output_workspace=modified_flood_workspace)
+    calibration = calculate_apparent_tube_width(flood_workspace, load_barscan_calibration=False)
+    # M modify the pixel widths in the instrument object embedded in the workspace. We save the modifications to a
+    # new workspace
+    apply_apparent_tube_width(flood_workspace, calibration, output_workspace=modified_flood_workspace)
 
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
@@ -163,7 +170,8 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     assert collection[last_tube_index][last_pixel_index].width * 1.e3 == pytest.approx(data.w_back, abs=data.precision)
 
     # We do the same but now we overwrite the instrument embedded in the input workspace
-    apparent_tube_width(flood_workspace)
+    calibration = calculate_apparent_tube_width(flood_workspace, load_barscan_calibration=False)
+    apply_apparent_tube_width(flood_workspace, calibration)
     collection = TubeCollection(flood_workspace, 'detector1').sorted(view='decreasing X')
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
     last_tube_index = len(collection) - 1  # number of tubes, minus one because indexes begin at zero, not one
@@ -175,8 +183,8 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
 
 @pytest.fixture(scope='module')
 @namedtuplefy
-def data_generate_calibration():
-    r"""Data to be used for `test_generate_calibration"""
+def data_generate_barscan_calibration():
+    r"""Data to be used for `test_generate_barscan_calibration"""
     return dict(scans=[np.array([5.0, 96.0, 97.0, 97.0, 105.0, 21.0, 20.2, 20.0, 20.4, 104.0,
                                  105.0, 101.0, 99.0, 98.0, 97.0, 97.0, 98.0, 103.0, 97.0, 4.0,  # tube 0
                                  7.0, 103.0, 101.0, 104.0, 99.0, 19.2, 20.0, 20.8, 19.6, 103.0,
@@ -209,6 +217,7 @@ def data_generate_calibration():
                 wavelength_bin_boundaries=[6.0, 7.0],
                 bottom_pixels=[(5, 5, 5, 5), (8, 8, 8, 8), (13, 13, 13, 13)],  # expected bottom pixels
                 coefficients=(498.333, 27.500, -0.833, 0.000, 0.000, 0.000),
+                unit='mm',  # units for the pixel positions and heights
                 # fitted y-coordinates for each pixel
                 positions=np.array([[498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
                                      700., 708.333, 715., 720., 723.333, 725., 725., 723.333, 720.],
@@ -235,7 +244,7 @@ def data_generate_calibration():
                          [{'instrument_geometry': 'n-pack', 'n_tubes': 4, 'n_pixels': 20,
                            'diameter': 5.5e-03, 'height': 4.2e-03, 'spacing': 0.0,
                            'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0}], indirect=True)
-def test_generate_calibration(data_generate_calibration, workspace_with_instrument, cleanfile):
+def test_generate_barscan_calibration(data_generate_barscan_calibration, workspace_with_instrument, cleanfile):
     r"""
     Test to determine pixel position and height from from Appendix 2, Section 1 of the master document.
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/documents/Master_requirements_document.pdf>
@@ -245,7 +254,7 @@ def test_generate_calibration(data_generate_calibration, workspace_with_instrume
     SME  - William Heller <hellerwt@ornl.gov>
            Ken Littrell <littrellkc@ornl.gov>
     """
-    data = data_generate_calibration  # short nickname
+    data = data_generate_barscan_calibration  # short nickname
 
     def _scan_to_file(intensities, dcal):
         r"""Convenience function to cast a scan into a workspace, then save it to file"""
@@ -253,6 +262,7 @@ def test_generate_calibration(data_generate_calibration, workspace_with_instrume
         workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, output_workspace=workspace,
                                   intensities=intensities.reshape(20, 4), view='pixel')
         AddSampleLog(Workspace=workspace, LogName='dcal', LogText=str(dcal), LogType='Number Series', LogUnit='mm')
+        SampleLogs(workspace).insert('run_number', random.randint(1, 999))
         filename = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
         cleanfile(filename)
         SaveNexus(InputWorkspace=workspace, Filename=filename)
@@ -280,10 +290,10 @@ def test_generate_calibration(data_generate_calibration, workspace_with_instrume
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 
     # Let's do the whole calibration. The result is a calibration dictionary that looks like this:
-    # {'detector1': {'positions': [y0,..,y19], 'heights': [h0,..,h19]}}
+    # {'positions': [y0,..,y19], 'heights': [h0,..,h19]}}
     calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula='565+{dcal}')
-    assert np.array(calibration['detector1']['positions']) == pytest.approx(data.positions, abs=data.precision)
-    assert np.array(calibration['detector1']['heights']) == pytest.approx(data.heights, abs=data.precision)
+    assert np.array(calibration['positions']) == pytest.approx(data.positions, abs=data.precision)
+    assert np.array(calibration['heights']) == pytest.approx(data.heights, abs=data.precision)
 
     # Let's use the pixel positions and heights to update our temporary workspace
     apply_barscan_calibration(workspace, calibration)

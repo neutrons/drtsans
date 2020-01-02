@@ -1,4 +1,6 @@
-matplotlib  # is this necessary
-sortedcontainers
-mpld3
 lmfit
+matplotlib  # is this necessary
+mpld3
+numexpr
+sortedcontainers
+tinydb

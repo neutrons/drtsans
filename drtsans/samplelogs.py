@@ -144,7 +144,7 @@ class SampleLogs(object):
             log value
         """
         if log_key in self.keys():
-            if unit is not None and not self[log_key].units == unit:
+            if bool(unit) and not self[log_key].units == unit:
                 error_msg = "Found %s with wrong units" % log_key
                 error_msg += " [%s]" % self[log_key].units
                 raise RuntimeError(error_msg)

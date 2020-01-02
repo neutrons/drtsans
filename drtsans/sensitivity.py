@@ -2,18 +2,33 @@ from collections import OrderedDict
 
 import numpy as np
 import os
-
 from mantid.kernel import Property, logger
-from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency,\
+r"""
+Links to mantid algorithms
+https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
+https://docs.mantidproject.org/nightly/algorithms/CalculateEfficiency-v1.html
+https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
+https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
+https://docs.mantidproject.org/nightly/algorithms/LoadNexusProcessed-v2.html
+https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
+https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
+https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
+https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
+https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
+"""
+from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency, \
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed
+    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, \
+    Integration
 from drtsans.path import exists as path_exists
-from drtsans.settings import unique_workspace_name
+from drtsans.settings import unique_workspace_name as uwn
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans import detector
 
-__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction']
+__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
 
 
-class Detector(object):
+class Detector:
     r"""
     Auxiliary class that has all the information about a detector
     It allows to read tube by tube.
@@ -214,7 +229,6 @@ def _interpolate_tube(x, y, e, detectors_masked, detectors_inf,
     # errors of the polynomial
     e_new = np.sqrt([np.add.reduce(
         [(e_coeff*n**i)**2 for i, e_coeff in enumerate(e_coeffs)]) for n in x])
-
     return y_new, e_new
 
 
@@ -250,7 +264,7 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
     d = Detector(flood_ws, component_name)
     # Lets get the output workspace
     output_ws = CloneWorkspace(
-        flood_ws, OutputWorkspace=unique_workspace_name(
+        flood_ws, OutputWorkspace=uwn(
             prefix="__sensitivity_"))
     detector_info_output_ws = output_ws.spectrumInfo()
 
@@ -375,7 +389,7 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
 
     # additional masking dependent on threshold
     temp_sensitivity = CloneWorkspace(InputWorkspace=sensitivity_workspace,
-                                      OutputWorkspace=unique_workspace_name(prefix="__sensitivity_"))
+                                      OutputWorkspace=uwn(prefix="__sensitivity_"))
     if min_threshold is not None:
         MaskDetectorsIf(InputWorkspace=temp_sensitivity,
                         Operator='LessEqual',
@@ -430,3 +444,123 @@ def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_th
     if filename is not None:
         SaveNexusProcessed(InputWorkspace=output_workspace, Filename=filename)
     return mtd[output_workspace]
+
+
+def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_threshold=2.0,
+                                     filename=None,  output_workspace=None):
+    """
+    Calculate the detector sensitivity
+
+    **Mantid algorithms used:**
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
+    :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace
+        Workspace to calculate the sensitivity from
+    min_threashold: float
+        Minimum threshold for efficiency value.
+    max_threashold: float
+        Maximum threshold for efficiency value
+    filename: str
+        Name of the file to save the sensitivity calculation to
+    output_workspace: ~mantid.api.MatrixWorkspace
+        The calculated sensitivity workspace
+    """
+    if output_workspace is None:
+        output_workspace = '{}_sensitivity'.format(input_workspace)
+
+    # Wavelength bins are summed together to remove the time-of-flight nature according
+    # to equations A3.1 and A3.2
+    input_workspace = mtd[str(input_workspace)]
+    if input_workspace.blocksize() != 1:
+        input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
+        delete_input_workspace = True
+    else:
+        delete_input_workspace = False
+
+    # The average and uncertainty in the average are determined from the masked pattern
+    # according to equations A3.3 and A3.4
+    # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
+    y = input_workspace.extractY().flatten()
+    np.where(y == np.NINF, np.nan, y)
+    indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    # Will later need to differentiate between pixels initially masked
+    # and pixels marked outside the threshold
+    original_mask = np.isnan(y)
+    F = np.nanmean(y)
+    MaskDetectors(input_workspace, WorkspaceIndexList=indices_to_mask)
+    n_elements = input_workspace.getNumberHistograms() - len(indices_to_mask)
+    y_uncertainty = input_workspace.extractE().flatten()
+    dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
+    II = Divide(LHSWorkspace=input_workspace, RHSWorkspace=F_ws, OutputWorkspace=uwd())
+    DeleteWorkspace(F_ws)
+    # Any pixel in II less than min_threshold or greater than max_threshold is masked.
+    MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
+                    Mode='SelectIf', Operator='Greater', Value=max_threshold)
+
+    MaskDetectorsIf(InputWorkspace=II, OutputWorkspace=II,
+                    Mode='SelectIf', Operator='Less', Value=min_threshold)
+
+    det_info = II.detectorInfo()
+    comp = detector.Component(II, 'detector1')
+
+    # The next step is to fit the data in each tube with a second order polynomial as shown in
+    # Equations A3.9 and A3.10. Use result to fill in NaN values.
+    for j in range(0, comp.dim_y):
+        xx = []
+        yy = []
+        ee = []
+        masked_indices = []
+        for i in range(0, comp.dim_x):
+            index = comp.dim_x*j + i
+            if det_info.isMasked(index):
+                masked_indices.append([i, index])
+            else:
+                xx.append(i)
+                yy.append(II.readY(index)[0])
+                ee.append(II.readE(index)[0])
+        # Using numpy.polyfit() with a 2nd-degree polynomial, one finds the following coefficients and uncertainties.
+        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=np.array(ee), cov=True)
+
+        # Errors in the least squares is the sqrt of the covariance matrix
+        # (correlation between the coefficients)
+        e_coeffs = np.sqrt(np.diag(cov_matrix))
+        masked_indices = np.array(masked_indices)
+
+        # The patch is applied to the results of the previous step to produce S2(m,n).
+        y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
+        # errors of the polynomial
+        e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
+                        (e_coeffs[0]*masked_indices[:, 0]**2)**2)
+        for i, index in enumerate(masked_indices[:,1]):
+            if original_mask[index]:
+                det_info.setMasked(int(index), False)
+                II.setY(int(index), [y_new[i]])
+                II.setE(int(index), np.array(e_new[i]))
+            else:
+                II.setY(int(index), [np.nan])
+                II.setE(int(index), np.array(np.nan))
+
+    # The final sensitivity, S(m,n), is produced by dividing this result by the average value
+    # per Equations A3.13 and A3.14
+    # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
+    y = II.extractY().flatten()
+    indices_to_mask = np.arange(len(y))[np.isnan(y)]
+    F = np.nanmean(y)
+    n_elements = input_workspace.getNumberHistograms() - len(indices_to_mask)
+    n_elements -= len(indices_to_mask)
+    y_uncertainty = II.extractE().flatten()
+    dF = np.sqrt(np.nansum(np.power(y_uncertainty, 2)))/n_elements
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=dF, OutputWorkspace=uwd())
+    output_workspace = Divide(LHSWorkspace=II, RHSWorkspace=F_ws, OutputWorkspace=uwd())
+    DeleteWorkspace(F_ws)
+    DeleteWorkspace(II)
+    if delete_input_workspace:
+        DeleteWorkspace(input_workspace)
+    if filename:
+        path = os.path.join(os.path.expanduser("~"), filename)
+        SaveNexusProcessed(InputWorkspace=output_workspace, Filename=path)
+    return output_workspace

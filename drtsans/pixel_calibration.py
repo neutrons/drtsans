@@ -647,18 +647,18 @@ def load_and_apply_pixel_calibration(input_workspace, output_workspace=None, com
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
+    **Mantid algorithms used:**
+        :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`
+
     Parameters
     ----------
     input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
         Input workspace to update
     output_workspace: str
         Optional name of the output workspace. if :py:obj:`None`, the name of ``input_workspace`` is used, thus
-        calibrating the pixelsof the input workspace.
+        calibrating the pixels of the input workspace.
     components: list
         Names of the double panel detector arrays.
-
-    **Mantid algorithms used:**
-        :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`,
     """
     if output_workspace is None:
         output_workspace = input_workspace

@@ -498,8 +498,10 @@ def test_prepare_moving_det_sensitivity():
 
     # verify that the refactored high level method renders the same result from prototype
     print('Difference = {}'.format(np.sqrt(np.sum(gold_final_sen_matrix.flatten() - test_sens_array)**2)))
-    np.testing.assert_allclose(gold_final_sen_matrix.flatten(), test_sens_array, rtol=1e-3, atol=1e-3)
-    np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(gold_final_sen_matrix.flatten(), test_sens_array, rtol=1e-3, atol=1e-3,
+                               equal_nan=True, verbose=True)
+    np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3,
+                               equal_nan=True, verbose=True)
 
     return
 

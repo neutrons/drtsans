@@ -497,8 +497,8 @@ def test_prepare_moving_det_sensitivity():
     gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
 
     # verify that the refactored high level method renders the same result from prototype
-    np.testing.assert_allclose(gold_final_sen_matrix.flatten(), test_sens_array, 1e-3)
-    np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, 1e-3)
+    np.testing.assert_allclose(gold_final_sen_matrix.flatten(), test_sens_array, rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3)
 
     return
 

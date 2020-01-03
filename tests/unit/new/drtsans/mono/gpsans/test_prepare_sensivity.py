@@ -506,8 +506,14 @@ def test_prepare_moving_det_sensitivity():
         print('{}:  {}  -  {} = {}'.format(i, gold_array[i], test_sens_sigma_array[i],
                                            gold_array[i] - test_sens_sigma_array[i]))
 
-    np.testing.assert_allclose(gold_final_sen_matrix.flatten(), test_sens_array, rtol=1e-3, atol=1e-3,
+    # compare infinities and convert to NaN
+    gold_sens_array = gold_final_sen_matrix.flatten()
+    assert np.where(np.isinf(gold_sens_array)) == np.where(np.isinf(test_sens_array))
+    gold_sens_array[np.isinf(gold_sens_array)] = np.nan
+    test_sens_array[np.isinf(test_sens_array)] = np.nan
+    np.testing.assert_allclose(gold_sens_array, test_sens_array, rtol=1e-3, atol=1e-3,
                                equal_nan=True, verbose=True)
+
     np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3,
                                equal_nan=True, verbose=True)
 

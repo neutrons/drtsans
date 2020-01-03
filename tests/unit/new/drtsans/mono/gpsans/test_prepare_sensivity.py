@@ -309,10 +309,6 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
     # Calculate scalar sensitivity's error
     # sigma_S_avg = sqrt(1 / sum_{m, n}(1 / sigma_D(m, n)^2))
     sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigma_d_matrix[~(np.isnan(d_matrix))]**2))
-    print('V26  = {}'.format(sens_avg))
-    print('AC26 = {}'.format(sigma_sens_avg))
-    print('Dmatrix: \n{}'.format(d_matrix))
-    print('sigmaDmatrix: \n{}'.format(sigma_d_matrix))
 
     # Propagate the sensitivities
     # sigma_sens(m, n) = D(m, n) / S_avg * [(sigma_D(m, n) / D(m, n))^2 + (sigma_S_avg / S_avg)^2]^{1/2}
@@ -322,8 +318,6 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
 
     # set sensitivities error to -infinity if sensitivities are
     sensitivities_error[np.isinf(sensitivities)] = -np.inf
-
-    print('Sensitivity sigma Matrix:\n{}'.format(sensitivities_error))
 
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg
 
@@ -504,8 +498,8 @@ def test_prepare_moving_det_sensitivity():
     for i in range(test_sens_array.shape[0]):
         print('{}:  {}  -  {} = {}'.format(i, gold_array[i], test_sens_sigma_array[i],
                                            gold_array[i] - test_sens_sigma_array[i]))
-    # np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3,
-    #                            equal_nan=True, verbose=True)
+    np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3,
+                               equal_nan=True, verbose=True)
 
     return
 

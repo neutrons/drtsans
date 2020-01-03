@@ -67,8 +67,8 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, th
                                                                                    flood_sigma_matrix)
 
     # apply weighted average to sensitivities
-    sensitivities, sensitivities_error,  sens_avg, sigma_sens_avg = _normalize_sensitivities(raw_sensitivities,
-                                                                                             raw_sensitivities_error)
+    sensitivities, sensitivities_error, sens_avg, sigma_sens_avg = _normalize_sensitivities(raw_sensitivities,
+                                                                                            raw_sensitivities_error)
     return sensitivities, sensitivities_error
 
 
@@ -248,12 +248,15 @@ def _normalize_sensitivities(d_array, sigam_d_array):
     # Thus, all the NaN terms shall be excluded from summation
     # All the infinity terms shall be ignored because (1/inf) is zero and has no contribution in summation
     # d_array[~(np.isinf(d_array) | np.isnan(d_array))] excludes all items that are either infinity or Nan
-    sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))]))
+    sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))]**2))
 
     # Propagate the sensitivities
     # sigma_sens(m, n) = D(m, n) / S_avg * [(sigma_D(m, n) / D(m, n))^2 + (sigma_S_avg / S_avg)^2]^{1/2}
     # D(m, n) are the non-normalized sensitivities
     sensitivities_error = d_array / sens_avg * np.sqrt((sigam_d_array / d_array) ** 2
                                                        + (sigma_sens_avg / sens_avg) ** 2)
+
+    # set sensitivities error to -infinity if sensitivities are
+    sensitivities_error[np.isinf(sensitivities)] = -np.inf
 
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg

@@ -491,7 +491,7 @@ def test_prepare_moving_det_sensitivity():
     gold_sens_array = gold_final_sen_matrix.flatten()
     print(np.where(np.isinf(gold_sens_array)))
     print(np.where(np.isinf(test_sens_array)))
-    assert np.where(np.isinf(gold_sens_array))[0] == np.where(np.isinf(test_sens_array))[0]
+    np.testing.assert_allclose(np.where(np.isinf(gold_sens_array))[0], np.where(np.isinf(test_sens_array))[0])
     gold_sens_array[np.isinf(gold_sens_array)] = np.nan
     test_sens_array[np.isinf(test_sens_array)] = np.nan
     np.testing.assert_allclose(gold_sens_array, test_sens_array, rtol=1e-3, atol=1e-3,

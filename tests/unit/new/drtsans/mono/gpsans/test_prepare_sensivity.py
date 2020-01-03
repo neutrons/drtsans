@@ -508,6 +508,8 @@ def test_prepare_moving_det_sensitivity():
 
     # compare infinities and convert to NaN
     gold_sens_array = gold_final_sen_matrix.flatten()
+    print(np.where(np.isinf(gold_sens_array)))
+    print(np.where(np.isinf(test_sens_array)))
     assert np.where(np.isinf(gold_sens_array)) == np.where(np.isinf(test_sens_array))
     gold_sens_array[np.isinf(gold_sens_array)] = np.nan
     test_sens_array[np.isinf(test_sens_array)] = np.nan

@@ -1,4 +1,5 @@
 import numpy as np
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/gpsans/prepare_sensitivity.py
 from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity
 import pytest
 
@@ -8,8 +9,13 @@ import pytest
 # SME - William Heller <hellerwt@ornl.gov>, Lisa
 
 
+# All testing data are from
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/906bfc358e1d6eb12a78439aef615f03/sensitivity_math.xlsx
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/fccd9ac3b9611acda0e4d9efe52ff4f4/
+# Test_for_Preparing_Sensitivity_file_for_GP-SANS.pdf
+
 def generate_test_data():
-    """Generate test data from IS (Lisa)
+    """Generate test data, 3 flood runs and errors, from sensitivity_math.xlsx
 
     Returns
     -------
@@ -38,7 +44,9 @@ def generate_test_data():
 
 
 def get_weighted_averaged_matrix_abc():
-    """Get the weighted average for 3 test files A, B, C with the uncertainties
+    """Get the gold weighted average for 3 test files A, B, C with the uncertainties
+
+    Data is from sensitivity_math.xlsx as gold data to test weighted average method
 
     Returns
     -------
@@ -86,6 +94,8 @@ def get_weighted_averaged_matrix_abc():
 def get_non_normalized_sensitivities():
     """Get the gold data for non-normalized pixel-wise sensitivities.
 
+    Data is from sensitivity_math.xlsx as gold data to test methods to calculate non-normalized sensitivities
+
     Matrix D and sigmaD in Lisa's test document
 
     Returns
@@ -110,7 +120,8 @@ def get_non_normalized_sensitivities():
 def get_final_sensitivities():
     """Get the final sensitivities and sigma
 
-    "Apply another weighted average and propate the error"
+    Data is from sensitivity_math.xlsx as gold data to test methods to calculate non-normalized sensitivities
+    From PDF: "Apply another weighted average and propate the error"
 
     Returns
     -------
@@ -124,31 +135,12 @@ def get_final_sensitivities():
     ])
 
     sen_sigma_matrix = np.array([
-        [1.63E-01, -np.inf, 1.62E-01],
-        [1.70E-01, 1.76E-01, 1.67E-01],
-        [1.65E-01, 1.69E-01, -np.inf]
+        [6.78E-02, -np.inf, 6.73E-02],
+        [8.14E-02, 8.26E-02, 8.06E-02],
+        [6.83E-02, 6.94E-02, -np.inf]
     ])
 
     return sen_matrix, sen_sigma_matrix
-
-
-def verify_result(sensitivity, sensitivity_error):
-    """Verify the test result
-
-    Parameters
-    ----------
-    sensitivity: ndarray
-        sensitivity
-    sensitivity_error: ndarray
-        propagated sensitivity error
-
-    Returns
-    -------
-    boolean
-        result is same as gold value
-    """
-    assert sensitivity
-    assert sensitivity_error
 
 
 def normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
@@ -316,7 +308,7 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
 
     # Calculate scalar sensitivity's error
     # sigma_S_avg = sqrt(1 / sum_{m, n}(1 / sigma_D(m, n)^2))
-    sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigma_d_matrix[~(np.isinf(d_matrix) | np.isnan(d_matrix))]))
+    sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigma_d_matrix[~(np.isnan(d_matrix))]**2))
 
     # Propagate the sensitivities
     # sigma_sens(m, n) = D(m, n) / S_avg * [(sigma_D(m, n) / D(m, n))^2 + (sigma_S_avg / S_avg)^2]^{1/2}
@@ -324,14 +316,21 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
     sensitivities_error = d_matrix / sens_avg * np.sqrt((sigma_d_matrix / d_matrix)**2
                                                         + (sigma_sens_avg / sens_avg)**2)
 
+    # set sensitivities error to -infinity if sensitivities are
+    sensitivities_error[np.isinf(sensitivities)] = -np.inf
+
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg
 
 
-def test_prepare_moving_det_sensitivity():
-    """Test main algorithm to prepare sensitivity for instrument with moving detector
+def test_prepare_moving_det_sensitivity_prototype():
+    """Test the prototype functions involved in preparing sensitivities
+
+    Against the tests from master document, test_for_Preparing_Sensitivity_file_for_GP-SANS.pdf and
+    sensitivity_math.xlsx
 
     Returns
     -------
+    None
 
     """
     # Set up the test data
@@ -430,16 +429,38 @@ def test_prepare_moving_det_sensitivity():
     gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
     np.testing.assert_allclose(sensitivities, gold_final_sen_matrix, rtol=1e-2, equal_nan=True,
                                err_msg='Final sensitivities matrix not match', verbose=True)
-    # FIXME : skip to wait for Lisa's corrected version
-    # np.testing.assert_allclose(sensitivities_error, gold_final_sigma_matrix, rtol=1e-2, equal_nan=True,
-    #                            err_msg='Final sensitivities error matrix not match', verbose=True)
+    np.testing.assert_allclose(sensitivities_error, gold_final_sigma_matrix, rtol=1e-2, equal_nan=True,
+                               err_msg='Final sensitivities error matrix not match', verbose=True)
 
-    # Test high level method
+
+def test_prepare_moving_det_sensitivity():
+    """Test main algorithm to prepare sensitivity for instrument with moving detector
+
+    Returns
+    -------
+    None
+
+    """
+    # Set up the test data
+    test_data_set = generate_test_data()
+    monitor_a = 10
+    monitor_b = 10
+    monitor_c = 10
+    threshold_min = 0.5
+    threshold_max = 1.5
+
+    # Normalize the flood field data by monitor: A, B and C
     matrix_a, sigma_a = test_data_set[0], test_data_set[1]
+    matrix_a, sigma_a = normalize_by_monitor(matrix_a, sigma_a, monitor_a)
+
     matrix_b, sigma_b = test_data_set[2], test_data_set[3]
+    matrix_b, sigma_b = normalize_by_monitor(matrix_b, sigma_b, monitor_b)
+
     matrix_c, sigma_c = test_data_set[4], test_data_set[5]
+    matrix_c, sigma_c = normalize_by_monitor(matrix_c, sigma_c, monitor_c)
 
     # convert input data to required format
+    # Prepare data
     flood_matrix = np.ndarray(shape=(3, matrix_a.size), dtype=float)
     flood_error = np.ndarray(shape=(3, matrix_a.size), dtype=float)
 
@@ -451,14 +472,34 @@ def test_prepare_moving_det_sensitivity():
     flood_error[1] = sigma_b.flatten()
     flood_error[2] = sigma_c.flatten()
 
-    monitor_counts = np.array([monitor_a, monitor_b, monitor_c])
-
-    test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error, monitor_counts,
+    # Test drtsans.mono.gpsans.prepare_sensitivity()
+    test_sens_array, test_sens_sigma_array = prepare_sensitivity(flood_matrix, flood_error,
                                                                  threshold_min, threshold_max)
 
+    # Get gold data as the sensitivities and error
+    gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
+
     # verify that the refactored high level method renders the same result from prototype
-    np.testing.assert_allclose(sensitivities.flatten(), test_sens_array, 1e-7)
-    np.testing.assert_allclose(sensitivities_error.flatten(), test_sens_sigma_array, 1e-7)
+    # compare infinities and convert to NaN
+    gold_sens_array = gold_final_sen_matrix.flatten()
+    np.testing.assert_allclose(np.where(np.isinf(gold_sens_array))[0], np.where(np.isinf(test_sens_array))[0])
+
+    gold_array = gold_final_sen_matrix.flatten()
+    for i in range(test_sens_array.shape[0]):
+        print('{}:  {}  -  {} = {}'.format(i, gold_array[i], test_sens_array[i], gold_array[i] - test_sens_array[i]))
+    gold_sens_array[np.isinf(gold_sens_array)] = np.nan
+    test_sens_array[np.isinf(test_sens_array)] = np.nan
+    print('Difference = {}'.format(np.sqrt(np.nansum(gold_final_sen_matrix.flatten() - test_sens_array)**2)))
+
+    np.testing.assert_allclose(gold_sens_array, test_sens_array, rtol=1e-3, atol=5e-3,
+                               equal_nan=True, verbose=True)
+
+    gold_array = gold_final_sigma_matrix.flatten()
+    for i in range(test_sens_array.shape[0]):
+        print('{}:  {}  -  {} = {}'.format(i, gold_array[i], test_sens_sigma_array[i],
+                                           gold_array[i] - test_sens_sigma_array[i]))
+    np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3,
+                               equal_nan=True, verbose=True)
 
     return
 

@@ -8,7 +8,7 @@ __all__ = ['prepare_sensitivity']
 
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
-def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, threshold_min, threshold_max):
+def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, threshold_max):
     """Prepare sensitivity for moving detector
 
     Data files are processed such that intensities and errors are stored in numpy.ndarray with shape (N, M), where
@@ -16,7 +16,8 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
     - M: number of pixels (aka spectra) in instrument's detector;
          The 2D data from 2D detector are flattened to 1D in implementation
 
-    Prerequisite of the input files:
+    Prerequisite of the input data:
+    - Input data has been normalized by monitor counts already
     - top and bottom of the detector shall be masked (set to value as NaN) due to edge effects
     - in each file, beam center shall be found  and masked out
     - errors are then calculated from the flood intensities
@@ -34,8 +35,6 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
         multiple set of flood data intensities with shape = N, M
     flood_sigma_matrix : ~numpy.ndaray
         multiple set of flood data intensities' error with shape = N, M
-    monitor_counts : ~numpy.ndaray
-        monitor counts for each data file in 1D array with size N
     threshold_min : float
         minimum allowed detector counts to mask out 'bad' pixels
     threshold_max : float
@@ -47,10 +46,10 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
         sensitivities, sensitivities error
 
     """
-    # normalize the flood field data by monitor
+    # normalize the flood field data by monitor: Normalization is removed from this algorithm to integration
     # inputs: (N, M) array; outputs: (N, M) array
-    flood_data_matrix, flood_sigma_matrix = _normalize_by_monitor(flood_data_matrix, flood_sigma_matrix,
-                                                                  monitor_counts)
+    # flood_data_matrix, flood_sigma_matrix = _normalize_by_monitor(flood_data_matrix, flood_sigma_matrix,
+    #                                                               monitor_counts)
 
     # find weighted average for each fie and error
     # inputs: (N, M) array; outputs: (N, M) array
@@ -68,35 +67,9 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, monitor_counts, t
                                                                                    flood_sigma_matrix)
 
     # apply weighted average to sensitivities
-    sensitivities, sensitivities_error,  sens_avg, sigma_sens_avg = _normalize_sensitivities(raw_sensitivities,
-                                                                                             raw_sensitivities_error)
+    sensitivities, sensitivities_error, sens_avg, sigma_sens_avg = _normalize_sensitivities(raw_sensitivities,
+                                                                                            raw_sensitivities_error)
     return sensitivities, sensitivities_error
-
-
-def _normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
-    """Normalize the flood data field data by monitor
-
-    Parameters
-    ----------
-    flood_data: ndarray
-        flood data
-    flood_data_error: ndarray
-        flood data error
-    monitor_counts: int/float
-        monitor counts
-    Returns
-    -------
-    ndarray, ndarray
-        normalized flood data, normalized flood data error
-    """
-    # Check monitor counts shape and convert if necessary
-    if len(monitor_counts.shape) == 1:
-        monitor_counts = monitor_counts.reshape((len(monitor_counts), 1))
-    assert monitor_counts.shape == (flood_data.shape[0], 1), 'Monitor counts must be in shape as ({}, 1} ' \
-                                                             'but not {}'.format(flood_data.shape[0],
-                                                                                 monitor_counts.shape)
-
-    return flood_data / monitor_counts, flood_data_error / monitor_counts
 
 
 def _calculate_weighted_average_with_error(normalized_data, normalized_error):
@@ -119,22 +92,31 @@ def _calculate_weighted_average_with_error(normalized_data, normalized_error):
         data normalized by average, data's error normalized by average, Average, sigma(Average)
 
     """
-    # Calculate weighted average
-    # a = sum_{m, n} I(m, n) / sigma^2(m, n)
+    # Calculate weighted average for each flood file/run (average = sum_{i, j} I(i, j) / sigma^2(i, j))
+    # For m-th flood file/run
+    # where (i, j) is the index of a pixel on 2D detector and n is the index of same pixel as the 2D array
+    # is flattened to 1D.
+    # np.nansum() is used to exclude NaN from summation
+    # np.nansum():  https://docs.scipy.org/doc/numpy/reference/generated/numpy.nansum.html
+    # Summation is done along axis=1, the return, weighted_sum, is a 1D array with shape (M,)
+
+    # calculate:  sum_{n} I(m, n) / sigma^2(m, n)
     weighted_sum = np.nansum(normalized_data / normalized_error**2, axis=1)  # summing in row
-    # b = sum 1 / sigma^2(m, n)
+    # calculate: sum_n(1 / sigma^2(m, n))
     weights_square = np.nansum(1. / normalized_error**2, axis=1)
-    # Avg = a / b
+    # average[m] == sum_{n}(I(m, n) / sigma^2(m, n)) / sum_{n}(1 / sigma^2(m, n))
     weighted_average = weighted_sum / weights_square
+    # reshape to (M, 1) for division to input 2D array with shape (M, N)
     weighted_average = weighted_average.reshape((normalized_data.shape[0], 1))  # reshape to (N, 1) for division
-    # sigma Avg = 1 / sqrt(b)
+    # calculate: error for weighted average: sigma_avg[m] = 1 / sqrt(sum_{n}(1 / sigma^2(m, n)))
     weighted_average_error = 1. / np.sqrt(weights_square)
+    # reshape to (M, 1) for division to input 2D array with shape (M, N)
     weighted_average_error = weighted_average_error.reshape((normalized_data.shape[0], 1))
 
     # Normalize data by weighted-average
     avg_norm_data = normalized_data / weighted_average
 
-    # Propagate uncertainties: sigma S(m, n) = I(m, n) / avg * [(error(m, n)/I(m, n))^2 + (sigma Avg/Avg)^2]^1/2
+    # Propagate uncertainties: sigma S(n) = I(m, n) / avg * [(error(m, n)/I(m, n))^2 + (sigma Avg/Avg)^2]^1/2
     # in the sqrt operation, first term is a N x M array and second term is a N x 1 array
     avg_norm_error = normalized_data / weighted_average * np.sqrt((normalized_error / normalized_data)**2
                                                                   + (weighted_average_error / weighted_average)**2)
@@ -166,6 +148,8 @@ def _apply_sensitivity_thresholds(data, data_error, threshold_min, threshold_max
         data with bad pixels set to INF,
         data error with bad pixels set to INF
     """
+    # (data < threshold_min) | (data > threshold_max) returns the list of indexes in array data whose values
+    # are either smaller than minimum threshold or larger than maximum threshold.
     data[(data < threshold_min) | (data > threshold_max)] = -np.inf
     data_error[(data < threshold_min) | (data > threshold_max)] = -np.inf
 
@@ -197,17 +181,22 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
         1D array as all the flood files are summed
 
     """
-    # Keep a record on the array elements with np.inf
+    # Keep a record on the array elements with np.inf long axis=0, i.e., same detector pixel among different
+    # flood files
     simple_sum = np.sum(flood_data, axis=0)
 
     # Calculate D'(i, j)    = sum_{k}^{A, B, C}M_k(i, j)/s_k^2(i, j)
     #           1/s^2(i, j) = sum_{k}^{A, B, C}1/s_k^2(i, j)
-    # Do weighted summation to the subset by excluding the NaN
+    # Do weighted summation to the subset and exclude the NaN by np.nansum()
+    # np.nansum():  https://docs.scipy.org/doc/numpy/reference/generated/numpy.nansum.html
+    # If there is any element in array that is infinity, the summation of all elements on the specified axis
+    # i.e., among all flood data files/runs, could be messed up (though every likely the summed value is inf).
     s_ij = np.nansum(1. / flood_error ** 2, axis=0)  # summation along axis 1: among files
     d_ij = np.nansum(flood_data / flood_error ** 2, axis=0) / s_ij
     s_ij = 1. / np.sqrt(s_ij)
 
-    # In case there is at least an inf in this subset of data, set sensitivities to -inf
+    # In case there is at least an inf in this subset of data along axis=0, i.e., among various flood runs/files,
+    # set sensitivities to -inf in case nansum() messes up
     s_ij[np.isinf(simple_sum)] = -np.inf
     d_ij[np.isinf(simple_sum)] = -np.inf
 
@@ -221,38 +210,53 @@ def _normalize_sensitivities(d_array, sigam_d_array):
     """Do weighted average to pixel-wise sensitivities and propagate the error
     And then apply the average to sensitivity
 
-    S_avg = sum_{m, n}{D(m, n) / sigma^2(m, n)} / sum_{m, n}{1 / sigma^2(m, n)}
+    S_avg = sum_{i, j}{D(i, j) / sigma^2(i, j)} / sum_{i, j}{1 / sigma^2(i, j)}
 
     Parameters
     ----------
     d_array : ndarray
-        pixel-wise sensitivities
+        pixel-wise sensitivities in 1D array with shape (N,) where N is the number of pixels
     sigam_d_array : ndarray
-        pixel-wise sensitivities error
+        pixel-wise sensitivities error in 1D array with shape (N,) where N is the number of pixels
 
     Returns
     -------
     ndarray, ndarray, float, float
         normalized pixel-wise sensitivities, normalized pixel-wise sensitivities error
         scalar sensitivity, error of scalar sensitivity
+
     """
-    # Calculate wighted-average of pixel-wise sensitivities: sum on (m, n)
-    denomiator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
-                        sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
+    # Calculate wighted-average of pixel-wise sensitivities: i.e., do the summation on the all pixels
+    # since the 2D detector is treated as a 1D array in this method.
+    # Each (i, j) has a unique value p to be mapped to n.
+
+    # Any NaN terms and Infinity terms (for bad pixels) shall be excluded from summation
+    # ~(np.isinf(d_array) | np.isnan(d_array) gives out the indexes of elements in d_array that are not NaN or Inf
+    # calculate denominator: denominator = sum_{i, j}{D(i, j) / sigma^2(i, j)} = sum_{n}(D(n) / sigma^2(n))
+    denominator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
+                         sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
+    # calculate nominator: nominator = sum_{m, n}{1 / sigma^2(m, n)}
     nominator = np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
-    sens_avg = denomiator / nominator
+    sens_avg = denominator / nominator
 
     # Normalize pixel-wise sensitivities
     sensitivities = d_array / sens_avg
 
-    # Calculate scalar sensitivity's error
+    # Calculate scalar sensitivity's error:
     # sigma_S_avg = sqrt(1 / sum_{m, n}(1 / sigma_D(m, n)^2))
-    sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))]))
+    # for all D(m, n) are not NaN
+    # Thus, all the NaN terms shall be excluded from summation
+    # All the infinity terms shall be ignored because (1/inf) is zero and has no contribution in summation
+    # d_array[~(np.isinf(d_array) | np.isnan(d_array))] excludes all items that are either infinity or Nan
+    sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))]**2))
 
     # Propagate the sensitivities
     # sigma_sens(m, n) = D(m, n) / S_avg * [(sigma_D(m, n) / D(m, n))^2 + (sigma_S_avg / S_avg)^2]^{1/2}
     # D(m, n) are the non-normalized sensitivities
     sensitivities_error = d_array / sens_avg * np.sqrt((sigam_d_array / d_array) ** 2
                                                        + (sigma_sens_avg / sens_avg) ** 2)
+
+    # set sensitivities error to -infinity if sensitivities are
+    sensitivities_error[np.isinf(sensitivities)] = -np.inf
 
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg

@@ -135,9 +135,9 @@ def get_final_sensitivities():
     ])
 
     sen_sigma_matrix = np.array([
-        [1.63E-01, -np.inf, 1.62E-01],
-        [1.70E-01, 1.76E-01, 1.67E-01],
-        [1.65E-01, 1.69E-01, -np.inf]
+        [6.78E-02, -np.inf, 6.73E-02],
+        [8.14E-02, 8.26E-02, 8.06E-02],
+        [6.83E-02, 6.94E-02, -np.inf]
     ])
 
     return sen_matrix, sen_sigma_matrix
@@ -320,6 +320,9 @@ def normalize_sensitivities(d_matrix, sigma_d_matrix):
     sensitivities_error = d_matrix / sens_avg * np.sqrt((sigma_d_matrix / d_matrix)**2
                                                         + (sigma_sens_avg / sens_avg)**2)
 
+    # set sensitivities error to -infinity if sensitivities are
+    sensitivities_error[np.isinf(sensitivities)] = -np.inf
+
     print('Sensitivity sigma Matrix:\n{}'.format(sensitivities_error))
 
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg
@@ -432,7 +435,6 @@ def test_prepare_moving_det_sensitivity_prototype():
     gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
     np.testing.assert_allclose(sensitivities, gold_final_sen_matrix, rtol=1e-2, equal_nan=True,
                                err_msg='Final sensitivities matrix not match', verbose=True)
-    # FIXME - this broken
     np.testing.assert_allclose(sensitivities_error, gold_final_sigma_matrix, rtol=1e-2, equal_nan=True,
                                err_msg='Final sensitivities error matrix not match', verbose=True)
 

@@ -72,32 +72,6 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, th
     return sensitivities, sensitivities_error
 
 
-# def _normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
-#     """Normalize the flood data field data by monitor
-#
-#     Parameters
-#     ----------
-#     flood_data: ndarray
-#         flood data
-#     flood_data_error: ndarray
-#         flood data error
-#     monitor_counts: int/float
-#         monitor counts
-#     Returns
-#     -------
-#     ndarray, ndarray
-#         normalized flood data, normalized flood data error
-#     """
-#     # Check monitor counts shape and convert if necessary
-#     if len(monitor_counts.shape) == 1:
-#         monitor_counts = monitor_counts.reshape((len(monitor_counts), 1))
-#     assert monitor_counts.shape == (flood_data.shape[0], 1), 'Monitor counts must be in shape as ({}, 1} ' \
-#                                                              'but not {}'.format(flood_data.shape[0],
-#                                                                                  monitor_counts.shape)
-#
-#     return flood_data / monitor_counts, flood_data_error / monitor_counts
-
-
 def _calculate_weighted_average_with_error(normalized_data, normalized_error):
     """Calculated weighted average for normalized flood data and error
 

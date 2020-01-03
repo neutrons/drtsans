@@ -143,25 +143,6 @@ def get_final_sensitivities():
     return sen_matrix, sen_sigma_matrix
 
 
-# def verify_result(sensitivity, sensitivity_error):
-#     """Verify the test result
-#
-#     Parameters
-#     ----------
-#     sensitivity: ndarray
-#         sensitivity
-#     sensitivity_error: ndarray
-#         propagated sensitivity error
-#
-#     Returns
-#     -------
-#     boolean
-#         result is same as gold value
-#     """
-#     assert sensitivity
-#     assert sensitivity_error
-
-
 def normalize_by_monitor(flood_data, flood_data_error, monitor_counts):
     """Normalize the flood data field data by monitor
 
@@ -510,7 +491,7 @@ def test_prepare_moving_det_sensitivity():
     gold_sens_array = gold_final_sen_matrix.flatten()
     print(np.where(np.isinf(gold_sens_array)))
     print(np.where(np.isinf(test_sens_array)))
-    assert np.where(np.isinf(gold_sens_array)) == np.where(np.isinf(test_sens_array))
+    assert np.where(np.isinf(gold_sens_array))[0] == np.where(np.isinf(test_sens_array))[0]
     gold_sens_array[np.isinf(gold_sens_array)] = np.nan
     test_sens_array[np.isinf(test_sens_array)] = np.nan
     np.testing.assert_allclose(gold_sens_array, test_sens_array, rtol=1e-3, atol=1e-3,

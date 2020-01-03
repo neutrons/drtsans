@@ -478,25 +478,24 @@ def test_prepare_moving_det_sensitivity():
     gold_final_sen_matrix, gold_final_sigma_matrix = get_final_sensitivities()
 
     # verify that the refactored high level method renders the same result from prototype
-    print('Difference = {}'.format(np.sqrt(np.sum(gold_final_sen_matrix.flatten() - test_sens_array)**2)))
+    # compare infinities and convert to NaN
+    gold_sens_array = gold_final_sen_matrix.flatten()
+    np.testing.assert_allclose(np.where(np.isinf(gold_sens_array))[0], np.where(np.isinf(test_sens_array))[0])
+
     gold_array = gold_final_sen_matrix.flatten()
     for i in range(test_sens_array.shape[0]):
         print('{}:  {}  -  {} = {}'.format(i, gold_array[i], test_sens_array[i], gold_array[i] - test_sens_array[i]))
+    gold_sens_array[np.isinf(gold_sens_array)] = np.nan
+    test_sens_array[np.isinf(test_sens_array)] = np.nan
+    print('Difference = {}'.format(np.sqrt(np.nansum(gold_final_sen_matrix.flatten() - test_sens_array)**2)))
+
+    np.testing.assert_allclose(gold_sens_array, test_sens_array, rtol=1e-3, atol=5e-3,
+                               equal_nan=True, verbose=True)
+
     gold_array = gold_final_sigma_matrix.flatten()
     for i in range(test_sens_array.shape[0]):
         print('{}:  {}  -  {} = {}'.format(i, gold_array[i], test_sens_sigma_array[i],
                                            gold_array[i] - test_sens_sigma_array[i]))
-
-    # compare infinities and convert to NaN
-    gold_sens_array = gold_final_sen_matrix.flatten()
-    print(np.where(np.isinf(gold_sens_array)))
-    print(np.where(np.isinf(test_sens_array)))
-    np.testing.assert_allclose(np.where(np.isinf(gold_sens_array))[0], np.where(np.isinf(test_sens_array))[0])
-    gold_sens_array[np.isinf(gold_sens_array)] = np.nan
-    test_sens_array[np.isinf(test_sens_array)] = np.nan
-    np.testing.assert_allclose(gold_sens_array, test_sens_array, rtol=1e-3, atol=1e-3,
-                               equal_nan=True, verbose=True)
-
     np.testing.assert_allclose(gold_final_sigma_matrix.flatten(), test_sens_sigma_array, rtol=1e-3, atol=1e-3,
                                equal_nan=True, verbose=True)
 

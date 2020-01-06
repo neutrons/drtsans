@@ -78,11 +78,17 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     output_workspace: str
         Optional name of the output workspace. Default is to replace the input workspace
     """
+    metadata_entry_names = ['monitor1', 'monitor']  # valid log names for monitor counts
+
     reference_total_counts = 1.e08  # actual number selected by the instrument team
     input_workspace = str(input_workspace)
     if output_workspace is None:
         output_workspace = input_workspace
-    monitor = SampleLogs(input_workspace).monitor.value / reference_total_counts
+    for entry_name in metadata_entry_names:
+        try:
+            monitor = SampleLogs(input_workspace).single_value(entry_name) / reference_total_counts
+        except RuntimeError:  # the entry is not found in the metadata
+            continue  # search next entry
     # Cast the monitor value into a Mantid workspace to later divide the input workspace by this workspace
     monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=unique_workspace_dundername())
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=monitor_workspace, OutputWorkspace=output_workspace)

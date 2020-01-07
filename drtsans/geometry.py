@@ -9,6 +9,8 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
+__all__ = ['sample_aperture_diameter', 'source_aperture_diameter']
+
 
 def detector_name(ipt):
     r"""
@@ -345,9 +347,9 @@ def source_detector_distance(source, unit='mm', search_logs=True):
     return ssd + sdd
 
 
-def sample_aperture_diameter(input_workspace, unit='m'):
+def sample_aperture_diameter(input_workspace, unit='mm'):
     r"""
-    Find the sample aperture diameter from the logs.
+    Find and return the sample aperture diameter from the logs.
 
     Log keys searched are 'sample_aperture_diameter' and additional log entries for specific instruments. It is
     assumed that the units of the logged value is mm
@@ -384,4 +386,28 @@ def sample_aperture_diameter(input_workspace, unit='m'):
     if 'sample_aperture_diameter' not in sample_logs.keys():
         sample_logs.insert('sample_aperture_diameter', diameter, unit='mm')
 
+    return diameter if unit == 'mm' else diameter / 1.e3
+
+
+def source_aperture_diameter(input_workspace, unit='mm'):
+    r"""
+    Find and return the sample aperture diameter from the logs, or compute this quantity from other log entries.
+
+    Log key searched is 'source_aperture_diameter'. It is assumed that the units of the logged value is mm
+
+    Parameters
+    ----------
+    input_workspace: :py:obj:`~mantid.api.MatrixWorkspace`
+        Input workspace from which to find the aperture
+    unit: str
+        return aperture in requested length unit, either 'm' or 'mm'
+
+    Returns
+    -------
+    float
+    """
+    try:
+        diameter = SampleLogs(input_workspace).single_value('source_aperture_diameter')
+    except RuntimeError:
+        diameter = SampleLogs(input_workspace).single_value('source_aperture_radius')
     return diameter if unit == 'mm' else diameter / 1.e3

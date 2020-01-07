@@ -111,7 +111,7 @@ def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
     return smd * m2units[unit]
 
 
-def sample_aperture_diameter(run, unit='m'):
+def sample_aperture_diameter(run, unit='mm'):
     r"""
     Find the sample aperture diameter from the logs.
 
@@ -234,16 +234,16 @@ def source_aperture_diameter(run, unit='mm'):
         Source aperture diameter, in requested units
     """
     log_key = 'source_aperture_diameter'
-    sl = SampleLogs(run)
-    if log_key in sl.keys():
-        sad = sl.single_value(log_key)  # units are 'mm'
+    sample_logs = SampleLogs(run)
+    if log_key in sample_logs.keys():
+        source_aperture_diameter_entry = sample_logs.single_value(log_key)  # units are 'mm'
     else:
-        sad = source_aperture(run, unit='mm').diameter
-        sl.insert(log_key, sad, unit='mm')
+        source_aperture_diameter_entry = source_aperture(run, unit='mm').diameter
+        sample_logs.insert(log_key, source_aperture_diameter_entry, unit='mm')
     if unit == 'm':
-        sad /= 1000.0
+        source_aperture_diameter_entry /= 1000.0
 
-    return sad
+    return source_aperture_diameter_entry
 
 
 def insert_aperture_logs(ws):

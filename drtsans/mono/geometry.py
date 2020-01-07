@@ -5,8 +5,8 @@ __all__ = ['beam_radius']
 
 
 def beam_radius(input_workspace, unit='mm',
-                sample_aperture_diameter_log='sample-aperture-diameter',
-                source_aperture_diameter_log='source-aperture-diameter',
+                sample_aperture_diameter_log='sample_aperture_diameter',
+                source_aperture_diameter_log='source_aperture_diameter',
                 sdd_log='sample-detector-distance',
                 ssd_log='source-sample-distance'):
     """
@@ -20,13 +20,13 @@ def beam_radius(input_workspace, unit='mm',
     unit: str
         Units of the output beam radius. Either 'mm' or 'm'.
     sample_aperture_diameter_log: str
-        Log entry for the sample-aperture diameter
+        Log entry for the sample_aperture diameter
     source_aperture_diameter_log: str
-        Log entry for the source-aperture diameter
+        Log entry for the source_aperture diameter
     sdd_log: str
         Log entry for the sample to detector distance
     ssd_log: str
-        Log entry for the source-aperture to sample distance
+        Log entry for the source_aperture to sample distance
 
     Returns
     -------

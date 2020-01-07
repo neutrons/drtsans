@@ -115,7 +115,7 @@ def sample_aperture_diameter(run, unit='m'):
     r"""
     Find the sample aperture diameter from the logs.
 
-    Log keys searched are 'sample-aperture-diameter' (override beamslit4) and 'beamslit4'.
+    Log keys searched are 'sample_aperture_diameter' (override beamslit4) and 'beamslit4'.
 
     Parameters
     ----------
@@ -131,18 +131,18 @@ def sample_aperture_diameter(run, unit='m'):
     """
     sl = SampleLogs(run)
     sad = None
-    for log_key in ('sample-aperture-diameter', 'beamslit4'):
+    for log_key in ('sample_aperture_diameter', 'beamslit4'):
         if log_key in sl.keys():
             sad = sl.single_value(log_key)
             break
     if sad is None:
         pnames = [p.name for p in run.run().getProperties()]
-        raise RuntimeError('Unable to retrieve sample aperture diameter as neither log "sample-aperture-diameter" '
+        raise RuntimeError('Unable to retrieve sample aperture diameter as neither log "sample_aperture_diameter" '
                            'nor "beamslit4" is in the sample logs.  Available logs are {}'
                            ''.format(pnames))
 
-    if 'sample-aperture-diameter' not in sl.keys():
-        sl.insert('sample-aperture-diameter', sad, unit='mm')
+    if 'sample_aperture_diameter' not in sl.keys():
+        sl.insert('sample_aperture_diameter', sad, unit='mm')
     if unit == 'm':
         sad /= 1000.0
     return sad
@@ -220,7 +220,7 @@ def source_aperture_diameter(run, unit='mm'):
     with the neutron beam. These angles are not used in reduction.
 
     If the aperture is computed, then the value is stored
-    in log key "source-aperture-diameter", with mili meter units
+    in log key "source_aperture_diameter", with mili meter units
 
     Parameters
     ----------
@@ -233,7 +233,7 @@ def source_aperture_diameter(run, unit='mm'):
     float
         Source aperture diameter, in requested units
     """
-    log_key = 'source-aperture-diameter'
+    log_key = 'source_aperture_diameter'
     sl = SampleLogs(run)
     if log_key in sl.keys():
         sad = sl.single_value(log_key)  # units are 'mm'
@@ -257,14 +257,14 @@ def insert_aperture_logs(ws):
         Insert metadata in this workspace's logs
     """
     sl = SampleLogs(ws)
-    if 'sample-aperture-diameter' not in sl.keys():
+    if 'sample_aperture_diameter' not in sl.keys():
         sample_aperture_diameter(ws, unit='mm')  # function will insert the log
-    if 'source-aperture-diameter' not in sl.keys():
+    if 'source_aperture_diameter' not in sl.keys():
         sad = source_aperture(ws, unit='mm').diameter
-        sl.insert('source-aperture-diameter', sad, unit='mm')
-    if 'source-aperture-sample-distance' not in sl.keys():
+        sl.insert('source_aperture_diameter', sad, unit='mm')
+    if 'source_aperture_sample_distance' not in sl.keys():
         sds = source_aperture(ws, unit='mm').distance_to_sample
-        sl.insert('source-aperture-sample-distance', sds, unit='mm')
+        sl.insert('source_aperture_sample_distance', sds, unit='mm')
 
 
 def detector_id(pixel_coordinates, tube_size=256):

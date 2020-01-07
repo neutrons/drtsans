@@ -349,7 +349,7 @@ def sample_aperture_diameter(input_workspace, unit='m'):
     r"""
     Find the sample aperture diameter from the logs.
 
-    Log keys searched are 'sample-aperture-diameter' and additional log entries for specific instruments. It is
+    Log keys searched are 'sample_aperture_diameter' and additional log entries for specific instruments. It is
     assumed that the units of the logged value is mm
 
     Parameters
@@ -367,7 +367,7 @@ def sample_aperture_diameter(input_workspace, unit='m'):
     additional_log_keys = {InstrumentEnumName.EQSANS: ['beamslit4'],
                            InstrumentEnumName.GPSANS: [],
                            InstrumentEnumName.BIOSANS: []}
-    log_keys = ['sample-aperture-diameter'] + additional_log_keys[instrument_enum_name(input_workspace)]
+    log_keys = ['sample_aperture_diameter'] + additional_log_keys[instrument_enum_name(input_workspace)]
 
     sample_logs = SampleLogs(input_workspace)
     diameter = None
@@ -380,8 +380,8 @@ def sample_aperture_diameter(input_workspace, unit='m'):
         raise RuntimeError('Unable to retrieve the sample aperture diameter from the logs')
 
     # The diameter was found using the additional logs. Insert a log for the diameter under key
-    # "sample-aperture-diameter"
-    if 'sample-aperture-diameter' not in sample_logs.keys():
-        sample_logs.insert('sample-aperture-diameter', diameter, unit='mm')
+    # "sample_aperture_diameter"
+    if 'sample_aperture_diameter' not in sample_logs.keys():
+        sample_logs.insert('sample_aperture_diameter', diameter, unit='mm')
 
     return diameter if unit == 'mm' else diameter / 1.e3

@@ -77,7 +77,7 @@ def test_iq_binning_serial(reference_dir):
     # NOTE: geometry.sample_aperture_diameter is not working: slit4 missing in EQSANS_68200_event.nxs
     # We hard code the sample_aperture_diameter instead
     AddSampleLog(Workspace=ws,
-                 LogName='sample-aperture-diameter',
+                 LogName='sample_aperture_diameter',
                  LogText='10.',
                  LogType='Number',
                  LogUnit='mm')

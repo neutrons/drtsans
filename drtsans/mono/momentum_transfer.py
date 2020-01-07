@@ -141,8 +141,8 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
         r1 = 1. / 1000. * sl.find_log_with_units('source_aperture_radius', 'mm')
         r2 = 1. / 1000. * sl.find_log_with_units('sample_aperture_radius', 'mm')
     except RuntimeError:
-        r1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
-        r2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
+        r1 = 1. / 2000. * sl.find_log_with_units('source_aperture_diameter', 'mm')
+        r2 = 1. / 2000. * sl.find_log_with_units('sample_aperture_diameter', 'mm')
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy

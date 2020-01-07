@@ -78,7 +78,8 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     output_workspace: str
         Optional name of the output workspace. Default is to replace the input workspace
     """
-    metadata_entry_names = ['monitor1', 'monitor']  # valid log names for monitor counts
+    metadata_entry_names = ['monitor',  # created by load_events
+                            'monitor1']  # may be in the DAS logs
 
     reference_total_counts = 1.e08  # actual number selected by the instrument team
     input_workspace = str(input_workspace)

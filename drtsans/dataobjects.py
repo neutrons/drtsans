@@ -164,7 +164,8 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         """
         frame = pd.read_csv(file, sep=sep, dtype=np.float64)
         args = [frame[label].values for label in ['intensity', 'error', 'mod_q']]
-        kwargs = {label: frame[label].values for label in ['delta_mod_q', 'wavelength'] if label in list(frame.columns)}
+        kwargs = {label: frame[label].values for label in ['delta_mod_q', 'wavelength']
+                  if label in list(frame.columns)}
         return IQmod(*args, **kwargs)
 
     def __new__(cls, intensity, error, mod_q, delta_mod_q=None, wavelength=None):
@@ -294,7 +295,7 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
     ``error``, ``delta_qx``, ``delta_qy``, ``wavelength``) must all be parallel. However, for (``qx``,
     ``qy``), they must either (both) be 2-dimensional and parallel, or (both) 1-dimensional with
     ``len(qx) == intensity.shape[0]`` and ``len(qy) == intensity.shape[1]``.'''
-    def __new__(cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None):
+    def __new__(cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None):  # noqa: C901
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)
         error = np.array(error)

@@ -16,7 +16,6 @@ class TestIQmod():
         assert iq_other.error == pytest.approx(iq.error)
         assert iq_other.mod_q == pytest.approx(iq.mod_q)
 
-
     def test_IQmod_creation(self):
         # these are expected to work
         IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])

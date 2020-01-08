@@ -1,10 +1,21 @@
 import pytest
+import tempfile
 
 from drtsans.dataobjects import IQazimuthal, IQmod, testing
 from tests.conftest import assert_wksp_equal
 
 
 class TestIQmod():
+
+    def test_to_from_csv(self):
+        iq = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
+        iq.to_csv(filename)
+        iq_other = IQmod.read_csv(filename)
+        assert iq_other.intensity == pytest.approx(iq.intensity)
+        assert iq_other.error == pytest.approx(iq.error)
+        assert iq_other.mod_q == pytest.approx(iq.mod_q)
+
 
     def test_IQmod_creation(self):
         # these are expected to work

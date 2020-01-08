@@ -119,6 +119,9 @@ def test_biosans(configfile, basename):
     # modify the config file and get the output directory and the full path to the new configuration file
     outputdir, json_file = write_configfile(configfile, basename)
 
+    for missingfile in ['/HFIR/CG3/IPTS-24665/nexus/CG3_1431.nxs.h5', '/HFIR/CG3/IPTS-24665/']:
+        if not os.path.isfile(missingfile):
+            print(missingfile, 'is missing')
     run_reduction('biosans_reduction.py', json_file)
 
     check_and_cleanup(outputdir, basename)

@@ -151,6 +151,12 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
             90.0 8.0 0.01
             4.7 0.9 0.1
 
+        Usage example:
+        ```
+        from drtsans.mono.gpsans import IQmod
+        iq = IQmod.read_csv(file_name)
+        ```
+
         Parameters
         ----------
         file: str

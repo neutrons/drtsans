@@ -1,10 +1,13 @@
 from collections import namedtuple
 from collections.abc import Iterable
-from drtsans.settings import unique_workspace_dundername as uwd
 from enum import Enum
+import numpy as np
+import pandas as pd
+
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
-import numpy as np
+
+from drtsans.settings import unique_workspace_dundername as uwd
 
 __all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal']
 
@@ -125,8 +128,52 @@ def scale_intensity(iq_object, scaling):
 
 
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
-    '''This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
-    and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional.'''
+    r"""This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
+    and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional."""
+
+    @staticmethod
+    def read_csv(file, sep=' '):
+        r"""
+        Load an intensity profile into a ~drtsans.dataobjects.IQmod object.
+
+        Required file format:
+        The first row must include the names for the file columns. The order of the columns is irrelevant and
+        the names of the columns must be:
+        - 'intensity' for profile intensities. This column is required.
+        - 'error' for uncertainties in the profile intensities. This column is required.
+        - 'mod_q' for values of Q. This column is required.
+        - 'delta_mod_q' for uncertainties in the Q values. This column is optional.
+        - 'wavelength' This column is optional.
+
+        Example of file contents:
+            intensity error mod_q
+            1000.0 89.0 0.001
+            90.0 8.0 0.01
+            4.7 0.9 0.1
+
+        Usage example:
+        ```
+        from drtsans.mono.gpsans import IQmod
+        iq = IQmod.read_csv(file_name)
+        ```
+
+        Parameters
+        ----------
+        file: str
+            Path to input file
+        sep: str
+            String of length 1. Field delimiter in the input file.
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQmod
+        """
+        frame = pd.read_csv(file, sep=sep, dtype=np.float64)
+        args = [frame[label].values for label in ['intensity', 'error', 'mod_q']]
+        kwargs = {label: frame[label].values for label in ['delta_mod_q', 'wavelength']
+                  if label in list(frame.columns)}
+        return IQmod(*args, **kwargs)
+
     def __new__(cls, intensity, error, mod_q, delta_mod_q=None, wavelength=None):
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)
@@ -228,6 +275,22 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
                                UnitX='momentumtransfer', OutputWorkspace=name, Dx=dq,
                                EnableLogging=False)
 
+    def to_csv(self, file, sep=' ', float_format='%.6f'):
+        r"""
+        Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
+
+        Parameters
+        ----------
+        file: str
+            Path to output file
+        sep: str
+            String of length 1. Field delimiter for the output file.
+        float_format: str
+            Format string for floating point numbers.
+        """
+        frame = pd.DataFrame({label: value for label, value in self._asdict().items() if value is not None})
+        frame.to_csv(file, index=False, sep=sep, float_format=float_format)
+
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
     '''This class holds the information for the azimuthal projection, I(Qx, Qy). The resolution terms,
@@ -238,7 +301,7 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
     ``error``, ``delta_qx``, ``delta_qy``, ``wavelength``) must all be parallel. However, for (``qx``,
     ``qy``), they must either (both) be 2-dimensional and parallel, or (both) 1-dimensional with
     ``len(qx) == intensity.shape[0]`` and ``len(qy) == intensity.shape[1]``.'''
-    def __new__(cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None):
+    def __new__(cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None):  # noqa: C901
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)
         error = np.array(error)

@@ -2,12 +2,15 @@ import os
 
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
+from mantid.kernel import logger
 from mantid.simpleapi import mtd, Load
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
+
+__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter']
 
 
 def detector_name(ipt):
@@ -345,11 +348,11 @@ def source_detector_distance(source, unit='mm', search_logs=True):
     return ssd + sdd
 
 
-def sample_aperture_diameter(input_workspace, unit='m'):
+def sample_aperture_diameter(input_workspace, unit='mm'):
     r"""
-    Find the sample aperture diameter from the logs.
+    Find and return the sample aperture diameter from the logs.
 
-    Log keys searched are 'sample-aperture-diameter' and additional log entries for specific instruments. It is
+    Log keys searched are 'sample_aperture_diameter' and additional log entries for specific instruments. It is
     assumed that the units of the logged value is mm
 
     Parameters
@@ -367,7 +370,7 @@ def sample_aperture_diameter(input_workspace, unit='m'):
     additional_log_keys = {InstrumentEnumName.EQSANS: ['beamslit4'],
                            InstrumentEnumName.GPSANS: [],
                            InstrumentEnumName.BIOSANS: []}
-    log_keys = ['sample-aperture-diameter'] + additional_log_keys[instrument_enum_name(input_workspace)]
+    log_keys = ['sample_aperture_diameter'] + additional_log_keys[instrument_enum_name(input_workspace)]
 
     sample_logs = SampleLogs(input_workspace)
     diameter = None
@@ -380,8 +383,63 @@ def sample_aperture_diameter(input_workspace, unit='m'):
         raise RuntimeError('Unable to retrieve the sample aperture diameter from the logs')
 
     # The diameter was found using the additional logs. Insert a log for the diameter under key
-    # "sample-aperture-diameter"
-    if 'sample-aperture-diameter' not in sample_logs.keys():
-        sample_logs.insert('sample-aperture-diameter', diameter, unit='mm')
+    # "sample_aperture_diameter"
+    if 'sample_aperture_diameter' not in sample_logs.keys():
+        sample_logs.insert('sample_aperture_diameter', diameter, unit='mm')
 
     return diameter if unit == 'mm' else diameter / 1.e3
+
+
+def source_aperture_diameter(input_workspace, unit='mm'):
+    r"""
+    Find and return the sample aperture diameter from the logs, or compute this quantity from other log entries.
+
+    Log key searched is 'source_aperture_diameter'. It is assumed that the units of the logged value is mm
+
+    Parameters
+    ----------
+    input_workspace: :py:obj:`~mantid.api.MatrixWorkspace`
+        Input workspace from which to find the aperture
+    unit: str
+        return aperture in requested length unit, either 'm' or 'mm'
+
+    Returns
+    -------
+    float
+    """
+    try:
+        diameter = SampleLogs(input_workspace).single_value('source_aperture_diameter')
+    except RuntimeError:
+        diameter = SampleLogs(input_workspace).single_value('source_aperture_radius')
+    return diameter if unit == 'mm' else diameter / 1.e3
+
+
+def beam_radius(input_workspace, unit='mm'):
+    """
+    Calculate the beam radius impinging on the detector
+
+    R_beam = R_sampleAp + SDD * (R_sampleAp + R_sourceAp) / SSD, where
+    R_sampleAp: radius of the sample aperture,
+    SDD: distance between the sample and the detector,
+    R_sourceAp: radius of the source aperture,
+    SSD: distance between the source and the sample.
+
+    Parameters
+    ----------
+    input_workspace: ~mantid.api.MatrixWorkspace, str
+        Input workspace
+    unit: str
+        Units of the output beam radius. Either 'mm' or 'm'.
+
+    Returns
+    -------
+    float
+    """
+    r_sa = sample_aperture_diameter(input_workspace, unit=unit) / 2.0  # radius
+    r_so = source_aperture_diameter(input_workspace, unit=unit) / 2.0  # radius
+    l1 = source_sample_distance(input_workspace, unit=unit)
+    l2 = sample_detector_distance(input_workspace, unit=unit)
+
+    radius = r_sa + (r_sa + r_so) * (l2 / l1)
+    logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3))
+    return radius

@@ -4,9 +4,8 @@ import drtsans.momentum_transfer
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
-from drtsans.geometry import source_sample_distance, sample_detector_distance
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
-from drtsans.samplelogs import SampleLogs
+from drtsans.geometry import (sample_aperture_diameter, sample_detector_distance, source_aperture_diameter,
+                              source_sample_distance)
 
 __all__ = ['convert_to_q']
 
@@ -136,13 +135,8 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     # Retrieve L1 and L2 from instrument geometry
     l1 = source_sample_distance(ws, unit='m')
     l2 = sample_detector_distance(ws, unit='m')
-    sl = SampleLogs(ws)
-    try:  # New file
-        r1 = 1. / 1000. * sl.find_log_with_units('source_aperture_radius', 'mm')
-        r2 = 1. / 1000. * sl.find_log_with_units('sample_aperture_radius', 'mm')
-    except RuntimeError:
-        r1 = 1. / 2000. * sl.find_log_with_units('source-aperture-diameter', 'mm')
-        r2 = 1. / 2000. * sl.find_log_with_units('sample-aperture-diameter', 'mm')
+    r1 = source_aperture_diameter(ws, unit='m') / 2.0
+    r2 = sample_aperture_diameter(ws, unit='m') / 2.0
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy

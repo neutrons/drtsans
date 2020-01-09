@@ -260,7 +260,7 @@ def insert_aperture_logs(ws):
     if 'sample_aperture_diameter' not in sl.keys():
         sample_aperture_diameter(ws, unit='mm')  # function will insert the log
     if 'source_aperture_diameter' not in sl.keys():
-        sad = source_aperture(ws, unit='mm').diameter
+        sad = source_aperture_diameter(ws, unit='mm')
         sl.insert('source_aperture_diameter', sad, unit='mm')
     if 'source_aperture_sample_distance' not in sl.keys():
         sds = source_aperture(ws, unit='mm').distance_to_sample

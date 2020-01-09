@@ -9,6 +9,8 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
+from drtsans.tof import eqsans
+
 __all__ = ['sample_aperture_diameter', 'source_aperture_diameter']
 
 
@@ -406,8 +408,14 @@ def source_aperture_diameter(input_workspace, unit='mm'):
     -------
     float
     """
-    try:
-        diameter = SampleLogs(input_workspace).single_value('source_aperture_diameter')
-    except RuntimeError:
-        diameter = SampleLogs(input_workspace).single_value('source_aperture_radius')
+    # Check if a specialized calculator of the source aperture exists in the instrument namespace
+    specialized_aperture_calculator = {InstrumentEnumName.EQSANS: eqsans.source_aperture_diameter}
+    aperture_calculator = specialized_aperture_calculator.get(instrument_enum_name(input_workspace), None)
+    if aperture_calculator is not None:
+        diameter = aperture_calculator(input_workspace, unit=unit)
+    else:  # non-specialized version
+        try:
+            diameter = SampleLogs(input_workspace).single_value('source_aperture_diameter')
+        except RuntimeError:
+            diameter = SampleLogs(input_workspace).single_value('source_aperture_radius')
     return diameter if unit == 'mm' else diameter / 1.e3

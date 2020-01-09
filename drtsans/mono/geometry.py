@@ -1,4 +1,4 @@
-from mantid import mtd, logger
+from mantid import logger
 from drtsans.geometry import (sample_aperture_diameter, sample_detector_distance, source_aperture_diameter,
                               source_sample_distance)
 

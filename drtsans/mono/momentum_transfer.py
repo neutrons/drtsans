@@ -6,8 +6,6 @@ import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans.geometry import (sample_aperture_diameter, sample_detector_distance, source_aperture_diameter,
                               source_sample_distance)
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
-from drtsans.samplelogs import SampleLogs
 
 __all__ = ['convert_to_q']
 

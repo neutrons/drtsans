@@ -110,7 +110,7 @@ def test_bank_workspace_indices(instrument, component, wksp_index_min, wksp_inde
 def test_sample_aperture_diameter(serve_events_workspace):
     input_workspace = serve_events_workspace('EQSANS_92353')
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters
-    assert geo.sample_aperture_diameter(input_workspace) == pytest.approx(0.01, abs=0.1)
+    assert geo.sample_aperture_diameter(input_workspace, unit='m') == pytest.approx(0.01, abs=0.1)
     # verify entry 'sample_aperture_diameter' has been added to the logs
     assert SampleLogs(input_workspace).single_value('sample_aperture_diameter') == pytest.approx(10.0, abs=0.1)
 

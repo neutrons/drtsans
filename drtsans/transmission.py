@@ -20,9 +20,9 @@ beam_radius <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drt
 """  # noqa: E501
 from drtsans.settings import unique_workspace_dundername
 from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
-from drtsans.mono.geometry import beam_radius
+from drtsans.geometry import beam_radius
 
-# Symbols to be exported to the drtsans namespace
+# Symbols to be exported
 __all__ = ['apply_transmission_correction', 'calculate_transmission']
 
 

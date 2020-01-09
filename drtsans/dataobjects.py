@@ -292,6 +292,63 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         frame.to_csv(file, index=False, sep=sep, float_format=float_format)
 
 
+def load_iqmod(file, sep=' '):
+    r"""
+    Load an intensity profile into a ~drtsans.dataobjects.IQmod object.
+
+    Required file format:
+    The first row must include the names for the file columns. The order of the columns is irrelevant and
+    the names of the columns must be:
+    - 'intensity' for profile intensities. This column is required.
+    - 'error' for uncertainties in the profile intensities. This column is required.
+    - 'mod_q' for values of Q. This column is required.
+    - 'delta_mod_q' for uncertainties in the Q values. This column is optional.
+    - 'wavelength' This column is optional.
+
+    Example of file contents:
+        intensity error mod_q
+        1000.0 89.0 0.001
+        90.0 8.0 0.01
+        4.7 0.9 0.1
+
+    Usage example:
+    ```
+    from drtsans.mono.gpsans import load_iqmod
+    iq = load_iqmod(file_name)
+    ```
+
+    Parameters
+    ----------
+    file: str
+        Path to input file
+    sep: str
+        String of length 1. Field delimiter in the input file.
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod
+    """
+    return IQmod.read_csv(file, sep=sep)
+
+
+def save_iqmod(iq, file, sep=' ', float_format='%.6f'):
+    r"""
+    Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
+
+    Parameters
+    ----------
+    iq: ~drtsans.dataobjects.IQmod
+        Profile to be saved
+    file: str
+        Path to output file
+    sep: str
+        String of length 1. Field delimiter for the output file.
+    float_format: str
+        Format string for floating point numbers.
+    """
+    iq.to_csv(file, sep=sep, float_format=float_format)
+
+
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
     '''This class holds the information for the azimuthal projection, I(Qx, Qy). The resolution terms,
     (``delta_qx``, ``delta_qy``) and ``wavelength`` fields are optional.

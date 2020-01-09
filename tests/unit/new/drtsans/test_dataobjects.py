@@ -1,7 +1,8 @@
+import os
 import pytest
 import tempfile
 
-from drtsans.dataobjects import IQazimuthal, IQmod, testing
+from drtsans.dataobjects import IQazimuthal, IQmod, load_iqmod, save_iqmod, testing
 from tests.conftest import assert_wksp_equal
 
 
@@ -12,9 +13,8 @@ class TestIQmod():
         filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
         iq.to_csv(filename)
         iq_other = IQmod.read_csv(filename)
-        assert iq_other.intensity == pytest.approx(iq.intensity)
-        assert iq_other.error == pytest.approx(iq.error)
-        assert iq_other.mod_q == pytest.approx(iq.mod_q)
+        testing.assert_allclose(iq, iq_other)
+        os.remove(filename)
 
     def test_IQmod_creation(self):
         # these are expected to work
@@ -79,6 +79,15 @@ class TestIQmod():
 
         # verify results
         assert_wksp_equal(wksp, iqmod)
+
+
+def test_save_load_iqmod():
+    iq = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
+    save_iqmod(iq, filename)
+    iq_other = load_iqmod(filename)
+    testing.assert_allclose(iq, iq_other)
+    os.remove(filename)
 
 
 def test_IQazimuthal_1d_creation():

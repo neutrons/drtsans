@@ -5,6 +5,9 @@
 import drtsans.absolute_units
 from ...absolute_units import *
 
+import drtsans.dataobjects
+from drtsans.dataobjects import load_iqmod, save_iqmod
+
 import drtsans.iq
 from ...iq import *
 
@@ -45,6 +48,7 @@ from .solid_angle import *  # overrides drtsans.solid_angle
 
 
 __all__ = [] + drtsans.absolute_units.__all__\
+          + ['load_iqmod', 'save_iqmod'] \
           + drtsans.iq.__all__ \
           + drtsans.pixel_calibration.__all__ \
           + drtsans.stitch.__all__\

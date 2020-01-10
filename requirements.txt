@@ -2,5 +2,6 @@ lmfit
 matplotlib  # is this necessary
 mpld3
 numexpr
+pandas
 sortedcontainers
 tinydb

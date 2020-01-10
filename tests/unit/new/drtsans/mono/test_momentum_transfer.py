@@ -130,9 +130,9 @@ def test_momentum_and_resolution(generic_workspace):
     AddSampleLog(Workspace=ws, LogName='wavelength', LogText='{}'.format(wavelength), LogType='Number', LogUnit='A')
     AddSampleLog(Workspace=ws, LogName='wavelength-spread', LogText='{}'.format(delta_lambda),
                  LogType='Number', LogUnit='A')
-    AddSampleLog(Workspace=ws, LogName='source-aperture-diameter', LogText='{}'.format(R1*2.*1000),
+    AddSampleLog(Workspace=ws, LogName='source_aperture_diameter', LogText='{}'.format(R1*2.*1000),
                  LogType='Number', LogUnit='mm')
-    AddSampleLog(Workspace=ws, LogName='sample-aperture-diameter', LogText='{}'.format(R2*2.*1000),
+    AddSampleLog(Workspace=ws, LogName='sample_aperture_diameter', LogText='{}'.format(R2*2.*1000),
                  LogType='Number', LogUnit='mm')
 
     # Calculate Q and dQ

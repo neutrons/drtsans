@@ -18,6 +18,7 @@ clipped_bands_from_logs, transmitted_bands available at:
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
 from drtsans.tof.eqsans.correct_frame import transmitted_bands_clipped
+from drtsans.tof.eqsans.geometry import insert_aperture_logs
 
 # Symbols to be exported to the eqsans namespace
 __all__ = ['calculate_transmission', 'fit_raw_transmission']
@@ -68,6 +69,9 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
 
     if output_raw_transmission is None:
         output_raw_transmission = output_workspace  # we return the raw transmissions
+
+    if radius is None:
+        insert_aperture_logs(input_reference)  # necessary for calculation of the beam radius
 
     # start calculating the raw transmissions
     raw_transmission_workspace = calculate_raw_transmission(input_sample, input_reference,

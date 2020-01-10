@@ -218,6 +218,7 @@ def transmission_fixture(reference_dir):
     a = LoadNexus(pjn(data_dir, 'sample.nxs'))
     insert_aperture_logs(a)  # source and sample aperture diameters
     b = LoadNexus(pjn(data_dir, 'direct_beam.nxs'))
+    insert_aperture_logs(b)
     c = LoadNexus(pjn(data_dir, 'sample_skip.nxs'))
     d = LoadNexus(pjn(data_dir, 'direct_beam_skip.nxs'))
     for workspace in (a, c):

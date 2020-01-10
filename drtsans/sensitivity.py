@@ -13,12 +13,11 @@ https://docs.mantidproject.org/nightly/algorithms/LoadNexusProcessed-v2.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
-https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 """
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency, \
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed, CreateSingleValuedWorkspace, \
+    MaskDetectorsIf, SaveNexusProcessed, \
     Integration, CreateWorkspace
 from drtsans.path import exists as path_exists
 from drtsans.settings import unique_workspace_name as uwn
@@ -452,7 +451,6 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     Calculate the detector sensitivity
 
     **Mantid algorithms used:**
-    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
     :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
 
     Parameters
@@ -483,8 +481,8 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
     # A pixel could be Masked without altering its value.
     # Setting all previously masked values to NaN as required by Numpy functions.
     info = input_workspace.detectorInfo()
-    for i in range(info.size()):
-        if info.isMasked(i):
+    for index in range(info.size()):
+        if info.isMasked(index):
             input_workspace.setY(int(index), [np.nan])
             input_workspace.setE(int(index), np.array(np.nan))
 

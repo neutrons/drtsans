@@ -382,8 +382,9 @@ def sample_aperture_diameter(input_workspace, unit='mm'):
 
     # There are runs for GPSANS and BIOSANS containing log entry "sample_aperture_radius" storing the diameter!
     if 'sample_aperture_radius' in SampleLogs(input_workspace).keys():
-        run_limit = {InstrumentEnumName.GPSANS: 7460, InstrumentEnumName.BIOSANS: 1791}
-        if SampleLogs(input_workspace).run_number < run_limit.get(instrument_enum_name(input_workspace), -1):
+        run_limit = {InstrumentEnumName.GPSANS: 7460,
+                     InstrumentEnumName.BIOSANS: 1791}.get(instrument_enum_name(input_workspace), 0)
+        if int(SampleLogs(input_workspace).run_number.value) < run_limit:
             diameter = SampleLogs(input_workspace).single_value('sample_aperture_radius')
 
     if diameter is None:
@@ -422,8 +423,9 @@ def source_aperture_diameter(input_workspace, unit='mm'):
     except RuntimeError:
         # There are runs for GPSANS and BIOSANS containing log entry "source_aperture_radius" storing the diameter!
         if 'source_aperture_radius' in sample_logs.keys():
-            run_limit = {InstrumentEnumName.GPSANS: 7460, InstrumentEnumName.BIOSANS: 1791}
-            if SampleLogs(input_workspace).run_number < run_limit.get(instrument_enum_name(input_workspace), -1):
+            run_limit = {InstrumentEnumName.GPSANS: 7460,
+                         InstrumentEnumName.BIOSANS: 1791}.get(instrument_enum_name(input_workspace), 0)
+            if int(SampleLogs(input_workspace).run_number.value) < run_limit:
                 diameter = sample_logs.single_value('source_aperture_radius')
 
     if diameter is None:

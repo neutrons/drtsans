@@ -1,7 +1,8 @@
 import numpy as np
+from os.path import join as path_join
 import pytest
 
-from mantid.simpleapi import LoadEmptyInstrument, MoveInstrumentComponent
+from mantid.simpleapi import LoadEmptyInstrument, LoadEventNexus, MoveInstrumentComponent
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans import geometry as geo
@@ -107,12 +108,25 @@ def test_bank_workspace_indices(instrument, component, wksp_index_min, wksp_inde
     assert wksp_indices[1] == wksp_index_max
 
 
-def test_sample_aperture_diameter(serve_events_workspace):
+def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
     input_workspace = serve_events_workspace('EQSANS_92353')
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters
     assert geo.sample_aperture_diameter(input_workspace, unit='m') == pytest.approx(0.01, abs=0.1)
     # verify entry 'sample_aperture_diameter' has been added to the logs
     assert SampleLogs(input_workspace).single_value('sample_aperture_diameter') == pytest.approx(10.0, abs=0.1)
+    # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
+    workspace = LoadEventNexus(Filename=path_join(reference_dir.new.gpsans, 'geometry', 'CG2_1338.nxs.h5'),
+                               OutputWorkspace=unique_workspace_dundername(), MetaDataOnly=True, LoadLogs=True)
+    assert geo.sample_aperture_diameter(workspace, unit='mm') == pytest.approx(14.0, abs=0.1)
+    workspace.delete()
+
+
+def test_source_aperture_diameter(reference_dir):
+    # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
+    workspace = LoadEventNexus(Filename=path_join(reference_dir.new.gpsans, 'geometry', 'CG2_1338.nxs.h5'),
+                               OutputWorkspace=unique_workspace_dundername(), MetaDataOnly=True, LoadLogs=True)
+    assert geo.source_aperture_diameter(workspace, unit='mm') == pytest.approx(40.0, abs=0.1)
+    workspace.delete()
 
 
 if __name__ == '__main__':

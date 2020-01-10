@@ -129,5 +129,12 @@ def test_source_aperture_diameter(reference_dir):
     workspace.delete()
 
 
+def test_beam_radius(reference_dir):
+    workspace = LoadEventNexus(Filename=path_join(reference_dir.new.gpsans, 'geometry', 'CG2_7614.nxs.h5'),
+                               OutputWorkspace=unique_workspace_dundername(), MetaDataOnly=True, LoadLogs=True)
+    assert geo.beam_radius(workspace, unit='mm') == pytest.approx(16.0, abs=0.1)
+    workspace.delete()
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

@@ -14,6 +14,7 @@ https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
+https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency, \
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
@@ -452,6 +453,7 @@ def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_thr
 
     **Mantid algorithms used:**
     :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`
 
     Parameters
     ----------

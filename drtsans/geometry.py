@@ -254,14 +254,16 @@ def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
         log_keys = ('source-sample-distance', 'source_sample-distance',
                     'source_sample_distance', 'sample-source-distance',
                     'sample_source-distance', 'sample_source_distance',
-                    'sample_aperture_sample_distance')
+                    'source_aperture_sample_distance',
+                    'source_aperture_sample_aperture_distance')
         if log_key is not None:
             log_keys = (log_key)
-        sl = SampleLogs(source)
+        sample_logs = SampleLogs(source)
         try:
-            lk = set(log_keys).intersection(set(sl.keys())).pop()
-            # uses the default unit [mm] if no unit is defined
-            return float(sl.single_value(lk)) * mm2units[unit]
+            lk = set(log_keys).intersection(set(sample_logs.keys())).pop()
+            lk_value = float(sample_logs.single_value(lk))
+            # Default unit of lk is mm unless "m" specified
+            return lk_value * m2units[unit] if sample_logs[lk].units == 'm' else lk_value * mm2units[unit]
         except KeyError:
             pass
 
@@ -307,11 +309,12 @@ def sample_detector_distance(source, unit='mm', log_key=None,
                     'sample_detector-distance', 'sample_detector_distance')
         if log_key is not None:
             log_keys = (log_key)
-        sl = SampleLogs(source)
+        sample_logs = SampleLogs(source)
         try:
-            lk = set(log_keys).intersection(set(sl.keys())).pop()
-            # uses the default unit [mm] if no unit is defined
-            return float(sl.single_value(lk)) * mm2units[unit]
+            lk = set(log_keys).intersection(set(sample_logs.keys())).pop()
+            lk_value = float(sample_logs.single_value(lk))
+            # Default unit of lk is mm unless "m" specified
+            return lk_value * m2units[unit] if sample_logs[lk].units == 'm' else lk_value * mm2units[unit]
         except KeyError:
             pass
     # Calculate the distance using the instrument definition file

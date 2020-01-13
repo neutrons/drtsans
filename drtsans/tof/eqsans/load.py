@@ -39,8 +39,7 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
             output_workspace = 'EQSANS_{}{}'.format(run, suffix)
 
     with amend_config({'default.instrument': 'EQSANS'}, data_dir=data_dir):
-        LoadNexusMonitors(Filename=str(run), LoadOnly='Events',
-                          OutputWorkspace=output_workspace)
+        LoadNexusMonitors(Filename=str(run), LoadOnly='Events', OutputWorkspace=output_workspace)
 
     smd = source_monitor_distance(output_workspace, unit='mm')
     SampleLogs(output_workspace).insert('source-monitor-distance', smd,
@@ -97,8 +96,7 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
 
     if isinstance(run, int) or isinstance(run, str):
         with amend_config({'default.instrument': 'EQSANS'}, data_dir=data_dir):
-            LoadEventNexus(Filename=str(run),
-                           OutputWorkspace=output_workspace, **kwargs)
+            LoadEventNexus(Filename=str(run), OutputWorkspace=output_workspace, **kwargs)
     else:
         CloneWorkspace(run, OutputWorkspace=output_workspace)
     #

@@ -5,6 +5,7 @@ from mantid.simpleapi import LoadHFIRSANS, LoadEventNexus, CloneWorkspace, LoadI
 from mantid.api import mtd
 
 from drtsans.instruments import extract_run_number, instrument_enum_name
+from drtsans.path import exists as path_exists
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
 from drtsans.process_uncertainties import set_init_uncertainties
@@ -38,6 +39,7 @@ def load_events(run, output_workspace=None, data_dir=None, overwrite_instrument=
     """
     instrument_unique_name = str(instrument_enum_name(run))  # elucidate which SANS instrument
     run_number = str(extract_run_number(run)) if isinstance(run, str) else ''
+    file_name = run if path_exists(run) else instrument_unique_name + run_number
 
     if output_workspace is None:
         output_workspace = instrument_unique_name + '_' + run_number
@@ -46,8 +48,7 @@ def load_events(run, output_workspace=None, data_dir=None, overwrite_instrument=
         with amend_config({'default.instrument': instrument_unique_name}, data_dir=data_dir):
             if overwrite_instrument is not False:
                 kwargs['LoadNexusInstrumentXML'] = False
-            LoadEventNexus(Filename=instrument_unique_name + run_number, OutputWorkspace=output_workspace,
-                           LoadMonitors=True, **kwargs)
+            LoadEventNexus(Filename=file_name, OutputWorkspace=output_workspace, LoadMonitors=True, **kwargs)
     else:
         CloneWorkspace(run, OutputWorkspace=output_workspace)
 

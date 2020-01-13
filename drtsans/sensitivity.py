@@ -407,6 +407,9 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     if cleanupSensitivity:
         DeleteWorkspace(sensitivity_workspace)
 
+    # set empty units
+    mtd[output_workspace].setYUnit('')
+
     return mtd[output_workspace]
 
 

@@ -41,9 +41,8 @@ def closest_config(run, config_dir=cfg_dir):
                 reference_runs.append(int(match.groups()[0]))
     reference_runs.sort()
     reference_runs = np.asarray(reference_runs)
-    print('**** run', run)
-    print('**** reference_runs', reference_runs)
-    print('**** where', np.where(run >= reference_runs))
+    if not bool(reference_runs.size > 0):
+        raise RuntimeError('Failed to find any reference runs in "{}"'.format(config_dir))
     maximum_index_below_run = np.where(run >= reference_runs)[0][-1]
     reference_run = reference_runs[maximum_index_below_run]
     return os.path.join(config_dir,

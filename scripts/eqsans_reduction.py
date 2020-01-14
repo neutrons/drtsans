@@ -29,7 +29,13 @@ if __name__ == "__main__":
 
     output_file = json_params["outputFilename"]
     sample_run = json_params["runNumber"]
-    configuration_file_parameters = cfg.load_config(source=sample_run)
+    try:
+        configuration_file_parameters = cfg.load_config(source=sample_run)
+    except RuntimeError as e:
+        print(e)
+        print('Not using previous configuration')
+        configuration_file_parameters = {}
+
     # set up the configuration
     config = dict()
     json_conf = json_params["configuration"]

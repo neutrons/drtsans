@@ -450,7 +450,7 @@ def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_th
 
 
 def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_threshold=2.0,
-                                     filename=None,  output_workspace=None):
+                                   filename=None,  output_workspace=None):
     """
     Calculate the detector sensitivity
 

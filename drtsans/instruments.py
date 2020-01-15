@@ -89,7 +89,7 @@ def instrument_label(input_query):
         for instrument_string_label in instrument_labels:
             if instrument_string_label in name.upper():
                 return instrument_string_label
-    raise RuntimeError('Instrument name can not be resolved')
+    raise RuntimeError('Instrument name can not be resolved from "{}"'.format(input_query))
 
 
 def extract_run_number(input_query):

@@ -1,7 +1,6 @@
 """
     SANS sensitivities preparation script
 """
-import os
 import sys
 import warnings
 from mantid.simpleapi import SaveNexusProcessed

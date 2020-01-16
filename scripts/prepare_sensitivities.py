@@ -11,13 +11,13 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 INSTRUMENT = 'GPSANS'  # From 'EQSANS', 'BIOSANS'
 
 # Input Flood Runs
-FLOOD_RUNS = [1697, 1701, 1699]  # Single value integer or a list or tuple
+FLOOD_RUNS = ['1697', '1701', '1699']  # Single value integer or a list or tuple
 
 # Output
 SENSITIVITY_FILE = '/HFIR/CG2/shared/sensitivity1697.nxs'
 
 # About Masks
-DIRECT_BEAM_RUNS = [1698, 1702, 1700]
+DIRECT_BEAM_RUNS = ['1698', '1702', '1700']
 MASK_BEAM_CENTER_RADIUS = 0.5  # mm
 BEAM_CENTER_MASKS = None
 

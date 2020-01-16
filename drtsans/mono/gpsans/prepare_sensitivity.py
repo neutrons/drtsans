@@ -380,5 +380,3 @@ def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, bea
     MaskDetectors(Workspace=sens_ws_name, WorkspaceIndexList=masked_ws_list)
 
     return nexus_ws
-
-

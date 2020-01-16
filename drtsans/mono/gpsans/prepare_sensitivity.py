@@ -2,6 +2,11 @@
 Module for algorithms to prepare sensitivity for instrument with moving detector
 """
 import numpy as np
+from drtsans.process_uncertainties import set_init_uncertainties
+from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+import drtsans.mono.gpsans as gp
+from mantid.simpleapi import CreateWorkspace, MaskDetectors
+
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_sensitivity']
@@ -260,3 +265,120 @@ def _normalize_sensitivities(d_array, sigam_d_array):
     sensitivities_error[np.isinf(sensitivities)] = -np.inf
 
     return sensitivities, sensitivities_error, sens_avg, sigma_sens_avg
+
+
+def mask_beam_center(data_ws, beam_center_ws, beam_center_radius):
+    """Mask detectors in a workspace
+
+    Mask (1) beam center
+
+    Parameters
+    ----------
+    data_ws : ~mantid.api.MatrixWorkspace
+        Flood data workspace
+    beam_center_ws : ~mantid.api.MatrixWorkspace
+        Beam center workspace used to generate beam center mask
+    beam_center_radius : float
+        beam center radius in unit of mm
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+
+    """
+    # Use beam center ws to find beam center
+    xc, yc = gp.find_beam_center(beam_center_ws)
+
+    # Center detector to the data workspace (change in geometry)
+    gp.center_detector(data_ws, xc, yc)
+
+    # Mask the new beam center by 65 mm (Lisa's magic number)
+    det = list(circular_mask_from_beam_center(data_ws, beam_center_radius))
+    apply_mask(data_ws, mask=det)  # data_ws reference shall not be invalidated here!
+
+    return data_ws
+
+
+def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, beam_center_radius):
+    """Prepare sensitivities with
+
+    Parameters
+    ----------
+    workspaces : ~list
+        List of references to Mantid workspaces.
+            The first N/2 are flood runs and the second N/2 are beam center runs
+            Each i, i + N/2 pairs
+    threshold_min : float
+        minimum threshold
+    threshold_max : float
+        maximum threshold
+    beam_center_radius : float
+        beam center radius in unit of mm
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+        Reference to the events workspace
+
+    """
+    # Set the flood/beam center pair
+    num_ws_pairs = len(workspaces) / 2
+    if len(workspaces) % 2 == 1:
+        raise RuntimeError('Flood and beam center workspaces must be in pair')
+    else:
+        flood_run_ws_list = workspaces[:num_ws_pairs]
+        beam_center_run_ws_list = workspaces[num_ws_pairs:]
+    # number of histograms
+    num_spec = workspaces[0].getNumberHistograms()
+
+    masked_flood_list = [None] * num_ws_pairs
+    for i_pair in range(num_ws_pairs):
+        # use beam center run to locate the beam center and then do mask to data workspace
+        bc_ws = beam_center_run_ws_list[i_pair]
+        flood_ws = flood_run_ws_list[i_pair]
+        # mask
+        masked_flood_ws = mask_beam_center(flood_ws, bc_ws, beam_center_radius=beam_center_radius)
+        # set uncertainties:
+        # output: masked are zero intensity and zero error
+        masked_flood_ws = set_init_uncertainties(flood_ws, masked_flood_ws)
+        # append
+        masked_flood_list[i_pair] = masked_flood_ws
+    # END-FOR
+
+    # Combine to numpy arrays: N, M
+    flood_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
+    sigma_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
+    for f_index in range(num_ws_pairs):
+        flood_array[f_index][:] = masked_flood_list[f_index].extractY().transpose()[0]
+        sigma_array[f_index][:] = masked_flood_list[f_index].extractE().transpose()[0]
+
+    # Convert all to NaN
+    masked_items = np.where(sigma_array < 1E-16)
+
+    # set values
+    flood_array[masked_items] = np.nan
+    sigma_array[masked_items] = np.nan
+
+    # Calculate sensitivities
+    sens_array, sens_sigma_array = prepare_sensitivity(flood_data_matrix=flood_array,
+                                                       flood_sigma_matrix=sigma_array,
+                                                       threshold_min=threshold_min,
+                                                       threshold_max=threshold_max)
+
+    # Export to a MatrixWorkspace
+    # Create a workspace for sensitivities
+    vec_x = beam_center_run_ws_list[0].extractX().flatten()
+    num_spec = beam_center_run_ws_list[0].getNumberHistograms()
+    sens_ws_name = 'sensitivities'
+
+    nexus_ws = CreateWorkspace(DataX=vec_x, DataY=sens_array, DataE=sigma_array,
+                               NSpec=num_spec, ParentWorkspace=beam_center_run_ws_list[0],
+                               OutputWorkspace=sens_ws_name)
+
+    # Mask
+    masked_ws_list = np.where(np.isnan(sens_array))[0]
+    MaskDetectors(Workspace=sens_ws_name, WorkspaceIndexList=masked_ws_list)
+
+    return nexus_ws
+
+

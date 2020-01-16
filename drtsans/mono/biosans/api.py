@@ -63,43 +63,44 @@ def prepare_data(data,
         Additional properties to Mantid's MaskBTP algorithm
     solid_angle: bool
         Apply the solid angle correction
-    output_workspace: str
-        Name of the output workspace.
+    output_workspace: ~mantid.api.IEventWorkspace
+        Reference to the events workspace
     """
     # TODO: missing detector_offset and sample_offset
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace)
-    ws = transform_to_wavelength(ws)
+    ws_name = str(ws)
+    transform_to_wavelength(ws_name)
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
-        biosans.center_detector(ws, center_x=center_x,
+        biosans.center_detector(ws_name, center_x=center_x,
                                 center_y=center_y,
                                 center_y_wing=center_y_wing)
 
     # Mask either detector
     if mask_detector is not None:
-        msapi.MaskDetectors(ws, ComponentList=mask_detector)
+        msapi.MaskDetectors(ws_name, ComponentList=mask_detector)
 
     # Dark current
     if dark_current is not None:
         dark_ws = load_events(dark_current, overwrite_instrument=True)
         dark_ws = transform_to_wavelength(dark_ws)
-        subtract_dark_current(ws, dark_ws)
+        subtract_dark_current(ws_name, dark_ws)
 
     # Normalization
     if str(flux_method).lower() == 'monitor':
-        normalize_by_monitor(ws)
+        normalize_by_monitor(ws_name)
     elif str(flux_method).lower() == 'time':
-        normalize_by_time(ws)
+        normalize_by_time(ws_name)
 
     # Additional masks
-    apply_mask(ws, panel=mask_panel, mask=mask, **btp)
+    apply_mask(ws_name, panel=mask_panel, mask=mask, **btp)
 
     # Solid angle
     if solid_angle:
-        biosans.solid_angle_correction(ws)
+        biosans.solid_angle_correction(ws_name)
 
     # Sensitivity
     if sensitivity_file_path is not None:
-        drtsans.apply_sensitivity_correction(ws, sensitivity_filename=sensitivity_file_path)
+        drtsans.apply_sensitivity_correction(ws_name, sensitivity_filename=sensitivity_file_path)
 
-    return ws
+    return msapi.mtd[ws_name]

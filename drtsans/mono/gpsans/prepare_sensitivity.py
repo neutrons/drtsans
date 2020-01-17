@@ -5,7 +5,7 @@ import numpy as np
 from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
-from mantid.simpleapi import CreateWorkspace, MaskDetectors
+from mantid.simpleapi import CreateWorkspace
 
 
 # Functions exposed to the general user (public) API
@@ -322,7 +322,7 @@ def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, bea
 
     """
     # Set the flood/beam center pair
-    num_ws_pairs = len(workspaces) / 2
+    num_ws_pairs = len(workspaces) // 2
     if len(workspaces) % 2 == 1:
         raise RuntimeError('Flood and beam center workspaces must be in pair')
     else:
@@ -355,7 +355,7 @@ def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, bea
     # Convert all to NaN
     masked_items = np.where(sigma_array < 1E-16)
 
-    # set values
+    # set values to masked pixels
     flood_array[masked_items] = np.nan
     sigma_array[masked_items] = np.nan
 
@@ -365,18 +365,22 @@ def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, bea
                                                        threshold_min=threshold_min,
                                                        threshold_max=threshold_max)
 
+    # Convert all -infinity to nan
+    sens_sigma_array[np.where(np.isinf(sens_array))] = np.nan
+    sens_array[np.where(np.isinf(sens_array))] = np.nan
+
     # Export to a MatrixWorkspace
     # Create a workspace for sensitivities
     vec_x = beam_center_run_ws_list[0].extractX().flatten()
     num_spec = beam_center_run_ws_list[0].getNumberHistograms()
     sens_ws_name = 'sensitivities'
 
-    nexus_ws = CreateWorkspace(DataX=vec_x, DataY=sens_array, DataE=sigma_array,
+    nexus_ws = CreateWorkspace(DataX=vec_x, DataY=sens_array, DataE=sens_sigma_array,
                                NSpec=num_spec, ParentWorkspace=beam_center_run_ws_list[0],
                                OutputWorkspace=sens_ws_name)
 
-    # Mask
-    masked_ws_list = np.where(np.isnan(sens_array))[0]
-    MaskDetectors(Workspace=sens_ws_name, WorkspaceIndexList=masked_ws_list)
+    # Do not Mask
+    # masked_ws_list = np.where(np.isnan(sens_array))[0]
+    # MaskDetectors(Workspace=sens_ws_name, WorkspaceIndexList=masked_ws_list)
 
     return nexus_ws

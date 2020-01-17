@@ -37,10 +37,10 @@ MAX_THRESHOLD = 2.0
 
 
 # Load data files
-if INSTRUMENT == 'GPSANS':
+if INSTRUMENT == 'CG2':
     from drtsans.mono.gpsans.api import prepare_data
     import drtsans.mono.gpsans as mysans
-elif INSTRUMENT == 'BIOSANS':
+elif INSTRUMENT == 'CG3':
     from drtsans.mono.biosans.api import prepare_data
     import drtsans.mono.biosans as mysans
 elif INSTRUMENT == 'EQSANS':
@@ -48,7 +48,7 @@ elif INSTRUMENT == 'EQSANS':
     import drtsans.tof.eqsans as mysans
 else:
     print('Instrument {} is not supported.  Supported are {}'
-          ''.format(INSTRUMENT, 'GPSANS, EQSANS, BIOSANS'))
+          ''.format(INSTRUMENT, 'CG2, EQSANS, CG3'))
     sys.exit(-1)
 
 # Process runs
@@ -68,10 +68,11 @@ if MASKED_PIXELS is not None:
 # processing includes: load, mask, normalize by monitor
 workspaces = [prepare_data(data='{}_{}'.format(INSTRUMENT, sans_runs[i]),
                            mask=UNIVERSAL_MASK, btp=extra_mask_dict,
+                           overwrite_instrument=False,
                            flux_method='monitor') for i in range(len(sans_runs))]
 
 # Decide algorithm to prepare sensitivities
-if INSTRUMENT == 'GPSANS' and MOVING_DETECTORS is True:
+if INSTRUMENT == 'CG2' and MOVING_DETECTORS is True:
     # Prepare by using moving detector algorithm
     from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity_correction
 

@@ -122,6 +122,7 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
         if min_angle is not None or max_angle is not None:
             MaskAngle(Workspace=input_workspace, MinAngle=min_angle, MaxAngle=max_angle, Angle=angle)
         if bool(btp):  # see if any parameters are left
+            print('Try to mask BTP to workspace {} with {}'.format(input_workspace, btp))
             MaskBTP(Workspace=input_workspace, **btp)
     return ExtractMask(InputWorkspace=input_workspace,
                        OutputWorkspace=output_workspace).OutputWorkspace

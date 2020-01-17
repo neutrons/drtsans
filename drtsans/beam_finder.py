@@ -109,6 +109,5 @@ def center_detector(input_workspace, center_x, center_y, component='detector1'):
     component : string
         name of the detector to be centered
     """
-
     MoveInstrumentComponent(Workspace=input_workspace, ComponentName=component, X=-center_x, Y=-center_y,
                             RelativePosition=True)

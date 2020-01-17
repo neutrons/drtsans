@@ -305,7 +305,6 @@ def main(argv):
 
     # Calculate sensitivities for each file
     sens_set = prepare_sensitivity(flood_data_matrix=flood_data_array, flood_sigma_matrix=flood_sigma_array,
-                                   monitor_counts=monitor_array,
                                    threshold_min=0.5, threshold_max=1.5)
 
     # Export sensitivities calculated in file to ....

@@ -5,7 +5,7 @@ import numpy as np
 from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
-from mantid.simpleapi import CreateWorkspace, MaskDetectors
+from mantid.simpleapi import CreateWorkspace
 
 
 # Functions exposed to the general user (public) API

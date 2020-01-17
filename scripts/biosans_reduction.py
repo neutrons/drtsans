@@ -61,33 +61,40 @@ def reduction(json_params, config):
     """
     # Load and prepare scattering data
     # all the run numbers are associated with instrument name
-    ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"], **config)
+    ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"],
+                           output_workspace="_data_{}".format(json_params["runNumber"]), **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
     if transmission_run.strip() is not '':
         transmission_fn = json_params["instrumentName"] + json_params["transmission"]["runNumber"]
         empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
-        apply_transmission(ws, transmission_fn, empty_run, config)
+        ws = apply_transmission(ws, transmission_fn, empty_run, config)
 
     # Background
-    bkg_run = json_params["instrumentName"] + json_params["background"]["runNumber"]
+    bkg_run = json_params["background"]["runNumber"]
     if bkg_run != "":
-        ws_bck = sans.prepare_data(bkg_run, **config)
+        bkg_run = json_params["instrumentName"] + bkg_run
+        ws_bck = sans.prepare_data(bkg_run,
+                                   output_workspace="_bck_{}".format(json_params["background"]["runNumber"]),
+                                   **config)
 
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
         if transmission_run.strip() is not '':
             transmission_fn = json_params["instrumentName"] + json_params["background"]["transmission"]["runNumber"]
             empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
-            apply_transmission(ws_bck, transmission_fn, empty_run, config)
+            ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
         ws = drtsans.subtract_background(ws, background=ws_bck)
         msapi.logger.notice("Background subtracted")
 
     # Final normalization
-    absolute_scale = float(json_params["configuration"]["absoluteScale"])
+    try:
+        absolute_scale = float(json_params["configuration"]["absoluteScale"])
+    except ValueError:
+        absolute_scale = 1.
     sample_thickness = float(json_params["thickness"])
     ws /= sample_thickness
     ws *= absolute_scale

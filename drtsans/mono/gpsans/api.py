@@ -68,8 +68,15 @@ def prepare_data(data,
         Reference to the events workspace
     """
     # TODO: missing detector_offset and sample_offset
-    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace)
+    output_workspace = str(data)
+    if 'overwrite_instrument' in kwargs:
+        # with option overwrite_instrument=True, MaskBTP cannot recognize GPSANS
+        overwrite = kwargs['overwrite_instrument']
+    else:
+        overwrite = True
+    ws = load_events(data, overwrite_instrument=overwrite, output_workspace=output_workspace)
     ws_name = str(ws)
+    print('Load GPSANS events ws name: {}'.format(ws_name))
     transform_to_wavelength(ws_name)
 
     if center_x is not None and center_y is not None:
@@ -92,6 +99,7 @@ def prepare_data(data,
         normalize_by_time(ws_name)
 
     # Additional masks
+    print('ws name: {}'.format(ws_name))
     apply_mask(ws_name, panel=mask_panel, mask=mask, **btp)
 
     # Solid angle

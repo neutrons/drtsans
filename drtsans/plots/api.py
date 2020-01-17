@@ -1,13 +1,13 @@
-from drtsans.dataobjects import DataType, getDataType
 from enum import Enum
 import json
 import numpy as np
-import mpld3 # noqa E402
-from mpld3 import plugins # noqa E402
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt # noqa E402
 from matplotlib.colors import LogNorm # noqa E402
+import mpld3 # noqa E402
+from mpld3 import plugins # noqa E402
+from drtsans.dataobjects import DataType, getDataType # noqa E402
 
 
 __all__ = ['plot_IQmod', 'plot_IQazimuthal', 'plot_detector']

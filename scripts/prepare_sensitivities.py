@@ -8,16 +8,16 @@ from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-INSTRUMENT = 'GPSANS'  # From 'EQSANS', 'BIOSANS'
+INSTRUMENT = 'CG2'  # From 'EQSANS', 'CG3'
 
 # Input Flood Runs
-FLOOD_RUNS = ['1697', '1701', '1699']  # Single value integer or a list or tuple
+FLOOD_RUNS = [1697, 1701, 1699]  # Single value integer or a list or tuple
 
 # Output
 SENSITIVITY_FILE = '/HFIR/CG2/shared/sensitivity1697.nxs'
 
 # About Masks
-DIRECT_BEAM_RUNS = ['1698', '1702', '1700']
+DIRECT_BEAM_RUNS = [1698, 1702, 1700]
 MASK_BEAM_CENTER_RADIUS = 0.5  # mm
 BEAM_CENTER_MASKS = None
 
@@ -66,7 +66,7 @@ if MASKED_PIXELS is not None:
 
 # Load data with masking: returning to a list of workspace references
 # processing includes: load, mask, normalize by monitor
-workspaces = [prepare_data(data=sans_runs[i],
+workspaces = [prepare_data(data='{}_{}'.format(INSTRUMENT, sans_runs[i]),
                            mask=UNIVERSAL_MASK, btp=extra_mask_dict,
                            flux_method='monitor') for i in range(len(sans_runs))]
 

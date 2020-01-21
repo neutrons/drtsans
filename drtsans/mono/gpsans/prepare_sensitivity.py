@@ -9,7 +9,7 @@ from mantid.simpleapi import CreateWorkspace
 
 
 # Functions exposed to the general user (public) API
-__all__ = ['prepare_sensitivity']
+__all__ = ['prepare_sensitivity', 'prepare_sensitivity_correction']
 
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
@@ -299,21 +299,17 @@ def mask_beam_center(data_ws, beam_center_ws, beam_center_radius):
     return data_ws
 
 
-def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, beam_center_radius):
+def prepare_sensitivity_correction(flood_run_ws_list, threshold_min, threshold_max):
     """Prepare sensitivities with
 
     Parameters
     ----------
-    workspaces : ~list
-        List of references to Mantid workspaces.
-            The first N/2 are flood runs and the second N/2 are beam center runs
-            Each i, i + N/2 pairs
+    flood_run_ws_list : ~list
+        List of references to Mantid workspaces for normalized and masked (default and beam center)
     threshold_min : float
         minimum threshold
     threshold_max : float
         maximum threshold
-    beam_center_radius : float
-        beam center radius in unit of mm
 
     Returns
     -------
@@ -322,39 +318,19 @@ def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, bea
 
     """
     # Set the flood/beam center pair
-    num_ws_pairs = len(workspaces) // 2
-    if len(workspaces) % 2 == 1:
-        raise RuntimeError('Flood and beam center workspaces must be in pair')
-    else:
-        flood_run_ws_list = workspaces[:num_ws_pairs]
-        beam_center_run_ws_list = workspaces[num_ws_pairs:]
+    num_ws_pairs = len(flood_run_ws_list)
     # number of histograms
-    num_spec = workspaces[0].getNumberHistograms()
-
-    masked_flood_list = [None] * num_ws_pairs
-    for i_pair in range(num_ws_pairs):
-        # use beam center run to locate the beam center and then do mask to data workspace
-        bc_ws = beam_center_run_ws_list[i_pair]
-        flood_ws = flood_run_ws_list[i_pair]
-        # mask
-        masked_flood_ws = mask_beam_center(flood_ws, bc_ws, beam_center_radius=beam_center_radius)
-        # set uncertainties:
-        # output: masked are zero intensity and zero error
-        masked_flood_ws = set_init_uncertainties(flood_ws, masked_flood_ws)
-        # append
-        masked_flood_list[i_pair] = masked_flood_ws
-    # END-FOR
+    num_spec = flood_run_ws_list[0].getNumberHistograms()
 
     # Combine to numpy arrays: N, M
     flood_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
     sigma_array = np.ndarray(shape=(num_ws_pairs, num_spec), dtype=float)
     for f_index in range(num_ws_pairs):
-        flood_array[f_index][:] = masked_flood_list[f_index].extractY().transpose()[0]
-        sigma_array[f_index][:] = masked_flood_list[f_index].extractE().transpose()[0]
+        flood_array[f_index][:] = flood_run_ws_list[f_index].extractY().transpose()[0]
+        sigma_array[f_index][:] = flood_run_ws_list[f_index].extractE().transpose()[0]
 
-    # Convert all to NaN
+    # Convert all masked pixels' counts to NaN
     masked_items = np.where(sigma_array < 1E-16)
-
     # set values to masked pixels
     flood_array[masked_items] = np.nan
     sigma_array[masked_items] = np.nan
@@ -371,12 +347,12 @@ def prepare_sensitivity_correction(workspaces, threshold_min, threshold_max, bea
 
     # Export to a MatrixWorkspace
     # Create a workspace for sensitivities
-    vec_x = beam_center_run_ws_list[0].extractX().flatten()
-    num_spec = beam_center_run_ws_list[0].getNumberHistograms()
+    vec_x = flood_run_ws_list[0].extractX().flatten()
     sens_ws_name = 'sensitivities'
 
+    # Create output workspace
     nexus_ws = CreateWorkspace(DataX=vec_x, DataY=sens_array, DataE=sens_sigma_array,
-                               NSpec=num_spec, ParentWorkspace=beam_center_run_ws_list[0],
+                               NSpec=num_spec, ParentWorkspace=flood_run_ws_list[0],
                                OutputWorkspace=sens_ws_name)
 
     # Do not Mask

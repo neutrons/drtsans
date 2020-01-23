@@ -2,7 +2,6 @@
 Module for algorithms to prepare sensitivity for instrument with moving detector
 """
 import numpy as np
-from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
 from mantid.simpleapi import CreateWorkspace

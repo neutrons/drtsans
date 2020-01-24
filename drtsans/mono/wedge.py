@@ -116,7 +116,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
 
     Parameters
     ==========
-    data: ~drtsans.dataobjects.Azimuthal
+    data: ~drtsans.dataobjects.IQazimuthal
     q_min: float
         The left bin boundary for the first Q-bin
     q_delta: float
@@ -343,7 +343,7 @@ def _toPositionAndFWHM(fitresult, peak_label, maxchisq):
     if np.isnan(center[1]) or np.isnan(fwhm[1]) or center[1] == 0. or fwhm[1] == 0.:
         return (np.nan, np.nan), (np.nan, np.nan)
 
-    # weights for
+    # weights for are height divided by uncertainty
     center = center[0], height[0] / center[1]
     fwhm = fwhm[0], height[0] / fwhm[1]
 
@@ -367,8 +367,8 @@ def _weighted_least_sq(peaks):
     fwhm_accum, fwhm_weight_accum = 0., 0.
     for peak in peaks:
         # friendlier names
-        pos, pos_w = peak[0]  # position and error
-        fwhm, fwhm_w = peak[1]  # fwhm and error
+        pos, pos_w = peak[0]  # position and weight
+        fwhm, fwhm_w = peak[1]  # fwhm and weight
 
         if np.isnan(pos_w) or np.isnan(fwhm_w) or pos_w == 0. or fwhm_w == 0.:
             continue  # don't use these points
@@ -428,7 +428,7 @@ def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, maxchisq=1000.):
 
     peakResults = [_weighted_least_sq(peak) for peak in peakResults]
 
-    # convert into parallel arrays of centers and fwhmf
+    # convert into parallel arrays of centers and fwhm
     center_list = []
     fwhm_list = []
     for center, fwhm in peakResults:

@@ -16,7 +16,7 @@ from drtsans.process_uncertainties import set_init_uncertainties
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-INSTRUMENT = 'CG3'  #  'CG2'  # From 'EQSANS', 'CG3'
+INSTRUMENT = 'CG3'  # 'CG2'  # From 'EQSANS', 'CG3'
 
 # Input Flood Runs
 # CG2: FLOOD_RUNS = 7116, 7118, 7120  # Single value integer or a list or tuple

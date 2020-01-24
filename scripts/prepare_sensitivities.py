@@ -16,24 +16,27 @@ from drtsans.process_uncertainties import set_init_uncertainties
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-INSTRUMENT = 'CG2'  # From 'EQSANS', 'CG3'
+INSTRUMENT = 'CG3'  #  'CG2'  # From 'EQSANS', 'CG3'
 
 # Input Flood Runs
-FLOOD_RUNS = 1697, 1701, 1699  # Single value integer or a list or tuple
+# CG2: FLOOD_RUNS = 7116, 7118, 7120  # Single value integer or a list or tuple
+FLOOD_RUNS = 965  # 821  # CG3
 
 # Output
 SENSITIVITY_FILE = '/HFIR/CG2/shared/sensitivity1697.nxs'
 
 # About Masks
-DIRECT_BEAM_RUNS = 1698, 1702, 1700
+# CG2: DIRECT_BEAM_RUNS = 7117, 7119, 7121
+DIRECT_BEAM_RUNS = 965  # 821
 MASK_BEAM_CENTER_RADIUS = 65  # mm
 BEAM_CENTER_MASKS = None
 
 # Default mask to detector
 UNIVERSAL_MASK = None  # 'Mask.XML'
-MASKED_PIXELS = '1-8,249-256'
+# CG2: MASKED_PIXELS = '1-8,249-256'
+MASKED_PIXELS = '1-18,239-256'  # CG3
 # Mask angle: must 2 values as min and max or None
-MASK_ANGLES = 1.5, 57.0   # None
+MASK_ANGLES = 1.5, 100.  # 1.5, 57.0   # None
 
 # If it is GPSANS or BIOSANS there could be 2 options to calculate detector efficiencies
 MOVING_DETECTORS = True
@@ -43,7 +46,7 @@ MIN_THRESHOLD = 0.5
 MAX_THRESHOLD = 2.0
 
 # BIO-SANS detector
-WING_DETECTOR = False
+WING_DETECTOR = True
 
 # END OF USER INPUTS
 # --------------  DO NOT CHANGE ANY CODE BELOW THIS LINE.  THANKS! --------------------------
@@ -69,10 +72,15 @@ if isinstance(FLOOD_RUNS, int):
 else:
     sans_runs = list(FLOOD_RUNS)
 # Process beam center runs
-if DIRECT_BEAM_RUNS is not None:
-    beam_center_runs = list(DIRECT_BEAM_RUNS)
-else:
+if DIRECT_BEAM_RUNS is None:
+    # not defined
     beam_center_runs = None
+elif isinstance(DIRECT_BEAM_RUNS, int):
+    # defined as a single value
+    beam_center_runs = [DIRECT_BEAM_RUNS]
+else:
+    # shall be a list or tuple
+    beam_center_runs = list(DIRECT_BEAM_RUNS)
 
 # Extra masks
 extra_mask_dict = dict()
@@ -122,6 +130,11 @@ def mask_beam_center(flood_ws, beam_center_mask, beam_center_ws, beam_center_rad
     -------
 
     """
+    print('Flood ws')
+    print(flood_ws)
+    print(type(flood_ws))
+    print(str(flood_ws))
+
     # Calculate masking (masked file or detectors)
     if beam_center_mask is not None:
         # beam center mask XML file
@@ -185,8 +198,10 @@ def mask_beam_center(flood_ws, beam_center_mask, beam_center_ws, beam_center_rad
 # Default for GPSANS
 if MASK_BEAM_CENTER_RADIUS is None:
     MASK_BEAM_CENTER_RADIUS = 65  # mm
-flood_workspaces = mask_beam_center(flood_workspaces, beam_center_runs, BEAM_CENTER_MASKS, MASK_BEAM_CENTER_RADIUS,
-                                    mask_angle=MASK_ANGLES[1])
+flood_workspaces = [mask_beam_center(flood_workspace, beam_center_runs, BEAM_CENTER_MASKS, MASK_BEAM_CENTER_RADIUS,
+                                     mask_angles=MASK_ANGLES[1]) for flood_workspace in flood_workspaces]
+for f in flood_workspaces:
+    print(f.name())
 
 # Decide algorithm to prepare sensitivities
 if INSTRUMENT in ['CG2', 'CG3'] and MOVING_DETECTORS is True:

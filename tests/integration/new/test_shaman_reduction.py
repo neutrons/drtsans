@@ -100,10 +100,20 @@ def check_and_cleanup(outputdir, basename):
             os.remove(logname)
 
 
-@pytest.mark.parametrize('configfile, basename',
-                         [('reduction.json', 'EQSANS_88980')],
+def check_for_required_files(filenames):
+    '''Skip the test if a required file is missing'''
+    for filename in filenames:
+        if not os.path.exists(filename):
+            pytest.skip('"{}" is not available'.format(filename))
+
+
+@pytest.mark.parametrize('configfile, basename, required',
+                         [('reduction.json', 'EQSANS_88980',
+                           ('/SNS/EQSANS/IPTS-19800/nexus/EQSANS_88980.nxs.h5', ))],
                          ids=['88980'])
-def test_eqsans(configfile, basename):
+def test_eqsans(configfile, basename, required):
+    check_for_required_files(required)
+
     # modify the config file and get the output directory and the full path to the new configuration file
     outputdir, json_file = write_configfile(configfile, basename)
 
@@ -112,10 +122,13 @@ def test_eqsans(configfile, basename):
     check_and_cleanup(outputdir, basename)
 
 
-@pytest.mark.parametrize('configfile, basename',
-                         [('biosans_reduction.json', 'CG3_1433')],
+@pytest.mark.parametrize('configfile, basename, required',
+                         [('biosans_reduction.json', 'CG3_1433',
+                           ('/HFIR/CG3/IPTS-24665/nexus/CG3_1433.nxs.h5', ))],
                          ids=['1433'])
-def test_biosans(configfile, basename):
+def test_biosans(configfile, basename, required):
+    check_for_required_files(required)
+
     # modify the config file and get the output directory and the full path to the new configuration file
     outputdir, json_file = write_configfile(configfile, basename)
 
@@ -124,11 +137,12 @@ def test_biosans(configfile, basename):
     check_and_cleanup(outputdir, basename)
 
 
-@pytest.mark.parametrize('configfile, basename',
-                         [('gpsans_reduction.json', 'CG2_1481')],
+@pytest.mark.parametrize('configfile, basename, required',
+                         [('gpsans_reduction.json', 'CG2_1481',
+                           ('/HFIR/CG2/IPTS-23801/nexus/CG2_1481.nxs.h5', ))],
                          ids=['1481'])
-def test_gpsans(configfile, basename):
-    # test taken from EXAMPLES_GPSANS5 Al4 main detector
+def test_gpsans(configfile, basename, required):
+    check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
     outputdir, json_file = write_configfile(configfile, basename)

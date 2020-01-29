@@ -9,7 +9,7 @@ from drtsans.mono.normalization import normalize_by_monitor
 from drtsans.mono.load import load_events
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
-from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity
+from drtsans.sensitivity_correction_moving_detectors import prepare_sensitivity
 from drtsans.process_uncertainties import set_init_uncertainties
 import numpy as np
 import matplotlib.pyplot as plt

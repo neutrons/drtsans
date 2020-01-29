@@ -25,7 +25,7 @@ from drtsans.settings import unique_workspace_name as uwn
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans import detector
 
-__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'prepare_sensitivity_correction']
+__all__ = ['apply_sensitivity_correction', 'calculate_sensitivity_correction', 'calculate_sensitivity_correction_patch']
 
 
 class Detector:
@@ -449,8 +449,8 @@ def calculate_sensitivity_correction(input_workspace, min_threashold=0.5, max_th
     return mtd[output_workspace]
 
 
-def prepare_sensitivity_correction(input_workspace,  min_threshold=0.5,  max_threshold=2.0,
-                                   filename=None,  output_workspace=None):
+def calculate_sensitivity_correction_patch(input_workspace, min_threshold=0.5, max_threshold=2.0,
+                                           filename=None, output_workspace=None):
     """
     Calculate the detector sensitivity
 

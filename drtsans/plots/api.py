@@ -179,7 +179,7 @@ def plot_detector(workspace, filename, backend='d3'):
     backend: Backend
         Which backend to save the file using
     '''
-    from drtsans.sensitivity import Detector  # to get number of tubes, pixels, etc
+    from drtsans.sensitivity_correction_patch import Detector  # to get number of tubes, pixels, etc
 
     backend = Backend.getMode(backend)
 

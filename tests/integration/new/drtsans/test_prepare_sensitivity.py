@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import pytest
-from drtsans.sensitivity import prepare_sensitivity_correction
+from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction_patch
 from numpy.testing import assert_allclose
 
 
@@ -151,7 +151,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
                                           np.square(final_sensitivity_uncertainty / final_sensitivity))
     ws = workspace_with_instrument(axis_values=[1., 2.], intensities=ffm_with_mask,
                                    uncertainties=ffm_uncertainty_with_mask, view='array')
-    out = prepare_sensitivity_correction(ws, min_threshold=0.5, max_threshold=2.0)
+    out = calculate_sensitivity_correction_patch(ws, min_threshold=0.5, max_threshold=2.0)
 
     out_result = np.flip(np.transpose(out.extractY().reshape(8, 20)), 0)
     out_uncertainty = np.flip(np.transpose(out.extractE().reshape(8, 20)), 0)

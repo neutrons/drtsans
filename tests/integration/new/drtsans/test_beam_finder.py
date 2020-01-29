@@ -2,7 +2,7 @@ import pytest
 from pytest import approx
 import re
 from drtsans.beam_finder import center_detector, find_beam_center
-from drtsans.sensitivity import apply_sensitivity_correction
+from drtsans.sensitivity_correction_patch import apply_sensitivity_correction
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 # <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>

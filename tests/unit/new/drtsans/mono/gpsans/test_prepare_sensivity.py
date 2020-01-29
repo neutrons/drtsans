@@ -1,6 +1,6 @@
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/gpsans/prepare_sensitivity.py
-from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity
+from drtsans.sensitivity_correction_moving_detectors import prepare_sensitivity
 import pytest
 
 # This test implements issue #205 to verify

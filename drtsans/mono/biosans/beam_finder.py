@@ -160,4 +160,5 @@ def center_detector(input_workspace, center_x, center_y, center_y_wing):
     bf.center_detector(input_workspace, center_x, center_y)
 
     # move the wing detector for the gravity drop
-    bf.center_detector(input_workspace, center_x, center_y_wing, component='wing_detector')
+    # the x position of the wing is calibrated differently
+    bf.center_detector(input_workspace, 0, center_y_wing, component='wing_detector')

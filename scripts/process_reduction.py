@@ -37,17 +37,25 @@ if __name__ == '__main__':
         proc = subprocess.Popen(cmd,
                                 shell=True,
                                 stdin=subprocess.PIPE,
-                                stdout=logFile,
-                                stderr=errFile,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                                # stdout=logFile,
+                                # stderr=errFile,
                                 universal_newlines=True)
         proc.communicate()
         logFile.close()
         errFile.close()
-        rc = proc.returncode
-        if rc:
-            exit(rc)
+
+        # remove empty error logfile
         if os.path.isfile(out_err) and os.stat(out_err).st_size == 0:
             os.remove(out_err)
-        exit(os.path.isfile(out_err))
+
+        # if the program returned non-zero, exit with that code
+        rc = proc.returncode
+        if (not rc) and os.path.isfile(out_err):
+            rc = 42  # value denoting the error logfile is non-empty
+
+        # exit with the final return code
+        exit(rc)
     else:
         raise RuntimeError("A parameter json string is required as input")

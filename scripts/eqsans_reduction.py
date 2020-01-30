@@ -29,7 +29,13 @@ if __name__ == "__main__":
 
     output_file = json_params["outputFilename"]
     sample_run = json_params["runNumber"]
-    configuration_file_parameters = cfg.load_config(source=sample_run)
+    try:
+        configuration_file_parameters = cfg.load_config(source=sample_run)
+    except RuntimeError as e:
+        print(e)
+        print('Not using previous configuration')
+        configuration_file_parameters = {}
+
     # set up the configuration
     config = dict()
     json_conf = json_params["configuration"]
@@ -83,7 +89,7 @@ if __name__ == "__main__":
 
     # apply transmission
     transmission_run = json_params["transmission"]["runNumber"]
-    apply_transmission = transmission_run.strip() is not ''
+    apply_transmission = bool(len(transmission_run.strip()) > 0)
 
     if apply_transmission:
         if float(transmission_run) <= 1:
@@ -93,6 +99,7 @@ if __name__ == "__main__":
         else:
             msapi.logger.notice('...applying transmission correction with transmission file.')
             transmission_fn = "EQSANS_{}".format(transmission_run)
+            # give the output a unique name to not clash with sample run
             ws_tr_sample = eqsans.prepare_data(transmission_fn,
                                                output_workspace='_trans_sample_{}'.format(transmission_fn), **config)
             ws_tr_direct = eqsans.prepare_data(empty_fn,
@@ -112,7 +119,7 @@ if __name__ == "__main__":
 
     # background
     bkg_run = json_params["background"]["runNumber"]
-    if bkg_run.strip() is not '':
+    if len(bkg_run.strip()) > 0:
         print('...applying bkg_subtraction.')
         bkg_fn = "EQSANS_{}".format(bkg_run)
         bkg_trans_run = json_params["background"]["transmission"]["runNumber"]
@@ -121,7 +128,7 @@ if __name__ == "__main__":
         ws_bkg = eqsans.prepare_data(bkg_fn, **config)
 
         # apply transmission background
-        if bkg_trans_run.strip() is not '':
+        if len(bkg_trans_run.strip()) > 0:
             if float(bkg_trans_run) <= 1:
                 print('...applying bkg_transmission correction with fixed value.')
                 ws_bkg = eqsans.apply_transmission_correction(ws_bkg,

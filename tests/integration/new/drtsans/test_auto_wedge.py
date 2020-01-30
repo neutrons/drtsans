@@ -6,7 +6,9 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 import pytest
 import numpy as np
 from drtsans.dataobjects import IQazimuthal
-from drtsans.auto_wedge import _toQmodAndAzimuthal, _binInQAndAzimuthal, _fitQAndAzimuthal, getWedgeSelection
+from drtsans import getWedgeSelection
+# test internal functions
+from drtsans.auto_wedge import _toQmodAndAzimuthal, _binInQAndAzimuthal, _fitQAndAzimuthal
 
 
 def _create_2d_data():
@@ -370,7 +372,10 @@ def test_fitting():
     '''Test that the fitting generates reasonable results for fitting the peaks'''
     intensity, error, azimuthal, q = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    center_list, fwhm_list = _fitQAndAzimuthal(intensity, error, azimuthal, q)
+    center_list, fwhm_list = _fitQAndAzimuthal(intensity, error, azimuthal, q,
+                                               signal_to_noise_min=2.0,
+                                               azimuthal_start=110.,
+                                               maxchisq=1000.)
 
     assert center_list[0] == pytest.approx(180., abs=1.)
     assert center_list[1] == pytest.approx(360., abs=1.)

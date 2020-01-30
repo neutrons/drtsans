@@ -8,7 +8,7 @@ from mantid.simpleapi import CreateWorkspace
 
 
 # Functions exposed to the general user (public) API
-__all__ = ['prepare_sensitivity', 'calculate_sensitivity_correction_moving_detectors']
+__all__ = ['calculate_sensitivity_correction']
 
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
@@ -298,7 +298,7 @@ def mask_beam_center(data_ws, beam_center_ws, beam_center_radius):
     return data_ws
 
 
-def calculate_sensitivity_correction_moving_detectors(flood_run_ws_list, threshold_min, threshold_max):
+def calculate_sensitivity_correction(flood_run_ws_list, threshold_min, threshold_max):
     """Prepare sensitivities with
 
     Parameters

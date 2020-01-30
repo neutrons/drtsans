@@ -6,7 +6,7 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 import pytest
 import numpy as np
 from drtsans.dataobjects import IQazimuthal
-from drtsans.mono.wedge import _toQmodAndAzimuthal, _binInQAndAzimuthal, _fitQAndAzimuthal, getWedgeSelection
+from drtsans.auto_wedge import _toQmodAndAzimuthal, _binInQAndAzimuthal, _fitQAndAzimuthal, getWedgeSelection
 
 
 def _create_2d_data():

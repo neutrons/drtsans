@@ -4,23 +4,16 @@ import numpy as np
 import os
 from mantid.kernel import Property, logger
 from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.settings import unique_workspace_name as uwn
 r"""
 Links to mantid algorithms
 https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
-https://docs.mantidproject.org/nightly/algorithms/CalculateEfficiency-v1.html
 https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
-https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
-https://docs.mantidproject.org/nightly/algorithms/LoadNexusProcessed-v2.html
-https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
-https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
-from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency, \
-    DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed, \
-    Integration, CreateWorkspace
+from mantid.simpleapi import mtd, CloneWorkspace, DeleteWorkspace, SaveNexusProcessed, Integration, CreateWorkspace
 
 from drtsans import detector
 

@@ -3,8 +3,7 @@ from mantid.kernel import Property
 import numpy as np
 # testing https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/sensitivity.py
 from drtsans.settings import unique_workspace_name as uwn
-from drtsans.sensitivity import apply_sensitivity_correction,\
-     calculate_sensitivity_correction
+from drtsans.sensitivity import apply_sensitivity_correction, calculate_sensitivity_correction
 import os
 from mantid.simpleapi import (mtd, DeleteWorkspace, LoadNexusProcessed)
 import tempfile

@@ -368,8 +368,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
     y = input_workspace.extractY().flatten()
     y_uncertainty = input_workspace.extractE().flatten()
-    n_elements = input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - \
-                 np.count_nonzero(np.isneginf(y))
+    n_elements =\
+        input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - np.count_nonzero(np.isneginf(y))
     F = np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)])/n_elements
     dF = np.sqrt(np.sum([value**2 for value in y_uncertainty
                          if not np.isnan(value) and not np.isneginf(value)]))/n_elements
@@ -421,8 +421,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
-    n_elements = input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(II)) \
-                 - np.count_nonzero(np.isneginf(II))
+    n_elements =\
+        input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(II)) - np.count_nonzero(np.isneginf(II))
     F = np.sum([value for value in II if not np.isnan(value) and not np.isneginf(value)])/n_elements
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F

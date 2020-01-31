@@ -38,7 +38,7 @@ class Detector:
         self.n_pixels_per_tube = None
         self.first_det_id = None  # pixel ID for first pixel detector that is not a monitor
         self.last_det_id = None  # pixel ID for last pixel detector
-        self.detector_id_to_ws_index = None # mapping from pixel ID to workspace index
+        self.detector_id_to_ws_index = None  # mapping from pixel ID to workspace index
         self.data_y = None
         self.data_e = None
         self.tube_ws_indices = None
@@ -368,9 +368,11 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
     y = input_workspace.extractY().flatten()
     y_uncertainty = input_workspace.extractE().flatten()
-    n_elements = input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - np.count_nonzero(np.isneginf(y))
+    n_elements = input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - \
+                 np.count_nonzero(np.isneginf(y))
     F = np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)])/n_elements
-    dF = np.sqrt(np.sum([value**2 for value in y_uncertainty if not np.isnan(value) and not np.isneginf(value)]))/n_elements
+    dF = np.sqrt(np.sum([value**2 for value in y_uncertainty
+                         if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     II = y/F
     dI = II * np.sqrt(np.square(y_uncertainty/y) + np.square(dF/F))
 
@@ -419,7 +421,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
-    n_elements = input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(II)) - np.count_nonzero(np.isneginf(II))
+    n_elements = input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(II)) \
+                 - np.count_nonzero(np.isneginf(II))
     F = np.sum([value for value in II if not np.isnan(value) and not np.isneginf(value)])/n_elements
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F

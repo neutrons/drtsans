@@ -46,7 +46,7 @@ def load_events(run, output_workspace=None, data_dir=None, overwrite_instrument=
 
     if isinstance(run, str):
         with amend_config({'default.instrument': instrument_unique_name}, data_dir=data_dir):
-            if overwrite_instrument is not False:
+            if overwrite_instrument:
                 kwargs['LoadNexusInstrumentXML'] = False
             LoadEventNexus(Filename=file_name, OutputWorkspace=output_workspace, LoadMonitors=True, **kwargs)
     else:

@@ -60,6 +60,8 @@ def setup_configuration(json_params, instrument):
     # TODO: get default mask from configuration
     if json_params['configuration']["useDefaultMask"]:
         default_mask = []
+        if instrument in ['GPSANS']:
+            default_mask = [{'Pixel': '1-12,245-256'}]
         w = msapi.LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=uwd())
         for d in default_mask:
             msapi.MaskBTP(Workspace=w, **d)

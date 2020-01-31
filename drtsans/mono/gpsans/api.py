@@ -8,6 +8,7 @@ from drtsans.mask_utils import apply_mask
 from drtsans.mono.load import load_events, transform_to_wavelength
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
+from drtsans.samplelogs import SampleLogs
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data']
@@ -75,6 +76,19 @@ def prepare_data(data,
     else:
         overwrite = True
     ws = load_events(data, overwrite_instrument=overwrite, output_workspace=output_workspace)
+
+    # deal with sample_offset. positive offset is towards detector
+    # 1. move sample
+    msapi.MoveInstrumentComponent(Workspace=ws,
+                                  ComponentName='sample-position',
+                                  Z=1e-3*sample_offset,
+                                  RelativePosition=False)
+    # 2. adjust source aperture distances (only for new files for now)
+    sample_logs = SampleLogs(ws)
+    old_ssd = sample_logs.single_value('source_aperture_sample_aperture_distance')
+    new_ssd = old_ssd + 1e-3*sample_offset  # add offset in mm to ssd in meters
+    sample_logs.insert('source_aperture_sample_aperture_distance', new_ssd)
+
     ws_name = str(ws)
     print('Load GPSANS events ws name: {}'.format(ws_name))
     transform_to_wavelength(ws_name)

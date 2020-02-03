@@ -46,7 +46,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
 
     intensity, error, azimuthal, q = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
                                                          azimuthal_delta=azimuthal_delta)
-    center_vec, fwhm_vec = _fitQAndAzimuthal(intensity, error, q_bins=q, azimuthal_bins=azimuthal)
+    center_vec, fwhm_vec = _fitQAndAzimuthal(intensity, error, q_bins=q, azimuthal_bins=azimuthal,
+                                             signal_to_noise_min=2.0, azimuthal_start=110., maxchisq=1000.)
 
     # convert to min and max ranges
     min_vec, max_vec = [], []
@@ -143,9 +144,11 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     intensity = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
     error = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
 
-    # do the binning - twice around the circle
+    # do the binning - twice around the circle (starting at 0deg, then 360deg)
     # while this loops through the data twice, it does not require copying data
-    for azimuthal_offset in [0., 360.]:  # first pass then second pass
+    for azimuthal_offset in [0., 360.]:  # first pass is 0->360, second pass is 360->720 but `break`s at 540 deg
+        # unravel so each point is treated independently
+        # Data from _toQmodAndAzimuthal can be 2-dimensional and ravel does nothing for 1D data.
         for q_val, azimuthal_val, i_val, e_val in zip(q.ravel(), azimuthal.ravel() + azimuthal_offset,
                                                       data.intensity.ravel(), data.error.ravel()):
             # stop searching past 540
@@ -168,17 +171,18 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
             intensity[azimuthal_index - 1, q_index - 1] += i_val
             error[azimuthal_index - 1, q_index - 1] += e_val
 
-    # bins that didn't accumulate counts are nan
-    mask = error == 0.
-    intensity[mask] = np.nan
+    # bins that didn't accumulate uncertainties are set to nan
+    mask = (error == 0.)  # indexes where there is no error
+    intensity[mask] = np.nan  # set those values to nan
     error[mask] = np.nan
 
     return intensity, error, azimuthal_bins, q_bins
 
 
 def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_width):
-    '''Estimate the peak parameters using statistical measures. This is done to aid the
-    fitting which does better with better starting values.
+    '''Estimate the peak parameters by determining a window around a bright point in the data then using
+    moment calculations to estimate the parameters for a Gaussian that approximates the actual peak.
+    This is done to aid the fitting which does better with better starting values.
 
     Parameters
     ==========
@@ -196,8 +200,8 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     tuple
         ``(intensity, center, sigma)`` where intensity is the full height including background
     '''
-    # find the maximum in the window and move the azimuthal_new to there
-    # this assumes that the data maximum is close to the peak center
+    # Look for the highest point in a section of the data. This is an iterative approach that starts with a window
+    # centered at `azimuthal_start`, the repeats until the maximum within the window doesn't move more than 1deg.
     azimuthal_new = azimuthal_start  # where to search around
     azimuthal_last = azimuthal_start  # last known value
     while True:
@@ -216,13 +220,16 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
         if abs(azimuthal_new - azimuthal_last) < 1.:
             break
 
-    # now use simple statistics to estimate the peak parameters
+    # now use the first two moments of the data within the window to give an improved center position (first moment)
+    # and width (derived from second moment)
 
-    # the position of the center of the peak is the mean
+    # the position of the center of the peak is the first momement of the data. "mean" can be thought of as the
+    # center of mass of the peak in azimuthal angle.
     mean = np.sum(intensity[left_index: right_index] * azimuthal[left_index: right_index]) \
         / np.sum(intensity[left_index: right_index])
 
     # the fit uses sigma rather than fwhm
+    # calculate the second moment about the mean as an approximation to a Gaussian's "sigma" parameter
     sigma = np.sum(intensity[left_index: right_index] * np.square(azimuthal[left_index: right_index] - mean)) \
         / np.sum(intensity[left_index: right_index])
     sigma = np.sqrt(sigma)
@@ -230,9 +237,10 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     return max_value, mean, sigma
 
 
-def _fitSpectrum(intensity, error, azimuthal_bins, q_value):
+def _fitSpectrum(intensity, error, azimuthal_bins, q_value, signal_to_noise_min, azimuthal_start):
     '''Extract the peak fit parameters for the data. This is done by observing where 2 maxima are in the
-    spectrum then fitting for the peak parameters
+    spectrum then fitting for the peak parameters. This makes the assumption that the two peaks are 180deg
+    apart.
 
     Parameters
     ==========
@@ -244,6 +252,10 @@ def _fitSpectrum(intensity, error, azimuthal_bins, q_value):
         Array of azimuthal angles bin boundaries
     q_value_start: float
         Label for Q value being used. This is used for improving error messages
+    signal_to_noise_min: float
+        Minimum signal to noise ratio for the data to be considered "fittable"
+    azimuthal_start: float
+        First position to look for peaks around
 
     Results
     =======
@@ -251,15 +263,17 @@ def _fitSpectrum(intensity, error, azimuthal_bins, q_value):
         dict[name] = (value, error) where all of the fit parameters are converted.
         f0 is background, then f1...fn are the fitted peaks
     '''
-    # required signal to noise ratio
-    SIGNAL_TO_NOISE_MIN = 2.0
-
     # centers are more useful for various things below
     azimuthal_centers = 0.5 * (azimuthal_bins[:-1] + azimuthal_bins[1:])
 
+    # define a default window size based on the number of peaks the function supports
+    # currently only two peaks that are approximately 180deg apart is supported
+    NUM_PEAK = 2
+    WINDOW_SIZE = 0.6 * (360. / NUM_PEAK)
+
     # filter out the nans
     mask = np.logical_not(np.isnan(intensity))
-    if np.sum(mask) < 10:
+    if np.sum(mask) < 10:  # do not allow fitting less points than there are parameters
         raise RuntimeError('Less than 8 points being fit with 7 parameters (found {} points)'.format(np.sum(mask)))
 
     # first estimate background as minimum value
@@ -269,8 +283,8 @@ def _fitSpectrum(intensity, error, azimuthal_bins, q_value):
     # check if there is signal to noise greater than 2
     # this calculation assumes that the background is positive
     signal_to_noise = np.sum(intensity[mask]) / (float(np.sum(mask)) * background)
-    if signal_to_noise < SIGNAL_TO_NOISE_MIN:
-        raise RuntimeError('Estimated signal to noise is smaller than {}: found {:.2f}'.format(SIGNAL_TO_NOISE_MIN,
+    if signal_to_noise < signal_to_noise_min:
+        raise RuntimeError('Estimated signal to noise is smaller than {}: found {:.2f}'.format(signal_to_noise_min,
                                                                                                signal_to_noise))
 
     # start of what will eventually be the fit function by specifying the background
@@ -279,15 +293,17 @@ def _fitSpectrum(intensity, error, azimuthal_bins, q_value):
     # template for describing initial peak guess
     gaussian_str = 'name=Gaussian,Height={},PeakCentre={},Sigma={}'
 
-    # guess where one peak might be, start with a window of 110deg each side around 110
+    # guess where one peak might be, start with a window of WINDOW_SIZE each side around 110
     intensity_peak, azimuthal_first, sigma = _estimatePeakParameters(intensity[mask], azimuthal_centers[mask],
-                                                                     azimuthal_start=110., window_half_width=110.)
+                                                                     azimuthal_start=azimuthal_start,
+                                                                     window_half_width=WINDOW_SIZE)
     function.append(gaussian_str.format(intensity_peak-background, azimuthal_first, sigma))
 
-    # assume the other peak is 180 degrees away
+    # assume the other peak is 360 / NUM_PEAK degrees away
+    azimuthal_start = azimuthal_first + 360. / NUM_PEAK
     intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(intensity[mask], azimuthal_centers[mask],
-                                                                      azimuthal_start=azimuthal_first + 180.,
-                                                                      window_half_width=110.)
+                                                                      azimuthal_start=azimuthal_start,
+                                                                      window_half_width=WINDOW_SIZE)
     function.append(gaussian_str.format(intensity_peak-background, azimuthal_second, sigma))
 
     # create workspace version of data
@@ -339,24 +355,27 @@ def _toPositionAndFWHM(fitresult, peak_label, maxchisq):
         center = fitresult[peak_label + '.PeakCentre']
         fwhm = tuple([value * SIGMA_TO_FWHM for value in fitresult[peak_label + '.Sigma']])
 
-    # it is bad if anything is nan
+    # Anything being nan suggests that a fit failed. Set everything to nan so they do not
+    # contribute to the weighted average.
     if np.isnan(center[1]) or np.isnan(fwhm[1]) or center[1] == 0. or fwhm[1] == 0.:
         return (np.nan, np.nan), (np.nan, np.nan)
 
-    # weights for are height divided by uncertainty
+    # Weights for are height divided by uncertainty. This results in stronger peaks with lower fitting
+    # uncertainty contributing more to the parameters in azimuthal angle.
     center = center[0], height[0] / center[1]
     fwhm = fwhm[0], height[0] / fwhm[1]
 
     return (center, fwhm)
 
 
-def _weighted_least_sq(peaks):
-    '''For a set of peaks, calculate the weighted position and fwhm
+def _weighted_position_and_width(peaks):
+    '''For a set of peaks, calculate the weighted average position and weighted average fwhm
 
     Parameters
     ==========
     peaks: list
-        [((position, weight), (fwhm, weight)), ...]
+        [((position, weight), (fwhm, weight)), ...] Each is a peak for a single Q-value
+    as a function of azimuthal angle.
 
     Results
     =======
@@ -367,22 +386,22 @@ def _weighted_least_sq(peaks):
     fwhm_accum, fwhm_weight_accum = 0., 0.
     for peak in peaks:
         # friendlier names
-        pos, pos_w = peak[0]  # position and weight
-        fwhm, fwhm_w = peak[1]  # fwhm and weight
+        pos, pos_weight = peak[0]  # position and weight
+        fwhm, fwhm_weight = peak[1]  # fwhm and weight
 
-        if np.isnan(pos_w) or np.isnan(fwhm_w) or pos_w == 0. or fwhm_w == 0.:
+        if np.isnan(pos_weight) or np.isnan(fwhm_weight) or pos_weight == 0. or fwhm_weight == 0.:
             continue  # don't use these points
 
-        pos_accum += pos * pos_w
-        pos_weight_accum += pos_w
+        pos_accum += pos * pos_weight
+        pos_weight_accum += pos_weight
 
-        fwhm_accum += fwhm * fwhm_w
-        fwhm_weight_accum += fwhm_w
+        fwhm_accum += fwhm * fwhm_weight
+        fwhm_weight_accum += fwhm_weight
 
     return (pos_accum / pos_weight_accum), (fwhm_accum / fwhm_weight_accum)
 
 
-def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, maxchisq=1000.):
+def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, signal_to_noise_min, azimuthal_start, maxchisq):
     '''Find the peaks in the azimuthal spectra, then combine them into
     two composite centers and fwhm. This is currently coded to only
     look for two peaks.
@@ -397,8 +416,12 @@ def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, maxchisq=1000.):
         Array of azimuthal angles bin boundaries
     q_bins: numpy.ndarray
         array of Q bin boundaries
+    signal_to_noise_min: float
+        Minimum signal to noise ratio for the data to be considered "fittable"
+    azimuthal_start: float
+        First position to look for peaks around
     maxchisq: float
-        The maximum chisq value for a fit result to be used in calculating the compositi peak
+        The maximum chisq value for a fit result to be used in calculating the composite peak
 
     Results
     =======
@@ -413,9 +436,10 @@ def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, maxchisq=1000.):
     for spec_index, q_center in enumerate(q_centers):
         try:
             # print('Fitting spectrum {} with Q={}A'.format(spec_index, q_center))
-            fitresult = _fitSpectrum(intensity.T[spec_index], error.T[spec_index], azimuthal_bins, q_center)
+            fitresult = _fitSpectrum(intensity.T[spec_index], error.T[spec_index], azimuthal_bins, q_center,
+                                     signal_to_noise_min=signal_to_noise_min, azimuthal_start=azimuthal_start)
             newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ['f1', 'f2']]
-            # TODO loop over the index
+
             if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(newlyFittedPeaks[1][0][0]):
                 continue
 
@@ -426,7 +450,7 @@ def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, maxchisq=1000.):
                   'Encountered runtime error:', e)  # don't worry about it
             continue
 
-    peakResults = [_weighted_least_sq(peak) for peak in peakResults]
+    peakResults = [_weighted_position_and_width(peak) for peak in peakResults]
 
     # convert into parallel arrays of centers and fwhm
     center_list = []

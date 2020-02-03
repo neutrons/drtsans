@@ -363,17 +363,6 @@ class PrepareSensitivityCorrection(object):
         flood_workspaces = [self._mask_beam_center(flood_workspaces[i], beam_centers[i])
                             for i in range(num_workspaces_set)]
 
-        # Set the masked pixels' counts to nan and -infinity
-        flood_workspaces = [self._set_mask_value(flood_workspaces[i], use_moving_detector_method,
-                                                 det_mask_list[i])
-                            for i in range(num_workspaces_set)]
-
-        # DEBUG OUTPUT
-        for i in range(len(flood_workspaces)):
-            workspace = flood_workspaces[i]
-            output_file = 'Step_3_Masked_{}.nxs'.format(str(workspace))
-            debug_output(workspace, output_file, note='Step 3 Center Masked {}'.format(str(workspace)))
-
         # Transmission correction
         if self._transmission_runs is not None and self._is_wing_detector is False:
             # calculate transmission corrections
@@ -391,11 +380,22 @@ class PrepareSensitivityCorrection(object):
                                                                     transmission_corr_ws=trans_corr_ws_list[i],
                                                                     is_theta_dep_corr=self._theta_dep_correction)
                                 for i in range(len(flood_workspaces))]
+        # END-IF
+
+        # Set the masked pixels' counts to nan and -infinity
+        flood_workspaces = [self._set_mask_value(flood_workspaces[i], use_moving_detector_method,
+                                                 det_mask_list[i])
+                            for i in range(num_workspaces_set)]
 
         print('Y')
         print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
         print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
 
+        # DEBUG OUTPUT
+        for i in range(len(flood_workspaces)):
+            workspace = flood_workspaces[i]
+            output_file = 'Step_3_Masked_{}.nxs'.format(str(workspace))
+            debug_output(workspace, output_file, note='Step 3 Center Masked {}'.format(str(workspace)))
         # DEBUG OUTPUT
         for i in range(len(flood_workspaces)):
             workspace = flood_workspaces[i]
@@ -600,31 +600,6 @@ class PrepareSensitivityCorrection(object):
 
         return ws_tr
 
-    # def _apply_solid_angle_correction(self, flood_ws):
-    #     """Apply solid angle correction
-    #
-    #     Parameters
-    #     ----------
-    #     flood_ws
-    #
-    #     Returns
-    #     -------
-    #     MatrixWorkspace
-    #
-    #     """
-    #     # Transmission correction is only acted on wing detector
-    #     if self._is_wing_detector:
-    #         return flood_ws
-    #     # Flag is off
-    #     if self._solid_angle_correction is False:
-    #         return flood_ws
-    #
-    #     # apply solid angle correction
-    #     solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
-    #     flood_ws = solid_angle_correction(flood_ws)
-    #
-    #     return flood_ws
-
     def _apply_transmission_correction(self, flood_ws, transmission_corr_ws, is_theta_dep_corr):
         """Apply transmission correction
 
@@ -651,7 +626,7 @@ def debug_output(workspace, output_file, note=''):
 
     Parameters
     ----------
-    data : numpy.ndarray
+    workspace : numpy.ndarray
         data to plot
     output_file : str
         output file name as reference
@@ -661,11 +636,11 @@ def debug_output(workspace, output_file, note=''):
 
     """
     import h5py
-    from mantid.simpleapi import GeneratePythonScript
+    # from mantid.simpleapi import GeneratePythonScript
 
     # Save Nexus
-    script_text = GeneratePythonScript(workspace)
-    # print(note)
+    # script_text = GeneratePythonScript(workspace)
+    print(note)
     # print(script_text.strip())
     SaveNexusProcessed(InputWorkspace=workspace,
                        Filename=output_file)

@@ -29,10 +29,10 @@ def save_ascii_binned_1D(filename, title, *args, **kwargs):
         f.write('# ' + title + '\n')
         f.write('#Q (1/A)        I (1/cm)        dI (1/cm)       dQ (1/A)\n')
         for i in range(len(intensity)):
-            f.write('{:.6f}\t'.format(q[i]))
-            f.write('{:.6f}\t'.format(intensity[i]))
-            f.write('{:.6f}\t'.format(error[i]))
-            f.write('{:.6f}\n'.format(dq[i]))
+            f.write('{:.6E}\t'.format(q[i]))
+            f.write('{:.6E}\t'.format(intensity[i]))
+            f.write('{:.6E}\t'.format(error[i]))
+            f.write('{:.6E}\n'.format(dq[i]))
 
 
 def save_ascii_1D(wksp, title, filename):
@@ -53,10 +53,10 @@ def save_ascii_1D(wksp, title, filename):
     f.write('#Q (1/A)        I (1/cm)        dI (1/cm)       dQ (1/A)\n')
 
     for i in range(len(intensity)):
-        f.write('{:.6f}\t'.format(q[i]))
-        f.write('{:.6f}\t'.format(intensity[i]))
-        f.write('{:.6f}\t'.format(sigma_i[i]))
-        f.write('{:.6f}\n'.format(dq[i]))
+        f.write('{:.6E}\t'.format(q[i]))
+        f.write('{:.6E}\t'.format(intensity[i]))
+        f.write('{:.6E}\t'.format(sigma_i[i]))
+        f.write('{:.6E}\n'.format(dq[i]))
     f.close()
 
 
@@ -109,12 +109,12 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
 
         for i in range(len(qx)):
             for j in range(len(qy)):
-                f.write('{:.6f}\t'.format(qx[i]))
-                f.write('{:.6f}\t'.format(qy[j]))
-                f.write('{:.6f}\t'.format(intensity[i, j]))
-                f.write('{:.6f}\t'.format(error[i, j]))
-                f.write('{:.6f}\t'.format(dqx[i, j]))
-                f.write('{:.6f}\n'.format(dqy[i, j]))
+                f.write('{:.6E}\t'.format(qx[i]))
+                f.write('{:.6E}\t'.format(qy[j]))
+                f.write('{:.6E}\t'.format(intensity[i, j]))
+                f.write('{:.6E}\t'.format(error[i, j]))
+                f.write('{:.6E}\t'.format(dqx[i, j]))
+                f.write('{:.6E}\n'.format(dqy[i, j]))
 
 
 def save_ascii_2D(q2, q2x, q2y, title, filename):
@@ -143,10 +143,10 @@ def save_ascii_2D(q2, q2x, q2y, title, filename):
         for j in range(q2.getNumberHistograms()):
             qy = float(q2.getAxis(1).label(j))
             x = 0.5 * (q2.readX(j)[i] + q2.readX(j)[i + 1])
-            f.write('{:.6f}\t'.format(x))
-            f.write('{:.6f}\t'.format(qy))
-            f.write('{:.6f}\t'.format(q2.readY(j)[i]))
-            f.write('{:.6f}\t'.format(q2.readE(j)[i]))
-            f.write('{:.6f}\t'.format(q2x.readY(j)[i]))
-            f.write('{:.6f}\n'.format(q2y.readY(j)[i]))
+            f.write('{:.6E}\t'.format(x))
+            f.write('{:.6E}\t'.format(qy))
+            f.write('{:.6E}\t'.format(q2.readY(j)[i]))
+            f.write('{:.6E}\t'.format(q2.readE(j)[i]))
+            f.write('{:.6E}\t'.format(q2x.readY(j)[i]))
+            f.write('{:.6E}\n'.format(q2y.readY(j)[i]))
     f.close()

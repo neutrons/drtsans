@@ -77,8 +77,8 @@ def reduction(json_params, config):
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
         if transmission_run.strip() is not '':
-            transmission_fn = json_params["instrumentName"] + json_params["background"]["transmission"]["runNumber"]
-            empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+            transmission_fn = json_params["instrumentName"] + "_" + transmission_run
+            empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
             ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
     # Find the beam center
     # TODO: We need a way to pass a pre-calculated beam center
-    empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+    empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
     if False and empty_run != "":
         # Load and compute beam center position
         db_ws = sans.load_events(empty_run,

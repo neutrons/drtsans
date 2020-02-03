@@ -24,6 +24,9 @@ if __name__ == '__main__':
             reduction_script = 'biosans_reduction.py'
         filename_string = json_parameters['outputFilename']
         output_folder = json_parameters['configuration']['outputDir']
+        # Create target directory & all intermediate directories if don't exists
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
         out_log = os.path.join(output_folder,
                                filename_string+'.out')
         out_err = os.path.join(output_folder,

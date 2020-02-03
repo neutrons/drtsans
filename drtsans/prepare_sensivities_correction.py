@@ -97,6 +97,10 @@ class PrepareSensitivityCorrection(object):
         """
         self._solid_angle_correction = apply_correction
 
+        if self._is_wing_detector:
+            # solid angle correction on BIOSANS Wing detector cannot be trusted
+            self._solid_angle_correction = False
+
     def set_flood_runs(self, flood_runs):
         """Set flood run numbers
 
@@ -218,6 +222,106 @@ class PrepareSensitivityCorrection(object):
         """
         self._theta_dep_correction = flag
 
+    def prepare_flood_data(self, index, beam_center):
+
+        # Prepare data
+        # get right prepare_data method specified to instrument type
+        prepare_data = PREPARE_DATA[self._instrument]
+
+        bio_specials = dict()
+        if self._instrument == CG3:
+            bio_specials['center_y_wing'] = beam_center[2]
+
+        # Load data with masking: returning to a list of workspace references
+        # processing includes: load, mask, normalize by monitor
+        flood_ws = prepare_data(data='{}_{}'.format(self._instrument, self._flood_runs[index]),
+                                mask=self._default_mask,
+                                btp=self._extra_mask_dict,
+                                center_x=beam_center[0],
+                                center_y=beam_center[1],
+                                overwrite_instrument=False,
+                                flux_method='monitor',
+                                solid_angle=self._solid_angle_correction,
+                                **bio_specials)
+
+        return flood_ws
+
+    @staticmethod
+    def _get_masked_detectors(workspace):
+        """Get the detector masking information
+
+        Parameters
+        ----------
+        workspace
+
+        Returns
+        -------
+        numpy.ndarray
+            (N, 1) bool array, True for being masked
+
+        """
+        masked_array = workspace.extractE() < 1E-5
+
+        masked_bis = np.where(masked_array)[0]
+
+        print('IMPORTANT ....................  Masked workspace indexes: {},'
+              'shape = {},  Original masked array: dtype = {}, shape = {}'
+              ''.format(masked_bis, masked_bis.shape, masked_array.dtype, masked_array.shape))
+
+        return masked_array
+
+    @staticmethod
+    def _set_mask_value(flood_workspace, use_moving_detector_method, det_mask_array):
+        """Set masked pixels' values to NaN or -infinity
+
+        Parameters
+        ----------
+        flood_workspace
+        use_moving_detector_method
+        det_mask_array
+
+        Returns
+        -------
+
+        """
+        # Complete mask array
+        total_mask_array = flood_workspace.extractE() < 1E-6
+        print('Total Masked = {}'.format(np.where(total_mask_array)[0]))
+
+        assert total_mask_array.shape == det_mask_array.shape, '{} <> {}'.format(total_mask_array.shape,
+                                                                                 det_mask_array.shape)
+        assert total_mask_array.dtype == det_mask_array.dtype, 'dtype wrong'
+
+        import time
+
+        time_start = time.time()
+
+        num_spec = flood_workspace.getNumberHistograms()
+        for i in range(num_spec):
+            if total_mask_array[i] and det_mask_array[i]:
+                # both masked
+                flood_workspace.dataY(i)[0] = np.nan
+                flood_workspace.dataE(i)[0] = np.nan
+            elif total_mask_array[i] and use_moving_detector_method:
+                # only total.. from center mask.  moving detector: set to nan
+                flood_workspace.dataY(i)[0] = np.nan
+                flood_workspace.dataE(i)[0] = np.nan
+            elif total_mask_array[i]:
+                # only total.. from center mask.  path detector: set to -inf
+                flood_workspace.dataY(i)[0] = -np.NINF
+                flood_workspace.dataE(i)[0] = -np.NINF
+            elif not total_mask_array[i] and det_mask_array[i]:
+                # logic error: mask missing
+                raise RuntimeError('Mask missing')
+        # END-FOR
+
+        time_stop = time.time()
+        print('Set NaN/Infinity: time = {}'.format(time_stop - time_start))
+        print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspace.extractY()))[0])))
+        print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspace.extractY()))[0])))
+
+        return flood_workspace
+
     def execute(self, use_moving_detector_method, min_threshold, max_threshold, output_nexus_name):
         """Main workflow method to calculate sensitivities correction
 
@@ -237,56 +341,38 @@ class PrepareSensitivityCorrection(object):
         None
 
         """
-        # Prepare data
-        # get right prepare_data method specified to instrument type
-        prepare_data = PREPARE_DATA[self._instrument]
+        # Number of pair of workspaces to process
+        num_workspaces_set = len(self._flood_runs)
 
-        # Load data with masking: returning to a list of workspace references
-        # processing includes: load, mask, normalize by monitor
-        flood_workspaces = [prepare_data(data='{}_{}'.format(self._instrument, self._flood_runs[i]),
-                                         mask=self._default_mask,
-                                         btp=self._extra_mask_dict,
-                                         overwrite_instrument=False,
-                                         flux_method='monitor')
-                            for i in range(len(self._flood_runs))]
+        # Load beam center runs and calculate beam centers
+        beam_centers = [self._calculate_beam_center(i)
+                        for i in range(num_workspaces_set)]
 
-        # DEBUG OUTPUT
-        for i in range(len(flood_workspaces)):
-            workspace = flood_workspaces[i]
-            output_file = 'Step_1_{}.nxs'.format(str(workspace))
-            debug_output(workspace, output_file, note='Step 1 {}'.format(str(workspace)))
+        # Load and process flood data with (1) mask (2) center detector and (3) solid angle correction
+        flood_workspaces = [self.prepare_flood_data(i, beam_centers[i])
+                            for i in range(num_workspaces_set)]
 
-        # Calculate beam centers
-        beam_centers = [self._calculate_beam_center(i, flood_workspaces[i]) for i in range(len(flood_workspaces))]
+        # Retrieve masked detectors
+        if not use_moving_detector_method:
+            det_mask_list = [self._get_masked_detectors(flood_workspaces[i])
+                             for i in range(num_workspaces_set)]
+        else:
+            det_mask_list = [None] * num_workspaces_set
 
-        # DEBUG OUTPUT
-        for i in range(len(beam_centers)):
-            print('Index {}  Beam Center = {}'.format(i, beam_centers[i]))
+        # Mask beam centers
+        flood_workspaces = [self._mask_beam_center(flood_workspaces[i], beam_centers[i])
+                            for i in range(num_workspaces_set)]
 
-        # Center detectors
-        self._center_detectors(flood_workspaces, beam_centers)
-
-        # DEBUG OUTPUT
-        for i in range(len(flood_workspaces)):
-            workspace = flood_workspaces[i]
-            output_file = 'Step_2_Centred_{}.nxs'.format(str(workspace))
-            debug_output(workspace, output_file, note='Step 2 Detector Centered {}'.format(str(workspace)))
-
-        # Mask beam center
-        # BIOSANS - MASK_ANGLES = 1.5, 100.  # 1.5, 57.0   # None
-        # self._flood_mask_angle = MASK_ANGLES[1]
-        flood_workspaces = [self._mask_beam_center(flood_workspace, beam_centers)
-                            for flood_workspace in flood_workspaces]
+        # Set the masked pixels' counts to nan and -infinity
+        flood_workspaces = [self._set_mask_value(flood_workspaces[i], use_moving_detector_method,
+                                                 det_mask_list[i])
+                            for i in range(num_workspaces_set)]
 
         # DEBUG OUTPUT
         for i in range(len(flood_workspaces)):
             workspace = flood_workspaces[i]
             output_file = 'Step_3_Masked_{}.nxs'.format(str(workspace))
             debug_output(workspace, output_file, note='Step 3 Center Masked {}'.format(str(workspace)))
-
-        # Solid angle correction
-        flood_workspaces = [self._apply_solid_angle_correction(workspace)
-                            for workspace in flood_workspaces]
 
         # Transmission correction
         if self._transmission_runs is not None and self._is_wing_detector is False:
@@ -296,10 +382,25 @@ class PrepareSensitivityCorrection(object):
                 transmission_flood_run=self._transmission_flood_runs[i])
                 for i in range(len(self._transmission_runs))]
             # apply
+
+            print('X')
+            print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
+            print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
+
             flood_workspaces = [self._apply_transmission_correction(flood_ws=flood_workspaces[i],
                                                                     transmission_corr_ws=trans_corr_ws_list[i],
                                                                     is_theta_dep_corr=self._theta_dep_correction)
                                 for i in range(len(flood_workspaces))]
+
+        print('Y')
+        print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
+        print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
+
+        # DEBUG OUTPUT
+        for i in range(len(flood_workspaces)):
+            workspace = flood_workspaces[i]
+            output_file = 'Step_JustBefore_{}.nxs'.format(str(workspace))
+            debug_output(workspace, output_file, note='Step 3 Center Masked {}'.format(str(workspace)))
 
         # Decide algorithm to prepare sensitivities
         if self._instrument in [CG2, CG3] and use_moving_detector_method is True:
@@ -323,13 +424,17 @@ class PrepareSensitivityCorrection(object):
         # Export
         SaveNexusProcessed(InputWorkspace=sens_ws, Filename=output_nexus_name)
 
-    def _calculate_beam_center(self, index, flood_ws):
+    def _calculate_beam_center(self, index):
         """Find beam centers for all flood runs
+
+        Beam center run shall be
+        (1) masked properly (default mask + top/bottom)
+        (2) NOT corrected by solid angle
 
         Parameters
         ----------
-        flood_ws : ~MatrixWorkspace
-            flood workspaces that might be used for beam center runs
+        index : int
+            beam center run index mapped to flood run
 
         Returns
         -------
@@ -337,18 +442,13 @@ class PrepareSensitivityCorrection(object):
             beam center as xc, yc and possible wc for BIOSANS
 
         """
-        # Determine the beam center runs
-        beam_center_workspace = None
-
         if self._direct_beam_center_runs is None and self._instrument == CG3 \
                 and self._wing_det_mask_angle is not None:
             # CG3, flood run as direct beam center and mask angle is defined
             # In this case, run shall be loaded to another workspace for masking
             beam_center_run = self._flood_runs[index]
         elif self._direct_beam_center_runs is None:
-            # Use flood run's workspace to find beam center without changing it
-            beam_center_workspace = flood_ws
-            beam_center_run = None
+            raise RuntimeError('Beam center runs must be given for {}'.format(self._instrument))
         else:
             # Direct beam run is specified
             beam_center_run = self._direct_beam_center_runs[index]
@@ -356,22 +456,21 @@ class PrepareSensitivityCorrection(object):
         # Prepare data
         # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector
         # It is not necessary for EQSANS because data won't be modified at all!
-        if beam_center_workspace is None:
-            prepare_data = PREPARE_DATA[self._instrument]
-            beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
-                                                 mask=self._default_mask, btp=self._extra_mask_dict,
-                                                 overwrite_instrument=False,
-                                                 flux_method='monitor',
-                                                 output_workspace='BC_{}_{}'.format(self._instrument,
-                                                                                    beam_center_run))
-
-            # Mask angle for CG3: apply mask on angle
-            if self._instrument == CG3 and self._wing_det_mask_angle is not None:
-                # mask wing detector
-                apply_mask(beam_center_workspace, Components='wing_detector')
-                # mask 2-theta angle on main detector
-                MaskAngle(Workspace=beam_center_workspace, MinAngle=self._wing_det_mask_angle, Angle="TwoTheta")
-            # END-IF
+        prepare_data = PREPARE_DATA[self._instrument]
+        beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
+                                             mask=self._default_mask,
+                                             btp=self._extra_mask_dict,
+                                             overwrite_instrument=False,
+                                             flux_method='monitor',
+                                             solid_angle=False,
+                                             output_workspace='BC_{}_{}'.format(self._instrument,
+                                                                                beam_center_run))
+        # Mask angle for CG3: apply mask on angle
+        if self._instrument == CG3 and self._wing_det_mask_angle is not None:
+            # mask wing detector
+            apply_mask(beam_center_workspace, Components='wing_detector')
+            # mask 2-theta angle on main detector
+            MaskAngle(Workspace=beam_center_workspace, MinAngle=self._wing_det_mask_angle, Angle="TwoTheta")
         # END-IF
 
         # Find detector center
@@ -470,6 +569,7 @@ class PrepareSensitivityCorrection(object):
                                               mask=self._default_mask, btp=self._extra_mask_dict,
                                               overwrite_instrument=False,
                                               flux_method='time',
+                                              solid_angle=self._solid_angle_correction,
                                               output_workspace='TM_{}_{}'.format(self._instrument,
                                                                                  transmission_run))
         # Apply mask
@@ -482,6 +582,7 @@ class PrepareSensitivityCorrection(object):
                                              mask=self._default_mask, btp=self._extra_mask_dict,
                                              overwrite_instrument=False,
                                              flux_method='time',
+                                             solid_angle=self._solid_angle_correction,
                                              output_workspace='TM_{}_{}'.format(self._instrument,
                                                                                 transmission_flood_run))
         # Apply mask
@@ -499,30 +600,30 @@ class PrepareSensitivityCorrection(object):
 
         return ws_tr
 
-    def _apply_solid_angle_correction(self, flood_ws):
-        """Apply solid angle correction
-
-        Parameters
-        ----------
-        flood_ws
-
-        Returns
-        -------
-        MatrixWorkspace
-
-        """
-        # Transmission correction is only acted on wing detector
-        if self._is_wing_detector:
-            return flood_ws
-        # Flag is off
-        if self._solid_angle_correction is False:
-            return flood_ws
-
-        # apply solid angle correction
-        solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
-        flood_ws = solid_angle_correction(flood_ws)
-
-        return flood_ws
+    # def _apply_solid_angle_correction(self, flood_ws):
+    #     """Apply solid angle correction
+    #
+    #     Parameters
+    #     ----------
+    #     flood_ws
+    #
+    #     Returns
+    #     -------
+    #     MatrixWorkspace
+    #
+    #     """
+    #     # Transmission correction is only acted on wing detector
+    #     if self._is_wing_detector:
+    #         return flood_ws
+    #     # Flag is off
+    #     if self._solid_angle_correction is False:
+    #         return flood_ws
+    #
+    #     # apply solid angle correction
+    #     solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
+    #     flood_ws = solid_angle_correction(flood_ws)
+    #
+    #     return flood_ws
 
     def _apply_transmission_correction(self, flood_ws, transmission_corr_ws, is_theta_dep_corr):
         """Apply transmission correction
@@ -564,8 +665,8 @@ def debug_output(workspace, output_file, note=''):
 
     # Save Nexus
     script_text = GeneratePythonScript(workspace)
-    print(note)
-    print(script_text.strip())
+    # print(note)
+    # print(script_text.strip())
     SaveNexusProcessed(InputWorkspace=workspace,
                        Filename=output_file)
 

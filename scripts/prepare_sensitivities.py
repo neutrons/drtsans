@@ -32,6 +32,9 @@ DIRECT_BEAM_RUNS = 4827
 MASK_BEAM_CENTER_RADIUS = 65  # mm
 BEAM_CENTER_MASKS = None
 
+# Dark current
+DARK_CURRENT_RUNS = None  # No mask, no solid angle
+
 # Transmission run
 TRANSMISSION_RUNS = 4828  # GG3 main
 # Transmission flood run

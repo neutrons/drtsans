@@ -349,6 +349,10 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # Wavelength bins are summed together to remove the time-of-flight nature according
     # to equations A3.1 and A3.2
     input_workspace = mtd[str(input_workspace)]
+
+    print('IputWorkspace... NaN: {}, Infinity: {}'.format(len(np.where(np.isnan(input_workspace.extractY()))[0]),
+                                                          len(np.where(np.isinf(input_workspace.extractY()))[0])))
+
     if input_workspace.blocksize() != 1:
         input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
         delete_input_workspace = True
@@ -357,17 +361,22 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
     # A pixel could be Masked without altering its value.
     # Setting all previously masked values to NaN as required by Numpy functions.
-    info = input_workspace.detectorInfo()
-    for index in range(info.size()):
-        if info.isMasked(index):
-            input_workspace.setY(int(index), [np.nan])
-            input_workspace.setE(int(index), np.array(np.nan))
+    # info = input_workspace.detectorInfo()
+    # print('Info Size: {}... Number of spectrum: {}'.format(info.size(), input_workspace.getNumberHistograms()))
+    # for index in range(info.size()):
+    #     if info.isMasked(index):
+    #         input_workspace.setY(int(index), [np.nan])
+    #         input_workspace.setE(int(index), np.array(np.nan))
 
     # The average and uncertainty in the average are determined from the masked pattern
     # according to equations A3.3 and A3.4
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
     y = input_workspace.extractY().flatten()
     y_uncertainty = input_workspace.extractE().flatten()
+
+    print('InputWorkspace... NaN: {}, Infinity: {}'.format(len(np.where(np.isnan(y))[0]),
+                                                           len(np.where(np.isinf(y))[0])))
+
     n_elements =\
         input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - np.count_nonzero(np.isneginf(y))
     F = np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)])/n_elements
@@ -401,15 +410,27 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
                 yy.append(II[index])
                 ee.append(dI[index])
         # Using numpy.polyfit() with a 2nd-degree polynomial, one finds the following coefficients and uncertainties.
-        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, 2, w=np.array(ee), cov=True)
+        # print('Tube {}: Size = {}'.format(j, len(xx)))
+        # print('DEBUG... OUTPUT  MASKED INDICES')
+        # print(masked_indices)
+        # print('................................')
+        if len(masked_indices) == 0:
+            # no masked/centermasked pixels
+            # no need to do interpolation
+            continue
+        if len(xx) < 50:
+            # print('....................  Skip')
+            continue
+        poly_order = 2
+        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix
         # (correlation between the coefficients)
         e_coeffs = np.sqrt(np.diag(cov_matrix))
+
         masked_indices = np.array(masked_indices)
 
         # The patch is applied to the results of the previous step to produce S2(m,n).
-
         y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
         # errors of the polynomial
         e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
@@ -427,10 +448,15 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
+
+    print(type(output))
+    print(output.shape)
+    print(input_workspace.getNumberHistograms())
+
     CreateWorkspace(DataX=[1., 2.],
                     DataY=output,
                     DataE=output_uncertainty,
-                    Nspec=160,
+                    Nspec=input_workspace.getNumberHistograms(),
                     UnitX='wavelength',
                     OutputWorkspace=output_workspace)
     if delete_input_workspace:

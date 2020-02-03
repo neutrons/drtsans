@@ -37,10 +37,8 @@ if __name__ == '__main__':
         proc = subprocess.Popen(cmd,
                                 shell=True,
                                 stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT,
-                                # stdout=logFile,
-                                # stderr=errFile,
+                                stdout=logFile,
+                                stderr=errFile,
                                 universal_newlines=True)
         proc.communicate()
         logFile.close()

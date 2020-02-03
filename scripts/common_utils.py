@@ -4,7 +4,7 @@ import numpy as np
 
 import drtsans  # noqa E402
 import mantid.simpleapi as msapi  # noqa E402
-from drtsans.iq import BinningMethod, determine_1d_linear_bins  # noqa E402
+from drtsans.iq import BinningMethod, determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
 from drtsans.plots import plot_IQmod, plot_IQazimuthal
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
@@ -75,15 +75,22 @@ def setup_configuration(json_params, instrument):
     return config
 
 
-def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, nbins=100):
+def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, weighting=False, nbins=100):
     """
         Compute I(q) from corrected workspace
     """
     q_min = np.min(q_data.mod_q)
     q_max = np.max(q_data.mod_q)
-    linear_bins = determine_1d_linear_bins(q_min, q_max, nbins)
-    iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, linear_bins, bin_method=BinningMethod.NOWEIGHT)
-
+    if weighting:
+        bin_method = BinningMethod.WEIGHTED
+    else:
+        bin_method = BinningMethod.NOWEIGHT
+    if linear_binning:
+        linear_bins = determine_1d_linear_bins(q_min, q_max, nbins)
+        iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, linear_bins, bin_method=bin_method)
+    else:
+        log_bins = determine_1d_log_bins(q_min, q_max, nbins)
+        iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, log_bins, bin_method=bin_method)
     filename = os.path.join(output_dir, output_file + label + '_Iq.txt')
     save_ascii_binned_1D(filename, "I(Q)", iq_output)
 

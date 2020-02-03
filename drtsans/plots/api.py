@@ -101,7 +101,7 @@ def _q_label(backend, subscript=''):
         return label + ' (1/{})'.format(u'\u212B')
 
 
-def plot_IQmod(workspaces, filename, backend='d3'):
+def plot_IQmod(workspaces, filename, loglog=True, backend='d3'):
     '''Save a plot representative of the supplied workspaces
 
     Parameters
@@ -113,6 +113,8 @@ def plot_IQmod(workspaces, filename, backend='d3'):
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
+    loglog: bool
+        If true will set both axis to logarithmic, otherwise leave them as linear
     backend: Backend
         Which backend to save the file using
     '''
@@ -127,6 +129,9 @@ def plot_IQmod(workspaces, filename, backend='d3'):
         ax.errorbar(workspace.mod_q, workspace.intensity, yerr=workspace.error)
     ax.set_xlabel(_q_label(backend))
     ax.set_ylabel('Intensity')
+    if loglog:
+        ax.set_xscale('log')
+        ax.set_yscale('log')
 
     _saveFile(fig, filename, backend)
 

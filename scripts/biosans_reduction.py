@@ -14,6 +14,7 @@ from drtsans.stitch import stitch_profiles  # noqa E402
 from drtsans.plots import plot_IQmod  # noqa E402
 from drtsans.mono import biosans as sans  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
+from drtsans.save_ascii import save_ascii_binned_1D  # noqa E402
 
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
 
@@ -67,8 +68,8 @@ def reduction(json_params, config):
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
     if transmission_run.strip() is not '':
-        transmission_fn = json_params["instrumentName"] + json_params["transmission"]["runNumber"]
-        empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+        transmission_fn = json_params["instrumentName"] + "_" + json_params["transmission"]["runNumber"]
+        empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
         ws = apply_transmission(ws, transmission_fn, empty_run, config)
 
     # Background
@@ -82,8 +83,8 @@ def reduction(json_params, config):
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
         if transmission_run.strip() is not '':
-            transmission_fn = json_params["instrumentName"] + json_params["background"]["transmission"]["runNumber"]
-            empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+            transmission_fn = json_params["instrumentName"] + "_" + transmission_run
+            empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
             ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
@@ -132,7 +133,7 @@ if __name__ == "__main__":
 
     # Find the beam center
     # TODO: We need a way to pass a pre-calculated beam center
-    empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+    empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
     if empty_run != "":
         # Load and compute beam center position
         db_ws = sans.load_events(empty_run,
@@ -175,3 +176,6 @@ if __name__ == "__main__":
     filename = os.path.join(json_params["configuration"]["outputDir"],
                             json_params['outputFilename'] + '_merged_Iq.json')
     plot_IQmod([merged_profile], filename, backend='d3')
+    filename = os.path.join(json_params["configuration"]["outputDir"],
+                            json_params['outputFilename'] + '_merged_Iq.txt')
+    save_ascii_binned_1D(filename, "I(Q)", merged_profile)

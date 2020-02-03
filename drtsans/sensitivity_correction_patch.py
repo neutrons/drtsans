@@ -322,7 +322,7 @@ def inf_value_to_mask(ws):
 
 
 def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_threshold=2.0,
-                                     filename=None, output_workspace=None):
+                                     poly_order=2, filename=None, output_workspace=None):
     """
     Calculate the detector sensitivity
 
@@ -338,6 +338,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         Minimum threshold for efficiency value.
     max_threshold: float
         Maximum threshold for efficiency value
+    poly_order : int
+        ploy order.  default to 2
     filename: str
         Name of the file to save the sensitivity calculation to
     output_workspace: ~mantid.api.MatrixWorkspace
@@ -361,12 +363,12 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
     # A pixel could be Masked without altering its value.
     # Setting all previously masked values to NaN as required by Numpy functions.
-    # info = input_workspace.detectorInfo()
-    # print('Info Size: {}... Number of spectrum: {}'.format(info.size(), input_workspace.getNumberHistograms()))
-    # for index in range(info.size()):
-    #     if info.isMasked(index):
-    #         input_workspace.setY(int(index), [np.nan])
-    #         input_workspace.setE(int(index), np.array(np.nan))
+    info = input_workspace.detectorInfo()
+    print('Info Size: {}... Number of spectrum: {}'.format(info.size(), input_workspace.getNumberHistograms()))
+    for index in range(info.size()):
+        if info.isMasked(index):
+            input_workspace.setY(int(index), [np.nan])
+            input_workspace.setE(int(index), np.array(np.nan))
 
     # The average and uncertainty in the average are determined from the masked pattern
     # according to equations A3.3 and A3.4
@@ -418,10 +420,10 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
             # no masked/centermasked pixels
             # no need to do interpolation
             continue
-        if len(xx) < 50:
-            # print('....................  Skip')
-            continue
-        poly_order = 2
+        # This shall be an option later
+        # if len(xx) < 50:
+        #     # print('....................  Skip')
+        #     continue
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix

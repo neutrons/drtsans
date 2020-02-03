@@ -206,21 +206,21 @@ for f in flood_workspaces:
 # Decide algorithm to prepare sensitivities
 if INSTRUMENT in ['CG2', 'CG3'] and MOVING_DETECTORS is True:
     # Prepare by using moving detector algorithm
-    from drtsans.mono.gpsans.prepare_sensitivity import prepare_sensitivity_correction
+    from drtsans.sensitivity_correction_moving_detectors import calculate_sensitivity_correction
 
     # Calculate sensitivities for each file
-    sens_ws = prepare_sensitivity_correction(flood_workspaces,
-                                             threshold_min=MIN_THRESHOLD,
-                                             threshold_max=1.5)
+    sens_ws = calculate_sensitivity_correction(flood_workspaces,
+                                               threshold_min=MIN_THRESHOLD,
+                                               threshold_max=1.5)
 
 else:
     # Prepare by Use the sensitivity patch method
-    from drtsans.sensitivity import prepare_sensitivity_correction
+    from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction
 
     # working on 1 and only 1
-    sens_ws = prepare_sensitivity_correction(flood_workspaces[0],
-                                             min_threshold=MIN_THRESHOLD,
-                                             max_threshold=MAX_THRESHOLD)
+    sens_ws = calculate_sensitivity_correction(flood_workspaces[0],
+                                               min_threshold=MIN_THRESHOLD,
+                                               max_threshold=MAX_THRESHOLD)
 
 # Export
 SaveNexusProcessed(InputWorkspace=sens_ws, Filename=SENSITIVITY_FILE)

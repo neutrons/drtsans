@@ -8,7 +8,7 @@ from mantid.simpleapi import (CalculateEfficiency, ClearMaskFlag, LoadEmptyInstr
                               MaskDetectors, MoveInstrumentComponent, ReplaceSpecialValues, SolidAngle, SaveNexus)
 from drtsans.mono.gpsans import find_beam_center
 from drtsans.mono.normalization import normalize_by_monitor
-from drtsans.sensitivity import inf_value_to_mask
+from drtsans.sensitivity_correction_patch import inf_value_to_mask
 
 
 '''

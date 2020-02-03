@@ -56,20 +56,20 @@ def reduction(json_params, config):
         Perform the whole reduction
     """
     # Load and prepare scattering data
-    ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"],
+    ws = sans.prepare_data(json_params["instrumentName"] + '_' + json_params["runNumber"],
                            output_workspace="_data_{}".format(json_params["runNumber"]), **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
     if transmission_run.strip() is not '':
-        transmission_fn = json_params["instrumentName"] + json_params["transmission"]["runNumber"]
-        empty_run = json_params["instrumentName"] + json_params["empty"]["runNumber"]
+        transmission_fn = json_params["instrumentName"] + '_' + json_params["transmission"]["runNumber"]
+        empty_run = json_params["instrumentName"] + '_' + json_params["empty"]["runNumber"]
         ws = apply_transmission(ws, transmission_fn, empty_run, config)
 
     # Background
     bkg_run = json_params["background"]["runNumber"]
     if bkg_run != "":
-        bkg_run = json_params["instrumentName"] + bkg_run
+        bkg_run = json_params["instrumentName"] + '_' + bkg_run
         ws_bck = sans.prepare_data(bkg_run,
                                    output_workspace="_bck_{}".format(json_params["background"]["runNumber"]),
                                    **config)

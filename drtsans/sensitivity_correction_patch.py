@@ -363,12 +363,13 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
     # A pixel could be Masked without altering its value.
     # Setting all previously masked values to NaN as required by Numpy functions.
-    info = input_workspace.detectorInfo()
-    print('Info Size: {}... Number of spectrum: {}'.format(info.size(), input_workspace.getNumberHistograms()))
-    for index in range(info.size()):
-        if info.isMasked(index):
-            input_workspace.setY(int(index), [np.nan])
-            input_workspace.setE(int(index), np.array(np.nan))
+    # NOTE: DISABLED to see whether it affects integration test
+    # info = input_workspace.detectorInfo()
+    # print('Info Size: {}... Number of spectrum: {}'.format(info.size(), input_workspace.getNumberHistograms()))
+    # for index in range(info.size()):
+    #     if info.isMasked(index):
+    #         input_workspace.setY(int(index), [np.nan])
+    #         input_workspace.setE(int(index), np.array(np.nan))
 
     # The average and uncertainty in the average are determined from the masked pattern
     # according to equations A3.3 and A3.4

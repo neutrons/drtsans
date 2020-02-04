@@ -134,6 +134,8 @@ def apply_transmission_correction(input_workspace, trans_workspace=None, trans_v
         `trans_workspace` will be used.
     trans_error: float
         Error associated to `trans_value`.
+    theta_dependent : bool
+        Flag to do theta dependent correction
     output_workspace: str
         Name of the workspace containing the corrected intensities. If :py:obj:`None`, the `input_workspace`
         will be overwritten.

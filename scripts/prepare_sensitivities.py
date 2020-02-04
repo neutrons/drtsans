@@ -99,5 +99,9 @@ if TRANSMISSION_RUNS is not None:
                                          transmission_beam_run=TRANSMISSION_RUNS)
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 
+# Dark runs
+if DARK_CURRENT_RUNS is not None:
+    preparer.set_dark_current_runs(DARK_CURRENT_RUNS)
+
 # Run
 preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE)

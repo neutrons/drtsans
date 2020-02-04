@@ -69,6 +69,9 @@ class PrepareSensitivityCorrection(object):
         self._transmission_flood_runs = None
         self._theta_dep_correction = False
 
+        # Dark current
+        self._dark_current_runs = None
+
         # Apply solid angle correction or not?
         self._solid_angle_correction = False
 
@@ -119,6 +122,24 @@ class PrepareSensitivityCorrection(object):
             self._flood_runs = [flood_runs]
         else:
             self._flood_runs = list(flood_runs)
+
+    def set_dark_current_runs(self, dark_current_runs):
+        """Set dark current runs
+
+        Parameters
+        ----------
+        dark_current_runs : ~list or ~tuple or int
+            Dark current run(s)'s run number(s)
+
+        Returns
+        -------
+        None
+
+        """
+        if isinstance(dark_current_runs, int):
+            self._dark_current_runs = [dark_current_runs]
+        else:
+            self._dark_current_runs = list(dark_current_runs)
 
     def set_direct_beam_runs(self, direct_beam_runs):
         """Set direct beam runs
@@ -286,8 +307,6 @@ class PrepareSensitivityCorrection(object):
         """
         # Complete mask array
         total_mask_array = flood_workspace.extractE() < 1E-6
-        print('Total Masked = {}'.format(np.where(total_mask_array)[0]))
-
         assert total_mask_array.shape == det_mask_array.shape, '{} <> {}'.format(total_mask_array.shape,
                                                                                  det_mask_array.shape)
         assert total_mask_array.dtype == det_mask_array.dtype, 'dtype wrong'

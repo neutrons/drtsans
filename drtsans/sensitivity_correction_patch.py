@@ -322,9 +322,13 @@ def inf_value_to_mask(ws):
 
 
 def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_threshold=2.0,
-                                     poly_order=2, filename=None, output_workspace=None):
+                                     poly_order=2, min_detectors_per_tube=50, filename=None, output_workspace=None):
     """
     Calculate the detector sensitivity
+
+    Prerequisites for input workspace:
+    1. All previously masked values to NaN as required by Numpy functions but not masked pixels for beam centers
+    2. All masked pixels at beam centers are set to -infinity
 
     **Mantid algorithms used:**
     :ref:`SaveNexusProcessed <algm-SaveNexusProcessed-v1>`
@@ -340,6 +344,9 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         Maximum threshold for efficiency value
     poly_order : int
         ploy order.  default to 2
+    min_detectors_per_tube : int, optional
+        Minimum detectors with a value existing in the tube to fit. Only fits
+        tubes with at least `min_detectors_per_tube` (the default is 50).
     filename: str
         Name of the file to save the sensitivity calculation to
     output_workspace: ~mantid.api.MatrixWorkspace
@@ -352,33 +359,17 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # to equations A3.1 and A3.2
     input_workspace = mtd[str(input_workspace)]
 
-    print('IputWorkspace... NaN: {}, Infinity: {}'.format(len(np.where(np.isnan(input_workspace.extractY()))[0]),
-                                                          len(np.where(np.isinf(input_workspace.extractY()))[0])))
-
     if input_workspace.blocksize() != 1:
         input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
         delete_input_workspace = True
     else:
         delete_input_workspace = False
 
-    # A pixel could be Masked without altering its value.
-    # Setting all previously masked values to NaN as required by Numpy functions.
-    # NOTE: DISABLED to see whether it affects integration test
-    # info = input_workspace.detectorInfo()
-    # print('Info Size: {}... Number of spectrum: {}'.format(info.size(), input_workspace.getNumberHistograms()))
-    # for index in range(info.size()):
-    #     if info.isMasked(index):
-    #         input_workspace.setY(int(index), [np.nan])
-    #         input_workspace.setE(int(index), np.array(np.nan))
-
     # The average and uncertainty in the average are determined from the masked pattern
     # according to equations A3.3 and A3.4
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
     y = input_workspace.extractY().flatten()
     y_uncertainty = input_workspace.extractE().flatten()
-
-    print('InputWorkspace... NaN: {}, Infinity: {}'.format(len(np.where(np.isnan(y))[0]),
-                                                           len(np.where(np.isinf(y))[0])))
 
     n_elements =\
         input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - np.count_nonzero(np.isneginf(y))
@@ -399,10 +390,12 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
     # The next step is to fit the data in each tube with a second order polynomial as shown in
     # Equations A3.9 and A3.10. Use result to fill in NaN values.
+    num_interpolated_tubes = 0
     for j in range(0, comp.dim_y):
         xx = []
         yy = []
         ee = []
+        # beam center masked pixels
         masked_indices = []
         for i in range(0, comp.dim_x):
             index = comp.dim_x*j + i
@@ -412,19 +405,20 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
                 xx.append(i)
                 yy.append(II[index])
                 ee.append(dI[index])
-        # Using numpy.polyfit() with a 2nd-degree polynomial, one finds the following coefficients and uncertainties.
-        # print('Tube {}: Size = {}'.format(j, len(xx)))
-        # print('DEBUG... OUTPUT  MASKED INDICES')
-        # print(masked_indices)
-        # print('................................')
+
         if len(masked_indices) == 0:
             # no masked/centermasked pixels
             # no need to do interpolation
             continue
         # This shall be an option later
-        # if len(xx) < 50:
-        #     # print('....................  Skip')
-        #     continue
+        if len(xx) < min_detectors_per_tube:
+            logger.error("Skipping tube with indices {} with {} non-masked value. Too many "
+                         "masked or dead pixels.".format(j, len(xx)))
+            print('Tube {} .................... Valid Pixels = {}......... Skip'.format(j, len(xx)))
+            continue
+
+        # Do poly fit
+        num_interpolated_tubes += 1
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix
@@ -451,10 +445,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
-
-    print(type(output))
-    print(output.shape)
-    print(input_workspace.getNumberHistograms())
 
     CreateWorkspace(DataX=[1., 2.],
                     DataY=output,

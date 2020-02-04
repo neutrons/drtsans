@@ -363,24 +363,13 @@ class PrepareSensitivityCorrection(object):
         flood_workspaces = [self._mask_beam_center(flood_workspaces[i], beam_centers[i])
                             for i in range(num_workspaces_set)]
 
-        # Transmission correction
-        if self._transmission_runs is not None and self._is_wing_detector is False:
-            # calculate transmission corrections
-            trans_corr_ws_list = [self._calculate_transmission_correction(
-                transmission_run=self._transmission_runs[i],
-                transmission_flood_run=self._transmission_flood_runs[i])
-                for i in range(len(self._transmission_runs))]
-            # apply
-
-            print('X')
-            print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
-            print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
-
-            flood_workspaces = [self._apply_transmission_correction(flood_ws=flood_workspaces[i],
-                                                                    transmission_corr_ws=trans_corr_ws_list[i],
-                                                                    is_theta_dep_corr=self._theta_dep_correction)
-                                for i in range(len(flood_workspaces))]
-        # END-IF
+        # Transmission correction as an option
+        if self._transmission_runs is not None and not self._is_wing_detector:
+            # Must have transmission run specified and cannot be wing detector (of CG3)
+            flood_workspaces = [self._apply_transmission_correction(flood_workspaces[i],
+                                                                    self._transmission_runs[i],
+                                                                    self._transmission_flood_runs[i])
+                                for i in range(num_workspaces_set)]
 
         # Set the masked pixels' counts to nan and -infinity
         flood_workspaces = [self._set_mask_value(flood_workspaces[i], use_moving_detector_method,
@@ -416,10 +405,17 @@ class PrepareSensitivityCorrection(object):
             # Prepare by Use the sensitivity patch method
             from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction
 
+            if self._instrument == CG3:
+                polynomial_order = 3
+            else:
+                polynomial_order = 2
+
             # working on 1 and only 1
             sens_ws = calculate_sensitivity_correction(flood_workspaces[0],
                                                        min_threshold=min_threshold,
-                                                       max_threshold=max_threshold)
+                                                       max_threshold=max_threshold,
+                                                       poly_order=polynomial_order,
+                                                       min_detectors_per_tube=50)
 
         # Export
         SaveNexusProcessed(InputWorkspace=sens_ws, Filename=output_nexus_name)
@@ -478,6 +474,8 @@ class PrepareSensitivityCorrection(object):
         beam_center = find_beam_center(beam_center_workspace)
 
         print('DEBUG: {} beam centers: {}'.format(index, beam_center))
+        debug_output(beam_center_workspace, output_file='BeamCenter_{}.nxs'.format(beam_center_run),
+                     note='{} beam centers: {}'.format(index, beam_center))
 
         return beam_center
 
@@ -553,25 +551,35 @@ class PrepareSensitivityCorrection(object):
 
         return masked_flood_ws
 
-    def _calculate_transmission_correction(self, transmission_run, transmission_flood_run):
-        """
+    def _apply_transmission_correction(self, flood_ws, transmission_beam_run, transmission_flood_run):
+        """Calculate and pply transmission correction
+
+        Parameters
+        ----------
+        flood_ws : MarixWorkspace
+            Flood run workspace to
+            transmission correct workspace
+        transmission_beam_run : int
+            run number for transmission beam run
+        transmission_flood_run : int
+            run number for transmission flood run
 
         Returns
         -------
-        Workspace
-            processed transmission workspace
+        MatrixWorkspace
+            Flood workspace with transmission corrected
 
         """
         prepare_data = PREPARE_DATA[self._instrument]
 
         # Load, mask default and pixels, and normalize
-        transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_run),
+        transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_beam_run),
                                               mask=self._default_mask, btp=self._extra_mask_dict,
                                               overwrite_instrument=False,
                                               flux_method='time',
-                                              solid_angle=self._solid_angle_correction,
-                                              output_workspace='TM_{}_{}'.format(self._instrument,
-                                                                                 transmission_run))
+                                              solid_angle=False,
+                                              output_workspace='TRANS_{}_{}'.format(self._instrument,
+                                                                                    transmission_beam_run))
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_workspace, Components='wing_detector')
@@ -583,8 +591,8 @@ class PrepareSensitivityCorrection(object):
                                              overwrite_instrument=False,
                                              flux_method='time',
                                              solid_angle=self._solid_angle_correction,
-                                             output_workspace='TM_{}_{}'.format(self._instrument,
-                                                                                transmission_flood_run))
+                                             output_workspace='TRANS_{}_{}'.format(self._instrument,
+                                                                                   transmission_flood_run))
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_flood_ws, Components='wing_detector')
@@ -592,31 +600,16 @@ class PrepareSensitivityCorrection(object):
 
         # Zero-Angle Transmission Co-efficients
         calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]
-        ws_tr = calculate_transmission(transmission_flood_ws, transmission_workspace)
-        average_zero_angle = np.mean(ws_tr.readY(0))
-        average_zero_angle_error = np.linalg.norm(ws_tr.readE(0))
+        transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
+        average_zero_angle = np.mean(transmission_corr_ws.readY(0))
+        average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
         print("\tTransmission Coefficient is....{:.3f} +/- {:.3f}"
               "".format(average_zero_angle, average_zero_angle_error))
 
-        return ws_tr
-
-    def _apply_transmission_correction(self, flood_ws, transmission_corr_ws, is_theta_dep_corr):
-        """Apply transmission correction
-
-        Parameters
-        ----------
-        flood_ws
-        transmission_corr_ws : workspace
-            transmission correct workspace
-
-        Returns
-        -------
-
-        """
+        # Apply calculated transmission
         apply_transmission_correction = APPLY_TRANSMISSION[self._instrument]
-
         flood_ws = apply_transmission_correction(flood_ws, trans_workspace=transmission_corr_ws,
-                                                 theta_dependent=is_theta_dep_corr)
+                                                 theta_dependent=self._theta_dep_correction)
 
         return flood_ws
 
@@ -678,7 +671,6 @@ def export_detector_view(ws, png_name):
     None
 
     """
-    import numpy as np
     from matplotlib import pyplot as plt
     if isinstance(ws, np.ndarray):
         vec_y = ws

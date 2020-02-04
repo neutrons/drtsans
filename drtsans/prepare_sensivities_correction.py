@@ -243,7 +243,25 @@ class PrepareSensitivityCorrection(object):
         """
         self._theta_dep_correction = flag
 
-    def prepare_flood_data(self, index, beam_center):
+    def _prepare_flood_data(self, index, beam_center, dark_current_run):
+        """Prepare flood data including
+        (1) load
+        (2) mask: default, pixels
+        (3) center detector
+        (4) optionally solid angle correction
+        (5) optionally dark current correction
+        (6) normalization
+
+        Parameters
+        ----------
+        index
+        beam_center
+        dark_current_run
+
+        Returns
+        -------
+
+        """
 
         # Prepare data
         # get right prepare_data method specified to instrument type
@@ -260,6 +278,7 @@ class PrepareSensitivityCorrection(object):
                                 btp=self._extra_mask_dict,
                                 center_x=beam_center[0],
                                 center_y=beam_center[1],
+                                dark_current=dark_current_run,
                                 overwrite_instrument=False,
                                 flux_method='monitor',
                                 solid_angle=self._solid_angle_correction,
@@ -367,8 +386,12 @@ class PrepareSensitivityCorrection(object):
         beam_centers = [self._calculate_beam_center(i)
                         for i in range(num_workspaces_set)]
 
+        # Set default value to dark current runs
+        if self._dark_current_runs is None:
+            self._dark_current_runs = [None] * num_workspaces_set
+
         # Load and process flood data with (1) mask (2) center detector and (3) solid angle correction
-        flood_workspaces = [self.prepare_flood_data(i, beam_centers[i])
+        flood_workspaces = [self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i])
                             for i in range(num_workspaces_set)]
 
         # Retrieve masked detectors
@@ -395,15 +418,10 @@ class PrepareSensitivityCorrection(object):
                                                  det_mask_list[i])
                             for i in range(num_workspaces_set)]
 
-        print('Y')
+        print('Preparation of data is over....')
         print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
         print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
 
-        # DEBUG OUTPUT
-        for i in range(len(flood_workspaces)):
-            workspace = flood_workspaces[i]
-            output_file = 'Step_3_Masked_{}.nxs'.format(str(workspace))
-            debug_output(workspace, output_file, note='Step 3 Center Masked {}'.format(str(workspace)))
         # DEBUG OUTPUT
         for i in range(len(flood_workspaces)):
             workspace = flood_workspaces[i]

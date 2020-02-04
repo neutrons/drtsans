@@ -1,3 +1,4 @@
+import copy
 import numbers
 import functools
 from inspect import signature
@@ -146,7 +147,9 @@ class SpectrumInfo:
         function = getattr(self._workspace, function_name)
         if isinstance(self.spectrum_info_index, int):
             return function(self.spectrum_info_index)
-        return array_type([function(index) for index in self.spectrum_info_index])
+        # copy.deepcopy is necessary if we're dealing with event workspaces, as only 50 event lists are
+        # stored at a time in memory. See function void EventWorkspaceMRU::ensureEnoughBuffersY() in Mantid's source.
+        return array_type([copy.deepcopy(function(index)) for index in self.spectrum_info_index])
 
     @property
     def readX(self):
@@ -283,7 +286,7 @@ class PixelSpectrum(ElementComponentInfo, SpectrumInfo):
         new_position = self.position
         if len(xyz) == 3:
             new_position = xyz  # substitute with new position
-        else:
+        else:  # xyz of the form ('x', 34.5), or ('y', 34.5) or ('z', 34.5)
             new_position['xyz'.find(xyz[0])] = xyz[1]  # update selected coordinate
         self.setPosition(V3D(*list(new_position)))
 
@@ -313,6 +316,11 @@ class PixelSpectrum(ElementComponentInfo, SpectrumInfo):
     def area(self):
         r"""Product of pixel width and height"""
         return self.width * self.height
+
+    @property
+    def intensity(self):
+        r"""Summed intensity for the spectrum associated to this pixel"""
+        return sum(self.readY)
 
 
 class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
@@ -429,6 +437,16 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         """
         for pixel, y in zip(self.pixels, y_coordinates):
             pixel.position = ('y', y)
+
+    @property
+    def pixel_intensities(self):
+        r"""
+        Array of pixel_intensities for every pixel
+        Returns
+        -------
+
+        """
+        return np.array([pixel.intensity for pixel in self.pixels])
 
 
 class TubeCollection(ElementComponentInfo):

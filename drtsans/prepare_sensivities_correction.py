@@ -136,7 +136,9 @@ class PrepareSensitivityCorrection(object):
         None
 
         """
-        if isinstance(dark_current_runs, int):
+        if dark_current_runs is None:
+            self._dark_current_runs = None
+        elif isinstance(dark_current_runs, int):
             self._dark_current_runs = [dark_current_runs]
         else:
             self._dark_current_runs = list(dark_current_runs)
@@ -270,6 +272,8 @@ class PrepareSensitivityCorrection(object):
         bio_specials = dict()
         if self._instrument == CG3:
             bio_specials['center_y_wing'] = beam_center[2]
+
+        print('DARK CURRENT RUN : {}.    type: {}'.format(dark_current_run, type(dark_current_run)))
 
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor

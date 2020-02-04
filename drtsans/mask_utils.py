@@ -18,7 +18,7 @@ import os
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
 
-__all__ = ['apply_mask']
+__all__ = ['apply_mask', 'circular_mask_from_beam_center']
 
 
 def mask_as_numpy_array(input_workspace, invert=False):

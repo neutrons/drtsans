@@ -113,21 +113,50 @@ def prepare_data(data,
         Name of the output workspace. If None, then it will be
         ``EQSANS_XXXXX`` with number XXXXX determined from the supplied ``data``.
     """
-    # let load_events dictate the name of the workspace
+    # First, load the event stream data into a workspace
+    # The output_workspace name is for the Mantid workspace
     output_workspace = load_events(data, detector_offset=detector_offset,
                                    sample_offset=sample_offset,
-                                   output_workspace=output_workspace)
-    output_workspace = str(output_workspace)  # convert it to its name
-    transform_to_wavelength(output_workspace, bin_width=bin_width,
-                            low_tof_clip=low_tof_clip,
-                            high_tof_clip=high_tof_clip)
+                                   output_workspace=str(output_workspace))
+
+    # The beam center should be provided by the reduction
+    # script calling this function, but if it is not specified...
     if center_x is None or center_y is None:
-        # TODO see if additional parameters should be insluded
         center_x, center_y = find_beam_center(output_workspace, mask=mask)
-    center_detector(output_workspace, center_x=center_x, center_y=center_y)
+    center_detector(output_workspace, center_x=center_x, center_y=center_y)  # operates in-place
+
+    # now that the instrument geometry has been set, we can convert
+    # the event stream into neutrons binned into wavelength.
+    # The conversion corrects for the different path lengths from
+    # the sample to the detector pixels.
+    # Interestingly, this function cannot handle constant dLambda/Lamba binning...
+    output_workspace = transform_to_wavelength(output_workspace, bin_width=bin_width,
+                                               low_tof_clip=low_tof_clip,
+                                               high_tof_clip=high_tof_clip)
+
+    # The initial estimate of the uncertainties are made next.
+    output_workspace = set_init_uncertainties(output_workspace)
+
+    # Next, we subtract dark current, if it exists.
+    # Note that the function handles the normalization internally.
     if dark_current is not None:
-        subtract_dark_current(output_workspace, dark_current)
-    # Normalization by flux
+        output_workspace = subtract_dark_current(output_workspace, dark_current)
+
+    # The solid angle is corrected for next
+    if solid_angle is True:
+        output_workspace = apply_solid_angle_correction(output_workspace)
+
+    # Interestingly, this is the only use of the btp dictionary.
+    # The BTP stands for banks, tubes and pixels - it is a Mantid thing.
+    apply_mask(output_workspace, panel=mask_panel, mask=mask, **btp)  # returns the mask
+
+    # Correct for the detector sensitivity (the per pixel relative response)
+    if sensitivity_file_path is not None \
+            and path_exists(sensitivity_file_path):
+        kw = dict(sensitivity_filename=sensitivity_file_path)
+        output_workspace = apply_sensitivity_correction(output_workspace, **kw)
+
+    # We can perform the desired normalization here.
     if flux_method is not None:
         kw = dict(method=flux_method)
         if flux_method == 'monitor':
@@ -135,12 +164,9 @@ def prepare_data(data,
             prepare_monitors(data, bin_width=bin_width,
                              output_workspace=monitor_workspace)
             kw['monitor_workspace='] = monitor_workspace
-        normalize_by_flux(output_workspace, flux, **kw)
-    apply_mask(output_workspace, panel=mask_panel, mask=mask, **btp)
-    if solid_angle is True:
-        apply_solid_angle_correction(output_workspace)
-    if sensitivity_file_path is not None \
-            and path_exists(sensitivity_file_path):
-        kw = dict(sensitivity_filename=sensitivity_file_path)
-        apply_sensitivity_correction(output_workspace, **kw)
-    return mtd[output_workspace]
+        output_workspace = normalize_by_flux(output_workspace, flux, **kw)
+
+    if isinstance(output_workspace, str):
+        return mtd[output_workspace]  # shouldn't happen
+    else:
+        return output_workspace

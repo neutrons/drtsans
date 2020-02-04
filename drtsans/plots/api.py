@@ -2,6 +2,8 @@ from enum import Enum
 import json
 import numpy as np
 import matplotlib
+import warnings
+warnings.simplefilter('ignore', UserWarning)
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt # noqa E402
 from matplotlib.colors import LogNorm # noqa E402

@@ -2,18 +2,16 @@ import json
 import os
 import sys
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import numpy as np
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
-from drtsans.iq import determine_1d_linear_bins  # noqa E402
+from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.tof.eqsans import cfg  # noqa E402
-
-debug_mode = False
+from common_utils import get_Iqxqy  # noqa E402
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -32,21 +30,33 @@ if __name__ == "__main__":
     try:
         configuration_file_parameters = cfg.load_config(source=sample_run)
     except RuntimeError as e:
-        print(e)
-        print('Not using previous configuration')
+        msapi.logger.error(e)
+        msapi.logger.warning('Not using previous configuration')
         configuration_file_parameters = {}
-
-    # set up the configuration
+    # set up the configuration for the prepare_data arguments
+    # prepare_data(data, detector_offset=0, sample_offset=0,
+    #               bin_width=0.1, low_tof_clip =500, high_tof_clip=2000,
+    #               center_x=None, center_y=None,
+    #               dark_current=None,
+    #               flux_method=None, flux=None,
+    #               mask=None, mask_panel=-None, btp=dict(),
+    #               solid_angle=True,
+    #               sensitivity_file_path=None,
+    #               output_workspace=None)
     config = dict()
     json_conf = json_params["configuration"]
-    config["mask"] = None
-    if json_conf["useDefaultMask"]:
-        config["mask"] = configuration_file_parameters['combined mask']  # list of masked detector ids
 
-    config["flux"] = json_conf["beamFluxFileName"]
-    config["sensitivity_file_path"] = json_conf["sensitivityFileName"]
-    config["dark_current"] = json_conf["darkFileName"]
-    config["bin_width"] = json_conf["wavelenStep"]
+    config["mask"] = None  # by default, no mask.
+    if json_conf["useDefaultMask"]:
+        # load masks defined in the eq-sans configuration file
+        config["mask"] = configuration_file_parameters['combined mask']
+    if json_conf["useMaskBackTubes"]:
+        config["mask_panel"] = "back"
+
+    config["detector_offset"] = float(json_conf["detectorOffset"])
+    config["sample_offset"] = float(json_conf["sampleOffset"])
+
+    config["bin_width"] = float(json_conf["wavelenStep"])
     default_tof_cut_low = 500
     default_tof_cut_high = 2000
     if json_conf["useTOFcuts"]:
@@ -55,15 +65,30 @@ if __name__ == "__main__":
     else:
         config["low_tof_clip"] = default_tof_cut_low
         config["high_tof_clip"] = default_tof_cut_high
-    config["detector_offset"] = float(json_conf["detectorOffset"])
-    config["sample_offset"] = float(json_conf["sampleOffset"])
-    config["flux_method"] = "proton charge"  # TODO: what's this?
-    if json_conf["useMaskBackTubes"]:
-        config["mask_panel"] = "back"
+
+    config["dark_current"] = json_conf["darkFileName"]
+
+    # [CD, 2/1/2020] flux_method is now taking "normalization" value from the json file.
+    # [CD, 2/3/2020] do if statement depending on the normalization method.
+    if json_conf["normalization"] == "Monitor":
+        config["flux_method"] = 'monitor'
+        config["flux"] = json_conf["fluxMonitorRatioFile"]
+    elif json_conf["normalization"] == "Time":
+        config["flux_method"] = 'time'
+        config["flux"] = json_conf["beamFluxFileName"]
+    # [CD, 2/3/2020] be careful. Shaman use 'Total charge' but nomalize_by_flux use 'proton charge'
+    elif json_conf["normalization"] == "Total charge":
+        config["flux_method"] = 'proton charge'
+        config["flux"] = json_conf["beamFluxFileName"]
+    else:
+        config["flux_method"] = None
+
+    config["solid_angle"] = json_conf["useSolidAngleCorrection"]
+    config["sensitivity_file_path"] = json_conf["sensitivityFileName"]
 
     # find the beam center
     empty_run = json_params["empty"]["runNumber"]
-    empty_fn = json_params["instrumentName"] + empty_run
+    empty_fn = json_params["instrumentName"] + '_' + empty_run
     # TODO apply empty flag?
     if empty_run != "":
         db_ws = eqsans.load_events(empty_fn)
@@ -73,85 +98,146 @@ if __name__ == "__main__":
         config["center_x"] = center[0]
         config["center_y"] = center[1]
         msapi.logger.notice("calculated center {}".format(center))
+        # config["center_x"] = 0.020 # beamcenter -1 cm  force wrong center
+        # config["center_y"] = 0.01373132 # will delete these two lines after test
     else:
         config["center_x"] = 0.025239
         config["center_y"] = 0.0170801
-
+        msapi.logger.notice("use default center (0.025239, 0.0170801)")
     # load and prepare scattering data
     sample_file = "EQSANS_{}".format(sample_run)
     if not output_file:
-        output_file = sample_file + "_log.hdf5"
-    ws = eqsans.prepare_data(sample_file, **config)
+        output_file = sample_file
+    ws = eqsans.prepare_data(sample_file, output_workspace='_sample_{}'.format(sample_file), **config)
     msapi.logger.warning(str(config))
     # TODO check the next two values if empty
-    absolute_scale = float(json_conf["absoluteScale"])
-    sample_thickness = float(json_params["thickness"])
+    # [CD, 1/30/2020] CD has updated this part.
+    if json_conf["absoluteScale"] != "":
+        absolute_scale = float(json_conf["absoluteScale"])
+    else:
+        absolute_scale = 1.0
+
+    if json_params["thickness"] != "":
+        sample_thickness = float(json_params["thickness"])
+    else:
+        sample_thickness = 1.0
+
+    # [CD, 1/30/2020] even though the parametername is nPixelsRadius...
+    # [CD, 1/30/2020] the value is actually radius in mm unit
+    # [CD, 1/30/2020] for future, I suggest changing the parameter name
+    # [CD, 1/30/2020] to be "mmRadiusForTransmission" but this needs to be coordinated with UI team
+    try:
+        rad_trans = float(json_conf["mmRadiusForTransmission"])
+    except ValueError:
+        rad_trans = None
+
+    # [CD, 1/30/2020] direct beam loading for transmission should happen before apply transmission if statement.
+    # [CD, 1/30/2020] otherwise, ws_tr_direct may be missing for bkg transmission calculation
+    # [CD, 1/30/2020] current script does not have an option to use different direct beam for the tranmission.
+    # [CD, 1/30/2020] empty beam that is used to find beam center is always used as transmission.
+    ws_tr_direct = eqsans.prepare_data(empty_fn,
+                                       output_workspace='_trans_direct_{}'.format(empty_fn), **config)
 
     # apply transmission
-    transmission_run = json_params["transmission"]["runNumber"]
-    apply_transmission = bool(len(transmission_run.strip()) > 0)
+    transmission_run = json_params["transmission"]["runNumber"].strip()
+    transmission_value = json_params["transmission"]["value"].strip()
+    apply_transmission_run = transmission_run is not ''
+    if transmission_value != '':
+        apply_transmission_value = float(transmission_value) < 1.0
+    else:
+        apply_transmission_value = False
 
-    if apply_transmission:
-        if float(transmission_run) <= 1:
+    if apply_transmission_run or apply_transmission_value:
+        if apply_transmission_value:
             msapi.logger.notice('...applying transmission correction with fixed value.')
             ws = eqsans.apply_transmission_correction(ws,
-                                                      trans_value=float(transmission_run))
+                                                      trans_value=float(transmission_value))
         else:
             msapi.logger.notice('...applying transmission correction with transmission file.')
             transmission_fn = "EQSANS_{}".format(transmission_run)
-            # give the output a unique name to not clash with sample run
             ws_tr_sample = eqsans.prepare_data(transmission_fn,
                                                output_workspace='_trans_sample_{}'.format(transmission_fn), **config)
-            ws_tr_direct = eqsans.prepare_data(empty_fn,
-                                               output_workspace='_trans_direct_{}'.format(empty_fn), **config)
+            raw_tr_ws = eqsans.calculate_transmission(ws_tr_sample,
+                                                      ws_tr_direct,
+                                                      radius=rad_trans,
+                                                      radius_unit="mm",
+                                                      fit_function='')
             tr_ws = eqsans.calculate_transmission(ws_tr_sample,
                                                   ws_tr_direct,
-                                                  radius=None,
+                                                  radius=rad_trans,
                                                   radius_unit="mm")
+            # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
+            # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
+            # [CD, 1/30/2020] and save both of them as ascii file
+            # [CD, 1/30/2020] (or in a single transmission file with multiple columns)
+            raw_tr_fn = os.path.join(json_conf["outputDir"],
+                                     json_params["outputFilename"] + '_raw_trans.txt')
+            msapi.SaveAscii(raw_tr_ws, Filename=raw_tr_fn)
             tr_fn = os.path.join(json_conf["outputDir"],
                                  json_params["outputFilename"] + '_trans.txt')
-            print('...saving transmission file ' + tr_fn)
             msapi.SaveAscii(tr_ws, Filename=tr_fn)
             ws = eqsans.apply_transmission_correction(ws,
                                                       trans_workspace=tr_ws)
     else:
-        print('...no transmission correction is applied')
+        msapi.logger.warning('...no transmission correction is applied')
 
     # background
     bkg_run = json_params["background"]["runNumber"]
-    if len(bkg_run.strip()) > 0:
-        print('...applying bkg_subtraction.')
+    if bkg_run.strip() is not '':
+        msapi.logger.notice('...applying bkg_subtraction.')
         bkg_fn = "EQSANS_{}".format(bkg_run)
-        bkg_trans_run = json_params["background"]["transmission"]["runNumber"]
-        bkg_trans_fn = "EQSANS_{}".format(bkg_trans_run)
 
-        ws_bkg = eqsans.prepare_data(bkg_fn, **config)
+        ws_bkg = eqsans.prepare_data(bkg_fn, output_workspace='_bkg_{}'.format(bkg_fn), **config)
 
         # apply transmission background
-        if len(bkg_trans_run.strip()) > 0:
-            if float(bkg_trans_run) <= 1:
-                print('...applying bkg_transmission correction with fixed value.')
+        bkg_transmission_run = json_params["background"]["transmission"]["runNumber"].strip()
+        bkg_transmission_value = json_params["background"]["transmission"]["value"].strip()
+        bkg_apply_transmission_run = bkg_transmission_run is not ''
+        if bkg_transmission_value != '':
+            bkg_apply_transmission_value = float(json_params["transmission"]["value"]) < 1.0
+        else:
+            bkg_apply_transmission_value = False
+        if bkg_apply_transmission_run or bkg_apply_transmission_value:
+            if bkg_apply_transmission_value:
+                msapi.logger.notice('...applying bkg_transmission correction with fixed value.')
                 ws_bkg = eqsans.apply_transmission_correction(ws_bkg,
-                                                              trans_value=float(bkg_trans_run))
+                                                              trans_value=float(bkg_transmission_value))
             else:
-                print('...applying bkg_transmission correction with transmission file.')
-                ws_bkg_trans = eqsans.prepare_data(bkg_trans_fn, **config)
+                msapi.logger.notice('...applying bkg_transmission correction with transmission file.')
+                bkg_trans_fn = "EQSANS_{}".format(bkg_transmission_run)
+                ws_bkg_trans = eqsans.prepare_data(bkg_trans_fn,
+                                                   output_workspace='_bkg_trans_{}'.format(bkg_trans_fn),
+                                                   **config)
+                ws_cal_raw_tr_bkg = eqsans.calculate_transmission(ws_bkg_trans,
+                                                                  ws_tr_direct,
+                                                                  radius=rad_trans,
+                                                                  radius_unit="mm",
+                                                                  fit_function='')
                 ws_cal_tr_bkg = eqsans.calculate_transmission(ws_bkg_trans,
                                                               ws_tr_direct,
-                                                              radius=None,
+                                                              radius=rad_trans,
                                                               radius_unit="mm")
+                # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
+                # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
+                # [CD, 1/30/2020] and save both of them as ascii file
+                # [CD, 1/30/2020] (or in a single transmission file with multiple columns)
+                cal_raw_tr_bkg_fn = os.path.join(json_conf["outputDir"],
+                                                 json_params["outputFilename"] +
+                                                 '_bkg_' + bkg_transmission_run + '_raw_trans.txt')
                 cal_tr_bkg_fn = os.path.join(json_conf["outputDir"],
-                                             json_params["outputFilename"] + '_bkg_' + bkg_trans_run + '_trans.txt')
-                print('...saving bkg_transmission file ' + cal_tr_bkg_fn)
+                                             json_params["outputFilename"] +
+                                             '_bkg_' + bkg_transmission_run + '_trans.txt')
+                msapi.logger.notice('...saving bkg_transmission file ' + cal_tr_bkg_fn)
                 msapi.SaveAscii(ws_cal_tr_bkg, Filename=cal_tr_bkg_fn)
+                msapi.SaveAscii(ws_cal_raw_tr_bkg, Filename=cal_raw_tr_bkg_fn)
                 ws_bkg = eqsans.apply_transmission_correction(ws_bkg,
                                                               trans_workspace=ws_cal_tr_bkg)
         else:
-            print('...no transmission correction is applied to background')
+            msapi.logger.warning('...no transmission correction is applied to background')
 
         ws = eqsans.subtract_background(ws, background=ws_bkg)
     else:
-        print('...no bkg_subtraction.')
+        msapi.logger.notice('...no bkg_subtraction.')
 
     ws /= sample_thickness
     ws *= absolute_scale
@@ -159,9 +245,9 @@ if __name__ == "__main__":
     # apply user mask
     eqsans.apply_mask(ws, mask=json_conf["maskFileName"])
 
-    if debug_mode:
-        filenamews = os.path.join(json_conf["outputDir"], json_params["outputFilename"] + '.nxs')
-        msapi.SaveNexus(ws, filenamews)
+    # save the nexus file with all corrections
+    filenamews = os.path.join(json_conf["outputDir"], json_params["outputFilename"] + '.nxs')
+    msapi.SaveNexus(ws, filenamews)
 
     # convert to momentum transfer and split by frame
     all_I_of_q = eqsans.convert_to_q(ws, mode="scalar")
@@ -175,30 +261,38 @@ if __name__ == "__main__":
     linear_binning = json_conf["QbinType"] == "linear"
 
     # 1D
+    # [AS, 2/4/2010]
     fig, ax = plt.subplots()
     label = None
     save_suffix = ''
     title = f"reduction log {output_file}"
 
     for frame_number, result in enumerate(I_of_q_by_frame):
-        if linear_binning:
-            q_min = np.min(result.mod_q)
-            q_max = np.max(result.mod_q)
-            linear_q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
-            binned_i_of_q = bin_intensity_into_q1d(result, linear_q_bins, BinningMethod.WEIGHTED)
-            if len(I_of_q_by_frame) > 1:
-                label = f"frame_{frame_number+1}"
-                save_suffix = f"_frame_{frame_number+1}"
-            ax.loglog(binned_i_of_q.mod_q, binned_i_of_q.intensity, label=label)
-            filename = os.path.join(json_conf["outputDir"],
-                                    json_params["outputFilename"] + save_suffix + '_Iq.txt')
-            # print(binned_i_of_q)
-            save_ascii_binned_1D(filename, title, binned_i_of_q)
+        if len(I_of_q_by_frame) > 1:
+            label = f"frame_{frame_number+1}"
+            save_suffix = f"_frame_{frame_number+1}"
+        q_min = np.min(result.mod_q)
+        q_max = np.max(result.mod_q)
 
+        if linear_binning:
+            q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
+        else:
+            q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D)
+            # [AS, 2/4/2020] need option for decade log binning
+
+        binned_i_of_q = bin_intensity_into_q1d(result, q_bins, BinningMethod.WEIGHTED)
+        # [CD, 1/30/2020] do we want to have an option to change btn weighted and noweighted
+        # issue 322
+        ax.errorbar(binned_i_of_q.mod_q, binned_i_of_q.intensity, yerr=binned_i_of_q.error, label=label)
+        filename = os.path.join(json_conf["outputDir"],
+                                json_params["outputFilename"] + save_suffix + '_Iq.txt')
+        save_ascii_binned_1D(filename, title, binned_i_of_q)
     if label:
         ax.legend()
     ax.set_ylabel("Intensity")
     ax.set_xlabel("$Q (\AA^{-1})$")  # noqa W605
+    ax.set_xscale('log')
+    ax.set_yscale('log')
 
     suffix = ".png"
     picture_file = os.path.join(json_conf["outputDir"],
@@ -206,24 +300,12 @@ if __name__ == "__main__":
     fig.savefig(picture_file)
 
     # 2D
+    frame_label = ''
     for frame_number, result in enumerate(I_of_qxqy_by_frame):
-        qx_min = np.min(result.qx)
-        qx_max = np.max(result.qx)
-        qx_bins = determine_1d_linear_bins(qx_min, qx_max, numQBins2D)
-        qy_min = np.min(result.qy)
-        qy_max = np.max(result.qy)
-        qy_bins = determine_1d_linear_bins(qy_min, qy_max, numQBins2D)
-
-        binned_i_of_qxqy = bin_intensity_into_q2d(result, qx_bins, qy_bins, BinningMethod.WEIGHTED)
-        fig, ax = plt.subplots()
-        pcm = ax.pcolormesh(binned_i_of_qxqy.qx, binned_i_of_qxqy.qy, binned_i_of_qxqy.intensity,
-                            norm=colors.LogNorm())
-        fig.colorbar(pcm, ax=ax)
-
-        suffix = "_qxqy{}".format(frame_number+1)
-        picture_file = os.path.join(json_conf["outputDir"],
-                                    json_params["outputFilename"] + suffix + '.png')
-        fig.savefig(picture_file)
-        filename = os.path.join(json_conf["outputDir"],
-                                json_params["outputFilename"] + save_suffix + '_Iqxqy.txt')
-        save_ascii_binned_2D(filename, title, binned_i_of_qxqy)
+        if len(I_of_q_by_frame) > 1:
+            frame_label = f"_frame_{frame_number+1}"
+        get_Iqxqy(result, json_params["configuration"]["outputDir"],
+                  json_params["outputFilename"], label=frame_label,
+                  nbins=numQBins2D,
+                  weighting=True)
+        # [CD, 1/30/2020] option btn weighted and noweighted ?

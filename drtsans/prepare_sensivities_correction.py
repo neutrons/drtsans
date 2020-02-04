@@ -326,9 +326,12 @@ class PrepareSensitivityCorrection(object):
         """
         # Complete mask array
         total_mask_array = flood_workspace.extractE() < 1E-6
-        assert total_mask_array.shape == det_mask_array.shape, '{} <> {}'.format(total_mask_array.shape,
-                                                                                 det_mask_array.shape)
-        assert total_mask_array.dtype == det_mask_array.dtype, 'dtype wrong'
+
+        # Sanity check for detector-patch case
+        if not use_moving_detector_method:
+            assert total_mask_array.shape == det_mask_array.shape, '{} <> {}'.format(total_mask_array.shape,
+                                                                                     det_mask_array.shape)
+            assert total_mask_array.dtype == det_mask_array.dtype, 'dtype wrong'
 
         import time
 

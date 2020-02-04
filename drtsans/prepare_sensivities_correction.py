@@ -35,6 +35,7 @@ APPLY_TRANSMISSION = {CG2: drtsans.mono.gpsans.apply_transmission_correction,
 SOLID_ANGLE_CORRECTION = {
     CG2: drtsans.mono.gpsans.solid_angle_correction,
     CG3: drtsans.mono.biosans.solid_angle_correction,
+    EQSANS: drtsans.solid_angle_correction
 }
 
 
@@ -136,7 +137,9 @@ class PrepareSensitivityCorrection(object):
         None
 
         """
-        if isinstance(dark_current_runs, int):
+        if dark_current_runs is None:
+            self._dark_current_runs = None
+        elif isinstance(dark_current_runs, int):
             self._dark_current_runs = [dark_current_runs]
         else:
             self._dark_current_runs = list(dark_current_runs)
@@ -271,6 +274,8 @@ class PrepareSensitivityCorrection(object):
         if self._instrument == CG3:
             bio_specials['center_y_wing'] = beam_center[2]
 
+        print('DARK CURRENT RUN : {}.    type: {}'.format(dark_current_run, type(dark_current_run)))
+
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
         flood_ws = prepare_data(data='{}_{}'.format(self._instrument, self._flood_runs[index]),
@@ -281,8 +286,17 @@ class PrepareSensitivityCorrection(object):
                                 dark_current=dark_current_run,
                                 overwrite_instrument=False,
                                 flux_method='monitor',
-                                solid_angle=self._solid_angle_correction,
+                                solid_angle=False,
                                 **bio_specials)
+
+        # Apply solid angle correction
+        if self._solid_angle_correction:
+            solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
+
+            if self._is_wing_detector:
+                flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalWing')
+            else:
+                flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
 
         return flood_ws
 
@@ -413,7 +427,8 @@ class PrepareSensitivityCorrection(object):
             # Must have transmission run specified and cannot be wing detector (of CG3)
             flood_workspaces = [self._apply_transmission_correction(flood_workspaces[i],
                                                                     self._transmission_runs[i],
-                                                                    self._transmission_flood_runs[i])
+                                                                    self._transmission_flood_runs[i],
+                                                                    beam_centers[i])
                                 for i in range(num_workspaces_set)]
 
         # Set the masked pixels' counts to nan and -infinity
@@ -450,12 +465,19 @@ class PrepareSensitivityCorrection(object):
             else:
                 polynomial_order = 2
 
+            # component name
+            if self._is_wing_detector:
+                detector_component = 'wing_detector'
+            else:
+                detector_component = 'detector1'
+
             # working on 1 and only 1
             sens_ws = calculate_sensitivity_correction(flood_workspaces[0],
                                                        min_threshold=min_threshold,
                                                        max_threshold=max_threshold,
                                                        poly_order=polynomial_order,
-                                                       min_detectors_per_tube=50)
+                                                       min_detectors_per_tube=50,
+                                                       component_name=detector_component)
 
         # Export
         SaveNexusProcessed(InputWorkspace=sens_ws, Filename=output_nexus_name)
@@ -591,7 +613,8 @@ class PrepareSensitivityCorrection(object):
 
         return masked_flood_ws
 
-    def _apply_transmission_correction(self, flood_ws, transmission_beam_run, transmission_flood_run):
+    def _apply_transmission_correction(self, flood_ws, transmission_beam_run, transmission_flood_run,
+                                       beam_center):
         """Calculate and pply transmission correction
 
         Parameters
@@ -603,7 +626,8 @@ class PrepareSensitivityCorrection(object):
             run number for transmission beam run
         transmission_flood_run : int
             run number for transmission flood run
-
+        beam_center : ~tuple
+            detector center
         Returns
         -------
         MatrixWorkspace
@@ -612,14 +636,21 @@ class PrepareSensitivityCorrection(object):
         """
         prepare_data = PREPARE_DATA[self._instrument]
 
+        bio_specials = dict()
+        if self._instrument == CG3:
+            bio_specials['center_y_wing'] = beam_center[2]
+
         # Load, mask default and pixels, and normalize
         transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_beam_run),
                                               mask=self._default_mask, btp=self._extra_mask_dict,
                                               overwrite_instrument=False,
-                                              flux_method='time',
+                                              flux_method='monitor',
                                               solid_angle=False,
+                                              center_x=beam_center[0],
+                                              center_y=beam_center[1],
                                               output_workspace='TRANS_{}_{}'.format(self._instrument,
-                                                                                    transmission_beam_run))
+                                                                                    transmission_beam_run),
+                                              **bio_specials)
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_workspace, Components='wing_detector')
@@ -629,10 +660,13 @@ class PrepareSensitivityCorrection(object):
         transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
                                              mask=self._default_mask, btp=self._extra_mask_dict,
                                              overwrite_instrument=False,
-                                             flux_method='time',
+                                             flux_method='monitor',
                                              solid_angle=self._solid_angle_correction,
+                                             center_x=beam_center[0],
+                                             center_y=beam_center[1],
                                              output_workspace='TRANS_{}_{}'.format(self._instrument,
-                                                                                   transmission_flood_run))
+                                                                                   transmission_flood_run),
+                                             **bio_specials)
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_flood_ws, Components='wing_detector')
@@ -645,6 +679,11 @@ class PrepareSensitivityCorrection(object):
         average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
         print("\tTransmission Coefficient is....{:.3f} +/- {:.3f}"
               "".format(average_zero_angle, average_zero_angle_error))
+
+        # debug output
+        debug_output(transmission_corr_ws,
+                     'TRANS_Beam{}_Flood{}.nxs'.format(transmission_beam_run, transmission_flood_run),
+                     note='Transmission run')
 
         # Apply calculated transmission
         apply_transmission_correction = APPLY_TRANSMISSION[self._instrument]

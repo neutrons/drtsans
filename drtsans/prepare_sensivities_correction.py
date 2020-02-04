@@ -339,16 +339,16 @@ class PrepareSensitivityCorrection(object):
 
         num_spec = flood_workspace.getNumberHistograms()
         for i in range(num_spec):
-            if total_mask_array[i] and det_mask_array[i]:
-                # both masked
+            if total_mask_array[i] and use_moving_detector_method:
+                # only total.. from center mask.  moving detector: set to NaN
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
-            elif total_mask_array[i] and use_moving_detector_method:
-                # only total.. from center mask.  moving detector: set to nan
+            elif total_mask_array[i] and det_mask_array[i]:
+                # both masked: pixel and default mask for detector-patch algorithm: set to NaN
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
             elif total_mask_array[i]:
-                # only total.. from center mask.  path detector: set to -inf
+                # only total mask.  so it is from beam center. detector-patch algorithm: set to -inf
                 flood_workspace.dataY(i)[0] = -np.NINF
                 flood_workspace.dataE(i)[0] = -np.NINF
             elif not total_mask_array[i] and det_mask_array[i]:

@@ -101,10 +101,14 @@ def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, weigh
     return iq_output
 
 
-def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
+def get_Iqxqy(q_data, output_dir, output_file, label='', weighting=False, nbins=100):
     """
         Compute I(qx,qy) from corrected workspace
     """
+    if weighting:
+        bin_method = BinningMethod.WEIGHTED
+    else:
+        bin_method = BinningMethod.NOWEIGHT
     qx_min = np.min(q_data.qx)
     qx_max = np.max(q_data.qx)
     linear_x_bins = determine_1d_linear_bins(qx_min, qx_max, nbins)
@@ -113,7 +117,7 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', nbins=100):
     linear_y_bins = determine_1d_linear_bins(qy_min, qy_max, nbins)
 
     iq_output = drtsans.iq.bin_intensity_into_q2d(q_data, linear_x_bins, linear_y_bins,
-                                                  method=BinningMethod.NOWEIGHT)
+                                                  method=bin_method)
 
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.txt')
     save_ascii_binned_2D(filename, "I(Qx,Qy)", iq_output)

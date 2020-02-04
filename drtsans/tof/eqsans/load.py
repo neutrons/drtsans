@@ -86,7 +86,7 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
-    if output_workspace is None:
+    if (output_workspace is None) or (not output_workspace):
         if isinstance(run, str):
             output_workspace = os.path.split(run)[-1]
             output_workspace = '_'.join(output_workspace.split('_')[:2])

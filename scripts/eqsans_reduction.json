@@ -1,0 +1,58 @@
+{
+  "instrumentName": "EQSANS",
+  "iptsNumber": "24769",
+  "runNumber": "112300",
+  "thickness": "1",
+  "outputFilename": "EQSANS_112300",
+  "transmission": {
+    "runNumber": "112297",
+    "value": ""
+  },
+  "background": {
+    "runNumber": "112299",
+    "transmission": {
+      "runNumber": "112296",
+      "value": ""
+    }
+  },
+  "empty": {
+    "runNumber": "112295"
+  },
+  "configuration": {
+    "outputDir": "/tmp/shared/shaman",
+    "sampleApertureSize": "10",
+    "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2019B_mp/mask_beamstop60_4m.nxs",
+    "useMaskFileName": true,
+    "useDefaultMask": true,
+    "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+    "useBeamFluxFileName": true,
+    "useDarkFileBlockedBeam": true,
+    "useBlockedBeam": false,
+    "darkFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2019B_mp/EQSANS_108764.nxs.h5",
+    "useDarkFileName": true,
+    "sensitivityFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2019B_mp/Sensitivity_patched_thinPMMA_4m_108772.nxs",
+    "useSensitivityFileName": true,
+    "absoluteScale": "1",
+    "normalization": "Total charge",
+    "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+    "sampleOffset": "-314.5",
+    "useSampleOffset": true,
+    "detectorOffset": "0",
+    "useDetectorOffset": true,
+    "useSolidAngleCorrection": true,
+    "useDetectorTubeType": true,
+    "useFlightPathCorrection": true,
+    "useThetaDepTransCorrection": true,
+    "mmRadiusForTransmission": 25.0,
+    "numQxQyBins": 80,
+    "QbinType": "linear",
+    "numQBins": 120,
+    "useTOFcuts": false,
+    "TOFmin": "",
+    "TOFmax": "",
+    "useMaskBackTubes": false,
+    "wavelenStepType": "constant lambda",
+    "wavelenStep": 0.1
+  }
+
+}

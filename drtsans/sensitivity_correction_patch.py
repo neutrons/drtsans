@@ -322,7 +322,8 @@ def inf_value_to_mask(ws):
 
 
 def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_threshold=2.0,
-                                     poly_order=2, min_detectors_per_tube=50, filename=None, output_workspace=None):
+                                     poly_order=2, min_detectors_per_tube=50, filename=None,
+                                     component_name='detector1', output_workspace=None):
     """
     Calculate the detector sensitivity
 
@@ -347,6 +348,9 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     min_detectors_per_tube : int, optional
         Minimum detectors with a value existing in the tube to fit. Only fits
         tubes with at least `min_detectors_per_tube` (the default is 50).
+    component_name : str, optional
+        Component name to  (the default is 'detector1', which is the main
+        detector)
     filename: str
         Name of the file to save the sensitivity calculation to
     output_workspace: ~mantid.api.MatrixWorkspace
@@ -386,7 +390,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
                 II[i] = np.nan
                 dI[i] = np.nan
 
-    comp = detector.Component(input_workspace, 'detector1')
+    comp = detector.Component(input_workspace, component_name)  # 'detector` except wing detector
 
     # The next step is to fit the data in each tube with a second order polynomial as shown in
     # Equations A3.9 and A3.10. Use result to fill in NaN values.

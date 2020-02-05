@@ -17,4 +17,4 @@ if [[ ! "${CURRENT_OWNER}" == "${NDAV_USER}" ]]; then
   runuser -l "${CURRENT_OWNER}" -c "chown -R ${NDAV_USER} ${PIP_DIR}"
 fi
 
-runuser -l "${NDAV_USER}" -c "bash /opt/sans-backend/scripts/analysis-update.sh"
+runuser -l "${NDAV_USER}" -c "bash /opt/sans-backend/scripts/analysis-update.sh $1"

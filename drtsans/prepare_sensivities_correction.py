@@ -270,9 +270,11 @@ class PrepareSensitivityCorrection(object):
         # get right prepare_data method specified to instrument type
         prepare_data = PREPARE_DATA[self._instrument]
 
-        bio_specials = dict()
+        instrument_specific_param_dict = dict()
         if self._instrument == CG3:
-            bio_specials['center_y_wing'] = beam_center[2]
+            instrument_specific_param_dict['center_y_wing'] = beam_center[2]
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict['overwrite_instrument'] = False
 
         print('DARK CURRENT RUN : {}.    type: {}'.format(dark_current_run, type(dark_current_run)))
 
@@ -284,10 +286,9 @@ class PrepareSensitivityCorrection(object):
                                 center_x=beam_center[0],
                                 center_y=beam_center[1],
                                 dark_current=dark_current_run,
-                                overwrite_instrument=False,
                                 flux_method='monitor',
                                 solid_angle=False,
-                                **bio_specials)
+                                **instrument_specific_param_dict)
 
         # Apply solid angle correction
         if self._solid_angle_correction:
@@ -515,14 +516,21 @@ class PrepareSensitivityCorrection(object):
         # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector
         # It is not necessary for EQSANS because data won't be modified at all!
         prepare_data = PREPARE_DATA[self._instrument]
+
+        # Add instrument_specific_parameters
+        instrument_specific_param_dict = dict()
+        if self._instrument in [CG2, CG3]:
+            # HFIR spedific
+            instrument_specific_param_dict['overwrite_instrument'] = False
+
         beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
                                              mask=self._default_mask,
                                              btp=self._extra_mask_dict,
-                                             overwrite_instrument=False,
                                              flux_method='monitor',
                                              solid_angle=False,
                                              output_workspace='BC_{}_{}'.format(self._instrument,
-                                                                                beam_center_run))
+                                                                                beam_center_run),
+                                             **instrument_specific_param_dict)
         # Mask angle for CG3: apply mask on angle
         if self._instrument == CG3 and self._wing_det_mask_angle is not None:
             # mask wing detector
@@ -636,21 +644,23 @@ class PrepareSensitivityCorrection(object):
         """
         prepare_data = PREPARE_DATA[self._instrument]
 
-        bio_specials = dict()
+        instrument_specific_param_dict = dict()
         if self._instrument == CG3:
-            bio_specials['center_y_wing'] = beam_center[2]
+            instrument_specific_param_dict['center_y_wing'] = beam_center[2]
+        if self._instrument in [CG2, CG3]:
+            # HFIR specific
+            instrument_specific_param_dict['overwrite_instrument'] = False
 
         # Load, mask default and pixels, and normalize
         transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_beam_run),
                                               mask=self._default_mask, btp=self._extra_mask_dict,
-                                              overwrite_instrument=False,
                                               flux_method='monitor',
                                               solid_angle=False,
                                               center_x=beam_center[0],
                                               center_y=beam_center[1],
                                               output_workspace='TRANS_{}_{}'.format(self._instrument,
                                                                                     transmission_beam_run),
-                                              **bio_specials)
+                                              **instrument_specific_param_dict)
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_workspace, Components='wing_detector')
@@ -659,14 +669,13 @@ class PrepareSensitivityCorrection(object):
         # Load, mask default and pixels, normalize
         transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
                                              mask=self._default_mask, btp=self._extra_mask_dict,
-                                             overwrite_instrument=False,
                                              flux_method='monitor',
                                              solid_angle=self._solid_angle_correction,
                                              center_x=beam_center[0],
                                              center_y=beam_center[1],
                                              output_workspace='TRANS_{}_{}'.format(self._instrument,
                                                                                    transmission_flood_run),
-                                             **bio_specials)
+                                             **instrument_specific_param_dict)
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_flood_ws, Components='wing_detector')

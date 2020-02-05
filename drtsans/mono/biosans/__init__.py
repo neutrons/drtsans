@@ -20,6 +20,9 @@ from ...pixel_calibration import *
 import drtsans.stitch
 from ...stitch import *
 
+import drtsans.solid_angle
+from ...solid_angle import *
+
 import drtsans.thickness_normalization
 from ...thickness_normalization import *
 
@@ -44,7 +47,6 @@ from ..normalization import *
 from .api import *
 from .beam_finder import *  # overrides drtsans.beam_finder
 from .pixel_calibration import *  # overrides drtsans.pixel_calibration
-from .solid_angle import *  # overrides drtsans.solid_angle
 
 
 __all__ = [] + drtsans.absolute_units.__all__\
@@ -53,6 +55,7 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.iq.__all__ \
           + drtsans.pixel_calibration.__all__ \
           + drtsans.stitch.__all__\
+          + drtsans.solid_angle.__all__\
           + drtsans.thickness_normalization.__all__\
           + drtsans.transmission.__all__\
           + drtsans.mono.absolute_units.__all__\
@@ -62,5 +65,4 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.mono.normalization.__all__ \
           + api.__all__\
           + beam_finder.__all__\
-          + pixel_calibration.__all__\
-          + solid_angle.__all__
+          + pixel_calibration.__all__

@@ -3,6 +3,7 @@ from mantid import simpleapi as msapi
 
 from drtsans.mono import biosans
 import drtsans
+from drtsans.solid_angle import solid_angle_correction
 from drtsans.mask_utils import apply_mask
 from drtsans.mono.load import load_events, transform_to_wavelength
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
@@ -97,7 +98,7 @@ def prepare_data(data,
 
     # Solid angle
     if solid_angle:
-        biosans.solid_angle_correction(ws_name)
+        solid_angle_correction(ws_name)
 
     # Sensitivity
     if sensitivity_file_path is not None:

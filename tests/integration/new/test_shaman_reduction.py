@@ -14,7 +14,8 @@ EXTENSIONS = {'EQSANS_88980': ['.nxs', '.png', '_bkg_88974_raw_trans.txt', '_bkg
                                '_trans.txt'],
               'EQSANS_112300': ['_bkg_112296_raw_trans.txt', '_bkg_112296_trans.txt', '_Iq.txt', '_Iqxqy.txt', '.nxs',
                                 '.png', '_Iqxqy.png', '_Iqxqy.json', '_raw_trans.txt', '_trans.txt'],
-              'CG3_1433': ['_merged_Iq.json', '_merged_Iq.png']}
+              'CG3_1433': ['_merged_Iq.json', '_merged_Iq.png'],
+              'CG2_1481': ['_Iq.json', '_Iq.png', '_Iq.txt', '_Iqxqy.json', '_Iqxqy.png', '_Iqxqy.txt']}
 # double for loop to simplify creating the mix of extensions for CG3_1433
 for iq_type in '_Iq', '_Iqxqy', '_wing_Iq', '_wing_Iqxqy':
     for ext in 'json', 'png', 'txt':

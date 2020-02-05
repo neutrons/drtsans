@@ -6,6 +6,7 @@ import numpy as np
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
+import drtsans  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
@@ -24,6 +25,7 @@ if __name__ == "__main__":
         json_string = " ".join(sys.argv[1:])
         json_params = json.loads(json_string)
     msapi.logger.notice(json.dumps(json_params, indent=2))
+    msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
     output_file = json_params["outputFilename"]
     sample_run = json_params["runNumber"]

@@ -5,7 +5,7 @@
 
 "thickness":"0.1",
 "transmission":{"runNumber":"/HFIR/CG2/IPTS-23801/nexus/CG2_1342.nxs.h5"},
-"background":{"runNumber":"/HFIR/CG2/IPTS-23801/nexus/CG2_1417.nxs.h5",
+"background":{"runNumber":"",
               "transmission":{"runNumber":"/HFIR/CG2/IPTS-23801/nexus/CG2_1439.nxs.h5"}},
 "empty":{"runNumber":"/HFIR/CG2/IPTS-23801/nexus/CG2_1488.nxs.h5"},
 "configuration":{
@@ -30,7 +30,7 @@
     "useDetectorTubeType":true,
     "useFlightPathCorrection":false,
     "useThetaDepTransCorrection":true,
-    "nPixelsRadiusForTransmission":"5",
+    "mmRadiusForTransmission":"25",
     "numQxQyBins":100,
     "QbinType":"linear",
     "numQBins":100,

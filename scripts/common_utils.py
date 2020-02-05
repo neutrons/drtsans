@@ -33,6 +33,7 @@ def setup_configuration(json_params, instrument):
                   solid_angle=True,
                   mask=None,
                   mask_panel=None,
+                  transmission_radius=None,
                   )
 
     # Dark current
@@ -72,6 +73,11 @@ def setup_configuration(json_params, instrument):
     if json_params['configuration']["useMaskBackTubes"]:
         config["mask_panel"] = "back"
 
+    try:
+        tr_rad = float(json_params['configuration']["mmRadiusForTransmission"])
+        config['transmission_radius'] = tr_rad
+    except ValueError:
+        pass
     return config
 
 

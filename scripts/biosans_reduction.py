@@ -47,10 +47,9 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
                                          output_workspace='_trans_direct_{}'.format(empty_run), **cfg)
         cfg['mask_detector'] = _mask_detector
 
-        # TODO: use the number of pixels around the beam spot
         tr_ws = sans.calculate_transmission(ws_tr_sample,
                                             ws_tr_direct,
-                                            radius=None,
+                                            radius=cfg['transmission_radius'],
                                             radius_unit="mm")
         ws = sans.apply_transmission_correction(ws, trans_workspace=tr_ws)
     return ws
@@ -127,6 +126,7 @@ if __name__ == "__main__":
         json_string = " ".join(sys.argv[1:])
         json_params = json.loads(json_string)
     msapi.logger.notice(json.dumps(json_params, indent=2))
+    msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
     # set up the configuration
     config = setup_configuration(json_params, INSTRUMENT)

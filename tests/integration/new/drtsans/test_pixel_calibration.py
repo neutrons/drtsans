@@ -359,6 +359,5 @@ def test_builtins_open(reference_dir):
     handle.close()
 
 
-
 if __name__ == '__main__':
     pytest.main([__file__])

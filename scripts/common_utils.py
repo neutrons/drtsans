@@ -49,10 +49,16 @@ def setup_configuration(json_params, instrument):
 
     # Offsets
     if json_params['configuration']['useSampleOffset']:
-        config['sample_offset'] = json_params['configuration']['sampleOffset']
+        try:
+            config['sample_offset'] = float(json_params['configuration']['sampleOffset'])
+        except ValueError:
+            config['sample_offset'] = 0.
 
     if json_params['configuration']['useDetectorOffset']:
-        config['detector_offset'] = json_params['configuration']['detectorOffset']
+        try:
+            config['detector_offset'] = float(json_params['configuration']['detectorOffset'])
+        except ValueError:
+            config['detector_offset'] = 0.
 
     # Solid angle
     config['solid_angle'] = json_params['configuration']['useSolidAngleCorrection']

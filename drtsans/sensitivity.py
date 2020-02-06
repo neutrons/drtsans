@@ -140,7 +140,7 @@ def process_masked_pixels(sensitivity_workspace, min_threshold):
     # Loop through workspace
     num_spec = sensitivity_workspace.getNumberHistograms()
     for i_ws in range(num_spec):
-        if np.isnan(sensitivity_workspace.readX(i_ws)[0]):
+        if np.isnan(sensitivity_workspace.readY(i_ws)[0]):
             sensitivity_workspace.dataX(i_ws)[0] = 1.
             sensitivity_workspace.dataY(i_ws)[0] = nan_value
 

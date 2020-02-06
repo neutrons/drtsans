@@ -7,7 +7,7 @@ case "$1" in
             ;;
     qa)     CONDA_ENV='sans-qa'  # versioned branch to make release candidates from
             ;;
-    next)   CONDA_ENV='sans-dev' # `next` branch
+    next)   CONDA_ENV='sans'     # `next` branch FIXME this should be changed back to sans-dev before the release !!!
             ;;
 esac
 

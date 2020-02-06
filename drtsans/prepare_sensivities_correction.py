@@ -2,8 +2,15 @@ import numpy as np
 import drtsans.mono.gpsans
 import drtsans.mono.biosans
 import drtsans.tof.eqsans
+r"""
+Links to mantid algorithms
+https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
+https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html
+"""
 from mantid.simpleapi import SaveNexusProcessed, MaskAngle
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmask_utils.py
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
 from drtsans.process_uncertainties import set_init_uncertainties
 
 # Constants
@@ -12,26 +19,50 @@ CG3 = 'CG3'
 EQSANS = 'EQSANS'
 PIXEL = 'Pixel'
 
+# As this script is a wrapper to handle script prepare_sensitivity
+# (https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/scripts%2Fprepare_sensitivities.py),
+# by which user just needs to set up instrument name but not is required to import the right modules
+# (for example drtsans.mono.gpsans or drtsans.tof.eqsans),
+# therefore it has to import the correct ones according instrument name in string.
+# Using dictionary with instrument name as key is solution for it.
+
+# prepare data  in .../api.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fgpsans%2Fapi.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fapi.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Fapi.py
 PREPARE_DATA = {CG2: drtsans.mono.gpsans.api.prepare_data,
                 CG3: drtsans.mono.biosans.api.prepare_data,
                 EQSANS: drtsans.tof.eqsans.api.prepare_data}
 
+# Find beam center in .../find_beam_center.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fbeam_finder.py
 FIND_BEAM_CENTER = {CG2: drtsans.mono.gpsans.find_beam_center,
                     CG3: drtsans.mono.biosans.find_beam_center,
                     EQSANS: drtsans.tof.eqsans.find_beam_center}
 
+# Center detector in
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fbeam_finder.py
 CENTER_DETECTOR = {CG2: drtsans.mono.gpsans.center_detector,
                    CG3: drtsans.mono.biosans.center_detector,
                    EQSANS: drtsans.tof.eqsans.center_detector}
 
+# Calculate transmission
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Ftransmission.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftransmission.py
 CALCULATE_TRANSMISSION = {CG2: drtsans.mono.gpsans.calculate_transmission,
                           CG3: drtsans.mono.biosans.calculate_transmission,
                           EQSANS: drtsans.tof.eqsans.calculate_transmission}
 
+# Apply transmission correction
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Ftransmission.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftransmission.py
 APPLY_TRANSMISSION = {CG2: drtsans.mono.gpsans.apply_transmission_correction,
                       CG3: drtsans.mono.biosans.apply_transmission_correction,
                       EQSANS: drtsans.tof.eqsans.apply_transmission_correction}
 
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsolid_angle.py
 SOLID_ANGLE_CORRECTION = {
     CG2: drtsans.mono.gpsans.solid_angle_correction,
     CG3: drtsans.mono.biosans.solid_angle_correction,
@@ -40,7 +71,11 @@ SOLID_ANGLE_CORRECTION = {
 
 
 class PrepareSensitivityCorrection(object):
-    """Workflow class to prepare sensitivities correction file
+    """Workflow (container) class to prepare sensitivities correction file
+
+    It tries to manage the various configuration and approaches for instrument scientists to prepare
+    sensitivities file for EQSANS, GPSANS and BIOSANS.
+
     """
     def __init__(self, instrument, is_wing_detector=False):
         """Initialization
@@ -100,10 +135,6 @@ class PrepareSensitivityCorrection(object):
 
         """
         self._solid_angle_correction = apply_correction
-
-        if self._is_wing_detector:
-            # solid angle correction on BIOSANS Wing detector cannot be trusted
-            self._solid_angle_correction = False
 
     def set_flood_runs(self, flood_runs):
         """Set flood run numbers
@@ -293,11 +324,7 @@ class PrepareSensitivityCorrection(object):
         # Apply solid angle correction
         if self._solid_angle_correction:
             solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
-
-            if self._is_wing_detector:
-                flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalWing')
-            else:
-                flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
+            flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
 
         return flood_ws
 

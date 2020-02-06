@@ -294,6 +294,7 @@ def load_calibration(instrument, run=None, component='detector1', database=None)
     calibration = find_matching_calibration(calibrations.heights)
     # Find matching flat-field calibration (pixel widths) and update the calibration dictionary
     calibration['widths'] = find_matching_calibration(calibrations.widths).get('widths', None)
+    database_server.close()
 
     return calibration
 
@@ -332,7 +333,9 @@ def save_calibration(calibration, database=None):
     # Save entry in the database
     if database is None:
         database = database_file[enum_instrument]
-    tinydb.TinyDB(database).insert(dict(calibration))
+    database_server = tinydb.TinyDB(database)
+    database_server.insert(dict(calibration))
+    database_server.close()
 
 
 def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_position_log='dcal_Readback'):

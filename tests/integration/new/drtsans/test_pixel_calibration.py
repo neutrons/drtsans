@@ -311,6 +311,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     assert np.array(heights) == pytest.approx(data.heights, abs=data.precision)
 
 
+@pytest.skip()
 def test_calculate_barscan_calibration_2(reference_dir):
     r"""Calculate pixel positions and heights from a bar scan, then compare to a previous calculation"""
     barscan_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')
@@ -321,6 +322,7 @@ def test_calculate_barscan_calibration_2(reference_dir):
     assert saved_calibration['heights'] == pytest.approx(calibration['heights'], abs=0.01)
 
 
+@pytest.skip()
 def test_load_and_apply_pixel_calibration(reference_dir):
     r"""Apply a calibration to an empty instrument"""
     # Load and prepare the uncalibrated workspace
@@ -338,6 +340,12 @@ def test_load_and_apply_pixel_calibration(reference_dir):
     assert 1.e3 * tube.pixel_y[-3:] == pytest.approx([568.4, 573.4, 578.3], abs=0.1)
     assert 1.e3 * tube.pixel_heights[0:3] == pytest.approx([4.58, 4.57, 4.55], abs=0.01)
     assert 1.e3 * tube.pixel_heights[-3:] == pytest.approx([4.94, 4.97,  5.00], abs=0.01)
+
+
+def test_loading_calibration(reference_dir):
+    database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
+    calibration = load_calibration('CG2', run=7465, database=database_file)
+    print('bye')
 
 
 if __name__ == '__main__':

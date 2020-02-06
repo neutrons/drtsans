@@ -5,6 +5,7 @@ import random
 import tempfile
 import builtins
 
+
 r""" Hyperlinks to mantid algorithms
 AddSampleLog <https://docs.mantidproject.org/nightly/algorithms/AddSampleLog-v1.html>
 DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
@@ -353,9 +354,9 @@ def test_loading_calibration(reference_dir):
 
 def test_builtins_open(reference_dir):
     database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
-    handle = builtins.open(database_file, mode='r', buffering=None)
+    handle = builtins.open(database_file, mode='r', buffering=1)
     handle.close()
-    handle = builtins.open(database_file, mode='r+', buffering=None)
+    handle = builtins.open(database_file, mode='r+', buffering=1)
     handle.close()
 
 

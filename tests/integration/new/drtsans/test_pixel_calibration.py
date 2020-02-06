@@ -345,7 +345,7 @@ def test_load_and_apply_pixel_calibration(reference_dir):
 def test_loading_calibration(reference_dir):
     database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
     calibration = load_calibration('CG2', run=7465, database=database_file)
-    print('bye')
+    print(calibration.get('run', None))
 
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from mantid.kernel import Property, logger
 from drtsans.settings import unique_workspace_name as uwn
 from drtsans.path import exists as path_exists
@@ -84,6 +85,10 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     # additional masking dependent on threshold
     temp_sensitivity = CloneWorkspace(InputWorkspace=sensitivity_workspace,
                                       OutputWorkspace=uwn(prefix="__sensitivity_"))
+
+    # Process masked pixels in the sensitivities workspace, i.e., pixels with value NaN
+    min_threshold = process_masked_pixels(temp_sensitivity, min_threshold)
+
     if min_threshold is not None:
         MaskDetectorsIf(InputWorkspace=temp_sensitivity,
                         Operator='LessEqual',
@@ -105,6 +110,41 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     mtd[output_workspace].setYUnit('')
 
     return mtd[output_workspace]
+
+
+def process_masked_pixels(sensitivity_workspace, min_threshold):
+    """Convert data value of masked pixels (NaN) to a value less than min_threshold, for example, 0
+
+    If min_threshold is None, then set the  min_threshold to a reasonable small value, i.e., 1E-6 and
+
+    Parameters
+    ----------
+    sensitivity_workspace :  ~mantid.api.MatrixWorkspace
+        sensitivity workspace
+    min_threshold : float or None
+        minimum threshold
+
+    Returns
+    -------
+    float
+        minimum threshold (new)
+
+    """
+    # Process threshold
+    if min_threshold is None:
+        min_threshold = 1E-6
+        nan_value = 0
+    else:
+        nan_value = min(0., min_threshold - 1E-6)
+
+    # Loop through workspace
+    num_spec = sensitivity_workspace.getNumberHistograms()
+    for i_ws in range(num_spec):
+        if np.isnan(sensitivity_workspace.readX(i_ws)[0]):
+            sensitivity_workspace.dataX(i_ws)[0] = 1.
+            sensitivity_workspace.dataY(i_ws)[0] = nan_value
+
+    return min_threshold
 
 
 # This is old sensitivity calculation method.  It is kept temporarily for comparison purpose

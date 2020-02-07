@@ -1,9 +1,17 @@
 import numpy as np
+import h5py
 import drtsans.mono.gpsans
 import drtsans.mono.biosans
 import drtsans.tof.eqsans
+r"""
+Links to mantid algorithms
+https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
+https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html
+"""
 from mantid.simpleapi import SaveNexusProcessed, MaskAngle
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmask_utils.py
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
 from drtsans.process_uncertainties import set_init_uncertainties
 
 # Constants
@@ -11,36 +19,74 @@ CG2 = 'CG2'
 CG3 = 'CG3'
 EQSANS = 'EQSANS'
 PIXEL = 'Pixel'
+MOVING_DETECTORS = 'Moving Detectors'
+PATCHING_DETECTORS = 'Patching Detectors'
 
+# As this script is a wrapper to handle script prepare_sensitivity
+# (https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/scripts%2Fprepare_sensitivities.py),
+# by which user just needs to set up instrument name but not is required to import the right modules
+# (for example drtsans.mono.gpsans or drtsans.tof.eqsans),
+# therefore it has to import the correct ones according instrument name in string.
+# Using dictionary with instrument name as key is solution for it.
+
+# prepare data  in .../api.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fgpsans%2Fapi.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fapi.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Fapi.py
 PREPARE_DATA = {CG2: drtsans.mono.gpsans.api.prepare_data,
                 CG3: drtsans.mono.biosans.api.prepare_data,
                 EQSANS: drtsans.tof.eqsans.api.prepare_data}
 
+# Find beam center in .../find_beam_center.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fbeam_finder.py
 FIND_BEAM_CENTER = {CG2: drtsans.mono.gpsans.find_beam_center,
                     CG3: drtsans.mono.biosans.find_beam_center,
                     EQSANS: drtsans.tof.eqsans.find_beam_center}
 
+# Center detector in
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fbeam_finder.py
 CENTER_DETECTOR = {CG2: drtsans.mono.gpsans.center_detector,
                    CG3: drtsans.mono.biosans.center_detector,
                    EQSANS: drtsans.tof.eqsans.center_detector}
 
+# Calculate transmission
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Ftransmission.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftransmission.py
 CALCULATE_TRANSMISSION = {CG2: drtsans.mono.gpsans.calculate_transmission,
                           CG3: drtsans.mono.biosans.calculate_transmission,
                           EQSANS: drtsans.tof.eqsans.calculate_transmission}
 
+# Apply transmission correction
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Ftransmission.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftransmission.py
 APPLY_TRANSMISSION = {CG2: drtsans.mono.gpsans.apply_transmission_correction,
                       CG3: drtsans.mono.biosans.apply_transmission_correction,
                       EQSANS: drtsans.tof.eqsans.apply_transmission_correction}
 
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsolid_angle.py
 SOLID_ANGLE_CORRECTION = {
     CG2: drtsans.mono.gpsans.solid_angle_correction,
     CG3: drtsans.mono.biosans.solid_angle_correction,
     EQSANS: drtsans.solid_angle_correction
 }
 
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsensitivity_correction_moving_detectors.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsensitivity_correction_patch.py
+CALCULATE_SENSITIVITY_CORRECTION = {
+    MOVING_DETECTORS: drtsans.sensitivity_correction_moving_detectors.calculate_sensitivity_correction,
+    PATCHING_DETECTORS: drtsans.sensitivity_correction_patch.calculate_sensitivity_correction
+
+}
+
 
 class PrepareSensitivityCorrection(object):
-    """Workflow class to prepare sensitivities correction file
+    """Workflow (container) class to prepare sensitivities correction file
+
+    It tries to manage the various configuration and approaches for instrument scientists to prepare
+    sensitivities file for EQSANS, GPSANS and BIOSANS.
+
     """
     def __init__(self, instrument, is_wing_detector=False):
         """Initialization
@@ -63,7 +109,7 @@ class PrepareSensitivityCorrection(object):
         # mask
         self._default_mask = None
         self._extra_mask_dict = dict()
-        self._beam_center_radius = 65  # mm
+        self._beam_center_radius = None  # mm
 
         # Transmission correction (BIOSANS)
         self._transmission_runs = None
@@ -100,10 +146,6 @@ class PrepareSensitivityCorrection(object):
 
         """
         self._solid_angle_correction = apply_correction
-
-        if self._is_wing_detector:
-            # solid angle correction on BIOSANS Wing detector cannot be trusted
-            self._solid_angle_correction = False
 
     def set_flood_runs(self, flood_runs):
         """Set flood run numbers
@@ -208,24 +250,24 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
-    def set_transmission_correction(self, transmission_flood_runs, transmission_beam_run):
+    def set_transmission_correction(self, transmission_flood_runs, transmission_reference_run):
         """Set transmission beam run and transmission flood runs
 
         Parameters
         ----------
         transmission_flood_runs : ~list
 
-        transmission_beam_run : ~list
+        transmission_reference_run : ~list
 
 
         Returns
         -------
 
         """
-        if isinstance(transmission_beam_run, int):
-            self._transmission_runs = [transmission_beam_run]
+        if isinstance(transmission_reference_run, int):
+            self._transmission_runs = [transmission_reference_run]
         else:
-            self._transmission_runs = list(transmission_beam_run)
+            self._transmission_runs = list(transmission_reference_run)
 
         if isinstance(transmission_flood_runs, int):
             self._transmission_flood_runs = [transmission_flood_runs]
@@ -293,11 +335,7 @@ class PrepareSensitivityCorrection(object):
         # Apply solid angle correction
         if self._solid_angle_correction:
             solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
-
-            if self._is_wing_detector:
-                flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalWing')
-            else:
-                flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
+            flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
 
         return flood_ws
 
@@ -307,7 +345,8 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        workspace
+        workspace : ~mantid.api.MatrixWorkspace
+            Workspace to get masked detectors' masking status
 
         Returns
         -------
@@ -315,31 +354,33 @@ class PrepareSensitivityCorrection(object):
             (N, 1) bool array, True for being masked
 
         """
+        # The masked pixels after `set_uncertainties()` will have zero uncertainty.
+        # Thus, it is an efficient way to identify them by check uncertainties (E) close to zero
         masked_array = workspace.extractE() < 1E-5
-
-        masked_bis = np.where(masked_array)[0]
-
-        print('IMPORTANT ....................  Masked workspace indexes: {},'
-              'shape = {},  Original masked array: dtype = {}, shape = {}'
-              ''.format(masked_bis, masked_bis.shape, masked_array.dtype, masked_array.shape))
 
         return masked_array
 
     @staticmethod
-    def _set_mask_value(flood_workspace, use_moving_detector_method, det_mask_array):
-        """Set masked pixels' values to NaN or -infinity
+    def _set_mask_value(flood_workspace, det_mask_array, use_moving_detector_method=True):
+        """Set masked pixels' values to NaN or -infinity according to mask type and sensitivity correction
+        algorithm
 
         Parameters
         ----------
-        flood_workspace
-        use_moving_detector_method
-        det_mask_array
+        flood_workspace :
+            Flood data workspace space to have masked pixels' value set
+        det_mask_array : numpy.ndarray
+            Array to indicate pixel to be masked or not
+        use_moving_detector_method : bool
+            True for calculating sensitivites by moving detector algorithm;
+            otherwise for detector patching algorithm
 
         Returns
         -------
 
         """
-        # Complete mask array
+        # Complete mask array.  Flood workspace has been processed by set_uncertainties.  Therefore all the masked
+        # pixels' uncertainties are zero, which is different from other pixels
         total_mask_array = flood_workspace.extractE() < 1E-6
 
         # Sanity check for detector-patch case
@@ -347,32 +388,29 @@ class PrepareSensitivityCorrection(object):
             assert total_mask_array.shape == det_mask_array.shape, '{} <> {}'.format(total_mask_array.shape,
                                                                                      det_mask_array.shape)
             assert total_mask_array.dtype == det_mask_array.dtype, 'dtype wrong'
-
-        import time
-
-        time_start = time.time()
+            assert len(total_mask_array.shape) == 2, 'Shape: {} and {}'.format(total_mask_array.shape,
+                                                                               det_mask_array.shape)
 
         num_spec = flood_workspace.getNumberHistograms()
         for i in range(num_spec):
-            if total_mask_array[i] and use_moving_detector_method:
-                # only total.. from center mask.  moving detector: set to NaN
+            if total_mask_array[i][0] and use_moving_detector_method:
+                # Moving detector algorithm.  Any masked detector pixel is set to NaN
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
-            elif total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
-                # both masked: pixel and default mask for detector-patch algorithm: set to NaN
+            elif total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
+                # Patch detector method: Masked as the bad pixels and thus set to NaN
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
             elif total_mask_array[i]:
-                # only total mask.  so it is from beam center. detector-patch algorithm: set to -inf
+                # Patch detector method: No masked as the bad pixels but masked due to being at center and
+                # thus set to -INF
                 flood_workspace.dataY(i)[0] = -np.NINF
                 flood_workspace.dataE(i)[0] = -np.NINF
             elif not total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
-                # logic error: mask missing
-                raise RuntimeError('Mask missing')
+                # Logic error: impossible case
+                raise RuntimeError('Impossible case')
         # END-FOR
 
-        time_stop = time.time()
-        print('Set NaN/Infinity: time = {}'.format(time_stop - time_start))
         print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspace.extractY()))[0])))
         print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspace.extractY()))[0])))
 
@@ -433,8 +471,7 @@ class PrepareSensitivityCorrection(object):
                                 for i in range(num_workspaces_set)]
 
         # Set the masked pixels' counts to nan and -infinity
-        flood_workspaces = [self._set_mask_value(flood_workspaces[i], use_moving_detector_method,
-                                                 det_mask_list[i])
+        flood_workspaces = [self._set_mask_value(flood_workspaces[i], det_mask_list[i], use_moving_detector_method)
                             for i in range(num_workspaces_set)]
 
         print('Preparation of data is over....')
@@ -445,12 +482,12 @@ class PrepareSensitivityCorrection(object):
         for i in range(len(flood_workspaces)):
             workspace = flood_workspaces[i]
             output_file = 'Step_JustBefore_{}.nxs'.format(str(workspace))
-            debug_output(workspace, output_file, note='Step 3 Center Masked {}'.format(str(workspace)))
+            debug_output(workspace, output_file)
 
         # Decide algorithm to prepare sensitivities
         if self._instrument in [CG2, CG3] and use_moving_detector_method is True:
             # Prepare by using moving detector algorithm
-            from drtsans.sensitivity_correction_moving_detectors import calculate_sensitivity_correction
+            calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[MOVING_DETECTORS]
 
             # Calculate sensitivities for each file
             sens_ws = calculate_sensitivity_correction(flood_workspaces,
@@ -458,9 +495,11 @@ class PrepareSensitivityCorrection(object):
                                                        threshold_max=1.5)
 
         else:
-            # Prepare by Use the sensitivity patch method
-            from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction
+            # Prepare by Use the sensitivity patch method for a single detector (image)
+            # Such as GPSANS, BIOSANS Main detector, BIOSANS wing detector, EQSANS
+            calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[PATCHING_DETECTORS]
 
+            # Default polynomial order: CG3 uses order 3.  Others use order 2.
             if self._instrument == CG3:
                 polynomial_order = 3
             else:
@@ -468,9 +507,9 @@ class PrepareSensitivityCorrection(object):
 
             # component name
             if self._is_wing_detector:
-                detector_component = 'wing_detector'
+                detector = 'wing_detector'
             else:
-                detector_component = 'detector1'
+                detector = 'detector1'
 
             # working on 1 and only 1
             sens_ws = calculate_sensitivity_correction(flood_workspaces[0],
@@ -478,7 +517,7 @@ class PrepareSensitivityCorrection(object):
                                                        max_threshold=max_threshold,
                                                        poly_order=polynomial_order,
                                                        min_detectors_per_tube=50,
-                                                       component_name=detector_component)
+                                                       component_name=detector)
 
         # Export
         SaveNexusProcessed(InputWorkspace=sens_ws, Filename=output_nexus_name)
@@ -544,35 +583,9 @@ class PrepareSensitivityCorrection(object):
         beam_center = find_beam_center(beam_center_workspace)
 
         print('DEBUG: {} beam centers: {}'.format(index, beam_center))
-        debug_output(beam_center_workspace, output_file='BeamCenter_{}.nxs'.format(beam_center_run),
-                     note='{} beam centers: {}'.format(index, beam_center))
+        debug_output(beam_center_workspace, output_file='BeamCenter_{}.nxs'.format(beam_center_run))
 
         return beam_center
-
-    def _center_detectors(self, flood_ws_list, beam_center_list):
-        """
-
-        Parameters
-        ----------
-        flood_ws_list
-        beam_center_list
-
-        Returns
-        -------
-
-        """
-        center_detector = CENTER_DETECTOR[self._instrument]
-
-        if self._instrument == CG3:
-            # BIO SANS : 3 center value
-            for i in range(len(flood_ws_list)):
-                xc, yc, wc = beam_center_list[i]
-                center_detector(flood_ws_list[i], xc, yc, wc)
-        else:
-            # GPSANS, EQSANS
-            for i in range(len(flood_ws_list)):
-                xc, yc = beam_center_list[i]
-                center_detector(flood_ws_list[i], xc, yc)
 
     def _mask_beam_center(self, flood_ws, beam_center):
         """Mask beam center
@@ -691,8 +704,7 @@ class PrepareSensitivityCorrection(object):
 
         # debug output
         debug_output(transmission_corr_ws,
-                     'TRANS_Beam{}_Flood{}.nxs'.format(transmission_beam_run, transmission_flood_run),
-                     note='Transmission run')
+                     'TRANS_Beam{}_Flood{}.nxs'.format(transmission_beam_run, transmission_flood_run))
 
         # Apply calculated transmission
         apply_transmission_correction = APPLY_TRANSMISSION[self._instrument]
@@ -702,8 +714,8 @@ class PrepareSensitivityCorrection(object):
         return flood_ws
 
 
-def debug_output(workspace, output_file, note=''):
-    """
+def debug_output(workspace, output_file):
+    """ Exporting a workspace to NeXus file and HDF5 for debugging purpose
 
     Parameters
     ----------
@@ -716,13 +728,7 @@ def debug_output(workspace, output_file, note=''):
     -------
 
     """
-    import h5py
-    # from mantid.simpleapi import GeneratePythonScript
-
     # Save Nexus
-    # script_text = GeneratePythonScript(workspace)
-    print(note)
-    # print(script_text.strip())
     SaveNexusProcessed(InputWorkspace=workspace,
                        Filename=output_file)
 
@@ -730,9 +736,6 @@ def debug_output(workspace, output_file, note=''):
     data_error = workspace.extractE()
 
     # Export sensitivities calculated in file for quick review
-    # Export 2D view
-    png_name = output_file.split('.')[0] + '.png'
-    export_detector_view(data, png_name)
     # Export to hdf5 for a quick review
     sens_h5 = h5py.File('{}.h5'.format(output_file.split('.')[0]), 'w')
     sens_group = sens_h5.create_group('Data')
@@ -740,38 +743,3 @@ def debug_output(workspace, output_file, note=''):
     if data_error is not None:
         sens_group.create_dataset('Data error', data=data_error)
     sens_h5.close()
-
-
-def export_detector_view(ws, png_name):
-    """Export detector view to a PNG file
-
-    This method is for debugging purpose
-
-    Parameters
-    ----------
-    ws : ~mantid.api.MatrixWorkspace
-        Workspace to plot in detector view
-    png_name : str
-        Path of the output PNG file
-
-    Returns
-    -------
-    None
-
-    """
-    from matplotlib import pyplot as plt
-    if isinstance(ws, np.ndarray):
-        vec_y = ws
-    else:
-        vec_y = ws.extractY().transpose()
-    try:
-        vec_y = vec_y.reshape((192, 256)).transpose()
-    except ValueError:
-        # exception in case not GPSANS. return
-        return
-
-    plt.imshow(vec_y)
-
-    plt.savefig(png_name)
-
-    return

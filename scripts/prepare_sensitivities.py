@@ -36,7 +36,7 @@ BEAM_CENTER_MASKS = None
 DARK_CURRENT_RUNS = None  # No mask, no solid angle
 
 # Transmission run
-TRANSMISSION_RUNS = 4828  # GG3 main
+TRANSMISSION_REFERENCE_RUNS = 4828  # GG3 main
 # Transmission flood run
 TRANSMISSION_FLOOD_RUNS = 4829
 
@@ -92,11 +92,13 @@ preparer.set_masks(UNIVERSAL_MASK, MASKED_PIXELS,
 # Set beam center radius
 if MASK_BEAM_CENTER_RADIUS is not None:
     preparer.set_beam_center_radius(MASK_BEAM_CENTER_RADIUS)
+else:
+    raise RuntimeError('MASK BEAM CENTER RADIUS must be set')
 
 # Transmission
-if TRANSMISSION_RUNS is not None:
+if TRANSMISSION_REFERENCE_RUNS is not None:
     preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
-                                         transmission_beam_run=TRANSMISSION_RUNS)
+                                         transmission_reference_run=TRANSMISSION_REFERENCE_RUNS)
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 
 # Dark runs

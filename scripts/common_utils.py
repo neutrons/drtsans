@@ -37,7 +37,8 @@ def setup_configuration(json_params, instrument):
                   )
 
     # Dark current
-    if json_params['configuration']['useDarkFileName']:
+    if (json_params['configuration']['useDarkFileName'] and
+            json_params['configuration']['useDarkFileBlockedBeam']):
         config['dark_current'] = json_params['configuration']['darkFileName']
 
     # Sensitivity

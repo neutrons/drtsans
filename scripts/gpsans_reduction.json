@@ -18,6 +18,7 @@
     "useBeamFluxFileName":false,
     "darkFileName":"/HFIR/CG2/IPTS-23801/nexus/CG2_1341.nxs.h5",
     "useDarkFileName":true,
+    "useDarkFileBlockedBeam":false,
     "sensitivityFileName":"/HFIR/CG2/shared/sensitivity_1697.nxs",
     "useSensitivityFileName":true,
     "absoluteScale":"1.0",

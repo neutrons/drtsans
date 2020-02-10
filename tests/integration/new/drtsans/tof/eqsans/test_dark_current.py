@@ -22,8 +22,8 @@ def data_test_16a():
     return dict(t_frame=1. / 60. * 1000000.,  # time duration of a frame, in microseconds
                 t_low=500,  # sample measurement tof range, in microseconds
                 t_high=2000,
-                sample_run_duration=100,  # sample measurement duration, in seconds
-                dark_current_duration=3600,  # dark current duration, in seconds
+                sample_run_duration=100.,  # sample measurement duration, in seconds
+                dark_current_duration=3600.,  # dark current duration, in seconds
                 l_min=l_min,  # minimum wavelength
                 l_max=l_max,
                 l_step=l_step,  # wavelength bin width

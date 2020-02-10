@@ -90,8 +90,8 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     gap_bin_indexes = None
     if bands.skip is not None:
         bin_centers = 0.5 * (bin_boundaries[0: -1] + bin_boundaries[1:])
-        gab_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skip.min))[0]
-        rescalings[gab_bin_indexes] = 0.0
+        gap_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skip.min))[0]
+        rescalings[gap_bin_indexes] = 0.0
 
     counts, errors = counts_in_detector(dark_workspace_name)
     pixel_indexes_with_no_counts = np.where(counts == 0)[0]
@@ -102,7 +102,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
 
     # Recall that if a pixel had no counts, then we insert a special error values: error is one for all
     # wavelength bins, and zero for the bins falling in the wavelength gap.
-    special_errors = np.ones(len(bin_widths))
+    special_errors = np.ones(len(bin_widths)) * rescalings
     if gap_bin_indexes is not None:
         special_errors[gap_bin_indexes] = 0.
     normalized_errors[pixel_indexes_with_no_counts] = special_errors

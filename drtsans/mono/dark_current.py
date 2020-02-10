@@ -1,20 +1,23 @@
 r"""Links to mantid algorithms
 Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
 DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
 Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 """
-from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale
+from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale, Integration
 
 r""" links to drtsans imports
 unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
+set_init_uncertainties <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/process_uncertainties.py>
 """  # noqa: E501
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.dark_current import duration
 from drtsans.mono.load import load_mono
 from drtsans.path import exists, registered_workspace
+from drtsans.process_uncertainties import set_init_uncertainties
 
 __all__ = ['subtract_dark_current', 'normalize_dark_current']
 
@@ -93,9 +96,12 @@ def subtract_dark_current(data_workspace, dark, output_workspace=None):
         message = 'Unable to find or load the dark current {}'.format(dark)
         raise RuntimeError(message)
 
+    # Integrate and set uncertainties
+    dark_integrated = Integration(dark_workspace, OutputWorkspace=unique_workspace_dundername())
+    dark_integrated = set_init_uncertainties(dark_integrated)
     # Normalize the dark current
     normalized_dark_current = unique_workspace_dundername()  # temporary workspace
-    normalize_dark_current(dark_workspace, output_workspace=normalized_dark_current)
+    normalize_dark_current(dark_integrated, output_workspace=normalized_dark_current)
 
     # Find the duration of the data run using the same log key than that of the dark current
     duration_log_key = SampleLogs(normalized_dark_current).normalizing_duration.value

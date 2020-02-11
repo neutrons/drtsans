@@ -41,10 +41,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         # We need to see the beam, which is on the main detector
         _mask_detector = cfg['mask_detector']
         cfg['mask_detector'] = 'wing_detector'
-        ws_tr_sample = sans.prepare_data(transmission_run,
-                                         output_workspace='_trans_sample_{}'.format(transmission_run), **cfg)
-        ws_tr_direct = sans.prepare_data(empty_run,
-                                         output_workspace='_trans_direct_{}'.format(empty_run), **cfg)
+        ws_tr_sample = wksp_name('_trans_sample_', transmission_run, config['is_wing'])  # name the workspace
+        ws_tr_sample = sans.prepare_data(transmission_run, output_workspace=ws_tr_sample, **cfg)
+        ws_tr_direct = wksp_name('_trans_direct_', empty_run, config['is_wing'])  # name the workspace
+        ws_tr_direct = sans.prepare_data(empty_run, output_workspace=ws_tr_direct, **cfg)
         cfg['mask_detector'] = _mask_detector
 
         tr_ws = sans.calculate_transmission(ws_tr_sample,
@@ -55,18 +55,24 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
     return ws
 
 
+def wksp_name(runinfo, prefix, is_wing):
+    suffix = '_wing' if config['is_wing'] else ''  # keep main and wing separate
+    return '{}{}{}'.format(prefix, os.path.basename(runinfo), suffix)
+
+
 def reduction(json_params, config):
     """
         Perform the whole reduction
     """
     # Load and prepare scattering data
     # all the run numbers are associated with instrument name
+    ws = wksp_name('_data_', json_params["runNumber"], config['is_wing'])  # name the workspace
     ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"],
-                           output_workspace="_data_{}".format(json_params["runNumber"]), **config)
+                           output_workspace=ws, **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
-    if transmission_run.strip() is not '':
+    if transmission_run.strip() != '':
         transmission_fn = json_params["instrumentName"] + "_" + json_params["transmission"]["runNumber"]
         empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
         ws = apply_transmission(ws, transmission_fn, empty_run, config)
@@ -75,13 +81,12 @@ def reduction(json_params, config):
     bkg_run = json_params["background"]["runNumber"]
     if bkg_run != "":
         bkg_run = json_params["instrumentName"] + bkg_run
-        ws_bck = sans.prepare_data(bkg_run,
-                                   output_workspace="_bck_{}".format(json_params["background"]["runNumber"]),
-                                   **config)
+        ws_bck = wksp_name('_bck_', json_params["background"]["runNumber"], config['is_wing'])  # name the workspace
+        ws_bck = sans.prepare_data(bkg_run, output_workspace=ws_bck, **config)
 
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
-        if transmission_run.strip() is not '':
+        if transmission_run.strip() != '':
             transmission_fn = json_params["instrumentName"] + "_" + transmission_run
             empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
             ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)

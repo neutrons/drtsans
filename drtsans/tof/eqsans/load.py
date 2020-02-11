@@ -1,7 +1,8 @@
-from mantid.simpleapi import (mtd, LoadEventNexus, CloneWorkspace, LoadNexusMonitors)
+from mantid.simpleapi import (mtd, LoadNexusMonitors)
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import (source_sample_distance, sample_detector_distance)
+from drtsans.load import load_events as generic_load_events
 from drtsans.tof.eqsans.geometry import (translate_detector_z, translate_detector_by_z,
                                          translate_sample_by_z, source_monitor_distance)
 from drtsans.tof.eqsans.correct_frame import (correct_detector_frame, correct_monitor_frame)
@@ -86,22 +87,13 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
-    if (output_workspace is None) or (not output_workspace):
-        if isinstance(run, str):
-            output_workspace = os.path.split(run)[-1]
-            output_workspace = '_'.join(output_workspace.split('_')[:2])
-            output_workspace = output_workspace.split('.')[0]
-        else:
-            output_workspace = 'EQSANS_{}'.format(run)
+    # use the generic functionality to do most of the work
+    output_workspace = generic_load_events(run=run, data_dir=data_dir, output_workspace=output_workspace)
 
-    if isinstance(run, int) or isinstance(run, str):
-        with amend_config({'default.instrument': 'EQSANS'}, data_dir=data_dir):
-            LoadEventNexus(Filename=str(run), OutputWorkspace=output_workspace, **kwargs)
-    else:
-        CloneWorkspace(run, OutputWorkspace=output_workspace)
-    #
+    # EQSANS specific part benefits from converting workspace to a string
+    output_workspace = str(output_workspace)
+
     # Correct the distances between instrument components
-    #
     translate_detector_z(output_workspace)  # search logs and translate if necessary
     translate_detector_by_z(output_workspace, 1e-3 * detector_offset)
     translate_sample_by_z(output_workspace, -1e-3 * sample_offset)
@@ -111,8 +103,8 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
                        unit='mm')
     sample_logs.insert('sample-detector-distance', sample_detector_distance(output_workspace, search_logs=False),
                        unit='mm')
-    #
+
     # Correct TOF of detector
-    #
     correct_detector_frame(output_workspace, path_to_pixel=path_to_pixel)
+
     return mtd[output_workspace]

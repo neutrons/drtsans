@@ -3,7 +3,6 @@ from os.path import join as path_join
 import pytest
 import random
 import tempfile
-import builtins
 
 
 r""" Hyperlinks to mantid algorithms

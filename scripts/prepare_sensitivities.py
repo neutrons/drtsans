@@ -76,7 +76,7 @@ if INSTRUMENT not in ['CG2', 'CG3', 'EQSANS']:
           ''.format(INSTRUMENT, 'CG2, EQSANS, CG3'))
     sys.exit(-1)
 
-preparer = PrepareSensitivityCorrection(INSTRUMENT)
+preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR)
 # Load flood runs
 preparer.set_flood_runs(FLOOD_RUNS)
 

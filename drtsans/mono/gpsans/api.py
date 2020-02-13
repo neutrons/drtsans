@@ -23,7 +23,7 @@ def prepare_data(data,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
                  sensitivity_file_path=None,
-                 output_workspace=None, **kwargs):
+                 output_workspace=None, output_suffix='', **kwargs):
     r"""
     Load a GPSANS data file and bring the data to a point where it can be used. This includes applying basic
     corrections that are always applied regardless of whether the data is background or scattering data.
@@ -65,17 +65,20 @@ def prepare_data(data,
         Additional properties to Mantid's MaskBTP algorithm
     solid_angle: bool
         Apply the solid angle correction
-    output_workspace: ~mantid.api.IEventWorkspace
+    output_workspace: str
+        Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
+
+    Returns
+    -------
+    ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
     # TODO: missing detector_offset and sample_offset
     output_workspace = str(data)
-    if 'overwrite_instrument' in kwargs:
-        # with option overwrite_instrument=True, MaskBTP cannot recognize GPSANS
-        overwrite = kwargs['overwrite_instrument']
-    else:
-        overwrite = True
-    ws = load_events(data, overwrite_instrument=overwrite, output_workspace=output_workspace)
+    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix)
 
     # deal with sample_offset. positive offset is towards detector
     # 1. move sample

@@ -50,7 +50,7 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
 
 
 def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
-                data_dir=None, output_workspace=None, **kwargs):
+                data_dir=None, output_workspace=None, output_suffix='', **kwargs):
     r"""
     Load events with initial corrections for geometry and time-of-flight
 
@@ -79,6 +79,9 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     output_workspace: str
         If not specified it will be ``EQSANS_55555`` determined from the supplied
         value of ``run``
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -88,7 +91,8 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
         Reference to the events workspace
     """
     # use the generic functionality to do most of the work
-    output_workspace = generic_load_events(run=run, data_dir=data_dir, output_workspace=output_workspace)
+    output_workspace = generic_load_events(run=run, data_dir=data_dir, output_workspace=output_workspace,
+                                           output_suffix=output_suffix)
 
     # EQSANS specific part benefits from converting workspace to a string
     output_workspace = str(output_workspace)

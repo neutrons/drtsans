@@ -110,7 +110,7 @@ if __name__ == "__main__":
     sample_file = "EQSANS_{}".format(sample_run)
     if not output_file:
         output_file = sample_file
-    ws = eqsans.prepare_data(sample_file, output_workspace='_sample_{}'.format(sample_file), **config)
+    ws = eqsans.prepare_data(sample_file, output_suffix='_sample', **config)
     msapi.logger.warning(str(config))
     # TODO check the next two values if empty
     # [CD, 1/30/2020] CD has updated this part.
@@ -137,13 +137,12 @@ if __name__ == "__main__":
     # [CD, 1/30/2020] otherwise, ws_tr_direct may be missing for bkg transmission calculation
     # [CD, 1/30/2020] current script does not have an option to use different direct beam for the tranmission.
     # [CD, 1/30/2020] empty beam that is used to find beam center is always used as transmission.
-    ws_tr_direct = eqsans.prepare_data(empty_fn,
-                                       output_workspace='_trans_direct_{}'.format(empty_fn), **config)
+    ws_tr_direct = eqsans.prepare_data(empty_fn, output_suffix='_trans_direct', **config)
 
     # apply transmission
     transmission_run = json_params["transmission"]["runNumber"].strip()
     transmission_value = json_params["transmission"]["value"].strip()
-    apply_transmission_run = transmission_run is not ''
+    apply_transmission_run = transmission_run != ''
     if transmission_value != '':
         apply_transmission_value = float(transmission_value) < 1.0
     else:
@@ -157,8 +156,7 @@ if __name__ == "__main__":
         else:
             msapi.logger.notice('...applying transmission correction with transmission file.')
             transmission_fn = "EQSANS_{}".format(transmission_run)
-            ws_tr_sample = eqsans.prepare_data(transmission_fn,
-                                               output_workspace='_trans_sample_{}'.format(transmission_fn), **config)
+            ws_tr_sample = eqsans.prepare_data(transmission_fn, output_suffix='_trans_sample', **config)
             raw_tr_ws = eqsans.calculate_transmission(ws_tr_sample,
                                                       ws_tr_direct,
                                                       radius=rad_trans,
@@ -185,16 +183,16 @@ if __name__ == "__main__":
 
     # background
     bkg_run = json_params["background"]["runNumber"]
-    if bkg_run.strip() is not '':
+    if bkg_run.strip() != '':
         msapi.logger.notice('...applying bkg_subtraction.')
         bkg_fn = "EQSANS_{}".format(bkg_run)
 
-        ws_bkg = eqsans.prepare_data(bkg_fn, output_workspace='_bkg_{}'.format(bkg_fn), **config)
+        ws_bkg = eqsans.prepare_data(bkg_fn, output_suffix='_bkg', **config)
 
         # apply transmission background
         bkg_transmission_run = json_params["background"]["transmission"]["runNumber"].strip()
         bkg_transmission_value = json_params["background"]["transmission"]["value"].strip()
-        bkg_apply_transmission_run = bkg_transmission_run is not ''
+        bkg_apply_transmission_run = bkg_transmission_run != ''
         if bkg_transmission_value != '':
             bkg_apply_transmission_value = float(json_params["transmission"]["value"]) < 1.0
         else:
@@ -207,9 +205,7 @@ if __name__ == "__main__":
             else:
                 msapi.logger.notice('...applying bkg_transmission correction with transmission file.')
                 bkg_trans_fn = "EQSANS_{}".format(bkg_transmission_run)
-                ws_bkg_trans = eqsans.prepare_data(bkg_trans_fn,
-                                                   output_workspace='_bkg_trans_{}'.format(bkg_trans_fn),
-                                                   **config)
+                ws_bkg_trans = eqsans.prepare_data(bkg_trans_fn, output_suffix='_bkg_trans', **config)
                 ws_cal_raw_tr_bkg = eqsans.calculate_transmission(ws_bkg_trans,
                                                                   ws_tr_direct,
                                                                   radius=rad_trans,

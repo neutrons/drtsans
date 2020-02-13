@@ -10,7 +10,7 @@ from mantid.simpleapi import LoadEventNexus
 __all__ = ['load_events']
 
 
-def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, **kwargs):
+def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='', **kwargs):
     r"""
     Load an event Nexus file produced by the HFIR instruments at ORNL.
 
@@ -26,6 +26,9 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -40,14 +43,13 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
     # create default name for output workspace
     if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
-        output_workspace = '{}_{}'.format(instrument_unique_name, run_number)
+        output_workspace = '{}_{}{}'.format(instrument_unique_name, run_number, output_suffix)
 
     # determine if this is a monochromatic measurement
     is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
               (instrument_unique_name == InstrumentEnumName.GPSANS)
 
     if mtd.doesExist(output_workspace):
-        raise RuntimeError('{} already exists - delete it first'.format(output_workspace))
         # if it exists skip loading
         return mtd[output_workspace]
     else:

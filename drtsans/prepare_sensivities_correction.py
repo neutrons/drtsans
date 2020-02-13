@@ -123,6 +123,7 @@ class PrepareSensitivityCorrection(object):
         self._solid_angle_correction = False
 
         # BIOSANS special
+        # If the instrument is Bio-SANS, then check to see if we are working with the wing detector
         if self._instrument == CG3:
             self._is_wing_detector = is_wing_detector
         else:
@@ -381,7 +382,7 @@ class PrepareSensitivityCorrection(object):
         det_mask_array : numpy.ndarray
             Array to indicate pixel to be masked or not
         use_moving_detector_method : bool
-            True for calculating sensitivites by moving detector algorithm;
+            True for calculating sensitivities by moving detector algorithm;
             otherwise for detector patching algorithm
 
         Returns
@@ -392,14 +393,8 @@ class PrepareSensitivityCorrection(object):
         # pixels' uncertainties are zero, which is different from other pixels
         total_mask_array = flood_workspace.extractE() < 1E-6
 
-        # Sanity check for detector-patch case
-        if not use_moving_detector_method:
-            assert total_mask_array.shape == det_mask_array.shape, '{} <> {}'.format(total_mask_array.shape,
-                                                                                     det_mask_array.shape)
-            assert total_mask_array.dtype == det_mask_array.dtype, 'dtype wrong'
-            assert len(total_mask_array.shape) == 2, 'Shape: {} and {}'.format(total_mask_array.shape,
-                                                                               det_mask_array.shape)
-
+        # Loop through each detector pixel to check its masking state to determine whether its value shall be
+        # set to NaN, -infinity or not changed (i.e., for pixels without mask)
         num_spec = flood_workspace.getNumberHistograms()
         for i in range(num_spec):
             if total_mask_array[i][0] and use_moving_detector_method:
@@ -411,8 +406,9 @@ class PrepareSensitivityCorrection(object):
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
             elif total_mask_array[i]:
-                # Patch detector method: No masked as the bad pixels but masked due to being at center and
-                # thus set to -INF
+                # Patch detector method: Pixels that have not been masked as bad pixels, but have been
+                # identified as needing to have values set by the patch applied. To identify them, the
+                # value is set to -INF.
                 flood_workspace.dataY(i)[0] = -np.NINF
                 flood_workspace.dataE(i)[0] = -np.NINF
             elif not total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
@@ -505,10 +501,10 @@ class PrepareSensitivityCorrection(object):
             # Calculate sensitivities for each file
             sens_ws = calculate_sensitivity_correction(flood_workspaces,
                                                        threshold_min=min_threshold,
-                                                       threshold_max=1.5)
+                                                       threshold_max=max_threshold)
 
         else:
-            # Prepare by Use the sensitivity patch method for a single detector (image)
+            # Prepare by using the sensitivity patch method for a single detector (image)
             # Such as GPSANS, BIOSANS Main detector, BIOSANS wing detector, EQSANS
             calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[PATCHING_DETECTORS]
 
@@ -524,7 +520,8 @@ class PrepareSensitivityCorrection(object):
             else:
                 detector = 'detector1'
 
-            # working on 1 and only 1
+            # This only processes a single image, even for the Bio-SANS.
+            # Each detector on the Bio-SANS must be treated independently
             sens_ws = calculate_sensitivity_correction(flood_workspaces[0],
                                                        min_threshold=min_threshold,
                                                        max_threshold=max_threshold,

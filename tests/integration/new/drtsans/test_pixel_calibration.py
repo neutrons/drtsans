@@ -1,15 +1,19 @@
 import numpy as np
+from os.path import join as path_join
 import pytest
 import random
 import tempfile
 
+
 r""" Hyperlinks to mantid algorithms
 AddSampleLog <https://docs.mantidproject.org/nightly/algorithms/AddSampleLog-v1.html>
 DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
+LoadEmptyInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html>
+LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import AddSampleLog, DeleteWorkspace, LoadNexus, SaveNexus
+from mantid.simpleapi import AddSampleLog, DeleteWorkspace, LoadEmptyInstrument, LoadNexus, SaveNexus
 
 r"""
 Hyperlinks to drtsans functions
@@ -21,7 +25,7 @@ TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/
 """  # noqa: E501
 from drtsans.pixel_calibration import (apply_apparent_tube_width, apply_barscan_calibration,
                                        calculate_apparent_tube_width, calculate_barscan_calibration,
-                                       find_edges, fit_positions)
+                                       find_edges, fit_positions, load_calibration, load_and_apply_pixel_calibration)
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tubecollection import TubeCollection
@@ -38,7 +42,7 @@ def test_find_edges():
            Jose Borreguero <borreguerojm@ornl.gov>
     SME  - Ken Littrell <littrellkc@ornl.gov>
     """
-    # tube intensities
+    # tube pixel_intensities
     intensities = np.array([2, 2, 38, 38, 38, 34, 38, 41, 35, 3, 4, 3, 3, 4,
                             30, 30, 37, 33, 31, 39, 42, 42, 2, 2, 2])
     # find edges
@@ -54,7 +58,7 @@ def test_find_edges():
 def test_no_shadow():
     r"""Check the failure mode for not finding shaddow
     """
-    intensities = [1]*25  # all intensities are the same, no shaddow
+    intensities = [1]*25  # all pixel_intensities are the same, no shaddow
     with pytest.raises(IndexError, match='Could not find bottom shadow edge'):
         find_edges(intensities)
 
@@ -261,7 +265,8 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
         workspace = unique_workspace_dundername()
         workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, output_workspace=workspace,
                                   intensities=intensities.reshape(20, 4), view='pixel')
-        AddSampleLog(Workspace=workspace, LogName='dcal', LogText=str(dcal), LogType='Number Series', LogUnit='mm')
+        AddSampleLog(Workspace=workspace, LogName='dcal_Readback', LogText=str(dcal), LogType='Number Series',
+                     LogUnit='mm')
         SampleLogs(workspace).insert('run_number', random.randint(1, 999))
         filename = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
         cleanfile(filename)
@@ -291,7 +296,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
     # Let's do the whole calibration. The result is a calibration dictionary that looks like this:
     # {'positions': [y0,..,y19], 'heights': [h0,..,h19]}}
-    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula='565+{dcal}')
+    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula='565 + {y}')
     assert np.array(calibration['positions']) == pytest.approx(data.positions, abs=data.precision)
     assert np.array(calibration['heights']) == pytest.approx(data.heights, abs=data.precision)
 
@@ -305,6 +310,45 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
         heights.append([1000 * h for h in tube.pixel_heights])
     assert np.array(positions) == pytest.approx(data.positions, abs=data.precision)
     assert np.array(heights) == pytest.approx(data.heights, abs=data.precision)
+
+
+@pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
+def test_calculate_barscan_calibration_2(reference_dir):
+    r"""Calculate pixel positions and heights from a bar scan, then compare to a previous calculation"""
+    barscan_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')
+    calibration = calculate_barscan_calibration(barscan_file)  # calibration object
+    database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
+    saved_calibration = load_calibration(instrument='CG2', run=7465, database=database_file)
+    assert saved_calibration['positions'] == pytest.approx(calibration['positions'], abs=0.1)
+    assert saved_calibration['heights'] == pytest.approx(calibration['heights'], abs=0.01)
+
+
+@pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
+def test_load_and_apply_pixel_calibration(reference_dir):
+    r"""Apply a calibration to an empty instrument"""
+    # Load and prepare the uncalibrated workspace
+    uncalibrated_workspace = unique_workspace_dundername()
+    LoadEmptyInstrument(InstrumentName='CG2', OutputWorkspace=uncalibrated_workspace)
+    SampleLogs(uncalibrated_workspace).insert('run_number', 8000)
+    # Load and apply the saved calibration
+    calibrated_workspace = unique_workspace_dundername()
+    database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
+    load_and_apply_pixel_calibration(uncalibrated_workspace, output_workspace=calibrated_workspace,
+                                     database=database_file)
+    # Assert the positions and heights have been correctly assigned for some pixels
+    tube = TubeCollection(calibrated_workspace, 'detector1').sorted(view='decreasing X')[42]
+    assert 1.e3 * tube.pixel_y[0:3] == pytest.approx([-521.5, -516.9, -512.3], abs=0.1)  # units in mili-meters
+    assert 1.e3 * tube.pixel_y[-3:] == pytest.approx([568.4, 573.4, 578.3], abs=0.1)
+    assert 1.e3 * tube.pixel_heights[0:3] == pytest.approx([4.58, 4.57, 4.55], abs=0.01)
+    assert 1.e3 * tube.pixel_heights[-3:] == pytest.approx([4.94, 4.97,  5.00], abs=0.01)
+
+
+@pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
+def test_loading_calibration(reference_dir):
+    database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
+    calibration = load_calibration('CG2', run=7465, database=database_file)
+    assert calibration['instrument'] == 'GPSANS'
+    assert calibration['positions'][0][0:3] == pytest.approx([-510., -506., -502.], abs=1.0)
 
 
 if __name__ == '__main__':

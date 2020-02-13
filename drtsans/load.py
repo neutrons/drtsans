@@ -12,7 +12,7 @@ __all__ = ['load_events']
 
 def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='', **kwargs):
     r"""
-    Load an event Nexus file produced by the HFIR instruments at ORNL.
+    Load an event Nexus file produced by the instruments at ORNL.
 
     Parameters
     ----------

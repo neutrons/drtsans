@@ -119,7 +119,8 @@ def extract_run_number(input_query):
     for label in INSTRUMENT_LABELS:
         run_number = run_number.replace(label, '')
     # remove any remaining '_'
-    run_number = run_number.replace('_', '')
+    if '_' in run_number:
+        run_number = run_number.split('_')[1]
     # convert to an integer
     return int(run_number)
 

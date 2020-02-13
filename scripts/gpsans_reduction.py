@@ -37,9 +37,8 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         msapi.logger.notice('Applying transmission correction with transmission file.')
 
         # We need to see the beam, which is on the main detector
-        ws_tr_sample = sans.prepare_data(transmission_run,
-                                         output_workspace='_trans_sample_{}'.format(transmission_run), **cfg)
-        ws_tr_direct = sans.prepare_data(empty_run, output_workspace='_trans_direct_{}'.format(empty_run), **cfg)
+        ws_tr_sample = sans.prepare_data(transmission_run, output_suffix='_trans_sample', **cfg)
+        ws_tr_direct = sans.prepare_data(empty_run, output_suffix='_trans_direct', **cfg)
 
         tr_ws = sans.calculate_transmission(ws_tr_sample,
                                             ws_tr_direct,
@@ -57,26 +56,24 @@ def reduction(json_params, config):
     """
     # Load and prepare scattering data
     ws = sans.prepare_data(json_params["instrumentName"] + '_' + json_params["runNumber"],
-                           output_workspace="_data_{}".format(json_params["runNumber"]), **config)
+                           output_suffix='_data', **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
-    if transmission_run.strip() is not '':
+    if transmission_run.strip() != '':
         transmission_fn = json_params["instrumentName"] + '_' + json_params["transmission"]["runNumber"]
         empty_run = json_params["instrumentName"] + '_' + json_params["empty"]["runNumber"]
         ws = apply_transmission(ws, transmission_fn, empty_run, config)
 
     # Background
     bkg_run = json_params["background"]["runNumber"]
-    if bkg_run != "":
+    if bkg_run != '':
         bkg_run = json_params["instrumentName"] + '_' + bkg_run
-        ws_bck = sans.prepare_data(bkg_run,
-                                   output_workspace="_bck_{}".format(json_params["background"]["runNumber"]),
-                                   **config)
+        ws_bck = sans.prepare_data(bkg_run, output_suffix='_bkg', **config)
 
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
-        if transmission_run.strip() is not '':
+        if transmission_run.strip() != '':
             transmission_fn = json_params["instrumentName"] + "_" + transmission_run
             empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
             ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)

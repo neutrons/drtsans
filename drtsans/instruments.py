@@ -5,6 +5,8 @@ from mantid.api import mtd
 
 __all__ = ['InstrumentEnumName', 'instrument_enum_name', 'instrument_standard_name', 'is_time_of_flight']
 
+INSTRUMENT_LABELS = ['CG3', 'BIOSANS', 'EQ-SANS', 'EQSANS', 'CG2', 'GPSANS']
+
 
 @enum.unique
 class InstrumentEnumName(enum.Enum):
@@ -41,8 +43,9 @@ def instrument_enum_name(input_query):
     if name in mtd:  # convert mantid workspace into a instrument string
         name = mtd[str(name)].getInstrument().getName()
     else:  # see if `name` contains any of the instrument labels
+        name = name.upper()
         for instrument_string_label in string_to_enum:
-            if instrument_string_label in name.upper():
+            if instrument_string_label in name:
                 name = instrument_string_label
                 break
 
@@ -79,15 +82,15 @@ def instrument_label(input_query):
     -------
     str
     """
-    instrument_labels = ['CG3', 'BIOSANS', 'EQ-SANS', 'EQSANS', 'CG2', 'GPSANS']
     # convert to a string
     name = str(input_query)
 
     if name in mtd:  # convert mantid workspace into a instrument string
         return mtd[str(name)].getInstrument().getName()
     else:  # see if `name` contains any of the instrument labels
-        for instrument_string_label in instrument_labels:
-            if instrument_string_label in name.upper():
+        name = name.upper()
+        for instrument_string_label in INSTRUMENT_LABELS:
+            if instrument_string_label in name:
                 return instrument_string_label
     raise RuntimeError('Instrument name can not be resolved from "{}"'.format(input_query))
 
@@ -108,9 +111,18 @@ def extract_run_number(input_query):
     -------
     int
     """
-    run_number = os.path.split(input_query)[-1]
+    # name of the file without path
+    run_number = os.path.basename(input_query)
+    # everything up to the extension
     run_number = run_number.split('.')[0]
-    return int(run_number.split(instrument_label(run_number))[-1].replace('_', ''))
+    # remove the instrument name
+    for label in INSTRUMENT_LABELS:
+        run_number = run_number.replace(label, '')
+    # remove any remaining '_'
+    if '_' in run_number:
+        run_number = run_number.split('_')[1]
+    # convert to an integer
+    return int(run_number)
 
 
 def is_time_of_flight(input_query):

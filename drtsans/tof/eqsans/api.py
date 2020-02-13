@@ -58,7 +58,7 @@ def prepare_data(data,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
                  sensitivity_file_path=None,
-                 output_workspace=None):
+                 output_workspace=None, output_suffix=''):
     r"""
     Load an EQSANS data file and bring the data to a point where it can be used. This includes applying basic
     corrections that are always applied regardless of whether the data is background or scattering data.
@@ -110,14 +110,21 @@ def prepare_data(data,
     solid_angle: bool
         Apply the solid angle correction
     output_workspace: str
-        Name of the output workspace. If None, then it will be
-        ``EQSANS_XXXXX`` with number XXXXX determined from the supplied ``data``.
+        Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
+
+    Returns
+    -------
+    ~mantid.api.IEventWorkspace
+        Reference to the events workspace
     """
     # First, load the event stream data into a workspace
     # The output_workspace name is for the Mantid workspace
     output_workspace = load_events(data, detector_offset=detector_offset,
                                    sample_offset=sample_offset,
-                                   output_workspace=str(output_workspace))
+                                   output_workspace=output_workspace, output_suffix=output_suffix)
 
     # The beam center should be provided by the reduction
     # script calling this function, but if it is not specified...

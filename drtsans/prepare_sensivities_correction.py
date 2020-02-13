@@ -112,7 +112,7 @@ class PrepareSensitivityCorrection(object):
         self._beam_center_radius = None  # mm
 
         # Transmission correction (BIOSANS)
-        self._transmission_runs = None
+        self._transmission_reference_runs = None
         self._transmission_flood_runs = None
         self._theta_dep_correction = False
 
@@ -128,6 +128,7 @@ class PrepareSensitivityCorrection(object):
         else:
             self._is_wing_detector = False
 
+        # Mask angles are BIO-SANS specific application to mask the beam center.
         # Mask angle for wing detector
         self._wing_det_mask_angle = None
         # Mask angle on main detector
@@ -209,7 +210,9 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        default_mask : str or None
+        default_mask : mask file path, ~mantid.api.MaskWorkspace, :py:obj:`list`, None
+            Mask to be applied. If :py:obj:`list`, it is a list of
+            detector ID's. If `None`, it is expected that `maskbtp` is not empty.
             mask file name
         pixels : str or None
             pixels to mask.  Example: '1-8,249-256'
@@ -223,7 +226,7 @@ class PrepareSensitivityCorrection(object):
         None
 
         """
-        # default mask (XML) file name
+        # default mask file or list of detector IDS or MaskWorkspace
         if default_mask is not None:
             self._default_mask = default_mask
 
@@ -232,10 +235,11 @@ class PrepareSensitivityCorrection(object):
             self._extra_mask_dict[PIXEL] = pixels
 
         # angles to mask (BIOSANS)
-        if wing_det_mask_angle is not None:
-            self._wing_det_mask_angle = wing_det_mask_angle
-        if main_det_mask_angle is not None:
-            self._main_det_mask_angle = main_det_mask_angle
+        if self._instrument == CG3:
+            if wing_det_mask_angle is not None:
+                self._wing_det_mask_angle = wing_det_mask_angle
+            if main_det_mask_angle is not None:
+                self._main_det_mask_angle = main_det_mask_angle
 
     def set_beam_center_radius(self, radius):
         """Set beam center radius
@@ -255,19 +259,24 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        transmission_flood_runs : ~list
+        transmission_flood_runs : int or tuple or list
+            transmission flood runs
 
-        transmission_reference_run : ~list
-
+        transmission_reference_run : int or tuple or list
+            transmission reference runs
 
         Returns
         -------
 
         """
+        # Only BIO SANS use transmission correction
+        if self._instrument != CG3:
+            return
+
         if isinstance(transmission_reference_run, int):
-            self._transmission_runs = [transmission_reference_run]
+            self._transmission_reference_runs = [transmission_reference_run]
         else:
-            self._transmission_runs = list(transmission_reference_run)
+            self._transmission_reference_runs = list(transmission_reference_run)
 
         if isinstance(transmission_flood_runs, int):
             self._transmission_flood_runs = [transmission_flood_runs]
@@ -439,40 +448,44 @@ class PrepareSensitivityCorrection(object):
         num_workspaces_set = len(self._flood_runs)
 
         # Load beam center runs and calculate beam centers
-        beam_centers = [self._calculate_beam_center(i)
-                        for i in range(num_workspaces_set)]
+        beam_centers = list()
+        for i in range(num_workspaces_set):
+            beam_centers.append(self._calculate_beam_center(i))
 
         # Set default value to dark current runs
         if self._dark_current_runs is None:
             self._dark_current_runs = [None] * num_workspaces_set
 
         # Load and process flood data with (1) mask (2) center detector and (3) solid angle correction
-        flood_workspaces = [self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i])
-                            for i in range(num_workspaces_set)]
+        flood_workspaces = list()
+        for i in range(num_workspaces_set):
+            flood_workspaces.append(self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i]))
 
         # Retrieve masked detectors
         if not use_moving_detector_method:
-            det_mask_list = [self._get_masked_detectors(flood_workspaces[i])
-                             for i in range(num_workspaces_set)]
+            det_mask_list = list()
+            for i in range(num_workspaces_set):
+                det_mask_list.append(self._get_masked_detectors(flood_workspaces[i]))
         else:
             det_mask_list = [None] * num_workspaces_set
 
         # Mask beam centers
-        flood_workspaces = [self._mask_beam_center(flood_workspaces[i], beam_centers[i])
-                            for i in range(num_workspaces_set)]
+        for i in range(num_workspaces_set):
+            flood_workspaces[i] = self._mask_beam_center(flood_workspaces[i], beam_centers[i])
 
         # Transmission correction as an option
-        if self._transmission_runs is not None and not self._is_wing_detector:
+        if self._instrument == CG3 and self._transmission_reference_runs is not None and not self._is_wing_detector:
             # Must have transmission run specified and cannot be wing detector (of CG3)
-            flood_workspaces = [self._apply_transmission_correction(flood_workspaces[i],
-                                                                    self._transmission_runs[i],
-                                                                    self._transmission_flood_runs[i],
-                                                                    beam_centers[i])
-                                for i in range(num_workspaces_set)]
+            for i in range(num_workspaces_set):
+                flood_workspaces[i] = self._apply_transmission_correction(flood_workspaces[i],
+                                                                          self._transmission_reference_runs[i],
+                                                                          self._transmission_flood_runs[i],
+                                                                          beam_centers[i])
 
         # Set the masked pixels' counts to nan and -infinity
-        flood_workspaces = [self._set_mask_value(flood_workspaces[i], det_mask_list[i], use_moving_detector_method)
-                            for i in range(num_workspaces_set)]
+        for i in range(num_workspaces_set):
+            flood_workspaces[i] = self._set_mask_value(flood_workspaces[i], det_mask_list[i],
+                                                       use_moving_detector_method)
 
         print('Preparation of data is over....')
         print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
@@ -726,6 +739,7 @@ def debug_output(workspace, output_file):
 
     Returns
     -------
+    None
 
     """
     # Save Nexus

@@ -3,11 +3,13 @@
 import numpy as np
 r"""
 Links to mantid algorithms
+https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 """
 from mantid.simpleapi import mtd, CalculateEfficiency, MaskDetectorsIf, SaveNexusProcessed, CloneWorkspace
 from mantid.kernel import Property
+from mantid.kernel import logger
 from drtsans.settings import unique_workspace_name as uwn
 from drtsans.detector import Detector
 # from mantid.simpleapi import mtd,  DeleteWorkspace, SaveNexusProcessed, Integration, CreateWorkspace
@@ -167,8 +169,8 @@ def interpolate_mask(flood_ws, polynomial_degree=1,
 
         elif num_of_detectors_masked > min_detectors_per_tube:
             logger.error("Skipping tube with indices {}. Too many "
-                         "masked or dead pixels.".format(
-                d.get_current_ws_indices()))
+                         "masked or dead pixels.".format(d.get_current_ws_indices()))
+
     return output_ws
 
 

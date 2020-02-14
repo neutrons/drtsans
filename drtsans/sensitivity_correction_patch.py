@@ -1,16 +1,15 @@
 import numpy as np
 import os
-from mantid.kernel import Property, logger
+from mantid.kernel import logger
 from drtsans.settings import unique_workspace_dundername as uwd
 r"""
 Links to mantid algorithms
-https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
 https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
-from mantid.simpleapi import mtd, CloneWorkspace, DeleteWorkspace, SaveNexusProcessed, Integration, CreateWorkspace
+from mantid.simpleapi import mtd, DeleteWorkspace, SaveNexusProcessed, Integration, CreateWorkspace
 
 from drtsans import detector
 

@@ -13,10 +13,8 @@ https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
-from mantid.simpleapi import mtd, CalculateEfficiency, MaskDetectorsIf, SaveNexusProcessed, \
-    DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    Integration, CreateWorkspace
-from mantid.kernel import Property, logger
+from mantid.simpleapi import mtd, CalculateEfficiency, MaskDetectorsIf, SaveNexusProcessed
+from mantid.kernel import Property
 
 __all__ = ['calculate_sensitivity_correction']
 

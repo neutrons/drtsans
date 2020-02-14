@@ -4,14 +4,6 @@ r"""
 Links to mantid algorithms
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
-
-https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
-https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
-https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
-https://docs.mantidproject.org/nightly/algorithms/LoadNexusProcessed-v2.html
-https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
-https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
-https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
 from mantid.simpleapi import mtd, CalculateEfficiency, MaskDetectorsIf, SaveNexusProcessed
 from mantid.kernel import Property

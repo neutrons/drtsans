@@ -233,7 +233,7 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
     '''This tests the drtsans.sensitivity.Detector with data from BioSANS
     '''
 
-    from drtsans.sensitivity_correction_patch import Detector
+    from drtsans.detector import Detector
     from mantid.simpleapi import LoadHFIRSANS, MaskBTP
     from mantid.kernel import Property
     import numpy as np

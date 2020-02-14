@@ -13,6 +13,7 @@ https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
 from mantid.simpleapi import mtd, CloneWorkspace, DeleteWorkspace, SaveNexusProcessed, Integration, CreateWorkspace
 
+from drtsans.detector import Detector
 from drtsans import detector
 
 __all__ = ['calculate_sensitivity_correction']

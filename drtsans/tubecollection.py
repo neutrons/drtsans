@@ -263,6 +263,10 @@ class PixelSpectrum(ElementComponentInfo, SpectrumInfo):
             return super().__getattr__(item)  # next class in the Method Resolution Order, (SpectrumInfo.__getattr__)
 
     @property
+    def detector_id(self):
+        return self.detectorIDs()[self.spectrum_info_index]
+
+    @property
     def position(self):
         r"""Cartesian coordinates of the pixel detector.
 
@@ -369,6 +373,10 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         self._pixels = list()
         SpectrumInfo.__init__(self, input_workspace, workspace_indexes)
         ElementComponentInfo.__init__(self, input_workspace.componentInfo(), component_info_index)
+
+    @property
+    def detector_ids(self):
+        return self.detectorIDs()[self.spectrum_info_index]
 
     @property
     def pixels(self):

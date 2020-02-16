@@ -166,7 +166,7 @@ class Table:
             output_workspace = str(input_workspace)
         else:
             CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-        ApplyCalibration(Workspace=self.table)
+        ApplyCalibration(Workspace=output_workspace, CalibrationTable=self.table)
 
     def save(self, database=None, tablefile=None):
         enum_instrument = instrument_enum_name(self.instrument)
@@ -755,14 +755,8 @@ def apply_barscan_calibration(input_workspace, calibration, output_workspace=Non
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         Input workspace containing the original pixel positions and heights
-    calibration: dict
-        Dictionary with the following entries:
-        - instrument, str, Standard name of the instrument.
-        - component, str, name of the double detector array, usually "detector1".
-        - run, int, run number associated to the calibration.
-        - unit: str, the units for the positions and heights. Set to 'mm' for mili-meters.
-        - positions, list, List of Y-coordinate for each pixel.
-        - heights, list, List of pixel heights.
+    calibration: ~mantid.api.TableWorkspace
+        Table containing columns 'Detector ID', 'Detector Y Coordinate', and  'Detector Width'
     output_workspace: str
         Name of the workspace containing the updated pixel positions and pixel heights. If :py:obj:`None`, the name of
         ``input_workspace`` is used, therefore modifiying the input workspace. If not :py:obj:`None`, then a clone
@@ -773,23 +767,7 @@ def apply_barscan_calibration(input_workspace, calibration, output_workspace=Non
     else:
         # A new workspace identical to the input workspace except in regards to pixel  positions and heights.
         CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-
-    # 2D array of pixel Y-coordinates. The first index is the tube-index
-    pixel_positions = calibration['positions']
-    factor = 1.e-03 if calibration['unit'] == 'mm' else 1.0  # from mili-meters to meters
-    # A TubeCollection is a list of TubeSpectrum objects, representing a physical tube. Here we obtain the
-    # list of tubes for the main double-detector-panel.
-    # The view 'decreasing X' sort the tubes by decreasing value of their corresponding X-coordinate. In this view,
-    # a double detector panel looks like a single detector panel. When looking at the panel standing at the
-    # sample, the leftmost tube has the highest X-coordinate, so the 'decreasing X' view orders the tubes
-    # from left to right.
-    collection = TubeCollection(output_workspace, calibration['component']).sorted(view='decreasing X')
-    for tube_index, tube in enumerate(collection):
-        if True in np.isnan(pixel_positions[tube_index]):  # this tube was not calibrated
-            continue
-        # update Y-coord of pixels in this tube. "factor" ensures the units are in meters
-        tube.pixel_y = [factor * y for y in pixel_positions[tube_index]]
-        tube.pixel_heights = [factor * h for h in calibration['heights'][tube_index]]
+    calibration.apply(input_workspace, output_workspace=output_workspace)
 
 
 def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True):

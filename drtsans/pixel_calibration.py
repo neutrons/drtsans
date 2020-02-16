@@ -847,6 +847,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
     collection = TubeCollection(integrated_intensities, 'detector1').sorted(view='decreasing X')
+    detector_ids = list(itertools.chain([tube.detector_ids for tube in collection]))
     count_densities = list()
     for tube in collection:
         weighted_intensities = tube.readY.ravel() / tube.pixel_heights
@@ -860,18 +861,23 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     front_count_density = np.mean(count_densities[::2][np.isfinite(count_densities[::2])])  # front tubes, even indexes
     back_count_density = np.mean(count_densities[1::2][np.isfinite(count_densities[1::2])])  # back tubes, odd indexes
 
-    # Determine the front and back pixel widths
-    nominal_width = collection[0][0].width  # width of the first pixel in the first tube
+    # Determine the front and back pixel widths, in mili-meters (hence the 1000 factor)
+    nominal_width = 1000 * collection[0][0].width  # width of the first pixel in the first tube
     front_width = (front_count_density / average_count_density) * nominal_width
     back_width = (back_count_density / average_count_density) * nominal_width
 
+    # Generate a list of pixel widths. It is assumed that front tubes have an even tube index
+    widths = list()
+    for tube_index, tube in enumerate(collection):
+        pixel_width = front_width if tube_index % 2 == 0 else back_width
+        widths.extend([pixel_width] * len(tube))
+
     DeleteWorkspaces(integrated_intensities, mask_workspace)
 
-    return dict(instrument=instrument_standard_name(input_workspace),
-                component=component,
-                run=SampleLogs(input_workspace).single_value('run_number'),
-                unit='mm',
-                widths=(1000 * front_width, 1000 * back_width))
+    metadata = dict(instrument=instrument_standard_name(input_workspace), component=component,
+                    daystamp=day_stamp(input_workspace),
+                    runnumbers=[SampleLogs(input_workspace).single_value('run_number'), ], unit='mm',)
+    return Table(metadata, detector_ids, widths=widths)
 
 
 # Note: a CPP Mantid algorithm similar to ApplyCalibration would be much faster

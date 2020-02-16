@@ -1,7 +1,11 @@
+import collections
+import copy
+import enum
+import json
 import numpy as np
 import numexpr
+import os
 import tinydb
-import collections
 
 r""" Hyperlinks to mantid algorithms
 CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
@@ -14,9 +18,9 @@ MaskDetectors <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v
 MaskDetectorsIf <https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html>
 ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html>
 """
-from mantid.simpleapi import (CloneWorkspace, CreateWorkspace, DeleteWorkspaces, FilterEvents,
-                              GenerateEventsFilter, Integration, Load, LoadInstrument, MaskDetectors,
-                              MaskDetectorsIf, ReplaceSpecialValues)
+from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateWorkspace, DeleteWorkspaces, FilterEvents,
+                              GenerateEventsFilter, Integration, Load, LoadInstrument, LoadNexus,
+                              MaskDetectors, MaskDetectorsIf, ReplaceSpecialValues)
 from mantid.api import mtd
 
 r"""
@@ -36,6 +40,117 @@ __all__ = ['calculate_pixel_calibration', 'load_and_apply_pixel_calibration']
 
 # flags a problem identifying the pixel corresponding to the bottom of the shadow cast by the bar
 INCORRECT_PIXEL_ASSIGNMENT = -1
+
+# Files storing the all pixel calibrations for each instrument. Used in `load_calibration` and `save_calibration`
+database_file = {InstrumentEnumName.BIOSANS: '/HFIR/CG3/shared/calibration/pixel_calibration.json',
+                 InstrumentEnumName.EQSANS: '/SNS/EQSANS/shared/calibration/pixel_calibration.json',
+                 InstrumentEnumName.GPSANS: '/HFIR/CG2/shared/calibration/pixel_calibration.json'}
+
+
+class Session(enum):
+    r"""Enumerate the types of calibration sessions"""
+    BARSCAN = 'BARSCAN'
+    TUBEWIDTH = 'TUBEWIDTH'
+
+
+def day_stamp(input_workspace):
+    r"""
+    Find the day stamp (e.g 20200311 for March 11, 2020) using the "start_time" metadata
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        Workspace from which the day stamp is to be retrieved.
+
+    Returns
+    -------
+    int
+    """
+    return int(SampleLogs(input_workspace).start_time.value[0:10].replace('-', ''))
+
+
+def load_session(input_workspace, caltype, component='detector1', database=None, output_workspace=None):
+    r"""
+    Load a calibration session into a ~drtsans.pixel_calibration.Table object.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        Workspace from which calibration session is to be retrieved.
+    caltype: str
+        Either 'BARSCAN' or 'TUBEWIDTH'.
+    component: str
+        Name of one of the double detector array panels.
+    database: str
+        Path to database file containing the metadata for the calibrations. If :py:obj:`None`, the default database
+        is used.
+    output_workspace: str
+        Name of the table workspace containing the calibration session values. If :py:obj:`None`, then a composite
+        name is created using the calibration session, instrument, component, and daystamp. (e.g.
+        "barscan_gpsans_detector1_20200311")
+
+    Returns
+    -------
+    ~drtsans.pixel_calibration.Table
+    """
+    enum_instrument = instrument_enum_name(input_workspace)
+    if database is None:
+        database = database_file[enum_instrument]
+    instrument = str(enum_instrument)
+    daystamp = day_stamp(input_workspace)
+    if output_workspace is None:
+        output_workspace = f'{caltype.lower()}_{instrument}_{component}_{str(daystamp)}'
+    return Table.load(database, caltype, instrument, component, daystamp, output_workpace=output_workspace)
+
+
+class Table:
+
+    @classmethod
+    def load(cls, database, caltype, instrument, component, daystamp, output_workspace=None):
+        # Search the database for a match to the required metadata
+        with open(database, mode='r') as json_file:
+            entries = json.load(json_file)  # list of metadata entries
+            required = {caltype, instrument, component}  # plausible metadata entries must match these metadata pieces
+            candidates = [entry for entry in entries if required.issubset(set(entry.keys()))]
+            if len(candidates) == 0:
+                raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
+            candidates.sort(key=lambda c: c['daystamp'])  # sort candidates by increasing daystamp
+        for i, candidate in enumerate(candidates):
+            if candidate['daystamp'] > daystamp:
+                if i == 0:
+                    raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
+                metadata = candidates[i - 1]
+                if output_workspace is None:
+                    output_workspace = f'{caltype.lower()}_{instrument}_{component}_{str(metadata["daystamp"])}'
+                table = LoadNexus(metadata['tablefile'], OutputWorkspace=output_workspace)
+                return Table(table, metadata)
+        raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
+
+    def __init__(self, table, metadata):
+        self.table = table
+        self.metadata = copy.copy(metadata)
+
+    def __getattr__(self, item):
+        r"""Serve metadata's keys as attributes"""
+        if item not in self.__dict__:
+            return self.__dict__['metadata'][item]
+        return self.__dict__[item]
+
+    def apply(self, input_workspace, output_workspace=None):
+        if output_workspace is None:
+            output_workspace = str(input_workspace)
+        else:
+            CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+        ApplyCalibration(Workspace=self.table)
+
+    def save(self, database=None):
+        enum_instrument = instrument_enum_name(self.instrument)
+        if database is None:
+            database = database_file[enum_instrument]
+        with open(database, mode='r') as json_file:
+            entries = json.load(json_file)  # list of metadata entries
+            entries.append(self.metadata)
+        json.dump(entries, database)
 
 
 def _consecutive_true_values(values, how_many, reverse=False, raise_message=None):
@@ -229,12 +344,6 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
 
     return dict(calculated_positions=calculated_positions, calculated_heights=calculated_heights,
                 coefficients=coefficients)
-
-
-# Files storing the all pixel calibrations for each instrument. Used in `load_calibration` and `save_calibration`
-database_file = {InstrumentEnumName.BIOSANS: '/HFIR/CG3/shared/pixel_calibration.json',
-                 InstrumentEnumName.EQSANS: '/SNS/EQSANS/shared/pixel_calibration.json',
-                 InstrumentEnumName.GPSANS: '/HFIR/CG2/shared/pixel_calibration.json'}
 
 
 def load_calibration(instrument, run=None, component='detector1', database=None):

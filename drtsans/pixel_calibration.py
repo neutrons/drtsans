@@ -21,7 +21,8 @@ ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceS
 """
 from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateEmptyTableWorkspace, CreateWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
-                              LoadInstrument, LoadNexus, MaskDetectors, MaskDetectorsIf, ReplaceSpecialValues)
+                              LoadInstrument, LoadNexus, MaskDetectors, MaskDetectorsIf, ReplaceSpecialValues,
+                              SaveNexus)
 from mantid.api import mtd
 
 r"""
@@ -97,11 +98,8 @@ def load_session(input_workspace, caltype, component='detector1', database=None,
     enum_instrument = instrument_enum_name(input_workspace)
     if database is None:
         database = database_file[enum_instrument]
-    instrument = str(enum_instrument)
-    daystamp = day_stamp(input_workspace)
-    if output_workspace is None:
-        output_workspace = f'{caltype.lower()}_{instrument}_{component}_{str(daystamp)}'
-    return Table.load(database, caltype, instrument, component, daystamp, output_workpace=output_workspace)
+    return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
+                      output_workpace=output_workspace)
 
 
 class Table:
@@ -122,7 +120,7 @@ class Table:
                     raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
                 metadata = candidates[i - 1]
                 if output_workspace is None:
-                    output_workspace = f'{caltype.lower()}_{instrument}_{component}_{str(metadata["daystamp"])}'
+                    output_workspace = Table.compose_table_name(metadata)
                 table = LoadNexus(metadata['tablefile'], OutputWorkspace=output_workspace)
                 return Table(table, metadata)
         raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
@@ -145,10 +143,14 @@ class Table:
         if required_keys.issubset(metadata.keys()) is False:
             raise ValueError(f'Metadata is missing one or more of these entries: {required_keys}')
 
+    @classmethod
+    def compose_table_name(cls, metadata):
+        m = metadata  # handy shortcut
+        return f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
+
     def __init__(self, metadata, detector_ids, positions=None, heights=None, widths=None):
         Table.validate_metadata(metadata)
-        m = metadata  # handy shortcut
-        output_workspace = f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
+        output_workspace = Table.compose_table_name(metadata)
         self.table = Table.build_mantid_table(output_workspace, detector_ids,
                                               positions=positions, heights=heights, widths=widths)
         self.metadata = copy.copy(metadata)
@@ -166,7 +168,18 @@ class Table:
             CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         ApplyCalibration(Workspace=self.table)
 
-    def save(self, database=None):
+    def save(self, database=None, tablefile=None):
+        enum_instrument = instrument_enum_name(self.instrument)
+        if database is None:
+            database = database_file[enum_instrument]
+        # Save the table for a Nexus file
+        if tablefile is None:
+            directory = os.path.join(os.path.dirname(database), 'calibrations')
+            basename = f'{Table.compose_table_name(self.metadata)}.nxs'
+            tablefile = os.path.join(directory, basename)
+            self.metadata['tablefile'] = tablefile
+            SaveNexus(InputWorkspace=self.table, Filename=tablefile)
+        # Save the metadata
         enum_instrument = instrument_enum_name(self.instrument)
         if database is None:
             database = database_file[enum_instrument]

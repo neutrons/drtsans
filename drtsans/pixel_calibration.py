@@ -1,6 +1,7 @@
 import collections
 import copy
 import enum
+import itertools
 import json
 import numpy as np
 import numexpr
@@ -18,9 +19,9 @@ MaskDetectors <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v
 MaskDetectorsIf <https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html>
 ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html>
 """
-from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateWorkspace, DeleteWorkspaces, FilterEvents,
-                              GenerateEventsFilter, Integration, Load, LoadInstrument, LoadNexus,
-                              MaskDetectors, MaskDetectorsIf, ReplaceSpecialValues)
+from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateEmptyTableWorkspace, CreateWorkspace,
+                              DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
+                              LoadInstrument, LoadNexus, MaskDetectors, MaskDetectorsIf, ReplaceSpecialValues)
 from mantid.api import mtd
 
 r"""
@@ -126,8 +127,30 @@ class Table:
                 return Table(table, metadata)
         raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
 
-    def __init__(self, table, metadata):
-        self.table = table
+    @classmethod
+    def build_mantid_table(cls, output_workspace, detector_ids, positions=None, heights=None, widths=None):
+        columns_data = {'Detector Y Coordinate': positions, 'Detector Height': heights, 'Detector Width': widths}
+        [columns_data.pop(column) for column in list(columns_data.keys()) if columns_data[column] is None]
+        table = CreateEmptyTableWorkspace(OutputWorkspace=output_workspace)
+        table.addColumn(type="int", name="Detector ID")
+        [table.addColumn(type="double", name=column) for column in columns_data]
+        for i in range(len(detector_ids)):
+            row = {column: data[i] for column, data in columns_data.items()}
+            table.addRow(row)
+        return table
+
+    @classmethod
+    def validate_metadata(cls, metadata):
+        required_keys = {'instrument', 'component', 'daystamp'}
+        if required_keys.issubset(metadata.keys()) is False:
+            raise ValueError(f'Metadata is missing one or more of these entries: {required_keys}')
+
+    def __init__(self, metadata, detector_ids, positions=None, heights=None, widths=None):
+        Table.validate_metadata(metadata)
+        m = metadata  # handy shortcut
+        output_workspace = f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
+        self.table = Table.build_mantid_table(output_workspace, detector_ids,
+                                              positions=positions, heights=heights, widths=widths)
         self.metadata = copy.copy(metadata)
 
     def __getattr__(self, item):
@@ -594,7 +617,8 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
         - positions, list, List of Y-coordinate for each pixel.
         - heights, list, List of pixel heights.
     """
-    instrument_name, run_number, number_pixels_in_tube, number_tubes = None, None, None, None
+    instrument_name, number_pixels_in_tube, number_tubes = None, None, None, None
+    run_numbers, daystamp = {}, {}
     bar_positions = []  # Y-coordinates of the bar for each scan
     # 2D array defining the position of the bar on the detector, in pixel coordinates
     # The first index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes)
@@ -604,7 +628,8 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
                                                                        bar_position_log=bar_position_log):
         if instrument_name is None:
             instrument_name = instrument_standard_name(barscan_workspace)
-            run_number = int(SampleLogs(barscan_workspace).single_value('run_number'))
+            daystamp = day_stamp(barscan_workspace)
+        run_numbers.add(int(SampleLogs(barscan_workspace).single_value('run_number')))
         # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
         formula_bar_position_inserted = formula.format(y=bar_position)
         bar_positions.append(float(numexpr.evaluate(formula_bar_position_inserted)))
@@ -622,6 +647,7 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
             # the pixel indexes for a particular tube.
             pixel_indexes = [tube.spectrum_info_index for tube in collection]
             number_tubes, number_pixels_in_tube = len(collection), len(collection[0])
+            detector_ids = list(itertools.chain([tube.detector_ids for tube in collection]))
         pixel_intensities = np.sum(mtd[barscan_workspace].extractY(), axis=1)  # integrated intensity on each pixel
         for pixel_indexes_in_tube in pixel_indexes:  # iterate over each tube, retrieving its pixel indexes
             try:
@@ -641,24 +667,20 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
     if len(bottom_shadow_pixels) <= order:
         raise ValueError(f"There are not enough bar positions to fo a fit with a polynomyal of order {order}.")
 
-    # fit pixel positions for each tube and output in a dictionary
-    positions = []
-    heights = []
+    # fit pixel positions for each tube
+    positions, heights = [], []
     for tube_index in range(number_tubes):  # iterate over the tubes in the collection
         # Fit the pixel numbers and Y-coordinates of the bar for the current tube with a polynomial
         fit_results = fit_positions(bottom_shadow_pixels[:, tube_index], bar_positions, order=order,
                                     tube_pixels=number_pixels_in_tube)
         # Store the fitted Y-coordinates and heights of each pixel in the current tube
         # Store as lists so that they can be easily serializable
-        positions.append(list(fit_results.calculated_positions))  # store with units of mili-meters
-        heights.append(list(fit_results.calculated_heights))  # store with units of mili-meters
+        positions.extend(list(fit_results.calculated_positions))  # store with units of mili-meters
+        heights.extend(list(fit_results.calculated_heights))  # store with units of mili-meters
 
-    return dict(instrument=instrument_name,
-                component=component,
-                run=run_number,
-                unit='mm',
-                positions=positions,
-                heights=heights)
+    metadata = dict(instrument=instrument_name, component=component, daystamp=daystamp,
+                    runnumbers=sorted(list(run_numbers)), unit='mm')
+    return Table(metadata, detector_ids, positions=positions, heights=heights)
 
 
 def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):

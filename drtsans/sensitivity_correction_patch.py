@@ -138,6 +138,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
         # Do poly fit
         num_interpolated_tubes += 1
+        #  the weights in a real sensitivity measurement are all going to be very similar,
+        #  so it should not really matter in practice.
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix
@@ -165,15 +167,20 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     output = II/F
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
 
+    # Export the calculated sensitivities via Mantid Workspace
+    # Create a workspace to have sensitivity value and error for each spectrum
     CreateWorkspace(DataX=[1., 2.],
                     DataY=output,
                     DataE=output_uncertainty,
                     Nspec=input_workspace.getNumberHistograms(),
                     UnitX='wavelength',
                     OutputWorkspace=output_workspace)
+    # If the input workspace is flagged to delete, delete it
     if delete_input_workspace:
         DeleteWorkspace(input_workspace)
+    # If output file name is given, save the workspace as Processed NeXus file
     if filename:
         path = os.path.join(os.path.expanduser("~"), filename)
         SaveNexusProcessed(InputWorkspace=output_workspace, Filename=path)
+
     return mtd[output_workspace]

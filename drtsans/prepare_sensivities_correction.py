@@ -129,10 +129,11 @@ class PrepareSensitivityCorrection(object):
         else:
             self._is_wing_detector = False
 
-        # Mask angles are BIO-SANS specific application to mask the beam center.
-        # Mask angle for wing detector
+        # BioSANS special application for
+        # Mask angles of wing detector pixels to be masked from beam center run.
         self._wing_det_mask_angle = None
-        # Mask angle on main detector
+        # BioSANS special application for
+        # Mask angles on main detector pixels to mask on beam center.
         self._main_det_mask_angle = None
 
     def set_solid_angle_correction_flag(self, apply_correction):

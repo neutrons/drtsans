@@ -54,6 +54,11 @@ def reduction(json_params, config):
     """
         Perform the whole reduction
     """
+    sensitivity_file_path = config['sensitivity_file_path']
+    config.pop('sensitivity_file_path')
+    sensitivity_workspace = uwd()
+    drtsans.load_sensitivity_workspace(sensitivity_file_path, sensitivity_workspace)
+    config['sensitivity_workspace'] = sensitivity_workspace
     # Load and prepare scattering data
     ws = sans.prepare_data(json_params["instrumentName"] + '_' + json_params["runNumber"],
                            output_suffix='_data', **config)

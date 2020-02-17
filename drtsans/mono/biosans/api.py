@@ -64,6 +64,11 @@ def prepare_data(data,
         Additional properties to Mantid's MaskBTP algorithm
     solid_angle: bool
         Apply the solid angle correction
+    sensitivity_file_path: str
+        file containing previously calculated sensitivity correction
+    sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
+        workspace containing previously calculated sensitivity correction. This
+        overrides the sensitivity_filename if both are provided.
     output_workspace: str
         Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
     output_suffix: str

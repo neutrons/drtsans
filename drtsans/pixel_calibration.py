@@ -1,4 +1,3 @@
-import collections
 import copy
 import enum
 import itertools
@@ -6,7 +5,6 @@ import json
 import numpy as np
 import numexpr
 import os
-import tinydb
 
 r""" Hyperlinks to mantid algorithms
 CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
@@ -139,20 +137,8 @@ class Table:
         return mtd[output_workspace]
 
     def save(self, database=None, tablefile=None):
-        enum_instrument = instrument_enum_name(self.instrument)
-        if database is None:
-            database = database_file[enum_instrument]
-        # Save the table for a Nexus file
-        if tablefile is None:
-            directory = os.path.join(os.path.dirname(database), 'calibrations')
-            basename = f'{Table.compose_table_name(self.metadata)}.nxs'
-            tablefile = os.path.join(directory, basename)
-            self.metadata['tablefile'] = tablefile
-            SaveNexus(InputWorkspace=self.table, Filename=tablefile)
-        # Save the metadata
-        enum_instrument = instrument_enum_name(self.instrument)
-        if database is None:
-            database = database_file[enum_instrument]
+        self.metadata['tablefile'] = tablefile
+        SaveNexus(InputWorkspace=self.table, Filename=tablefile)
         with open(database, mode='r') as json_file:
             entries = json.load(json_file)  # list of metadata entries
             entries.append(self.metadata)
@@ -369,7 +355,7 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
         is used.
     output_workspace: str
         Name of the table workspace containing the calibration session values. If :py:obj:`None`, then a composite
-        name is created using the calibration session, instrument, component, and daystamp. (e.g.
+        name is created using the calibration type, instrument, component, and daystamp. (e.g.
         "barscan_gpsans_detector1_20200311")
 
     Returns
@@ -383,7 +369,7 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
                       output_workspace=output_workspace)
 
 
-def save_calibration(calibration, database=None):
+def save_calibration(calibration, database=None, tablefile=None):
     r"""
     Save a calibration to the pixel-calibrations database.
 
@@ -391,35 +377,22 @@ def save_calibration(calibration, database=None):
 
     Parameters
     ----------
-    calibration: dict
-        Dictionary containing the following required keys:
-        - instrument, str, Name of the instrument
-        - component, str, name of the double detector array, usually "detector1"
-        - run, int, run number associated to this calibration.
-        - unit: str, the units for the updated pixel dimensions. Usually 'mm' for mili-meters.
-        The dictionary will contain also entries for pixel positions and heights, as well as front and back
-        tube widths. One can pass a dictionary containing all three entries, or a dictionary containing pixel
-        positions and heights (the results of a barscan calibration) or a dictionary containing tube widths (the
-        result of a flat-field calibration)
+    calibration: ~drtsans.pixel_calibration.Table
     database: str
         Path to database file. If :py:obj:`None`, the default database is used.
+    tablefile: str
+        Absolute path to the Nexus file that will store the table containing the calibration. If :py:obj:`None`,
+        then a composite name is created using the calibration type, instrument, component, and daystamp. (e.g.
+        "barscan_gpsans_detector1_20200311")
     """
-    # Validate calibration. Check is a mapping and check for required keys
-    if isinstance(calibration, collections.Mapping) is False:
-        raise ValueError('The input is not a mapping object, such as a dictionary')
-    if {'instrument', 'component', 'run'} in set(calibration.keys()) is False:
-        raise KeyError('One or more mandatory keys missing ("instrument", "component", "run"')
-
-    # Make sure the instrument name is the standard instrument name. For instance, "GPSANS" instead of "CG2"
-    enum_instrument = instrument_enum_name(calibration['instrument'])
-    calibration['instrument'] = str(enum_instrument)  # overwrite with the standard instrument name
-
-    # Save entry in the database
+    enum_instrument = instrument_enum_name(calibration.instrument)
     if database is None:
         database = database_file[enum_instrument]
-    database_server = tinydb.TinyDB(database)
-    database_server.insert(dict(calibration))
-    database_server.close()
+    if tablefile is None:
+        directory = os.path.join(os.path.dirname(database), 'calibrations')
+        basename = f'{Table.compose_table_name(calibration.metadata)}.nxs'
+        tablefile = os.path.join(directory, basename)
+    calibration.save(database, tablefile)
 
 
 def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_position_log='dcal_Readback'):

@@ -1,13 +1,40 @@
 from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName
+from drtsans.path import abspath
 from drtsans.path import exists as path_exists
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config
+import h5py
 # https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
 from mantid.simpleapi import mtd
 # https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
 from mantid.simpleapi import LoadEventNexus
 
 __all__ = ['load_events']
+
+
+def __monitor_counts(filename, monitor_name='monitor1'):
+    '''Get the total number of counts in a single monitor
+
+    Parameters
+    ----------
+    filename: str
+        Absolute path to file to be read
+    monitor_name: str
+        Name of the monitor to determine the total counts of
+    '''
+    counts = 0  # default value is zero
+    with h5py.File(filename, 'r') as handle:
+        if monitor_name not in handle['entry']:
+            raise RuntimeError('File "{}" does not contain /entry/{}'.format(filename, monitor_name))
+        # open the monitor group
+        nxmonitor = handle['entry'][monitor_name]
+
+        # get the number of counts from the total counts array or the monitor array
+        if 'total_counts' in nxmonitor:
+            counts = nxmonitor['total_counts'][0]
+        else:
+            counts = nxmonitor['event_time_offset'].shape[0]
+    return int(counts)
 
 
 def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='', **kwargs):
@@ -57,15 +84,19 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         with amend_config({'default.instrument': str(instrument_unique_name)}, data_dir=data_dir):
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
             kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
-            if 'LoadMonitors' not in kwargs:
-                # load monitors for biosans or gpsans. eqsans does not.
-                kwargs['LoadMonitors'] = is_mono
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
-    # insert monitor counts for monochromatic
+    # insert monitor counts for monochromatic instruments
     if is_mono:
-        monitor_workspace = mtd[output_workspace + '_monitors']
-        SampleLogs(output_workspace).insert('monitor', monitor_workspace.getNumberEvents())
-        monitor_workspace.delete()
+        # determine the fully qualified file path
+        if 'Filename' in mtd[output_workspace].run():
+            # from the existing workspace
+            filename = str(mtd[output_workspace].run()['Filename'].value)
+        else:
+            # use archive search
+            filename = str(abspath(filename))
+
+        # create new log with the monitor counts
+        SampleLogs(output_workspace).insert('monitor', __monitor_counts(filename))
 
     return mtd[output_workspace]

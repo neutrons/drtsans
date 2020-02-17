@@ -241,6 +241,7 @@ if __name__ == "__main__":
         ws = eqsans.subtract_background(ws, background=ws_bkg)
     else:
         msapi.logger.notice('...no bkg_subtraction.')
+    msapi.DeleteWorkspace(sensitivity_workspace)
 
     ws /= sample_thickness
     ws *= absolute_scale

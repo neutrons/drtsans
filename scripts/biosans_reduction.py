@@ -96,6 +96,7 @@ def reduction(json_params, config):
         # Subtract background
         ws = drtsans.subtract_background(ws, background=ws_bck)
         msapi.logger.notice("Background subtracted")
+    msapi.DeleteWorkspace(sensitivity_workspace)
 
     # Final normalization
     try:

@@ -221,6 +221,11 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     else:
         delta_q = mod_q * 0.0
 
+    # Keep oly intensities for unmasked pixel detectors
+    lam = lam[info.keep, :].reshape(-1)
+    intensity = intensity[info.keep, :].reshape(-1)
+    error = error[info.keep, :].reshape(-1)
+
     return IQmod(intensity=intensity, error=error, mod_q=mod_q, delta_mod_q=delta_q, wavelength=lam)
 
 
@@ -283,6 +288,10 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     else:
         delta_qx = mod_q * 0.0
         delta_qy = delta_qx
+    # Keep oly intensities for unmasked pixel detectors
+    lam = lam[info.keep, :].reshape(-1)
+    intensity = intensity[info.keep, :].reshape(-1)
+    error = error[info.keep, :].reshape(-1)
 
     return IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy,
                        delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
@@ -351,6 +360,11 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
         delta_qx = lam * 0.0
         delta_qy = delta_qx
         delta_qz = delta_qx
+
+    # Keep oly intensities for unmasked pixel detectors
+    lam = lam[info.keep, :].reshape(-1)
+    intensity = intensity[info.keep, :].reshape(-1)
+    error = error[info.keep, :].reshape(-1)
 
     return IQcrystal(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
                      delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)

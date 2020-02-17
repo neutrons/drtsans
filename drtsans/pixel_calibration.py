@@ -5,6 +5,7 @@ import json
 import numpy as np
 import numexpr
 import os
+import sys
 
 r""" Hyperlinks to mantid algorithms
 CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
@@ -36,7 +37,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.tubecollection import TubeCollection
 
 
-__all__ = ['calculate_pixel_calibration', 'load_and_apply_pixel_calibration']
+__all__ = ['apply_calibrations', ]
 
 # flags a problem identifying the pixel corresponding to the bottom of the shadow cast by the bar
 INCORRECT_PIXEL_ASSIGNMENT = -1
@@ -47,7 +48,7 @@ database_file = {InstrumentEnumName.BIOSANS: '/HFIR/CG3/shared/calibration/pixel
                  InstrumentEnumName.GPSANS: '/HFIR/CG2/shared/calibration/pixel_calibration.json'}
 
 
-class Session(enum):
+class CalType(enum):
     r"""Enumerate the types of calibration sessions"""
     BARSCAN = 'BARSCAN'
     TUBEWIDTH = 'TUBEWIDTH'
@@ -69,28 +70,39 @@ def day_stamp(input_workspace):
     return int(SampleLogs(input_workspace).start_time.value[0:10].replace('-', ''))
 
 
+class CalibrationNotFound(Exception):
+    """Raised when the calibration is not found in the database"""
+    pass
+
+
 class Table:
+
+    @classmethod
+    def compose_table_name(cls, metadata):
+        m = metadata  # handy shortcut
+        return f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
 
     @classmethod
     def load(cls, database, caltype, instrument, component, daystamp, output_workspace=None):
         # Search the database for a match to the required metadata
+        not_found_message = f'No suitable {caltype}_{instrument}_{component} calibration found in {database}'
         with open(database, mode='r') as json_file:
             entries = json.load(json_file)  # list of metadata entries
             required = {caltype, instrument, component}  # plausible metadata entries must match these metadata pieces
             candidates = [entry for entry in entries if required.issubset(set(entry.keys()))]
             if len(candidates) == 0:
-                raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
+                raise CalibrationNotFound(not_found_message)
             candidates.sort(key=lambda c: c['daystamp'])  # sort candidates by increasing daystamp
         for i, candidate in enumerate(candidates):
             if candidate['daystamp'] > daystamp:
                 if i == 0:
-                    raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
+                    raise CalibrationNotFound(not_found_message)
                 metadata = candidates[i - 1]
                 if output_workspace is None:
                     output_workspace = Table.compose_table_name(metadata)
                 table = LoadNexus(metadata['tablefile'], OutputWorkspace=output_workspace)
                 return Table(table, metadata)
-        raise RuntimeError(f'No suitable calibration found in database {os.path.basename(database)}')
+        raise CalibrationNotFound(not_found_message)
 
     @classmethod
     def build_mantid_table(cls, output_workspace, detector_ids, positions=None, heights=None, widths=None):
@@ -109,11 +121,6 @@ class Table:
         required_keys = {'instrument', 'component', 'daystamp'}
         if required_keys.issubset(metadata.keys()) is False:
             raise ValueError(f'Metadata is missing one or more of these entries: {required_keys}')
-
-    @classmethod
-    def compose_table_name(cls, metadata):
-        m = metadata  # handy shortcut
-        return f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
 
     def __init__(self, metadata, detector_ids, positions=None, heights=None, widths=None):
         Table.validate_metadata(metadata)
@@ -340,7 +347,7 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
 
 def load_calibration(input_workspace, caltype, component='detector1', database=None, output_workspace=None):
     r"""
-    Load a calibration session into a ~drtsans.pixel_calibration.Table object.
+    Load a calibration type into a ~drtsans.pixel_calibration.Table object.
 
     Parameters
     ----------
@@ -367,6 +374,19 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
         database = database_file[enum_instrument]
     return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
                       output_workspace=output_workspace)
+
+
+def apply_calibrations(input_workspace, database=None):
+    components = {InstrumentEnumName.BIOSANS: ['detector1', 'wing_detector'],
+                  InstrumentEnumName.EQSANS: ['detector1'],
+                  InstrumentEnumName.GPSANS: ['detector1']}
+    for caltype in CalType:
+        for component in components:
+            try:
+                calibration = load_calibration(input_workspace, str(caltype), component, database=database)
+                calibration.appy(input_workspace)
+            except CalibrationNotFound as e:
+                sys.stderr.write(e)
 
 
 def save_calibration(calibration, database=None, tablefile=None):
@@ -809,101 +829,6 @@ def apply_apparent_tube_width(input_workspace, calibration, output_workspace=Non
 Below are functions that combine barscan and flat-field calibrations. These are functions exposed to the public
 interfaces.
 """
-
-
-def calculate_pixel_calibration(barscan_files, flood_file, component='detector1', sample_log='dcal',
-                                formula='565 - {dcal}', save_to_database=False):
-    r"""
-    Calculate pixel positions (only Y-coordinae), pixel heights, and tube widths most efficient for detecting
-    neutrons.
-
-    devs - Jose Borreguero <borreguerojm@ornl.gov>
-
-    Parameters
-    ----------
-    barscan_files: list
-        Paths to barscan run files. Each file is a nexus file containing the pixel_intensities for every pixel for a
-        given position of the bar.
-    flood_file: str
-        Path of a flat-field or flood file
-    component: str
-        Name of the detector panel scanned with the bar. Usually, 'detector1`.
-    sample_log: str
-        Name of the log entry in the barscan run file containing the position of the bar (Y-coordinate, in 'mm')
-        with respect to some particular frame of reference, not necessarily the one located at the sample.
-    formula: str
-        Formula to obtain the position of the bar (Y-coordinate) in the frame of reference located at the sample.
-    save_to_database: bool
-        Option to save the result to the database of pixel-calibrations. Calibrations can later be retrieved and
-        applied to workspaces in order to update their pixel positions, heights, and widths.
-
-    Returns
-    -------
-    dict
-        Dictionary with the following entries:
-        - instrument, str, Standard name of the instrument.
-        - component, str, name of the double detector array, usually "detector1".
-        - run, int, run number associated to the calibration.
-        - unit: str, the units for the positions and heights. Set to 'mm' for mili-meters.
-        - positions, list, List of Y-coordinate for each pixel.
-        - heights, list, List of pixel heights.
-        - widths, list, A two-item list containing the apparent widths for the front and back tubes.
-    """
-    # First find out pixel positions and heights using the bar scan files
-    barscan_calibration = calculate_barscan_calibration(barscan_files, component=component,
-                                                        bar_position_log=sample_log, formula=formula, order=5)
-    # Next find out the tube widths using the calibration for pixel positions and heights
-    flood_workspace = unique_workspace_dundername()
-    Load(flood_file, OutputWorkspace=flood_workspace)
-    apply_barscan_calibration(flood_workspace, barscan_calibration)  # update pixel positions and heights
-    flood_calibration = calculate_apparent_tube_width(flood_workspace, component='detector1',
-                                                      load_barscan_calibration=False)
-    # Merge both calibrations
-    calibration = barscan_calibration
-    calibration['run'] = max(barscan_calibration['run'], flood_calibration['run'])
-    calibration['widths'] = flood_calibration['widths']
-
-    if save_to_database is True:
-        save_calibration(calibration)
-
-    return calibration
-
-
-def load_and_apply_pixel_calibration(input_workspace, output_workspace=None, components=['detector1'],
-                                     database=None):
-    r"""
-    Update pixel positions and heights, as well as front and back tube widths, for a specific
-    double panel detector array.
-
-    devs - Jose Borreguero <borreguerojm@ornl.gov>
-
-    **Mantid algorithms used:**
-        :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`
-
-    Parameters
-    ----------
-    input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
-        Input workspace to update
-    output_workspace: str
-        Optional name of the output workspace. if :py:obj:`None`, the name of ``input_workspace`` is used, thus
-        calibrating the pixels of the input workspace.
-    components: list
-    database: str
-        Path to database. If :py:obj:`None`, the default database is used.
-    """
-    if output_workspace is None:
-        output_workspace = input_workspace
-    else:
-        CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-
-    instrument = instrument_enum_name(output_workspace)
-    run_number = SampleLogs(output_workspace).run_number.value
-    for component in components:
-        calibration = load_calibration(instrument, run=run_number, component=component, database=database)
-        if calibration.get('heights', None) is not None:
-            apply_barscan_calibration(output_workspace, calibration)
-        if calibration.get('widths', None) is not None:
-            apply_apparent_tube_width(output_workspace, calibration)
 
 
 def visualize_barscan_calibration(input_workspace=None, component='detector1', calibration=None,

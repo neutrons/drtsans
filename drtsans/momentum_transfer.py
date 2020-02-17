@@ -367,48 +367,15 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
         delta_qx = lam * 0.0
         delta_qy = delta_qx
         delta_qz = delta_qx
-    # account for masking and monitors
-    keep = info.keep.astype(bool)
-    lam = lam[keep, :].reshape(-1)
-    intensity = intensity[keep, :].reshape(-1)
-    error = error[keep, :].reshape(-1)
-    qx = qx[keep, :].reshape(-1)
-    qy = qy[keep, :].reshape(-1)
-    qz = qz[keep, :].reshape(-1)
-    delta_qx = delta_qx[keep, :].reshape(-1)
-    delta_qy = delta_qy[keep, :].reshape(-1)
-    delta_qz = delta_qz[keep, :].reshape(-1)
 
     return IQcrystal(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
                      delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
 
 
-def _masked_or_monitor(spec_info, idx):
-    r"""
-    Helper function to check if a spectra is valid
-
-    Parameters
-    ----------
-    spec_info: ~mantid.api.SpectrumInfo
-        SpectrumInfo from a workspace
-    idx: int
-        index
-
-    Returns
-    -------
-    bool
-        True if spectrum has no detectors, the detector is a monitor, or the spectrum is masked
-        False otherwise
-    """
-    return spec_info.isMonitor(idx) or spec_info.isMasked(idx) or not spec_info.hasDetectors(idx)
-
-
 @namedtuplefy
-def pixel_info(ws):
+def pixel_info(ws, horizontal_subpixels=1, vertical_subpixels=1):
     r"""
-    Helper function to extract two theta angle, azimuthal angle, l2, and a "keep" flag.
-    The "keep" is false if the spectrum has no detectors, the detector is a monitor,
-    or if the spectrum has been masked
+    Helper function to extract two theta angle, azimuthal angle, l2, and a "keep" flag for unmasked pixel detectors.
 
     Parameters
     ----------
@@ -420,8 +387,10 @@ def pixel_info(ws):
         A namedtuple with fields for two_theta, azimuthal, l2, keep
     """
     spec_info = ws.spectrumInfo()
-    info = [[np.nan, np.nan, np.nan, False] if _masked_or_monitor(spec_info, i) else
-            [spec_info.twoTheta(i), spec_info.azimuthal(i), spec_info.l2(i), True]
-            for i in range(ws.getNumberHistograms())]
+
+    valid_indexes = [idx for idx in range(ws.getNumberHistograms()) if
+                     not(spec_info.isMonitor(idx) or spec_info.isMasked(idx) or not spec_info.hasDetectors(idx))]
+
+    info = [[spec_info.twoTheta(i), spec_info.azimuthal(i), spec_info.l2(i), True] for i in valid_indexes]
     info = np.array(info)
-    return dict(two_theta=info[:, 0], azimuthal=info[:, 1], l2=info[:, 2], keep=info[:, 3])
+    return dict(two_theta=info[:, 0], azimuthal=info[:, 1], l2=info[:, 2])

@@ -19,7 +19,7 @@ from drtsans.mono.load import load_mono
 from drtsans.path import exists, registered_workspace
 from drtsans.process_uncertainties import set_init_uncertainties
 
-__all__ = ['subtract_dark_current', 'normalize_dark_current']
+__all__ = ['subtract_dark_current', 'load_dark_current_workspace', 'normalize_dark_current']
 
 
 def normalize_dark_current(dark_workspace, output_workspace=None):
@@ -59,6 +59,28 @@ def normalize_dark_current(dark_workspace, output_workspace=None):
     return mtd[output_workspace]
 
 
+def load_dark_current_workspace(dark_current_filename, output_workspace):
+    """Loads dark current workspace. Useful to avoid multiple loads from disk.
+
+    **Mantid algorithms used:**
+    :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
+
+    Parameters
+    ----------
+    dark_current_filename: str
+        file containing previously calculated sensitivity correction
+    output_workspace: int, str
+        run number or file path for dark current
+    """
+    if (isinstance(dark_current_filename, str) and exists(dark_current_filename)) \
+            or isinstance(dark_current_filename, int):
+        load_mono(dark_current_filename, output_workspace=output_workspace)
+    else:
+        message = 'Unable to find or load the dark current {}'.format(dark_current_filename)
+        raise RuntimeError(message)
+    return mtd['output_workspace']
+
+
 def subtract_dark_current(data_workspace, dark, output_workspace=None):
     r"""
     Subtract normalized dark from data, taking into account the duration of both the data and dark runs.
@@ -90,11 +112,8 @@ def subtract_dark_current(data_workspace, dark, output_workspace=None):
 
     if registered_workspace(dark):
         dark_workspace = dark
-    elif (isinstance(dark, str) and exists(dark)) or isinstance(dark, int):
-        dark_workspace = load_mono(dark, output_workspace=unique_workspace_dundername())
     else:
-        message = 'Unable to find or load the dark current {}'.format(dark)
-        raise RuntimeError(message)
+        dark_workspace = load_dark_current_workspace(dark, output_workspace=unique_workspace_dundername())
 
     # Integrate and set uncertainties
     dark_integrated = Integration(dark_workspace, OutputWorkspace=unique_workspace_dundername())

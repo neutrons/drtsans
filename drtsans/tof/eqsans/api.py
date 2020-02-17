@@ -4,7 +4,6 @@ from mantid.api import mtd
 from drtsans import (apply_sensitivity_correction, solid_angle_correction)
 from drtsans import subtract_background
 from drtsans.beam_finder import center_detector, find_beam_center
-from drtsans.path import exists as path_exists
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 from drtsans.save_2d import save_nist_dat, save_nexus
@@ -57,7 +56,7 @@ def prepare_data(data,
                  flux_method=None, flux=None,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
-                 sensitivity_file_path=None,
+                 sensitivity_file_path=None, sensitivity_workspace=None,
                  output_workspace=None, output_suffix=''):
     r"""
     Load an EQSANS data file and bring the data to a point where it can be used. This includes applying basic
@@ -109,6 +108,11 @@ def prepare_data(data,
         Additional properties to Mantid's MaskBTP algorithm
     solid_angle: bool
         Apply the solid angle correction
+    sensitivity_file_path: str
+        file containing previously calculated sensitivity correction
+    sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
+        workspace containing previously calculated sensitivity correction. This
+        overrides the sensitivity_filename if both are provided.
     output_workspace: str
         Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
     output_suffix: str
@@ -158,9 +162,8 @@ def prepare_data(data,
     apply_mask(output_workspace, panel=mask_panel, mask=mask, **btp)  # returns the mask
 
     # Correct for the detector sensitivity (the per pixel relative response)
-    if sensitivity_file_path is not None \
-            and path_exists(sensitivity_file_path):
-        kw = dict(sensitivity_filename=sensitivity_file_path)
+    if sensitivity_file_path is not None or sensitivity_workspace is not None:
+        kw = dict(sensitivity_filename=sensitivity_file_path, sensitivity_workspace=sensitivity_workspace)
         output_workspace = apply_sensitivity_correction(output_workspace, **kw)
 
     # We can perform the desired normalization here.

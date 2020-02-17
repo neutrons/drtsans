@@ -15,7 +15,6 @@ from drtsans.plots import plot_IQmod  # noqa E402
 from drtsans.mono import biosans as sans  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D  # noqa E402
-
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
 
 INSTRUMENT = 'BIOSANS'
@@ -64,6 +63,11 @@ def reduction(json_params, config):
     """
         Perform the whole reduction
     """
+    sensitivity_file_path = config['sensitivity_file_path']
+    config.pop('sensitivity_file_path')
+    sensitivity_workspace = uwd()
+    drtsans.load_sensitivity_workspace(sensitivity_file_path, sensitivity_workspace)
+    config['sensitivity_workspace'] = sensitivity_workspace
     # Load and prepare scattering data
     # all the run numbers are associated with instrument name
     ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"],
@@ -92,6 +96,7 @@ def reduction(json_params, config):
         # Subtract background
         ws = drtsans.subtract_background(ws, background=ws_bck)
         msapi.logger.notice("Background subtracted")
+    msapi.DeleteWorkspace(sensitivity_workspace)
 
     # Final normalization
     try:

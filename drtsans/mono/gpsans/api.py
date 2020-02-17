@@ -22,7 +22,7 @@ def prepare_data(data,
                  flux_method=None,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
-                 sensitivity_file_path=None,
+                 sensitivity_file_path=None, sensitivity_workspace=None,
                  output_workspace=None, output_suffix='', **kwargs):
     r"""
     Load a GPSANS data file and bring the data to a point where it can be used. This includes applying basic
@@ -65,6 +65,11 @@ def prepare_data(data,
         Additional properties to Mantid's MaskBTP algorithm
     solid_angle: bool
         Apply the solid angle correction
+    sensitivity_file_path: str
+        file containing previously calculated sensitivity correction
+    sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
+        workspace containing previously calculated sensitivity correction. This
+        overrides the sensitivity_filename if both are provided.
     output_workspace: str
         Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
     output_suffix: str
@@ -124,7 +129,8 @@ def prepare_data(data,
         solid_angle_correction(ws_name)
 
     # Sensitivity
-    if sensitivity_file_path is not None:
-        drtsans.apply_sensitivity_correction(ws_name, sensitivity_filename=sensitivity_file_path)
+    if sensitivity_file_path is not None or sensitivity_workspace is not None:
+        drtsans.apply_sensitivity_correction(ws_name, sensitivity_filename=sensitivity_file_path,
+                                             sensitivity_workspace=sensitivity_workspace)
 
     return msapi.mtd[ws_name]

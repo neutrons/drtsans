@@ -19,8 +19,29 @@ from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency, \
     MaskDetectorsIf, SaveNexusProcessed, \
     Integration, CreateWorkspace
 
-__all__ = ['apply_sensitivity_correction']
+__all__ = ['load_sensitivity_workspace', 'apply_sensitivity_correction']
 
+
+def load_sensitivity_workspace(sensitivity_filename, output_workspace):
+    """Loads sensitivity workspace. Useful to avoid multiple loads from disk.
+
+    **Mantid algorithms used:**
+    :ref:`LoadNexusProcessed <algm-LoadNexusProcessed-v1>`,
+
+    Parameters
+    ----------
+    sensitivity_filename: str
+        file containing previously calculated sensitivity correction
+    output_workspace: str, ~mantid.api.MatrixWorkspace
+        workspace containing previously calculated sensitivity correction. This
+        overrides the sensitivity_filename if both are provided.
+    """
+
+    if not path_exists(sensitivity_filename):
+        msg = 'Cannot find file "{}"'.format(sensitivity_filename)
+        raise RuntimeError(msg)
+    LoadNexusProcessed(Filename=sensitivity_filename, OutputWorkspace=output_workspace, LoadHistory=False)
+    return mtd[output_workspace]
 
 # flake8: noqa: C901
 def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
@@ -66,11 +87,7 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
             sensitivity_workspace = os.path.split(sensitivity_filename)[-1]
             sensitivity_workspace = sensitivity_workspace.split('.')[0]
         cleanupSensitivity = True
-        if not path_exists(sensitivity_filename):
-            msg = 'Cannot find file "{}"'.format(sensitivity_filename)
-            raise RuntimeError(msg)
-        LoadNexusProcessed(Filename=sensitivity_filename,
-                           OutputWorkspace=sensitivity_workspace)
+        load_sensitivity_workspace(sensitivity_filename, sensitivity_workspace)
     if (not sensitivity_workspace) or (str(sensitivity_workspace) not in mtd):
         raise RuntimeError('No sensitivity workspace provided')
 

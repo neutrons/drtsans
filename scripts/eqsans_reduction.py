@@ -13,6 +13,7 @@ from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.tof.eqsans import cfg  # noqa E402
 from common_utils import get_Iqxqy  # noqa E402
+from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -86,7 +87,10 @@ if __name__ == "__main__":
         config["flux_method"] = None
 
     config["solid_angle"] = json_conf["useSolidAngleCorrection"]
-    config["sensitivity_file_path"] = json_conf["sensitivityFileName"]
+    sensitivity_file_path = json_conf["sensitivityFileName"]
+    sensitivity_workspace = uwd()
+    drtsans.load_sensitivity_workspace(sensitivity_file_path, sensitivity_workspace)
+    config['sensitivity_workspace'] = sensitivity_workspace
 
     # find the beam center
     empty_run = json_params["empty"]["runNumber"]
@@ -110,6 +114,7 @@ if __name__ == "__main__":
     sample_file = "EQSANS_{}".format(sample_run)
     if not output_file:
         output_file = sample_file
+
     ws = eqsans.prepare_data(sample_file, output_suffix='_sample', **config)
     msapi.logger.warning(str(config))
     # TODO check the next two values if empty

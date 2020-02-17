@@ -21,7 +21,7 @@ def prepare_data(data,
                  flux_method=None,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
-                 sensitivity_file_path=None,
+                 sensitivity_file_path=None, sensitivity_workspace=None,
                  output_workspace=None, output_suffix='', **kwargs):
     r"""
     Load a BIOSANS data file and bring the data to a point where it can be used. This includes applying basic
@@ -109,7 +109,8 @@ def prepare_data(data,
         solid_angle_correction(ws_name)
 
     # Sensitivity
-    if sensitivity_file_path is not None:
-        drtsans.apply_sensitivity_correction(ws_name, sensitivity_filename=sensitivity_file_path)
+    if sensitivity_file_path is not None or sensitivity_workspace is not None:
+        drtsans.apply_sensitivity_correction(ws_name, sensitivity_filename=sensitivity_file_path,
+                                             sensitivity_workspace=sensitivity_workspace)
 
     return msapi.mtd[ws_name]

@@ -78,7 +78,7 @@ def load_dark_current_workspace(dark_current_filename, output_workspace):
     else:
         message = 'Unable to find or load the dark current {}'.format(dark_current_filename)
         raise RuntimeError(message)
-    return mtd['output_workspace']
+    return mtd[output_workspace]
 
 
 def subtract_dark_current(data_workspace, dark, output_workspace=None):

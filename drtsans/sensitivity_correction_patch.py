@@ -1,7 +1,6 @@
 import numpy as np
 import os
 from mantid.kernel import logger
-from drtsans.settings import unique_workspace_dundername as uwd
 r"""
 Links to mantid algorithms
 https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
@@ -10,8 +9,10 @@ https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
 from mantid.simpleapi import mtd, DeleteWorkspace, SaveNexusProcessed, Integration, CreateWorkspace
-
-from drtsans import detector
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsettings.py
+from drtsans.settings import unique_workspace_dundername as uwd
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fdetector.py
+from drtsans.detector import Component
 
 __all__ = ['calculate_sensitivity_correction']
 
@@ -58,10 +59,17 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # to equations A3.1 and A3.2
     input_workspace = mtd[str(input_workspace)]
 
+    # Process input workspace such that each spectra shall only have 1 value, i.e., the total
+    # neutron counts received on that pixel because this ALGORITHM requires total counts on each detector pixel
     if input_workspace.blocksize() != 1:
+        # More than 1 bins in spectra: do integration to single bin
+        # This is for EQSANS specially
+        # output workspace name shall be unique and thus won't overwrite any existing one
         input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
+        # set flag to delete input workspace later
         delete_input_workspace = True
     else:
+        # set flag to keep input workspace
         delete_input_workspace = False
 
     # The average and uncertainty in the average are determined from the masked pattern
@@ -70,12 +78,19 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     y = input_workspace.extractY().flatten()
     y_uncertainty = input_workspace.extractE().flatten()
 
+    # Normalize the counts and uncertainty on each pixel by total average counts on detector
+    # calculate the number of spectra that is not masked out (i.e., either NaN or -Infinity)
     n_elements =\
         input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - np.count_nonzero(np.isneginf(y))
+    # calculate average counts on non-masked spectra
+    # F = sum_i^{|N|}(Y_i)/N: i \in spectra such that Y_i is not NaN or -Infinity
     F = np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)])/n_elements
+    # Calculate the average uncertainties on non-masked spectra
     dF = np.sqrt(np.sum([value**2 for value in y_uncertainty
                          if not np.isnan(value) and not np.isneginf(value)]))/n_elements
+    # calculate the normalized counts on each pixel by average count
     II = y/F
+    # calculate the normalized uncertainty on each pixel
     dI = II * np.sqrt(np.square(y_uncertainty/y) + np.square(dF/F))
 
     # Any pixel in II less than min_threshold or greater than max_threshold is masked
@@ -85,12 +100,17 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
                 II[i] = np.nan
                 dI[i] = np.nan
 
-    comp = detector.Component(input_workspace, component_name)  # 'detector` except wing detector
+    # Get the (main or wing) detector (component) to calculate sensitivity correction for
+    # 'detector1' for EQSANS, GPSANS and BIOSANS's main detector
+    # 'wing' for BIOSANS's wing detector
+    comp = Component(input_workspace, component_name)  # 'detector` except wing detector
 
     # The next step is to fit the data in each tube with a second order polynomial as shown in
     # Equations A3.9 and A3.10. Use result to fill in NaN values.
     num_interpolated_tubes = 0
-    for j in range(0, comp.dim_y):
+    # Loop over all the tubes
+    num_tubes = comp.dim_y
+    for j in range(0, num_tubes):
         xx = []
         yy = []
         ee = []
@@ -118,6 +138,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
         # Do poly fit
         num_interpolated_tubes += 1
+        #  the weights in a real sensitivity measurement are all going to be very similar,
+        #  so it should not really matter in practice.
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix
@@ -145,15 +167,20 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     output = II/F
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
 
+    # Export the calculated sensitivities via Mantid Workspace
+    # Create a workspace to have sensitivity value and error for each spectrum
     CreateWorkspace(DataX=[1., 2.],
                     DataY=output,
                     DataE=output_uncertainty,
                     Nspec=input_workspace.getNumberHistograms(),
                     UnitX='wavelength',
                     OutputWorkspace=output_workspace)
+    # If the input workspace is flagged to delete, delete it
     if delete_input_workspace:
         DeleteWorkspace(input_workspace)
+    # If output file name is given, save the workspace as Processed NeXus file
     if filename:
         path = os.path.join(os.path.expanduser("~"), filename)
         SaveNexusProcessed(InputWorkspace=output_workspace, Filename=path)
+
     return mtd[output_workspace]

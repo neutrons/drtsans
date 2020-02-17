@@ -14,6 +14,8 @@ from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noq
 from drtsans.tof.eqsans import cfg  # noqa E402
 from common_utils import get_Iqxqy  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
+from drtsans.path import registered_workspace # noqa E402
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -69,7 +71,12 @@ if __name__ == "__main__":
         config["low_tof_clip"] = default_tof_cut_low
         config["high_tof_clip"] = default_tof_cut_high
 
-    config["dark_current"] = json_conf["darkFileName"]
+    dark_current_workspace = None
+    dark_current_filename = json_conf["darkFileName"]
+    if dark_current_filename is not None:
+        dark_current_workspace = uwd()
+        eqsans.load_dark_current_workspace(dark_current_filename, dark_current_workspace)
+        config["dark_current"] = dark_current_workspace
 
     # [CD, 2/1/2020] flux_method is now taking "normalization" value from the json file.
     # [CD, 2/3/2020] do if statement depending on the normalization method.
@@ -87,10 +94,13 @@ if __name__ == "__main__":
         config["flux_method"] = None
 
     config["solid_angle"] = json_conf["useSolidAngleCorrection"]
+
+    sensitivity_workspace = None
     sensitivity_file_path = json_conf["sensitivityFileName"]
-    sensitivity_workspace = uwd()
-    drtsans.load_sensitivity_workspace(sensitivity_file_path, sensitivity_workspace)
-    config['sensitivity_workspace'] = sensitivity_workspace
+    if sensitivity_file_path is not None:
+        sensitivity_workspace = uwd()
+        drtsans.load_sensitivity_workspace(sensitivity_file_path, sensitivity_workspace)
+        config['sensitivity_workspace'] = sensitivity_workspace
 
     # find the beam center
     empty_run = json_params["empty"]["runNumber"]
@@ -241,7 +251,11 @@ if __name__ == "__main__":
         ws = eqsans.subtract_background(ws, background=ws_bkg)
     else:
         msapi.logger.notice('...no bkg_subtraction.')
-    msapi.DeleteWorkspace(sensitivity_workspace)
+
+    if registered_workspace(sensitivity_workspace):
+        msapi.DeleteWorkspace(sensitivity_workspace)
+    if registered_workspace(dark_current_workspace):
+        msapi.DeleteWorkspace(dark_current_workspace)
 
     ws /= sample_thickness
     ws *= absolute_scale

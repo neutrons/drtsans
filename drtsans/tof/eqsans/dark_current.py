@@ -22,7 +22,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs
 from drtsans.dark_current import duration, counts_in_detector
 
-__all__ = ['subtract_dark_current', 'normalize_dark_current']
+__all__ = ['subtract_dark_current', 'load_dark_current_workspace', 'normalize_dark_current']
 
 
 def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None):
@@ -160,6 +160,29 @@ def subtract_normalized_dark_current(input_workspace, dark_ws,
     return mtd[output_workspace]
 
 
+def load_dark_current_workspace(dark_current_filename, output_workspace):
+    """Loads dark current workspace. Useful to avoid multiple loads from disk.
+
+    **Mantid algorithms used:**
+    :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
+
+    Parameters
+    ----------
+    dark_current_filename: str
+        file containing previously calculated sensitivity correction
+    output_workspace: int, str
+        run number or file path for dark current
+    """
+    if (isinstance(dark_current_filename, str) and exists(dark_current_filename)) \
+            or isinstance(dark_current_filename, int):
+        with amend_config({'default.instrument': 'EQSANS'}):
+            LoadEventNexus(Filename=dark_current_filename, OutputWorkspace=output_workspace)
+    else:
+        message = 'Unable to find or load the dark current {}'.format(dark_current_filename)
+        raise RuntimeError(message)
+    return mtd[output_workspace]
+
+
 def subtract_dark_current(input_workspace, dark, output_workspace=None):
     r"""
 
@@ -185,12 +208,8 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
 
     if registered_workspace(dark):
         _dark = dark
-    elif (isinstance(dark, str) and exists(dark)) or isinstance(dark, int):
-        with amend_config({'default.instrument': 'EQSANS'}):
-            _dark = LoadEventNexus(Filename=dark, OutputWorkspace=unique_workspace_dundername())
     else:
-        message = 'Unable to find or load the dark current {}'.format(dark)
-        raise RuntimeError(message)
+        _dark = load_dark_current_workspace(dark, unique_workspace_dundername())
 
     _dark_normal = normalize_dark_current(_dark, input_workspace,
                                           output_workspace=unique_workspace_dundername())

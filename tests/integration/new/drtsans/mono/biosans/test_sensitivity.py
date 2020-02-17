@@ -32,7 +32,7 @@ def test_sensitivity_procedural(biosans_sensitivity_dataset):
     from drtsans.mono.biosans.beam_finder import find_beam_center
     from drtsans.mono.dark_current import subtract_dark_current
     from drtsans.mono.normalization import normalize_by_time
-    from drtsans.sensitivity_correction_patch import inf_value_to_mask, interpolate_mask
+    from drtsans.sensitivity_correction_patch_legacy import inf_value_to_mask, interpolate_mask
     from drtsans.transmission import (apply_transmission_correction, calculate_transmission)
     # Load the files into WS
     dark_current_ws = LoadHFIRSANS(
@@ -233,7 +233,7 @@ def test_sensitivity_detector(biosans_sensitivity_dataset):
     '''This tests the drtsans.sensitivity.Detector with data from BioSANS
     '''
 
-    from drtsans.sensitivity_correction_patch import Detector
+    from drtsans.detector import Detector
     from mantid.simpleapi import LoadHFIRSANS, MaskBTP
     from mantid.kernel import Property
     import numpy as np

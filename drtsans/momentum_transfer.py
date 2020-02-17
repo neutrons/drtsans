@@ -1,7 +1,7 @@
 from mantid.simpleapi import mtd
 from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod, getDataType, DataType
 from drtsans.settings import namedtuplefy
-from drtsans.sensitivity_correction_patch import Detector
+from drtsans.detector import Detector
 import numpy as np
 
 __all__ = ['convert_to_q', 'convert_to_subpixels']

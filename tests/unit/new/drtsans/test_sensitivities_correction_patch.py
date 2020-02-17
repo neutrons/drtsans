@@ -13,6 +13,8 @@ def test_prepare_sensitivity(workspace_with_instrument):
     dev - Steven Hahn <hahnse@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>
     """
+    # Much of the code shown in the test is to provide a direct calculation for comparison between gold data specified
+    # in test case (in Excel) and calculated data from implementation.
 
     # Consider a flood field measurement giving the following counts.
     flood_field_measurement = np.array([[65, 68, 66, 75, 71, 68, 66, 70],

@@ -167,6 +167,7 @@ class Table:
         else:
             CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         ApplyCalibration(Workspace=output_workspace, CalibrationTable=self.table)
+        return mtd[output_workspace]
 
     def save(self, database=None, tablefile=None):
         enum_instrument = instrument_enum_name(self.instrument)
@@ -756,18 +757,13 @@ def apply_barscan_calibration(input_workspace, calibration, output_workspace=Non
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         Input workspace containing the original pixel positions and heights
     calibration: ~mantid.api.TableWorkspace
-        Table containing columns 'Detector ID', 'Detector Y Coordinate', and  'Detector Width'
+        Table containing columns 'Detector ID', 'Detector Y Coordinate', and  'Detector Width'.
     output_workspace: str
         Name of the workspace containing the updated pixel positions and pixel heights. If :py:obj:`None`, the name of
         ``input_workspace`` is used, therefore modifiying the input workspace. If not :py:obj:`None`, then a clone
          of ``input_workspace`` is produced, but with updated pixel positions and heights.
     """
-    if output_workspace is None:
-        output_workspace = str(input_workspace)  # pixel positions and heights to be updated for the input workspace
-    else:
-        # A new workspace identical to the input workspace except in regards to pixel  positions and heights.
-        CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-    calibration.apply(input_workspace, output_workspace=output_workspace)
+    return calibration.apply(input_workspace, output_workspace=output_workspace)
 
 
 def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True):
@@ -882,12 +878,8 @@ def apply_apparent_tube_width(input_workspace, calibration, output_workspace=Non
     ----------
     input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
         Input workspace, usually a flood run.
-    calibration: dict
-        Dictionary with the following required entries:
-        - instrument, str, Name of the instrument.
-        - component, str, name of the double detector array, usually "detector1".
-        - unit: str, the units for the positions and heights. Usually 'mm' for mili-meters.
-        - widths, list, A two-item list containing the apparent widths for the front and back tubes.
+    calibration: ~mantid.api.TableWorkspace
+        Table containing columns 'Detector ID', 'Detector Y Coordinate', and  'Detector Width'.
     output_workspace: str
         Optional name of the output workspace. if :py:obj:`None`, the name of ``input_workspace`` is used, thus
         calibrating the pixel widths of the input workspace.
@@ -899,19 +891,7 @@ def apply_apparent_tube_width(input_workspace, calibration, output_workspace=Non
     -------
     ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
     """
-    if output_workspace is None:
-        output_workspace = str(input_workspace)
-    else:
-        CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-
-    collection = TubeCollection(output_workspace, calibration['component']).sorted(view='decreasing X')
-    factor = 1.e-03 if calibration['unit'] == 'mm' else 1.0
-    front_width,  back_width = factor * np.array(calibration['widths'])
-
-    for tube_index, tube in enumerate(collection):
-        tube.pixel_widths = front_width if tube_index % 2 == 0 else back_width  # front tubes have an even index
-
-    return mtd[output_workspace]
+    return calibration.apply(input_workspace, output_workspace=output_workspace)
 
 
 """

@@ -220,13 +220,6 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
                                       **kwargs)
     else:
         delta_q = mod_q * 0.0
-    # account for masking and monitors
-    keep = info.keep.astype(bool)
-    lam = lam[keep, :].reshape(-1)
-    intensity = intensity[keep, :].reshape(-1)
-    error = error[keep, :].reshape(-1)
-    mod_q = mod_q[keep, :].reshape(-1)
-    delta_q = delta_q[keep, :].reshape(-1)
 
     return IQmod(intensity=intensity, error=error, mod_q=mod_q, delta_mod_q=delta_q, wavelength=lam)
 
@@ -290,15 +283,6 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     else:
         delta_qx = mod_q * 0.0
         delta_qy = delta_qx
-    # account for masking and monitors
-    keep = info.keep.astype(bool)
-    lam = lam[keep, :].reshape(-1)
-    intensity = intensity[keep, :].reshape(-1)
-    error = error[keep, :].reshape(-1)
-    qx = qx[keep, :].reshape(-1)
-    qy = qy[keep, :].reshape(-1)
-    delta_qx = delta_qx[keep, :].reshape(-1)
-    delta_qy = delta_qy[keep, :].reshape(-1)
 
     return IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy,
                        delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)

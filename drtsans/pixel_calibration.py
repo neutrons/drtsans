@@ -71,37 +71,6 @@ def day_stamp(input_workspace):
     return int(SampleLogs(input_workspace).start_time.value[0:10].replace('-', ''))
 
 
-def load_session(input_workspace, caltype, component='detector1', database=None, output_workspace=None):
-    r"""
-    Load a calibration session into a ~drtsans.pixel_calibration.Table object.
-
-    Parameters
-    ----------
-    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
-        Workspace from which calibration session is to be retrieved.
-    caltype: str
-        Either 'BARSCAN' or 'TUBEWIDTH'.
-    component: str
-        Name of one of the double detector array panels.
-    database: str
-        Path to database file containing the metadata for the calibrations. If :py:obj:`None`, the default database
-        is used.
-    output_workspace: str
-        Name of the table workspace containing the calibration session values. If :py:obj:`None`, then a composite
-        name is created using the calibration session, instrument, component, and daystamp. (e.g.
-        "barscan_gpsans_detector1_20200311")
-
-    Returns
-    -------
-    ~drtsans.pixel_calibration.Table
-    """
-    enum_instrument = instrument_enum_name(input_workspace)
-    if database is None:
-        database = database_file[enum_instrument]
-    return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
-                      output_workpace=output_workspace)
-
-
 class Table:
 
     @classmethod
@@ -383,66 +352,35 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
                 coefficients=coefficients)
 
 
-def load_calibration(instrument, run=None, component='detector1', database=None):
+def load_calibration(input_workspace, caltype, component='detector1', database=None, output_workspace=None):
     r"""
-    Load pixel calibration from the database.
+    Load a calibration session into a ~drtsans.pixel_calibration.Table object.
 
     Parameters
     ----------
-    instrument:str
-        Name of the instrument
-    run: int
-        Run number to resolve which calibration to use. If :py:obj:`None`, then the lates calibration will be used.
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        Workspace from which calibration session is to be retrieved.
+    caltype: str
+        Either 'BARSCAN' or 'TUBEWIDTH'.
     component: str
-        Name of the double panel detector array for which the calibration was performed
+        Name of one of the double detector array panels.
     database: str
-        Path to database. If :py:obj:`None`, the default database is used.
-
-    devs - Jose Borreguero <borreguerojm@ornl.gov>,
+        Path to database file containing the metadata for the calibrations. If :py:obj:`None`, the default database
+        is used.
+    output_workspace: str
+        Name of the table workspace containing the calibration session values. If :py:obj:`None`, then a composite
+        name is created using the calibration session, instrument, component, and daystamp. (e.g.
+        "barscan_gpsans_detector1_20200311")
 
     Returns
     -------
-    dict
-        Dictionary with the following entries:
-        - instrument, str, Name of the instrument.
-        - component, str, name of the double detector array, usually "detector1".
-        - run, int, run number associated to the calibration.
-        - unit: str, the units for the positions, heights, and widths. Usually to 'mm' for mili-meters.
-        - positions, list, List of Y-coordinate for each pixel.
-        - heights, list, List of pixel heights.
-        - widths, list, A two-item list containing the apparent widths for the front and back tubes.
+    ~drtsans.pixel_calibration.Table
     """
-    # Find entries with given instrument and component.
-    enum_instrument = instrument_enum_name(instrument)
+    enum_instrument = instrument_enum_name(input_workspace)
     if database is None:
         database = database_file[enum_instrument]
-    database_server = tinydb.TinyDB(database)
-    calibrations = tinydb.Query()
-
-    def find_matching_calibration(calibration_type_query):
-        matches = database_server.search(calibration_type_query &
-                                         (calibrations.instrument == enum_instrument.name) &
-                                         (calibrations.component == component))
-        if len(matches) == 0:
-            return {}  # no calibration is found
-        # Sort by decreasing run number and find appropriate calibration
-        matches = sorted(matches, key=lambda d: d['run'], reverse=True)
-        if run is None:
-            return matches[0]  # return latest calibration
-        else:
-            for i, match in enumerate(matches):
-                if run > match['run']:
-                    return matches[i-1]  # return first calibration with a smaller run number than the query run number
-                elif run == match['run']:
-                    return matches[i]  # strange corner case
-
-    # Find matching barscan calibration (pixel positions and heights)
-    calibration = find_matching_calibration(calibrations.heights)
-    # Find matching flat-field calibration (pixel widths) and update the calibration dictionary
-    calibration['widths'] = find_matching_calibration(calibrations.widths).get('widths', None)
-    database_server.close()
-
-    return calibration
+    return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
+                      output_workspace=output_workspace)
 
 
 def save_calibration(calibration, database=None):

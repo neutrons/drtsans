@@ -92,7 +92,6 @@ def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, weigh
     """
         Compute I(q) from corrected workspace
     """
-    print('!!!!!!!!!!!!!!!!!!!!!!! {}'.format(q_data.mod_q))
     q_min = np.min(q_data.mod_q)
     q_max = np.max(q_data.mod_q)
     if weighting:

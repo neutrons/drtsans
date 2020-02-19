@@ -115,6 +115,7 @@ class PrepareSensitivityCorrection(object):
         self._transmission_reference_runs = None
         self._transmission_flood_runs = None
         self._theta_dep_correction = False
+        self._biosans_beam_trap_factor = 2
 
         # Dark current
         self._dark_current_runs = None
@@ -129,10 +130,10 @@ class PrepareSensitivityCorrection(object):
         else:
             self._is_wing_detector = False
 
-        # BioSANS special application for
+        # BIO-SANS special application to
+        # mask the area around the direct beam to remove it and the associated parasitic scattering
         # Mask angles of wing detector pixels to be masked from beam center run.
         self._wing_det_mask_angle = None
-        # BioSANS special application for
         # Mask angles on main detector pixels to mask on beam center.
         self._main_det_mask_angle = None
 
@@ -256,16 +257,18 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
-    def set_transmission_correction(self, transmission_flood_runs, transmission_reference_run):
+    def set_transmission_correction(self, transmission_flood_runs, transmission_reference_run,
+                                    beam_trap_factor=2):
         """Set transmission beam run and transmission flood runs
 
         Parameters
         ----------
         transmission_flood_runs : int or tuple or list
             transmission flood runs
-
         transmission_reference_run : int or tuple or list
             transmission reference runs
+        beam_trap_factor : float, int
+            factor to beam trap size for masking angle
 
         Returns
         -------
@@ -284,6 +287,9 @@ class PrepareSensitivityCorrection(object):
             self._transmission_flood_runs = [transmission_flood_runs]
         else:
             self._transmission_flood_runs = list(transmission_flood_runs)
+
+        # Set the beam trap factor for transmission reference and flood run to mask angle
+        self._biosans_beam_trap_factor = beam_trap_factor
 
     def set_theta_dependent_correction_flag(self, flag):
         """Set the flag to do theta dep with transmission correction
@@ -688,7 +694,9 @@ class PrepareSensitivityCorrection(object):
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_workspace, Components='wing_detector')
-            MaskAngle(Workspace=transmission_workspace, MinAngle=2 * self._main_det_mask_angle, Angle="TwoTheta")
+            MaskAngle(Workspace=transmission_workspace,
+                      MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
+                      Angle="TwoTheta")
 
         # Load, mask default and pixels, normalize
         transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
@@ -703,7 +711,9 @@ class PrepareSensitivityCorrection(object):
         # Apply mask
         if self._instrument == CG3:
             apply_mask(transmission_flood_ws, Components='wing_detector')
-            MaskAngle(Workspace=transmission_flood_ws, MinAngle=2 * self._main_det_mask_angle, Angle="TwoTheta")
+            MaskAngle(Workspace=transmission_flood_ws,
+                      MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
+                      Angle="TwoTheta")
 
         # Zero-Angle Transmission Co-efficients
         calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]

@@ -82,7 +82,6 @@ def prepare_data(data,
         Reference to the events workspace
     """
     # TODO: missing detector_offset and sample_offset
-    output_workspace = str(data)
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix)
 
     # deal with sample_offset. positive offset is towards detector

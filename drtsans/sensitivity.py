@@ -10,13 +10,14 @@ https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html
 https://docs.mantidproject.org/nightly/algorithms/LoadNexusProcessed-v2.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectorsIf-v1.html
+https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
 from mantid.simpleapi import mtd, CloneWorkspace, CalculateEfficiency, \
     DeleteWorkspace, Divide, LoadNexusProcessed, MaskDetectors, \
-    MaskDetectorsIf, SaveNexusProcessed, \
+    MaskDetectorsIf, ReplaceSpecialValues, SaveNexusProcessed, \
     Integration, CreateWorkspace
 
 __all__ = ['load_sensitivity_workspace', 'apply_sensitivity_correction']
@@ -97,12 +98,8 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     MaskDetectors(Workspace=output_workspace,
                   MaskedWorkspace=sensitivity_workspace)
 
-    # additional masking dependent on threshold
-    temp_sensitivity = CloneWorkspace(InputWorkspace=sensitivity_workspace,
-                                      OutputWorkspace=uwn(prefix="__sensitivity_"))
-
-    # Process masked pixels in the sensitivities workspace, i.e., pixels with value NaN
-    min_threshold = process_masked_pixels(temp_sensitivity, min_threshold)
+    # nans in workspace to masked pixels
+    temp_sensitivity = mask_pixels_with_nan(sensitivity_workspace)
 
     if min_threshold is not None:
         MaskDetectorsIf(InputWorkspace=temp_sensitivity,
@@ -127,38 +124,33 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     return mtd[output_workspace]
 
 
-def process_masked_pixels(sensitivity_workspace, min_threshold):
-    """Convert data value of masked pixels (NaN) to a value less than min_threshold, for example, 0
-
-    If min_threshold is None, then set the  min_threshold to a reasonable small value, i.e., 1E-6 and
+def mask_pixels_with_nan(sensitivity_workspace):
+    """Mask pixels of data set to NaN.
 
     Parameters
     ----------
     sensitivity_workspace :  ~mantid.api.MatrixWorkspace
         sensitivity workspace
-    min_threshold : float or None
-        minimum threshold
 
     Returns
     -------
-    float
-        minimum threshold (new)
-
+    ~mantid.api.MatrixWorkspace
+        Workspace with the mask bit set
     """
-    # Process threshold
-    if min_threshold is None:
-        min_threshold = 1E-6
-        nan_value = 0
-    else:
-        nan_value = min(0., min_threshold - 1E-6)
+    # value to convert nans to as an intermediate step
+    BAD_PIXEL = 1.e10
 
-    # Loop through workspace
-    num_spec = sensitivity_workspace.getNumberHistograms()
-    for i_ws in range(num_spec):
-        if np.isnan(sensitivity_workspace.readY(i_ws)[0]):
-            sensitivity_workspace.dataX(i_ws)[0] = 1.
-            sensitivity_workspace.dataY(i_ws)[0] = nan_value
+    # convert nan's to non-physical value for sensitivity
+    temp_sensitivity = ReplaceSpecialValues(InputWorkspace=sensitivity_workspace,
+                                            OutputWorkspace=uwn(prefix="__sensitivity_"),
+                                            NaNValue=BAD_PIXEL)
 
-    return min_threshold
+    temp_sensitivity = MaskDetectorsIf(InputWorkspace=temp_sensitivity,
+                    Operator='GreaterEqual',
+                    Value=BAD_PIXEL,
+                    Mode='SelectIf',
+                    OutputWorkspace=temp_sensitivity)
+
+    return temp_sensitivity
 
 

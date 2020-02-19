@@ -44,9 +44,17 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
                                             ws_tr_direct,
                                             radius=cfg['transmission_radius'],
                                             radius_unit="mm")
+        # remove the temporary workspaces
+        ws_tr_sample.delete()
+        ws_tr_direct.delete()
 
-        ws = sans.apply_transmission_correction(ws,
-                                                trans_workspace=tr_ws)
+        # apply the calculation
+        ws = sans.apply_transmission_correction(ws, trans_workspace=tr_ws)
+
+        # remove transmission correction
+        if str(tr_ws) in msapi.mtd:  # protect against non-workspaces
+            tr_ws.delete()
+
     return ws
 
 
@@ -86,7 +94,7 @@ def reduction(json_params, config):
     try:
         absolute_scale = float(json_params["configuration"]["absoluteScale"])
     except ValueError:
-        absolute_scale = 1
+        absolute_scale = 1.
     sample_thickness = float(json_params["thickness"])
     ws /= sample_thickness
     ws *= absolute_scale

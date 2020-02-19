@@ -350,8 +350,11 @@ def calculate_sensitivity_correction(flood_run_ws_list, threshold_min, threshold
     sens_ws_name = 'sensitivities'
 
     # Create output workspace
-    nexus_ws = CreateWorkspace(DataX=vec_x, DataY=sens_array, DataE=sens_sigma_array,
-                               NSpec=num_spec, ParentWorkspace=flood_run_ws_list[0],
+    nexus_ws = CreateWorkspace(DataX=vec_x,
+                               DataY=sens_array,
+                               DataE=sens_sigma_array,
+                               NSpec=num_spec,
+                               UnitX='wavelength',
                                OutputWorkspace=sens_ws_name)
 
     # Do not Mask

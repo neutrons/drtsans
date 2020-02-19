@@ -52,6 +52,7 @@ WING_DET_MASK_ANGLE = 57.05
 # Corrections
 SOLID_ANGLE_CORRECTION = False
 TRANSMISSION_CORRECTION = True
+BEAM_TRAP_SIZE_FACTOR = 2   # For BIO-SANS masking angle only.
 # Flag to do dependent correction with transmission correction
 THETA_DEPENDENT_CORRECTION = True
 
@@ -98,7 +99,8 @@ else:
 # Transmission
 if TRANSMISSION_REFERENCE_RUNS is not None:
     preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
-                                         transmission_reference_run=TRANSMISSION_REFERENCE_RUNS)
+                                         transmission_reference_run=TRANSMISSION_REFERENCE_RUNS,
+                                         beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 
 # Dark runs

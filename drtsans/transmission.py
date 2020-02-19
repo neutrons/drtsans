@@ -103,8 +103,9 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
     # Notify of average transmission value
     average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.readY(0))
     average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.readE(0))
-    message = 'Average zero angle transmission = {0} +/- {1}'
-    logger.notice(message.format(average_zero_angle_transmission, average_zero_angle_transmission_error))
+    message = 'Average zero angle transmission = {0} +/- {1}'.format(average_zero_angle_transmission,
+                                                                     average_zero_angle_transmission_error)
+    logger.warning(message)
 
     # A bit of clean up
     sample_intensity_workspace.delete()

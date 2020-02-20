@@ -7,8 +7,9 @@ r"""
 Links to mantid algorithms
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html
+https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 """
-from mantid.simpleapi import SaveNexusProcessed, MaskAngle
+from mantid.simpleapi import SaveNexusProcessed, MaskAngle, Integration
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmask_utils.py
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
@@ -355,6 +356,12 @@ class PrepareSensitivityCorrection(object):
                                 solid_angle=False,
                                 **instrument_specific_param_dict)
 
+        if flood_ws.blocksize() != 1:
+            # More than 1 bins in spectra: do integration to single bin
+            # This is for EQSANS specially
+            # output workspace name shall be unique and thus won't overwrite any existing one
+            flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
+
         # Apply solid angle correction
         if self._solid_angle_correction:
             solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
@@ -608,6 +615,12 @@ class PrepareSensitivityCorrection(object):
             apply_mask(beam_center_workspace, Components='wing_detector')
             # mask 2-theta angle on main detector
             MaskAngle(Workspace=beam_center_workspace, MinAngle=self._wing_det_mask_angle, Angle="TwoTheta")
+        # elif self._instrument == EQSANS and beam_center_workspace.blocksize() != 1:
+        #     # More than 1 bins in spectra: do integration to single bin
+        #     # This is for EQSANS specially
+        #     # output workspace name shall be unique and thus won't overwrite any existing one
+        #     beam_center_workspace = Integration(InputWorkspace=beam_center_workspace,
+        #                                         OutputWorkspace=str(beam_center_workspace))
         # END-IF
 
         # Find detector center
@@ -729,6 +742,8 @@ class PrepareSensitivityCorrection(object):
             MaskAngle(Workspace=transmission_flood_ws,
                       MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
                       Angle="TwoTheta")
+        elif self._instrument == EQSANS:
+            raise RuntimeError('Never tested EQSANS with Transmission correction')
 
         # Zero-Angle Transmission Co-efficients
         calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]

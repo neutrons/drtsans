@@ -4,9 +4,8 @@ r""" Links to mantid algorithms
 CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
 Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
-LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
 """
-from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale, LoadEventNexus
+from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale
 
 r"""
 Hyperlinks to drtsans functions
@@ -163,9 +162,6 @@ def subtract_normalized_dark_current(input_workspace, dark_ws,
 
 def load_dark_current_workspace(dark_current_filename, output_workspace):
     """Loads dark current workspace. Useful to avoid multiple loads from disk.
-
-    **Mantid algorithms used:**
-    :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
 
     Parameters
     ----------

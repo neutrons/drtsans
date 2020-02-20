@@ -96,6 +96,7 @@ def prepare_data(data,
 
     # Dark current
     if dark_current is not None:
+        print('........ DARK DURRENT RUN: {}'.format(dark_current))
         dark_ws = load_events(dark_current, overwrite_instrument=True)
         dark_ws = transform_to_wavelength(dark_ws)
         subtract_dark_current(ws_name, dark_ws)

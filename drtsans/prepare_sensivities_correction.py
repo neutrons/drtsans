@@ -344,6 +344,10 @@ class PrepareSensitivityCorrection(object):
             # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
             flux_method = 'monitor'
 
+        # Determine dark current: None or INSTRUMENT_RUN
+        if dark_current_run is not None:
+            dark_current_run = '{}_{}'.format(self._instrument, dark_current_run)
+
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
         flood_ws = prepare_data(data='{}_{}'.format(self._instrument, self._flood_runs[index]),
@@ -351,7 +355,7 @@ class PrepareSensitivityCorrection(object):
                                 btp=self._extra_mask_dict,
                                 center_x=beam_center[0],
                                 center_y=beam_center[1],
-                                dark_current='{}_{}'.format(self._instrument, dark_current_run),
+                                dark_current=dark_current_run,
                                 flux_method=flux_method,
                                 solid_angle=False,
                                 **instrument_specific_param_dict)

@@ -1,4 +1,7 @@
-from mantid.plots.helperfunctions import get_spectrum
+try:
+    from mantid.plots.datafunctions import get_spectrum    # mantid >4.2
+except ImportError:
+    from mantid.plots.helperfunctions import get_spectrum  # mantid <=4.2
 from mantid.simpleapi import SaveCanSAS1D
 
 

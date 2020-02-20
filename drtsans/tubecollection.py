@@ -386,7 +386,6 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         if self.is_valid_tube(input_workspace.componentInfo(), component_info_index) is False:
             raise ValueError('The component index is not associated to a valid tube')
         self._pixels = list()
-        _detector_info = input_workspace.detectorInfo()
         SpectrumInfo.__init__(self, input_workspace, workspace_indexes)
         ElementComponentInfo.__init__(self, input_workspace.componentInfo(), component_info_index)
 

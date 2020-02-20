@@ -357,19 +357,20 @@ class PrepareSensitivityCorrection(object):
                                 center_y=beam_center[1],
                                 dark_current=dark_current_run,
                                 flux_method=flux_method,
-                                solid_angle=False,
+                                solid_angle=self._solid_angle_correction,
                                 **instrument_specific_param_dict)
 
+        # Integration all the wavelength for EQSANS
         if flood_ws.blocksize() != 1:
             # More than 1 bins in spectra: do integration to single bin
             # This is for EQSANS specially
             # output workspace name shall be unique and thus won't overwrite any existing one
             flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
 
-        # Apply solid angle correction
-        if self._solid_angle_correction:
-            solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
-            flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
+        # # Apply solid angle correction
+        # if self._solid_angle_correction:
+        #     solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
+        #     flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
 
         return flood_ws
 
@@ -434,8 +435,8 @@ class PrepareSensitivityCorrection(object):
                 # Patch detector method: Pixels that have not been masked as bad pixels, but have been
                 # identified as needing to have values set by the patch applied. To identify them, the
                 # value is set to -INF.
-                flood_workspace.dataY(i)[0] = -np.NINF
-                flood_workspace.dataE(i)[0] = -np.NINF
+                flood_workspace.dataY(i)[0] = np.NINF
+                flood_workspace.dataE(i)[0] = np.NINF
             elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Logic error: impossible case
                 raise RuntimeError('Impossible case')
@@ -471,7 +472,9 @@ class PrepareSensitivityCorrection(object):
         # Load beam center runs and calculate beam centers
         beam_centers = list()
         for i in range(num_workspaces_set):
-            beam_centers.append(self._calculate_beam_center(i))
+            beam_center_i = self._calculate_beam_center(i)
+            beam_centers.append(beam_center_i)
+            print('[DEBUG] Beam center ({}-th) = {}'.format(i, beam_center_i))
 
         # Set default value to dark current runs
         if self._dark_current_runs is None:
@@ -480,15 +483,16 @@ class PrepareSensitivityCorrection(object):
         # Load and process flood data with (1) mask (2) center detector and (3) solid angle correction
         flood_workspaces = list()
         for i in range(num_workspaces_set):
-            flood_workspaces.append(self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i]))
+            flood_ws_i = self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i])
+            flood_workspaces.append(flood_ws_i)
 
         # Retrieve masked detectors
         if not use_moving_detector_method:
-            det_mask_list = list()
+            bad_pixels_list = list()
             for i in range(num_workspaces_set):
-                det_mask_list.append(self._get_masked_detectors(flood_workspaces[i]))
+                bad_pixels_list.append(self._get_masked_detectors(flood_workspaces[i]))
         else:
-            det_mask_list = [None] * num_workspaces_set
+            bad_pixels_list = [None] * num_workspaces_set
 
         # Mask beam centers
         for i in range(num_workspaces_set):
@@ -505,18 +509,18 @@ class PrepareSensitivityCorrection(object):
 
         # Set the masked pixels' counts to nan and -infinity
         for i in range(num_workspaces_set):
-            flood_workspaces[i] = self._set_mask_value(flood_workspaces[i], det_mask_list[i],
+            flood_workspaces[i] = self._set_mask_value(flood_workspaces[i], bad_pixels_list[i],
                                                        use_moving_detector_method)
 
-        print('Preparation of data is over....')
-        print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
-        print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
+        # Final debug output
+        for i in range(num_workspaces_set):
+            debug_output(flood_workspaces[i], 'Final_Food_{}.nxs'.format(i))
 
-        # DEBUG OUTPUT
-        for i in range(len(flood_workspaces)):
-            workspace = flood_workspaces[i]
-            output_file = 'Step_JustBefore_{}.nxs'.format(str(workspace))
-            debug_output(workspace, output_file)
+        print('Preparation of data is over....')
+        print('{}: Number of infinities = {}'.format(str(flood_workspaces[0]),
+                                                     len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
+        print('{}: Number of NaNs       = {}'.format(str(flood_workspaces[0]),
+                                                     len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
 
         # Decide algorithm to prepare sensitivities
         if self._instrument in [CG2, CG3] and use_moving_detector_method is True:
@@ -619,20 +623,10 @@ class PrepareSensitivityCorrection(object):
             apply_mask(beam_center_workspace, Components='wing_detector')
             # mask 2-theta angle on main detector
             MaskAngle(Workspace=beam_center_workspace, MinAngle=self._wing_det_mask_angle, Angle="TwoTheta")
-        # elif self._instrument == EQSANS and beam_center_workspace.blocksize() != 1:
-        #     # More than 1 bins in spectra: do integration to single bin
-        #     # This is for EQSANS specially
-        #     # output workspace name shall be unique and thus won't overwrite any existing one
-        #     beam_center_workspace = Integration(InputWorkspace=beam_center_workspace,
-        #                                         OutputWorkspace=str(beam_center_workspace))
-        # END-IF
 
         # Find detector center
         find_beam_center = FIND_BEAM_CENTER[self._instrument]
         beam_center = find_beam_center(beam_center_workspace)
-
-        print('DEBUG: {} beam centers: {}'.format(index, beam_center))
-        debug_output(beam_center_workspace, output_file='BeamCenter_{}.nxs'.format(beam_center_run))
 
         return beam_center
 

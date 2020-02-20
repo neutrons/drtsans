@@ -4,9 +4,8 @@ r""" Links to mantid algorithms
 CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
 Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
-LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
 """
-from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale, LoadEventNexus
+from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale
 
 r"""
 Hyperlinks to drtsans functions
@@ -21,6 +20,7 @@ from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs
 from drtsans.dark_current import duration, counts_in_detector
+from drtsans.tof.eqsans.load import load_events
 
 __all__ = ['subtract_dark_current', 'load_dark_current_workspace', 'normalize_dark_current']
 
@@ -163,9 +163,6 @@ def subtract_normalized_dark_current(input_workspace, dark_ws,
 def load_dark_current_workspace(dark_current_filename, output_workspace):
     """Loads dark current workspace. Useful to avoid multiple loads from disk.
 
-    **Mantid algorithms used:**
-    :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
-
     Parameters
     ----------
     dark_current_filename: str
@@ -176,7 +173,7 @@ def load_dark_current_workspace(dark_current_filename, output_workspace):
     if (isinstance(dark_current_filename, str) and exists(dark_current_filename)) \
             or isinstance(dark_current_filename, int):
         with amend_config({'default.instrument': 'EQSANS'}):
-            LoadEventNexus(Filename=dark_current_filename, OutputWorkspace=output_workspace)
+            load_events(run=dark_current_filename, output_workspace=output_workspace)
     else:
         message = 'Unable to find or load the dark current {}'.format(dark_current_filename)
         raise RuntimeError(message)

@@ -7,8 +7,9 @@ r"""
 Links to mantid algorithms
 https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html
+https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 """
-from mantid.simpleapi import SaveNexusProcessed, MaskAngle
+from mantid.simpleapi import SaveNexusProcessed, MaskAngle, Integration
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmask_utils.py
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
@@ -335,7 +336,17 @@ class PrepareSensitivityCorrection(object):
         if self._instrument in [CG2, CG3]:
             instrument_specific_param_dict['overwrite_instrument'] = False
 
-        print('DARK CURRENT RUN : {}.    type: {}'.format(dark_current_run, type(dark_current_run)))
+        # Determine normalization method
+        if self._instrument == EQSANS:
+            # EQSANS requirs additional file with flux_method.  So set flux_method to None
+            flux_method = None
+        else:
+            # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
+            flux_method = 'monitor'
+
+        # Determine dark current: None or INSTRUMENT_RUN
+        if dark_current_run is not None:
+            dark_current_run = '{}_{}'.format(self._instrument, dark_current_run)
 
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
@@ -345,9 +356,15 @@ class PrepareSensitivityCorrection(object):
                                 center_x=beam_center[0],
                                 center_y=beam_center[1],
                                 dark_current=dark_current_run,
-                                flux_method='monitor',
+                                flux_method=flux_method,
                                 solid_angle=False,
                                 **instrument_specific_param_dict)
+
+        if flood_ws.blocksize() != 1:
+            # More than 1 bins in spectra: do integration to single bin
+            # This is for EQSANS specially
+            # output workspace name shall be unique and thus won't overwrite any existing one
+            flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
 
         # Apply solid angle correction
         if self._solid_angle_correction:
@@ -399,6 +416,7 @@ class PrepareSensitivityCorrection(object):
         # Complete mask array.  Flood workspace has been processed by set_uncertainties.  Therefore all the masked
         # pixels' uncertainties are zero, which is different from other pixels
         total_mask_array = flood_workspace.extractE() < 1E-6
+        print('.........................{}'.format(total_mask_array.shape))
 
         # Loop through each detector pixel to check its masking state to determine whether its value shall be
         # set to NaN, -infinity or not changed (i.e., for pixels without mask)
@@ -412,13 +430,13 @@ class PrepareSensitivityCorrection(object):
                 # Patch detector method: Masked as the bad pixels and thus set to NaN
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
-            elif total_mask_array[i]:
+            elif total_mask_array[i][0]:
                 # Patch detector method: Pixels that have not been masked as bad pixels, but have been
                 # identified as needing to have values set by the patch applied. To identify them, the
                 # value is set to -INF.
                 flood_workspace.dataY(i)[0] = -np.NINF
                 flood_workspace.dataE(i)[0] = -np.NINF
-            elif not total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
+            elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Logic error: impossible case
                 raise RuntimeError('Impossible case')
         # END-FOR
@@ -579,10 +597,18 @@ class PrepareSensitivityCorrection(object):
             # HFIR spedific
             instrument_specific_param_dict['overwrite_instrument'] = False
 
+        # Determine normalization method
+        if self._instrument == EQSANS:
+            # EQSANS requirs additional file with flux_method.  So set flux_method to None
+            flux_method = None
+        else:
+            # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
+            flux_method = 'monitor'
+
         beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
                                              mask=self._default_mask,
                                              btp=self._extra_mask_dict,
-                                             flux_method='monitor',
+                                             flux_method=flux_method,
                                              solid_angle=False,
                                              output_workspace='BC_{}_{}'.format(self._instrument,
                                                                                 beam_center_run),
@@ -593,6 +619,12 @@ class PrepareSensitivityCorrection(object):
             apply_mask(beam_center_workspace, Components='wing_detector')
             # mask 2-theta angle on main detector
             MaskAngle(Workspace=beam_center_workspace, MinAngle=self._wing_det_mask_angle, Angle="TwoTheta")
+        # elif self._instrument == EQSANS and beam_center_workspace.blocksize() != 1:
+        #     # More than 1 bins in spectra: do integration to single bin
+        #     # This is for EQSANS specially
+        #     # output workspace name shall be unique and thus won't overwrite any existing one
+        #     beam_center_workspace = Integration(InputWorkspace=beam_center_workspace,
+        #                                         OutputWorkspace=str(beam_center_workspace))
         # END-IF
 
         # Find detector center
@@ -714,6 +746,8 @@ class PrepareSensitivityCorrection(object):
             MaskAngle(Workspace=transmission_flood_ws,
                       MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
                       Angle="TwoTheta")
+        elif self._instrument == EQSANS:
+            raise RuntimeError('Never tested EQSANS with Transmission correction')
 
         # Zero-Angle Transmission Co-efficients
         calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]

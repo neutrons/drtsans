@@ -10,11 +10,31 @@ import drtsans  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
+from drtsans.instruments import extract_run_number #noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.tof.eqsans import cfg  # noqa E402
 from common_utils import get_Iqxqy  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.path import registered_workspace # noqa E402
+
+
+
+def _represents_int(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
+def _get_configuration_file_parameters(sample_run):
+    try:
+        configuration_file_parameters = cfg.load_config(source=sample_run)
+    except RuntimeError as e:
+        msapi.logger.error(e)
+        msapi.logger.warning('Not using previous configuration')
+        configuration_file_parameters = {}
+    return configuration_file_parameters
 
 
 if __name__ == "__main__":
@@ -32,12 +52,11 @@ if __name__ == "__main__":
 
     output_file = json_params["outputFilename"]
     sample_run = json_params["runNumber"]
-    try:
-        configuration_file_parameters = cfg.load_config(source=sample_run)
-    except RuntimeError as e:
-        msapi.logger.error(e)
-        msapi.logger.warning('Not using previous configuration')
-        configuration_file_parameters = {}
+    if _represents_int(sample_run):
+        configuration_file_parameters = _get_configuration_file_parameters(sample_run)
+    else:
+        configuration_file_parameters = _get_configuration_file_parameters(extract_run_number(sample_run))
+
     # set up the configuration for the prepare_data arguments
     # prepare_data(data, detector_offset=0, sample_offset=0,
     #               bin_width=0.1, low_tof_clip =500, high_tof_clip=2000,

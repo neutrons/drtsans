@@ -653,6 +653,8 @@ class PrepareSensitivityCorrection(object):
             flux_method = 'monitor'
 
         beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
+                                             center_x=0.,  # force to not to center
+                                             center_y=0.,
                                              mask=self._default_mask,
                                              btp=self._extra_mask_dict,
                                              flux_method=flux_method,

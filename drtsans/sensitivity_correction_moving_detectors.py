@@ -357,8 +357,4 @@ def calculate_sensitivity_correction(flood_run_ws_list, threshold_min, threshold
                                UnitX='wavelength',
                                OutputWorkspace=sens_ws_name)
 
-    # Do not Mask
-    # masked_ws_list = np.where(np.isnan(sens_array))[0]
-    # MaskDetectors(Workspace=sens_ws_name, WorkspaceIndexList=masked_ws_list)
-
     return nexus_ws

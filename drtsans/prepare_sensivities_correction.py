@@ -9,7 +9,8 @@ https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 """
-from mantid.simpleapi import SaveNexusProcessed, MaskAngle, Integration
+from mantid.simpleapi import SaveNexusProcessed, MaskAngle, Integration, LoadInstrument, MaskDetectors
+from mantid.api import mtd
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmask_utils.py
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
@@ -559,7 +560,49 @@ class PrepareSensitivityCorrection(object):
                                                        component_name=detector)
 
         # Export
-        SaveNexusProcessed(InputWorkspace=sens_ws, Filename=output_nexus_name)
+        self._export_sensitivity(sens_ws, output_nexus_name)
+
+    def _export_sensitivity(self, sensitivity_ws, output_nexus_name):
+        """Process and export sensitivities to a processed NeXus file
+
+        Parameters
+        ----------
+        sensitivity_ws :  ~mantid.api.MatrixWorkspace
+            MatrixWorkspace containing sensitivity and error
+        output_nexus_name : str
+            Output NeXus file  name
+
+        Returns
+        -------
+        None
+
+        """
+        # Load instrument
+        instrument_name = {CG2: 'GPSANS',
+                           CG3: 'BIOSANS',
+                           EQSANS: 'EQSANS'}[self._instrument]
+
+        ws_name = str(sensitivity_ws)
+        LoadInstrument(Workspace=ws_name,
+                       InstrumentName=instrument_name,
+                       RewriteSpectraMap=True)
+
+        # Mask detectors
+        sensitivity_ws = mtd[ws_name]
+        mask_ws_indexes = list()
+        for iws in range(sensitivity_ws.getNumberHistograms()):
+            # get the workspace with -infinity or NaN for masking
+            if np.isnan(sensitivity_ws.readY(iws)[0]) or np.isinf(sensitivity_ws.readY(iws)[0]):
+                mask_ws_indexes.append(iws)
+        MaskDetectors(Workspace=sensitivity_ws, WorkspaceIndexList=mask_ws_indexes)
+
+        # Set all the mask values to NaN
+        sensitivity_ws = mtd[ws_name]
+        for iws in mask_ws_indexes:
+            sensitivity_ws.dataY(iws)[0] = np.nan
+
+        # Save
+        SaveNexusProcessed(InputWorkspace=sensitivity_ws, Filename=output_nexus_name)
 
     def _calculate_beam_center(self, index):
         """Find beam centers for all flood runs

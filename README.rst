@@ -20,6 +20,26 @@ For end users go to `next version <http://shaman.ornl.gov/>`_ or
 Use `jupyter <https://jupyter.sns.gov/>`_ to have a play with the code.
 The kernel to select is ``sans at ...``.
 
+One can run scripts directly on `analysis <https://analysis.sns.gov/>`_ cluster.
+To do that, open a terminal and activate the desired conda environment. The options are:
+
+* ``sans`` the latest stable release
+* ``sans-qa`` the future stable release (to be tested right before the next iteration)
+* ``sans-dev`` the latest development version
+
+To activate these environments type the following command
+
+.. code-block:: shell
+
+   $ source /SNS/software/miniconda2/bin/activate sans-dev
+
+At the end of the session, to get back to regular python, just type
+
+.. code-block:: shell
+
+   $ source /SNS/software/miniconda2/bin/deactivate sans-dev
+
+
 One must have an XCAMS account to use either shaman or the jupyter kernel provided above.
 
 -------------------------------------
@@ -37,6 +57,7 @@ and Docker is required to follow these instructions.
 3. Run the script with ``sudo bash sans-backend-run.sh -h`` to see the help menu.
 
 Current options include:
+
 * ``-i`` launches a bash shell
 * ``-u`` forces an update of the application
 * ``-h`` prints the help message

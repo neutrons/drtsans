@@ -170,10 +170,10 @@ def prepare_data(data,
     if flux_method is not None:
         kw = dict(method=flux_method)
         if flux_method == 'monitor':
-            monitor_workspace = output_workspace + '_monitors'
+            monitor_workspace = str(output_workspace) + '_monitors'
             prepare_monitors(data, bin_width=bin_width,
                              output_workspace=monitor_workspace)
-            kw['monitor_workspace='] = monitor_workspace
+            kw['monitor_workspace'] = monitor_workspace
         output_workspace = normalize_by_flux(output_workspace, flux, **kw)
 
     if isinstance(output_workspace, str):

@@ -21,6 +21,7 @@ from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs
 from drtsans.dark_current import duration, counts_in_detector
+from drtsans.tof.eqsans.load import load_events
 
 __all__ = ['subtract_dark_current', 'load_dark_current_workspace', 'normalize_dark_current']
 
@@ -176,7 +177,7 @@ def load_dark_current_workspace(dark_current_filename, output_workspace):
     if (isinstance(dark_current_filename, str) and exists(dark_current_filename)) \
             or isinstance(dark_current_filename, int):
         with amend_config({'default.instrument': 'EQSANS'}):
-            LoadEventNexus(Filename=dark_current_filename, OutputWorkspace=output_workspace)
+            load_events(run=dark_current_filename, output_workspace=output_workspace)
     else:
         message = 'Unable to find or load the dark current {}'.format(dark_current_filename)
         raise RuntimeError(message)

@@ -10,13 +10,12 @@ import drtsans  # noqa E402
 from drtsans.tof import eqsans  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
-from drtsans.instruments import extract_run_number #noqa E402
+from drtsans.instruments import extract_run_number # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.tof.eqsans import cfg  # noqa E402
 from common_utils import get_Iqxqy  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.path import registered_workspace # noqa E402
-
 
 
 def _represents_int(s):

@@ -23,9 +23,8 @@ namedtuplefy, unique_workspace_dundername
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
-from drtsans.pixel_calibration import (apply_apparent_tube_width, apply_barscan_calibration,
-                                       calculate_apparent_tube_width, calculate_barscan_calibration,
-                                       find_edges, fit_positions, load_calibration, load_and_apply_pixel_calibration)
+from drtsans.pixel_calibration import (apply_calibrations, calculate_apparent_tube_width,
+                                       calculate_barscan_calibration, find_edges, fit_positions, load_calibration)
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tubecollection import TubeCollection
@@ -153,20 +152,20 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
                               uncertainties=np.sqrt(intensities), view='array', axis_units='wavelength',
                               output_workspace=flood_workspace)
     SampleLogs(flood_workspace).insert('run_number', 42)  # The flood run will have some run number, which is required
-
+    SampleLogs(flood_workspace).insert('start_time', '2020-02-19T17:03:29.554116982')  # a start time is required
     # Calculate apparent tube widths using the pixel positions and heights of `flood_workspace` instesad of
     # retrieving them from the pixel-calibration database
-    modified_flood_workspace = unique_workspace_dundername()
     calibration = calculate_apparent_tube_width(flood_workspace, load_barscan_calibration=False)
-    # M modify the pixel widths in the instrument object embedded in the workspace. We save the modifications to a
+    # Modify the pixel widths in the instrument object embedded in the workspace. We save the modifications to a
     # new workspace
-    apply_apparent_tube_width(flood_workspace, calibration, output_workspace=modified_flood_workspace)
+    modified_flood_workspace = unique_workspace_dundername()  # new workspace
+    calibration.apply(flood_workspace, output_workspace=modified_flood_workspace)
 
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
     collection = TubeCollection(modified_flood_workspace, 'detector1').sorted(view='decreasing X')
     last_tube_index = len(collection) - 1  # number of tubes, minus one because indexes begin at zero, not one
-    last_pixel_index = len(collection[0]) - 1  # number of pixels in each tube, minus one
+    last_pixel_index = len(collection[last_tube_index]) - 1  # number of pixels in each tube, minus one
 
     # compare the width of the first pixel in the first tube to the test data
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
@@ -175,7 +174,7 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
 
     # We do the same but now we overwrite the instrument embedded in the input workspace
     calibration = calculate_apparent_tube_width(flood_workspace, load_barscan_calibration=False)
-    apply_apparent_tube_width(flood_workspace, calibration)
+    calibration.apply(flood_workspace)
     collection = TubeCollection(flood_workspace, 'detector1').sorted(view='decreasing X')
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
     last_tube_index = len(collection) - 1  # number of tubes, minus one because indexes begin at zero, not one
@@ -268,6 +267,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
         AddSampleLog(Workspace=workspace, LogName='dcal_Readback', LogText=str(dcal), LogType='Number Series',
                      LogUnit='mm')
         SampleLogs(workspace).insert('run_number', random.randint(1, 999))
+        SampleLogs(workspace).insert('start_time', '2020-02-19T17:03:29.554116982')  # a start time is required
         filename = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
         cleanfile(filename)
         SaveNexus(InputWorkspace=workspace, Filename=filename)
@@ -294,14 +294,13 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 
-    # Let's do the whole calibration. The result is a calibration dictionary that looks like this:
-    # {'positions': [y0,..,y19], 'heights': [h0,..,h19]}}
+    # Let's do the whole calibration. The result is a Table object
     calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula='565 + {y}')
-    assert np.array(calibration['positions']) == pytest.approx(data.positions, abs=data.precision)
-    assert np.array(calibration['heights']) == pytest.approx(data.heights, abs=data.precision)
+    assert 1000 * np.array(calibration.positions) == pytest.approx(data.positions.ravel(), abs=data.precision)
+    assert 1000 * np.array(calibration.heights) == pytest.approx(data.heights.ravel(), abs=data.precision)
 
     # Let's use the pixel positions and heights to update our temporary workspace
-    apply_barscan_calibration(workspace, calibration)
+    calibration.apply(workspace)
     # Now verify the pixels positions and heights in the workspace have indeed been updated
     collection = TubeCollection(workspace, component_name='detector1').sorted(view='decreasing X')
     positions, heights = list(), list()
@@ -313,14 +312,17 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
 
 @pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
-def test_calculate_barscan_calibration_2(reference_dir):
-    r"""Calculate pixel positions and heights from a bar scan, then compare to a previous calculation"""
+def test_calculate_GPSANS_barscan(reference_dir):
+    r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     barscan_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')
     calibration = calculate_barscan_calibration(barscan_file)  # calibration object
     database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
-    saved_calibration = load_calibration(instrument='CG2', run=7465, database=database_file)
-    assert saved_calibration['positions'] == pytest.approx(calibration['positions'], abs=0.1)
-    assert saved_calibration['heights'] == pytest.approx(calibration['heights'], abs=0.01)
+    table_worskpace = unique_workspace_dundername()
+    saved_calibration = load_calibration(barscan_file, 'BARSCAN', database=database_file,
+                                         output_workspace=table_worskpace)
+    assert calibration.positions == pytest.approx(saved_calibration.positions, abs=0.1)
+    assert calibration.heights == pytest.approx(saved_calibration.heights, abs=0.01)
+    DeleteWorkspace(table_worskpace)
 
 
 @pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
@@ -333,8 +335,9 @@ def test_load_and_apply_pixel_calibration(reference_dir):
     # Load and apply the saved calibration
     calibrated_workspace = unique_workspace_dundername()
     database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
-    load_and_apply_pixel_calibration(uncalibrated_workspace, output_workspace=calibrated_workspace,
-                                     database=database_file)
+    apply_calibrations(uncalibrated_workspace, database=database_file, calibrations='BARSCAN',
+                       output_workspace=calibrated_workspace)
+
     # Assert the positions and heights have been correctly assigned for some pixels
     tube = TubeCollection(calibrated_workspace, 'detector1').sorted(view='decreasing X')[42]
     assert 1.e3 * tube.pixel_y[0:3] == pytest.approx([-521.5, -516.9, -512.3], abs=0.1)  # units in mili-meters

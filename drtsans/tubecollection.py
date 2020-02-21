@@ -8,6 +8,22 @@ from mantid.kernel import V3D
 from mantid.api import mtd
 
 
+def unpack_v3d(function, *args):
+    r"""
+    if the return value of ```function(args)``` is a V3D object, then cast to numpy.ndarray and return,
+    otherwise return ```function(*args)```
+
+    Parameters
+    ----------
+    function: function
+        Callable receiving argument ```index``` and returning a V3D object.
+    args: list
+        Arguments to be passed to function.
+    """
+    result = function(*args)
+    return np.array([result.X(), result.Y(), result.Z()]) if isinstance(result, V3D) else result
+
+
 def _decrement_arity(attribute, index):
     r"""
     Decrement the arity of callable ``attribute`` by either evaluating this function, or creating a partial
@@ -42,14 +58,12 @@ def _decrement_arity(attribute, index):
                     last_index = i
                     break
             parameters = doc_string[first_index: last_index].split(',')
-            if parameters[0][-4:] == 'self':  # `attribute` is a bound method
+            if parameters[0][-4:] in ('self', 'arg1'):  # `attribute` is a bound method
                 parameters.pop()
         if len(parameters) == 0:
-            result = attribute()  # attribute is a function of no arguments
-            return np.array(result) if isinstance(result, V3D) else result
+            return unpack_v3d(attribute)  # attribute is a function of no arguments
         if len(parameters) == 1:
-            result = attribute(index)  # attribute is a function of only one argument
-            return np.array(result) if isinstance(result, V3D) else result  # who wants to handle V3D objects?
+            return unpack_v3d(attribute, index)  # attribute is a function of one argument
         return functools.partial(attribute, index)  # attribute is a function of more than one argument
     return attribute  # nothing to do is `attribute` is not callable
 
@@ -263,17 +277,22 @@ class PixelSpectrum(ElementComponentInfo, SpectrumInfo):
             return super().__getattr__(item)  # next class in the Method Resolution Order, (SpectrumInfo.__getattr__)
 
     @property
+    def detector_id(self):
+        # remember that the componentInfo index is the same as the detectorInfo index
+        return self.detectorIDs[self.component_info_index]
+
+    @property
     def position(self):
-        r"""Cartesian coordinates of the pixel detector.
+        r"""Cartesian coordinates of the pixel detector. Overrides componentInfo().position
 
         Coordinates typically correspond to the center of a cuboid detector, or the center for the base of a
         cylindrical pixel.
         """
-        return np.array(self._component_info.position(self.component_info_index))
+        return unpack_v3d(self._component_info.position, self.component_info_index)
 
     @position.setter
     def position(self, xyz):
-        r"""Update the coordinates of the pixel
+        r"""Update the coordinates of the pixel. Can be used in place of componentInfo().setPosition
 
         Parameters
         ----------
@@ -369,6 +388,10 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         self._pixels = list()
         SpectrumInfo.__init__(self, input_workspace, workspace_indexes)
         ElementComponentInfo.__init__(self, input_workspace.componentInfo(), component_info_index)
+
+    @property
+    def detector_ids(self):
+        return [pixel.detector_id for pixel in self.pixels]
 
     @property
     def pixels(self):

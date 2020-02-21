@@ -46,7 +46,6 @@ from ..normalization import *
 
 from .api import *
 from .beam_finder import *  # overrides drtsans.beam_finder
-from .pixel_calibration import *  # overrides drtsans.pixel_calibration
 
 
 __all__ = [] + drtsans.absolute_units.__all__\
@@ -64,5 +63,4 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.mono.momentum_transfer.__all__\
           + drtsans.mono.normalization.__all__ \
           + api.__all__\
-          + beam_finder.__all__\
-          + pixel_calibration.__all__
+          + beam_finder.__all__

@@ -500,7 +500,7 @@ class PrepareSensitivityCorrection(object):
             flood_workspaces[i] = self._mask_beam_center(flood_workspaces[i], beam_centers[i])
 
         # Transmission correction as an option
-        if self._instrument == CG3 and self._transmission_reference_runs is not None and not self._is_wing_detector:
+        if self._instrument == CG3 and self._transmission_reference_runs is not None:
             # Must have transmission run specified and cannot be wing detector (of CG3)
             for i in range(num_workspaces_set):
                 flood_workspaces[i] = self._apply_transmission_correction(flood_workspaces[i],

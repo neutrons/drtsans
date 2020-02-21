@@ -10,7 +10,7 @@ from mantid.kernel import logger
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
-from drtsans import solid_angle_correction
+from drtsans.solid_angle import solid_angle_correction
 
 __all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans namespace
 

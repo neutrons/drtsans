@@ -38,7 +38,7 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws, d
     input_reference_ws = LoadHFIRSANS(Filename=gpsans_full_dataset['sample_transmission'])
     MoveInstrumentComponent(Workspace=input_reference_ws, ComponentName='detector1', X=-x, Y=-y)
     trans = calculate_transmission(input_sample_ws, input_reference_ws)
-    assert trans.readY(0)[0] == approx(0.1022, abs=1e-4)
+    assert trans.readY(0)[0] == approx(0.1024, abs=1e-4)
     assert trans.readE(0)[0] == approx(0.0130, abs=1e-4)
 
 

@@ -66,9 +66,13 @@ def _saveFile(figure, filename, backend, show=False):
         available if the :py:obj:`~Backend.MPLD3` backend is selected.
     '''
     if backend == Backend.MATPLOTLIB:
-        figure.savefig(filename)
+        if filename:
+            figure.savefig(filename)
         if show:
-            raise RuntimeError('Cannot show data with matplotlib backend')
+            if 'inline' in matplotlib.get_backend():  # ipython notebook
+                figure.show()
+            else:
+                raise RuntimeError('Cannot show data with matplotlib backend')
     else:
         if not filename.endswith('json'):
             raise RuntimeError('File "{}" must have ".json" suffix'.format(filename))

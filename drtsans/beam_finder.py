@@ -16,7 +16,7 @@ __all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans name
 
 
 def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={},
-                     centering_options={}, solid_angle_correction_flag=True):
+                     centering_options={}, solid_angle_method='VerticalTube'):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.
     Usually employed for a direct beam run (no sample and not sample holder).
@@ -37,7 +37,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         Additional arguments to be passed on to ~drtsans.mask_utils.mask_apply.
     centering_options: dict
         Arguments to be passed on to the centering method.
-    solid_angle_correction_flag: bool, flag to specify if sold angle correction is needed
+    solid_angle_method: bool, str, specify which solid angle correction is needed
 
     Returns
     -------
@@ -55,8 +55,8 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         mask_workspace = apply_mask(flat_ws, mask=mask, **mask_options)
         mask_workspace.delete()  # we don't need the mask workspace so keep it clean
 
-    if solid_angle_correction_flag:
-        solid_angle_correction(flat_ws)
+    if solid_angle_method:
+        solid_angle_correction(flat_ws, detector_type=solid_angle_method)
 
     # find center of mass position
     center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)

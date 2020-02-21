@@ -2,13 +2,10 @@ r""" Links to mantid algorithms
 FindCenterOfMassPosition <https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v1.html>
 Integration              <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
 MoveInstrumentComponent  <https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html>
-CreateWorkspace          <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 DeleteWorkspace          <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 """
-from mantid.simpleapi import FindCenterOfMassPosition, Integration, MoveInstrumentComponent, CreateWorkspace, \
-    DeleteWorkspace
+from mantid.simpleapi import FindCenterOfMassPosition, Integration, MoveInstrumentComponent, DeleteWorkspace
 from mantid.kernel import logger
-import numpy as np
 
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername as uwd

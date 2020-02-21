@@ -46,7 +46,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     # should be (0, 0) now.
     #
     center_detector(ws, center_x=x0, center_y=y0)
-    assert find_beam_center(ws) == pytest.approx((0, 0), abs=1e-03)
+    assert find_beam_center(ws) == pytest.approx((0, 0), abs=2e-01)
 
 
 if __name__ == '__main__':

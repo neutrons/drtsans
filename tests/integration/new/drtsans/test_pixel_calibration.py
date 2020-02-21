@@ -312,14 +312,17 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
 
 @pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
-def test_calculate_barscan_calibration_2(reference_dir):
-    r"""Calculate pixel positions and heights from a bar scan, then compare to a previous calculation"""
+def test_calculate_GPSANS_barscan(reference_dir):
+    r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     barscan_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')
     calibration = calculate_barscan_calibration(barscan_file)  # calibration object
     database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
-    saved_calibration = load_calibration(instrument='CG2', run=7465, database=database_file)
-    assert saved_calibration['positions'] == pytest.approx(calibration['positions'], abs=0.1)
-    assert saved_calibration['heights'] == pytest.approx(calibration['heights'], abs=0.01)
+    table_worskpace = unique_workspace_dundername()
+    saved_calibration = load_calibration(barscan_file, 'BARSCAN', database=database_file,
+                                         output_workspace=table_worskpace)
+    assert calibration.positions == pytest.approx(saved_calibration.positions, abs=0.1)
+    assert calibration.heights == pytest.approx(saved_calibration.heights, abs=0.01)
+    DeleteWorkspace(table_worskpace)
 
 
 @pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")

@@ -668,7 +668,9 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
 
 def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_position_log='dcal_Readback'):
     r"""
+    Split a Nexus events file containing a full bar scan.
 
+    It is assumed that the bar is shifted by a fixed amount every time we go on to the next scan.
 
     Parameters
     ----------
@@ -696,7 +698,7 @@ def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_
     barscans_workspace = unique_workspace_dundername()
     Load(barscan_file, OutputWorkspace=barscans_workspace)
 
-    # Find the amount by which the position of bar is shifted
+    # Find the amount by which the position of bar is shifted every time we go on to the next scan.
     bar_positions = SampleLogs(barscans_workspace)[bar_position_log].value
     bar_delta_positions = bar_positions[1:] - bar_positions[:-1]  # list of shifts in the position of the bar
     bar_delta_positions = bar_delta_positions[bar_delta_positions > 0]  # only shifts where the bar position increases
@@ -749,7 +751,7 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         temporary_workspaces.append(name)
         return name
 
-    if isinstance(barscan_files, str):
+    if isinstance(barscan_files, str):  # the whole barscan is contained in a single file. Must be splitted
         spliter_workspace = temporary_workspace()
         info_workspace = temporary_workspace()
         # Table to split the barscan run into subruns, each with a fixed position of the bar

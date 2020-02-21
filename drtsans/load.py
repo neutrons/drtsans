@@ -10,7 +10,8 @@ from mantid.simpleapi import LoadEventNexus
 __all__ = ['load_events']
 
 
-def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='', **kwargs):
+def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                reuse_workspace=False, **kwargs):
     r"""
     Load an event Nexus file produced by the instruments at ORNL.
 
@@ -29,6 +30,8 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
+    reuse_workspace: bool
+        When true, return the ``output_workspace`` if it already exists
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -49,7 +52,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
               (instrument_unique_name == InstrumentEnumName.GPSANS)
 
-    if mtd.doesExist(output_workspace):
+    if reuse_workspace and mtd.doesExist(output_workspace):
         # if it exists skip loading
         return mtd[output_workspace]
     else:

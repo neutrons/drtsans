@@ -78,7 +78,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_dete
 
 def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={}, centering_options={},
                      sample_det_cent_main_detector=None, sample_det_cent_wing_detector=None,
-                     area_correction_flag=True):
+                     solid_angle_correction_flag=True):
     """Finds the beam center in a 2D SANS data set.
     This is based on (and uses) :func:`drtsans.find_beam_center`
 
@@ -97,7 +97,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     sample_det_cent_wing_detector : float
         :ref:`sample to detector center distance <devdocs-standardnames>`,
         in meters, of the wing detector.
-    area_correction_flag: bool, flag to specify if area correction is needed
+    solid_angle_correction_flag: bool, flag to specify if solid angle correction is needed
 
     Returns
     -------
@@ -111,7 +111,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     # find the center on the main detector
     center_x, center_y = bf.find_beam_center(ws, method, mask,
                                              mask_options=mask_options, centering_options=centering_options,
-                                             area_correction_flag=area_correction_flag)
+                                             solid_angle_correction_flag=solid_angle_correction_flag)
 
     # get the distance to center of the main and wing detectors
     if sample_det_cent_main_detector is None or sample_det_cent_main_detector == 0.:

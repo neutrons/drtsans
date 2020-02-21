@@ -256,7 +256,7 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
                                                                 output_workspace='sensitivity_corrected')
 
     # Finding the beam center
-    x_cen, y_cen = find_beam_center(sensitivity_corrected_counts, area_correction_flag=True)
+    x_cen, y_cen = find_beam_center(sensitivity_corrected_counts, solid_angle_correction_flag=True)
     assert x_cen*1000 == approx(21.48, abs=0.9)
     assert y_cen*1000 == approx(22.5, abs=0.9)
 

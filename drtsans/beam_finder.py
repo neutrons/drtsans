@@ -55,8 +55,8 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         mask_workspace = apply_mask(flat_ws, mask=mask, **mask_options)
         mask_workspace.delete()  # we don't need the mask workspace so keep it clean
 
-    #if solid_angle_method:
-    #    solid_angle_correction(flat_ws, detector_type=solid_angle_method)
+    if solid_angle_method:
+        solid_angle_correction(flat_ws, detector_type=solid_angle_method)
 
     # find center of mass position
     center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)

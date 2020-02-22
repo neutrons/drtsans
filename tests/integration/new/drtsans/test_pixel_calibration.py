@@ -1,3 +1,4 @@
+import numexpr
 import numpy as np
 from os.path import join as path_join
 import pytest
@@ -220,6 +221,7 @@ def data_generate_barscan_calibration():
                 wavelength_bin_boundaries=[6.0, 7.0],
                 bottom_pixels=[(5, 5, 5, 5), (8, 8, 8, 8), (13, 13, 13, 13)],  # expected bottom pixels
                 coefficients=(498.333, 27.500, -0.833, 0.000, 0.000, 0.000),
+                formula='565 + {y}',  # position of the bar in the frame of reference of the sample
                 unit='mm',  # units for the pixel positions and heights
                 # fitted y-coordinates for each pixel
                 positions=np.array([[498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
@@ -260,7 +262,17 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     data = data_generate_barscan_calibration  # short nickname
 
     def _scan_to_file(intensities, dcal):
-        r"""Convenience function to cast a scan into a workspace, then save it to file"""
+        r"""
+        Convenience function to cast a scan into a workspace, then save it to file
+
+        Parameters
+        ----------
+        intensities:
+        dcal: str
+
+
+
+        """
         workspace = unique_workspace_dundername()
         workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, output_workspace=workspace,
                                   intensities=intensities.reshape(20, 4), view='pixel')
@@ -290,12 +302,12 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
     # Let's fit the positions of the extended bottom-edge pixels with the extended Y-coordinates
     # and verify the coefficients of the fit.
-    dcals = [565 + dcal for dcal in data.extended_dcals]  # add offset to each bar position
+    dcals = [float(numexpr.evaluate(data.formula.format(y=dcal))) for dcal in data.extended_dcals]
     fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 
     # Let's do the whole calibration. The result is a Table object
-    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula='565 + {y}')
+    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula=data.formula)
     assert 1000 * np.array(calibration.positions) == pytest.approx(data.positions.ravel(), abs=data.precision)
     assert 1000 * np.array(calibration.heights) == pytest.approx(data.heights.ravel(), abs=data.precision)
 

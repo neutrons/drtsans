@@ -142,7 +142,7 @@ class Table:
 
         **Mantid algorithms used:**
         :ref:`LoadNexus <algm-LoadNexus-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
+        <https://docs.mantidproject.org/algorithms/LoadNexus-v1.html>
 
         Parameters
         ----------
@@ -190,9 +190,15 @@ class Table:
         r"""
         Instantiate a Table workspace with input calibration data.
 
+        The table contains a series of columns, the first one always being the list of detector IDs
+        for which a calibration has been made. A 'BARSCAN' calibration will contains two additional columns,
+        namely 'Detector Y Coordinate' and 'Detector Height' to store respective pixel positions and heights,
+        in meters. A 'TUBEWIDTH' calibration table will contain one additional column, namely
+        'Detector Width' to store pixel widths, in meters.
+
         **Mantid algorithms used:**
         :ref:`CreateEmptyTableWorkspace <algm-CreateEmptyTableWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/CreateEmptyTableWorkspace-v1.html>
+        <https://docs.mantidproject.org/algorithms/CreateEmptyTableWorkspace-v1.html>
 
         Parameters
         ----------
@@ -211,11 +217,15 @@ class Table:
         -------
         ~mantid.api.TableWorkspace
         """
+        # All possible columns names (and associated items) for a calibration table
         columns_data = {'Detector Y Coordinate': positions, 'Detector Height': heights, 'Detector Width': widths}
+        # Remove names not appropriate for the calibration type. For example, a barscan calibration will
+        # not contain data for pixel widths (widths==None), so item 'Detector Width': widths is removed
         [columns_data.pop(column) for column in list(columns_data.keys()) if columns_data[column] is None]
         table = CreateEmptyTableWorkspace(OutputWorkspace=output_workspace)
         table.addColumn(type='int', name='Detector ID')
         [table.addColumn(type='double', name=column) for column in columns_data]
+        # Loop over each calibrated detector and add a new row in the table
         for i in range(len(detector_ids)):
             row = {'Detector ID': detector_ids[i]}
             row.update({column: data[i] for column, data in columns_data.items()})
@@ -225,7 +235,7 @@ class Table:
     @classmethod
     def validate_metadata(cls, metadata):
         r"""
-        Verify the metadata contains entries for the instrument, double-detector-array, and day stamp.
+        Verify the metadata contains entries for: instrument, name of the double-detector-array, and day stamp.
 
         Parameters
         ----------
@@ -252,7 +262,10 @@ class Table:
         self.metadata = copy.copy(metadata)
 
     def __getattr__(self, item):
-        r"""Serve metadata's keys as attributes of the ```Table``` object"""
+        r"""
+        Access metadata's keys as attributes of the ```Table``` object. For instance,
+        self.metadata['instrument'] can be accessed as self.instrument
+        """
         if item not in self.__dict__:
             return self.__dict__['metadata'][item]
         return self.__dict__[item]
@@ -302,13 +315,13 @@ class Table:
 
     def apply(self, input_workspace, output_workspace=None):
         r"""
-        Apply a calibration to an input workspace and return the calibrated workspace.
+        Apply a calibration to an input workspace, and return the calibrated workspace.
 
         **Mantid algorithms used:**
         :ref:`CloneWorkspace <algm-CloneWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
+        <https://docs.mantidproject.org/algorithms/CloneWorkspace-v1.html>
         :ref:`ApplyCalibration <algm-ApplyCalibration-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/ApplyCalibration-v1.html>
+        <https://docs.mantidproject.org/algorithms/ApplyCalibration-v1.html>
 
         Parameters
         ----------
@@ -316,49 +329,56 @@ class Table:
             Workspace to which calibration needs to be applied.
         output_workspace: str
             Name of the output workspace with calibrated pixels. If :py:obj:`None`, the pixels
-            of the input workspace will be calibrated.
+            of the input workspace will be calibrated and no new workspace is generated.
 
         Returns
         -------
         ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         """
         if output_workspace is None:
-            output_workspace = str(input_workspace)
+            output_workspace = str(input_workspace)  # calibrate the pixels of the input workspace
         else:
+            # Copy the input workspace and calibrate the pixels of the copy
             CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         ApplyCalibration(Workspace=output_workspace, CalibrationTable=self.table)
         return mtd[output_workspace]
 
     def save(self, database=None, tablefile=None):
         r"""
-        Save the metadata in a JSON file and the table workspace in a Nexus file.
+        Save the calibration metadata in a JSON file, and the calibration table workspace in a Nexus file.
 
         **Mantid algorithms used:**
         :ref:`SaveNexus <algm-SaveNexus-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
+        <https://docs.mantidproject.org/algorithms/SaveNexus-v1.html>
 
         Parameters
         ----------
         database: str
             Path to the JSON file where the ```metadata``` dictionary will be appended. If :py:obj:`None`,
             then the appropriate default file from ~drtsans.pixel_calibration.database_file is used.
+            Currently, these are the default files:
+            - BIOSANS, '/HFIR/CG3/shared/calibration/pixel_calibration.json',
+            - EQSANS, '/SNS/EQSANS/shared/calibration/pixel_calibration.json',
+            - GPSANS, '/HFIR/CG2/shared/calibration/pixel_calibration.json'
         tablefile: str
             Path to the Nexus file storing the pixel calibration data. If :py:obj:`None`, then
             a composite name is created using the calibration type, instrument, component,
             and daystamp. (e.g. "barscan_gpsans_detector1_20200311"). The file is saved under
-            subdirectory 'calibrations', located within the directory of the ```database``` file.
+            subdirectory 'tables', located within the directory of the ```database``` file.
+            For instance, '/HFIR/CG3/shared/calibration/tables/barscan_gpsans_detector1_20200311.nxs'
         """
         if database is None:
-            database = database_file[instrument_enum_name(self.instrument)]
+            database = database_file[instrument_enum_name(self.instrument)]  # default database file
         if tablefile is None:
-            cal_dir = os.path.join(os.path.dirname(database), 'calibrations')
+            cal_dir = os.path.join(os.path.dirname(database), 'tables')
             if os.path.isdir(cal_dir) is False:
-                os.mkdir(cal_dir)
+                os.mkdir(cal_dir)  # Create directory if missing. Will happen when saving the first table
             tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata))
-        self.metadata['tablefile'] = tablefile
+        self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
         SaveNexus(InputWorkspace=self.table, Filename=tablefile)
+        # Append the calibration metadata to the metadata entries of the database
         entries = list()
-        if os.path.exists(database):
+        if os.path.exists(database):  # the database may not exist if we're not saving to the default database
             with open(database, mode='r') as json_file:
                 entries = json.load(json_file)  # list of metadata entries
         entries.append(self.metadata)
@@ -367,9 +387,10 @@ class Table:
 
     def as_intensities(self):
         r"""
-        Creates one workspace for each pixel property that is calibrated, and the calibration datum is
-        saved as the value of the intensity for that pixel. Useful to visualize the calibration in
-        MantidPlot's instrument viewer.
+        Creates one workspace for each pixel property that is calibrated (e.g., pixel height),
+        and the calibration datum is stored as the intensity value for that pixel. Intended to
+        visualize the calibration in MantidPlot's instrument viewer. Not required for calibration
+        generation or for data reduction.
 
         For example, a BARSCAN calibration will generate workspaces ```tablename_positions```
         and ```tablename_heights```, where ```tablename``` is the name of the ~mantid.api.TableWorkspace
@@ -377,12 +398,13 @@ class Table:
 
         **Mantid algorithms used:**
         :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+        <https://docs.mantidproject.org/algorithms/CreateWorkspace-v1.html>
         :ref:`LoadEmptyInstrument <algm-LoadEmptyInstrument-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html>
+        <https://docs.mantidproject.org/algorithms/LoadEmptyInstrument-v1.html>
         :ref:`LoadInstrument <algm-LoadInstrument-v1>`,
-        <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
+        <https://docs.mantidproject.org/algorithms/LoadInstrument-v1.html>
         """
+
         empty_instrument = LoadEmptyInstrument(InstrumentName=self.instrument,
                                                OutputWorkspace=unique_workspace_dundername())
         detector_ids = self.detector_ids
@@ -390,13 +412,17 @@ class Table:
         for cal_prop in calibration_properties:
             values = getattr(self, cal_prop)
             intensities = empty_instrument.extractY()  # extractY returns a copy
+            # Iterate over each histogram (a histogram is the spectrum of a particular detector pixel)
             for workspace_index in range(empty_instrument.getNumberHistograms()):
-                detector = empty_instrument.getDetector(workspace_index)
+                detector = empty_instrument.getDetector(workspace_index)  # associated detector pixel
                 try:
+                    # Find the entry in the calibration table for the detector with a particular detector ID
                     row_index = detector_ids.index(detector.getID())
                 except ValueError:  # This detector was not calibrated, thus is not in detector_ids
                     continue
+                # substitute the intensity in this histogram with the calibration datum for the detector pixel
                 intensities[workspace_index] = values[row_index]
+            # Create a workspace with the modified intensities, and overlay them in the appropriate instrument
             workspace = CreateWorkspace(DataX=[0, 1], DataY=intensities, Nspec=empty_instrument.getNumberHistograms(),
                                         OutputWorkspace=f'{self.table.name()}_{cal_prop}')
             LoadInstrument(Workspace=workspace, InstrumentName=self.instrument, RewriteSpectraMap=True)
@@ -414,12 +440,15 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         Workspace from which calibration session is to be retrieved.
     caltype: str
-        Either 'BARSCAN' or 'TUBEWIDTH'.
+        Either 'BARSCAN' or 'TUBEWIDTH'. A saved calibration can only contain one of these, but not both.
     component: str
-        Name of one of the double detector array panels.
+        Name of one of the double detector array panels. For BIOSANS we have 'detector1' or 'wing-detector'.
     database: str
         Path to database file containing the metadata for the calibrations. If :py:obj:`None`, the default database
-        is used.
+        is used. Currently, these are the default files:
+        - BIOSANS, '/HFIR/CG3/shared/calibration/pixel_calibration.json',
+        - EQSANS, '/SNS/EQSANS/shared/calibration/pixel_calibration.json',
+        - GPSANS, '/HFIR/CG2/shared/calibration/pixel_calibration.json'
     output_workspace: str
         Name of the table workspace containing the calibration session values. If :py:obj:`None`, then a composite
         name is created using the calibration type, instrument, component, and daystamp. (e.g.
@@ -431,7 +460,7 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
     """
     enum_instrument = instrument_enum_name(input_workspace)
     if database is None:
-        database = database_file[enum_instrument]
+        database = database_file[enum_instrument]  # default database name
     return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
                       output_workspace=output_workspace)
 
@@ -439,7 +468,7 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
 def apply_calibrations(input_workspace, database=None, calibrations=[cal.name for cal in CalType],
                        output_workspace=None):
     r"""
-    Load and apply one or more calibrations to an input workspace.
+    Load and apply pixel calibrations to an input workspace.
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
@@ -448,7 +477,11 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
         Input workspace whose pixels are to be calibrated.
     database: str
-        Path to JSON file containing metadata for different past calibrations.
+        Path to JSON file containing metadata for different past calibrations. If :py:obj:`None`,
+        the default database is used. Currently, these are the default files:
+        - BIOSANS, '/HFIR/CG3/shared/calibration/pixel_calibration.json',
+        - EQSANS, '/SNS/EQSANS/shared/calibration/pixel_calibration.json',
+        - GPSANS, '/HFIR/CG2/shared/calibration/pixel_calibration.json'
     calibrations: str, list
         One or more of 'BARSCAN' and/or 'TUBEWIDTH'.
     output_workspace: str

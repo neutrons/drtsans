@@ -767,9 +767,9 @@ def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_
 
 def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback'):
     r"""
-    A python generator to be used when iterating over runs that hold the bar at a fixed position. Each
-    iteration prompts this generator to return the position of the bar and a workspace containing the
-    intensities for the scan that held the bar at the returned position.
+    A python generator to be used when the user wants to iterate over the runs that hold the bar at a fixed
+    position. Each iteration prompts this generator to return the position of the bar and a workspace containing the
+    intensities for the run that held the bar at the returned position.
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
@@ -799,26 +799,31 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         temporary_workspaces.append(name)
         return name
 
-    if isinstance(barscan_files, str):  # the whole barscan is contained in a single file. Must be splitted
+    if isinstance(barscan_files, str):
+        # the whole barscan is contained in a single file. Must be splitted into subruns. Each subrun will contain
+        # intensities for a run with the bar held at a fixed position.
         spliter_workspace = temporary_workspace()
         info_workspace = temporary_workspace()
-        # Tables to split the barscan run into subruns, each with a fixed position of the bar
+        # Create the splitting scheme and save it in table workspaces `spliter_workspace` and `info_workspace`.
         bar_positions = event_splitter(barscan_files, split_workspace=spliter_workspace,
                                        info_workspace=info_workspace, bar_position_log=bar_position_log)
         barscans_workspace = temporary_workspace()
         Load(barscan_files, OutputWorkspace=barscans_workspace)
         splitted_workspace_group = unique_workspace_dundername()  # group of subruns
-        # Mantid algorithm using the 'spliter' and 'info' tables to split barscans_workspace into subruns
+        # Mantid algorithm using the 'spliter' and 'info' tables to carry out the splitting of
+        # `barscans_workspace into a set of subruns.
         FilterEvents(InputWorkspace=barscans_workspace,
                      SplitterWorkspace=spliter_workspace, InformationWorkspace=info_workspace,
                      OutputWorkspaceBaseName=splitted_workspace_group,  GroupWorkspaces=True,
                      TimeSeriesPropertyLogs=[bar_position_log], ExcludeSpecifiedLogs=False)
         temporary_workspaces.append(splitted_workspace_group)
         temporary_workspaces.append('TOFCorrectWS')  # spurious workspace spawned by FilterEvents
+        # Iterate over the subruns, serving one at a time
         for i, bar_position in enumerate(bar_positions):
             yield bar_position, splitted_workspace_group + '_' + str(i)  # serve a bar position and a subrun workspace
     else:  # the barscan is made up of a set of files, each contains intensities for a scan with the bar fixed
         barscan_workspace = temporary_workspace()
+        # iterate over the files, serving one at a time
         for file_name in barscan_files:
             Load(file_name, OutputWorkspace=barscan_workspace)
             bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')

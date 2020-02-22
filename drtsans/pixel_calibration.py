@@ -82,7 +82,7 @@ def day_stamp(input_workspace):
 
 
 class CalibrationNotFound(Exception):
-    """Exception to be raised when no appropriate calibration is found in the database"""
+    """Custom exception to be raised when no appropriate calibration is found in the database"""
     pass
 
 
@@ -134,7 +134,11 @@ class Table:
     @classmethod
     def load(cls, database, caltype, instrument, component, daystamp, output_workspace=None):
         r"""
-        Load a Nexus file containing a calibration into a ```Table``` object.
+        Loading a calibration requires loading the calibration metadata from a ```database``` file along
+        with loading a Nexus file containing the actual data.
+
+        Metadata and data are encapsulated in a ~drtsans.pixel_calibration.Table object. This object
+        contains attribute ```table``` which holds the actual data in a ~mantid.api.TableWorkspace.
 
         **Mantid algorithms used:**
         :ref:`LoadNexus <algm-LoadNexus-v1>`,
@@ -165,21 +169,20 @@ class Table:
         # Search the database for a match to the required metadata
         not_found_message = f'No suitable {caltype}_{instrument}_{component} calibration found in {database}'
         with open(database, mode='r') as json_file:
-            entries = json.load(json_file)  # list of metadata entries
-            required = {caltype, instrument, component}  # plausible metadata entries must match these metadata pieces
-            candidates = [entry for entry in entries if required.issubset(set(entry.keys()))]
-            if len(candidates) == 0:
-                raise CalibrationNotFound(not_found_message)
-            candidates.sort(key=lambda c: c['daystamp'])  # sort candidates by increasing daystamp
-        for i, candidate in enumerate(candidates):
-            if candidate['daystamp'] > daystamp:
-                if i == 0:
-                    raise CalibrationNotFound(not_found_message)
-                metadata = candidates[i - 1]
+            entries = json.load(json_file)  # list of metadata entries stored in `database`
+        required = {caltype, instrument, component}  # required metadata pieces of information
+        # Filter the metadata entries, leaving out those not containing the required pieces of information
+        candidates = [entry for entry in entries if required.issubset(set(entry.values()))]
+        if len(candidates) == 0:
+            raise CalibrationNotFound(not_found_message)
+        candidates.sort(key=lambda c: c['daystamp'], reverse=True)  # sort candidates by decreasing day stamp
+        # Find the metadata entry with the closest (equal or smaller) day stamp to the input `daystamp`
+        for candidate in candidates:
+            if candidate['daystamp'] <= daystamp:
                 if output_workspace is None:
-                    output_workspace = Table.compose_table_name(metadata)
-                table = LoadNexus(metadata['tablefile'], OutputWorkspace=output_workspace)
-                return Table(table, metadata)
+                    output_workspace = Table.compose_table_name(candidate)
+                table = LoadNexus(candidate['tablefile'], OutputWorkspace=output_workspace)
+                return Table(table, candidate)
         raise CalibrationNotFound(not_found_message)
 
     @classmethod

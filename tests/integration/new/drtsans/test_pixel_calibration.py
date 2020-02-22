@@ -297,37 +297,51 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     # The plan is to have bar scans saved into nexus files
     file_names = [_scan_to_file(scan, dcal) for scan, dcal in zip(data.scans, data.dcals)]
 
-    # Let's find the bottom-edge pixels for each tube in each scan and, compare with the expected data
+    # Let's find the bottom-edge pixels for each tube within each run that held the bar at a fixed position,
+    # and then compare with the expected data
     bottom_pixels_multi_scan = list()
     workspace = unique_workspace_dundername()
+    # scan over each file, which contains intensities collected with the bar held at a fixed position
     for scan_index, file_name in enumerate(file_names):
         LoadNexus(Filename=file_name, OutputWorkspace=workspace)
-        # The main detector panel is called 'detector1', made up of four tubes which we gather into a TubeCollection
+        # The main detector panel is called 'detector1', made up of four tubes which we gather into a TubeCollection.
+        # A TubeCollection is a list of TubeSpectrum objects, each representing a physical tube. Here
+        # we obtain the list of tubes for the selected double-detector-panel array.
+        # The view 'decreasing X' sort the tubes by decreasing value of their corresponding X-coordinate.
+        # In this view, a double detector panel looks like a single detector panel. When looking at
+        # the panel standing at the sample, the leftmost tube has the highest X-coordinate, so the
+        # 'decreasing X' view orders the tubes from left to right.
         collection = TubeCollection(workspace, component_name='detector1').sorted(view='decreasing X')
+        # For each tube we collect the intensities (readY) and apply `find_edges` to find the bottom of the bar
         bottom_pixels = [find_edges(tube.readY.ravel()).bottom_shadow_pixel for tube in collection]
-        assert bottom_pixels == pytest.approx(data.bottom_pixels[scan_index])
+        assert bottom_pixels == pytest.approx(data.bottom_pixels[scan_index])  # compare to test data
         bottom_pixels_multi_scan.append(bottom_pixels)
     bottom_pixels_multi_scan = np.array(bottom_pixels_multi_scan)
 
-    # Let's fit the positions of the extended bottom-edge pixels with the extended Y-coordinates
-    # and verify the coefficients of the fit.
+    # Let's fit the positions of the extended bottom-edge pixels with the extended positions of the bar given in the
+    # test data (data.extended_dcals), and then verify the coefficients of the fit.
     dcals = [float(numexpr.evaluate(data.formula.format(y=dcal))) for dcal in data.extended_dcals]
     fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 
-    # Let's do the whole calibration. The result is a Table object
+    # Let's do the whole calibration. The result is a `Table` object
     calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula=data.formula)
+    # Compare the pixel positions and heights resulting from the calibration with the test data. A factor of 1000
+    # is required because the calibration procedure assumes the input positions of the bar are mili-meters, but
+    # stores the calibrated positions and heights in meters.
     assert 1000 * np.array(calibration.positions) == pytest.approx(data.positions.ravel(), abs=data.precision)
     assert 1000 * np.array(calibration.heights) == pytest.approx(data.heights.ravel(), abs=data.precision)
 
-    # Let's use the pixel positions and heights to update our temporary workspace
+    # Let's use the updated pixel positions and heights to update the pixels in our temporary `workspace`
     calibration.apply(workspace)
-    # Now verify the pixels positions and heights in the workspace have indeed been updated
+    # Now verify the pixels positions and heights in `workspace` have indeed been updated
     collection = TubeCollection(workspace, component_name='detector1').sorted(view='decreasing X')
     positions, heights = list(), list()
+    # Retrieve the pixel positions and heights for each tube of `workspace`
     for tube in collection:
         positions.append([1000 * y for y in tube.pixel_y])  # from meters to mili-meters
         heights.append([1000 * h for h in tube.pixel_heights])
+    # Compare the updated pixel positions and heights of `workspace` with the test data
     assert np.array(positions) == pytest.approx(data.positions, abs=data.precision)
     assert np.array(heights) == pytest.approx(data.heights, abs=data.precision)
 

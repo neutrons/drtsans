@@ -495,7 +495,7 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
     if output_workspace is None:
         output_workspace = str(input_workspace)
     if isinstance(calibrations, str):  # we passed only one calibration
-        calibrations = [calibrations, ]
+        calibrations = [calibrations, ]  # convert `calibrations` into a list
     components = {InstrumentEnumName.BIOSANS: ['detector1', 'wing_detector'],
                   InstrumentEnumName.EQSANS: ['detector1'],
                   InstrumentEnumName.GPSANS: ['detector1']}
@@ -704,9 +704,12 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
 
 def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_position_log='dcal_Readback'):
     r"""
-    Split a Nexus events file containing a full bar scan.
+    Split a Nexus events file containing a full bar scan, saving the splitting information into a 'split'
+    and 'info' workspaces. This information is used later by ```barscan_workspace_generator```.
 
     It is assumed that the bar is shifted by a fixed amount every time we go on to the next scan.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -734,40 +737,49 @@ def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_
     barscans_workspace = unique_workspace_dundername()
     Load(barscan_file, OutputWorkspace=barscans_workspace)
 
-    # Find the amount by which the position of bar is shifted every time we go on to the next scan.
+    # Find the amount by which the position of the bar is shifted every time we go on to the next scan.
+    # It is assumed that this shift is a fixed amount
     bar_positions = SampleLogs(barscans_workspace)[bar_position_log].value
     bar_delta_positions = bar_positions[1:] - bar_positions[:-1]  # list of shifts in the position of the bar
-    bar_delta_positions = bar_delta_positions[bar_delta_positions > 0]  # only shifts where the bar position increases
-    # the most likely shift of the bar position, within two significant figures.
+    # Only retain shifts where the bar position increases
+    bar_delta_positions = bar_delta_positions[bar_delta_positions > 0]
+    # Find the most likely shift of the bar position, within two significant figures. Even thought the shift
+    # is supposed to be constant, minute fluctuations over this value (<1%) are often encountered
+    # We round-off bar shifts up to two decimal places, then create a histogram of these values, and pick
+    # the shift having the largest count.
     bar_step = float(np.bincount(np.round(100 * bar_delta_positions).astype('int')).argmax()) / 100.
-
+    # Mantid algorithm that creates the 'split' and 'info' workspaces using the bar positions stored in the
+    # metadata
     GenerateEventsFilter(InputWorkspace=barscans_workspace, OutputWorkspace=split_workspace,
                          InformationWorkspace=info_workspace, UnitOfTime='Nanoseconds',
                          LogName=bar_position_log, LogValueInterval=bar_step, LogValueTolerance=bar_step / 2,
                          MinimumLogValue=min(bar_positions), MaximumLogValue=max(bar_positions))
-
-    # Read bar positions from info_workspace using the second column. That column has entries as strings of the form:
-    # "Log.dcal_Readback.From.{min}.To.{max}.Value-change-direction:both"
+    # Read bar positions from the generated info_workspace. This is a table workspace whose the second column
+    # has entries as strings of the form: "Log.dcal_Readback.From.{min}.To.{max}.Value-change-direction:both"
+    # We parse this string to fetch the 'min' and 'max' values of the bar
     bar_positions = list()
     for min_max_bar_position in mtd[info_workspace].column(1):
         min_bar_position = float(min_max_bar_position.split('.From.')[-1].split('.To.')[0])
         max_bar_position = float(min_max_bar_position.split('.To.')[-1].split('.Value')[0])
-        bar_positions.append((min_bar_position + max_bar_position) / 2)
-
+        bar_positions.append((min_bar_position + max_bar_position) / 2)  # average between 'min' and 'max'
     return bar_positions
 
 
 def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback'):
     r"""
-    A generator to be used in an iteration over the runs that held the bar at a fixed position, returning at each
-    iteration the name of the workspace containing a single run (the set of runs make up the bar scan).
+    A python generator to be used when iterating over runs that hold the bar at a fixed position. Each
+    iteration prompts this generator to return the position of the bar and a workspace containing the
+    intensities for the scan that held the bar at the returned position.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
      barscan_files: str, list
-        Path(s) to barscan run file(s). If only one file, it should contain multiple positions of the bar.
-        If a list of files, then each file contains the pixel_intensities recorded with a constant position for the
-        bar.
+        Path(s) to barscan run file(s). If only one file, it should contain multiple positions of the bar. The
+        generator will split the file into multiple workpaces, each one containing the scan of the bar at a
+        particular position. If a list of files, then each file contains the pixel_intensities recorded
+        with a constant position for the bar.
     bar_position_log: str
         Name of the log entry in the barscan run file containing the position of the bar (Y-coordinate, in 'mm')
         with respect to some particular frame of reference, not necessarily the one located at the sample.
@@ -782,7 +794,7 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
     temporary_workspaces = list()  # store the names of the workspaces to be removed
 
     def temporary_workspace():
-        r"""Random workspace name, and flag it for removal"""
+        r"""Create a random workspace name, and flag it for removal that happens when the generator finishes."""
         name = unique_workspace_dundername()
         temporary_workspaces.append(name)
         return name
@@ -790,12 +802,13 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
     if isinstance(barscan_files, str):  # the whole barscan is contained in a single file. Must be splitted
         spliter_workspace = temporary_workspace()
         info_workspace = temporary_workspace()
-        # Table to split the barscan run into subruns, each with a fixed position of the bar
+        # Tables to split the barscan run into subruns, each with a fixed position of the bar
         bar_positions = event_splitter(barscan_files, split_workspace=spliter_workspace,
                                        info_workspace=info_workspace, bar_position_log=bar_position_log)
         barscans_workspace = temporary_workspace()
         Load(barscan_files, OutputWorkspace=barscans_workspace)
-        splitted_workspace_group = unique_workspace_dundername()
+        splitted_workspace_group = unique_workspace_dundername()  # group of subruns
+        # Mantid algorithm using the 'spliter' and 'info' tables to split barscans_workspace into subruns
         FilterEvents(InputWorkspace=barscans_workspace,
                      SplitterWorkspace=spliter_workspace, InformationWorkspace=info_workspace,
                      OutputWorkspaceBaseName=splitted_workspace_group,  GroupWorkspaces=True,
@@ -803,13 +816,13 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         temporary_workspaces.append(splitted_workspace_group)
         temporary_workspaces.append('TOFCorrectWS')  # spurious workspace spawned by FilterEvents
         for i, bar_position in enumerate(bar_positions):
-            yield bar_position, splitted_workspace_group + '_' + str(i)
-    else:
+            yield bar_position, splitted_workspace_group + '_' + str(i)  # serve a bar position and a subrun workspace
+    else:  # the barscan is made up of a set of files, each contains intensities for a scan with the bar fixed
         barscan_workspace = temporary_workspace()
         for file_name in barscan_files:
             Load(file_name, OutputWorkspace=barscan_workspace)
             bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
-            yield bar_position, barscan_workspace
+            yield bar_position, barscan_workspace  # serve a bar position and a run workspace
     DeleteWorkspaces(temporary_workspaces)  # clean up the now useless workspaces
 
 
@@ -851,16 +864,16 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
         - positions, list, List of Y-coordinate for each pixel.
         - heights, list, List of pixel heights.
     """
-    instrument_name, number_pixels_in_tube, number_tubes = None, None, None
-    run_numbers, daystamp = [], None
+    instrument_name, number_pixels_in_tube, number_tubes = None, None, None  # initialize some variables
+    run_numbers, daystamp = [], None  # initialize some variables
     bar_positions = []  # Y-coordinates of the bar for each scan
-    # 2D array defining the position of the bar on the detector, in pixel coordinates
+    # `bottom_shadow_pixels` is a 2D array defining the position of the bar on the detector, in pixel coordinates
     # The first index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes)
     # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tubes
     bottom_shadow_pixels = []
     for bar_position, barscan_workspace in barscan_workspace_generator(barscan_files,
                                                                        bar_position_log=bar_position_log):
-        if instrument_name is None:
+        if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
             daystamp = day_stamp(barscan_workspace)
         run_numbers.append(int(SampleLogs(barscan_workspace).single_value('run_number')))
@@ -868,17 +881,17 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
         formula_bar_position_inserted = formula.format(y=bar_position)
         bar_positions.append(float(numexpr.evaluate(formula_bar_position_inserted)))
         bottom_shadow_pixels_per_scan = []  # For the current scan, we have one bottom shadow pixel for each tube
-        # A TubeCollection is a list of TubeSpectrum objects, representing a physical tube. Here we obtain the
-        # list of tubes for the main double-detector-panel.
-        # The view 'decreasing X' sort the tubes by decreasing value of their corresponding X-coordinate. In this view,
-        # a double detector panel looks like a single detector panel. When looking at the panel standing at the
-        # sample, the leftmost tube has the highest X-coordinate, so the 'decreasing X' view orders the tubes
-        # from left to right.
         if number_pixels_in_tube is None:
-            # We create a tube collection to figure out the pixel indexes for each tube
+            # We create a tube collection to figure out the pixel indexes for each tube.
+            # A TubeCollection is a list of TubeSpectrum objects, each representing a physical tube. Here
+            # we obtain the list of tubes for the selected double-detector-panel array.
+            # The view 'decreasing X' sort the tubes by decreasing value of their corresponding X-coordinate.
+            # In this view, a double detector panel looks like a single detector panel. When looking at
+            # the panel standing at the sample, the leftmost tube has the highest X-coordinate, so the
+            # 'decreasing X' view orders the tubes from left to right.
             collection = TubeCollection(barscan_workspace, component).sorted(view='decreasing X')
-            # pixel_indexes is a list of length equal the number of tubes. Each list element is a list containing
-            # the pixel indexes for a particular tube.
+            # pixel_indexes is a list of length equal the number of tubes. Each item in the list is itself a list,
+            # containing the pixel indexes for a particular tube.
             pixel_indexes = [tube.spectrum_info_index for tube in collection]
             number_tubes, number_pixels_in_tube = len(collection), len(collection[0])
             detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
@@ -922,46 +935,56 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
 
 def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     r"""
-    # Corner case 1:
-    # When the bar approaches the bottom of the tubes, the bottom edge of its shadow blends with the non-functioning
-    # pixels at the bottom of the tubes. In this scenario, the bottom edge of the bar is assigned as the first
-    # non-functioning pixel at the top of the tube. Thus, we must find out for each tube a sudden jump in the
-    # identified bottom shadow pixel.
-    # Example: the bottom shadow pixels for the first tube as we change the position of the bar have been identified:
-    #    249, 230, 209, 187, 165, 145, 129, 103, 82, 67, 52, 39, 21, 249, 249
-    # In the example, the last two bottom pixels are erroneous. They must be set to -1
-    #
-    # Corner case 2:
-    # When the identified bottom pixel in a tube is far from the boundary between the illuminated pixels and the non
-    # illuminated pixels, it leaves a few non-illuminated pixels as active pixels. The bottom shadow pixel can then
-    # be incorrectly assigned as one of these non-illuminated pixels. The results are outliers pixel indexes.
-    # Example: 249 248 246 4 244 242.... Here "4" is in incorrectly assigned pixel index as bottom of the bar
-    # We must find these outliers and assign them as incorrect. We use a linear fit to find out outliers
+    The algorithm finding the position of the bottom of the bar sometimes fails when the bar is close to the
+    bottom of the detector, finding two corner cases.
+
+    Corner case 1:
+    When the bar approaches the bottom of the tubes, the bottom edge of its shadow blends with the non-functioning
+    pixels at the bottom of the tubes. In this scenario, the bottom edge of the bar is assigned as the first
+    non-functioning pixel at the top of the tube. Thus, we must find out for each tube a sudden jump in the
+    identified bottom shadow pixel.
+    Example: the bottom shadow pixels for the first tube as we change the position of the bar have been identified:
+       249, 230, 209, 187, 165, 145, 129, 103, 82, 67, 52, 39, 21, 249, 249
+    In the example, the last two bottom pixels are erroneous. They must be set to INCORRECT_PIXEL_ASSIGNMENT
+
+    Corner case 2:
+    When the identified bottom pixel in a tube is far from the boundary between the illuminated pixels and the non
+    illuminated pixels, it leaves a few non-illuminated pixels as active pixels. The bottom shadow pixel can then
+    be incorrectly assigned as one of these non-illuminated pixels. The results are outliers pixel indexes.
+    Example: 249 248 246 4 244 242.... Here "4" is in incorrectly assigned pixel index as bottom of the bar
+    We must find these outliers and assign them as incorrect. We use a linear fit to find out outliers
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+
     Parameters
     ----------
-    bottom_shadow_pixels
-
-    Returns
-    -------
-
+    bottom_shadow_pixels: numpy.ndarray
+        2D array defining the position of the bar on the detector, in pixel coordinates.
+        The first array index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes).
+        Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tubes
     """
     number_bar_positions, number_tubes = bottom_shadow_pixels.shape
+    # Iterate over each tube
     for tube_index in range(number_tubes):
         # Correct corner case 1
         jump_index = None
         y = bottom_shadow_pixels[:, tube_index]
-        for i in range(number_bar_positions - 2, 0, -1):
+        for i in range(number_bar_positions - 2, 0, -1):  # start from the bottom of the tube, work upwards
             if abs(y[i] - y[i-1]) > 10 * max(1, abs(y[i+1] - y[i])):  # value/factor of 10 selected as threshold
-                jump_index = i
+                jump_index = i  # The position of the bar jumped by more than 10 pixels. Flags an incorrect assigment
                 break
         if jump_index is not None:
             y[jump_index:] = INCORRECT_PIXEL_ASSIGNMENT
         # Correct corner case 2
-        y = bottom_shadow_pixels[:, tube_index]
-        x = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]
+        y = bottom_shadow_pixels[:, tube_index]  # bar positions in pixel coordinates
+        x = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
+        # Linear fit between bar positions in pixel coordinates and mili-meters
         coefficients = np.polynomial.polynomial.polyfit(x, y[y != INCORRECT_PIXEL_ASSIGNMENT], 1)
         y_fitted = np.polynomial.polynomial.polyval(bar_positions, coefficients)
-        residuals = np.abs(y - y_fitted)
+        residuals = np.abs(y - y_fitted)  # deviations between the linear fit and the actual positions
+        # We flag as incorrect assignments those positions largely deviating from the linear fit.
+        # A "large deviation" is defined as bigger than the average deviation plus twice the standard
+        # deviation of the set of deviations from the linear fit
         y[residuals > np.average(residuals) + 2 * np.std(residuals)] = INCORRECT_PIXEL_ASSIGNMENT
 
 

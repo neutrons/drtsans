@@ -263,25 +263,34 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
     def _scan_to_file(intensities, dcal):
         r"""
-        Convenience function to cast a scan into a workspace, then save it to file
+        Convenience function to save the intensities of  a run holding the bar a fixed position into a Nexus file.
 
         Parameters
         ----------
-        intensities:
+        intensities: numpy.ndarray
+            Intensity spectra for a particular run holding the bar a fixed position.
         dcal: str
+            Position of the bar, in mili-meters
 
-
-
+        Returns
+        -------
+        str
+            Name of the Nexus file
         """
-        workspace = unique_workspace_dundername()
+        workspace = unique_workspace_dundername()  # temporary workspace
+        # Save intensities into a workspace endowed with an instrument. The instrument consists of a flat
+        # array of four tubes, each 20 pixels.
         workspace_with_instrument(axis_values=data.wavelength_bin_boundaries, output_workspace=workspace,
                                   intensities=intensities.reshape(20, 4), view='pixel')
+        # Store the bar position in the workspace metadata
         AddSampleLog(Workspace=workspace, LogName='dcal_Readback', LogText=str(dcal), LogType='Number Series',
                      LogUnit='mm')
+        # Store a fictitious run number in the workspace metadata
         SampleLogs(workspace).insert('run_number', random.randint(1, 999))
+        # Store a fictitious start time for the run in the workspace metadata
         SampleLogs(workspace).insert('start_time', '2020-02-19T17:03:29.554116982')  # a start time is required
         filename = tempfile.NamedTemporaryFile('wb', suffix='.nxs').name
-        cleanfile(filename)
+        cleanfile(filename)  # flag it for removal once the test finishes
         SaveNexus(InputWorkspace=workspace, Filename=filename)
         return filename
 

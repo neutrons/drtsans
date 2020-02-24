@@ -123,16 +123,24 @@ def reduction(json_params, config):
     ws *= absolute_scale
 
     # Convert the Q
+    flag_weighted = False
+    if 'useErrorWeighting' in json_params["configuration"].keys():
+        if json_params["configuration"]["useErrorWeighting"] == '':
+            flag_weighted = False
+        else:
+            flag_weighted = json_params["configuration"]["useErrorWeighting"]
     wing_label = '_wing' if config['is_wing'] else ''
     q_data = sans.convert_to_q(ws, mode='scalar')
     iq_output = get_Iq(q_data, json_params["configuration"]["outputDir"],
                        json_params["outputFilename"], label=wing_label,
                        linear_binning=json_params["configuration"]["QbinType"] == "linear",
+                       weighting=flag_weighted,
                        nbins=int(json_params["configuration"]["numQBins"]))
 
     q_data = sans.convert_to_q(ws, mode='azimuthal')
     get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
               json_params["outputFilename"], label=wing_label,
+              weighting=flag_weighted,
               nbins=int(json_params["configuration"]["numQxQyBins"]))
     return iq_output
 

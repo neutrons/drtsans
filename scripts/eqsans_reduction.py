@@ -11,11 +11,11 @@ from drtsans.tof import eqsans  # noqa E402
 from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into_q2d  # noqa E402
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
 from drtsans.instruments import extract_run_number # noqa E402
-from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
 from drtsans.tof.eqsans import cfg  # noqa E402
 from common_utils import get_Iqxqy  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.path import registered_workspace # noqa E402
+from drtsans.dataobjects import load_iqmod, save_iqmod # noqa E402
 
 
 def _represents_int(s):
@@ -56,16 +56,6 @@ if __name__ == "__main__":
     else:
         configuration_file_parameters = _get_configuration_file_parameters(extract_run_number(sample_run))
 
-    # set up the configuration for the prepare_data arguments
-    # prepare_data(data, detector_offset=0, sample_offset=0,
-    #               bin_width=0.1, low_tof_clip =500, high_tof_clip=2000,
-    #               center_x=None, center_y=None,
-    #               dark_current=None,
-    #               flux_method=None, flux=None,
-    #               mask=None, mask_panel=-None, btp=dict(),
-    #               solid_angle=True,
-    #               sensitivity_file_path=None,
-    #               output_workspace=None)
     config = dict()
     json_conf = json_params["configuration"]
 
@@ -80,6 +70,17 @@ if __name__ == "__main__":
     config["sample_offset"] = float(json_conf["sampleOffset"])
 
     config["bin_width"] = float(json_conf["wavelenStep"])
+
+    # [cd 2/10/2020] weight option added
+    flag_weighted = False
+    if 'useErrorWeighting' in json_conf.keys():
+        if json_conf["useErrorWeighting"] == '':
+            flag_weighted = False
+        else:
+            flag_weighted = json_conf["useErrorWeighting"]
+        msapi.logger.notice('...weighting option selected weighted = ' + str(flag_weighted))
+    else:
+        msapi.logger.notice('...default weighting option used (NOWEIGHT).')
     default_tof_cut_low = 500
     default_tof_cut_high = 2000
     if json_conf["useTOFcuts"]:
@@ -132,8 +133,6 @@ if __name__ == "__main__":
         config["center_x"] = center[0]
         config["center_y"] = center[1]
         msapi.logger.notice("calculated center {}".format(center))
-        # config["center_x"] = 0.020 # beamcenter -1 cm  force wrong center
-        # config["center_y"] = 0.01373132 # will delete these two lines after test
     else:
         config["center_x"] = 0.025239
         config["center_y"] = 0.0170801
@@ -316,13 +315,22 @@ if __name__ == "__main__":
             q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D)
             # [AS, 2/4/2020] need option for decade log binning
 
-        binned_i_of_q = bin_intensity_into_q1d(result, q_bins, BinningMethod.WEIGHTED)
+        # [CD, 2/10/2020] added weighting option. default should be NOWEIGHT
+        if flag_weighted:
+            binned_i_of_q = bin_intensity_into_q1d(result, q_bins, BinningMethod.WEIGHTED)
+            msapi.logger.notice('...BinningMethod = WEIGHTED.')
+        else:
+            binned_i_of_q = bin_intensity_into_q1d(result, q_bins, BinningMethod.NOWEIGHT)
+            msapi.logger.notice('...BinningMethod = NOWEIGHT.')
+
         # [CD, 1/30/2020] do we want to have an option to change btn weighted and noweighted
         # issue 322
         ax.errorbar(binned_i_of_q.mod_q, binned_i_of_q.intensity, yerr=binned_i_of_q.error, label=label)
         filename = os.path.join(json_conf["outputDir"],
                                 json_params["outputFilename"] + save_suffix + '_Iq.txt')
-        save_ascii_binned_1D(filename, title, binned_i_of_q)
+        # save_ascii_binned_1D(filename, title, binned_i_of_q)
+        # [CD, 2/10/2020] save_iqmod is preferred
+        save_iqmod(binned_i_of_q, filename, float_format='%.6E')  # sep = ' ', float_format='%.6f'
     if label:
         ax.legend()
     ax.set_ylabel("Intensity")
@@ -332,7 +340,8 @@ if __name__ == "__main__":
 
     suffix = ".png"
     picture_file = os.path.join(json_conf["outputDir"],
-                                json_params["outputFilename"] + suffix)
+                                json_params["outputFilename"] + '_Iq' + suffix)
+    # [CD 2/10/2020] added _Iq to the png filename
     fig.savefig(picture_file)
 
     # 2D
@@ -343,5 +352,9 @@ if __name__ == "__main__":
         get_Iqxqy(result, json_params["configuration"]["outputDir"],
                   json_params["outputFilename"], label=frame_label,
                   nbins=numQBins2D,
-                  weighting=True)
+                  weighting=flag_weighted)
         # [CD, 1/30/2020] option btn weighted and noweighted ?
+        # [CD, 2/10/2020] option for weighting has been added
+
+    # [CD 2/7/2020] log 'finish'
+    msapi.logger.notice('...Reduction finished.')

@@ -1,7 +1,6 @@
 import numpy as np
 import os
 from mantid.kernel import logger
-import h5py
 r"""
 Links to mantid algorithms
 https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html

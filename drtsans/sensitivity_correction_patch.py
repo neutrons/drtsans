@@ -56,6 +56,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
+    SaveNexusProcessed(InputWorkspace=input_workspace, Filename='main_input.nxs')
+
     # Wavelength bins are summed together to remove the time-of-flight nature according
     # to equations A3.1 and A3.2
     input_workspace = mtd[str(input_workspace)]
@@ -113,31 +115,36 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # Equations A3.9 and A3.10. Use result to fill in NaN values.
     num_interpolated_tubes = 0
     # Loop over all the tubes
-    num_tubes = comp.dim_y
-    print('[DEBUG] Number of tubes = {}'.format(
-        num_tubes
+    num_tubes = comp.dim_x
+    num_pixels_per_tube = comp.dim_y
+    print('[DEBUG] Component {} Number of tubes = {}, Pixels per tube = {}, Det dimension = {}'.format(
+        component_name, num_tubes, num_pixels_per_tube, len(II)
     ))
-    debug_h5 = h5py.File('Investigate_Patch_Order{}.h5'.format(poly_order))
+    debug_h5 = h5py.File('Investigate_Patch_Order{}.h5'.format(poly_order), 'w')
+
     num_skipped_tubes = 0   # number of tubes with -INF but too few pixels with valid value
     for j in range(0, num_tubes):
         xx = []
         yy = []
         ee = []
         # beam center masked pixels
-        masked_indices = []
-        for i in range(0, comp.dim_x):
-            index = comp.dim_x*j + i
+        beam_center_masked_pixels = []
+        for i in range(0, num_pixels_per_tube):
+            index = num_pixels_per_tube*j + i
             if np.isneginf(II[index]):
-                masked_indices.append([i, index])
+                beam_center_masked_pixels.append([i, index])
             elif not np.isnan(II[index]):
                 xx.append(i)
                 yy.append(II[index])
                 ee.append(dI[index])
 
-        if len(masked_indices) == 0:
+        if len(beam_center_masked_pixels) == 0:
             # no masked/center masked pixels
             # no need to do interpolation
             continue
+
+        print('Tube {}'.format(j))
+
         # This shall be an option later
         if len(xx) < min_detectors_per_tube:
             logger.error("Skipping tube with indices {} with {} non-masked value. Too many "
@@ -162,20 +169,22 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         # (correlation between the coefficients)
         e_coeffs = np.sqrt(np.diag(cov_matrix))
 
-        masked_indices = np.array(masked_indices)
+        beam_center_masked_pixels = np.array(beam_center_masked_pixels)
 
         # The patch is applied to the results of the previous step to produce S2(m,n).
-        y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
+        y_new = np.polyval(polynomial_coeffs, beam_center_masked_pixels[:, 0])
         # errors of the polynomial
-        e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
-                        (e_coeffs[0]*masked_indices[:, 0]**2)**2)
-        for i, index in enumerate(masked_indices[:, 1]):
+        e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*beam_center_masked_pixels[:, 0])**2 +
+                        (e_coeffs[0]*beam_center_masked_pixels[:, 0]**2)**2)
+        for i, index in enumerate(beam_center_masked_pixels[:, 1]):
+            if j == 94:
+                print('\t\tSet {} by {} (i = {})'.format(index, y_new[i], i))
             II[index] = y_new[i]
             dI[index] = e_new[i]
 
         # debug output
-        h5entry.create_dataset('index', data=np.arange(comp.dim_x))
-        h5entry.create_dataset('sens', data=II[comp.dim_x*j:comp.dim_x*(j+1)])
+        h5entry.create_dataset('index', data=np.arange(num_pixels_per_tube))
+        h5entry.create_dataset('sens', data=II[num_pixels_per_tube*j:num_pixels_per_tube*(j+1)])
     debug_h5.close()
 
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value

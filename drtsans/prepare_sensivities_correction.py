@@ -419,6 +419,8 @@ class PrepareSensitivityCorrection(object):
         # pixels' uncertainties are zero, which is different from other pixels
         total_mask_array = flood_workspace.extractE() < 1E-6
         print('.........................{}'.format(total_mask_array.shape))
+        print('[DEBUG....] Set -INF  Bad Pixel Mask [18055] = {} ... Total Mask [18055] = {}'
+              ''.format(det_mask_array[18055][0], total_mask_array[18055][0]))
 
         # Loop through each detector pixel to check its masking state to determine whether its value shall be
         # set to NaN, -infinity or not changed (i.e., for pixels without mask)
@@ -486,6 +488,7 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             flood_ws_i = self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i])
             flood_workspaces.append(flood_ws_i)
+            debug_output(flood_ws_i, 'Normal_Masked_Flood_{}.nxs'.format(flood_ws_i))
 
         # Retrieve masked detectors
         if not use_moving_detector_method:

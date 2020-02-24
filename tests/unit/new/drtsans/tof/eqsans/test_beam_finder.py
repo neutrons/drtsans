@@ -18,7 +18,7 @@ def test_find_beam_center(reference_dir):
     """
     with amend_config(data_dir=reference_dir.new.eqsans):
         w = LoadEventNexus(Filename='EQSANS_92160', OutputWorkspace=uwd())
-    assert find_beam_center(w) == approx((0.025, 0.013), abs=1e-3)
+    assert find_beam_center(w) == approx((0.02997, 0.01379), abs=1e-3)
 
 
 def test_center_detector(reference_dir):
@@ -35,7 +35,7 @@ def test_center_detector(reference_dir):
     with amend_config(data_dir=reference_dir.new.eqsans):
         w = LoadEventNexus(Filename='EQSANS_92160', OutputWorkspace=uwd())
     r = find_beam_center(w, method='center_of_mass')
-    assert r == approx((0.025, 0.013), abs=1e-3)
+    assert r == approx((0.02997, 0.0138), abs=1e-3)
     pos_old = w.getInstrument().getDetector(0).getPos()
     expected = np.array([0.52164, -0.54785, -0.02559])
     assert pos_old == approx(expected, abs=1e-5)

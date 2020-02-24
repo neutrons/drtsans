@@ -44,8 +44,8 @@ def test_beam_finder_trivial(generic_workspace):
     assert inst.getDetector(9).getPos() == approx([1, 1, 5], abs=1e-5)
     assert inst.getDetector(10).getPos() == approx([1, 2, 5], abs=1e-5)
     x_cen, y_cen = find_beam_center(ws)
-    assert x_cen == approx(1.307692, abs=1e-5)
-    assert y_cen == approx(1.384615, abs=1e-5)
+    assert x_cen == approx(1.328293, abs=1e-5)
+    assert y_cen == approx(1.421136, abs=1e-5)
 
 
 @pytest.mark.parametrize('generic_workspace',
@@ -91,8 +91,8 @@ def test_beam_finder_larger_workspace(generic_workspace):
         assert spec.isMasked(i)
     # test functions
     x_cen, y_cen = find_beam_center(ws)
-    assert x_cen == approx(5.423913, abs=1e-5)
-    assert y_cen == approx(5.654682, abs=1e-5)
+    assert x_cen == approx(5.594458, abs=1e-5)
+    assert y_cen == approx(6.098827, abs=1e-5)
 
 
 def test_center_detector():
@@ -256,8 +256,8 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
                                                                 output_workspace='sensitivity_corrected')
 
     # Finding the beam center
-    x_cen, y_cen = find_beam_center(sensitivity_corrected_counts, area_correction_flag=True)
-    assert x_cen*1000 == approx(21.48, abs=0.9)
+    x_cen, y_cen = find_beam_center(sensitivity_corrected_counts, solid_angle_method='GenericShape')
+    assert x_cen*1000 == approx(27.41, abs=0.9)
     assert y_cen*1000 == approx(22.5, abs=0.9)
 
 

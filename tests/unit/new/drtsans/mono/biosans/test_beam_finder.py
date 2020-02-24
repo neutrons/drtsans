@@ -124,9 +124,9 @@ def test_beam_finder(biosans_f):
     # 0.00144037741238 -0.0243732351545 -0.0267
     x, y, y_gravity = beam_finder.find_beam_center(ws)
 
-    assert x == pytest.approx(0.0014, abs=1e-4)
-    assert y == pytest.approx(-0.0243, abs=1e-4)
-    assert y_gravity == pytest.approx(-0.0216+0.0135, abs=1e-4)
+    assert x == pytest.approx(0.00214, abs=1e-4)
+    assert y == pytest.approx(-0.02445, abs=1e-4)
+    assert y_gravity == pytest.approx(-0.008257, abs=1e-4)
     # The position of the main detector is retrieved
     # The geometry of the detector setup is accessed through a workspace handle.
     # To access the detector geometry we must go through the instrument and
@@ -154,13 +154,13 @@ def test_beam_finder(biosans_f):
                                       CenterX=-x, CenterY=-y)
     x1, y1 = center
     # Tolerance 1e-3 == millimeters
-    assert x1 == pytest.approx(0.0, abs=1e-4)
+    assert x1 == pytest.approx(0.0, abs=1e-3)
     assert y1 == pytest.approx(0.0, abs=1e-4)
 
     # let's the test our wrap function. The results should be the same.
     x2, y2, y_gravity2 = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
 
-    assert x2 == pytest.approx(0.0, abs=1e-4) == x1
+    assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-4) == y1
     assert y_gravity2 == pytest.approx(0.0 + y_gravity - y, abs=1e-4)
     assert abs(y_gravity2) > abs(y2)

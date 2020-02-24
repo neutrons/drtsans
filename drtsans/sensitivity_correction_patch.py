@@ -55,6 +55,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
+    SaveNexusProcessed(InputWorkspace=input_workspace, Filename='main_input.nxs')
+
     # Wavelength bins are summed together to remove the time-of-flight nature according
     # to equations A3.1 and A3.2
     input_workspace = mtd[str(input_workspace)]
@@ -94,11 +96,13 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     dI = II * np.sqrt(np.square(y_uncertainty/y) + np.square(dF/F))
 
     # Any pixel in II less than min_threshold or greater than max_threshold is masked
+    counts = 0
     for i, value in enumerate(II):
         if not np.isnan(value) and not np.isneginf(value):
             if value < min_threshold or value > max_threshold:
                 II[i] = np.nan
                 dI[i] = np.nan
+                counts += 1
 
     # Get the (main or wing) detector (component) to calculate sensitivity correction for
     # 'detector1' for EQSANS, GPSANS and BIOSANS's main detector
@@ -109,31 +113,33 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # Equations A3.9 and A3.10. Use result to fill in NaN values.
     num_interpolated_tubes = 0
     # Loop over all the tubes
-    num_tubes = comp.dim_y
+    num_tubes = comp.dim_x
+    num_pixels_per_tube = comp.dim_y
+
     for j in range(0, num_tubes):
         xx = []
         yy = []
         ee = []
         # beam center masked pixels
-        masked_indices = []
-        for i in range(0, comp.dim_x):
-            index = comp.dim_x*j + i
+        beam_center_masked_pixels = []
+        for i in range(0, num_pixels_per_tube):
+            index = num_pixels_per_tube*j + i
             if np.isneginf(II[index]):
-                masked_indices.append([i, index])
+                beam_center_masked_pixels.append([i, index])
             elif not np.isnan(II[index]):
                 xx.append(i)
                 yy.append(II[index])
                 ee.append(dI[index])
 
-        if len(masked_indices) == 0:
-            # no masked/centermasked pixels
+        if len(beam_center_masked_pixels) == 0:
+            # no masked/center masked pixels
             # no need to do interpolation
             continue
+
         # This shall be an option later
         if len(xx) < min_detectors_per_tube:
             logger.error("Skipping tube with indices {} with {} non-masked value. Too many "
                          "masked or dead pixels.".format(j, len(xx)))
-            print('Tube {} .................... Valid Pixels = {}......... Skip'.format(j, len(xx)))
             continue
 
         # Do poly fit
@@ -146,14 +152,14 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         # (correlation between the coefficients)
         e_coeffs = np.sqrt(np.diag(cov_matrix))
 
-        masked_indices = np.array(masked_indices)
+        beam_center_masked_pixels = np.array(beam_center_masked_pixels)
 
         # The patch is applied to the results of the previous step to produce S2(m,n).
-        y_new = np.polyval(polynomial_coeffs, masked_indices[:, 0])
+        y_new = np.polyval(polynomial_coeffs, beam_center_masked_pixels[:, 0])
         # errors of the polynomial
-        e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*masked_indices[:, 0])**2 +
-                        (e_coeffs[0]*masked_indices[:, 0]**2)**2)
-        for i, index in enumerate(masked_indices[:, 1]):
+        e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*beam_center_masked_pixels[:, 0])**2 +
+                        (e_coeffs[0]*beam_center_masked_pixels[:, 0]**2)**2)
+        for i, index in enumerate(beam_center_masked_pixels[:, 1]):
             II[index] = y_new[i]
             dI[index] = e_new[i]
 

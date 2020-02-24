@@ -176,8 +176,8 @@ class Component:
     '''
 
     # class variables that will cache the component details
-    dim_x = -1
-    dim_y = -1
+    dim_x = -1  # number of tubes
+    dim_y = -1  # number of pixels per tube
     dims = -1  # total number of pixels
     first_index = -1  # workspace index of the smallest pixel id
 

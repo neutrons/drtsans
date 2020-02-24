@@ -6,9 +6,12 @@ from numpy.testing import assert_allclose
 
 
 @pytest.mark.parametrize('workspace_with_instrument',
-                         [dict(name='EQSANS', Nx=20, Ny=8)], indirect=True)
+                         [dict(name='EQSANS', Nx=8, Ny=20)], indirect=True)
 def test_prepare_sensitivity(workspace_with_instrument):
     """This tests that prepare_sensitivity gives the expected result.
+
+    Nx = 8:    8 tubes
+    Ny = 20:  20 pixels per tube
 
     dev - Steven Hahn <hahnse@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>

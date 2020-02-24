@@ -104,7 +104,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
                 II[i] = np.nan
                 dI[i] = np.nan
                 counts += 1
-    print('[DEBUG] Number of pixels out of threshold = {}'.format(counts))
 
     # Get the (main or wing) detector (component) to calculate sensitivity correction for
     # 'detector1' for EQSANS, GPSANS and BIOSANS's main detector
@@ -117,12 +116,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # Loop over all the tubes
     num_tubes = comp.dim_x
     num_pixels_per_tube = comp.dim_y
-    print('[DEBUG] Component {} Number of tubes = {}, Pixels per tube = {}, Det dimension = {}'.format(
-        component_name, num_tubes, num_pixels_per_tube, len(II)
-    ))
-    debug_h5 = h5py.File('Investigate_Patch_Order{}.h5'.format(poly_order), 'w')
 
-    num_skipped_tubes = 0   # number of tubes with -INF but too few pixels with valid value
     for j in range(0, num_tubes):
         xx = []
         yy = []
@@ -143,14 +137,10 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
             # no need to do interpolation
             continue
 
-        print('Tube {}'.format(j))
-
         # This shall be an option later
         if len(xx) < min_detectors_per_tube:
             logger.error("Skipping tube with indices {} with {} non-masked value. Too many "
                          "masked or dead pixels.".format(j, len(xx)))
-            print('[DEBUG] Tube {} .................... Valid Pixels = {}......... Skip'.format(j, len(xx)))
-            num_skipped_tubes += 1
             continue
 
         # Do poly fit
@@ -158,12 +148,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         #  the weights in a real sensitivity measurement are all going to be very similar,
         #  so it should not really matter in practice.
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
-
-        print('[DEBUG] Tube {} poly coefficients: {} (type = {})'
-              ''.format(j, polynomial_coeffs, type(polynomial_coeffs)))
-        h5entry = debug_h5.create_group('{}'.format(j))
-        h5entry.create_dataset('raw_x', data=xx)
-        h5entry.create_dataset('raw_y', data=yy)
 
         # Errors in the least squares is the sqrt of the covariance matrix
         # (correlation between the coefficients)
@@ -177,15 +161,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*beam_center_masked_pixels[:, 0])**2 +
                         (e_coeffs[0]*beam_center_masked_pixels[:, 0]**2)**2)
         for i, index in enumerate(beam_center_masked_pixels[:, 1]):
-            if j == 94:
-                print('\t\tSet {} by {} (i = {})'.format(index, y_new[i], i))
             II[index] = y_new[i]
             dI[index] = e_new[i]
-
-        # debug output
-        h5entry.create_dataset('index', data=np.arange(num_pixels_per_tube))
-        h5entry.create_dataset('sens', data=II[num_pixels_per_tube*j:num_pixels_per_tube*(j+1)])
-    debug_h5.close()
 
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14

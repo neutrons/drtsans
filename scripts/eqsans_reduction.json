@@ -47,6 +47,7 @@
     "numQxQyBins": 80,
     "QbinType": "linear",
     "numQBins": 120,
+    "useErrorWeighting": true,
     "useTOFcuts": false,
     "TOFmin": "",
     "TOFmax": "",

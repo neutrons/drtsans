@@ -120,15 +120,23 @@ def reduction(json_params, config):
     ws *= absolute_scale
 
     # Convert the Q
+    flag_weighted = False
+    if 'useErrorWeighting' in json_params["configuration"].keys():
+        if json_params["configuration"]["useErrorWeighting"] == '':
+            flag_weighted = False
+        else:
+            flag_weighted = json_params["configuration"]["useErrorWeighting"]
     q_data = sans.convert_to_q(ws, mode='scalar')
     get_Iq(q_data, json_params["configuration"]["outputDir"],
            json_params["outputFilename"],
            linear_binning=json_params["configuration"]["QbinType"] == "linear",
+           weighting=flag_weighted,
            nbins=int(json_params["configuration"]["numQBins"]))
 
     q_data = sans.convert_to_q(ws, mode='azimuthal')
     get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
               json_params["outputFilename"],
+              weighting=flag_weighted,
               nbins=int(json_params["configuration"]["numQxQyBins"]))
 
 

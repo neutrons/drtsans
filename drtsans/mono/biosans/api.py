@@ -111,8 +111,10 @@ def prepare_data(data,
 
     # Solid angle
     if solid_angle:
-        solid_angle_correction(ws_name)
-
+        if solid_angle is True:
+            solid_angle_correction(ws_name)
+        else:  # assume the solid_angle parameter is a workspace
+            solid_angle_correction(ws_name, solid_angle_ws=solid_angle)
     # Sensitivity
     if sensitivity_file_path is not None or sensitivity_workspace is not None:
         drtsans.apply_sensitivity_correction(ws_name, sensitivity_filename=sensitivity_file_path,

@@ -154,8 +154,11 @@ def prepare_data(data,
         output_workspace = subtract_dark_current(output_workspace, dark_current)
 
     # The solid angle is corrected for next
-    if solid_angle is True:
-        output_workspace = apply_solid_angle_correction(output_workspace)
+    if solid_angle:
+        if solid_angle is True:
+            output_workspace = apply_solid_angle_correction(output_workspace)
+        else:  # assume the solid_angle parameter is a workspace
+            output_workspace = apply_solid_angle_correction(output_workspace, solid_angle_ws=solid_angle)
 
     # Interestingly, this is the only use of the btp dictionary.
     # The BTP stands for banks, tubes and pixels - it is a Mantid thing.

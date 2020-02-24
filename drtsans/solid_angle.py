@@ -1,4 +1,5 @@
-from mantid.simpleapi import ClearMaskFlag, DeleteWorkspace, Divide, mtd, SolidAngle, ReplaceSpecialValues
+from mantid.simpleapi import ClearMaskFlag, CloneWorkspace, DeleteWorkspace, Divide, mtd, ReplaceSpecialValues, \
+    SolidAngle
 from drtsans.instruments import instrument_enum_name
 from drtsans.settings import unique_workspace_dundername
 
@@ -19,8 +20,7 @@ def calculate_solid_angle(input_workspace, detector_type='VerticalTube', output_
         Select the method to calculate the Solid Angle. Allowed values: [‘GenericShape’,
         ‘Rectangle’, ‘VerticalTube’, ‘HorizontalTube’, ‘VerticalWing’, ‘HorizontalWing’]
     output_workspace: str
-        Optional name of the output workspace. if :py:obj:`None`, the name of the input workspace is taken,
-        thus the output workspace replaces the input workspace.
+        Optional name of the output workspace. if :py:obj:`None`, the name created is ``<instrument>_solid_angle``
     kwargs: dict
         Additional arguments to Mantid algorithm :ref:`SolidAngle <algm-SolidAngle-v1>`
 
@@ -33,18 +33,14 @@ def calculate_solid_angle(input_workspace, detector_type='VerticalTube', output_
     # default behaviour is to create instrument unique name
     if not output_workspace:
         output_workspace = '{}_solid_angle'.format(instrument)
-    # return existing workspace if possible
-    if output_workspace in mtd:
-        return mtd[output_workspace]
+
+    # make a copy of the workspace and clear the mask flag
+    # so the solid angle is calculated for the entire instrument
+    CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+    ClearMaskFlag(Workspace=output_workspace)
 
     # calculate the solid angle
-    SolidAngle(InputWorkspace=input_workspace, OutputWorkspace=output_workspace, Method=detector_type)
-
-    if kwargs:  # assume the pixel range was set
-        # set the solid angle of the mystery parts of the instrument as 1 and don't mask them
-        ClearMaskFlag(Workspace=output_workspace)
-        ReplaceSpecialValues(InputWorkspace=output_workspace, OutputWorkspace=output_workspace,
-                             SmallNumberThreshold=1.e-9, SmallNumberValue=1.)
+    SolidAngle(InputWorkspace=output_workspace, OutputWorkspace=output_workspace, Method=detector_type, **kwargs)
 
     return mtd[output_workspace]
 

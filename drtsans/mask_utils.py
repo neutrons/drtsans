@@ -106,7 +106,7 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
                 mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
                                           RefWorkspace=input_workspace, OutputWorkspace=unique_workspace_dundername())
             else:
-                mask_workspace = Load(Filename=mask, OutputWorkspace=unique_workspace_dundername())
+                mask_workspace = load_mask(mask)
             MaskDetectors(Workspace=input_workspace, MaskedWorkspace=mask_workspace)
             mask_workspace.delete()  # delete temporary workspace
         elif isinstance(mask, MaskWorkspace):
@@ -126,6 +126,30 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
             MaskBTP(Workspace=input_workspace, **btp)
     return ExtractMask(InputWorkspace=input_workspace,
                        OutputWorkspace=output_workspace).OutputWorkspace
+
+
+def load_mask(mask_file='', output_workspace=None):
+    r"""
+    Load mask file in a workspace
+
+    Parameters
+    ----------
+
+    mask_file: mask file path, ~mantid.api.MaskWorkspace, :py:obj:`list`
+        Additional mask to be applied. If :py:obj:`list`, it is a list of
+        detector ID's. If `None`, it is expected that `maskbtp` is not empty.
+
+    output_workspace:
+        Name of the output ~mantid.api.MatrixWorkspace. If ``None``, a random name will be provided for the workspace.
+
+    Returns
+    --------
+    str, ~mantid.api.MatrixWorkspace Workspace
+    """
+    if not output_workspace:
+        output_workspace = unique_workspace_dundername()
+    mask_workspace = Load(Filename=mask_file, OutputWorkspace=output_workspace)
+    return mask_workspace
 
 
 def mask_spectra_with_special_values(input_workspace, output_workspace=None):

@@ -18,7 +18,7 @@ ls /SNS
 
 declare COUNT=0
 if ! grep -qs 'HFIR' /proc/mounts; then
-  until mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" hfir-storage.ornl.gov:/volumes/datapool/instruments /SNS; do
+  until mount -t nfs -o "tcp,ro,noatime,rsize=32768,wsize=32768" hfir-storage.ornl.gov:/volumes/datapool/instruments /HFIR; do
     sleep 10
     COUNT=$((COUNT + 1))
     if [[ ${COUNT} == 5 ]]; then

@@ -1,27 +1,12 @@
 from mantid.simpleapi import MoveInstrumentComponent
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import get_instrument, detector_name, source_sample_distance, sample_detector_distance
+from drtsans.geometry import get_instrument, detector_name, source_sample_distance, sample_detector_distance, \
+    translate_sample_by_z
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'detector_z_log',
            'translate_sample_by_z', 'translate_detector_by_z']
 detector_z_log = 'detectorZ'
-
-
-def translate_sample_by_z(ws, z):
-    r"""
-    Shift the position of the sample by the desired amount
-
-    Parameters
-    ----------
-    ws: ~mantid.api.MatrixWorkspace
-        Input workspace containing instrument file
-    z: float
-        Translation to be applied
-    """
-    MoveInstrumentComponent(Workspace=str(ws), Z=z,
-                            ComponentName='sample-position',
-                            RelativePosition=True)
 
 
 def translate_detector_z(input_workspace, z=None, relative=True):

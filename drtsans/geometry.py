@@ -3,14 +3,16 @@ import os
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import logger
-from mantid.simpleapi import mtd, Load
+# https://docs.mantidproject.org/nightly/algorithms/Load-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
+from mantid.simpleapi import mtd, Load, MoveInstrumentComponent
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
-__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter']
+__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z']
 
 
 def panel_names(input_query):
@@ -485,3 +487,19 @@ def beam_radius(input_workspace, unit='mm'):
     radius = r_sa + (r_sa + r_so) * (l2 / l1)
     logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3))
     return radius
+
+
+def translate_sample_by_z(ws, z):
+    r"""
+    Shift the position of the sample by the desired amount
+
+    Parameters
+    ----------
+    ws: ~mantid.api.MatrixWorkspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied
+    """
+    MoveInstrumentComponent(Workspace=str(ws), Z=z,
+                            ComponentName='sample-position',
+                            RelativePosition=True)

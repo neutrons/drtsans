@@ -7,6 +7,7 @@ import string
 import numpy as np
 from os.path import join as pjoin
 from collections import namedtuple
+from mantid.api import AnalysisDataService
 import mantid.simpleapi as mtds
 from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadInstrument, DeleteWorkspace
 from drtsans.dataobjects import DataType, getDataType
@@ -96,6 +97,29 @@ def cleanfile():
     for name in filenames:
         if os.path.exists(name):
             os.unlink(name)
+
+
+@pytest.fixture(scope='function')
+def clean_workspace():
+    r"""
+    Fixture that will delete registered workspaces that are also registered in the Analysis Data Service
+    when the test function exits. It will cleanup on exception and will safely skip over workspaces not
+    registered in the Analysis Data Service.
+
+
+    """
+    workspaces = []
+
+    def _clean_workspace(workspace):
+        workspaces.append(str(workspace))
+        return workspace
+
+    yield _clean_workspace
+
+    # Executed after test exits
+    for workspace in workspaces:
+        if AnalysisDataService.doesExist(workspace):
+            DeleteWorkspace(workspace)
 
 
 @pytest.fixture(scope='session')

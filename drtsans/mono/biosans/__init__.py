@@ -14,6 +14,9 @@ from ...geometry import *
 import drtsans.iq
 from ...iq import *
 
+import drtsans.path
+from ...path import *
+
 import drtsans.pixel_calibration
 from ...pixel_calibration import *
 
@@ -52,6 +55,7 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + ['load_iqmod', 'save_iqmod'] \
           + drtsans.geometry.__all__ \
           + drtsans.iq.__all__ \
+          + drtsans.path.__all__\
           + drtsans.pixel_calibration.__all__ \
           + drtsans.stitch.__all__\
           + drtsans.solid_angle.__all__\

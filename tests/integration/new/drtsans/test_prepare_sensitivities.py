@@ -259,11 +259,11 @@ def test_cg3_wing_prepare_sensitivities():
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_eq_file = 'CG3_Sens_Wing.nxs'
     gold_eq_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
                    '/sans/sensitivities/CG3_Sens_Wing.nxs'
 
     verify_sensitivities_file(output_sens_file, gold_eq_file, atol=1E-7)
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

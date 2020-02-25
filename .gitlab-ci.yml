@@ -63,7 +63,8 @@ docker-update-test:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
-    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /SNS
+    - sudo mkdir -p /HFIR
     - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -79,7 +80,8 @@ docker-no-update-test:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
-    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /SNS
+    - sudo mkdir -p /HFIR
     - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -151,7 +153,7 @@ code-unit-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
+    - time docker run -v /SNS:/SNS -v /HFIR:/HFIR -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh ${TEST_SCOPE}"
     - popd
   after_script:
     - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
@@ -179,7 +181,7 @@ code-integration-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
+    - time docker run -v /SNS:/SNS -v /HFIR:/HFIR -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/test_job.sh integration"
     - popd
   after_script:
     - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
@@ -207,7 +209,7 @@ code-pylint:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -v /SNS:/SNS -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/pylint_job.sh"
+    - time docker run -v /SNS:/SNS -v /HFIR:/HFIR -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/pylint_job.sh"
     - popd
   tags:
     - scse-mantid-builder
@@ -298,7 +300,7 @@ analysis-update:
   before_script:
     - sudo yum install -y nfs-utils
     - sudo mkdir -p /SNS/software
-    - grep -qs '/SNS/software' /proc/mounts || sudo mount -t nfs -o "nfsvers=3,tcp,noatime,rsize=32768,wsize=32768" 128.219.164.43:/volumes/datapool/sfw-rhel7-prod /SNS/software 
+    - grep -qs '/SNS/software' /proc/mounts || sudo mount -t nfs -o "nfsvers=3,tcp,noatime,rsize=32768,wsize=32768" 128.219.164.43:/volumes/datapool/sfw-rhel7-prod /SNS/software
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL

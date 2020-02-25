@@ -80,6 +80,9 @@ def test_eqsans_prepare_sensitivities():
     # Dark runs
     preparer.set_dark_current_runs(DARK_CURRENT_RUNS)
 
+    # Solid angle
+    preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
+
     # Run
     output_sens_file = 'IntegrateTest_EQSANS_Sens.nxs'
     preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD,

@@ -182,7 +182,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3'):
 
 
 def plot_detector(input_workspace, filename=None, backend='d3',
-                  imshow_kwargs={'norm': LogNorm(vmin=1)}):
+                  imshow_kwargs={'norm': LogNorm(vmin = 1)}):
     r"""Save a plot representative of the supplied workspace
 
      Parameters

@@ -39,6 +39,10 @@ def test_eqsans_prepare_sensitivities():
     # INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
     INSTRUMENT = 'EQSANS'   # Main
 
+    # Check whether the test shall be skipped
+    if not os.path.exists('/SNS/EQSANS/IPTS-24648/nexus/EQSANS_111030.nxs.h5'):
+        pytest.skip('Test files cannot be accessed.')
+
     # Input Flood Runs
     FLOOD_RUNS = 111030
 

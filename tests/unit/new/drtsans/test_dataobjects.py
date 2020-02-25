@@ -2,8 +2,29 @@ import os
 import pytest
 import tempfile
 
-from drtsans.dataobjects import IQazimuthal, IQmod, load_iqmod, save_iqmod, testing
+from drtsans.dataobjects import concatenate, IQazimuthal, IQmod, load_iqmod, save_iqmod, testing
 from tests.conftest import assert_wksp_equal
+
+
+def test_concatenate():
+    # test with IQmod objects
+    iq1 = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], delta_mod_q=[10, 11, 12])
+    iq2 = IQmod([4, 5, 6], [4, 5, 6], [7, 8, 9], wavelength=[10, 11, 12])
+    iq3 = IQmod([7, 8, 9], [4, 5, 6], [7, 8, 9])
+    iq = concatenate((iq1, iq2, iq3))
+    assert iq.intensity == pytest.approx([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    assert iq.delta_mod_q is None
+    assert iq.wavelength is None
+    # test with IQazimuthal objects
+    iq1 = IQazimuthal([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], delta_qx=[13, 14, 15], delta_qy=[10, 11, 12])
+    iq2 = IQazimuthal([4, 5, 6], [4, 5, 6], [7, 8, 9], [13, 14, 15], wavelength=[10, 11, 12])
+    iq3 = IQazimuthal([7, 8, 9], [4, 5, 6], [7, 8, 9], [16, 17, 18])
+    iq = concatenate((iq1, iq2, iq3))
+    assert iq.intensity == pytest.approx([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    assert iq.qy == pytest.approx([10, 11, 12, 13, 14, 15, 16, 17, 18])
+    assert iq.delta_qx is None
+    assert iq.delta_qy is None
+    assert iq.wavelength is None
 
 
 class TestIQmod():

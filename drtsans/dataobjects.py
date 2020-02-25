@@ -160,6 +160,23 @@ def q_azimuthal_to_q_modulo(Iq):
     return iqmod
 
 
+def concatenate(iq_objects):
+    r"""
+    Join a sequence IQ objects; concatenate((iq1, iq2, iq3,...))
+
+    Parameters
+    ----------
+    iq_objects: list
+        A sequence of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or
+        ~drtsans.dataobjects.IQcrystal objects. All objects must be of the same type
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    """
+    return _nary_operation(iq_objects, np.concatenate, unpack=False)
+
+
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
     r"""This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
     and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional."""

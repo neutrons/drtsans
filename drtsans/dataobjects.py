@@ -368,6 +368,11 @@ def save_iqmod(iq, file, sep=' ', float_format='%.6f'):
     r"""
     Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
+    Current output columns
+    (Line 0: ) intensity error mod_q
+    Expected
+    (Line 0: ) mod_q intensity error mod_q_error
+
     Parameters
     ----------
     iq: ~drtsans.dataobjects.IQmod

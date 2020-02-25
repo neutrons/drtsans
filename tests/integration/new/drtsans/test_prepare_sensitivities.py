@@ -2,7 +2,31 @@
     Test EASANS sensitivities preparation algorithm
 """
 import pytest
+import numpy as np
+import os
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
+from mantid.simpleapi import LoadNexusProcessed
+
+
+def verify_sensitivities_file(test_sens_file, gold_sens_file):
+    """
+    """
+    # Load processed NeXus files from tests and gold result
+    test_sens_ws = LoadNexusProcessed(Filename=test_sens_file)
+    gold_sens_ws = LoadNexusProcessed(Filename=gold_sens_file)
+
+    # Compare number of spectra
+    assert test_sens_ws.getNumberHistograms() == gold_sens_ws.getNumberHistograms()
+
+    # Verify sensitivity value
+    test_y = test_sens_ws.extractY().flatten()
+    gold_y = gold_sens_ws.extractY().flatten()
+    np.testing.assert_allclose(gold_y, test_y, atol=3E-4, equal_nan=True)
+
+    # Verify sensitivity error
+    test_e = test_sens_ws.extractE().flatten()
+    gold_e = gold_sens_ws.extractE().flatten()
+    np.testing.assert_allclose(gold_e, test_e, atol=3E-5, equal_nan=True)
 
 
 def test_eqsans_prepare_sensitivities():
@@ -60,6 +84,16 @@ def test_eqsans_prepare_sensitivities():
     output_sens_file = 'IntegrateTest_EQSANS_Sens.nxs'
     preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD,
                      output_nexus_name=output_sens_file)
+
+    # Verify file existence
+    assert os.path.exists(output_sens_file)
+
+    # Verify value
+    gold_eq_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
+                   '/sans/sensitivities/EQSANS_sens_patched.nxs'
+
+    verify_sensitivities_file(output_sens_file, gold_eq_file)
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

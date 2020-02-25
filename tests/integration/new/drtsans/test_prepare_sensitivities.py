@@ -102,5 +102,80 @@ def test_eqsans_prepare_sensitivities():
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 
 
+def test_cg3_main_prepare_sensitivities():
+    """Integration test on algorithms to prepare sensitivities for BIOSANS's main detector
+
+    Returns
+    -------
+
+    """
+    INSTRUMENT = 'CG3'  # Main
+
+    # CG3: Main
+    FLOOD_RUNS = 4829
+
+    # About Masks
+    # CG3 Main:
+    DIRECT_BEAM_RUNS = 4827
+
+    # Transmission run
+    TRANSMISSION_RUNS = 4828  # GG3 main
+    # Transmission flood run
+    TRANSMISSION_FLOOD_RUNS = 4829
+
+    # Default mask to detector
+    # CG3:
+    MASKED_PIXELS = '1-18,239-256'  # CG3
+    # Mask angle: must 2 values as min and max or None
+    MAIN_DET_MASK_ANGLE = 1.5
+    WING_DET_MASK_ANGLE = 57.0
+    BEAM_TRAP_SIZE_FACTOR = 2
+
+    # Corrections
+    SOLID_ANGLE_CORRECTION = True
+    # Flag to do dependent correction with transmission correction
+    THETA_DEPENDENT_CORRECTION = True
+
+    # THRESHOLD
+    MIN_THRESHOLD = 0.5
+    MAX_THRESHOLD = 2.0
+
+    preparer = PrepareSensitivityCorrection(INSTRUMENT, is_wing_detector=False)
+    # Load flood runs
+    preparer.set_flood_runs(FLOOD_RUNS)
+
+    # Process beam center runs
+    if DIRECT_BEAM_RUNS is not None:
+        preparer.set_direct_beam_runs(DIRECT_BEAM_RUNS)
+
+    # Set extra masks
+    preparer.set_masks(None, MASKED_PIXELS,
+                       wing_det_mask_angle=WING_DET_MASK_ANGLE,
+                       main_det_mask_angle=MAIN_DET_MASK_ANGLE)
+
+    # Transmission
+    preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
+                                         transmission_reference_run=TRANSMISSION_RUNS,
+                                         beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
+    preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
+
+    # Solid angle
+    preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
+
+    # Run
+    output_sens_file = 'IntegrateTest_EQSANS_Sens.nxs'
+    preparer.execute(False, MIN_THRESHOLD, MAX_THRESHOLD,
+                     output_nexus_name=output_sens_file)
+
+    # Verify file existence
+    assert os.path.exists(output_sens_file)
+
+    # Verify value
+    gold_eq_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
+                   '/sans/sensitivities/CG3_Sens_Main.nxs'
+
+    verify_sensitivities_file(output_sens_file, gold_eq_file)
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

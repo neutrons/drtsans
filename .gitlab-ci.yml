@@ -63,8 +63,9 @@ docker-update-test:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
-    - sudo mkdir -p /SNS
-    - sudo mkdir -p /HFIR
+    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /HFIR/CG2
+    - sudo mkdir -p /HFIR/CG3
     - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -80,8 +81,9 @@ docker-no-update-test:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
-    - sudo mkdir -p /SNS
-    - sudo mkdir -p /HFIR
+    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /HFIR/CG2
+    - sudo mkdir -p /HFIR/CG3
     - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -172,6 +174,8 @@ code-integration-test:
     - dockerbuild
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
+    - sudo mkdir -p /HFIR/CG2
+    - sudo mkdir -p /HFIR/CG3
     - sudo bash scripts/eqsans-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true
@@ -200,6 +204,8 @@ code-pylint:
     - dockerbuild
   before_script:
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
+    - sudo mkdir -p /HFIR/CG2
+    - sudo mkdir -p /HFIR/CG3
     - sudo bash scripts/eqsans-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true

@@ -265,5 +265,67 @@ def test_cg3_wing_prepare_sensitivities():
     verify_sensitivities_file(output_sens_file, gold_eq_file, atol=1E-7)
 
 
+def test_cg2_sensitivities():
+    """Integration test on algorithms to prepare sensitivities for GPSANS's
+    with moving detector method
+
+    Returns
+    -------
+
+    """
+    if not os.path.exists('/HFIR/CG2/IPTS-23801/nexus/CG2_7116.nxs.h5'):
+        pytest.skip('Testing file for CG2 cannot be accessed')
+
+    INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
+
+    # Input Flood Runs
+    FLOOD_RUNS = 7116, 7118, 7120  # Single value integer or a list or tuple
+
+    # About Masks
+    # CG2:
+    DIRECT_BEAM_RUNS = 7117, 7119, 7121
+    MASK_BEAM_CENTER_RADIUS = 65  # mm
+
+    # CG2:
+    MASKED_PIXELS = '1-8,249-256'
+
+    # If it is GPSANS or BIOSANS there could be 2 options to calculate detector efficiencies
+    MOVING_DETECTORS = True
+
+    SOLID_ANGLE_CORRECTION = True
+
+    # THRESHOLD
+    MIN_THRESHOLD = 0.5
+    MAX_THRESHOLD = 2.0
+
+    preparer = PrepareSensitivityCorrection(INSTRUMENT)
+    # Load flood runs
+    preparer.set_flood_runs(FLOOD_RUNS)
+
+    # Process beam center runs
+    preparer.set_direct_beam_runs(DIRECT_BEAM_RUNS)
+
+    # Set extra masks
+    preparer.set_masks(None, MASKED_PIXELS)
+
+    # Set beam center radius
+    preparer.set_beam_center_radius(MASK_BEAM_CENTER_RADIUS)
+
+    preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
+
+    # Run
+    output_sens_file = 'IntegrateTest_CG2_MovingDet.nxs'
+    preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_sens_file)
+
+    # Verify file existence
+    assert os.path.exists(output_sens_file)
+
+    # Verify value
+    gold_gp_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
+                   '/sans/sensitivities/CG2_Sens_Moving_Dets.nxs'
+
+    verify_sensitivities_file(output_sens_file, gold_gp_file, atol=1E-7)
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

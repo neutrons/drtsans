@@ -8,12 +8,13 @@ import time
 # this should point to the root directory of the code repository
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../../'))
 # specific extensions for given basenames
-EXTENSIONS = {'EQSANS_88980': ['.nxs', '.png', '_bkg_88974_raw_trans.txt', '_bkg_88974_trans.txt', '_frame_1_Iq.txt',
+EXTENSIONS = {'EQSANS_88980': ['.nxs', '_Iq.png', '_bkg_88974_raw_trans.txt', '_bkg_88974_trans.txt',
+                               '_frame_1_Iq.txt',
                                '_frame_2_Iq.txt', '_frame_1_Iqxqy.txt', '_frame_2_Iqxqy.txt', '_frame_1_Iqxqy.png',
                                '_frame_2_Iqxqy.png', '_frame_1_Iqxqy.json', '_frame_2_Iqxqy.json', '_raw_trans.txt',
                                '_trans.txt'],
               'EQSANS_112300': ['_bkg_112296_raw_trans.txt', '_bkg_112296_trans.txt', '_Iq.txt', '_Iqxqy.txt', '.nxs',
-                                '.png', '_Iqxqy.png', '_Iqxqy.json', '_raw_trans.txt', '_trans.txt'],
+                                '_Iq.png', '_Iqxqy.png', '_Iqxqy.json', '_raw_trans.txt', '_trans.txt'],
               'CG3_1433': ['_merged_Iq.json', '_merged_Iq.png'],
               'CG2_1481': ['_Iq.json', '_Iq.png', '_Iq.txt', '_Iqxqy.json', '_Iqxqy.png', '_Iqxqy.txt']}
 # double for loop to simplify creating the mix of extensions for CG3_1433

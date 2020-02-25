@@ -401,6 +401,22 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
     def id(self):
         return DataType.IQ_AZIMUTHAL
 
+    def concatenate(self, other):
+        r"""
+        Append additional data points from another ~drtsans.dataobjects.IQazimuthal object and
+        return the composite as a new ~drtsans.dataobjects.IQazimuthal object.
+
+        Parameters
+        ----------
+        other: ~drtsans.dataobjects.IQazimuthal
+            Additional data points.
+
+        Returns
+        -------
+        ~drtsans.dataobjects.IQazimuthal
+        """
+        return _nary_operation((self, other), np.concatenate, unpack=False)
+
 
 class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx delta_qy delta_qz wavelength')):
     '''This class holds the information for the crystallographic projection, I(Qx, Qy, Qz). All of the

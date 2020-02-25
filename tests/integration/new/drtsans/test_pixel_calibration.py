@@ -14,7 +14,7 @@ LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import AddSampleLog, DeleteWorkspace, LoadEmptyInstrument, LoadNexus, SaveNexus
+from mantid.simpleapi import AddSampleLog, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus, LoadNexus, SaveNexus
 
 r"""
 Hyperlinks to drtsans functions
@@ -24,7 +24,7 @@ namedtuplefy, unique_workspace_dundername
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
-from drtsans.pixel_calibration import (apply_calibrations, calculate_apparent_tube_width,
+from drtsans.pixel_calibration import (as_intensities, calculate_apparent_tube_width,
                                        calculate_barscan_calibration, find_edges, fit_positions, load_calibration)
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
@@ -346,47 +346,46 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     assert np.array(heights) == pytest.approx(data.heights, abs=data.precision)
 
 
-@pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
-def test_calculate_GPSANS_barscan(reference_dir):
+def test_calculate_gpsans_barscan(reference_dir):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     barscan_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')
     calibration = calculate_barscan_calibration(barscan_file)  # calibration object
-    database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
+    # Load save calibration for CG2_7465.nxs.h5 and compare
+    database_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'saved_calibrations.json')
+    calibration.save(database=database_file)
     table_worskpace = unique_workspace_dundername()
-    saved_calibration = load_calibration(barscan_file, 'BARSCAN', database=database_file,
+    barscan_workspace = unique_workspace_dundername()
+    LoadEventNexus(barscan_file, OutputWorkspace=barscan_workspace)
+    saved_calibration = load_calibration(barscan_workspace, 'BARSCAN', database=database_file,
                                          output_workspace=table_worskpace)
     assert calibration.positions == pytest.approx(saved_calibration.positions, abs=0.1)
     assert calibration.heights == pytest.approx(saved_calibration.heights, abs=0.01)
     DeleteWorkspace(table_worskpace)
 
 
-@pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
-def test_load_and_apply_pixel_calibration(reference_dir):
-    r"""Apply a calibration to an empty instrument"""
+def test_gpsans_calibration(reference_dir, clean_workspace):
+    # Load an events file to search a calibration for
+    gpsans_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')
+    input_workspace = clean_workspace(unique_workspace_dundername())
+    LoadEventNexus(Filename=gpsans_file, OutputWorkspace=input_workspace)
+    # Load a calibration
+    database_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'saved_calibrations.json')
+    calibration = load_calibration(input_workspace, 'BARSCAN', database=database_file)
+    # Assert some data
+    assert calibration.instrument == 'GPSANS'
+    assert calibration.positions[0:3] == pytest.approx([-0.51, -0.506, -0.502], abs=0.001)
     # Load and prepare the uncalibrated workspace
-    uncalibrated_workspace = unique_workspace_dundername()
-    LoadEmptyInstrument(InstrumentName='CG2', OutputWorkspace=uncalibrated_workspace)
-    SampleLogs(uncalibrated_workspace).insert('run_number', 8000)
-    # Load and apply the saved calibration
-    calibrated_workspace = unique_workspace_dundername()
-    database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
-    apply_calibrations(uncalibrated_workspace, database=database_file, calibrations='BARSCAN',
-                       output_workspace=calibrated_workspace)
-
-    # Assert the positions and heights have been correctly assigned for some pixels
-    tube = TubeCollection(calibrated_workspace, 'detector1').sorted(view='decreasing X')[42]
-    assert 1.e3 * tube.pixel_y[0:3] == pytest.approx([-521.5, -516.9, -512.3], abs=0.1)  # units in mili-meters
-    assert 1.e3 * tube.pixel_y[-3:] == pytest.approx([568.4, 573.4, 578.3], abs=0.1)
+    input_workspace = unique_workspace_dundername()
+    LoadEmptyInstrument(InstrumentName='CG2', OutputWorkspace=input_workspace)
+    SampleLogs(input_workspace).insert('run_number', 8000)
+    SampleLogs(input_workspace).insert('start_time', '2020-02-19T17:03:29.554116982')  # a start time is required
+    calibration.apply(input_workspace)
+    # Assert some data
+    tube = TubeCollection(input_workspace, 'detector1').sorted(view='decreasing X')[42]
+    assert tube.pixel_y[0:3] == pytest.approx([-0.521, -0.517, -0.512], abs=0.001)  # units in mili-meters
     assert 1.e3 * tube.pixel_heights[0:3] == pytest.approx([4.58, 4.57, 4.55], abs=0.01)
-    assert 1.e3 * tube.pixel_heights[-3:] == pytest.approx([4.94, 4.97,  5.00], abs=0.01)
-
-
-@pytest.mark.skip(reason="docker image cannot access the database file in r+ mode")
-def test_loading_calibration(reference_dir):
-    database_file = path_join(reference_dir.new.sans, 'pixel_calibration', 'saved_calibration.json')
-    calibration = load_calibration('CG2', run=7465, database=database_file)
-    assert calibration['instrument'] == 'GPSANS'
-    assert calibration['positions'][0][0:3] == pytest.approx([-510., -506., -502.], abs=1.0)
+    # Verify as_intensities doesn't throw
+    as_intensities(input_workspace)
 
 
 if __name__ == '__main__':

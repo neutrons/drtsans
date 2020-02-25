@@ -549,7 +549,7 @@ class TubeCollection(ElementComponentInfo):
     @property
     def sorted_views(self):
         r"""Dictionary mapping a particular sorting of the tubes to the permutation of their component info indexes
-        required to attaing the desired sorting."""
+        required to attain the desired sorting."""
         return self._sorting_permutations.keys()
 
     def sorted(self, key=None, reverse=False, view='decreasing X'):

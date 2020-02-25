@@ -172,7 +172,7 @@ class Table:
             entries = json.load(json_file)  # list of metadata entries stored in `database`
         required = {caltype, instrument, component}  # required metadata pieces of information
         # Filter the metadata entries, leaving out those not containing the required pieces of information
-        candidates = [entry for entry in entries if required.issubset(set(entry.values()))]
+        candidates = [entry for entry in entries if required.issubset(set([str(v) for v in entry.values()]))]
         if len(candidates) == 0:
             raise CalibrationNotFound(not_found_message)
         candidates.sort(key=lambda c: c['daystamp'], reverse=True)  # sort candidates by decreasing day stamp
@@ -182,7 +182,7 @@ class Table:
                 if output_workspace is None:
                     output_workspace = Table.compose_table_name(candidate)
                 table = LoadNexus(candidate['tablefile'], OutputWorkspace=output_workspace)
-                return Table(table, candidate)
+                return Table(candidate, table=table)
         raise CalibrationNotFound(not_found_message)
 
     @classmethod
@@ -254,12 +254,16 @@ class Table:
         if required_keys.issubset(metadata.keys()) is False:
             raise ValueError(f'Metadata is missing one or more of these entries: {required_keys}')
 
-    def __init__(self, metadata, detector_ids, positions=None, heights=None, widths=None):
+    def __init__(self, metadata, table=None, detector_ids=None, positions=None, heights=None, widths=None):
         Table.validate_metadata(metadata)
-        output_workspace = Table.compose_table_name(metadata)
-        self.table = Table.build_mantid_table(output_workspace, detector_ids,
-                                              positions=positions, heights=heights, widths=widths)
         self.metadata = copy.copy(metadata)
+        if table is None:
+            # Create table using column data
+            output_workspace = Table.compose_table_name(metadata)
+            self.table = Table.build_mantid_table(output_workspace, detector_ids,
+                                                  positions=positions, heights=heights, widths=widths)
+        else:
+            self.table = mtd[str(table)]
 
     def __getattr__(self, item):
         r"""
@@ -373,7 +377,7 @@ class Table:
             cal_dir = os.path.join(os.path.dirname(database), 'tables')
             if os.path.isdir(cal_dir) is False:
                 os.mkdir(cal_dir)  # Create directory if missing. Will happen when saving the first table
-            tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata))
+            tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + '.nxs'
         self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
         SaveNexus(InputWorkspace=self.table, Filename=tablefile)
         # Append the calibration metadata to the metadata entries of the database
@@ -385,9 +389,10 @@ class Table:
         with open(database, mode='w') as json_file:
             json.dump(entries, json_file)
 
+    @namedtuplefy
     def as_intensities(self):
         r"""
-        Creates one workspace for each pixel property that is calibrated (e.g., pixel height),
+        Returns one workspace for each pixel property that is calibrated (e.g., pixel height),
         and the calibration datum is stored as the intensity value for that pixel. Intended to
         visualize the calibration in MantidPlot's instrument viewer. Not required for calibration
         generation or for data reduction.
@@ -396,6 +401,10 @@ class Table:
         and ```tablename_heights```, where ```tablename``` is the name of the ~mantid.api.TableWorkspace
         holding the calibration data.
 
+        Note: Positions are shifted so that the lowest position (usually a negative number).
+              becomes zero. The reason being that showing the instrument in Mantid will mask
+              negative intensities and we want to avoid this.
+
         **Mantid algorithms used:**
         :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
         <https://docs.mantidproject.org/algorithms/CreateWorkspace-v1.html>
@@ -403,14 +412,25 @@ class Table:
         <https://docs.mantidproject.org/algorithms/LoadEmptyInstrument-v1.html>
         :ref:`LoadInstrument <algm-LoadInstrument-v1>`,
         <https://docs.mantidproject.org/algorithms/LoadInstrument-v1.html>
+
+        Returns
+        -------
+        namedtuple
+            A namedtuple containing the ~mantid.api.MatrixWorkspace workspaces with the following fields
+            - 'positions' and 'heights' for a BARSCAN calibration
+            - 'widths' for a TUBEWIDTH calibration
         """
 
         empty_instrument = LoadEmptyInstrument(InstrumentName=self.instrument,
                                                OutputWorkspace=unique_workspace_dundername())
         detector_ids = self.detector_ids
         calibration_properties = ['positions', 'heights'] if self.caltype == 'BARSCAN' else ['widths', ]
+        returned_views = {}
         for cal_prop in calibration_properties:
             values = getattr(self, cal_prop)
+            if cal_prop == 'positions':
+                min_value = min(values)  # Usually a negative Y-coordinate
+                values = [value - min_value for value in values]  # Mantid cannot display negative intensities
             intensities = empty_instrument.extractY()  # extractY returns a copy
             # Iterate over each histogram (a histogram is the spectrum of a particular detector pixel)
             for workspace_index in range(empty_instrument.getNumberHistograms()):
@@ -423,10 +443,13 @@ class Table:
                 # substitute the intensity in this histogram with the calibration datum for the detector pixel
                 intensities[workspace_index] = values[row_index]
             # Create a workspace with the modified intensities, and overlay them in the appropriate instrument
+            output_workspace = f'{self.table.name()}_{cal_prop}'
             workspace = CreateWorkspace(DataX=[0, 1], DataY=intensities, Nspec=empty_instrument.getNumberHistograms(),
-                                        OutputWorkspace=f'{self.table.name()}_{cal_prop}')
+                                        OutputWorkspace=output_workspace)
             LoadInstrument(Workspace=workspace, InstrumentName=self.instrument, RewriteSpectraMap=True)
+            returned_views[cal_prop] = mtd[output_workspace]
         empty_instrument.delete()
+        return returned_views
 
 
 def load_calibration(input_workspace, caltype, component='detector1', database=None, output_workspace=None):
@@ -702,7 +725,7 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
                 coefficients=coefficients)
 
 
-def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_position_log='dcal_Readback'):
+def event_splitter(barscan_workspace, split_workspace=None, info_workspace=None, bar_position_log='dcal_Readback'):
     r"""
     Split a Nexus events file containing a full bar scan, saving the splitting information into a 'split'
     and 'info' workspaces. This information is used later by ```barscan_workspace_generator```.
@@ -713,7 +736,7 @@ def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_
 
     Parameters
     ----------
-    barscan_file: str
+    barscan_workspace: str
         Path to barscan run file containing multiple positions of the bar.
     split_workspace: str
         Name of the table workspace to be used as event splitter workpsce in algorithm FilterEvents. If
@@ -734,12 +757,9 @@ def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_
     if info_workspace is None:
         info_workspace = unique_workspace_dundername()
 
-    barscans_workspace = unique_workspace_dundername()
-    Load(barscan_file, OutputWorkspace=barscans_workspace)
-
     # Find the amount by which the position of the bar is shifted every time we go on to the next scan.
     # It is assumed that this shift is a fixed amount
-    bar_positions = SampleLogs(barscans_workspace)[bar_position_log].value
+    bar_positions = SampleLogs(barscan_workspace)[bar_position_log].value
     bar_delta_positions = bar_positions[1:] - bar_positions[:-1]  # list of shifts in the position of the bar
     # Only retain shifts where the bar position increases
     bar_delta_positions = bar_delta_positions[bar_delta_positions > 0]
@@ -750,7 +770,7 @@ def event_splitter(barscan_file, split_workspace=None, info_workspace=None, bar_
     bar_step = float(np.bincount(np.round(100 * bar_delta_positions).astype('int')).argmax()) / 100.
     # Mantid algorithm that creates the 'split' and 'info' workspaces using the bar positions stored in the
     # metadata
-    GenerateEventsFilter(InputWorkspace=barscans_workspace, OutputWorkspace=split_workspace,
+    GenerateEventsFilter(InputWorkspace=barscan_workspace, OutputWorkspace=split_workspace,
                          InformationWorkspace=info_workspace, UnitOfTime='Nanoseconds',
                          LogName=bar_position_log, LogValueInterval=bar_step, LogValueTolerance=bar_step / 2,
                          MinimumLogValue=min(bar_positions), MaximumLogValue=max(bar_positions))
@@ -804,15 +824,17 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         # intensities for a run with the bar held at a fixed position.
         spliter_workspace = temporary_workspace()
         info_workspace = temporary_workspace()
+        barscan_workspace = temporary_workspace()
+        # BOTTLENECK
+        Load(barscan_files, OutputWorkspace=barscan_workspace)
         # Create the splitting scheme and save it in table workspaces `spliter_workspace` and `info_workspace`.
-        bar_positions = event_splitter(barscan_files, split_workspace=spliter_workspace,
+        bar_positions = event_splitter(barscan_workspace, split_workspace=spliter_workspace,
                                        info_workspace=info_workspace, bar_position_log=bar_position_log)
-        barscans_workspace = temporary_workspace()
-        Load(barscan_files, OutputWorkspace=barscans_workspace)
         splitted_workspace_group = unique_workspace_dundername()  # group of subruns
         # Mantid algorithm using the 'spliter' and 'info' tables to carry out the splitting of
         # `barscans_workspace into a set of subruns.
-        FilterEvents(InputWorkspace=barscans_workspace,
+        # BOTTLENECK
+        FilterEvents(InputWorkspace=barscan_workspace,
                      SplitterWorkspace=spliter_workspace, InformationWorkspace=info_workspace,
                      OutputWorkspaceBaseName=splitted_workspace_group,  GroupWorkspaces=True,
                      TimeSeriesPropertyLogs=[bar_position_log], ExcludeSpecifiedLogs=False)
@@ -870,7 +892,7 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
         - heights, list, List of pixel heights.
     """
     instrument_name, number_pixels_in_tube, number_tubes = None, None, None  # initialize some variables
-    run_numbers, daystamp = [], None  # initialize some variables
+    run_numbers, daystamp = set(), None  # initialize some variables
     bar_positions = []  # Y-coordinates of the bar for each scan
     # `bottom_shadow_pixels` is a 2D array defining the position of the bar on the detector, in pixel coordinates
     # The first index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes)
@@ -881,7 +903,7 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
         if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
             daystamp = day_stamp(barscan_workspace)
-        run_numbers.append(int(SampleLogs(barscan_workspace).single_value('run_number')))
+        run_numbers.add(int(SampleLogs(barscan_workspace).single_value('run_number')))
         # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
         formula_bar_position_inserted = formula.format(y=bar_position)
         bar_positions.append(float(numexpr.evaluate(formula_bar_position_inserted)))
@@ -896,11 +918,15 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
             # 'decreasing X' view orders the tubes from left to right.
             collection = TubeCollection(barscan_workspace, component).sorted(view='decreasing X')
             # pixel_indexes is a list of length equal the number of tubes. Each item in the list is itself a list,
-            # containing the pixel indexes for a particular tube.
+            # containing the pixel spectrumInfo indexes for a particular tube.
             pixel_indexes = [tube.spectrum_info_index for tube in collection]
             number_tubes, number_pixels_in_tube = len(collection), len(collection[0])
+            # Find the detector ID's for the tube collection, that is, the selected component
+            # BOTTLENECK
             detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
-        pixel_intensities = np.sum(mtd[barscan_workspace].extractY(), axis=1)  # integrated intensity on each pixel
+        # pixel_intensities is a list, whose items are the integrated intensities for each pixel. The index of this
+        # list coincides with the spectrumInfo index.
+        pixel_intensities = np.sum(mtd[barscan_workspace].extractY(), axis=1)
         for pixel_indexes_in_tube in pixel_indexes:  # iterate over each tube, retrieving its pixel indexes
             try:
                 # Find the bottom shadow pixel for the current tube and current barscan run
@@ -934,8 +960,8 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
                     instrument=instrument_name,
                     component=component,
                     daystamp=daystamp,
-                    runnumbers=sorted(run_numbers))
-    return Table(metadata, detector_ids, positions=positions, heights=heights)
+                    runnumbers=sorted(list(run_numbers)))
+    return Table(metadata, detector_ids=detector_ids, positions=positions, heights=heights)
 
 
 def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
@@ -1092,4 +1118,67 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
                     component=component,
                     daystamp=day_stamp(input_workspace),
                     runnumbers=[SampleLogs(input_workspace).single_value('run_number'), ])
-    return Table(metadata, detector_ids, widths=widths)
+    return Table(metadata, detector_ids=detector_ids, widths=widths)
+
+
+@namedtuplefy
+def as_intensities(input_workspace, component='detector1'):
+    r"""
+    Returns one workspace for each pixel property that is calibrated (e.g., pixel height),
+    and the calibration datum is stored as the intensity value for that pixel. Intended to
+    visualize the calibration in MantidPlot's instrument viewer. Not required for calibration
+    generation or for data reduction.
+
+    Generated workspaces are ```input_name_positions```, ```input_name_heights```,
+    and ```input_name_widths```, where ```input_name``` is the name of the input workspace.
+
+    Note: Positions are shifted so that the lowest position (usually a negative number).
+          becomes zero. The reason being that showing the instrument in Mantid will mask
+          negative intensities and we want to avoid this.
+
+    **Mantid algorithms used:**
+    :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
+    <https://docs.mantidproject.org/algorithms/CreateWorkspace-v1.html>
+    :ref:`LoadEmptyInstrument <algm-LoadEmptyInstrument-v1>`,
+    <https://docs.mantidproject.org/algorithms/LoadEmptyInstrument-v1.html>
+    :ref:`LoadInstrument <algm-LoadInstrument-v1>`,
+    <https://docs.mantidproject.org/algorithms/LoadInstrument-v1.html>
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        Workspace from which pixel properties are retrieved.
+    component: str
+        Name of one of the double detector array panels. For BIOSANS we have 'detector1' or 'wing-detector'.
+
+    Returns
+    -------
+    namedtuple
+        A namedtuple containing the ~mantid.api.MatrixWorkspace workspaces
+        with fields 'positions', 'heights', and 'widths'
+    """
+    # Collect pixel information from the input workspace
+    collection = TubeCollection(input_workspace, component).sorted(view='decreasing X')
+    indexes = np.array([], dtype=int)  # workspace indexes
+    pixel_props = dict(positions=np.array([]), heights=np.array([]), widths=np.array([]))
+    for tube in collection:
+        indexes = np.hstack((indexes, tube.spectrum_info_index))
+        pixel_props['positions'] = np.hstack((pixel_props['positions'], tube.pixel_y))
+        pixel_props['heights'] = np.hstack((pixel_props['heights'], tube.pixel_heights))
+        pixel_props['widths'] = np.hstack((pixel_props['widths'], tube.pixel_widths))
+    # Mantid can only show positive quantities in the instrument view
+    pixel_props['positions'] -= np.min(pixel_props['positions'])
+
+    number_histograms = mtd[str(input_workspace)].getNumberHistograms()
+    intensities = np.zeros(number_histograms)
+
+    returned_views = {}
+    for cal_prop in ['positions', 'heights', 'widths']:
+        output_workspace = f'{str(input_workspace)}_{cal_prop}'  # Workspace containing the property as  intensity
+        intensities[indexes] = pixel_props[cal_prop]
+        workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+        for index in range(number_histograms):
+            workspace.dataY(index)[:] = intensities[index]
+        returned_views[cal_prop] = mtd[output_workspace]
+
+    return returned_views

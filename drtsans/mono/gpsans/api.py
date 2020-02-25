@@ -8,7 +8,6 @@ from drtsans.mask_utils import apply_mask
 from drtsans.mono.load import load_events, transform_to_wavelength
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
-from drtsans.samplelogs import SampleLogs
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data']
@@ -35,9 +34,9 @@ def prepare_data(data,
     mask_detector: str
         Name of an instrument component to mask
     detector_offset: float
-        Additional translation of the detector along Z-axis, in mili-meters.
+        Additional translation of the detector along Z-axis, in millimeters.
     sample_offset: float
-        Additional translation of the sample along the Z-axis, in mili-meters.
+        Additional translation of the sample along the Z-axis, in millimeters.
     center_x: float
         Move the center of the detector to this X-coordinate. If :py:obj:`None`, the
         detector will be moved such that the X-coordinate of the intersection
@@ -82,19 +81,8 @@ def prepare_data(data,
         Reference to the events workspace
     """
     # TODO: missing detector_offset and sample_offset
-    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix)
-
-    # deal with sample_offset. positive offset is towards detector
-    # 1. move sample
-    msapi.MoveInstrumentComponent(Workspace=ws,
-                                  ComponentName='sample-position',
-                                  Z=1e-3*sample_offset,
-                                  RelativePosition=False)
-    # 2. adjust source aperture distances (only for new files for now)
-    sample_logs = SampleLogs(ws)
-    old_ssd = sample_logs.single_value('source_aperture_sample_aperture_distance')
-    new_ssd = old_ssd + 1e-3*sample_offset  # add offset in mm to ssd in meters
-    sample_logs.insert('source_aperture_sample_aperture_distance', new_ssd)
+    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
+                     sample_offset=sample_offset)
 
     ws_name = str(ws)
     print('Load GPSANS events ws name: {}'.format(ws_name))

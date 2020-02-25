@@ -1,3 +1,4 @@
+from drtsans.geometry import translate_sample_by_z
 from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName
 from drtsans.path import abspath
 from drtsans.path import exists as path_exists
@@ -38,6 +39,7 @@ def __monitor_counts(filename, monitor_name='monitor1'):
 
 
 def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                detector_offset=0., sample_offset=0.,
                 reuse_workspace=False, **kwargs):
     r"""
     Load an event Nexus file produced by the instruments at ORNL.
@@ -101,5 +103,8 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
         # create new log with the monitor counts
         SampleLogs(output_workspace).insert('monitor', __monitor_counts(filename))
+
+    # move instrument components
+    translate_sample_by_z(output_workspace, 1e-3 * sample_offset)
 
     return mtd[output_workspace]

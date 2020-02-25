@@ -1,10 +1,9 @@
 from mantid.simpleapi import (mtd, LoadNexusMonitors)
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import (source_sample_distance, sample_detector_distance)
+from drtsans.geometry import sample_detector_distance
 from drtsans.load import load_events as generic_load_events
-from drtsans.tof.eqsans.geometry import (translate_detector_z, translate_detector_by_z,
-                                         translate_sample_by_z, source_monitor_distance)
+from drtsans.tof.eqsans.geometry import (translate_detector_z, translate_detector_by_z, source_monitor_distance)
 from drtsans.tof.eqsans.correct_frame import (correct_detector_frame, correct_monitor_frame)
 import os
 
@@ -92,7 +91,7 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     """
     # use the generic functionality to do most of the work
     output_workspace = generic_load_events(run=run, data_dir=data_dir, output_workspace=output_workspace,
-                                           output_suffix=output_suffix)
+                                           output_suffix=output_suffix, sample_offset=-1. * sample_offset)
 
     # EQSANS specific part benefits from converting workspace to a string
     output_workspace = str(output_workspace)
@@ -100,11 +99,8 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     # Correct the distances between instrument components
     translate_detector_z(output_workspace)  # search logs and translate if necessary
     translate_detector_by_z(output_workspace, 1e-3 * detector_offset)
-    translate_sample_by_z(output_workspace, -1e-3 * sample_offset)
 
     sample_logs = SampleLogs(output_workspace)
-    sample_logs.insert('source-sample-distance', source_sample_distance(output_workspace, search_logs=False),
-                       unit='mm')
     sample_logs.insert('sample-detector-distance', sample_detector_distance(output_workspace, search_logs=False),
                        unit='mm')
 

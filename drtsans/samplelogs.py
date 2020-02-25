@@ -35,6 +35,10 @@ class SampleLogs(object):
             else:
                 raise AttributeError('"{}" not found in sample logs'.format(item))
 
+    def __contains__(self, item):
+        '''Called when using python's ``in`` operation'''
+        return item in self._run
+
     def insert(self, name, value, unit=None):
         r"""
         Wrapper to Mantid AddSampleLog algorithm

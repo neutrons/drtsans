@@ -99,7 +99,7 @@ def test_eqsans_prepare_sensitivities():
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_eq_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
+    gold_eq_file = '/SNS/EQSANS/shared/sans-backend/data/new/ornl' \
                    '/sans/sensitivities/EQSANS_sens_patched.nxs'
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
@@ -178,7 +178,7 @@ def test_cg3_main_prepare_sensitivities():
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_eq_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
+    gold_eq_file = '/SNS/EQSANS/shared/sans-backend/data/new/ornl' \
                    '/sans/sensitivities/CG3_Sens_Main.nxs'
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
@@ -259,7 +259,7 @@ def test_cg3_wing_prepare_sensitivities():
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_cg2_wing_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
+    gold_cg2_wing_file = '/SNS/EQSANS/shared/sans-backend/data/new/ornl' \
                          '/sans/sensitivities/CG3_Sens_Wing.nxs'
 
     verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1E-7)
@@ -321,7 +321,7 @@ def test_cg2_sensitivities():
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_gp_file = '/SNS/snfs1/instruments/EQSANS/shared/sans-backend/data/new/ornl' \
+    gold_gp_file = '/SNS/EQSANS/shared/sans-backend/data/new/ornl' \
                    '/sans/sensitivities/CG2_Sens_Moving_Dets.nxs'
 
     verify_sensitivities_file(output_sens_file, gold_gp_file, atol=1E-7)

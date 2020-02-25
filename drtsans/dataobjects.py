@@ -127,6 +127,39 @@ def scale_intensity(iq_object, scaling):
     return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
 
 
+def q_azimuthal_to_q_modulo(Iq):
+    """ this method converts Qazimuthal to Qmodulo using
+        (1) Q = sqrt(Qx**2 + Qy**2)
+        (2) sigmaQ = sqrt(sigmaQx**2 + sigmaQy**2)
+
+    Parameters:
+    ----------
+    Iq: IQazimuthal object
+
+    Returns:
+    -------
+    Iqmod: IQmod object
+    """
+    qx = Iq.qx
+    qy = Iq.qy
+    delta_qx = Iq.delta_qx
+    delta_qy = Iq.delta_qy
+
+    mod_q = np.sqrt(qx ** 2 + qy ** 2)
+    delta_mode_q = np.sqrt(delta_qx ** 2 + delta_qy ** 2)
+
+    q_azimuthal_to_q_modulo = namedtuple('q_azimuthal_to_q_modulo', 'mod_q, delta_mod_q')
+    q_azimuthal_to_q_modulo.mod_q = mod_q
+    q_azimuthal_to_q_modulo.delta_mod_q = delta_mode_q
+
+    iqmod = IQmod(intensity=Iq.intensity,
+                  error=Iq.error,
+                  mod_q=mod_q,
+                  delta_mod_q=delta_mode_q)
+
+    return iqmod
+
+
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
     r"""This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
     and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional."""

@@ -63,7 +63,8 @@ docker-update-test:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
-    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /SNS
+    - sudo mkdir -p /HFIR
     - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -79,7 +80,8 @@ docker-no-update-test:
     - dockerbuild
   before_script:
     - sudo yum install -y nfs-utils
-    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /SNS
+    - sudo mkdir -p /HFIR
     - sudo bash scripts/eqsans-mount.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY

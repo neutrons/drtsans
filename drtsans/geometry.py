@@ -489,17 +489,31 @@ def beam_radius(input_workspace, unit='mm'):
     return radius
 
 
-def translate_sample_by_z(ws, z):
+def translate_sample_by_z(workspace, z):
     r"""
     Shift the position of the sample by the desired amount
 
     Parameters
     ----------
-    ws: ~mantid.api.MatrixWorkspace
+    workspace: ~mantid.api.MatrixWorkspace
         Input workspace containing instrument file
     z: float
-        Translation to be applied
+        Translation to be applied in meters. Positive values are downstream.
     """
-    MoveInstrumentComponent(Workspace=str(ws), Z=z,
-                            ComponentName='sample-position',
-                            RelativePosition=True)
+    # only move if the value is non-zero
+    if z != 0.:
+        MoveInstrumentComponent(Workspace=str(workspace), Z=z,
+                                ComponentName='sample-position',
+                                RelativePosition=True)
+
+    # update the appropriate log
+    sample_logs = SampleLogs(workspace)
+    logname_to_set = 'source-sample-distance'  # default
+    # look for name of the log/property to update
+    for logname in ['source-sample-distance', 'source_aperture_sample_aperture_distance']:
+        if logname in sample_logs:
+            logname_to_set = logname
+            break
+
+    sample_logs.insert(logname_to_set, source_sample_distance(workspace, search_logs=False, unit='mm'),
+                       unit='mm')

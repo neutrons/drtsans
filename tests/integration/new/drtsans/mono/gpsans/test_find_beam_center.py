@@ -14,7 +14,7 @@ def test_gpsans_find_beam_center():
 
     """
     # Load data
-    beam_center_ws = prepare_data(data='CG2_8148',
+    beam_center_ws = prepare_data(data='/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5',
                                   btp={'Pixel': '1-8,249-256'},
                                   detector_offset=0,
                                   sample_offset=0,

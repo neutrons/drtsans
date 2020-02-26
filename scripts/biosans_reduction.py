@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import numpy as np
+import copy
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
@@ -25,6 +26,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
     """
         Apply transmission
     """
+    transmission_cfg = copy.deepcopy(cfg)
+    for k, v in transmission_cfg.items():
+        if 'mask' in k:
+            transmission_cfg[k] = None
     # TODO: there must be a better way to indicate that we are supplying a transmission value
     try:
         is_value = float(transmission_run) <= 1

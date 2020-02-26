@@ -103,12 +103,64 @@ class TestIQmod():
 
 
 def test_save_load_iqmod():
+    """Test save and load I(Q) to and from ASCII
+
+    Returns
+    -------
+
+    """
+    # Test on IQmod with Q, I, dI
+    # I(Q) without delta Q
     iq = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
     filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
+    #  Save
     save_iqmod(iq, filename)
+    # Load
     iq_other = load_iqmod(filename)
+    # Verify
     testing.assert_allclose(iq, iq_other)
+
+    # Check column order
+    iq_file = open(filename, 'r')
+    line0 = iq_file.readline()
+    iq_file.close()
+
+    # Clean
     os.remove(filename)
+
+    column_names = line0.split()
+    assert column_names == ['mod_q', 'intensity', 'error']
+
+
+def test_save_load_iqmod_dq():
+    """Test save and load I(Q) to and from ASCII with Q, I(Q), dI(Q) and delta Q
+
+    Returns
+    -------
+
+    """
+    # Test on IQmod with Q, I, dI
+    # I(Q) without delta Q
+    iq = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], [0.1, 0.12, 0.13])
+    filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
+
+    #  Save
+    save_iqmod(iq, filename)
+    # Load
+    iq_other = load_iqmod(filename)
+    # Verify
+    testing.assert_allclose(iq, iq_other)
+
+    # Check column order
+    iq_file = open(filename, 'r')
+    line0 = iq_file.readline()
+    iq_file.close()
+
+    # Clean
+    os.remove(filename)
+
+    column_names = line0.split()
+    assert column_names == ['mod_q', 'intensity', 'error', 'delta_mod_q']
 
 
 class TestIQazimuthal():

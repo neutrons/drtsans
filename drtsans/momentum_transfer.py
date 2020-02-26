@@ -1,8 +1,9 @@
+import numpy as np
+
 from mantid.simpleapi import mtd
 from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod, getDataType, DataType
-from drtsans.settings import namedtuplefy
+from drtsans.settings import namedtuplefy, unpack_v3d
 from drtsans.detector import Detector
-import numpy as np
 
 __all__ = ['convert_to_q', 'convert_to_subpixels']
 
@@ -206,12 +207,14 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     error = ws.extractE()
 
     # get geometry info from the original workspace for resolution
-    info = pixel_info(ws)
+    info = custom_pixel_info(ws, kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1))
+
+    # calculate the Q-vector moduli for each pixel or subpixel
     number_of_bins = lam.shape[1]
     two_theta = np.repeat(info.two_theta, number_of_bins).reshape(-1, number_of_bins)
     mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
 
-    # calculate the  resolution
+    # calculate the resolution
     if resolution_function is not None:
         delta_q = resolution_function(mod_q, mode='scalar',
                                       pixel_info=info,
@@ -370,20 +373,29 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
                      delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
 
 
+def custom_pixel_info(input_workspace, n_horizontal=1, n_vertical=1):
+    if n_horizontal == 1 and n_vertical == 1:
+        return pixel_info(input_workspace)  # takes less than 1 second for GPSANS detector
+    else:
+        return subpixel_info(input_workspace, n_horizontal, n_vertical)  # takes about 13 seconds for GPSANS detector
+
+
 @namedtuplefy
-def pixel_info(ws, horizontal_subpixels=1, vertical_subpixels=1):
+def pixel_info(input_workspace):
     r"""
     Helper function to extract two theta angle, azimuthal angle, l2, and a "keep" flag for unmasked pixel detectors.
 
     Parameters
     ----------
-    ws: ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+    input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Name or reference to a Mantid workspace
 
     Returns
     -------
     ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep
     """
+    ws = mtd[str(input_workspace)]
     spec_info = ws.spectrumInfo()
 
     valid_indexes = [idx for idx in range(ws.getNumberHistograms()) if
@@ -392,3 +404,99 @@ def pixel_info(ws, horizontal_subpixels=1, vertical_subpixels=1):
     info = [[spec_info.twoTheta(i), spec_info.azimuthal(i), spec_info.l2(i), True] for i in valid_indexes]
     info = np.array(info)
     return dict(two_theta=info[:, 0], azimuthal=info[:, 1], l2=info[:, 2])
+
+
+@namedtuplefy
+def subpixel_info(input_workspace, n_horizontal, n_vertical):
+    r"""
+    Calculate the two theta angle, azimuthal angle, l2 for the subpixels of each unmasked pixel detector.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Name or reference to a Mantid workspace
+    n_horizontal: int
+        Number of subpixels along the horizontal direction (on the XZ plane)
+    n_vertical: int
+        Number of subpixels along the vertical direction (along the Y axis)
+
+    Returns
+    -------
+    ~collections.namedtuple
+        A namedtuple with the following fields:
+        two_theta, numpy.ndarray of scattering angles for each subpixel of each valid pixel detector.
+        azimuthal, numpy.ndarray of angles on the XY plane  for each subpixel of each valid pixel detector.
+        l2, numpy.ndarray for the distance between the sample and each subpixel of each valid pixel detector.
+        keep, numpy.ndarray for the workspace indexes of the valid pixel detectors.
+    """
+    workspace = mtd[str(input_workspace)]
+    spectrum_info = workspace.spectrumInfo()
+    component_info = workspace.componentInfo()
+    detector_info = workspace.detectorInfo()
+    # Find valid workspace indexes
+    def valid_index(idx):
+        return not(spectrum_info.isMonitor(idx) or spectrum_info.isMasked(idx) or not spectrum_info.hasDetectors(idx))
+    valid_indexes = [idx for idx in range(workspace.getNumberHistograms()) if valid_index(idx)]
+
+    # Find the componentInfo indexes corresponding to the valid workspace indexes
+    get_spectrum_definition = spectrum_info.getSpectrumDefinition
+    info_indexes = [get_spectrum_definition(idx)[0][0] for idx in valid_indexes]
+
+    # Find the position of the pixel centers
+    pixel_positions = np.array([unpack_v3d(component_info.position, i) for i in info_indexes])
+    sample_position = component_info.samplePosition()
+    pixel_positions -= sample_position
+
+    # For each pixel we define two unit vectors:
+    # 1. Unit vector normal to the vertical (Y-axis): [0, 1, 0]. This is the same vector for all pixels
+    # 2. Unit vector normal to the vertical and to the vector connecting the pixel to the sample. This vector lies
+    #    on the XZ plane and is termed the "normal-horizontal"
+    normal_horizontals = np.linalg.norm(np.cross(pixel_positions, [0, 1, 0]))
+
+    # For each pixel, find the dimensions of the subpixel along the X, Y, and Z axis. Due to barscan calibration and
+    # apparent-tube-width calibration, each pixel has a different height and width.
+    # All pixels have the same "nominal dimensions", defined in the instrument definition file. The actual pixel
+    # dimensions are obtained multiplying the nominal dimensions by the scale factors. These scale factors are the
+    # result of the barscan and apparent-tube-width calibrations
+    # (Botleneck: iterating over component_info takes about 5 seconds for the GPSANS detector)
+    last_info_index = info_indexes[-1]
+    nominal_pixel_dimensions = component_info.shape(last_info_index).getBoundingBox().width()
+    scale_factors = np.array([unpack_v3d(component_info.scaleFactor, i) for i in info_indexes])
+    pixel_dimensions = scale_factors * nominal_pixel_dimensions
+    subpixel_dimensions = pixel_dimensions * np.array([1. / n_horizontal, 1./n_vertical, 1.0])
+
+    # For each pixel, find the position of its lower left corner, overwriting reference pixel_positions
+    pixel_positions -= 0.5 * pixel_dimensions[:, 0][:, np.newaxis] * normal_horizontals - \
+                       0.5 * pixel_dimensions * np.array([0, 1, 0])
+
+    # For each pixel detector, we define two basis vectors. One along the normal-horizontal ("ver_basis_h") and
+    # another along the vertical ("ver_basis_v"). The size of these vectors are the subpixel dimensions.
+    # Furthermore, we assume that the shape of the pixel is a cylinder with cylinder axis aligned along the vertical
+    # axis. Thus, the horizontal size is the pixel dimension along the X-axis.
+    hor_basis_h = subpixel_dimensions[:, 0][:, np.newaxis] * normal_horizontals
+    ver_basis_v = subpixel_dimensions * np.array([0, 1, 0])
+
+    # The lower left corner of subpixel with indices (i, j) is a linear combination of the two basis vectors,
+    # e.g. i * hor_basis_v + j * ver_basis_v
+    # The center of subpixel with indices (i, j) requires a translation from the lower left corner to the center,
+    # e.g. (i + 1/2) * hor_basis_v + (j + 1/2) * ver_basis_v
+
+    # Loop over all subpixel indices, calculating the position of the subpixel within each pixel, then calculating
+    # angles and distances
+    azimuthal = np.zeros(((n_horizontal * n_vertical), len(valid_indexes)))  # allocation much faster than appending
+    l2 = np.zeros(((n_horizontal * n_vertical), len(valid_indexes)))
+    two_theta = np.zeros(((n_horizontal * n_vertical), len(valid_indexes)))
+    i = 0
+    for i_hor in range(n_horizontal):
+        for i_ver in range(n_vertical):
+            positions = pixel_positions + (i_hor + 0.5) * hor_basis_h + (i_ver + 0.5) * ver_basis_v
+            azimuthal[i] = np.arctan(positions[:, 1] / positions[:, 0])  # y / x
+            l2[i] = np.linalg.norm(pixel_positions, axis=1)
+            two_theta[i] = np.arccos(pixel_positions[:, 2] / l2[i])  # z / l2
+            i += 1
+    # Return 1D views of the arrays. The first n_horizontal * n_vertical elements correspond to data for all
+    # subpixels in the first valid spectrum, and so on.
+    azimuthal = np.transpose(azimuthal).ravel()
+    l2 = np.transpose(l2).ravel()
+    two_theta = np.transpose(two_theta).ravel()
+    return dict(two_theta=two_theta, azimuthal=azimuthal, l2=l2, keep=valid_indexes)

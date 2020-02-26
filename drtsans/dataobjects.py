@@ -308,21 +308,32 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
                                UnitX='momentumtransfer', OutputWorkspace=name, Dx=dq,
                                EnableLogging=False)
 
-    def to_csv(self, file, sep=' ', float_format='%.6f'):
+    def to_csv(self, file_name, sep=' ', float_format='%.6f'):
         r"""
         Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
         Parameters
         ----------
-        file: str
+        file_name: str
             Path to output file
         sep: str
             String of length 1. Field delimiter for the output file.
         float_format: str
             Format string for floating point numbers.
         """
-        frame = pd.DataFrame({label: value for label, value in self._asdict().items() if value is not None})
-        frame.to_csv(file, index=False, sep=sep, float_format=float_format)
+        # Convert to dictionary to construct a pandas DataFrame instance
+        data_dict = self._asdict().items()
+        frame = pd.DataFrame({label: value for label, value in data_dict if value is not None})
+
+        #  Create the order of the columns
+        i_q_mod_cols = ['mod_q', 'intensity', 'error']  # 3 mandatory columns
+        if 'delta_mod_q' in data_dict:
+            i_q_mod_cols.append('delta_mod_q')
+        if 'wavelength' in data_dict:
+            i_q_mod_cols.append('wavelength')
+
+        # Write to file
+        frame.to_csv(file_name, columnns=i_q_mod_cols, index=False, sep=sep, float_format=float_format)
 
 
 def load_iqmod(file, sep=' '):

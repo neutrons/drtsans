@@ -12,8 +12,7 @@ MaskSpectra          <https://docs.mantidproject.org/nightly/algorithms/MaskSpec
 """
 from mantid.simpleapi import (ExtractMask, FindDetectorsInShape, LoadMask,
                               MaskBTP, MaskDetectors, MaskSpectra, Load, MaskAngle)
-from mantid.api import mtd
-from mantid.dataobjects import MaskWorkspace
+from mantid.api import mtd, MatrixWorkspace
 import os
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
@@ -109,7 +108,7 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
                 mask_workspace = load_mask(mask)
             MaskDetectors(Workspace=input_workspace, MaskedWorkspace=mask_workspace)
             mask_workspace.delete()  # delete temporary workspace
-        elif isinstance(mask, MaskWorkspace):
+        elif isinstance(mask, MatrixWorkspace):
             MaskDetectors(Workspace=input_workspace, MaskedWorkspace=mask)
         elif isinstance(mask, list):
             MaskDetectors(Workspace=input_workspace, DetectorList=mask)
@@ -135,9 +134,8 @@ def load_mask(mask_file='', output_workspace=None):
     Parameters
     ----------
 
-    mask_file: mask file path, ~mantid.api.MaskWorkspace, :py:obj:`list`
-        Additional mask to be applied. If :py:obj:`list`, it is a list of
-        detector ID's. If `None`, it is expected that `maskbtp` is not empty.
+    mask_file: mask file path
+        path to mask file
 
     output_workspace:
         Name of the output ~mantid.api.MatrixWorkspace. If ``None``, a random name will be provided for the workspace.

@@ -14,7 +14,7 @@ def abspath(path):
     ``EQSANS106026``. It will search your data search path and the
     data archive using ONCat.
 
-    This uses :ref:`mantid.api.FileFinder`.
+    This uses mantid.api.FileFinder.
     """
     # don't use network for first check
     if os_path.exists(path):
@@ -51,7 +51,7 @@ def exists(path):
     ``EQSANS106026``. It will search your data search path and the
     data archive using ONCat.
 
-    This uses :ref:`mantid.api.FileFinder`.
+    This uses mantid.api.FileFinder.
     """
     # quickest way is to assume it is a regular file
     if os_path.exists(path):

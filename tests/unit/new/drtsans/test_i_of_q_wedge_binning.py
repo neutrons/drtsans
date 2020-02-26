@@ -1,5 +1,4 @@
-import numpy as np
-from drtsans.dataobjects import IQmod, IQazimuthal
+from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d,\
     select_i_of_q_by_wedge
@@ -49,13 +48,7 @@ def test_1d_bin_log_wedge_no_wt():
     wedge_i_of_q = select_i_of_q_by_wedge(test_i_q, min_wedge_angle, max_wedge_angle)
 
     # Convert from Q2D to Q1d because the test case expects to I(Q)
-    # Re-construct a IQmod  by
-    # (1) Q = sqrt(Qx**2 + Qy**2)
-    # (2) sigmaQ = sqrt(sigmaQx**2 + sigmaQy**2)
-    test_i_q1d = IQmod(intensity=wedge_i_of_q.intensity,
-                       error=wedge_i_of_q.error,
-                       mod_q=np.sqrt(wedge_i_of_q.qx**2 + wedge_i_of_q.qy**2),
-                       delta_mod_q=np.sqrt(wedge_i_of_q.delta_qx**2 + wedge_i_of_q.delta_qy**2))
+    test_i_q1d = q_azimuthal_to_q_modulo(wedge_i_of_q)
 
     binned_iq = bin_intensity_into_q1d(test_i_q1d, log_bins, bin_method=BinningMethod.NOWEIGHT)
 

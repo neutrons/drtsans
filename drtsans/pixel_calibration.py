@@ -1037,11 +1037,11 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
         py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
 
     **Mantid algorithms used:**
-        :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
-        :ref:`Integration <algm-Integration-v1>`,
-        :ref:`MaskDetectors <algm-MaskDetectors-v1>`,
-        :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
-        :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
+    :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
+    :ref:`Integration <algm-Integration-v1>`,
+    :ref:`MaskDetectors <algm-MaskDetectors-v1>`,
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
+    :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
 
     Returns
     -------

@@ -36,5 +36,5 @@ add_hfir_mount () {
 
 # add mounts
 add_sns_mount 'EQSANS'
-add_sns_mount 'CG2'
-add_sns_mount 'CG3'
+add_hfir_mount 'CG2'
+add_hfir_mount 'CG3'

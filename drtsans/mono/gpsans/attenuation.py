@@ -1,4 +1,5 @@
 import numpy as np
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
 # Functions exposed to the general user (public) API

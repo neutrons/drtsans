@@ -333,7 +333,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
             i_q_mod_cols.append('wavelength')
 
         # Write to file
-        frame.to_csv(file_name, columnns=i_q_mod_cols, index=False, sep=sep, float_format=float_format)
+        frame.to_csv(file_name, columns=i_q_mod_cols, index=False, sep=sep, float_format=float_format)
 
 
 def load_iqmod(file, sep=' '):

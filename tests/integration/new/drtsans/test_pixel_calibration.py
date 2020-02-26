@@ -346,6 +346,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     assert np.array(heights) == pytest.approx(data.heights, abs=data.precision)
 
 
+@pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
 def test_calculate_gpsans_barscan(reference_dir):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     barscan_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')

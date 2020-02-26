@@ -55,7 +55,9 @@ def attenuation_factor(input_workspace):
         return 1, 0
 
     # The fitted attenuator parameters for the equation A * exp(-B * λ) + C
-    # Provided by Lisa Debeer-Schmitt, 2020-02-26
+    # Provided by Lisa Debeer-Schmitt, 2020-02-26, original file
+    # provided can be found at
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/data/attenuator_fitting_parameters.txt
     # In the following format (Amp, Amp Err, exp const, exp const err,  bkgd, bkgd err)
     attenuators = {3:  # x3
                    (0.3733459538730628, 0.008609717163831113,

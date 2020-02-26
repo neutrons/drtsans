@@ -88,7 +88,7 @@ class TestLoadEvents(object):
     def test_offsets(self, reference_dir):
         with amend_config(data_dir=reference_dir.new.eqsans):
             workspace = eqsans.load_events('EQSANS_86217', output_workspace=unique_workspace_dundername(),
-                                           detector_offset=42, sample_offset=24)
+                                           detector_offset=42, sample_offset=-24)
         sample_logs = SampleLogs(workspace)
         source_sample_distance = sample_logs.single_value('source-sample-distance')
         source_detector_distance = sample_logs.single_value('sample-detector-distance')

@@ -1,9 +1,8 @@
 from mantid.simpleapi import (mtd, LoadNexusMonitors)
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import sample_detector_distance
 from drtsans.load import load_events as generic_load_events
-from drtsans.tof.eqsans.geometry import (translate_detector_z, translate_detector_by_z, source_monitor_distance)
+from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.tof.eqsans.correct_frame import (correct_detector_frame, correct_monitor_frame)
 import os
 
@@ -64,10 +63,11 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     run: int, str
         Examples: ``55555`` or ``EQSANS_55555`` or file path.
     detector_offset: float
-        Additional translation of the detector along the Z-axis, in mm.
+        Additional translation of the detector along the Z-axis, in mm. Positive
+        moves the detector downstream.
     sample_offset: float
         Additional translation of the sample, in mm. The sample flange remains
-        at the origin of coordinates.
+        at the origin of coordinates. Positive moves the sample downstream.
     path_to_pixel: bool
         When correcting the recorded time of flight of each neutron, use the
         path from the moderator to the detector pixel (`True`) or to the center
@@ -91,18 +91,11 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     """
     # use the generic functionality to do most of the work
     output_workspace = generic_load_events(run=run, data_dir=data_dir, output_workspace=output_workspace,
-                                           output_suffix=output_suffix, sample_offset=-1. * sample_offset)
+                                           output_suffix=output_suffix, detector_offset=detector_offset,
+                                           sample_offset=sample_offset)
 
     # EQSANS specific part benefits from converting workspace to a string
     output_workspace = str(output_workspace)
-
-    # Correct the distances between instrument components
-    translate_detector_z(output_workspace)  # search logs and translate if necessary
-    translate_detector_by_z(output_workspace, 1e-3 * detector_offset)
-
-    sample_logs = SampleLogs(output_workspace)
-    sample_logs.insert('sample-detector-distance', sample_detector_distance(output_workspace, search_logs=False),
-                       unit='mm')
 
     # Correct TOF of detector
     correct_detector_frame(output_workspace, path_to_pixel=path_to_pixel)

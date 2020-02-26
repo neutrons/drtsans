@@ -12,7 +12,9 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
-__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z']
+__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
+           'translate_detector_by_z']
+detector_z_log = 'detectorZ'
 
 
 def panel_names(input_query):
@@ -517,3 +519,45 @@ def translate_sample_by_z(workspace, z):
 
     sample_logs.insert(logname_to_set, source_sample_distance(workspace, search_logs=False, unit='mm'),
                        unit='mm')
+
+
+def translate_detector_by_z(input_workspace, z=None, relative=True):
+    r"""
+    Adjust the Z-coordinate of the detector.
+
+
+    Parameters
+    ----------
+    input_workspace: ~mantid.api.MatrixWorkspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in log_key
+        ~drtsans.geometry.detector_z_log is used, unless the detector has already been translated by this
+        quantity.
+    relative: bool
+        If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
+        the current z-coordinate with the new value.
+    """
+    update_log = False
+    if z is None:
+        sample_logs = SampleLogs(input_workspace)
+        # If detector_z_log exists in the sample logs, use it
+        if detector_z_log in sample_logs:
+            translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in millimeters
+            # Has the detector already been translated by this quantity?
+            main_detector_array = detector_name(input_workspace)
+            _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
+            if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one millimeter
+                z = translation_from_log
+
+    if z is not None:
+        update_log = True
+        if (not relative) or (z != 0.):
+            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
+                                    RelativePosition=relative)
+
+    # update the appropriate log
+    if update_log:
+        sample_logs = SampleLogs(input_workspace)
+        sample_logs.insert('sample-detector-distance', sample_detector_distance(input_workspace, search_logs=False),
+                           unit='mm')

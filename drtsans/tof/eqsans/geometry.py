@@ -1,50 +1,10 @@
-from mantid.simpleapi import MoveInstrumentComponent
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import get_instrument, detector_name, source_sample_distance, sample_detector_distance, \
-    translate_sample_by_z
+from drtsans.geometry import get_instrument, source_sample_distance, sample_detector_distance, \
+    translate_sample_by_z, translate_detector_by_z
 
-__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'detector_z_log',
+__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter',
            'translate_sample_by_z', 'translate_detector_by_z']
-detector_z_log = 'detectorZ'
-
-
-def translate_detector_z(input_workspace, z=None, relative=True):
-    r"""
-    Adjust the Z-coordinate of the detector.
-
-
-    Parameters
-    ----------
-    input_workspace: ~mantid.api.MatrixWorkspace
-        Input workspace containing instrument file
-    z: float
-        Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in log_key
-        ~drtsans.tof.eqsans.geometry.detector_z_log is used, unless the detector has already been translated by this
-        quantity.
-    relative: bool
-        If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
-        the current z-coordinate with the new value.
-    """
-    if z is None:
-        sample_logs = SampleLogs(input_workspace)
-        translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in mili meters
-        # Has the detector already been translated by this quantity?
-        main_detector_array = detector_name(input_workspace)
-        _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
-        if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one mili meter
-            z = translation_from_log
-
-    if z is not None:
-        MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
-                                RelativePosition=relative)
-
-
-def translate_detector_by_z(ws, z, **kwargs):
-    r"""
-    Simplified call to :func:`.translate_detector_z`
-    """
-    return translate_detector_z(ws, z=z, relative=True, **kwargs)
 
 
 def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):

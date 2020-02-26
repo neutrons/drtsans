@@ -376,7 +376,7 @@ class Table:
             database = database_file[instrument_enum_name(self.instrument)]  # default database file
         if tablefile is None:
             cal_dir = os.path.join(os.path.dirname(database), 'tables')
-            os.makedirs('cal_dir, exist_ok=True)  # Create directory, and don't complain if alredy exists
+            os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if alredy exists
             tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + '.nxs'
         self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
         SaveNexus(InputWorkspace=self.table, Filename=tablefile)

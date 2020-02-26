@@ -44,7 +44,8 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.tubecollection import TubeCollection
 
 
-__all__ = ['apply_calibrations', ]
+__all__ = ['apply_calibrations', 'as_intensities', 'calculate_apparent_tube_width',
+           'calculate_barscan_calibration', 'load_calibration']
 
 r"""Flags a problem when running the barscan algorithm that identifies the pixel corresponding
 to the bottom of the shadow cast by the bar on the detector array."""
@@ -375,8 +376,7 @@ class Table:
             database = database_file[instrument_enum_name(self.instrument)]  # default database file
         if tablefile is None:
             cal_dir = os.path.join(os.path.dirname(database), 'tables')
-            if os.path.isdir(cal_dir) is False:
-                os.mkdir(cal_dir)  # Create directory if missing. Will happen when saving the first table
+            os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if alredy exists
             tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + '.nxs'
         self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
         SaveNexus(InputWorkspace=self.table, Filename=tablefile)
@@ -1026,6 +1026,13 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
+    **Mantid algorithms used:**
+    :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
+    :ref:`Integration <algm-Integration-v1>`,
+    :ref:`MaskDetectors <algm-MaskDetectors-v1>`,
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
+    :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
+
     Parameters
     ----------
     flood_input: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
@@ -1033,15 +1040,8 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     component: str
         Name of the instrument component containing the detector array consisting of two parallel panels of tubes.
     load_barscan_calibration: bool
-        Load pixel positions and heights from the pixel-calibrations database appropriate to ``input_workspace``. If
-        py:obj:`False`, then the pixel positions and heigths will be those of ``input_workspace``.
-
-    **Mantid algorithms used:**
-        :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
-        :ref:`Integration <algm-Integration-v1>`,
-        :ref:`MaskDetectors <algm-MaskDetectors-v1>`,
-        :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
-        :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
+        Load pixel positions and heights from the pixel-calibrations database appropriate to ```input_workspace```. If
+        :py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
 
     Returns
     -------

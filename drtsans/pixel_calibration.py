@@ -1026,6 +1026,13 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
+    **Mantid algorithms used:**
+    :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
+    :ref:`Integration <algm-Integration-v1>`,
+    :ref:`MaskDetectors <algm-MaskDetectors-v1>`,
+    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
+    :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
+
     Parameters
     ----------
     flood_input: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
@@ -1034,14 +1041,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
         Name of the instrument component containing the detector array consisting of two parallel panels of tubes.
     load_barscan_calibration: bool
         Load pixel positions and heights from the pixel-calibrations database appropriate to ```input_workspace```. If
-        py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
-
-    **Mantid algorithms used:**
-    :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,
-    :ref:`Integration <algm-Integration-v1>`,
-    :ref:`MaskDetectors <algm-MaskDetectors-v1>`,
-    :ref:`MaskDetectorsIf <algm-MaskDetectorsIf-v1>`,
-    :ref:`ReplaceSpecialValues <algm-ReplaceSpecialValues-v1>`,
+        :py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
 
     Returns
     -------

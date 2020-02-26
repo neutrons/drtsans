@@ -224,11 +224,9 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     else:
         delta_q = mod_q * 0.0
 
-    # Keep oly intensities for unmasked pixel detectors
-    lam = lam[info.keep, :].reshape(-1)
-    intensity = intensity[info.keep, :].reshape(-1)
-    error = error[info.keep, :].reshape(-1)
-
+    # Keep oly intensities for unmasked pixel detectors and replicate for each subpixel, if subpixels are requested
+    lam, intensity, error = _filter_and_replicate((lam, intensity, error), info.keep,
+                                                  kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1))
     return IQmod(intensity=intensity, error=error, mod_q=mod_q, delta_mod_q=delta_q, wavelength=lam)
 
 
@@ -291,10 +289,10 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     else:
         delta_qx = mod_q * 0.0
         delta_qy = delta_qx
-    # Keep oly intensities for unmasked pixel detectors
-    lam = lam[info.keep, :].reshape(-1)
-    intensity = intensity[info.keep, :].reshape(-1)
-    error = error[info.keep, :].reshape(-1)
+
+    # Keep oly intensities for unmasked pixel detectors and replicate for each subpixel, if subpixels are requested
+    lam, intensity, error = _filter_and_replicate((lam, intensity, error), info.keep,
+                                                  kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1))
 
     return IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy,
                        delta_qx=delta_qx, delta_qy=delta_qy, wavelength=lam)
@@ -364,10 +362,9 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
         delta_qy = delta_qx
         delta_qz = delta_qx
 
-    # Keep oly intensities for unmasked pixel detectors
-    lam = lam[info.keep, :].reshape(-1)
-    intensity = intensity[info.keep, :].reshape(-1)
-    error = error[info.keep, :].reshape(-1)
+    # Keep oly intensities for unmasked pixel detectors and replicate for each subpixel, if subpixels are requested
+    lam, intensity, error = _filter_and_replicate((lam, intensity, error), info.keep,
+                                                  kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1))
 
     return IQcrystal(intensity=intensity, error=error, qx=qx, qy=qy, qz=qz,
                      delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
@@ -433,6 +430,7 @@ def subpixel_info(input_workspace, n_horizontal, n_vertical):
     spectrum_info = workspace.spectrumInfo()
     component_info = workspace.componentInfo()
     detector_info = workspace.detectorInfo()
+
     # Find valid workspace indexes
     def valid_index(idx):
         return not(spectrum_info.isMonitor(idx) or spectrum_info.isMasked(idx) or not spectrum_info.hasDetectors(idx))
@@ -500,3 +498,31 @@ def subpixel_info(input_workspace, n_horizontal, n_vertical):
     l2 = np.transpose(l2).ravel()
     two_theta = np.transpose(two_theta).ravel()
     return dict(two_theta=two_theta, azimuthal=azimuthal, l2=l2, keep=valid_indexes)
+
+
+def _filter_and_replicate(arrays, unmasked_indexes, n_horizontal=1, n_vertical=1):
+    r"""
+    Retain only items in the array corresponding to unmasked pixels, and replicate
+    these values for each subpixel if subpixels are requested.
+
+    For every array in ```arrays```, the same filter and replication steps are applied.
+    Parameters
+    ----------
+    arrays: list
+        List of arrays to be filtered.
+    unmasked_indexes: numpy.ndarray
+        List of array indexes corresponding to spectra with unmasked pixels.
+    n_horizontal: int
+        Number of subpixels along the horizontal direction (on the XZ plane)
+    n_vertical: int
+        Number of subpixels along the vertical direction (along the Y axis)
+
+    Returns
+    -------
+    list
+        List of filtered and replicated arrays
+    """
+    processed_arrays = [array[unmasked_indexes, :].reshape(-1) for array in arrays]
+    if n_horizontal * n_vertical > 1:
+        processed_arrays = [np.repeat(array, n_horizontal * n_vertical) for array in processed_arrays]
+    return processed_arrays

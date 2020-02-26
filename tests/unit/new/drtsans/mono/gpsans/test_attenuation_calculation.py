@@ -1,81 +1,61 @@
 #!/usr/bin/env python
 import pytest
 from drtsans.mono.gpsans import attenuation_factor
-from mantid.simpleapi import AddSampleLog, CreateSampleWorkspace
+from drtsans.samplelogs import SampleLogs
 
 
-def test_attenuation_factor():
-    # Test input and expected values provided by Lisa Debeer-Schmitt
+def test_attenuation_factor(generic_workspace):
+    ws = generic_workspace  # friendly name
+
+    # Test input and expected values provided by Lisa Debeer-Schmitt, 2020-02-26
     wavelength = 4.75
     attenuator = 6  # x2k
-    expected_value = 0.0010404484927383326
-    expected_error = 0.0004406323142152028
+    expected_value = 0.001037270673420313
+    expected_error = 7.005200329552345e-05
 
-    # Create workspace and add sample logs
-    ws_test_attenuation_factor = CreateSampleWorkspace()
-    AddSampleLog(Workspace=ws_test_attenuation_factor,
-                 LogName='wavelength',
-                 LogText='{}'.format(wavelength),
-                 LogType='Number Series',
-                 LogUnit='A')
-    AddSampleLog(Workspace=ws_test_attenuation_factor,
-                 LogName='attenuator',
-                 LogText='{}'.format(attenuator),
-                 LogType='Number Series')
+    # Add sample logs
+    SampleLogs(ws).insert('wavelength', wavelength, 'Angstrom')
+    SampleLogs(ws).insert('attenuator', attenuator)
 
-    value, error = attenuation_factor(ws_test_attenuation_factor)
+    value, error = attenuation_factor(ws)
     assert value == pytest.approx(expected_value)
     assert error == pytest.approx(expected_error)
 
 
-def test_attenuation_factor_open_close():
-    # Create workspace and add sample logs
-    ws_test_attenuation_factor = CreateSampleWorkspace()
-    AddSampleLog(Workspace=ws_test_attenuation_factor,
-                 LogName='wavelength',
-                 LogText='1.54',
-                 LogType='Number Series',
-                 LogUnit='A')
+def test_attenuation_factor_open_close(generic_workspace):
+    ws = generic_workspace  # friendly name
 
+    # add wavelength
+    SampleLogs(ws).insert('wavelength', 1.54, 'Angstrom')
+
+    # add Undefined attenuator
     attenuator = 0  # Undefined
-    AddSampleLog(Workspace=ws_test_attenuation_factor,
-                 LogName='attenuator',
-                 LogText='{}'.format(attenuator),
-                 LogType='Number Series')
-    assert attenuation_factor(ws_test_attenuation_factor) == (1, 0)
+    SampleLogs(ws).insert('attenuator', attenuator)
+    assert attenuation_factor(ws) == (1, 0)
 
+    # add Close attenuator
     attenuator = 1  # Close
-    AddSampleLog(Workspace=ws_test_attenuation_factor,
-                 LogName='attenuator',
-                 LogText='{}'.format(attenuator),
-                 LogType='Number Series')
-    assert attenuation_factor(ws_test_attenuation_factor) == (1, 0)
+    SampleLogs(ws).insert('attenuator', attenuator)
+    assert attenuation_factor(ws) == (1, 0)
 
+    # add Open attenuator
     attenuator = 2  # Open
-    AddSampleLog(Workspace=ws_test_attenuation_factor,
-                 LogName='attenuator',
-                 LogText='{}'.format(attenuator),
-                 LogType='Number Series')
-    assert attenuation_factor(ws_test_attenuation_factor) == (1, 0)
+    SampleLogs(ws).insert('attenuator', attenuator)
+    assert attenuation_factor(ws) == (1, 0)
 
 
-def test_attenuation_factor_missing_logs():
-    # Create workspace
-    ws_test_attenuation_factor = CreateSampleWorkspace()
+def test_attenuation_factor_missing_logs(generic_workspace):
+    ws = generic_workspace  # friendly name
 
     # Missing attenuator log
     with pytest.raises(RuntimeError):
-        attenuation_factor(ws_test_attenuation_factor)
+        attenuation_factor(ws)
 
-    # Add attenuator log
-    AddSampleLog(Workspace=ws_test_attenuation_factor,
-                 LogName='attenuator',
-                 LogText='4',
-                 LogType='Number Series')
+    SampleLogs(ws).insert('attenuator', 4)
 
     # Missing wavelength log
     with pytest.raises(RuntimeError):
-        attenuation_factor(ws_test_attenuation_factor)
+        attenuation_factor(ws)
 
 
 if __name__ == '__main__':

@@ -339,14 +339,13 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
             Format string for floating point numbers.
         """
         # Convert to dictionary to construct a pandas DataFrame instance
-        data_dict = self._asdict().items()
-        frame = pd.DataFrame({label: value for label, value in data_dict if value is not None})
+        frame = pd.DataFrame({label: value for label, value in  self._asdict().items() if value is not None})
 
         #  Create the order of the columns
         i_q_mod_cols = ['mod_q', 'intensity', 'error']  # 3 mandatory columns
-        if 'delta_mod_q' in data_dict:
+        if 'delta_mod_q' in frame.keys():
             i_q_mod_cols.append('delta_mod_q')
-        if 'wavelength' in data_dict:
+        if 'wavelength' in frame.keys():
             i_q_mod_cols.append('wavelength')
 
         # Write to file

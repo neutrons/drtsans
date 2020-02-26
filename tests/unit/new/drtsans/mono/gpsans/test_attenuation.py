@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import pytest
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/gpsans/attenuation.py
 from drtsans.mono.gpsans import attenuation_factor
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
 
@@ -45,17 +47,21 @@ def test_attenuation_factor_open_close(generic_workspace):
 
 
 def test_attenuation_factor_missing_logs(generic_workspace):
+    """This test that correct error messages are return if the required
+    attenuator or wavelenght logs is missing
+    """
     ws = generic_workspace  # friendly name
 
-    # Missing attenuator log
-    with pytest.raises(RuntimeError):
+    # Missing attenuator and wavelength log
+    with pytest.raises(RuntimeError) as excinfo:
         attenuation_factor(ws)
+    assert "attenuator" in str(excinfo.value)  # Should complain about missing attenuator
 
+    # Add in attenuator so only missing wavelength log
     SampleLogs(ws).insert('attenuator', 4)
-
-    # Missing wavelength log
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as excinfo:
         attenuation_factor(ws)
+    assert "wavelength" in str(excinfo.value)  # Should complain about missing wavelength
 
 
 if __name__ == '__main__':

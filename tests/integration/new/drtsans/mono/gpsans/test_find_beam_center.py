@@ -2,6 +2,7 @@
     Test EASANS sensitivities preparation algorithm
 """
 import pytest
+import os
 import numpy as np
 from drtsans.mono.gpsans import prepare_data, find_beam_center
 
@@ -13,6 +14,10 @@ def test_gpsans_find_beam_center():
     -------
 
     """
+    # Check data mount to decide to skip or not
+    if not os.path.exists('/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5'):
+        pytest.skip('Testing file /HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5 cannot be accessed')
+
     # Load data
     beam_center_ws = prepare_data(data='/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5',
                                   btp={'Pixel': '1-8,249-256'},

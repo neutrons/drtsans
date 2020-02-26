@@ -109,8 +109,11 @@ def prepare_data(data,
 
     # Dark current
     if dark_current is not None:
-        dark_ws = load_events(dark_current, overwrite_instrument=True)
-        dark_ws = transform_to_wavelength(dark_ws)
+        if msapi.mtd.doesExist(str(dark_current)):
+            dark_ws = msapi.mtd[str(dark_current)]
+        else:
+            dark_ws = load_events(dark_current, overwrite_instrument=True)
+            dark_ws = transform_to_wavelength(dark_ws)
         subtract_dark_current(ws_name, dark_ws)
 
     # Normalization

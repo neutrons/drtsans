@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import warnings
+import copy
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 
@@ -23,6 +24,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
 
         Note: this doesn't currently work because we are missing DAS logs
     """
+    transmission_cfg = copy.deepcopy(cfg)
+    for k, v in transmission_cfg.items():
+        if 'mask' in k:
+            transmission_cfg[k] = None
     # TODO: there must be a better way to indicate that we are supplying a transmission value
     try:
         is_value = float(transmission_run) <= 1
@@ -37,8 +42,8 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         msapi.logger.notice('Applying transmission correction with transmission file.')
 
         # We need to see the beam, which is on the main detector
-        ws_tr_sample = sans.prepare_data(transmission_run, output_suffix='_trans_sample', **cfg)
-        ws_tr_direct = sans.prepare_data(empty_run, output_suffix='_trans_direct', **cfg)
+        ws_tr_sample = sans.prepare_data(transmission_run, output_suffix='_trans_sample', **transmission_cfg)
+        ws_tr_direct = sans.prepare_data(empty_run, output_suffix='_trans_direct', **transmission_cfg)
 
         tr_ws = sans.calculate_transmission(ws_tr_sample,
                                             ws_tr_direct,

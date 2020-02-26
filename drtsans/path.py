@@ -1,9 +1,8 @@
-from mantid.api import FileFinder
-from mantid.simpleapi import mtd
+from mantid.api import AnalysisDataService, FileFinder
 
 from os import path as os_path
 
-__all__ = ['abspath', 'exists']
+__all__ = ['abspath', 'exists', 'registered_workspace']
 
 
 def abspath(path):
@@ -84,8 +83,4 @@ def registered_workspace(source):
     -------
     bool
     """
-    try:
-        mtd[str(source)]
-        return True
-    except KeyError:
-        return False
+    return AnalysisDataService.doesExist(str(source))

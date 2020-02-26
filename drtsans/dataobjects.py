@@ -127,6 +127,56 @@ def scale_intensity(iq_object, scaling):
     return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
 
 
+def q_azimuthal_to_q_modulo(Iq):
+    """ this method converts Qazimuthal to Qmodulo using
+        (1) Q = sqrt(Qx**2 + Qy**2)
+        (2) sigmaQ = sqrt(sigmaQx**2 + sigmaQy**2)
+
+    Parameters:
+    ----------
+    Iq: IQazimuthal object
+
+    Returns:
+    -------
+    Iqmod: IQmod object
+    """
+    qx = Iq.qx
+    qy = Iq.qy
+    delta_qx = Iq.delta_qx
+    delta_qy = Iq.delta_qy
+
+    mod_q = np.sqrt(qx ** 2 + qy ** 2)
+    delta_mode_q = np.sqrt(delta_qx ** 2 + delta_qy ** 2)
+
+    q_azimuthal_to_q_modulo = namedtuple('q_azimuthal_to_q_modulo', 'mod_q, delta_mod_q')
+    q_azimuthal_to_q_modulo.mod_q = mod_q
+    q_azimuthal_to_q_modulo.delta_mod_q = delta_mode_q
+
+    iqmod = IQmod(intensity=Iq.intensity,
+                  error=Iq.error,
+                  mod_q=mod_q,
+                  delta_mod_q=delta_mode_q)
+
+    return iqmod
+
+
+def concatenate(iq_objects):
+    r"""
+    Join a sequence IQ objects; concatenate((iq1, iq2, iq3,...))
+
+    Parameters
+    ----------
+    iq_objects: list
+        A sequence of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or
+        ~drtsans.dataobjects.IQcrystal objects. All objects must be of the same type
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    """
+    return _nary_operation(iq_objects, np.concatenate, unpack=False)
+
+
 class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength')):
     r"""This class holds the information for I(Q) scalar. All of the arrays must be 1-dimensional
     and parallel (same length). The ``delta_mod_q`` and ``wavelength`` fields are optional."""
@@ -275,21 +325,31 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
                                UnitX='momentumtransfer', OutputWorkspace=name, Dx=dq,
                                EnableLogging=False)
 
-    def to_csv(self, file, sep=' ', float_format='%.6f'):
+    def to_csv(self, file_name, sep=' ', float_format='%.6f'):
         r"""
         Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
         Parameters
         ----------
-        file: str
+        file_name: str
             Path to output file
         sep: str
             String of length 1. Field delimiter for the output file.
         float_format: str
             Format string for floating point numbers.
         """
+        # Convert to dictionary to construct a pandas DataFrame instance
         frame = pd.DataFrame({label: value for label, value in self._asdict().items() if value is not None})
-        frame.to_csv(file, index=False, sep=sep, float_format=float_format)
+
+        #  Create the order of the columns
+        i_q_mod_cols = ['mod_q', 'intensity', 'error']  # 3 mandatory columns
+        if 'delta_mod_q' in frame.keys():
+            i_q_mod_cols.append('delta_mod_q')
+        if 'wavelength' in frame.keys():
+            i_q_mod_cols.append('wavelength')
+
+        # Write to file
+        frame.to_csv(file_name, columns=i_q_mod_cols, index=False, sep=sep, float_format=float_format)
 
 
 def load_iqmod(file, sep=' '):
@@ -334,6 +394,11 @@ def load_iqmod(file, sep=' '):
 def save_iqmod(iq, file, sep=' ', float_format='%.6f'):
     r"""
     Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
+
+    Current output columns
+    (Line 0: ) intensity error mod_q
+    Expected
+    (Line 0: ) mod_q intensity error mod_q_error
 
     Parameters
     ----------

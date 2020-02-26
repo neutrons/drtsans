@@ -11,6 +11,7 @@ Welcome to drt-sans's documentation!
 
    /drtsans/index
    /drtsans/dataobjects
+   /drtsans/pixel_calibration
    /drtsans/mono/index
    /drtsans/tof/index
    /developer/index

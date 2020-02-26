@@ -1034,8 +1034,8 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     component: str
         Name of the instrument component containing the detector array consisting of two parallel panels of tubes.
     load_barscan_calibration: bool
-        Load pixel positions and heights from the pixel-calibrations database appropriate to ``input_workspace``. If
-        py:obj:`False`, then the pixel positions and heigths will be those of ``input_workspace``.
+        Load pixel positions and heights from the pixel-calibrations database appropriate to ```input_workspace```. If
+        py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
 
     **Mantid algorithms used:**
         :ref:`DeleteWorkspaces <algm-DeleteWorkspaces-v1>`,

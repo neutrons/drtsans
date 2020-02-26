@@ -13,6 +13,25 @@ from collections import defaultdict
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter']
 
 
+def panel_names(input_query):
+    r"""
+    List of names for the double-panel detector arrays (e.g., 'detector1', 'wing_detector')
+
+    Parameters
+    ----------
+    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
+
+    Returns
+    -------
+    list
+    """
+    detector_names = ['detector1']
+    if instrument_enum_name(input_query) == InstrumentEnumName.BIOSANS:
+        detector_names.append('wing_detector')
+    return detector_names
+
+
 def detector_name(ipt):
     r"""
     Name of the main detector array

@@ -15,7 +15,8 @@ __all__ = ['getWedgeSelection']
 SIGMA_TO_FWHM = 2. * np.sqrt(2. * np.log(2.))
 
 
-def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width=0.25, background_width=1.5):
+def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width=0.25, background_width=1.5,
+                      signal_to_noise_min=2.):
     '''
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
     output of this is intended to be used in :py:func:`~drtsans.iq.select_i_of_q_by_wedge`.
@@ -37,6 +38,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     background_width: float
         Percent of full-width-half-max (FWHM) of the peak to define the background between peaks
         to be within when determining the final range for azimuthal binning.
+    signal_to_noise_min: float
+        Minimum signal to noise ratio for the data to be considered "fittable"
 
     Results
     =======
@@ -47,7 +50,13 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     intensity, error, azimuthal, q = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
                                                          azimuthal_delta=azimuthal_delta)
     center_vec, fwhm_vec = _fitQAndAzimuthal(intensity, error, q_bins=q, azimuthal_bins=azimuthal,
-                                             signal_to_noise_min=2.0, azimuthal_start=110., maxchisq=1000.)
+                                             signal_to_noise_min=signal_to_noise_min, azimuthal_start=110.,
+                                             maxchisq=1000.)
+
+    # verify that the results didn't predict wedges larger than half of the data
+    if np.any(np.array(fwhm_vec) > 360./2):
+        values = ['{:.1f}deg'.format(value) for value in fwhm_vec]
+        raise RuntimeError('Encountered large fwhm values: {}'.format(', '.join(values)))
 
     # convert to min and max ranges
     min_vec, max_vec = [], []
@@ -134,6 +143,9 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     '''
     q, azimuthal = _toQmodAndAzimuthal(data)
 
+    print('Q-range requested {:.4f} <= Q <= {:.4f}'.format(q_min, q_max))
+    print('Q-range found     {:.4f} <= Q <= {:.4f}'.format(np.min(q), np.max(q)))
+
     # the bonus two steps is to get the end-point in the array
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
     # additional half-circle is to pick up things that are symmetric near azimuthal=0
@@ -143,6 +155,10 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     # create output data
     intensity = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
     error = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
+
+    # rather than print every data point that cannot be binned, collect statistics
+    no_q_bin = 0
+    no_azi_bin = 0
 
     # do the binning - twice around the circle (starting at 0deg, then 360deg)
     # while this loops through the data twice, it does not require copying data
@@ -158,19 +174,27 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
             # find the correct bin in Q
             q_index = q_bins.searchsorted(q_val, side='right')
             if q_index >= q_bins.size or q_index == 0:
-                print('FAILED TO FIND Q_BIN FOR {} from {}'.format(q_val, q_bins))
+                no_q_bin += 1
                 continue
 
             # find the correct bin in azimuthal
             azimuthal_index = azimuthal_bins.searchsorted(azimuthal_val, side='right')
             if azimuthal_index >= azimuthal_bins.size or q_index == 0:
-                print('FAILED TO FIND AZIMUTHAL_BIN FOR {}'.format(azimuthal_val))
+                no_azi_bin += 1
                 continue
 
             # increment the counts array
             intensity[azimuthal_index - 1, q_index - 1] += i_val
             error[azimuthal_index - 1, q_index - 1] += e_val
 
+    # print information about how many data-points were not binned
+    if no_q_bin > 0:
+        print('Failed to bin {} of {} data points because out of Q-range ({} < Q < {}A)'.format(no_q_bin, q.size,
+                                                                                                q_min, q_max))
+    if no_azi_bin > 0:
+        print('Failed to bin {} of {} data points because out of azimuthal-range ({} < Q < {}A)'.format(no_azi_bin,
+                                                                                                        azimuthal.size,
+                                                                                                        0., 540.))
     # bins that didn't accumulate uncertainties are set to nan
     mask = (error == 0.)  # indexes where there is no error
     intensity[mask] = np.nan  # set those values to nan
@@ -382,6 +406,8 @@ def _weighted_position_and_width(peaks):
     tuple
         (position, fwhm)
     '''
+    if len(peaks) <= 0:
+        raise RuntimeError('Encountered zero fitted peaks')
     pos_accum, pos_weight_accum = 0., 0.
     fwhm_accum, fwhm_weight_accum = 0., 0.
     for peak in peaks:
@@ -389,7 +415,7 @@ def _weighted_position_and_width(peaks):
         pos, pos_weight = peak[0]  # position and weight
         fwhm, fwhm_weight = peak[1]  # fwhm and weight
 
-        if np.isnan(pos_weight) or np.isnan(fwhm_weight) or pos_weight == 0. or fwhm_weight == 0.:
+        if np.isnan(pos_weight) or np.isnan(fwhm_weight) or pos_weight <= 0. or fwhm_weight <= 0.:
             continue  # don't use these points
 
         pos_accum += pos * pos_weight
@@ -398,7 +424,10 @@ def _weighted_position_and_width(peaks):
         fwhm_accum += fwhm * fwhm_weight
         fwhm_weight_accum += fwhm_weight
 
-    return (pos_accum / pos_weight_accum), (fwhm_accum / fwhm_weight_accum)
+    try:
+        return (pos_accum / pos_weight_accum), (fwhm_accum / fwhm_weight_accum)
+    except ZeroDivisionError as e:
+        raise RuntimeError('Cannot determine fitted positions from zero weights') from e
 
 
 def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, signal_to_noise_min, azimuthal_start, maxchisq):
@@ -433,6 +462,7 @@ def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, signal_to_noise_
 
     # select out a single spectrum
     peakResults = [[], []]
+    q_centers_used = []
     for spec_index, q_center in enumerate(q_centers):
         try:
             # print('Fitting spectrum {} with Q={}A'.format(spec_index, q_center))
@@ -445,11 +475,13 @@ def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, signal_to_noise_
 
             for i in range(len(peakResults)):
                 peakResults[i].append(newlyFittedPeaks[i])
+            q_centers_used.append(q_center)
         except RuntimeError as e:
             print('Not using information from Q-slice ({}A):'.format(q_center),
                   'Encountered runtime error:', e)  # don't worry about it
             continue
 
+    print('Q-rings used to determine overall wedges: {}'.format(q_centers_used))
     peakResults = [_weighted_position_and_width(peak) for peak in peakResults]
 
     # convert into parallel arrays of centers and fwhm

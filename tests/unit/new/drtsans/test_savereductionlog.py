@@ -232,7 +232,7 @@ def test_saving(reference_dir, filename1d, filename_other):
 
 
 def test_no_arguments():
-    with pytest.raises(RuntimeError):
+    with pytest.raises(TypeError):
         savereductionlog()
 
 

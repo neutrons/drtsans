@@ -168,7 +168,7 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
-def savereductionlog(filename='_reduction_log.hdf', wksp=None, *args, **kwargs):
+def savereductionlog(filename, wksp, *args, **kwargs):
     r'''Save the reduction log
 
     There are three ``NXentry``. The first is for the 1d reduced data, second
@@ -180,7 +180,7 @@ def savereductionlog(filename='_reduction_log.hdf', wksp=None, *args, **kwargs):
     Parameters
     ----------
     wksp: Workspace2D
-        Workspace containing only one spectru (the I(q) curve). This is the
+        Workspace containing only one spectrum (the I(q) curve). This is the
         only workspace that metadata is taken from.
     filename: string
         The output filename to write to
@@ -209,10 +209,10 @@ def savereductionlog(filename='_reduction_log.hdf', wksp=None, *args, **kwargs):
         will be gotten from the system environment ``USERNAME`` (optional)
     '''
     if not filename:
-        raise RuntimeError('Cannot write to file "{}"'.format(filename))
+        filename = '_reduction_log.hdf'
+        # raise RuntimeError('Cannot write to file "{}"'.format(filename))
     if not wksp or str(wksp) not in mtd:
         raise RuntimeError('Cannot write out 1d workspace "{}"'.format(wksp))
-    # TODO more checks?
 
     # save the 2 workspaces
     SaveNexusProcessed(InputWorkspace=str(wksp), Filename=filename,

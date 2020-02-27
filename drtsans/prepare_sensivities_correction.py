@@ -579,7 +579,10 @@ class PrepareSensitivityCorrection(object):
 
         """
         # Create a new workspace for output
-        parent_ws = LoadEventNexus(Filename='{}_{}'.format(self._instrument, parent_flood_run),
+        instrument_name = {CG2: 'GPSANS',
+                           CG3: 'BIOSANS',
+                           EQSANS: 'EQSANS_'}[self._instrument]
+        parent_ws = LoadEventNexus(Filename='{}{}'.format(instrument_name, parent_flood_run),
                                    MetaDataOnly=True)
 
         # Create new sensitivity workspace
@@ -589,17 +592,7 @@ class PrepareSensitivityCorrection(object):
                                              DataE=sensitivity_ws.extractE().flatten(),
                                              NSpec=parent_ws.getNumberHistograms(),
                                              ParentWorkspace=parent_ws,
-                                             OutputWorskpace=new_sens_name)
-
-        # Load instrument
-        # instrument_name = {CG2: 'GPSANS',
-        #                    CG3: 'BIOSANS',
-        #                    EQSANS: 'EQSANS'}[self._instrument]
-
-        # ws_name = str(sensitivity_ws)
-        # LoadInstrument(Workspace=ws_name,
-        #                InstrumentName=instrument_name,
-        #                RewriteSpectraMap=True)
+                                             OutputWorkspace=new_sens_name)
 
         # Mask detectors
         mask_ws_indexes = list()

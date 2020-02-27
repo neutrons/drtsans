@@ -4,14 +4,14 @@ r""" Links to Mantid algorithms
 ExtractMask          <https://docs.mantidproject.org/nightly/algorithms/ExtractMask-v1.html>
 FindDetectorsInShape <https://docs.mantidproject.org/nightly/algorithms/FindDetectorsInShape-v1.html>
 LoadMask             <https://docs.mantidproject.org/nightly/algorithms/LoadMask-v1.html>
-Load                 <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
+LoadNexusProcessed   <https://docs.mantidproject.org/nightly/algorithms/LoadNexusProcessed-v2.html>
 MaskAngle            <https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html>
 MaskBTP              <https://docs.mantidproject.org/nightly/algorithms/MaskBTP-v1.html>
 MaskDetectors        <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html>
 MaskSpectra          <https://docs.mantidproject.org/nightly/algorithms/MaskSpectra-v1.html>
 """
 from mantid.simpleapi import (ExtractMask, FindDetectorsInShape, LoadMask,
-                              MaskBTP, MaskDetectors, MaskSpectra, Load, MaskAngle)
+                              MaskBTP, MaskDetectors, MaskSpectra, LoadNexusProcessed, MaskAngle)
 from mantid.api import mtd, MatrixWorkspace
 import os
 # drtsans imports
@@ -146,7 +146,7 @@ def load_mask(mask_file='', output_workspace=None):
     """
     if not output_workspace:
         output_workspace = unique_workspace_dundername()
-    mask_workspace = Load(Filename=mask_file, OutputWorkspace=output_workspace)
+    mask_workspace = LoadNexusProcessed(Filename=mask_file, OutputWorkspace=output_workspace)
     return mask_workspace
 
 

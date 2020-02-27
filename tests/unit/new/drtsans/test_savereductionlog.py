@@ -231,6 +231,11 @@ def test_saving(reference_dir, filename1d, filename_other):
             mtd.remove(wksp)
 
 
+def test_no_arguments():
+    with pytest.raises(TypeError):
+        savereductionlog()
+
+
 def test_empty_filename():
     with pytest.raises(RuntimeError):
         savereductionlog(filename='', wksp=None)

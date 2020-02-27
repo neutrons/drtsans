@@ -168,7 +168,7 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
-def savereductionlog(filename, wksp, *args, **kwargs):
+def savereductionlog(filename='_reduction_log.hdf', wksp=None, *args, **kwargs):
     r'''Save the reduction log
 
     There are three ``NXentry``. The first is for the 1d reduced data, second

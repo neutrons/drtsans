@@ -368,11 +368,6 @@ class PrepareSensitivityCorrection(object):
             # output workspace name shall be unique and thus won't overwrite any existing one
             flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
 
-        # # Apply solid angle correction
-        # if self._solid_angle_correction:
-        #     solid_angle_correction = SOLID_ANGLE_CORRECTION[self._instrument]
-        #     flood_ws = solid_angle_correction(flood_ws, detector_type='VerticalTube')
-
         return flood_ws
 
     @staticmethod
@@ -768,7 +763,7 @@ class PrepareSensitivityCorrection(object):
         transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
                                              mask=self._default_mask, btp=self._extra_mask_dict,
                                              flux_method='monitor',
-                                             solid_angle=self._solid_angle_correction,
+                                             solid_angle=False,
                                              center_x=beam_center[0],
                                              center_y=beam_center[1],
                                              output_workspace='TRANS_{}_{}'.format(self._instrument,

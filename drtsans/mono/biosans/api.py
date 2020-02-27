@@ -80,8 +80,9 @@ def prepare_data(data,
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
-    # TODO: missing detector_offset and sample_offset
-    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix)
+    # TODO: missing detector_offset for wing detector
+    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
+                     detector_offset=detector_offset, sample_offset=sample_offset)
     ws_name = str(ws)
     transform_to_wavelength(ws_name)
 

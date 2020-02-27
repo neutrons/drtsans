@@ -3,14 +3,18 @@ import os
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import logger
-from mantid.simpleapi import mtd, Load
+# https://docs.mantidproject.org/nightly/algorithms/Load-v1.html
+# https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
+from mantid.simpleapi import mtd, Load, MoveInstrumentComponent
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
-__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter']
+__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
+           'translate_detector_by_z']
+detector_z_log = 'detectorZ'
 
 
 def panel_names(input_query):
@@ -485,3 +489,75 @@ def beam_radius(input_workspace, unit='mm'):
     radius = r_sa + (r_sa + r_so) * (l2 / l1)
     logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3))
     return radius
+
+
+def translate_sample_by_z(workspace, z):
+    r"""
+    Shift the position of the sample by the desired amount
+
+    Parameters
+    ----------
+    workspace: ~mantid.api.MatrixWorkspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied in meters. Positive values are downstream.
+    """
+    # only move if the value is non-zero
+    if z != 0.:
+        MoveInstrumentComponent(Workspace=str(workspace), Z=z,
+                                ComponentName='sample-position',
+                                RelativePosition=True)
+
+    # update the appropriate log
+    sample_logs = SampleLogs(workspace)
+    logname_to_set = 'source-sample-distance'  # default
+    # look for name of the log/property to update
+    for logname in ['source-sample-distance', 'source_aperture_sample_aperture_distance']:
+        if logname in sample_logs:
+            logname_to_set = logname
+            break
+
+    sample_logs.insert(logname_to_set, source_sample_distance(workspace, search_logs=False, unit='mm'),
+                       unit='mm')
+
+
+def translate_detector_by_z(input_workspace, z=None, relative=True):
+    r"""
+    Adjust the Z-coordinate of the detector.
+
+
+    Parameters
+    ----------
+    input_workspace: ~mantid.api.MatrixWorkspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in log_key
+        ~drtsans.geometry.detector_z_log is used, unless the detector has already been translated by this
+        quantity.
+    relative: bool
+        If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
+        the current z-coordinate with the new value.
+    """
+    update_log = False
+    if z is None:
+        sample_logs = SampleLogs(input_workspace)
+        # If detector_z_log exists in the sample logs, use it
+        if detector_z_log in sample_logs:
+            translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in millimeters
+            # Has the detector already been translated by this quantity?
+            main_detector_array = detector_name(input_workspace)
+            _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
+            if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one millimeter
+                z = translation_from_log
+
+    if z is not None:
+        update_log = True
+        if (not relative) or (z != 0.):
+            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
+                                    RelativePosition=relative)
+
+    # update the appropriate log
+    if update_log:
+        sample_logs = SampleLogs(input_workspace)
+        sample_logs.insert('sample-detector-distance', sample_detector_distance(input_workspace, search_logs=False),
+                           unit='mm')

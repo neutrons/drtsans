@@ -38,7 +38,7 @@ def test_1d_bin_log_wedge_no_wt():
 
     # Get data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
-    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade)
+    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade, even_decade=True)
 
     # Test high level method
     # Define input data

@@ -168,7 +168,7 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
-def savereductionlog(filename, wksp, *args, **kwargs):
+def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
     r'''Save the reduction log
 
     There are three ``NXentry``. The first is for the 1d reduced data, second
@@ -179,15 +179,10 @@ def savereductionlog(filename, wksp, *args, **kwargs):
 
     Parameters
     ----------
-    wksp: Workspace2D
-        Workspace containing only one spectrum (the I(q) curve). This is the
-        only workspace that metadata is taken from.
-    filename: string
-        The output filename to write to
-    args: Workspaces
-        Other workspaces to save to the file. This can be the Workspace
-        containing I(Qx, Qy), or multiple 1d Workspaces for additional frames,
-        or a mixture
+    iq: Iqmod
+        tuple with the following informations: intensity, error, mod_q, delta_mode_q
+    iqxqy: IQazimuthal
+        tuple with the following informations: intensity, error, qx, delta_qx, qy, delta_y
     python: string
         The script used to create everything (optional)
     pythonfile: string
@@ -208,20 +203,22 @@ def savereductionlog(filename, wksp, *args, **kwargs):
         Username of who reduced the data (as in actual name). If not provided
         will be gotten from the system environment ``USERNAME`` (optional)
     '''
-    if not filename:
+    if filename == '':
         filename = '_reduction_log.hdf'
         # raise RuntimeError('Cannot write to file "{}"'.format(filename))
-    if not wksp or str(wksp) not in mtd:
-        raise RuntimeError('Cannot write out 1d workspace "{}"'.format(wksp))
 
-    # save the 2 workspaces
-    SaveNexusProcessed(InputWorkspace=str(wksp), Filename=filename,
-                       PreserveEvents=False)
-    for optional_wksp in args:
-        if optional_wksp:
-            SaveNexusProcessed(InputWorkspace=str(optional_wksp),
-                               Filename=filename,
-                               PreserveEvents=False, Append=True)
+    if (iq is None) and (iqxqy is None):
+        raise RuntimeError("Provide at least one set of data to save into log file {}".format(filename))
+
+
+    # SaveNexusProcessed(InputWorkspace=str(wksp), Filename=filename,
+    #                    PreserveEvents=False)
+
+    # for optional_wksp in args:
+    #     if optional_wksp:
+    #         SaveNexusProcessed(InputWorkspace=str(optional_wksp),
+    #                            Filename=filename,
+    #                            PreserveEvents=False, Append=True)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

@@ -146,105 +146,94 @@ def _checkWorkspaces(filename, orig, entry):
         mtd.remove(reloaded)
 
 
-@pytest.mark.parametrize(
-    'filename1d', ['test_save_output/EQSANS_68200_iq.nxs', '']
-)
-@pytest.mark.parametrize(
-    'filename_other', [(),
-                       ('test_save_output/EQSANS_68200_iq.nxs', ''),
-                       ('', 'test_save_output/EQSANS_68200_iq.nxs'),
-                       ('test_save_output/EQSANS_68200_iq.nxs',
-                        'test_save_output/EQSANS_68200_iq.nxs')]
-)
-def test_saving(reference_dir, filename1d, filename_other):
-    wksp1d = ''
-    wksp_other = []
+# @pytest.mark.parametrize(
+#     'filename1d', ['test_save_output/EQSANS_68200_iq.nxs', '']
+# )
+# @pytest.mark.parametrize(
+#     'filename_other', [(),
+#                        ('test_save_output/EQSANS_68200_iq.nxs', ''),
+#                        ('', 'test_save_output/EQSANS_68200_iq.nxs'),
+#                        ('test_save_output/EQSANS_68200_iq.nxs',
+#                         'test_save_output/EQSANS_68200_iq.nxs')]
+# )
+# def test_saving(reference_dir, filename1d, filename_other):
+#     wksp1d = ''
+#     wksp_other = []
+#
+#     # setup inputs
+#     if filename1d:
+#         filename1d = os.path.join(reference_dir.new.eqsans,
+#                                   filename1d)
+#         wksp1d = 'test_save_wksp1d'
+#         Load(Filename=filename1d, OutputWorkspace=wksp1d)
+#
+#     for i, filename in enumerate(filename_other):
+#         if filename:
+#             filename = os.path.join(reference_dir.new.eqsans,
+#                                     filename)
+#             wksp = 'test_save_wksp_{}'.format(i)
+#             if filename == filename1d:
+#                 wksp = wksp1d  # just reuse the workspace
+#             else:
+#                 Load(Filename=filename, OutputWorkspace=wksp)
+#             wksp_other.append(wksp)
+#         else:
+#             wksp_other.append('')
+#
+#     tmpfile = NamedTemporaryFile(prefix=wksp1d, suffix='.nxs.h5').name
+#     tmpfile = os.path.abspath(tmpfile)
+#     if os.path.exists(tmpfile):
+#         os.unlink(tmpfile)  # remove it if it already exists
+#
+#     # dummy arguments to check against - they should be found in the file
+#     pythonscript = 'blah blah blah'
+#     reductionparams = ''
+#     starttime = '1992-01-19T00:00:01Z'
+#     username = 'Jimmy Neutron'
+#     user = 'neutron'
+#
+#     # run the function - use same workspace for both
+#     if wksp1d:
+#         savereductionlog(tmpfile, wksp1d, *wksp_other,
+#                          python=pythonscript, starttime=starttime,
+#                          user=user, username=username)
+#
+#         # validation
+#         assert os.path.exists(tmpfile), \
+#             'Output file "{}" does not exist'.format(tmpfile)
+#
+#         # go into the file to check things
+#         with h5py.File(tmpfile, 'r') as handle:
+#             _check1d(handle, wksp1d)
+#             _checkProcessingEntry(handle, pythonscript=pythonscript,
+#                                   reductionparams=reductionparams,
+#                                   starttime=starttime, username=username)
+#
+#         # use mantid to check the workspaces
+#         _checkWorkspaces(tmpfile, wksp1d, 1)
+#         for i, wksp in enumerate(wksp_other):
+#             if wksp:
+#                 _checkWorkspaces(tmpfile, wksp, i + 1)
+#     else:  # not supplying 1d workspace should always fail
+#         with pytest.raises(RuntimeError):
+#             savereductionlog(tmpfile, wksp1d, *wksp_other,
+#                              python=pythonscript, starttime=starttime,
+#                              user=user, username=username)
+#         assert not os.path.exists(tmpfile), \
+#             'Output file "{}" should not exist'.format(tmpfile)
+#
+#     # cleanup
+#     if os.path.exists(tmpfile):
+#         os.unlink(tmpfile)
+#     wksp_other.append(wksp1d)
+#     for wksp in wksp_other:
+#         if wksp and wksp in mtd:
+#             mtd.remove(wksp)
 
-    # setup inputs
-    if filename1d:
-        filename1d = os.path.join(reference_dir.new.eqsans,
-                                  filename1d)
-        wksp1d = 'test_save_wksp1d'
-        Load(Filename=filename1d, OutputWorkspace=wksp1d)
 
-    for i, filename in enumerate(filename_other):
-        if filename:
-            filename = os.path.join(reference_dir.new.eqsans,
-                                    filename)
-            wksp = 'test_save_wksp_{}'.format(i)
-            if filename == filename1d:
-                wksp = wksp1d  # just reuse the workspace
-            else:
-                Load(Filename=filename, OutputWorkspace=wksp)
-            wksp_other.append(wksp)
-        else:
-            wksp_other.append('')
-
-    tmpfile = NamedTemporaryFile(prefix=wksp1d, suffix='.nxs.h5').name
-    tmpfile = os.path.abspath(tmpfile)
-    if os.path.exists(tmpfile):
-        os.unlink(tmpfile)  # remove it if it already exists
-
-    # dummy arguments to check against - they should be found in the file
-    pythonscript = 'blah blah blah'
-    reductionparams = ''
-    starttime = '1992-01-19T00:00:01Z'
-    username = 'Jimmy Neutron'
-    user = 'neutron'
-
-    # run the function - use same workspace for both
-    if wksp1d:
-        savereductionlog(tmpfile, wksp1d, *wksp_other,
-                         python=pythonscript, starttime=starttime,
-                         user=user, username=username)
-
-        # validation
-        assert os.path.exists(tmpfile), \
-            'Output file "{}" does not exist'.format(tmpfile)
-
-        # go into the file to check things
-        with h5py.File(tmpfile, 'r') as handle:
-            _check1d(handle, wksp1d)
-            _checkProcessingEntry(handle, pythonscript=pythonscript,
-                                  reductionparams=reductionparams,
-                                  starttime=starttime, username=username)
-
-        # use mantid to check the workspaces
-        _checkWorkspaces(tmpfile, wksp1d, 1)
-        for i, wksp in enumerate(wksp_other):
-            if wksp:
-                _checkWorkspaces(tmpfile, wksp, i + 1)
-    else:  # not supplying 1d workspace should always fail
-        with pytest.raises(RuntimeError):
-            savereductionlog(tmpfile, wksp1d, *wksp_other,
-                             python=pythonscript, starttime=starttime,
-                             user=user, username=username)
-        assert not os.path.exists(tmpfile), \
-            'Output file "{}" should not exist'.format(tmpfile)
-
-    # cleanup
-    if os.path.exists(tmpfile):
-        os.unlink(tmpfile)
-    wksp_other.append(wksp1d)
-    for wksp in wksp_other:
-        if wksp and wksp in mtd:
-            mtd.remove(wksp)
-
-
-def test_no_arguments():
-    with pytest.raises(TypeError):
+def test_no_data_passed():
+    with pytest.raises(RuntimeError):
         savereductionlog()
-
-
-def test_empty_filename():
-    with pytest.raises(RuntimeError):
-        savereductionlog(filename='', wksp=None)
-
-
-def test_nonexistant_1d_wksp():
-    tmpfile = os.path.join(gettempdir(), 'test_nonexistant_1d_wksp.nxs')
-    with pytest.raises(RuntimeError):
-        savereductionlog(filename=tmpfile, wksp=None)
 
 
 if __name__ == '__main__':

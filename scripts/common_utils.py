@@ -140,5 +140,4 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', weighting=False, nbins=
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.json')
     plot_IQazimuthal(iq_output, filename, backend='d3')
 
-    print("in get_Iqxqy")
     return iq_output

@@ -168,27 +168,52 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
-def _create_groupe(entry=None, name='Default', attribute='NXdata', data=[], units=''):
-    # _group = entry.create_group(name)
-    # _group.attrs['NX_class'] = attribute
-    # _entry_group = _group.create_dataset(name=name, data=data)
+def _create_groupe(entry=None, name='Default', data=[], units=''):
     _entry_group = entry.create_dataset(name=name, data=data)
     _entry_group.attrs['units'] = units
 
 
-def _save_iqxqy_to_log(filename='', iqxqy=None):
-    print("#1")
-    with h5py.File(filename, 'w') as handle:
+def _save_iqxqy_to_log(filename='', append=False, iqxqy=None):
+    write_property = 'a' if append else 'w'
+    with h5py.File(filename, write_property) as handle:
         entry = handle.create_group('I(QxQy)')
         entry.attrs['NX_class'] = 'NXentry'
 
         # intensity
-        print("#2")
         _create_groupe(entry=entry,
-                       name='Intensity',
-                       attribute='NXdata',
+                       name='I',
                        data=iqxqy.intensity,
-                       units='Angstroms')
+                       units='1/A')
+
+        # errors
+        _create_groupe(entry=entry,
+                       name='Idev',
+                       data=iqxqy.error,
+                       units='1/cm')
+
+        # qx
+        if not (iqxqy.qx is None):
+            _create_groupe(entry=entry,
+                           name='Qx',
+                           data=iqxqy.qx,
+                           units='1/A')
+
+            _create_groupe(entry=entry,
+                           name='Qxdev',
+                           data=iqxqy.delta_qx,
+                           units='1/A')
+
+        # qy
+        if not (iqxqy.qy is None):
+            _create_groupe(entry=entry,
+                           name='Qy',
+                           data=iqxqy.qy,
+                           units='1/A')
+
+            _create_groupe(entry=entry,
+                           name='Qydev',
+                           data=iqxqy.delta_qy,
+                           units='1/A')
 
 
 def _save_iq_to_log(filename='', iq=None):
@@ -201,28 +226,24 @@ def _save_iq_to_log(filename='', iq=None):
         # intensity
         _create_groupe(entry=entry,
                        name='I',
-                       attribute='NXdata',
                        data=iq.intensity,
                        units='1/cm')
 
         # errors
         _create_groupe(entry=entry,
                        name='Idev',
-                       attribute='NXdata',
                        data=iq.error,
                        units='1/cm')
 
         # mod_q
-        if iq.mod_q != []:
+        if not (iq.mod_q is None):
             _create_groupe(entry=entry,
                            name='Q',
-                           attribute='NXdata',
                            data=iq.mod_q,
                            units='1/A')
 
             _create_groupe(entry=entry,
                            name='Qdev',
-                           attribute='NXdata',
                            data=iq.delta_mod_q,
                            units='1/A')
 
@@ -269,12 +290,13 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
     if (iq is None) and (iqxqy is None):
         raise RuntimeError("Provide at least one set of data to save into log file {}".format(filename))
 
-    if iq:
+    if iq and iqxqy:
         _save_iq_to_log(filename=filename, iq=iq)
-
-    if iqxqy:
-        print("yes here")
-        _save_iqxqy_to_log(filename=filename, iqxyq=iqxqy)
+        _save_iqxqy_to_log(filename=filename, append=True, iqxqy=iqxqy)
+    elif iq:
+        _save_iq_to_log(filename=filename, iq=iq)
+    else:
+        _save_iqxqy_to_log(filename=filename, iqxqy=iqxqy)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

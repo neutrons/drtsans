@@ -1,11 +1,13 @@
-import h5py
-from mantid.simpleapi import mtd, CompareWorkspaces, Load, LoadNexusProcessed
+# import h5py
+# from mantid.simpleapi import mtd, CompareWorkspaces, Load, LoadNexusProcessed
 import numpy as np
 from drtsans import savereductionlog
-import os
 import pytest
+import os
+from drtsans.iq import determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins
+from drtsans.dataobjects import IQmod
 from tempfile import gettempdir, NamedTemporaryFile
-
 
 def _strValue(group, name):
     '''Get a value from a SDS'''
@@ -146,90 +148,37 @@ def _checkWorkspaces(filename, orig, entry):
         mtd.remove(reloaded)
 
 
-# @pytest.mark.parametrize(
-#     'filename1d', ['test_save_output/EQSANS_68200_iq.nxs', '']
-# )
-# @pytest.mark.parametrize(
-#     'filename_other', [(),
-#                        ('test_save_output/EQSANS_68200_iq.nxs', ''),
-#                        ('', 'test_save_output/EQSANS_68200_iq.nxs'),
-#                        ('test_save_output/EQSANS_68200_iq.nxs',
-#                         'test_save_output/EQSANS_68200_iq.nxs')]
-# )
-# def test_saving(reference_dir, filename1d, filename_other):
-#     wksp1d = ''
-#     wksp_other = []
-#
-#     # setup inputs
-#     if filename1d:
-#         filename1d = os.path.join(reference_dir.new.eqsans,
-#                                   filename1d)
-#         wksp1d = 'test_save_wksp1d'
-#         Load(Filename=filename1d, OutputWorkspace=wksp1d)
-#
-#     for i, filename in enumerate(filename_other):
-#         if filename:
-#             filename = os.path.join(reference_dir.new.eqsans,
-#                                     filename)
-#             wksp = 'test_save_wksp_{}'.format(i)
-#             if filename == filename1d:
-#                 wksp = wksp1d  # just reuse the workspace
-#             else:
-#                 Load(Filename=filename, OutputWorkspace=wksp)
-#             wksp_other.append(wksp)
-#         else:
-#             wksp_other.append('')
-#
-#     tmpfile = NamedTemporaryFile(prefix=wksp1d, suffix='.nxs.h5').name
-#     tmpfile = os.path.abspath(tmpfile)
-#     if os.path.exists(tmpfile):
-#         os.unlink(tmpfile)  # remove it if it already exists
-#
-#     # dummy arguments to check against - they should be found in the file
-#     pythonscript = 'blah blah blah'
-#     reductionparams = ''
-#     starttime = '1992-01-19T00:00:01Z'
-#     username = 'Jimmy Neutron'
-#     user = 'neutron'
-#
-#     # run the function - use same workspace for both
-#     if wksp1d:
-#         savereductionlog(tmpfile, wksp1d, *wksp_other,
-#                          python=pythonscript, starttime=starttime,
-#                          user=user, username=username)
-#
-#         # validation
-#         assert os.path.exists(tmpfile), \
-#             'Output file "{}" does not exist'.format(tmpfile)
-#
-#         # go into the file to check things
-#         with h5py.File(tmpfile, 'r') as handle:
-#             _check1d(handle, wksp1d)
-#             _checkProcessingEntry(handle, pythonscript=pythonscript,
-#                                   reductionparams=reductionparams,
-#                                   starttime=starttime, username=username)
-#
-#         # use mantid to check the workspaces
-#         _checkWorkspaces(tmpfile, wksp1d, 1)
-#         for i, wksp in enumerate(wksp_other):
-#             if wksp:
-#                 _checkWorkspaces(tmpfile, wksp, i + 1)
-#     else:  # not supplying 1d workspace should always fail
-#         with pytest.raises(RuntimeError):
-#             savereductionlog(tmpfile, wksp1d, *wksp_other,
-#                              python=pythonscript, starttime=starttime,
-#                              user=user, username=username)
-#         assert not os.path.exists(tmpfile), \
-#             'Output file "{}" should not exist'.format(tmpfile)
-#
-#     # cleanup
-#     if os.path.exists(tmpfile):
-#         os.unlink(tmpfile)
-#     wksp_other.append(wksp1d)
-#     for wksp in wksp_other:
-#         if wksp and wksp in mtd:
-#             mtd.remove(wksp)
+def test_writing_iq():
+    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
+    q_min = 0.001  # Edge
+    q_max = 0.010  # Edge
+    num_steps_per_10 = 10  # 10 steps per decade
 
+    # Verify bin edges and bin center
+    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
+    gold_edges, gold_centers = get_gold_1d_log_bins()
+
+    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
+    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
+
+    # Get Q1D data
+    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
+
+    # Binned I(Q) no-weight
+    # binned_iq = _do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
+    #                                      log_bins.centers, log_bins.edges)
+
+    # Test the high level method
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
+    # binned_iq = bin_intensity_into_q1d(test_iq, log_bins, BinningMethod.NOWEIGHT)
+
+    tmp_log_filename = NamedTemporaryFile(prefix="logfile", suffix='.nxs.h5').name
+    tmp_log_filename = os.path.abspath(tmp_log_filename)
+    if os.path.exists(tmp_log_filename):
+        os.remove(tmp_log_filename)
+    savereductionlog(tmp_log_filename, iq=test_iq)
+
+    assert os.path.exists(tmp_log_filename)
 
 def test_no_data_passed():
     with pytest.raises(RuntimeError):

@@ -176,32 +176,55 @@ def _create_groupe(entry=None, name='Default', attribute='NXdata', data=[], unit
     _entry_group.attrs['units'] = units
 
 
-def _save_iq_to_log(filename='', iq=None):
+def _save_iqxqy_to_log(filename='', iqxqy=None):
+    print("#1")
     with h5py.File(filename, 'w') as handle:
-        entry = handle.create_group('I(Q)')
+        entry = handle.create_group('I(QxQy)')
         entry.attrs['NX_class'] = 'NXentry'
 
         # intensity
+        print("#2")
         _create_groupe(entry=entry,
                        name='Intensity',
                        attribute='NXdata',
-                       data=iq.intensity,
+                       data=iqxqy.intensity,
                        units='Angstroms')
+
+
+def _save_iq_to_log(filename='', iq=None):
+    with h5py.File(filename, 'w') as handle:
+        entry = handle.create_group('I(Q)')
+        entry.attrs['NX_class'] = 'NXdata'
+        entry.attrs['signal'] = 'I'
+        entry.attrs['axes'] = 'Q'
+
+        # intensity
+        _create_groupe(entry=entry,
+                       name='I',
+                       attribute='NXdata',
+                       data=iq.intensity,
+                       units='1/cm')
 
         # errors
         _create_groupe(entry=entry,
-                       name='Error',
+                       name='Idev',
                        attribute='NXdata',
                        data=iq.error,
-                       units='Angstroms')
+                       units='1/cm')
 
         # mod_q
         if iq.mod_q != []:
             _create_groupe(entry=entry,
-                           name='mod_q',
+                           name='Q',
                            attribute='NXdata',
                            data=iq.mod_q,
-                           units='Angstroms')
+                           units='1/A')
+
+            _create_groupe(entry=entry,
+                           name='Qdev',
+                           attribute='NXdata',
+                           data=iq.delta_mod_q,
+                           units='1/A')
 
 
 def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
@@ -248,6 +271,10 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
 
     if iq:
         _save_iq_to_log(filename=filename, iq=iq)
+
+    if iqxqy:
+        print("yes here")
+        _save_iqxqy_to_log(filename=filename, iqxyq=iqxqy)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

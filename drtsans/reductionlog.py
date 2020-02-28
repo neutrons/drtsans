@@ -168,17 +168,41 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
+def _create_groupe(entry=None, name='Default', attribute='NXdata', data=[], units=''):
+    # _group = entry.create_group(name)
+    # _group.attrs['NX_class'] = attribute
+    # _entry_group = _group.create_dataset(name=name, data=data)
+    _entry_group = entry.create_dataset(name=name, data=data)
+    _entry_group.attrs['units'] = units
+
+
 def _save_iq_to_log(filename='', iq=None):
     with h5py.File(filename, 'w') as handle:
-        entry = handle.create_group('entry')
+        entry = handle.create_group('I(Q)')
         entry.attrs['NX_class'] = 'NXentry'
 
-        test = entry.create_group('test')
-        test.attrs['NX_class'] = 'NXdata'
-        time_test = test.create_dataset(name='times_test',
-                                        data=np.arange(1,10))
-        time_test.attrs['start'] = 'this is the start'
-        time_test.attrs['units'] = 'seconds'
+        # intensity
+        _create_groupe(entry=entry,
+                       name='Intensity',
+                       attribute='NXdata',
+                       data=iq.intensity,
+                       units='Angstroms')
+
+        # errors
+        _create_groupe(entry=entry,
+                       name='Error',
+                       attribute='NXdata',
+                       data=iq.error,
+                       units='Angstroms')
+
+        # mod_q
+        if iq.mod_q != []:
+            _create_groupe(entry=entry,
+                           name='mod_q',
+                           attribute='NXdata',
+                           data=iq.mod_q,
+                           units='Angstroms')
+
 
 def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
     r'''Save the reduction log
@@ -224,16 +248,6 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
 
     if iq:
         _save_iq_to_log(filename=filename, iq=iq)
-
-
-    # SaveNexusProcessed(InputWorkspace=str(wksp), Filename=filename,
-    #                    PreserveEvents=False)
-
-    # for optional_wksp in args:
-    #     if optional_wksp:
-    #         SaveNexusProcessed(InputWorkspace=str(optional_wksp),
-    #                            Filename=filename,
-    #                            PreserveEvents=False, Append=True)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

@@ -31,7 +31,7 @@ def test_log_bins_backward_compatible():
     q_max = 0.010  # Edge
     step_per_decade = 10  # 10 steps per decade
 
-    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade)
+    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade, even_decade=True)
     gold_edges, gold_centers = get_gold_1d_log_bins()
     np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
     np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)

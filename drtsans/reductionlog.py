@@ -3,7 +3,7 @@ import h5py
 import json
 import socket
 from mantid import __version__ as mantid_version
-from mantid.simpleapi import mtd, SaveNexusProcessed
+# from mantid.simpleapi import mtd, SaveNexusProcessed
 import numpy as np
 from drtsans import __version__ as drtsans_version
 from os import environ, path

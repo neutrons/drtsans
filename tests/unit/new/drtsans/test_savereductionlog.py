@@ -4,10 +4,11 @@ import numpy as np
 from drtsans import savereductionlog
 import pytest
 import os
-from drtsans.iq import determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d
+from drtsans.iq import determine_1d_log_bins
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins
 from drtsans.dataobjects import IQmod
-from tempfile import gettempdir, NamedTemporaryFile
+from tempfile import NamedTemporaryFile
+
 
 def _strValue(group, name):
     '''Get a value from a SDS'''
@@ -131,21 +132,21 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXprocess(entry, 'drtsans')
 
 
-def _checkWorkspaces(filename, orig, entry):
-    '''Utility function for verifying that the workspace saved is the
-    same as the one that is in the file'''
-    if not orig:
-        print('nothing to check against')
-        return
-
-    reloaded = orig + '_reload'
-    LoadNexusProcessed(Filename=filename, OutputWorkspace=reloaded,
-                       EntryNumber=entry)
-    result, msg = CompareWorkspaces(Workspace1=orig,
-                                    Workspace2=reloaded)
-    assert result, msg
-    if reloaded in mtd:
-        mtd.remove(reloaded)
+# def _checkWorkspaces(filename, orig, entry):
+#     '''Utility function for verifying that the workspace saved is the
+#     same as the one that is in the file'''
+#     if not orig:
+#         print('nothing to check against')
+#         return
+#
+#     reloaded = orig + '_reload'
+#     LoadNexusProcessed(Filename=filename, OutputWorkspace=reloaded,
+#                        EntryNumber=entry)
+#     result, msg = CompareWorkspaces(Workspace1=orig,
+#                                     Workspace2=reloaded)
+#     assert result, msg
+#     if reloaded in mtd:
+#         mtd.remove(reloaded)
 
 
 def test_writing_iq():
@@ -179,6 +180,7 @@ def test_writing_iq():
     savereductionlog(tmp_log_filename, iq=test_iq)
 
     assert os.path.exists(tmp_log_filename)
+
 
 def test_no_data_passed():
     with pytest.raises(RuntimeError):

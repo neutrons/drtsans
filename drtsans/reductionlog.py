@@ -168,6 +168,18 @@ def _savespecialparameters(nxentry, wksp):
     #      parameters
 
 
+def _save_iq_to_log(filename='', iq=None):
+    with h5py.File(filename, 'w') as handle:
+        entry = handle.create_group('entry')
+        entry.attrs['NX_class'] = 'NXentry'
+
+        test = entry.create_group('test')
+        test.attrs['NX_class'] = 'NXdata'
+        time_test = test.create_dataset(name='times_test',
+                                        data=np.arange(1,10))
+        time_test.attrs['start'] = 'this is the start'
+        time_test.attrs['units'] = 'seconds'
+
 def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
     r'''Save the reduction log
 
@@ -209,6 +221,9 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
 
     if (iq is None) and (iqxqy is None):
         raise RuntimeError("Provide at least one set of data to save into log file {}".format(filename))
+
+    if iq:
+        _save_iq_to_log(filename=filename, iq=iq)
 
 
     # SaveNexusProcessed(InputWorkspace=str(wksp), Filename=filename,
@@ -259,6 +274,6 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
                 nxuser.create_dataset(name='name',
                                       data=[np.string_(username)])
 
-        _savespecialparameters(entry, wksp)
+        # _savespecialparameters(entry, wksp)
 
         # TODO   - add the logs of stdout and stderr

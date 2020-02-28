@@ -38,6 +38,49 @@ def _getGroup(parent, name, klass):
     return child
 
 
+def _create_iq():
+    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
+    q_min = 0.001  # Edge
+    q_max = 0.010  # Edge
+    num_steps_per_10 = 10  # 10 steps per decade
+
+    # Verify bin edges and bin center
+    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
+    gold_edges, gold_centers = get_gold_1d_log_bins()
+
+    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
+    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
+
+    # Get Q1D data
+    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
+
+    # Test the high level method
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
+
+    return test_iq
+
+
+def _create_iqxqy():
+    # Get data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+    test_iqxqy = IQazimuthal(intensity=intensities,
+                             error=sigmas,
+                             qx=qx_array,
+                             qy=qy_array,
+                             delta_qx=dqx_array,
+                             delta_qy=dqy_array)
+
+    return test_iqxqy
+
+
+def _create_tmp_log_filename():
+    tmp_log_filename = NamedTemporaryFile(prefix="logfile", suffix='.nxs.h5').name
+    tmp_log_filename = os.path.abspath(tmp_log_filename)
+    if os.path.exists(tmp_log_filename):
+        os.remove(tmp_log_filename)
+    return tmp_log_filename
+
+
 # def _check1d(handle, wksp_name):
 #     '''Utility function for verifying the 1d data (and attributes) are correct'''
 #     wksp = mtd[wksp_name]
@@ -151,90 +194,28 @@ def _checkProcessingEntry(handle, **kwargs):
 
 
 def test_writing_iq():
-    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
-    q_min = 0.001  # Edge
-    q_max = 0.010  # Edge
-    num_steps_per_10 = 10  # 10 steps per decade
-
-    # Verify bin edges and bin center
-    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
-    gold_edges, gold_centers = get_gold_1d_log_bins()
-
-    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
-    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
-
-    # Get Q1D data
-    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
-
-    # Test the high level method
-    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
-
-    tmp_log_filename = NamedTemporaryFile(prefix="logfile", suffix='.nxs.h5').name
-    tmp_log_filename = os.path.abspath(tmp_log_filename)
-    if os.path.exists(tmp_log_filename):
-        os.remove(tmp_log_filename)
+    test_iq = _create_iq()
+    tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename, iq=test_iq)
 
-    assert os.path.exists(tmp_log_filename)
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
 
 def test_writing_iqxqy():
-    # Get data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
-
-    # Test high level method
-    # Define input data
-    test_iqxqy = IQazimuthal(intensity=intensities,
-                             error=sigmas,
-                             qx=qx_array,
-                             qy=qy_array,
-                             delta_qx=dqx_array,
-                             delta_qy=dqy_array)
-
-    tmp_log_filename = NamedTemporaryFile(prefix="logfile", suffix='.nxs.h5').name
-    tmp_log_filename = os.path.abspath(tmp_log_filename)
-    if os.path.exists(tmp_log_filename):
-        os.remove(tmp_log_filename)
+    test_iqxqy = _create_iqxqy()
+    tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename, iqxqy=test_iqxqy)
 
-    assert os.path.exists(tmp_log_filename)
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
 
 def test_writing_iq_and_iqxqy():
-    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
-    q_min = 0.001  # Edge
-    q_max = 0.010  # Edge
-    num_steps_per_10 = 10  # 10 steps per decade
-
-    # Verify bin edges and bin center
-    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
-    gold_edges, gold_centers = get_gold_1d_log_bins()
-
-    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
-    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
-
-    # Get Q1D data
-    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
-
-    # Test the high level method
-    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
-
-    # Get data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
-    test_iqxqy = IQazimuthal(intensity=intensities,
-                             error=sigmas,
-                             qx=qx_array,
-                             qy=qy_array,
-                             delta_qx=dqx_array,
-                             delta_qy=dqy_array)
-
-    tmp_log_filename = NamedTemporaryFile(prefix="logfile", suffix='.nxs.h5').name
-    tmp_log_filename = os.path.abspath(tmp_log_filename)
-    if os.path.exists(tmp_log_filename):
-        os.remove(tmp_log_filename)
+    test_iq = _create_iq()
+    test_iqxqy = _create_iqxqy()
+    tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename, iq=test_iq, iqxqy=test_iqxqy)
 
-    assert os.path.exists(tmp_log_filename)
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
 
 def test_no_data_passed():

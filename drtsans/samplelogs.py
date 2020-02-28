@@ -1,6 +1,6 @@
 import numpy as np
 
-from mantid.api import MatrixWorkspace
+from mantid.api import (Run, MatrixWorkspace)
 from mantid.simpleapi import mtd
 
 
@@ -79,7 +79,7 @@ class SampleLogs(object):
 
         Parameters
         ----------
-        other: str, Workspace
+        other: Run, str, MatrixWorkspace
 
         Returns
         -------
@@ -90,12 +90,15 @@ class SampleLogs(object):
             self._ws = ws
             return ws.getRun()
 
+        def from_run(a_run):
+            return a_run
+
         def from_string(s):
             # see if it is a file
             if s in mtd:
                 return self.find_run(mtd[s])
 
-        dispatch = {MatrixWorkspace: from_ws, str: from_string}
+        dispatch = {Run: from_run, MatrixWorkspace: from_ws, str: from_string}
 
         # If others is not None: raise exception
         if other is None:

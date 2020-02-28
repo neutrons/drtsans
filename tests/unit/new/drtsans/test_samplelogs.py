@@ -15,7 +15,7 @@ class TestSampleLogs(object):
                         'EQSANS_92353_no_events.nxs')
         w = Load(test_file, OutputWorkspace='test_init_w')
         r = w.getRun()
-        for other in [test_file, w, r]:
+        for other in [w, r]:
             sl = SampleLogs(other)
             assert isinstance(sl._run, Run)
 

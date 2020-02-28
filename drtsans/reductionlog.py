@@ -139,33 +139,33 @@ def _savenxlog(nxcollection, property):
     return nxlog
 
 
-def _savespecialparameters(nxentry, wksp):
-    '''Save the special parameters from the workspace
-
-    Currently this only saves the derived parameters. It should be expanded to
-    save some of the special input parameters as well, such as overridden beam
-    center.
-
-    Parameters
-    ----------
-    nxentry: HDF handle
-        Entry group to put information in
-    wksp: Workspace2D
-        Workspace to get the information from
-    '''
-    nxcollection = _createnxgroup(nxentry, 'derived_parameters',
-                                  'NXcollection')
-    runObj = mtd[str(wksp)].run()
-
-    # TODO add more of the "important" derived parameters
-    names = ['beam_center_x', 'beam_center_y',
-             'qmax', 'qmin', 'qstep', ]
-    for name in names:
-        if name in runObj:  # they are optional
-            _savenxlog(nxcollection, runObj[name])
-
-    # TODO look in the workspace history for some of the special input
-    #      parameters
+# def _savespecialparameters(nxentry, wksp):
+#     '''Save the special parameters from the workspace
+#
+#     Currently this only saves the derived parameters. It should be expanded to
+#     save some of the special input parameters as well, such as overridden beam
+#     center.
+#
+#     Parameters
+#     ----------
+#     nxentry: HDF handle
+#         Entry group to put information in
+#     wksp: Workspace2D
+#         Workspace to get the information from
+#     '''
+#     nxcollection = _createnxgroup(nxentry, 'derived_parameters',
+#                                   'NXcollection')
+#     runObj = mtd[str(wksp)].run()
+#
+#     # TODO add more of the "important" derived parameters
+#     names = ['beam_center_x', 'beam_center_y',
+#              'qmax', 'qmin', 'qstep', ]
+#     for name in names:
+#         if name in runObj:  # they are optional
+#             _savenxlog(nxcollection, runObj[name])
+#
+#     # TODO look in the workspace history for some of the special input
+#     #      parameters
 
 
 def _create_groupe(entry=None, name='Default', data=[], units=''):

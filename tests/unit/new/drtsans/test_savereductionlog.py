@@ -38,37 +38,37 @@ def _getGroup(parent, name, klass):
     return child
 
 
-def _check1d(handle, wksp_name):
-    '''Utility function for verifying the 1d data (and attributes) are correct'''
-    wksp = mtd[wksp_name]
-    dims = (wksp.getNumberHistograms(), wksp.blocksize())
-
-    # TODO should there be a better name for the entry?
-    entry = _getGroup(handle, 'mantid_workspace_1', 'NXentry')
-
-    assert _strValue(entry, 'workspace_name') == wksp_name
-
-    nxdata = entry['workspace']
-
-    axis1 = nxdata['axis1']
-    assert axis1.size == dims[1]+1  # for a histogram
-    assert _strAttr(axis1, 'units') == 'MomentumTransfer'
-    assert np.all(axis1.value == wksp.readX(0))
-
-    axis2 = nxdata['axis2']
-    assert axis2.size == dims[0]
-    assert _strAttr(axis2, 'units') == 'spectraNumber'
-    assert axis2.value == 1.
-
-    values = nxdata['values']
-    assert np.all(values.shape == dims)
-    assert _strAttr(values, 'units') == 'Counts'
-    assert _strAttr(values, 'axes') == 'axis2,axis1'
-    assert values.attrs['signal'] == 1
-    assert np.all(values.value == wksp.readY(0))
-
-    errors = nxdata['errors']
-    assert np.all(errors.value == wksp.readE(0))
+# def _check1d(handle, wksp_name):
+#     '''Utility function for verifying the 1d data (and attributes) are correct'''
+#     wksp = mtd[wksp_name]
+#     dims = (wksp.getNumberHistograms(), wksp.blocksize())
+#
+#     # TODO should there be a better name for the entry?
+#     entry = _getGroup(handle, 'mantid_workspace_1', 'NXentry')
+#
+#     assert _strValue(entry, 'workspace_name') == wksp_name
+#
+#     nxdata = entry['workspace']
+#
+#     axis1 = nxdata['axis1']
+#     assert axis1.size == dims[1]+1  # for a histogram
+#     assert _strAttr(axis1, 'units') == 'MomentumTransfer'
+#     assert np.all(axis1.value == wksp.readX(0))
+#
+#     axis2 = nxdata['axis2']
+#     assert axis2.size == dims[0]
+#     assert _strAttr(axis2, 'units') == 'spectraNumber'
+#     assert axis2.value == 1.
+#
+#     values = nxdata['values']
+#     assert np.all(values.shape == dims)
+#     assert _strAttr(values, 'units') == 'Counts'
+#     assert _strAttr(values, 'axes') == 'axis2,axis1'
+#     assert values.attrs['signal'] == 1
+#     assert np.all(values.value == wksp.readY(0))
+#
+#     errors = nxdata['errors']
+#     assert np.all(errors.value == wksp.readE(0))
 
 
 def _checkNXNote(nxentry, name, mimetype, file_name, data):

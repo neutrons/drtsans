@@ -1,4 +1,4 @@
-from mantid.simpleapi import mtd, Load
+from mantid.simpleapi import mtd, LoadEventNexus
 
 from drtsans.settings import (amend_config, unique_workspace_dundername as uwd)
 from drtsans import geometry

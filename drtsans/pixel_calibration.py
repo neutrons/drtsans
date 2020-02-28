@@ -16,7 +16,7 @@ DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorksp
 FilterEvents <https://docs.mantidproject.org/nightly/algorithms/FilterEvents-v1.html>
 GenerateEventsFilter <https://docs.mantidproject.org/nightly/algorithms/GenerateEventsFilter-v1.html>
 Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
-Load <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
+LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
 LoadEmptyInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html>
 LoadInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
@@ -28,7 +28,7 @@ SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateEmptyTableWorkspace, CreateWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
                               LoadEmptyInstrument, LoadInstrument, LoadNexus, MaskDetectors, MaskDetectorsIf,
-                              ReplaceSpecialValues, SaveNexus)
+                              ReplaceSpecialValues, SaveNexus, LoadEventNexus)
 from mantid.api import mtd
 
 r"""

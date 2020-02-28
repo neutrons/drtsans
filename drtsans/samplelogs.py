@@ -1,7 +1,6 @@
-import os
 import numpy as np
 
-from mantid.api import (Run, MatrixWorkspace)
+from mantid.api import MatrixWorkspace
 from mantid.simpleapi import mtd
 
 

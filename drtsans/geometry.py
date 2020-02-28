@@ -1,5 +1,3 @@
-import os
-
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import logger
@@ -218,7 +216,7 @@ def get_instrument(source):
 
     def from_string(s):
         if s in mtd:
-          return get_instrument(mtd[s])
+            return get_instrument(mtd[s])
 
     dispatch = {MatrixWorkspace: from_ws, str: from_string}
     finder = [v for k, v in dispatch.items() if isinstance(source, k)][0]

@@ -14,7 +14,6 @@ from mantid.api import mtd # noqa E402
 from drtsans.tubecollection import TubeCollection # noqa E402
 from drtsans.dataobjects import DataType, getDataType # noqa E402
 from drtsans.geometry import panel_names # noqa E402
-import time
 
 __all__ = ['plot_IQmod', 'plot_IQazimuthal', 'plot_detector']
 
@@ -206,7 +205,6 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
     fig = plt.figure()
     for i_detector, detector_name in enumerate(detector_names):
         collection = TubeCollection(workspace, detector_name).sorted(view='decreasing X')
-        n_tubes, n_pixels = len(collection), len(collection[0])  # number of pixels in the first tube
         data = np.sum(np.array([tube.readY for tube in collection]), axis=-1)  # sum intensities for each pixel
         if isinstance(imshow_kwargs.get('norm', None), LogNorm) is True:
             data[data < 1e-10] = 1e-10  # no negative values when doing a logarithm plot
@@ -218,11 +216,11 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
             image = axis.imshow(np.transpose(data), aspect='auto', origin='lower', **imshow_kwargs)
             axis_properties = {'set_xlabel': 'tube', 'set_ylabel': 'pixel', 'set_title': f'{detector_name}'}
         elif axes_mode == 'xy':
+            n_pixels = len(collection[0])  # number of pixels in the first tube
             x = np.array([tube.position[0] * np.ones(n_pixels) for tube in collection])
             # BOTTLENECK-1
             y = np.array([tube.pixel_y for tube in collection])
             # BOTTLENECK-2 (but 6 times faster than BOTTLENECK-1)
-            z = np.sum(np.array([tube.readY for tube in collection]), axis=-1)
             image = axis.pcolormesh(x, y, data)
             axis_properties = {'set_xlabel': 'X', 'set_ylabel': 'Y', 'set_title': f'{detector_name}'}
         else:

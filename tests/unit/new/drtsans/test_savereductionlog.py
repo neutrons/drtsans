@@ -1,9 +1,9 @@
-# import h5py
-# from mantid.simpleapi import mtd, CompareWorkspaces, Load, LoadNexusProcessed
+import h5py
 import numpy as np
-from drtsans import savereductionlog
 import pytest
 import os
+
+from drtsans import savereductionlog
 from drtsans.iq import determine_1d_log_bins
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins
 from drtsans.dataobjects import IQmod
@@ -69,7 +69,6 @@ def _create_iqxqy():
                              qy=qy_array,
                              delta_qx=dqx_array,
                              delta_qy=dqy_array)
-
     return test_iqxqy
 
 
@@ -81,38 +80,12 @@ def _create_tmp_log_filename():
     return tmp_log_filename
 
 
-# def _check1d(handle, wksp_name):
-#     '''Utility function for verifying the 1d data (and attributes) are correct'''
-#     wksp = mtd[wksp_name]
-#     dims = (wksp.getNumberHistograms(), wksp.blocksize())
-#
-#     # TODO should there be a better name for the entry?
-#     entry = _getGroup(handle, 'mantid_workspace_1', 'NXentry')
-#
-#     assert _strValue(entry, 'workspace_name') == wksp_name
-#
-#     nxdata = entry['workspace']
-#
-#     axis1 = nxdata['axis1']
-#     assert axis1.size == dims[1]+1  # for a histogram
-#     assert _strAttr(axis1, 'units') == 'MomentumTransfer'
-#     assert np.all(axis1.value == wksp.readX(0))
-#
-#     axis2 = nxdata['axis2']
-#     assert axis2.size == dims[0]
-#     assert _strAttr(axis2, 'units') == 'spectraNumber'
-#     assert axis2.value == 1.
-#
-#     values = nxdata['values']
-#     assert np.all(values.shape == dims)
-#     assert _strAttr(values, 'units') == 'Counts'
-#     assert _strAttr(values, 'axes') == 'axis2,axis1'
-#     assert values.attrs['signal'] == 1
-#     assert np.all(values.value == wksp.readY(0))
-#
-#     errors = nxdata['errors']
-#     assert np.all(errors.value == wksp.readE(0))
+def _checkNXData(nxentry, name):
+    nxdata = _getGroup(nxentry, name, 'NXdata')
 
+    print(_strValue(nxdata, 'data'))
+
+    assert False
 
 def _checkNXNote(nxentry, name, mimetype, file_name, data):
     '''Utility function for verifying that the NXnote has the
@@ -176,21 +149,32 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXprocess(entry, 'drtsans')
 
 
-# def _checkWorkspaces(filename, orig, entry):
-#     '''Utility function for verifying that the workspace saved is the
-#     same as the one that is in the file'''
-#     if not orig:
-#         print('nothing to check against')
-#         return
-#
-#     reloaded = orig + '_reload'
-#     LoadNexusProcessed(Filename=filename, OutputWorkspace=reloaded,
-#                        EntryNumber=entry)
-#     result, msg = CompareWorkspaces(Workspace1=orig,
-#                                     Workspace2=reloaded)
-#     assert result, msg
-#     if reloaded in mtd:
-#         mtd.remove(reloaded)
+def test_writing_metadata():
+
+    pythonscript = "this is my python script"
+    reductionparams = "reduction parameter 1: value1"
+    starttime = '1993-03-18T21:00:00'
+    username = 'Neymar'
+    user = 'Cavani'
+
+    test_iq = _create_iq()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename, iq=test_iq,
+                     python=pythonscript,
+                     starttime=starttime,
+                     user=user,
+                     username=username,
+                     reductionparams=reductionparams)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    # with h5py.File(tmp_log_filename, 'r') as handle:
+    #     _checkProcessingEntry(handle,
+    #                           pythonscript=pythonscript,
+    #                           starttime=starttime,
+    #                           reductionparams=reductionparams,
+    #                           user=user,
+    #                           username=username)
 
 
 def test_writing_iq():
@@ -200,6 +184,13 @@ def test_writing_iq():
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        top_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
+        data = top_nxdata['I'][:]
+        ref_data = np.array([93, 60])
+        assert data[0] == ref_data[0]
+        assert data[1] == ref_data[1]
+
 
 def test_writing_iqxqy():
     test_iqxqy = _create_iqxqy()
@@ -207,6 +198,10 @@ def test_writing_iqxqy():
     savereductionlog(tmp_log_filename, iqxqy=test_iqxqy)
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        pass
+
 
 
 def test_writing_iq_and_iqxqy():
@@ -216,6 +211,9 @@ def test_writing_iq_and_iqxqy():
     savereductionlog(tmp_log_filename, iq=test_iq, iqxqy=test_iqxqy)
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        pass
 
 
 def test_no_data_passed():

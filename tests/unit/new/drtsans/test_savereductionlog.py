@@ -176,6 +176,13 @@ def test_writing_metadata():
     #                           user=user,
     #                           username=username)
 
+def _test_data(tested_data=[], ref_data=[], abs=None):
+    for _tested, _ref in zip(tested_data, ref_data):
+        if abs is None:
+            assert _tested == _ref
+        else:
+            _tested == pytest.approx(_ref, abs=abs)
+
 
 def test_writing_iq():
     test_iq = _create_iq()
@@ -185,11 +192,28 @@ def test_writing_iq():
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
-        top_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
-        data = top_nxdata['I'][:]
-        ref_data = np.array([93, 60])
-        assert data[0] == ref_data[0]
-        assert data[1] == ref_data[1]
+        iq_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
+        data = iq_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iq_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Q'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.0078897, 0.0059338]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Qdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.011912, 0.11912]),
+                   abs=1e-6)
+
+        # assert False
+
 
 
 def test_writing_iqxqy():

@@ -17,26 +17,6 @@ __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter'
 detector_z_log = 'detectorZ'
 
 
-def source_name(input_query):
-    r"""
-    Name of the moderator
-
-    Parameters
-    ----------
-    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
-        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
-
-    Returns
-    -------
-    str
-    """
-    instrument_to_source = {InstrumentEnumName.BIOSANS: 'moderator',
-                            InstrumentEnumName.GPSANS: 'source',
-                            InstrumentEnumName.EQSANS: 'moderator'}
-    instrument = instrument_enum_name(input_query)
-    return instrument_to_source[instrument]
-
-
 def panel_names(input_query):
     r"""
     List of names for the double-panel detector arrays (e.g., 'detector1', 'wing_detector')
@@ -541,10 +521,13 @@ def translate_source_by_z(input_workspace, z=None, relative=False):
             factor = 1.0 if sample_logs[source_z_log].units == 'm' else 1e-3
             distance_from_log = factor * sample_logs.single_value(source_z_log)  # assumed in millimeters
             # Has the detector already been translated by this quantity?
-            moderator = source_name(input_workspace)
-            _, _, current_z = get_instrument(input_workspace).getComponentByName(moderator).getPos()
-            if abs(distance_from_log - abs(current_z)) > 1e-03:  # differ by more than one millimeter
-                z = -distance_from_log
+            for source_name in ('moderator', 'source'):
+                moderator = get_instrument(input_workspace).getComponentByName(moderator)
+                if moderator is not None:
+                    _, _, current_z = moderator.getPos()
+                    if abs(distance_from_log - abs(current_z)) > 1e-03:  # differ by more than one millimeter
+                        z = -distance_from_log
+                    break
 
     if z is not None:
         if (not relative) or (z != 0.):

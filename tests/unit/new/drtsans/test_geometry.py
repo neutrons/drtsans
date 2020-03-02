@@ -139,7 +139,7 @@ def test_beam_radius(reference_dir):
 def test_translate_source_by_z(reference_dir):
     filename = path_join(reference_dir.new.gpsans, 'geometry', 'CG2_1338.nxs.h5')
     workspace = LoadEventNexus(Filename=filename,
-                               OutputWorkspace=unique_workspace_dundername(), MetaDataOnly=True, LoadLogs=True)
+                               OutputWorkspace=unique_workspace_dundername(), MetaDataOnly=False, LoadLogs=True)
     assert geo.translate_source_by_z(workspace) == pytest.approx(7.283, abs=0.1)
 
 

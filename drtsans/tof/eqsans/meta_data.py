@@ -1,5 +1,4 @@
 # Method in this module is to set meta data to EQSANS Mantid Workspaces
-from mantid.api import AnalysisDataService as mtd
 from mantid.simpleapi import AddSampleLogMultiple
 
 __all__ = ['set_meta_data']
@@ -27,7 +26,7 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     sample_aperture_size: float, None
         sample aperture size (radius or diameter????)
     sample_thickness: None, float
-        sample thickness in unit ???
+        sample thickness in unit cm
     source_aperture_size: float, None
         source aperture size (radius ??? diameter???) in unit ????
     pixel_size_x: float, None
@@ -40,10 +39,6 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     -------
 
     """
-    # Get workspace
-    if isinstance(workspace, str):
-        workspace = mtd[workspace]
-
     # Exception
     if wave_length is None or wavelength_spread is not None:
         raise RuntimeError('Wave length and wave length spread are not allowed to set to EQ-SANS')
@@ -61,11 +56,25 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
 
     # Source sample distance
     if source_to_sample_distance is not None:
-        meta_data_list.append(('source_sample-distance', source_to_sample_distance, 'm'))
+        meta_data_list.append(('source_sample_distance', source_to_sample_distance, 'm'))
 
     # Sample to detector distance
     if sample_to_detector_distance is not None:
         meta_data_list.append(('detectorZ', sample_to_detector_distance, 'm'))
+
+    # Sample thickness
+    if sample_thickness is not None:
+        meta_data_list.append(('sample_thickness', sample_thickness, 'cm'))
+
+    # Pixel size
+    if pixel_size_x is not None and pixel_size_y is not None:
+        meta_data_list.append(('pixel_size_x', pixel_size_x, 'm'))
+        meta_data_list.append(('pixel_size_y', pixel_size_y, 'm'))
+    elif pixel_size_x is None and pixel_size_y is None:
+        pass
+    else:
+        raise RuntimeError('Pixel size X ({}) and Y ({}) must be set together'
+                           ''.format(pixel_size_x, pixel_size_y))
 
     # Add log value
     log_names, log_values, log_units = zip(*meta_data_list)

@@ -28,3 +28,5 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
                                         view='pixel')
 
     assert data_ws is not None
+
+    # Add meta data

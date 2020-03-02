@@ -373,10 +373,16 @@ def sample_aperture_diameter(input_workspace, unit='mm'):
     float
     """
     # Additional log keys aiding in calculating the sample aperture diameter
-    additional_log_keys = {InstrumentEnumName.EQSANS: ['beamslit4'],
-                           InstrumentEnumName.GPSANS: [],
-                           InstrumentEnumName.BIOSANS: []}
-    log_keys = ['sample_aperture_diameter'] + additional_log_keys[instrument_enum_name(input_workspace)]
+    log_keys = ['sample_aperture_diameter']
+
+    try:
+        additional_log_keys = {InstrumentEnumName.EQSANS: ['beamslit4'],
+                               InstrumentEnumName.GPSANS: [],
+                               InstrumentEnumName.BIOSANS: []}
+        log_keys += additional_log_keys[instrument_enum_name(input_workspace)]
+    except KeyError:
+        # In case the instrument name (test instrument) not in EQ, GP and BIO-SANS
+        pass
 
     sample_logs = SampleLogs(input_workspace)
     diameter = None

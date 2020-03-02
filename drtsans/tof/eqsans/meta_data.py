@@ -6,8 +6,8 @@ __all__ = ['set_meta_data']
 
 def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                   sample_to_detector_distance=None, source_to_sample_distance=None,
-                  sample_aperture_size=None, sample_thickness=None,
-                  source_aperture_size=None,
+                  sample_aperture_diameter=None, sample_thickness=None,
+                  source_aperture_diameter=None,
                   pixel_size_x=None, pixel_size_y=None):
     """Set meta data to SANS Mantid Workspace as run properties
 
@@ -22,13 +22,13 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     sample_to_detector_distance: float, None
         sample to detector distance in meter
     source_to_sample_distance: float, None
-        source to sample distance in meter
-    sample_aperture_size: float, None
-        sample aperture size (radius or diameter????)
+        source to sample distance in mm
+    sample_aperture_diameter: float, None
+        sample aperture diameter in unit mm
     sample_thickness: None, float
         sample thickness in unit cm
-    source_aperture_size: float, None
-        source aperture size (radius ??? diameter???) in unit ????
+    source_aperture_diameter: float, None
+        source aperture diameter in unit meter
     pixel_size_x: float, None
         pixel size in x direction in unit as meter
     pixel_size_y: float, None
@@ -40,19 +40,19 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
 
     """
     # Exception
-    if wave_length is None or wavelength_spread is not None:
+    if wave_length is not None or wavelength_spread is not None:
         raise RuntimeError('Wave length and wave length spread are not allowed to set to EQ-SANS')
 
     # Log value dictionary: 3-tuple (log name, log value, unit)
     meta_data_list = list()
 
     # Add the sample log dictionary to add
-    if sample_aperture_size is not None:
-        meta_data_list.append(('sample_aperture_radius', sample_aperture_size, 'mm'))
+    if sample_aperture_diameter is not None:
+        meta_data_list.append(('sample_aperture_diameter', sample_aperture_diameter, 'mm'))
 
     # Source aperture radius
-    if source_aperture_size is not None:
-        meta_data_list.append(('source_aperture_radius', source_aperture_size, 'mm'))
+    if source_aperture_diameter is not None:
+        meta_data_list.append(('source_aperture_diameter', source_aperture_diameter, 'mm'))
 
     # Source sample distance
     if source_to_sample_distance is not None:

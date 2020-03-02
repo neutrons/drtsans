@@ -177,7 +177,7 @@ def _save_iqxqy_to_log(filename='', append=False, iqxqy=None):
     write_property = 'a' if append else 'w'
     with h5py.File(filename, write_property) as handle:
         entry = handle.create_group('I(QxQy)')
-        entry.attrs['NX_class'] = 'NXentry'
+        entry.attrs['NX_class'] = 'NXdata'
 
         # intensity
         _create_groupe(entry=entry,

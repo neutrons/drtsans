@@ -193,6 +193,7 @@ def test_writing_iq():
 
     with h5py.File(tmp_log_filename, 'r') as handle:
         iq_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
+
         data = iq_nxdata['I'][:]
         _test_data(tested_data=data,
                    ref_data=np.array([93, 60]))
@@ -211,9 +212,6 @@ def test_writing_iq():
         _test_data(tested_data=data,
                    ref_data=np.array([0.011912, 0.11912]),
                    abs=1e-6)
-
-        # assert False
-
 
 
 def test_writing_iqxqy():
@@ -237,7 +235,34 @@ def test_writing_iq_and_iqxqy():
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
-        pass
+        iqxqy_nxdata = _getGroup(handle, 'I(QxQy)', 'NXdata')
+
+        data = iqxqy_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iqxqy_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-8)
+
+        data = iqxqy_nxdata['Qx'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([-0.006134, -0.003254]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qxdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qy'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.004962, 0.004962]))
+
+        data = iqxqy_nxdata['Qydev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]))
 
 
 def test_no_data_passed():

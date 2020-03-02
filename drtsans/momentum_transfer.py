@@ -398,7 +398,6 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
         azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
         temp = 2. * np.pi / lam
         qx = temp * np.sin(two_theta) * np.cos(azimuthal)

@@ -61,7 +61,7 @@ def _savepythonscript(nxentry, pythonfile, pythonscript):
                        pythonfile, pythonscript)
 
 
-def _savereductionparams(nxentry, parameters):
+def _savereductionjson(nxentry, parameters):
     '''Save the all of the reduction parameters as an NXnote
 
     nxentry: HDF handle
@@ -74,9 +74,38 @@ def _savereductionparams(nxentry, parameters):
     if not isinstance(parameters, str):
         parameters = json.dumps(parameters)
 
-    return _savenxnote(nxentry, 'reduction_parameters',
+    return _savenxnote(nxentry, 'reduction_json',
                        'application/json', file_name='',
                        data=parameters)
+
+
+def _savereductionparams(nxentry, parameters, name_of_entry):
+    '''save the reduction parameters as a nice tree structure'''
+    nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
+
+    for _key, _value in parameters.items():
+        if isinstance(_value, dict):
+            _savereductionparams(nxentry, _value, _key)
+        else:
+            _new_entry = nxentry.create_dataset(name=_key, data=_value)
+            _new_entry.attrs['NX_class'] = 'NXdata'
+
+    # entry = nxentry.create_group('argument1')
+    # entry.attrs['NX_class'] = 'NXdata'
+    # _entry_group = entry.create_dataset(name="sub_argument1", data='value1')
+    # _entry_group = entry.create_dataset(name="sub_argument2", data='value2')
+    #
+    # entry = nxentry.create_group('argument2')
+    # entry.attrs['NX_class'] = 'NXdata'
+    # _entry_group = entry.create_dataset(name="sub_argument3", data='value3')
+    # _entry_group = entry.create_dataset(name="sub_argument4", data='value4')
+
+    # for _key, _value in parameters.items():
+    #     if isinstance(_value, dict):
+    #         _node = _createnxgroup(nxentry, _key, 'NXnote')
+    #         _savereductionparams(_node, _value)
+    #     else:
+    #         return _savenxnote(nxentry, _key, '', file_name='', data=_value)
 
 
 def _savenxprocess(nxentry, program, version):
@@ -305,8 +334,10 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
         # read the contents of the script
         _savepythonscript(entry, pythonfile=kwargs.get('pythonfile', ''),
                           pythonscript=kwargs.get('python', ''))
-        _savereductionparams(entry, parameters=kwargs.get('reductionparams',
-                                                          ''))
+        _reduction_parameters = kwargs.get('reductionparams')
+        _savereductionjson(entry, parameters=_reduction_parameters)
+        _savereductionparams(entry, parameters=_reduction_parameters,
+                             name_of_entry='reduction_parameters')
 
         # timestamp of when it happened - default to now
         starttime = kwargs.get('starttime', datetime.now().isoformat())

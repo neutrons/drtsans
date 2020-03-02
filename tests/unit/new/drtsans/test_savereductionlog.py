@@ -9,6 +9,9 @@ from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data,
 from drtsans.dataobjects import IQmod
 from drtsans.dataobjects import IQazimuthal
 from tempfile import NamedTemporaryFile
+from drtsans import __version__ as drtsans_version
+from mantid import __version__ as mantid_version
+from os import environ
 
 
 def _strValue(group, name):
@@ -304,6 +307,20 @@ def test_writing_iq_and_iqxqy():
         data = iqxqy_nxdata['Qydev'][:]
         _test_data(tested_data=data,
                    ref_data=np.array([0.008423, 0.008423]))
+
+
+def test_reduction_information():
+    test_iqxqy = _create_iqxqy()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename, iqxqy=test_iqxqy)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+
+        assert _strValue(reduction_information_entry['drtsans'], 'version') == drtsans_version
+        assert _strValue(reduction_information_entry['mantid'], 'version') == mantid_version
 
 
 def test_no_data_passed():

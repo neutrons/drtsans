@@ -81,6 +81,24 @@ if __name__ == "__main__":
         msapi.logger.notice('...weighting option selected weighted = ' + str(flag_weighted))
     else:
         msapi.logger.notice('...default weighting option used (NOWEIGHT).')
+
+    # [CD 3/2/2020] log binning options
+    flag_logqbinsperdecade = None
+    if 'LogQBinsPerDecade' in json_conf.keys():
+        if json_conf["LogQBinsPerDecade"] != '':
+            flag_logqbinsperdecade = json_conf["LogQBinsPerDecade"]
+    msapi.logger.notice('...LogQBinsPerDecade : ' + str(flag_logqbinsperdecade))
+    flag_logqbinsdecadecenter = False
+    if 'LogQBinsDecadeCenter' in json_conf.keys():
+        if json_conf["LogQBinsDecadeCenter"] != '':
+            flag_logqbinsdecadecenter = json_conf["LogQBinsDecadeCenter"]
+    msapi.logger.notice('...LogQBinsDecadeCenter : ' + str(flag_logqbinsdecadecenter))
+    flag_logqbinsevendecade = False
+    if 'LogQBinsEvenDecade' in json_conf.keys():
+        if json_conf["LogQBinsEvenDecade"] != '':
+            flag_logqbinsevendecade = json_conf["LogQBinsEvenDecade"]
+    msapi.logger.notice('...LogQBinsEvenDecade : ' + str(flag_logqbinsevendecade))
+
     default_tof_cut_low = 500
     default_tof_cut_high = 2000
     if json_conf["useTOFcuts"]:
@@ -112,7 +130,12 @@ if __name__ == "__main__":
     else:
         config["flux_method"] = None
 
-    config["solid_angle"] = json_conf["useSolidAngleCorrection"]
+    if json_conf["useSolidAngleCorrection"] == False:
+        config["solid_angle"] = False
+    else:
+        config["solid_angle"] = True
+    logoutput = '...solid angle...' + str(config["solid_angle"])
+    msapi.logger.notice(logoutput)
 
     sensitivity_workspace = None
     sensitivity_file_path = json_conf["sensitivityFileName"]
@@ -312,8 +335,16 @@ if __name__ == "__main__":
         if linear_binning:
             q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
         else:
-            q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D)
-            # [AS, 2/4/2020] need option for decade log binning
+            if flag_logqbinsperdecade == '':
+                q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D,
+                                               n_bins_per_decade=None,
+                                               decade_on_center=flag_logqbinsdecadecenter,
+                                               even_decade=flag_logqbinsevendecade)
+            else:
+                q_bins = determine_1d_log_bins(q_min, q_max, n_bins=None,
+                                               n_bins_per_decade=flag_logqbinsperdecade,
+                                               decade_on_center=flag_logqbinsdecadecenter,
+                                               even_decade=flag_logqbinsevendecade)
 
         # [CD, 2/10/2020] added weighting option. default should be NOWEIGHT
         if flag_weighted:

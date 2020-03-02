@@ -5,6 +5,7 @@ from drtsans.path import exists
 from mantid.api import Run
 from mantid.simpleapi import LoadNexusProcessed, mtd
 
+
 class EQSANSDiskChopperSet(object):
 
     _pulse_width = 20  # micro-sec/Angstrom

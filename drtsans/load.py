@@ -1,4 +1,4 @@
-from drtsans.geometry import translate_detector_by_z, translate_sample_by_z
+from drtsans.geometry import translate_detector_by_z, translate_sample_by_z, translate_source_by_z
 from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName
 from drtsans.path import abspath
 from drtsans.path import exists as path_exists
@@ -8,9 +8,10 @@ import h5py
 # https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
 from mantid.simpleapi import mtd
 # https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
-from mantid.simpleapi import LoadEventNexus
+from mantid.simpleapi import LoadEventNexus, MergeRuns
+import mantid
 
-__all__ = ['load_events']
+__all__ = ['load_events', 'merge_data']
 
 
 def __monitor_counts(filename, monitor_name='monitor1'):
@@ -111,8 +112,49 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         SampleLogs(output_workspace).insert('monitor', __monitor_counts(filename))
 
     # move instrument components - sample position must happen first
+
+    translate_source_by_z(output_workspace, z=None, relative=False)
     translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))
     translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
     translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
     return mtd[output_workspace]
+
+
+def merge_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):
+    r"""
+    Merge data set together, summing the listed logs
+
+    Parameters
+    ----------
+    data_list: list of Workspace2D, list of workspace names, comma separated list of workspace names
+        Examples: [ws1, ws1], ['ws1', 'ws2'] or 'ws1, ws2'
+    output_workspace: str
+        Name of output workspace, required
+    sum_logs: list of str
+        numeric logs that will be summed during merging
+
+    Returns
+    -------
+    Workspace2D
+    """
+    # If needed convert comma separated string list of workspaces in list of strings
+    if isinstance(data_list, str):
+        data_list = [data.strip() for data in data_list.split(',')]
+
+    # Check workspaces are of correct type
+    for data in data_list:
+        if not mtd.doesExist(str(data)):
+            raise ValueError("Workspace " + data + " does not exist")
+        if not isinstance(mtd[str(data)], mantid.dataobjects.Workspace2D):
+            raise ValueError(data + " is not a Workspace2D, this currently only works correctly for Workspace2D")
+
+    # Filter sum_logs list to only include logs that exist in data
+    sum_logs = [log for log in sum_logs if mtd[str(data_list[0])].getRun().hasProperty(log)]
+
+    # Merge workspaces together
+    MergeRuns(InputWorkspaces=','.join(str(data) for data in data_list),
+              OutputWorkspace=output_workspace,
+              SampleLogsSum=','.join(sum_logs))
+
+    return output_workspace

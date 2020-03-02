@@ -74,6 +74,7 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.mono.load.__all__\
           + drtsans.mono.momentum_transfer.__all__\
           + drtsans.mono.normalization.__all__\
+          + attenuation.__all__\
           + api.__all__\
           + load.__all__\
           + attenuation.__all__

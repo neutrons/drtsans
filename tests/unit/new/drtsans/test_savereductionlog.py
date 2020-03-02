@@ -154,6 +154,7 @@ def _checkProcessingEntry(handle, **kwargs):
 def test_writing_metadata():
 
     pythonscript = "this is my python script"
+    pythonfile = 'this_is_my_file.py'
     reductionparams = {'reduction parameter 1': 'value1'}
     starttime = '1993-03-18T21:00:00'
     username = 'Neymar'
@@ -164,19 +165,18 @@ def test_writing_metadata():
     savereductionlog(tmp_log_filename, iq=test_iq,
                      python=pythonscript,
                      starttime=starttime,
+                     pythonfile=pythonfile,
                      user=user,
                      username=username,
                      reductionparams=reductionparams)
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
-    # with h5py.File(tmp_log_filename, 'r') as handle:
-    #     _checkProcessingEntry(handle,
-    #                           pythonscript=pythonscript,
-    #                           starttime=starttime,
-    #                           reductionparams=reductionparams,
-    #                           user=user,
-    #                           username=username)
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+
+        assert _strValue(reduction_information_entry['reduction_script'], 'data') == pythonscript
+        assert _strValue(reduction_information_entry['reduction_script'], 'file_name') == pythonfile
 
 
 def _test_data(tested_data=[], ref_data=[], abs=None):
@@ -315,7 +315,7 @@ def test_writing_iq_and_iqxqy():
                    ref_data=np.array([0.008423, 0.008423]))
 
 
-def test_reduction_information():
+def test_reduction_parameters():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
 

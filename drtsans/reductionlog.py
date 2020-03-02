@@ -317,15 +317,21 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         if 'iq' in _current_detectordata.keys() and 'iqxqy' in _current_detectordata.keys():
             with h5py.File(filename, 'w') as handle:
                 topEntry = handle.create_group(_name_detector)
+                topEntry.attrs['NX_class'] = 'NXdata'
+
                 _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=topEntry)
                 _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=topEntry)
         elif 'iq' in _current_detectordata.keys():
             with h5py.File(filename, 'w') as handle:
                 topEntry = handle.create_group(_name_detector)
+                topEntry.attrs['NX_class'] = 'NXdata'
+
                 _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=topEntry)
         else:
             with h5py.File(filename, 'w') as handle:
                 topEntry = handle.create_group(_name_detector)
+                topEntry.attrs['NX_class'] = 'NXdata'
+
                 _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=topEntry)
 
     # re-open the file to append other information

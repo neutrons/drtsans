@@ -522,7 +522,7 @@ def translate_source_by_z(input_workspace, z=None, relative=False):
             distance_from_log = factor * sample_logs.single_value(source_z_log)  # assumed in millimeters
             # Has the detector already been translated by this quantity?
             for source_name in ('moderator', 'source'):
-                moderator = get_instrument(input_workspace).getComponentByName(moderator)
+                moderator = get_instrument(input_workspace).getComponentByName(source_name)
                 if moderator is not None:
                     _, _, current_z = moderator.getPos()
                     if abs(distance_from_log - abs(current_z)) > 1e-03:  # differ by more than one millimeter

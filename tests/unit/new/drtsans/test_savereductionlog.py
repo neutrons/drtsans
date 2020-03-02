@@ -159,6 +159,7 @@ def test_writing_metadata():
     starttime = '1993-03-18T21:00:00'
     username = 'Neymar'
     user = 'Cavani'
+    specialparameters = {'key1': 10, 'key2': 'text here'}
 
     test_iq = _create_iq()
     tmp_log_filename = _create_tmp_log_filename()
@@ -168,7 +169,8 @@ def test_writing_metadata():
                      pythonfile=pythonfile,
                      user=user,
                      username=username,
-                     reductionparams=reductionparams)
+                     reductionparams=reductionparams,
+                     specialparameters=specialparameters)
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
@@ -180,6 +182,8 @@ def test_writing_metadata():
         assert _strValue(reduction_information_entry, 'start_time') == starttime
         assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
         assert _strValue(reduction_information_entry['user'], 'name') == username
+        assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
+        assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
 
 
 def _test_data(tested_data=[], ref_data=[], abs=None):

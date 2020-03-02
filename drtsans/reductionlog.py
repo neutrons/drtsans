@@ -154,33 +154,24 @@ def _savenxlog(nxcollection, property):
     return nxlog
 
 
-# def _savespecialparameters(nxentry, wksp):
-#     '''Save the special parameters from the workspace
-#
-#     Currently this only saves the derived parameters. It should be expanded to
-#     save some of the special input parameters as well, such as overridden beam
-#     center.
-#
-#     Parameters
-#     ----------
-#     nxentry: HDF handle
-#         Entry group to put information in
-#     wksp: Workspace2D
-#         Workspace to get the information from
-#     '''
-#     nxcollection = _createnxgroup(nxentry, 'derived_parameters',
-#                                   'NXcollection')
-#     runObj = mtd[str(wksp)].run()
-#
-#     # TODO add more of the "important" derived parameters
-#     names = ['beam_center_x', 'beam_center_y',
-#              'qmax', 'qmin', 'qstep', ]
-#     for name in names:
-#         if name in runObj:  # they are optional
-#             _savenxlog(nxcollection, runObj[name])
-#
-#     # TODO look in the workspace history for some of the special input
-#     #      parameters
+def _savespecialparameters(nxentry, dict_special_parameters, name_of_entry):
+    '''Save the special parameters
+
+    Parameters
+    ----------
+    nxentry: HDF handle
+        Entry group to put information in
+    dict_special_parameters: dict
+        dictionary where to get the parametes froms
+    '''
+    nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
+
+    for _key, _value in dict_special_parameters.items():
+        if isinstance(_value, dict):
+            _savereductionparams(nxentry, _value, _key)
+        else:
+            _new_entry = nxentry.create_dataset(name=_key, data=_value)
+            _new_entry.attrs['NX_class'] = 'NXdata'
 
 
 def _create_groupe(entry=None, name='Default', data=[], units=''):
@@ -297,6 +288,8 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
     username: str
         Username of who reduced the data (as in actual name). If not provided
         will be gotten from the system environment ``USERNAME`` (optional)
+    specialparameters: dict
+        dictionary of any other arguments you want to keep in the log file
     '''
     if filename == '':
         filename = '_reduction_log.hdf'
@@ -352,6 +345,6 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
                 nxuser.create_dataset(name='name',
                                       data=[np.string_(username)])
 
-        # _savespecialparameters(entry, wksp)
-
-        # TODO   - add the logs of stdout and stderr
+        specialparameters = kwargs.get('specialparameters', None)
+        if specialparameters:
+            _savespecialparameters(entry, specialparameters, 'special_parameters')

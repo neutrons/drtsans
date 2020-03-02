@@ -11,7 +11,6 @@ from drtsans.dataobjects import IQazimuthal
 from tempfile import NamedTemporaryFile
 from drtsans import __version__ as drtsans_version
 from mantid import __version__ as mantid_version
-from os import environ
 
 
 def _strValue(group, name):

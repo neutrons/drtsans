@@ -97,6 +97,8 @@ class SampleLogs(object):
             # see if it is a file
             if s in mtd:
                 return self.find_run(mtd[s])
+            else:
+                raise RuntimeError('{} is not a valid workspace name'.format(s))
 
         dispatch = {Run: from_run, MatrixWorkspace: from_ws, str: from_string}
 

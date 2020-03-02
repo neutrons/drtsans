@@ -23,7 +23,8 @@ class TestSampleLogs(object):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-        sl = SampleLogs(test_file)
+        ws = Load(Filename=test_file)
+        sl = SampleLogs(ws)
         assert_almost_equal(sl['Phase1'].value.mean(), 22444, decimal=0)
 
         with pytest.raises(KeyError):
@@ -34,7 +35,8 @@ class TestSampleLogs(object):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-        sl = SampleLogs(test_file)
+        ws = Load(Filename=test_file)
+        sl = SampleLogs(ws)
         assert_almost_equal(sl.Phase1.value.mean(), 22444, decimal=0)
 
         with pytest.raises(AttributeError):
@@ -45,8 +47,8 @@ class TestSampleLogs(object):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-
-        sl = SampleLogs(test_file)
+        ws = Load(test_file)
+        sl = SampleLogs(ws)
         sl.insert('string_log', 'log value')
         assert sl.string_log.value, 'log value'
         assert not sl.string_log.units

@@ -1,7 +1,9 @@
 from drtsans.chopper import DiskChopper
 from drtsans.samplelogs import SampleLogs
 from drtsans.frame_mode import FrameMode
-
+from drtsans.path import exists
+from mantid.api import Run
+from mantid.simpleapi import LoadNexusProcessed, mtd
 
 class EQSANSDiskChopperSet(object):
 
@@ -30,7 +32,14 @@ class EQSANSDiskChopperSet(object):
         """
 
         # Load choppers settings from the logs
-        sl = SampleLogs(other)
+        if isinstance(other, Run) or str(other) in mtd:
+            sl = SampleLogs(other)
+        elif exists(other):
+            ws = LoadNexusProcessed(other)
+            sl = SampleLogs(ws)
+        else:
+            raise RuntimeError('{} is not a valid file name, workspace, Run object or run number'.format(other))
+
         self._choppers = list()
         for chopper_index in range(self._n_choppers):
             aperture = self._aperture[chopper_index]

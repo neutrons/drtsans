@@ -87,27 +87,33 @@ def reduction(json_params, config):
 
     # Load and prepare scattering data
     # all the run numbers are associated with instrument name
-    ws = sans.prepare_data(json_params["instrumentName"] + json_params["runNumber"],
-                           output_suffix=wksp_suffix('_data', config), **config)
+    file_name = json_params["runNumber"]
+    if not os.path.exists(file_name):
+        file_name = json_params["instrumentName"] + "_" + file_name
+    ws = sans.prepare_data(file_name, output_suffix=wksp_suffix('_data', config), **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
     if transmission_run.strip() != '':
-        transmission_fn = json_params["instrumentName"] + "_" + json_params["transmission"]["runNumber"]
-        empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
-        ws = apply_transmission(ws, transmission_fn, empty_run, config)
+        if not os.path.exists(transmission_run):
+            transmission_run = json_params["instrumentName"] + "_" + transmission_run
+        empty_run = json_params["empty"]["runNumber"]
+        if not os.path.exists(empty_run):
+            empty_run = json_params["instrumentName"] + "_" + empty_run
+        ws = apply_transmission(ws, transmission_run, empty_run, config)
 
     # Background
     bkg_run = json_params["background"]["runNumber"]
     if bkg_run != "":
-        bkg_run = json_params["instrumentName"] + bkg_run
+        if os.path.exists(bkg_run):
+            bkg_run = json_params["instrumentName"] + "_" + bkg_run
         ws_bck = sans.prepare_data(bkg_run, output_suffix=wksp_suffix('_bkg', config), **config)
 
         # Background transmission
         transmission_run = json_params["background"]["transmission"]["runNumber"]
         if transmission_run.strip() != '':
-            transmission_fn = json_params["instrumentName"] + "_" + transmission_run
-            empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
+            transmission_fn = transmission_run
+            empty_run = json_params["empty"]["runNumber"]
             ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
@@ -172,8 +178,10 @@ if __name__ == "__main__":
 
     # Find the beam center
     # TODO: We need a way to pass a pre-calculated beam center
-    empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
+    empty_run = json_params["empty"]["runNumber"]
     if empty_run != "":
+        if not os.path.exists(empty_run):
+            empty_run = json_params["instrumentName"] + "_" + empty_run
         # Load and compute beam center position
         db_ws = sans.load_events(empty_run,
                                  overwrite_instrument=True, output_workspace=uwd())

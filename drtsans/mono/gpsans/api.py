@@ -212,6 +212,8 @@ def prepare_data_workspaces(data,
         normalize_by_time(output_workspace)
 
     # Additional masks
+    if mask_btp is None:
+        mask_btp = dict()
     apply_mask(output_workspace, panel=mask_panel, mask=mask_ws, **mask_btp)
 
     # Solid angle

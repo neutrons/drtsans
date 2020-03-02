@@ -108,6 +108,27 @@ def test_bank_workspace_indices(instrument, component, wksp_index_min, wksp_inde
     assert wksp_indices[1] == wksp_index_max
 
 
+@pytest.mark.parametrize('workspace_with_instrument',
+                         [{'instrument_geometry': 'n-pack',
+                           'n_tubes': 2, 'n_pixels': 2, 'spacing': 0.0,
+                           'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0,  # detector center
+                           'diameter': 0.02, 'height': 0.02,  # pixel dimensions
+                           'x_center': 0.0, 'y_center': 0.0, 'z_center': 0.0}], indirect=True)
+def test_pixel_centers(workspace_with_instrument):
+    r"""
+    Pixel centers for a detector array made up of two tubes, each with two pixels.
+    There's no spacing between tubes.
+    Detector is 1 meter away from the sample
+    The shape of a detector pixel is a cylinder of 20mm diameter and 20mm in height.
+    """
+    input_workspace = unique_workspace_dundername()  # temporary workspace
+    workspace_with_instrument(axis_values=[2.0, 2.1], intensities=[[1.0, 2.0], [3.0, 2.0]],
+                              output_workspace=input_workspace)
+    pixel_positions = geo.pixel_centers(input_workspace, [0, 1, 2, 3])
+    expected = 1.e-03 * np.array([[10, -10, 0.], [10, 10, 0.], [-10, -10, 0.], [-10, 10, 0.]])  # in meters
+    assert pixel_positions == pytest.approx(expected)
+
+
 def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
     input_workspace = serve_events_workspace('EQSANS_92353')
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters

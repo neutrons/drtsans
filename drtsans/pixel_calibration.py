@@ -16,7 +16,7 @@ DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorksp
 FilterEvents <https://docs.mantidproject.org/nightly/algorithms/FilterEvents-v1.html>
 GenerateEventsFilter <https://docs.mantidproject.org/nightly/algorithms/GenerateEventsFilter-v1.html>
 Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
-LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
+LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 LoadEmptyInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html>
 LoadInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
@@ -834,7 +834,7 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         info_workspace = temporary_workspace()
         barscan_workspace = temporary_workspace()
         # BOTTLENECK
-        LoadEventNexus(barscan_files, OutputWorkspace=barscan_workspace)
+        LoadNexus(barscan_files, OutputWorkspace=barscan_workspace)
         # Create the splitting scheme and save it in table workspaces `spliter_workspace` and `info_workspace`.
         bar_positions = event_splitter(barscan_workspace, split_workspace=spliter_workspace,
                                        info_workspace=info_workspace, bar_position_log=bar_position_log)
@@ -855,7 +855,7 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         barscan_workspace = temporary_workspace()
         # iterate over the files, serving one at a time
         for file_name in barscan_files:
-            LoadEventNexus(file_name, OutputWorkspace=barscan_workspace)
+            LoadNexus(file_name, OutputWorkspace=barscan_workspace)
             bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
             yield bar_position, barscan_workspace  # serve a bar position and a run workspace
     DeleteWorkspaces(temporary_workspaces)  # clean up the now useless workspaces

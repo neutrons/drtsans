@@ -1,4 +1,4 @@
-from mantid.simpleapi import mtd, Load
+from mantid.simpleapi import mtd, LoadEventNexus
 
 from drtsans.settings import (amend_config, unique_workspace_dundername as uwd)
 from drtsans import geometry
@@ -32,8 +32,8 @@ def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1,
 
     with amend_config({'instrumentName': 'EQSANS'},
                       data_dir=data_dir):
-        Load(Filename=run, OutputWorkspace=output_workspace)
-        e_geometry.translate_detector_z(output_workspace)  # inplace
+        LoadEventNexus(Filename=run, OutputWorkspace=output_workspace)
+        e_geometry.translate_detector_by_z(output_workspace)  # inplace
         correct_frame.correct_detector_frame(output_workspace)
         sdd = geometry.source_detector_distance(output_workspace, unit='m')
         bands = correct_frame.transmitted_bands_clipped(output_workspace, sdd,

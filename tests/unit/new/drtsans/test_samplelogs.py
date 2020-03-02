@@ -1,7 +1,7 @@
 import pytest
 from numpy.testing import assert_almost_equal
 from os.path import join as pjn
-from mantid.simpleapi import Load
+from mantid.simpleapi import LoadNexusProcessed
 from mantid.api import Run
 
 from drtsans.samplelogs import SampleLogs
@@ -13,9 +13,9 @@ class TestSampleLogs(object):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-        w = Load(test_file, OutputWorkspace='test_init_w')
+        w = LoadNexusProcessed(test_file, OutputWorkspace='test_init_w')
         r = w.getRun()
-        for other in [test_file, w, r]:
+        for other in [w, r]:
             sl = SampleLogs(other)
             assert isinstance(sl._run, Run)
 
@@ -23,7 +23,8 @@ class TestSampleLogs(object):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-        sl = SampleLogs(test_file)
+        ws = LoadNexusProcessed(Filename=test_file)
+        sl = SampleLogs(ws)
         assert_almost_equal(sl['Phase1'].value.mean(), 22444, decimal=0)
 
         with pytest.raises(KeyError):
@@ -34,7 +35,8 @@ class TestSampleLogs(object):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-        sl = SampleLogs(test_file)
+        ws = LoadNexusProcessed(Filename=test_file)
+        sl = SampleLogs(ws)
         assert_almost_equal(sl.Phase1.value.mean(), 22444, decimal=0)
 
         with pytest.raises(AttributeError):
@@ -45,8 +47,8 @@ class TestSampleLogs(object):
         test_file = pjn(reference_dir.new.sans,
                         'test_samplelogs',
                         'EQSANS_92353_no_events.nxs')
-
-        sl = SampleLogs(test_file)
+        ws = LoadNexusProcessed(test_file)
+        sl = SampleLogs(ws)
         sl.insert('string_log', 'log value')
         assert sl.string_log.value, 'log value'
         assert not sl.string_log.units

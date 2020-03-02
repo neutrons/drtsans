@@ -16,7 +16,7 @@ DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorksp
 FilterEvents <https://docs.mantidproject.org/nightly/algorithms/FilterEvents-v1.html>
 GenerateEventsFilter <https://docs.mantidproject.org/nightly/algorithms/GenerateEventsFilter-v1.html>
 Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
-Load <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
+LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 LoadEmptyInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html>
 LoadInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
@@ -401,9 +401,9 @@ class Table:
         and ```tablename_heights```, where ```tablename``` is the name of the ~mantid.api.TableWorkspace
         holding the calibration data.
 
-        Note: Positions are shifted so that the lowest position (usually a negative number).
-              becomes zero. The reason being that showing the instrument in Mantid will mask
-              negative intensities and we want to avoid this.
+        Note: Positions for visualization in Mantid's instrument view are shifted so that the
+              lowest position (usually a negative number) becomes zero. The reason being that
+              showing the instrument in Mantid will mask negative intensities, and we want to avoid this.
 
         **Mantid algorithms used:**
         :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
@@ -423,31 +423,39 @@ class Table:
 
         empty_instrument = LoadEmptyInstrument(InstrumentName=self.instrument,
                                                OutputWorkspace=unique_workspace_dundername())
+        # Find workspace indexes having a calibrated detector
         detector_ids = self.detector_ids
+        wi_to_ri = []  # from workspace index to table's row index
+        for workspace_index in range(empty_instrument.getNumberHistograms()):
+            detector = empty_instrument.getDetector(workspace_index)  # associated detector pixel
+            try:
+                # Find the entry in the calibration table for the detector with a particular detector ID
+                wi_to_ri.append((workspace_index, detector_ids.index(detector.getID())))
+            except ValueError:  # This detector was not calibrated, thus is not in detector_ids
+                continue
+
+        def transfer_values_to_workspace(property_values, property_name):
+            intensities = empty_instrument.extractY()  # extractY returns a copy
+            # substitute the intensity in this histogram with the calibration datum for the detector pixel
+            for wi, ri in wi_to_ri:
+                intensities[wi] = property_values[ri]
+            # Create a workspace with the modified intensities, and overlay them in the appropriate instrument
+            output_workspace = f'{self.table.name()}_{property_name}'
+            workspace = CreateWorkspace(DataX=[0, 1], DataY=intensities, Nspec=empty_instrument.getNumberHistograms(),
+                                        OutputWorkspace=output_workspace)
+            LoadInstrument(Workspace=workspace, InstrumentName=self.instrument, RewriteSpectraMap=True)
+            return mtd[output_workspace]
+
         calibration_properties = ['positions', 'heights'] if self.caltype == 'BARSCAN' else ['widths', ]
         returned_views = {}
         for cal_prop in calibration_properties:
             values = getattr(self, cal_prop)
-            if cal_prop == 'positions':
-                min_value = min(values)  # Usually a negative Y-coordinate
-                values = [value - min_value for value in values]  # Mantid cannot display negative intensities
-            intensities = empty_instrument.extractY()  # extractY returns a copy
-            # Iterate over each histogram (a histogram is the spectrum of a particular detector pixel)
-            for workspace_index in range(empty_instrument.getNumberHistograms()):
-                detector = empty_instrument.getDetector(workspace_index)  # associated detector pixel
-                try:
-                    # Find the entry in the calibration table for the detector with a particular detector ID
-                    row_index = detector_ids.index(detector.getID())
-                except ValueError:  # This detector was not calibrated, thus is not in detector_ids
-                    continue
-                # substitute the intensity in this histogram with the calibration datum for the detector pixel
-                intensities[workspace_index] = values[row_index]
-            # Create a workspace with the modified intensities, and overlay them in the appropriate instrument
-            output_workspace = f'{self.table.name()}_{cal_prop}'
-            workspace = CreateWorkspace(DataX=[0, 1], DataY=intensities, Nspec=empty_instrument.getNumberHistograms(),
-                                        OutputWorkspace=output_workspace)
-            LoadInstrument(Workspace=workspace, InstrumentName=self.instrument, RewriteSpectraMap=True)
-            returned_views[cal_prop] = mtd[output_workspace]
+            returned_views[cal_prop] = transfer_values_to_workspace(values, cal_prop)
+
+        # # Mantid cannot display negative intensities
+        values = np.array(self.positions)
+        returned_views['positions_mantid'] = transfer_values_to_workspace(values - np.min(values), 'positions_mantid')
+
         empty_instrument.delete()
         return returned_views
 
@@ -826,7 +834,7 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         info_workspace = temporary_workspace()
         barscan_workspace = temporary_workspace()
         # BOTTLENECK
-        Load(barscan_files, OutputWorkspace=barscan_workspace)
+        LoadNexus(barscan_files, OutputWorkspace=barscan_workspace)
         # Create the splitting scheme and save it in table workspaces `spliter_workspace` and `info_workspace`.
         bar_positions = event_splitter(barscan_workspace, split_workspace=spliter_workspace,
                                        info_workspace=info_workspace, bar_position_log=bar_position_log)
@@ -847,7 +855,7 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         barscan_workspace = temporary_workspace()
         # iterate over the files, serving one at a time
         for file_name in barscan_files:
-            Load(file_name, OutputWorkspace=barscan_workspace)
+            LoadNexus(file_name, OutputWorkspace=barscan_workspace)
             bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
             yield bar_position, barscan_workspace  # serve a bar position and a run workspace
     DeleteWorkspaces(temporary_workspaces)  # clean up the now useless workspaces
@@ -1132,9 +1140,9 @@ def as_intensities(input_workspace, component='detector1'):
     Generated workspaces are ```input_name_positions```, ```input_name_heights```,
     and ```input_name_widths```, where ```input_name``` is the name of the input workspace.
 
-    Note: Positions are shifted so that the lowest position (usually a negative number).
-          becomes zero. The reason being that showing the instrument in Mantid will mask
-          negative intensities and we want to avoid this.
+    Note: Positions for visualization in Mantid's instrument view are shifted so that the
+          lowest position (usually a negative number) becomes zero. The reason being that
+          showing the instrument in Mantid will mask negative intensities, and we want to avoid this.
 
     **Mantid algorithms used:**
     :ref:`CreateWorkspace <algm-CreateWorkspace-v1>`,
@@ -1155,7 +1163,7 @@ def as_intensities(input_workspace, component='detector1'):
     -------
     namedtuple
         A namedtuple containing the ~mantid.api.MatrixWorkspace workspaces
-        with fields 'positions', 'heights', and 'widths'
+        with fields 'positions', 'positions_mantid', 'heights', and 'widths'
     """
     # Collect pixel information from the input workspace
     collection = TubeCollection(input_workspace, component).sorted(view='decreasing X')
@@ -1167,13 +1175,13 @@ def as_intensities(input_workspace, component='detector1'):
         pixel_props['heights'] = np.hstack((pixel_props['heights'], tube.pixel_heights))
         pixel_props['widths'] = np.hstack((pixel_props['widths'], tube.pixel_widths))
     # Mantid can only show positive quantities in the instrument view
-    pixel_props['positions'] -= np.min(pixel_props['positions'])
+    pixel_props['positions_mantid'] = pixel_props['positions'] - np.min(pixel_props['positions'])
 
     number_histograms = mtd[str(input_workspace)].getNumberHistograms()
     intensities = np.zeros(number_histograms)
 
     returned_views = {}
-    for cal_prop in ['positions', 'heights', 'widths']:
+    for cal_prop in ['positions', 'positions_mantid', 'heights', 'widths']:
         output_workspace = f'{str(input_workspace)}_{cal_prop}'  # Workspace containing the property as  intensity
         intensities[indexes] = pixel_props[cal_prop]
         workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)

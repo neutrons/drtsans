@@ -8,25 +8,25 @@ from mantid.simpleapi import LoadInstrument
 
 from drtsans.geometry import main_detector_panel
 from drtsans.tof.eqsans.geometry import (detector_id, pixel_coordinates, sample_aperture_diameter,
-                                         source_aperture_diameter, source_monitor_distance, translate_detector_z)
+                                         source_aperture_diameter, source_monitor_distance, translate_detector_by_z)
 from drtsans.samplelogs import SampleLogs
 
 
-def test_translate_detector_z(serve_events_workspace, reference_dir):
+def test_translate_detector_by_z(serve_events_workspace, reference_dir):
     # Load instrument with main panel at Z=0, then translate according to the logs
     workspace = serve_events_workspace('EQSANS_92353')
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
-    translate_detector_z(workspace)
+    translate_detector_by_z(workspace)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
 
     # Load instrument with main panel at Z=0, then apply latest IDF which will move the main panel. Subsequent
-    # application of translate_detector_z will have no effect
+    # application of translate_detector_by_z will have no effect
     workspace = serve_events_workspace('EQSANS_92353')
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
     idf = os.path.join(reference_dir.new.eqsans, 'instrument', 'EQ-SANS_Definition.xml')
     LoadInstrument(workspace, FileName=idf, RewriteSpectraMap=True)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
-    translate_detector_z(workspace)
+    translate_detector_by_z(workspace)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # no effect
 
 

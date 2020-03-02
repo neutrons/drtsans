@@ -1,8 +1,7 @@
-import os
 import numpy as np
 
 from mantid.api import (Run, MatrixWorkspace)
-from mantid.simpleapi import (mtd, Load)
+from mantid.simpleapi import mtd
 
 
 class SampleLogs(object):
@@ -34,6 +33,10 @@ class SampleLogs(object):
                 return _run.getProperty(item)
             else:
                 raise AttributeError('"{}" not found in sample logs'.format(item))
+
+    def __contains__(self, item):
+        '''Called when using python's ``in`` operation'''
+        return item in self._run
 
     def insert(self, name, value, unit=None):
         r"""
@@ -76,7 +79,7 @@ class SampleLogs(object):
 
         Parameters
         ----------
-        other: Run, MatrixWorkspace, file name, run number
+        other: Run, str, MatrixWorkspace
 
         Returns
         -------
@@ -90,28 +93,14 @@ class SampleLogs(object):
         def from_run(a_run):
             return a_run
 
-        def from_integer(run_number):
-            w = Load(Filename=str(run_number))
-            return self.find_run(w)
-
         def from_string(s):
             # see if it is a file
-            if os.path.isfile(s):
-                w = Load(Filename=s)
-                return self.find_run(w)
-            # see if it is an already named data object
-            elif s in mtd:
+            if s in mtd:
                 return self.find_run(mtd[s])
             else:
-                try:
-                    i = int(s)
-                    return self.find_run(i)
-                finally:
-                    pass
+                raise RuntimeError('{} is not a valid workspace name'.format(s))
 
-        dispatch = {Run: from_run, MatrixWorkspace: from_ws, int: from_integer,
-                    str: from_string}
-        # finder = [v for k, v in dispatch.items() if isinstance(other, k)][0]
+        dispatch = {Run: from_run, MatrixWorkspace: from_ws, str: from_string}
 
         # If others is not None: raise exception
         if other is None:
@@ -125,7 +114,6 @@ class SampleLogs(object):
             raise RuntimeError('Input "other" of value {} is not supported to retrieve Mantid '
                                '"run" object'.format(other))
         finder = finders[0]
-
         return finder(other)
 
     def find_log_with_units(self, log_key, unit=None):

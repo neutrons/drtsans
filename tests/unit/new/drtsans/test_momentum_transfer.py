@@ -1,7 +1,9 @@
 import pytest
 import numpy as np
 from pytest import approx
-from drtsans.momentum_transfer import convert_to_q, convert_to_subpixels
+from drtsans.geometry import pixel_centers
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.momentum_transfer import convert_to_q, convert_to_subpixels, _filter_and_replicate, subpixel_info
 from drtsans.dataobjects import IQazimuthal
 from mantid.simpleapi import MaskDetectors
 
@@ -161,6 +163,79 @@ def test_subpixel_binning(generic_workspace):
         assert res.delta_qy[i:16:4] == approx([sigma_Qy[i]] * 4)
         assert res.qx[i:16:4] == approx(qx[i] + np.array([-d_qx, -d_qx, d_qx, d_qx]))
         assert res.qy[i:16:4] == approx(qy[i] + np.array([-d_qy, d_qy, -d_qy, d_qy]))
+
+
+@pytest.fixture(scope='module')
+@namedtuplefy
+def data_subpixel_info():
+    r"""Data to be used for `test_subpixel_info`"""
+    return dict(number_pixels=4,
+                wavelength_bin_boundaries=[2.0, 2.1],
+                intensities=[[1.0, 2.0],  # first tube
+                             [3.0, 2.0]],  # second tube
+                # Pixel (x, y) coordinates, in mili-meters
+                pixel_positions=[[10, -10], [10, 10], [-10, -10], [-10, 10]],
+                n_horizontal=2,  # number of subpixel along the X-axis
+                n_vertical=4,  # number of subpixel along the Y-axis
+                number_subpixels=8,  # just n_horizontal * n_vertical
+                # subpixel coordinates for a pixel centered at (x, y) == (0, 0)
+                subpixel_positions=[[5, -7.5], [5, -2.5], [5, 2.5], [5, 7.5],
+                                    [-5, -7.5], [-5, -2.5], [-5, 2.5], [-5, 7.5]],
+                sample_detector_distance=1.0  # all subpixels have same Z coordinate
+                )
+
+
+@pytest.mark.parametrize('workspace_with_instrument',
+                         [{'instrument_geometry': 'n-pack',
+                           'n_tubes': 2, 'n_pixels': 2, 'spacing': 0.0,
+                           'x_center': 0.0, 'y_center': 0.0, 'z_center': 1.0,  # detector center
+                           'diameter': 0.02, 'height': 0.02}],  # pixel dimensions
+                         indirect=True)
+def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
+    r"""
+    Subpixel binning for a detector array made up of two tubes, each with two pixels.
+    There's no spacing between tubes.
+    Detector is 1 meter away from the sample
+    The shape of a detector pixel is a cylinder of 20mm diameter and 20mm in height.
+    """
+    data = data_subpixel_info  # handy shortcut
+    input_workspace = unique_workspace_dundername()  # temporary workspace
+    workspace = workspace_with_instrument(axis_values=data.wavelength_bin_boundaries,
+                                          intensities=data.intensities,
+                                          output_workspace=input_workspace)
+    workspace.detectorInfo().setMasked(2, True)  # Mask the third pixel
+    spectrum_info = workspace.spectrumInfo()
+    get_spectrum_definition = spectrum_info.getSpectrumDefinition
+    info_indexes = [get_spectrum_definition(idx)[0][0] for idx in range(workspace.getNumberHistograms())]
+    # test the positions of the pixels against expected_pixel_positions
+    pixel_positions = pixel_centers(input_workspace, info_indexes)
+    assert 1.e03 * pixel_positions[:, :-1] == pytest.approx(np.array(data.pixel_positions))
+    # Find the position of the subpixels in polar coordinates (info data structure)
+    info = subpixel_info(input_workspace, data.n_horizontal, data.n_vertical)
+    # Transform from polar to cartesian coordinates
+    x = info.l2 * np.sin(info.two_theta) * np.cos(info.azimuthal)
+    y = info.l2 * np.sin(info.two_theta) * np.sin(info.azimuthal)
+    z = info.l2 * np.cos(info.two_theta)
+    assert z == pytest.approx(data.sample_detector_distance * np.ones(len(info.keep) * data.number_subpixels))
+    # array `xy` contains the coordinates of the subpixels, in mili-meters
+    # xy.shape = (number_pixels, number_subpixels, 2)
+    xy = np.column_stack((x, y)).reshape((len(info.keep), data.number_subpixels, 2))
+    # Translate the subpixels by removing the center pixel positions, so that each center pixel is at (0, 0)
+    # After translation, all four set of subpixels have the same coordinates
+    xy = 1000 * (xy - pixel_positions[info.keep, :-1][:, None, :])
+    for subpixel_positions in xy:  # unmasked pixels
+        assert subpixel_positions == pytest.approx(np.array(data.subpixel_positions))
+
+
+def test_filter_and_replicate():
+    def to_np(alist):
+        return np.array(alist).reshape((len(alist), 1))
+    lam, intensity, error = to_np([1., 2., 3.]), to_np([100., 81., 64.]), to_np([10., 9., 8.])
+    keep = np.array([1, 2])
+    lam, intensity, error = _filter_and_replicate((lam, intensity, error), keep, 2, 1)
+    assert lam == pytest.approx([2., 2., 3., 3.])
+    assert intensity == pytest.approx([81., 81., 64., 64.])
+    assert error == pytest.approx([9., 9., 8., 8.])
 
 
 if __name__ == '__main__':

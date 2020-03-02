@@ -102,7 +102,7 @@ def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, weigh
         linear_bins = determine_1d_linear_bins(q_min, q_max, nbins)
         iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, linear_bins, bin_method=bin_method)
     else:
-        log_bins = determine_1d_log_bins(q_min, q_max, nbins)
+        log_bins = determine_1d_log_bins(q_min, q_max, nbins, even_decade=True)
         iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, log_bins, bin_method=bin_method)
     filename = os.path.join(output_dir, output_file + label + '_Iq.txt')
     save_ascii_binned_1D(filename, "I(Q)", iq_output)

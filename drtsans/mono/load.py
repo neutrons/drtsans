@@ -4,10 +4,10 @@ import os
 from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength
 
 # the generic version is feature complete for monochromatic data
-from drtsans.load import load_events
+from drtsans.load import load_events, merge_data
 from drtsans.process_uncertainties import set_init_uncertainties
 
-__all__ = ['load_events', 'load_histogram', 'transform_to_wavelength', 'load_mono']
+__all__ = ['load_events', 'merge_data', 'load_histogram', 'transform_to_wavelength', 'load_mono']
 
 
 def load_histogram(filename, output_workspace=None, wavelength=None, wavelength_spread=None, sample_det_cent=None):

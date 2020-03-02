@@ -1,16 +1,18 @@
-import os
-
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import logger
-from mantid.simpleapi import mtd, Load
+# https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
+from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
+from drtsans.settings import unpack_v3d
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
-__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter']
+__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
+           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance']
+detector_z_log = 'detectorZ'
 
 
 def panel_names(input_query):
@@ -196,6 +198,44 @@ def bank_detectors(input_workspace, masked=None):
             yield instrument.getDetector(det_id)
 
 
+def pixel_centers(input_workspace, indexes, shape=None):
+    r"""
+    Coordinates for the center of one or more pixel detectors. It is assumed that all pixels have the same shape.
+
+    This function can handle the special case of cylinder pixels, when a call to
+    ~mantid.geometry.componentInfo.position or ~mantd.geometry.detectorInfo.position returns the position
+    for the center of the bottom base of the pixel, instead of the position of the pixel center.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+    indexes: int, list
+        one index or a list of component info indexes, or detector info indexes, but not workspace indexes or
+        spectrum info indexes.
+    shape: str
+        Shape of the pixel. One of ('cylinder', 'rectangular'). If :py:obj:`None`, then ```source_info```
+        the shape will be determined for the first pixel, and assumed it's the same for the rest.
+
+    Returns
+    -------
+    numpy.ndarray
+        Coordinates for each pixel detector
+    """
+    component_info = mtd[str(input_workspace)].componentInfo()
+    if isinstance(indexes, int):
+        indexes = [indexes, ]
+    if shape is None:
+        shape_xml = component_info.shape(indexes[0]).getShapeXML()
+        shape = 'cylinder' if 'cylinder' in shape_xml else 'rectangular'
+    positions = np.array([unpack_v3d(component_info.position, i) for i in indexes])
+    if shape == 'cylinder':
+        # shift along the vertical axis by half the nominal pixel height
+        translation = np.array([0.0, component_info.shape(indexes[0]).getBoundingBox().width().Y() / 2, 0.0])
+        positions += translation
+    # no code for rectangular, since componentInfo.position does return the center pixel
+    return positions
+
+
 def get_instrument(source):
     r"""
     Return the instrument object
@@ -203,46 +243,28 @@ def get_instrument(source):
     Parameters
     ----------
     source: PyObject
-        Instrument object, MatrixWorkspace, , workspace name, file name,
-        run number
+        MatrixWorkspace, workspace name
 
     Returns
     -------
     Mantid::Instrument
         Instrument object
     """
-    def from_instrument(instrument):
-        return instrument
-
     def from_ws(ws):
         return ws.getInstrument()
 
-    def from_integer(run_number):
-        w = Load(Filename=str(run_number))
-        return get_instrument(w)
-
     def from_string(s):
-        if os.path.isfile(s):
-            w = Load(Filename=s)
-            return get_instrument(w)
-        elif s in mtd:
+        if s in mtd:
             return get_instrument(mtd[s])
-        else:
-            try:
-                i = int(s)
-                return get_instrument(i)
-            finally:
-                pass
 
-    dispatch = {Instrument: from_instrument, MatrixWorkspace: from_ws,
-                int: from_integer, str: from_string}
+    dispatch = {MatrixWorkspace: from_ws, str: from_string}
     finder = [v for k, v in dispatch.items() if isinstance(source, k)][0]
     return finder(source)
 
 
 def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
     r"""
-    Report the distance (always positive!) between source and sample.
+    Report the distance (always positive!) between source and sample aperture.
 
     If logs are not used or distance fails to be found in the logs, then
     calculate the distance using the instrument configuration file.
@@ -325,7 +347,8 @@ def sample_detector_distance(source, unit='mm', log_key=None,
     if search_logs is True:
         log_keys = ('detector-sample-distance', 'detector_sample-distance',
                     'detector_sample_distance', 'sample-detector-distance',
-                    'sample_detector-distance', 'sample_detector_distance')
+                    'sample_detector-distance',
+                    'sample_detector_distance')  # latest one
         if log_key is not None:
             log_keys = (log_key)
         sample_logs = SampleLogs(source)
@@ -389,10 +412,16 @@ def sample_aperture_diameter(input_workspace, unit='mm'):
     float
     """
     # Additional log keys aiding in calculating the sample aperture diameter
-    additional_log_keys = {InstrumentEnumName.EQSANS: ['beamslit4'],
-                           InstrumentEnumName.GPSANS: [],
-                           InstrumentEnumName.BIOSANS: []}
-    log_keys = ['sample_aperture_diameter'] + additional_log_keys[instrument_enum_name(input_workspace)]
+    log_keys = ['sample_aperture_diameter']
+
+    try:
+        additional_log_keys = {InstrumentEnumName.EQSANS: ['beamslit4'],
+                               InstrumentEnumName.GPSANS: [],
+                               InstrumentEnumName.BIOSANS: []}
+        log_keys += additional_log_keys[instrument_enum_name(input_workspace)]
+    except KeyError:
+        # In case the instrument name (test instrument) not in EQ, GP and BIO-SANS
+        pass
 
     sample_logs = SampleLogs(input_workspace)
     diameter = None
@@ -485,3 +514,122 @@ def beam_radius(input_workspace, unit='mm'):
     radius = r_sa + (r_sa + r_so) * (l2 / l1)
     logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3))
     return radius
+
+
+def translate_source_by_z(input_workspace, z=None, relative=False):
+    r"""
+      Adjust the Z-coordinate of the source.
+
+
+      Parameters
+      ----------
+      input_workspace: ~mantid.api.MatrixWorkspace
+          Input workspace containing instrument file
+      z: float
+          Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in the logs
+           is used, unless the source has already been translated by this
+          quantity.
+      relative: bool
+          If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
+          the current z-coordinate with the new value.
+      """
+    if z is None:
+        sample_logs = SampleLogs(input_workspace)
+        # If detector_z_log exists in the sample logs, use it
+        source_z_log = None
+        for logname in ['source-sample-distance', 'source_aperture_sample_aperture_distance']:
+            if logname in sample_logs:
+                source_z_log = logname
+                break
+
+        if source_z_log is not None:
+            factor = 1.0 if sample_logs[source_z_log].units == 'm' else 1e-3
+            distance_from_log = factor * sample_logs.single_value(source_z_log)  # assumed in millimeters
+            # Has the detector already been translated by this quantity?
+            for source_name in ('moderator', 'source'):
+                moderator = get_instrument(input_workspace).getComponentByName(source_name)
+                if moderator is not None:
+                    _, _, current_z = moderator.getPos()
+                    if abs(distance_from_log - abs(current_z)) > 1e-03:  # differ by more than one millimeter
+                        z = -distance_from_log
+                    break
+
+    if z is not None:
+        if (not relative) or (z != 0.):
+            for source_name in ('moderator', 'source'):
+                if get_instrument(input_workspace).getComponentByName(source_name) is not None:
+                    MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=source_name,
+                                            RelativePosition=relative)
+                    break
+
+
+def translate_sample_by_z(workspace, z):
+    r"""
+    Shift the position of the sample by the desired amount
+
+    Parameters
+    ----------
+    workspace: ~mantid.api.MatrixWorkspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied in meters. Positive values are downstream.
+    """
+    # only move if the value is non-zero
+    if z != 0.:
+        MoveInstrumentComponent(Workspace=str(workspace), Z=z,
+                                ComponentName='sample-position',
+                                RelativePosition=True)
+
+    # update the appropriate log
+    sample_logs = SampleLogs(workspace)
+    logname_to_set = 'source-sample-distance'  # default
+    # look for name of the log/property to update
+    for logname in ['source-sample-distance', 'source_aperture_sample_aperture_distance']:
+        if logname in sample_logs:
+            logname_to_set = logname
+            break
+
+    sample_logs.insert(logname_to_set, source_sample_distance(workspace, search_logs=False, unit='mm'),
+                       unit='mm')
+
+
+def translate_detector_by_z(input_workspace, z=None, relative=True):
+    r"""
+    Adjust the Z-coordinate of the detector.
+
+
+    Parameters
+    ----------
+    input_workspace: ~mantid.api.MatrixWorkspace
+        Input workspace containing instrument file
+    z: float
+        Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in log_key
+        ~drtsans.geometry.detector_z_log is used, unless the detector has already been translated by this
+        quantity.
+    relative: bool
+        If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
+        the current z-coordinate with the new value.
+    """
+    update_log = False
+    if z is None:
+        sample_logs = SampleLogs(input_workspace)
+        # If detector_z_log exists in the sample logs, use it
+        if detector_z_log in sample_logs:
+            translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in millimeters
+            # Has the detector already been translated by this quantity?
+            main_detector_array = detector_name(input_workspace)
+            _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
+            if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one millimeter
+                z = translation_from_log
+
+    if z is not None:
+        update_log = True
+        if (not relative) or (z != 0.):
+            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
+                                    RelativePosition=relative)
+
+    # update the appropriate log
+    if update_log:
+        sample_logs = SampleLogs(input_workspace)
+        sample_logs.insert('sample-detector-distance', sample_detector_distance(input_workspace, search_logs=False),
+                           unit='mm')

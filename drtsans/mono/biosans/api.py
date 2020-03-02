@@ -3,7 +3,7 @@ from mantid import simpleapi as msapi
 
 from drtsans.mono import biosans
 import drtsans
-from drtsans.solid_angle import solid_angle_correction
+from drtsans.mono.biosans import solid_angle_correction
 from drtsans.mask_utils import apply_mask
 from drtsans.mono.load import load_events, transform_to_wavelength
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
@@ -80,8 +80,9 @@ def prepare_data(data,
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
-    # TODO: missing detector_offset and sample_offset
-    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix)
+    # TODO: missing detector_offset for wing detector
+    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
+                     detector_offset=detector_offset, sample_offset=sample_offset)
     ws_name = str(ws)
     transform_to_wavelength(ws_name)
 

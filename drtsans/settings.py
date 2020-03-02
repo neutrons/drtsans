@@ -124,3 +124,26 @@ def unique_workspace_name(n=5, prefix='', suffix=''):
 
 def unique_workspace_dundername():
     return unique_workspace_name(n=5, prefix='__')
+
+
+def unpack_v3d(functor, index):
+    r"""Retain only the cartesian coordinates of the V3D object returned by ```functor```
+
+    This function reduces the memory imprint, from a V3D object to a mere 3-component list.
+    Speeds up execution by avoiding crowding the heap when interating over the detectors.
+    e.g. x = [detectorInfo().position(i) for i in range(number_detectors)]  # number_detectors V3D objects in the heap
+         x = [unpackV3D(detectorInfo.position, i) for i in range(number_detectors)]  # 100 times faster
+
+    Parameters
+    ----------
+    functor: function
+        Callable receiving argument ```index``` and returning a V3D object.
+    index: int
+        DetectorInfo, ComponentInfo, or SpectrumInfo index
+
+    Returns
+    -------
+    list
+    """
+    v3d_vector = functor(index)
+    return [v3d_vector.X(), v3d_vector.Y(), v3d_vector.Z()]

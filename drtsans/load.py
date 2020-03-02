@@ -1,4 +1,4 @@
-from drtsans.geometry import translate_detector_by_z, translate_sample_by_z
+from drtsans.geometry import translate_detector_by_z, translate_sample_by_z, translate_source_by_z
 from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName
 from drtsans.path import abspath
 from drtsans.path import exists as path_exists
@@ -111,6 +111,8 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         SampleLogs(output_workspace).insert('monitor', __monitor_counts(filename))
 
     # move instrument components - sample position must happen first
+
+    translate_source_by_z(output_workspace, z=None, relative=False)
     translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))
     translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
     translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))

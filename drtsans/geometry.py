@@ -17,6 +17,26 @@ __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter'
 detector_z_log = 'detectorZ'
 
 
+def source_name(input_query):
+    r"""
+    Name of the moderator
+
+    Parameters
+    ----------
+    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
+
+    Returns
+    -------
+    str
+    """
+    instrument_to_source = {InstrumentEnumName.BIOSANS: 'moderator',
+                            InstrumentEnumName.GPSANS: 'source',
+                            InstrumentEnumName.EQSANS: 'moderator'}
+    instrument = instrument_enum_name(input_query)
+    return instrument_to_source[instrument]
+
+
 def panel_names(input_query):
     r"""
     List of names for the double-panel detector arrays (e.g., 'detector1', 'wing_detector')
@@ -489,6 +509,47 @@ def beam_radius(input_workspace, unit='mm'):
     radius = r_sa + (r_sa + r_so) * (l2 / l1)
     logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3))
     return radius
+
+
+def translate_source_by_z(input_workspace, z=None, relative=False):
+    r"""
+      Adjust the Z-coordinate of the source.
+
+
+      Parameters
+      ----------
+      input_workspace: ~mantid.api.MatrixWorkspace
+          Input workspace containing instrument file
+      z: float
+          Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in the logs
+           is used, unless the source has already been translated by this
+          quantity.
+      relative: bool
+          If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
+          the current z-coordinate with the new value.
+      """
+    if z is None:
+        sample_logs = SampleLogs(input_workspace)
+        # If detector_z_log exists in the sample logs, use it
+        source_z_log = None
+        for logname in ['source-sample-distance', 'source_aperture_sample_aperture_distance']:
+            if logname in sample_logs:
+                source_z_log = logname
+                break
+
+        if source_z_log is not None:
+            factor = 1.0 if sample_logs[source_z_log].units == 'm' else 1e-3
+            distance_from_log = factor * sample_logs.single_value(source_z_log)  # assumed in millimeters
+            # Has the detector already been translated by this quantity?
+            moderator = source_name(input_workspace)
+            _, _, current_z = get_instrument(input_workspace).getComponentByName(moderator).getPos()
+            if abs(distance_from_log - abs(current_z)) > 1e-03:  # differ by more than one millimeter
+                z = -distance_from_log
+
+    if z is not None:
+        if (not relative) or (z != 0.):
+            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=source_name(input_workspace),
+                                    RelativePosition=relative)
 
 
 def translate_sample_by_z(workspace, z):

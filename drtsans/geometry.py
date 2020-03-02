@@ -470,6 +470,53 @@ def beam_radius(input_workspace, unit='mm'):
     return radius
 
 
+def translate_source_by_z(input_workspace, z=None, relative=False):
+    r"""
+      Adjust the Z-coordinate of the source.
+
+
+      Parameters
+      ----------
+      input_workspace: ~mantid.api.MatrixWorkspace
+          Input workspace containing instrument file
+      z: float
+          Translation to be applied, in units of meters. If :py:obj:`None`, the quantity stored in the logs
+           is used, unless the source has already been translated by this
+          quantity.
+      relative: bool
+          If :py:obj:`True`, add to the current z-coordinate. If :py:obj:`False`, substitute
+          the current z-coordinate with the new value.
+      """
+    if z is None:
+        sample_logs = SampleLogs(input_workspace)
+        # If detector_z_log exists in the sample logs, use it
+        source_z_log = None
+        for logname in ['source-sample-distance', 'source_aperture_sample_aperture_distance']:
+            if logname in sample_logs:
+                source_z_log = logname
+                break
+
+        if source_z_log is not None:
+            factor = 1.0 if sample_logs[source_z_log].units == 'm' else 1e-3
+            distance_from_log = factor * sample_logs.single_value(source_z_log)  # assumed in millimeters
+            # Has the detector already been translated by this quantity?
+            for source_name in ('moderator', 'source'):
+                moderator = get_instrument(input_workspace).getComponentByName(source_name)
+                if moderator is not None:
+                    _, _, current_z = moderator.getPos()
+                    if abs(distance_from_log - abs(current_z)) > 1e-03:  # differ by more than one millimeter
+                        z = -distance_from_log
+                    break
+
+    if z is not None:
+        if (not relative) or (z != 0.):
+            for source_name in ('moderator', 'source'):
+                if get_instrument(input_workspace).getComponentByName(source_name) is not None:
+                    MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=source_name,
+                                            RelativePosition=relative)
+                    break
+
+
 def translate_sample_by_z(workspace, z):
     r"""
     Shift the position of the sample by the desired amount

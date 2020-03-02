@@ -133,7 +133,7 @@ if __name__ == "__main__":
     else:
         config["flux_method"] = None
 
-    if json_conf["useSolidAngleCorrection"] == False:
+    if json_conf["useSolidAngleCorrection"] is False:
         config["solid_angle"] = False
     else:
         config["solid_angle"] = True

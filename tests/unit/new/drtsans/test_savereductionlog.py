@@ -328,8 +328,6 @@ def test_writing_iq_and_iqxqy():
                    ref_data=np.array([0.008423, 0.008423]))
 
 
-
-
 def test_reduction_parameters():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()

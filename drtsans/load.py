@@ -127,7 +127,7 @@ def merge_data(data_list, output_workspace, sum_logs=("duration", "timer", "moni
 
     Parameters
     ----------
-    data_list: list of Workspace2D, list of workspace names, comma separated list of workspace names
+    data_list: list of Workspace2D, list of workspace names, comma separated list of workspace names, WorkspaceGroup
         Examples: [ws1, ws1], ['ws1', 'ws2'] or 'ws1, ws2'
     output_workspace: str
         Name of output workspace, required

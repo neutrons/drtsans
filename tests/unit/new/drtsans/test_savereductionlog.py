@@ -340,7 +340,7 @@ def test_reduction_information():
         red_val = reduction_information_entry['reduction_parameters']['iptsNumber'].value
         test_val = data['iptsNumber']
         assert red_val == test_val
-        
+
 
 def test_no_data_passed():
     with pytest.raises(RuntimeError):

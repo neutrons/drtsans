@@ -531,8 +531,11 @@ def translate_source_by_z(input_workspace, z=None, relative=False):
 
     if z is not None:
         if (not relative) or (z != 0.):
-            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=source_name(input_workspace),
-                                    RelativePosition=relative)
+            for source_name in ('moderator', 'source'):
+                if get_instrument(input_workspace).getComponentByName(source_name) is not None:
+                    MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=source_name,
+                                            RelativePosition=relative)
+                    break
 
 
 def translate_sample_by_z(workspace, z):

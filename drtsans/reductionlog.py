@@ -81,6 +81,9 @@ def _savereductionjson(nxentry, parameters):
 
 def _savereductionparams(nxentry, parameters, name_of_entry):
     '''save the reduction parameters as a nice tree structure'''
+    if parameters is None:
+        return
+
     nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
 
     for _key, _value in parameters.items():
@@ -89,23 +92,6 @@ def _savereductionparams(nxentry, parameters, name_of_entry):
         else:
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
-
-    # entry = nxentry.create_group('argument1')
-    # entry.attrs['NX_class'] = 'NXdata'
-    # _entry_group = entry.create_dataset(name="sub_argument1", data='value1')
-    # _entry_group = entry.create_dataset(name="sub_argument2", data='value2')
-    #
-    # entry = nxentry.create_group('argument2')
-    # entry.attrs['NX_class'] = 'NXdata'
-    # _entry_group = entry.create_dataset(name="sub_argument3", data='value3')
-    # _entry_group = entry.create_dataset(name="sub_argument4", data='value4')
-
-    # for _key, _value in parameters.items():
-    #     if isinstance(_value, dict):
-    #         _node = _createnxgroup(nxentry, _key, 'NXnote')
-    #         _savereductionparams(_node, _value)
-    #     else:
-    #         return _savenxnote(nxentry, _key, '', file_name='', data=_value)
 
 
 def _savenxprocess(nxentry, program, version):

@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 import pytest
 import os
+import json
 
 from drtsans import savereductionlog
 from drtsans.iq import determine_1d_log_bins
@@ -11,6 +12,12 @@ from drtsans.dataobjects import IQazimuthal
 from tempfile import NamedTemporaryFile
 from drtsans import __version__ as drtsans_version
 from mantid import __version__ as mantid_version
+
+
+def _getConfigJsonFile():
+    _file_path = os.path.dirname(__file__)
+    config_json = os.path.abspath(os.path.join(_file_path, '../../../../scripts/reduction.json'))
+    return config_json
 
 
 def _strValue(group, name):
@@ -147,7 +154,7 @@ def _checkProcessingEntry(handle, **kwargs):
 def test_writing_metadata():
 
     pythonscript = "this is my python script"
-    reductionparams = "reduction parameter 1: value1"
+    reductionparams = {'reduction parameter 1': 'value1'}
     starttime = '1993-03-18T21:00:00'
     username = 'Neymar'
     user = 'Cavani'
@@ -311,7 +318,12 @@ def test_writing_iq_and_iqxqy():
 def test_reduction_information():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, iqxqy=test_iqxqy)
+
+    json_file = _getConfigJsonFile()
+    with open(json_file, 'r') as file_handle:
+        data = json.load(file_handle)
+
+    savereductionlog(tmp_log_filename, iqxqy=test_iqxqy, reductionparams=data)
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
@@ -321,6 +333,14 @@ def test_reduction_information():
         assert _strValue(reduction_information_entry['drtsans'], 'version') == drtsans_version
         assert _strValue(reduction_information_entry['mantid'], 'version') == mantid_version
 
+        red_val = reduction_information_entry['reduction_parameters']['background']['transmission']['runNumber'].value
+        test_val = data['background']['transmission']['runNumber']
+        assert red_val == test_val
+
+        red_val = reduction_information_entry['reduction_parameters']['iptsNumber'].value
+        test_val = data['iptsNumber']
+        assert red_val == test_val
+        
 
 def test_no_data_passed():
     with pytest.raises(RuntimeError):

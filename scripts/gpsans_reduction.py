@@ -86,8 +86,7 @@ def reduction(json_params, config):
     file_name = json_params["runNumber"]
     if not os.path.exists(file_name):
         file_name = json_params["instrumentName"] + "_" + file_name
-    ws = sans.prepare_data(file_name,
-                           output_suffix='_data', **config)
+    ws = sans.prepare_data(file_name, output_suffix='_data', **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]

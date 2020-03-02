@@ -83,14 +83,14 @@ def reduction(json_params, config):
         config['dark_current'] = dark_current_workspace
 
     # Load and prepare scattering data
-    ws = sans.prepare_data(json_params["instrumentName"] + '_' + json_params["runNumber"],
+    ws = sans.prepare_data(json_params["runNumber"],
                            output_suffix='_data', **config)
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
     if transmission_run.strip() != '':
-        transmission_fn = json_params["instrumentName"] + '_' + json_params["transmission"]["runNumber"]
-        empty_run = json_params["instrumentName"] + '_' + json_params["empty"]["runNumber"]
+        transmission_fn = json_params["transmission"]["runNumber"]
+        empty_run = json_params["empty"]["runNumber"]
         ws = apply_transmission(ws, transmission_fn, empty_run, config)
 
     # Background
@@ -166,7 +166,7 @@ if __name__ == "__main__":
 
     # Find the beam center
     # TODO: We need a way to pass a pre-calculated beam center
-    empty_run = json_params["instrumentName"] + "_" + json_params["empty"]["runNumber"]
+    empty_run = json_params["empty"]["runNumber"]
     if False and empty_run != "":
         # Load and compute beam center position
         db_ws = sans.load_events(empty_run,

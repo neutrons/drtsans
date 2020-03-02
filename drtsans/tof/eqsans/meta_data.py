@@ -48,27 +48,28 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     if wave_length is None or wavelength_spread is not None:
         raise RuntimeError('Wave length and wave length spread are not allowed to set to EQ-SANS')
 
-    # Log value dictionary: key = log name, value = log value, unit
-    log_value_dict = dict()
+    # Log value dictionary: 3-tuple (log name, log value, unit)
+    meta_data_list = list()
 
     # Add the sample log dictionary to add
     if sample_aperture_size is not None:
-        log_value_dict['sample_aperture_radius'] = sample_aperture_size, 'mm'
+        meta_data_list.append(('sample_aperture_radius', sample_aperture_size, 'mm'))
 
     # Source aperture radius
     if source_aperture_size is not None:
-        log_value_dict['source_aperture_radius'] = source_aperture_size, 'mm'
+        meta_data_list.append(('source_aperture_radius', source_aperture_size, 'mm'))
 
     # Source sample distance
     if source_to_sample_distance is not None:
-        log_value_dict['source_sample-distance'] = source_to_sample_distance, 'm'
+        meta_data_list.append(('source_sample-distance', source_to_sample_distance, 'm'))
 
     # Sample to detector distance
     if sample_to_detector_distance is not None:
-        log_value_dict['detectorZ'] = sample_to_detector_distance, 'm'
-
+        meta_data_list.append(('detectorZ', sample_to_detector_distance, 'm'))
 
     # Add log value
-    AddSampleLogMultiple(Workspace=workspace, LogNames=log_value_dict.keys(),
-                         LogValues=log_value_dict.values().split(0),
-                         LogUnits=log_value_dict.values().split(1))
+    log_names, log_values, log_units = zip(*meta_data_list)
+
+    AddSampleLogMultiple(Workspace=workspace, LogNames=log_names,
+                         LogValues=log_values,
+                         LogUnits=log_units)

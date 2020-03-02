@@ -1,6 +1,7 @@
 import pytest
 
 from mantid import mtd
+from mantid.simpleapi import GroupWorkspaces
 
 from drtsans.mono.biosans import load_histogram, load_events, transform_to_wavelength, merge_data
 from drtsans.samplelogs import SampleLogs
@@ -107,6 +108,12 @@ def test_merge_data(reference_dir):
     # Comma separated list of workspace space
     merged_workspaces_3 = merge_data("workspace1, workspace2",  output_workspace="merged3")
     assert SampleLogs(merged_workspaces_3).duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633,
+                                                                           abs=1e-11)
+
+    # Workspace group
+    ws_group = GroupWorkspaces('workspace1, workspace2')
+    merged_workspaces_4 = merge_data(ws_group,  output_workspace="merged4")
+    assert SampleLogs(merged_workspaces_4).duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633,
                                                                            abs=1e-11)
 
 

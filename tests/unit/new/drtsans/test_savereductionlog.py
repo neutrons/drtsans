@@ -178,6 +178,8 @@ def test_writing_metadata():
         assert _strValue(reduction_information_entry['reduction_script'], 'data') == pythonscript
         assert _strValue(reduction_information_entry['reduction_script'], 'file_name') == pythonfile
         assert _strValue(reduction_information_entry, 'start_time') == starttime
+        assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
+        assert _strValue(reduction_information_entry['user'], 'name') == username
 
 
 def _test_data(tested_data=[], ref_data=[], abs=None):

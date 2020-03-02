@@ -341,15 +341,13 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
         _savenxprocess(entry, 'drtsans', drtsans_version)
 
         # user information
-        user = environ.get('USER', '')
-        user = kwargs.get('user', user)
+        user = kwargs.get('user', environ.get('USER', ''))
         if user:
             nxuser = _createnxgroup(entry, 'user', 'NXuser')
             nxuser.create_dataset(name='facility_user_id',
                                   data=[np.string_(user)])
 
-            username = environ.get('USERNAME', '')
-            username = kwargs.get('username', username)
+            username = kwargs.get('username', environ.get('USERNAME', ''))
             if username:
                 nxuser.create_dataset(name='name',
                                       data=[np.string_(username)])

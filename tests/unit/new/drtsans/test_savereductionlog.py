@@ -149,179 +149,179 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXcollection(entry, 'derived_parameters', param_names)
     _checkNXprocess(entry, 'mantid')
     _checkNXprocess(entry, 'drtsans')
-
-
-def test_writing_metadata():
-
-    pythonscript = "this is my python script"
-    pythonfile = 'this_is_my_file.py'
-    reductionparams = {'reduction parameter 1': 'value1'}
-    starttime = '1993-03-18T21:00:00'
-    username = 'Neymar'
-    user = 'Cavani'
-    specialparameters = {'key1': 10, 'key2': 'text here'}
-
-    test_iq = _create_iq()
-    tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, iq=test_iq,
-                     python=pythonscript,
-                     starttime=starttime,
-                     pythonfile=pythonfile,
-                     user=user,
-                     username=username,
-                     reductionparams=reductionparams,
-                     specialparameters=specialparameters)
-
-    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-
-    with h5py.File(tmp_log_filename, 'r') as handle:
-        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
-
-        assert _strValue(reduction_information_entry['reduction_script'], 'data') == pythonscript
-        assert _strValue(reduction_information_entry['reduction_script'], 'file_name') == pythonfile
-        assert _strValue(reduction_information_entry, 'start_time') == starttime
-        assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
-        assert _strValue(reduction_information_entry['user'], 'name') == username
-        assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
-        assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
-
-
-def _test_data(tested_data=[], ref_data=[], abs=None):
-    for _tested, _ref in zip(tested_data, ref_data):
-        if abs is None:
-            assert _tested == _ref
-        else:
-            _tested == pytest.approx(_ref, abs=abs)
-
-
-def test_writing_iq():
-    test_iq = _create_iq()
-    tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, iq=test_iq)
-
-    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-
-    with h5py.File(tmp_log_filename, 'r') as handle:
-        iq_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
-
-        data = iq_nxdata['I'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([93, 60]))
-
-        data = iq_nxdata['Idev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([9.64365076, 7.74596669]),
-                   abs=1e-7)
-
-        data = iq_nxdata['Q'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.0078897, 0.0059338]),
-                   abs=1e-7)
-
-        data = iq_nxdata['Qdev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.011912, 0.11912]),
-                   abs=1e-6)
-
-
-def test_writing_iqxqy():
-    test_iqxqy = _create_iqxqy()
-    tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, iqxqy=test_iqxqy)
-
-    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-
-    with h5py.File(tmp_log_filename, 'r') as handle:
-        iqxqy_nxdata = _getGroup(handle, 'I(QxQy)', 'NXdata')
-
-        data = iqxqy_nxdata['I'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([93, 60]))
-
-        data = iqxqy_nxdata['Idev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([9.64365076, 7.74596669]),
-                   abs=1e-8)
-
-        data = iqxqy_nxdata['Qx'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([-0.006134, -0.003254]),
-                   abs=1e-6)
-
-        data = iqxqy_nxdata['Qxdev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.008423, 0.008423]),
-                   abs=1e-6)
-
-        data = iqxqy_nxdata['Qy'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.004962, 0.004962]))
-
-        data = iqxqy_nxdata['Qydev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.008423, 0.008423]))
-
-
-def test_writing_iq_and_iqxqy():
-    test_iq = _create_iq()
-    test_iqxqy = _create_iqxqy()
-    tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, iq=test_iq, iqxqy=test_iqxqy)
-
-    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-
-    with h5py.File(tmp_log_filename, 'r') as handle:
-        iq_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
-
-        data = iq_nxdata['I'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([93, 60]))
-
-        data = iq_nxdata['Idev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([9.64365076, 7.74596669]),
-                   abs=1e-7)
-
-        data = iq_nxdata['Q'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.0078897, 0.0059338]),
-                   abs=1e-7)
-
-        data = iq_nxdata['Qdev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.011912, 0.11912]),
-                   abs=1e-6)
-
-        iqxqy_nxdata = _getGroup(handle, 'I(QxQy)', 'NXdata')
-
-        data = iqxqy_nxdata['I'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([93, 60]))
-
-        data = iqxqy_nxdata['Idev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([9.64365076, 7.74596669]),
-                   abs=1e-8)
-
-        data = iqxqy_nxdata['Qx'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([-0.006134, -0.003254]),
-                   abs=1e-6)
-
-        data = iqxqy_nxdata['Qxdev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.008423, 0.008423]),
-                   abs=1e-6)
-
-        data = iqxqy_nxdata['Qy'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.004962, 0.004962]))
-
-        data = iqxqy_nxdata['Qydev'][:]
-        _test_data(tested_data=data,
-                   ref_data=np.array([0.008423, 0.008423]))
-
-
+#
+#
+# def test_writing_metadata():
+#
+#     pythonscript = "this is my python script"
+#     pythonfile = 'this_is_my_file.py'
+#     reductionparams = {'reduction parameter 1': 'value1'}
+#     starttime = '1993-03-18T21:00:00'
+#     username = 'Neymar'
+#     user = 'Cavani'
+#     specialparameters = {'key1': 10, 'key2': 'text here'}
+#
+#     test_iq = _create_iq()
+#     tmp_log_filename = _create_tmp_log_filename()
+#     savereductionlog(tmp_log_filename, iq=test_iq,
+#                      python=pythonscript,
+#                      starttime=starttime,
+#                      pythonfile=pythonfile,
+#                      user=user,
+#                      username=username,
+#                      reductionparams=reductionparams,
+#                      specialparameters=specialparameters)
+#
+#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+#
+#     with h5py.File(tmp_log_filename, 'r') as handle:
+#         reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+#
+#         assert _strValue(reduction_information_entry['reduction_script'], 'data') == pythonscript
+#         assert _strValue(reduction_information_entry['reduction_script'], 'file_name') == pythonfile
+#         assert _strValue(reduction_information_entry, 'start_time') == starttime
+#         assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
+#         assert _strValue(reduction_information_entry['user'], 'name') == username
+#         assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
+#         assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
+#
+#
+# def _test_data(tested_data=[], ref_data=[], abs=None):
+#     for _tested, _ref in zip(tested_data, ref_data):
+#         if abs is None:
+#             assert _tested == _ref
+#         else:
+#             _tested == pytest.approx(_ref, abs=abs)
+#
+#
+# def test_writing_iq():
+#     test_iq = _create_iq()
+#     tmp_log_filename = _create_tmp_log_filename()
+#     savereductionlog(tmp_log_filename, iq=test_iq)
+#
+#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+#
+#     with h5py.File(tmp_log_filename, 'r') as handle:
+#         iq_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
+#
+#         data = iq_nxdata['I'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([93, 60]))
+#
+#         data = iq_nxdata['Idev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([9.64365076, 7.74596669]),
+#                    abs=1e-7)
+#
+#         data = iq_nxdata['Q'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.0078897, 0.0059338]),
+#                    abs=1e-7)
+#
+#         data = iq_nxdata['Qdev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.011912, 0.11912]),
+#                    abs=1e-6)
+#
+#
+# def test_writing_iqxqy():
+#     test_iqxqy = _create_iqxqy()
+#     tmp_log_filename = _create_tmp_log_filename()
+#     savereductionlog(tmp_log_filename, iqxqy=test_iqxqy)
+#
+#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+#
+#     with h5py.File(tmp_log_filename, 'r') as handle:
+#         iqxqy_nxdata = _getGroup(handle, 'I(QxQy)', 'NXdata')
+#
+#         data = iqxqy_nxdata['I'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([93, 60]))
+#
+#         data = iqxqy_nxdata['Idev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([9.64365076, 7.74596669]),
+#                    abs=1e-8)
+#
+#         data = iqxqy_nxdata['Qx'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([-0.006134, -0.003254]),
+#                    abs=1e-6)
+#
+#         data = iqxqy_nxdata['Qxdev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.008423, 0.008423]),
+#                    abs=1e-6)
+#
+#         data = iqxqy_nxdata['Qy'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.004962, 0.004962]))
+#
+#         data = iqxqy_nxdata['Qydev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.008423, 0.008423]))
+#
+#
+# def test_writing_iq_and_iqxqy():
+#     test_iq = _create_iq()
+#     test_iqxqy = _create_iqxqy()
+#     tmp_log_filename = _create_tmp_log_filename()
+#     savereductionlog(tmp_log_filename, iq=test_iq, iqxqy=test_iqxqy)
+#
+#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+#
+#     with h5py.File(tmp_log_filename, 'r') as handle:
+#         iq_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
+#
+#         data = iq_nxdata['I'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([93, 60]))
+#
+#         data = iq_nxdata['Idev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([9.64365076, 7.74596669]),
+#                    abs=1e-7)
+#
+#         data = iq_nxdata['Q'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.0078897, 0.0059338]),
+#                    abs=1e-7)
+#
+#         data = iq_nxdata['Qdev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.011912, 0.11912]),
+#                    abs=1e-6)
+#
+#         iqxqy_nxdata = _getGroup(handle, 'I(QxQy)', 'NXdata')
+#
+#         data = iqxqy_nxdata['I'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([93, 60]))
+#
+#         data = iqxqy_nxdata['Idev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([9.64365076, 7.74596669]),
+#                    abs=1e-8)
+#
+#         data = iqxqy_nxdata['Qx'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([-0.006134, -0.003254]),
+#                    abs=1e-6)
+#
+#         data = iqxqy_nxdata['Qxdev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.008423, 0.008423]),
+#                    abs=1e-6)
+#
+#         data = iqxqy_nxdata['Qy'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.004962, 0.004962]))
+#
+#         data = iqxqy_nxdata['Qydev'][:]
+#         _test_data(tested_data=data,
+#                    ref_data=np.array([0.008423, 0.008423]))
+#
+#
 def test_reduction_parameters():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
@@ -330,7 +330,8 @@ def test_reduction_parameters():
     with open(json_file, 'r') as file_handle:
         data = json.load(file_handle)
 
-    savereductionlog(tmp_log_filename, iqxqy=test_iqxqy, reductionparams=data)
+    detectordata = {'main_detector': {'iqxqy': test_iqxqy}}
+    savereductionlog(tmp_log_filename, detectordata=detectordata, reductionparams=data)
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
@@ -349,9 +350,14 @@ def test_reduction_parameters():
         assert red_val == test_val
 
 
-def test_no_data_passed():
+def test_no_detectordata_passed():
     with pytest.raises(RuntimeError):
         savereductionlog()
+
+
+def test_no_arrays_passed():
+    with pytest.raises(RuntimeError):
+        savereductionlog(detectordata={'nothing_here': None})
 
 
 if __name__ == '__main__':

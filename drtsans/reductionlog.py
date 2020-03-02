@@ -179,10 +179,8 @@ def _create_groupe(entry=None, name='Default', data=[], units=''):
     _entry_group.attrs['units'] = units
 
 
-def _save_iqxqy_to_log(filename='', append=False, iqxqy=None):
-    write_property = 'a' if append else 'w'
-    with h5py.File(filename, write_property) as handle:
-        entry = handle.create_group('I(QxQy)')
+def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
+        entry = topEntry.create_group('I(QxQy)')
         entry.attrs['NX_class'] = 'NXdata'
 
         # intensity
@@ -222,39 +220,39 @@ def _save_iqxqy_to_log(filename='', append=False, iqxqy=None):
                            units='1/A')
 
 
-def _save_iq_to_log(filename='', iq=None):
-    with h5py.File(filename, 'w') as handle:
-        entry = handle.create_group('I(Q)')
-        entry.attrs['NX_class'] = 'NXdata'
-        entry.attrs['signal'] = 'I'
-        entry.attrs['axes'] = 'Q'
+def _save_iq_to_log(iq=None, topEntry=None):
+    # with h5py.File(filename, 'w') as handle:
+    entry = topEntry.create_group('I(Q)')
+    entry.attrs['NX_class'] = 'NXdata'
+    entry.attrs['signal'] = 'I'
+    entry.attrs['axes'] = 'Q'
 
-        # intensity
+    # intensity
+    _create_groupe(entry=entry,
+                   name='I',
+                   data=iq.intensity,
+                   units='1/cm')
+
+    # errors
+    _create_groupe(entry=entry,
+                   name='Idev',
+                   data=iq.error,
+                   units='1/cm')
+
+    # mod_q
+    if not (iq.mod_q is None):
         _create_groupe(entry=entry,
-                       name='I',
-                       data=iq.intensity,
-                       units='1/cm')
+                       name='Q',
+                       data=iq.mod_q,
+                       units='1/A')
 
-        # errors
         _create_groupe(entry=entry,
-                       name='Idev',
-                       data=iq.error,
-                       units='1/cm')
-
-        # mod_q
-        if not (iq.mod_q is None):
-            _create_groupe(entry=entry,
-                           name='Q',
-                           data=iq.mod_q,
-                           units='1/A')
-
-            _create_groupe(entry=entry,
-                           name='Qdev',
-                           data=iq.delta_mod_q,
-                           units='1/A')
+                       name='Qdev',
+                       data=iq.delta_mod_q,
+                       units='1/A')
 
 
-def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
+def savereductionlog(filename='', detectordata=None, **kwargs):
     r'''Save the reduction log
 
     There are three ``NXentry``. The first is for the 1d reduced data, second
@@ -265,10 +263,10 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
 
     Parameters
     ----------
-    iq: Iqmod
-        tuple with the following informations: intensity, error, mod_q, delta_mode_q
-    iqxqy: IQazimuthal
-        tuple with the following informations: intensity, error, qx, delta_qx, qy, delta_y
+    detectordata: dict
+        for each key (name of detector), will have iq: Iqmod and iqxqy: IQazimuthal
+        where Iqmod is a tuple with the following informations: intensity, error, mod_q, delta_mode_q
+        and IQazimuthal is a tuple with the following informations: intensity, error, qx, delta_qx, qy, delta_y
     python: string
         The script used to create everything (optional)
     pythonfile: string
@@ -295,16 +293,40 @@ def savereductionlog(filename='', iq=None, iqxqy=None, **kwargs):
         filename = '_reduction_log.hdf'
         # raise RuntimeError('Cannot write to file "{}"'.format(filename))
 
-    if (iq is None) and (iqxqy is None):
-        raise RuntimeError("Provide at least one set of data to save into log file {}".format(filename))
+    if detectordata is None:
+        raise RuntimeError("Provide at least one detector data  {}".format(filename))
 
-    if iq and iqxqy:
-        _save_iq_to_log(filename=filename, iq=iq)
-        _save_iqxqy_to_log(filename=filename, append=True, iqxqy=iqxqy)
-    elif iq:
-        _save_iq_to_log(filename=filename, iq=iq)
-    else:
-        _save_iqxqy_to_log(filename=filename, iqxqy=iqxqy)
+    if not type(detectordata) is dict:
+        raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
+                           "and not a {}".format(type(detectordata)))
+
+    for _detector_name in detectordata.keys():
+
+        if not type(detectordata[_detector_name]) is dict:
+            raise RuntimeError("detectordata value has the wrong type. It should be a dictionary "
+                               "and not a {}".format(type(detectordata[_detector_name])))
+
+        if not ('iq' in detectordata[_detector_name].keys()) and \
+                not ('iqxqy' in detectordata[_detector_name].keys()):
+            raise RuntimeError("Provide at least one set of data to save into log file {}".format(filename))
+
+    for _name_detector in detectordata.keys():
+
+        _current_detectordata = detectordata[_name_detector]
+
+        if 'iq' in _current_detectordata.keys() and 'iqxqy' in _current_detectordata.keys():
+            with h5py.File(filename, 'w') as handle:
+                topEntry = handle.create_group(_name_detector)
+                _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=topEntry)
+                _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=topEntry)
+        elif 'iq' in _current_detectordata.keys():
+            with h5py.File(filename, 'w') as handle:
+                topEntry = handle.create_group(_name_detector)
+                _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=topEntry)
+        else:
+            with h5py.File(filename, 'w') as handle:
+                topEntry = handle.create_group(_name_detector)
+                _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=topEntry)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

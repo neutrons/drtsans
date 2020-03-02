@@ -10,7 +10,7 @@ from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
-           'translate_detector_by_z']
+           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance']
 detector_z_log = 'detectorZ'
 
 
@@ -225,7 +225,7 @@ def get_instrument(source):
 
 def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
     r"""
-    Report the distance (always positive!) between source and sample.
+    Report the distance (always positive!) between source and sample aperture.
 
     If logs are not used or distance fails to be found in the logs, then
     calculate the distance using the instrument configuration file.
@@ -308,7 +308,8 @@ def sample_detector_distance(source, unit='mm', log_key=None,
     if search_logs is True:
         log_keys = ('detector-sample-distance', 'detector_sample-distance',
                     'detector_sample_distance', 'sample-detector-distance',
-                    'sample_detector-distance', 'sample_detector_distance')
+                    'sample_detector-distance',
+                    'sample_detector_distance')  # latest one
         if log_key is not None:
             log_keys = (log_key)
         sample_logs = SampleLogs(source)

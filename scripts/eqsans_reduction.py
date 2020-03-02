@@ -1,3 +1,5 @@
+from datetime import datetime
+import copy
 import json
 import os
 import sys
@@ -40,12 +42,13 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise RuntimeError("reduction code requires a parameter json string")
     if os.path.isfile(sys.argv[1]):
-        print(sys.argv[1])
+        # print(sys.argv[1])
         with open(sys.argv[1], 'r') as fd:
             json_params = json.load(fd)
     else:
         json_string = " ".join(sys.argv[1:])
         json_params = json.loads(json_string)
+    log_json_params = copy.deepcopy(json_params)
     msapi.logger.notice(json.dumps(json_params, indent=2))
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
@@ -325,6 +328,7 @@ if __name__ == "__main__":
     save_suffix = ''
     title = f"reduction log {output_file}"
 
+    log_binned_i_of_q = {}
     for frame_number, result in enumerate(I_of_q_by_frame):
         if len(I_of_q_by_frame) > 1:
             label = f"frame_{frame_number+1}"
@@ -353,6 +357,7 @@ if __name__ == "__main__":
         else:
             binned_i_of_q = bin_intensity_into_q1d(result, q_bins, BinningMethod.NOWEIGHT)
             msapi.logger.notice('...BinningMethod = NOWEIGHT.')
+        log_binned_i_of_q[frame_number] = copy.deepcopy(binned_i_of_q)
 
         # [CD, 1/30/2020] do we want to have an option to change btn weighted and noweighted
         # issue 322
@@ -377,15 +382,41 @@ if __name__ == "__main__":
 
     # 2D
     frame_label = ''
+    log_iqxqy = {}
     for frame_number, result in enumerate(I_of_qxqy_by_frame):
         if len(I_of_q_by_frame) > 1:
             frame_label = f"_frame_{frame_number+1}"
-        get_Iqxqy(result, json_params["configuration"]["outputDir"],
-                  json_params["outputFilename"], label=frame_label,
-                  nbins=numQBins2D,
-                  weighting=flag_weighted)
+        iqxqy = get_Iqxqy(result, json_params["configuration"]["outputDir"],
+                          json_params["outputFilename"], label=frame_label,
+                          nbins=numQBins2D,
+                          weighting=flag_weighted)
+        log_iqxqy[frame_number] = iqxqy
         # [CD, 1/30/2020] option btn weighted and noweighted ?
         # [CD, 2/10/2020] option for weighting has been added
+
+    # list of arguments for log file =======================================================
+    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    starttime = datetime.now().isoformat()
+    # username = 'Neymar'
+    pythonfile = __file__
+    reductionparams = log_json_params
+    specialparameters = {'beam_center': {'x': config['center_x'],
+                                         'y': config['center_y'],
+                                         },
+                         }
+    detectordata = {}
+
+    for _key in log_binned_i_of_q.keys():
+        name = "frame_{}".format(_key)
+        detectordata[name] = {'iq': log_binned_i_of_q[_key],
+                              'iqxqy': log_iqxqy[_key]}
+    drtsans.savereductionlog(filename=filename,
+                             detectordata=detectordata,
+                             reductionparams=reductionparams,
+                             pythonfile=pythonfile,
+                             starttime=starttime,
+                             specialparameters=specialparameters,
+                             )
 
     # [CD 2/7/2020] log 'finish'
     msapi.logger.notice('...Reduction finished.')

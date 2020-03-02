@@ -1,6 +1,7 @@
 """
     BIOSANS reduction script
 """
+from datetime import datetime
 import json
 import os
 import sys
@@ -143,11 +144,12 @@ def reduction(json_params, config):
                        nbins=int(json_params["configuration"]["numQBins"]))
 
     q_data = sans.convert_to_q(ws, mode='azimuthal')
-    get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
-              json_params["outputFilename"], label=wing_label,
-              weighting=flag_weighted,
-              nbins=int(json_params["configuration"]["numQxQyBins"]))
-    return iq_output
+    iqxqy_output = get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
+                             json_params["outputFilename"], label=wing_label,
+                             weighting=flag_weighted,
+                             nbins=int(json_params["configuration"]["numQxQyBins"]))
+
+    return iq_output, iqxqy_output
 
 
 if __name__ == "__main__":
@@ -163,6 +165,7 @@ if __name__ == "__main__":
         json_params = json.loads(json_string)
     msapi.logger.notice(json.dumps(json_params, indent=2))
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
+    log_json_params = copy.deepcopy(json_params)
 
     # set up the configuration
     config = setup_configuration(json_params, INSTRUMENT)
@@ -190,7 +193,7 @@ if __name__ == "__main__":
     # This could be hidden in the API and done automatically.
     config['is_wing'] = False
     config['mask_detector'] = 'wing_detector'
-    iq_1 = reduction(json_params, config)
+    iq_1, iqxqy_1 = reduction(json_params, config)
 
     config['is_wing'] = True
     config['mask_detector'] = 'detector1'
@@ -198,7 +201,7 @@ if __name__ == "__main__":
         filename = json_params['configuration']['sensitivityFileName'].replace('_flood_', '_flood_wing_')
         config['sensitivity_file_path'] = filename
 
-    iq_2 = reduction(json_params, config)
+    iq_2, iqxqy_2 = reduction(json_params, config)
 
     # Stitch the main detector and the wing
     overlap = 0.2
@@ -215,3 +218,25 @@ if __name__ == "__main__":
     filename = os.path.join(json_params["configuration"]["outputDir"],
                             json_params['outputFilename'] + '_merged_Iq.txt')
     save_ascii_binned_1D(filename, "I(Q)", merged_profile)
+
+    # list of arguments for log file =======================================================
+    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    starttime = datetime.now().isoformat()
+    # username = 'Neymar'
+    pythonfile = __file__
+    reductionparams = log_json_params
+    specialparameters = {'beam_center': {'x': config['center_x'],
+                                         'y': config['center_y'],
+                                         'y_wing': config['center_y_wing'],
+                                         },
+                         }
+    detectordata = {'main': {'iq': iq_1, 'iqxqy': iqxqy_1},
+                    'wing': {'iq': iq_2, 'iqxqy': iqxqy_2},
+                    'combined': {'iq': merged_profile}}
+    drtsans.savereductionlog(filename=filename,
+                             detectordata=detectordata,
+                             reductionparams=reductionparams,
+                             pythonfile=pythonfile,
+                             starttime=starttime,
+                             specialparameters=specialparameters,
+                             )

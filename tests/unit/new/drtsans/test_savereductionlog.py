@@ -80,13 +80,6 @@ def _create_tmp_log_filename():
     return tmp_log_filename
 
 
-def _checkNXData(nxentry, name):
-    nxdata = _getGroup(nxentry, name, 'NXdata')
-
-    print(_strValue(nxdata, 'data'))
-
-    assert False
-
 def _checkNXNote(nxentry, name, mimetype, file_name, data):
     '''Utility function for verifying that the NXnote has the
     appropriate information'''
@@ -176,6 +169,7 @@ def test_writing_metadata():
     #                           user=user,
     #                           username=username)
 
+
 def _test_data(tested_data=[], ref_data=[], abs=None):
     for _tested, _ref in zip(tested_data, ref_data):
         if abs is None:
@@ -222,8 +216,34 @@ def test_writing_iqxqy():
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
-        pass
+        iqxqy_nxdata = _getGroup(handle, 'I(QxQy)', 'NXdata')
 
+        data = iqxqy_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iqxqy_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-8)
+
+        data = iqxqy_nxdata['Qx'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([-0.006134, -0.003254]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qxdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qy'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.004962, 0.004962]))
+
+        data = iqxqy_nxdata['Qydev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]))
 
 
 def test_writing_iq_and_iqxqy():
@@ -235,6 +255,27 @@ def test_writing_iq_and_iqxqy():
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
+        iq_nxdata = _getGroup(handle, 'I(Q)', 'NXdata')
+
+        data = iq_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iq_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Q'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.0078897, 0.0059338]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Qdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.011912, 0.11912]),
+                   abs=1e-6)
+
         iqxqy_nxdata = _getGroup(handle, 'I(QxQy)', 'NXdata')
 
         data = iqxqy_nxdata['I'][:]

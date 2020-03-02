@@ -1,6 +1,7 @@
 """
     GPSANS reduction script
 """
+from datetime import datetime
 import json
 import os
 import sys
@@ -141,17 +142,19 @@ def reduction(json_params, config):
         else:
             flag_weighted = json_params["configuration"]["useErrorWeighting"]
     q_data = sans.convert_to_q(ws, mode='scalar')
-    get_Iq(q_data, json_params["configuration"]["outputDir"],
-           json_params["outputFilename"],
-           linear_binning=json_params["configuration"]["QbinType"] == "linear",
-           weighting=flag_weighted,
-           nbins=int(json_params["configuration"]["numQBins"]))
+    Iq = get_Iq(q_data, json_params["configuration"]["outputDir"],
+                json_params["outputFilename"],
+                linear_binning=json_params["configuration"]["QbinType"] == "linear",
+                weighting=flag_weighted,
+                nbins=int(json_params["configuration"]["numQBins"]))
 
     q_data = sans.convert_to_q(ws, mode='azimuthal')
-    get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
-              json_params["outputFilename"],
-              weighting=flag_weighted,
-              nbins=int(json_params["configuration"]["numQxQyBins"]))
+    Iqxqy = get_Iqxqy(q_data, json_params["configuration"]["outputDir"],
+                      json_params["outputFilename"],
+                      weighting=flag_weighted,
+                      nbins=int(json_params["configuration"]["numQxQyBins"]))
+
+    return Iq, Iqxqy
 
 
 if __name__ == "__main__":
@@ -165,6 +168,8 @@ if __name__ == "__main__":
     else:
         json_string = " ".join(sys.argv[1:])
         json_params = json.loads(json_string)
+    log_json_params = copy.deepcopy(json_params)
+
     msapi.logger.notice(json.dumps(json_params, indent=2))
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
@@ -194,4 +199,22 @@ if __name__ == "__main__":
 
         msapi.logger.warning("WE NEED A WAY TO PASS A BEAM CENTER")
 
-    reduction(json_params, config)
+    (Iq, Iqxqy) = reduction(json_params, config)
+
+    # list of arguments for log file ========================================================
+    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    starttime = datetime.now().isoformat()
+    # username = 'Neymar'
+    pythonfile = __file__
+    reductionparams = log_json_params
+    specialparameters = {'beam_center': {'x': config['center_x'],
+                                         'y': config['center_y']},
+                         }
+    detectordata = {'main': {'iq': Iq, 'iqxqy': Iqxqy}}
+    drtsans.savereductionlog(filename=filename,
+                             detectordata=detectordata,
+                             reductionparams=reductionparams,
+                             pythonfile=pythonfile,
+                             starttime=starttime,
+                             specialparameters=specialparameters,
+                             )

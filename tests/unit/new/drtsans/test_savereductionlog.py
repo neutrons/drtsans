@@ -1,10 +1,23 @@
 import h5py
-from mantid.simpleapi import mtd, CompareWorkspaces, Load, LoadNexusProcessed
 import numpy as np
-from drtsans import savereductionlog
-import os
 import pytest
-from tempfile import gettempdir, NamedTemporaryFile
+import os
+import json
+
+from drtsans import savereductionlog
+from drtsans.iq import determine_1d_log_bins
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins
+from drtsans.dataobjects import IQmod
+from drtsans.dataobjects import IQazimuthal
+from tempfile import NamedTemporaryFile
+from drtsans import __version__ as drtsans_version
+from mantid import __version__ as mantid_version
+
+
+def _getConfigJsonFile():
+    _file_path = os.path.dirname(__file__)
+    config_json = os.path.abspath(os.path.join(_file_path, '../../../../scripts/reduction.json'))
+    return config_json
 
 
 def _strValue(group, name):
@@ -34,37 +47,46 @@ def _getGroup(parent, name, klass):
     return child
 
 
-def _check1d(handle, wksp_name):
-    '''Utility function for verifying the 1d data (and attributes) are correct'''
-    wksp = mtd[wksp_name]
-    dims = (wksp.getNumberHistograms(), wksp.blocksize())
+def _create_iq():
+    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
+    q_min = 0.001  # Edge
+    q_max = 0.010  # Edge
+    num_steps_per_10 = 10  # 10 steps per decade
 
-    # TODO should there be a better name for the entry?
-    entry = _getGroup(handle, 'mantid_workspace_1', 'NXentry')
+    # Verify bin edges and bin center
+    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
+    gold_edges, gold_centers = get_gold_1d_log_bins()
 
-    assert _strValue(entry, 'workspace_name') == wksp_name
+    np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
+    np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
 
-    nxdata = entry['workspace']
+    # Get Q1D data
+    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
 
-    axis1 = nxdata['axis1']
-    assert axis1.size == dims[1]+1  # for a histogram
-    assert _strAttr(axis1, 'units') == 'MomentumTransfer'
-    assert np.all(axis1.value == wksp.readX(0))
+    # Test the high level method
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
 
-    axis2 = nxdata['axis2']
-    assert axis2.size == dims[0]
-    assert _strAttr(axis2, 'units') == 'spectraNumber'
-    assert axis2.value == 1.
+    return test_iq
 
-    values = nxdata['values']
-    assert np.all(values.shape == dims)
-    assert _strAttr(values, 'units') == 'Counts'
-    assert _strAttr(values, 'axes') == 'axis2,axis1'
-    assert values.attrs['signal'] == 1
-    assert np.all(values.value == wksp.readY(0))
 
-    errors = nxdata['errors']
-    assert np.all(errors.value == wksp.readE(0))
+def _create_iqxqy():
+    # Get data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+    test_iqxqy = IQazimuthal(intensity=intensities,
+                             error=sigmas,
+                             qx=qx_array,
+                             qy=qy_array,
+                             delta_qx=dqx_array,
+                             delta_qy=dqy_array)
+    return test_iqxqy
+
+
+def _create_tmp_log_filename():
+    tmp_log_filename = NamedTemporaryFile(prefix="logfile", suffix='.nxs.h5').name
+    tmp_log_filename = os.path.abspath(tmp_log_filename)
+    if os.path.exists(tmp_log_filename):
+        os.remove(tmp_log_filename)
+    return tmp_log_filename
 
 
 def _checkNXNote(nxentry, name, mimetype, file_name, data):
@@ -129,117 +151,219 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXprocess(entry, 'drtsans')
 
 
-def _checkWorkspaces(filename, orig, entry):
-    '''Utility function for verifying that the workspace saved is the
-    same as the one that is in the file'''
-    if not orig:
-        print('nothing to check against')
-        return
+def test_writing_metadata():
 
-    reloaded = orig + '_reload'
-    LoadNexusProcessed(Filename=filename, OutputWorkspace=reloaded,
-                       EntryNumber=entry)
-    result, msg = CompareWorkspaces(Workspace1=orig,
-                                    Workspace2=reloaded)
-    assert result, msg
-    if reloaded in mtd:
-        mtd.remove(reloaded)
+    pythonscript = "this is my python script"
+    pythonfile = 'this_is_my_file.py'
+    reductionparams = {'reduction parameter 1': 'value1'}
+    starttime = '1993-03-18T21:00:00'
+    username = 'Neymar'
+    user = 'Cavani'
+    specialparameters = {'key1': 10, 'key2': 'text here'}
+
+    test_iq = _create_iq()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename,
+                     detectordata={'main_detector': {'iq': test_iq}},
+                     python=pythonscript,
+                     starttime=starttime,
+                     pythonfile=pythonfile,
+                     user=user,
+                     username=username,
+                     reductionparams=reductionparams,
+                     specialparameters=specialparameters)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+
+        assert _strValue(reduction_information_entry['reduction_script'], 'data') == pythonscript
+        assert _strValue(reduction_information_entry['reduction_script'], 'file_name') == pythonfile
+        assert _strValue(reduction_information_entry, 'start_time') == starttime
+        assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
+        assert _strValue(reduction_information_entry['user'], 'name') == username
+        assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
+        assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
 
 
-@pytest.mark.parametrize(
-    'filename1d', ['test_save_output/EQSANS_68200_iq.nxs', '']
-)
-@pytest.mark.parametrize(
-    'filename_other', [(),
-                       ('test_save_output/EQSANS_68200_iq.nxs', ''),
-                       ('', 'test_save_output/EQSANS_68200_iq.nxs'),
-                       ('test_save_output/EQSANS_68200_iq.nxs',
-                        'test_save_output/EQSANS_68200_iq.nxs')]
-)
-def test_saving(reference_dir, filename1d, filename_other):
-    wksp1d = ''
-    wksp_other = []
-
-    # setup inputs
-    if filename1d:
-        filename1d = os.path.join(reference_dir.new.eqsans,
-                                  filename1d)
-        wksp1d = 'test_save_wksp1d'
-        Load(Filename=filename1d, OutputWorkspace=wksp1d)
-
-    for i, filename in enumerate(filename_other):
-        if filename:
-            filename = os.path.join(reference_dir.new.eqsans,
-                                    filename)
-            wksp = 'test_save_wksp_{}'.format(i)
-            if filename == filename1d:
-                wksp = wksp1d  # just reuse the workspace
-            else:
-                Load(Filename=filename, OutputWorkspace=wksp)
-            wksp_other.append(wksp)
+def _test_data(tested_data=[], ref_data=[], abs=None):
+    for _tested, _ref in zip(tested_data, ref_data):
+        if abs is None:
+            assert _tested == _ref
         else:
-            wksp_other.append('')
-
-    tmpfile = NamedTemporaryFile(prefix=wksp1d, suffix='.nxs.h5').name
-    tmpfile = os.path.abspath(tmpfile)
-    if os.path.exists(tmpfile):
-        os.unlink(tmpfile)  # remove it if it already exists
-
-    # dummy arguments to check against - they should be found in the file
-    pythonscript = 'blah blah blah'
-    reductionparams = ''
-    starttime = '1992-01-19T00:00:01Z'
-    username = 'Jimmy Neutron'
-    user = 'neutron'
-
-    # run the function - use same workspace for both
-    if wksp1d:
-        savereductionlog(tmpfile, wksp1d, *wksp_other,
-                         python=pythonscript, starttime=starttime,
-                         user=user, username=username)
-
-        # validation
-        assert os.path.exists(tmpfile), \
-            'Output file "{}" does not exist'.format(tmpfile)
-
-        # go into the file to check things
-        with h5py.File(tmpfile, 'r') as handle:
-            _check1d(handle, wksp1d)
-            _checkProcessingEntry(handle, pythonscript=pythonscript,
-                                  reductionparams=reductionparams,
-                                  starttime=starttime, username=username)
-
-        # use mantid to check the workspaces
-        _checkWorkspaces(tmpfile, wksp1d, 1)
-        for i, wksp in enumerate(wksp_other):
-            if wksp:
-                _checkWorkspaces(tmpfile, wksp, i + 1)
-    else:  # not supplying 1d workspace should always fail
-        with pytest.raises(RuntimeError):
-            savereductionlog(tmpfile, wksp1d, *wksp_other,
-                             python=pythonscript, starttime=starttime,
-                             user=user, username=username)
-        assert not os.path.exists(tmpfile), \
-            'Output file "{}" should not exist'.format(tmpfile)
-
-    # cleanup
-    if os.path.exists(tmpfile):
-        os.unlink(tmpfile)
-    wksp_other.append(wksp1d)
-    for wksp in wksp_other:
-        if wksp and wksp in mtd:
-            mtd.remove(wksp)
+            _tested == pytest.approx(_ref, abs=abs)
 
 
-def test_empty_filename():
+def test_writing_iq():
+    test_iq = _create_iq()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq}})
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        top_group = _getGroup(handle, 'main_detector', 'NXdata')
+        iq_nxdata = _getGroup(top_group, 'I(Q)', 'NXdata')
+
+        data = iq_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iq_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Q'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.0078897, 0.0059338]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Qdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.011912, 0.11912]),
+                   abs=1e-6)
+
+
+def test_writing_iqxqy():
+    test_iqxqy = _create_iqxqy()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iqxqy': test_iqxqy}})
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        top_group = _getGroup(handle, 'main_detector', 'NXdata')
+        iqxqy_nxdata = _getGroup(top_group, 'I(QxQy)', 'NXdata')
+
+        data = iqxqy_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iqxqy_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-8)
+
+        data = iqxqy_nxdata['Qx'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([-0.006134, -0.003254]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qxdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qy'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.004962, 0.004962]))
+
+        data = iqxqy_nxdata['Qydev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]))
+
+
+def test_writing_iq_and_iqxqy():
+    test_iq = _create_iq()
+    test_iqxqy = _create_iqxqy()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq,
+                                                                       'iqxqy': test_iqxqy}})
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        top_group = _getGroup(handle, 'main_detector', 'NXdata')
+
+        iq_nxdata = _getGroup(top_group, 'I(Q)', 'NXdata')
+
+        data = iq_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iq_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Q'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.0078897, 0.0059338]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Qdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.011912, 0.11912]),
+                   abs=1e-6)
+
+        iqxqy_nxdata = _getGroup(top_group, 'I(QxQy)', 'NXdata')
+
+        data = iqxqy_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iqxqy_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-8)
+
+        data = iqxqy_nxdata['Qx'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([-0.006134, -0.003254]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qxdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qy'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.004962, 0.004962]))
+
+        data = iqxqy_nxdata['Qydev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]))
+
+
+def test_reduction_parameters():
+    test_iqxqy = _create_iqxqy()
+    tmp_log_filename = _create_tmp_log_filename()
+
+    json_file = _getConfigJsonFile()
+    with open(json_file, 'r') as file_handle:
+        data = json.load(file_handle)
+
+    detectordata = {'main_detector': {'iqxqy': test_iqxqy}}
+    savereductionlog(tmp_log_filename, detectordata=detectordata, reductionparams=data)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+
+        assert _strValue(reduction_information_entry['drtsans'], 'version') == drtsans_version
+        assert _strValue(reduction_information_entry['mantid'], 'version') == mantid_version
+
+        red_val = reduction_information_entry['reduction_parameters']['background']['transmission']['runNumber'].value
+        test_val = data['background']['transmission']['runNumber']
+        assert red_val == test_val
+
+        red_val = reduction_information_entry['reduction_parameters']['iptsNumber'].value
+        test_val = data['iptsNumber']
+        assert red_val == test_val
+
+
+def test_no_detectordata_passed():
     with pytest.raises(RuntimeError):
-        savereductionlog(filename='', wksp=None)
+        savereductionlog()
 
 
-def test_nonexistant_1d_wksp():
-    tmpfile = os.path.join(gettempdir(), 'test_nonexistant_1d_wksp.nxs')
+def test_no_arrays_passed():
     with pytest.raises(RuntimeError):
-        savereductionlog(filename=tmpfile, wksp=None)
+        savereductionlog(detectordata={'nothing_here': None})
 
 
 if __name__ == '__main__':

@@ -312,7 +312,7 @@ if __name__ == "__main__":
         if linear_binning:
             q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
         else:
-            q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D)
+            q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D, even_decade=False)
             # [AS, 2/4/2020] need option for decade log binning
 
         # [CD, 2/10/2020] added weighting option. default should be NOWEIGHT

@@ -15,7 +15,6 @@ from drtsans.tubecollection import TubeCollection # noqa E402
 from drtsans.dataobjects import DataType, getDataType # noqa E402
 from drtsans.geometry import panel_names # noqa E402
 
-
 __all__ = ['plot_IQmod', 'plot_IQazimuthal', 'plot_detector']
 
 
@@ -181,9 +180,9 @@ def plot_IQazimuthal(workspace, filename, backend='d3'):
     _saveFile(fig, filename, backend)
 
 
-def plot_detector(input_workspace, filename=None, backend='d3',
+def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-pixel',
                   imshow_kwargs={'norm': LogNorm(vmin = 1)}):
-    r"""Save a plot representative of the supplied workspace
+    r"""Save a 2D plot representative of the supplied workspace
 
      Parameters
      ----------
@@ -192,6 +191,9 @@ def plot_detector(input_workspace, filename=None, backend='d3',
      filename: str
          The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
          backend, the type of file is determined from the file extension
+     axes_mode: str
+        Plot intensities versus different axes. Options are: 'xy' for plotting versus pixel coordinates;
+        'tube-pixel' for plotting versus tube and pixel index.
      backend: Backend
          Which backend to save the file using
      imshow_kwargs: dict
@@ -204,14 +206,26 @@ def plot_detector(input_workspace, filename=None, backend='d3',
     for i_detector, detector_name in enumerate(detector_names):
         collection = TubeCollection(workspace, detector_name).sorted(view='decreasing X')
         data = np.sum(np.array([tube.readY for tube in collection]), axis=-1)  # sum intensities for each pixel
-        data[data < 1e-10] = 1e-10
+        if isinstance(imshow_kwargs.get('norm', None), LogNorm) is True:
+            data[data < 1e-10] = 1e-10  # no negative values when doing a logarithm plot
         mask = np.array([tube.isMasked for tube in collection])
-        data = np.transpose(np.ma.masked_where(mask, data))
+        data = np.ma.masked_where(mask, data)
         # Add subfigure
         axis = fig.add_subplot(len(detector_names), 1, i_detector + 1)
-        image = axis.imshow(data, aspect='auto', origin='lower', **imshow_kwargs)
+        if axes_mode == 'tube-pixel':
+            image = axis.imshow(np.transpose(data), aspect='auto', origin='lower', **imshow_kwargs)
+            axis_properties = {'set_xlabel': 'tube', 'set_ylabel': 'pixel', 'set_title': f'{detector_name}'}
+        elif axes_mode == 'xy':
+            n_pixels = len(collection[0])  # number of pixels in the first tube
+            x = np.array([tube.position[0] * np.ones(n_pixels) for tube in collection])
+            # BOTTLENECK-1
+            y = np.array([tube.pixel_y for tube in collection])
+            # BOTTLENECK-2 (but 6 times faster than BOTTLENECK-1)
+            image = axis.pcolormesh(x, y, data)
+            axis_properties = {'set_xlabel': 'X', 'set_ylabel': 'Y', 'set_title': f'{detector_name}'}
+        else:
+            raise ValueError('Unrecognized axes_mode. Valid options are "tube-pixel" and "xy"')
         image.cmap.set_bad(alpha=0.5)
-        axis_properties = {'set_xlabel': 'tube', 'set_ylabel': 'pixel', 'set_title': f'{detector_name}'}
         [getattr(axis, prop)(value) for prop, value in axis_properties.items()]
         fig.colorbar(image, ax=axis)
     fig.tight_layout()

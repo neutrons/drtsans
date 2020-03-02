@@ -28,7 +28,7 @@ SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateEmptyTableWorkspace, CreateWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
                               LoadEmptyInstrument, LoadInstrument, LoadNexus, MaskDetectors, MaskDetectorsIf,
-                              ReplaceSpecialValues, SaveNexus, LoadEventNexus)
+                              ReplaceSpecialValues, SaveNexus)
 from mantid.api import mtd
 
 r"""

@@ -15,13 +15,14 @@ if not os.path.exists(os.path.expanduser("~/.mantid")):
     os.makedirs(os.path.expanduser("~/.mantid"))
 with open(os.path.expanduser("~/.mantid/Mantid.user.properties"), "a") as f:
     f.write("\nlogging.channels.consoleChannel.class=NullChannel\n")
-from mantid.simpleapi import Load # noqa E402
+from mantid.simpleapi import Load, DeleteWorkspace # noqa E402
 
 
 # Load data using Mantid
 def load_data(filename):
     ws = Load(filename)
     data = ws.extractY().reshape(-1, 8, 256).T
+    DeleteWorkspace(ws)
     data2 = data[:, [0, 4, 1, 5, 2, 6, 3, 7], :]
     data2 = data2.transpose().reshape(-1, 256)
 

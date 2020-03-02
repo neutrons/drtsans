@@ -1,11 +1,8 @@
-import os
-
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import logger
-# https://docs.mantidproject.org/nightly/algorithms/Load-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
-from mantid.simpleapi import mtd, Load, MoveInstrumentComponent
+from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
@@ -207,39 +204,21 @@ def get_instrument(source):
     Parameters
     ----------
     source: PyObject
-        Instrument object, MatrixWorkspace, , workspace name, file name,
-        run number
+        MatrixWorkspace, workspace name
 
     Returns
     -------
     Mantid::Instrument
         Instrument object
     """
-    def from_instrument(instrument):
-        return instrument
-
     def from_ws(ws):
         return ws.getInstrument()
 
-    def from_integer(run_number):
-        w = Load(Filename=str(run_number))
-        return get_instrument(w)
-
     def from_string(s):
-        if os.path.isfile(s):
-            w = Load(Filename=s)
-            return get_instrument(w)
-        elif s in mtd:
+        if s in mtd:
             return get_instrument(mtd[s])
-        else:
-            try:
-                i = int(s)
-                return get_instrument(i)
-            finally:
-                pass
 
-    dispatch = {Instrument: from_instrument, MatrixWorkspace: from_ws,
-                int: from_integer, str: from_string}
+    dispatch = {MatrixWorkspace: from_ws, str: from_string}
     finder = [v for k, v in dispatch.items() if isinstance(source, k)][0]
     return finder(source)
 

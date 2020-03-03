@@ -155,7 +155,8 @@ def reduction(json_params, config):
                              weighting=flag_weighted,
                              nbins=int(json_params["configuration"]["numQxQyBins"]))
 
-    return iq_output, iqxqy_output
+    return {'iq': iq_output,
+            'iqxqy': iqxqy_output}
 
 
 if __name__ == "__main__":
@@ -201,7 +202,9 @@ if __name__ == "__main__":
     # This could be hidden in the API and done automatically.
     config['is_wing'] = False
     config['mask_detector'] = 'wing_detector'
-    iq_1, iqxqy_1 = reduction(json_params, config)
+    reduction_1_dict = reduction(json_params, config)
+    iq_1 = reduction_1_dict['iq']
+    iqxqy_1 = reduction_1_dict['iqxqy']
 
     config['is_wing'] = True
     config['mask_detector'] = 'detector1'
@@ -209,7 +212,9 @@ if __name__ == "__main__":
         filename = json_params['configuration']['sensitivityFileName'].replace('_flood_', '_flood_wing_')
         config['sensitivity_file_path'] = filename
 
-    iq_2, iqxqy_2 = reduction(json_params, config)
+    reduction_2_dict = reduction(json_params, config)
+    iq_2 = reduction_2_dict['iq']
+    iqxqy_2 = reduction_2_dict['iqxqy']
 
     # Stitch the main detector and the wing
     overlap = 0.2

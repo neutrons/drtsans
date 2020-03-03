@@ -257,6 +257,9 @@ def _save_iq_to_log(iq=None, topEntry=None):
 
 def _retrieve_beam_radius_from_out_file(outfolder=''):
     name_of_out_file = glob.glob(os.path.join(outfolder, '*.out'))
+    if name_of_out_file == []:
+        return ""
+
     with open(name_of_out_file[0], 'r') as handler:
         file_contain = handler.readlines()
     string_to_look_for = 'Radius calculated from the input workspace ='
@@ -269,11 +272,22 @@ def _retrieve_beam_radius_from_out_file(outfolder=''):
     return ""
 
 
-def _appendCalculatedBeamRadius(specialparameters, json=None, outfolder=''):
-    beam_radius_in_json = json['configuration']['mmRadiusForTransmission']
+def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder=''):
+    if json is None:
+        return specialparameters
+
+    try:
+        beam_radius_in_json = json['configuration']['mmRadiusForTransmission']
+    except:
+        return specialparameters
+
     if beam_radius_in_json == "":
         beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
-    specialparameters = {**specialparameters, 'calculated_transmission_radius (mm)': beam_radius_in_json}
+
+    if specialparameters is None:
+        specialparameters = {'calculated_transmission_radius (mm)': beam_radius_in_json}
+    else:
+        specialparameters = {**specialparameters, 'calculated_transmission_radius (mm)': beam_radius_in_json}
     return specialparameters
 
 

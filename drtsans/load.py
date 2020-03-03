@@ -142,6 +142,10 @@ def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monito
     if isinstance(data_list, str):
         data_list = [data.strip() for data in data_list.split(',')]
 
+    # If only one input workpsace then just return that workspace
+    if len(data_list) == 0:
+        return mtd[data_list[0]]
+
     # Check workspaces are of correct type
     for data in data_list:
         if not mtd.doesExist(str(data)):
@@ -157,4 +161,4 @@ def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monito
               OutputWorkspace=output_workspace,
               SampleLogsSum=','.join(sum_logs))
 
-    return output_workspace
+    return mtd[output_workspace]

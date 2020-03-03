@@ -3,7 +3,8 @@ import pytest
 from mantid import mtd
 from mantid.simpleapi import GroupWorkspaces
 
-from drtsans.mono.biosans import load_histogram, load_events, transform_to_wavelength, sum_data
+from drtsans.mono.biosans import (load_histogram, load_events,
+                                  transform_to_wavelength, sum_data, load_events_and_histogram)
 from drtsans.samplelogs import SampleLogs
 
 
@@ -115,6 +116,29 @@ def test_sum_data(reference_dir):
     merged_workspaces_4 = sum_data(ws_group,  output_workspace="merged4")
     assert SampleLogs(merged_workspaces_4).duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633,
                                                                            abs=1e-11)
+
+
+def test_load_events_and_histogram(reference_dir):
+    workspace = load_events_and_histogram('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans)
+    assert workspace.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert workspace.name() == "BIOSANS_961"
+
+    sample_logs = SampleLogs(workspace)
+    assert sample_logs.monitor.value == 19173627
+    assert sample_logs.duration.value == pytest.approx(1809.4842529296875, abs=1e-11)
+    assert sample_logs.wavelength.size() == 692
+    assert mtd[str(workspace)].extractY().sum() == 11067715
+
+    workspace2 = load_events_and_histogram('CG3_961.nxs.h5, CG3_960.nxs.h5', data_dir=reference_dir.new.biosans)
+    assert workspace2.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert workspace2.name() == "BIOSANS_961_960"
+
+    sample_logs2 = SampleLogs(workspace2)
+
+    assert sample_logs2.monitor.value == 19173627 + 1039
+    assert sample_logs2.duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633, abs=1e-11)
+    assert sample_logs2.wavelength.size() == 692 + 2
+    assert mtd[str(workspace2)].extractY().sum() == 11067715 + 1
 
 
 if __name__ == '__main__':

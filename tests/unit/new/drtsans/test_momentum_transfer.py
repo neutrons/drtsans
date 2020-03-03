@@ -4,7 +4,6 @@ from pytest import approx
 from drtsans.geometry import pixel_centers
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.momentum_transfer import convert_to_q, _filter_and_replicate, subpixel_info
-from drtsans.dataobjects import IQazimuthal
 from mantid.simpleapi import MaskDetectors
 
 

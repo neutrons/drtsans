@@ -352,6 +352,35 @@ def source_sample_distance(source, unit='mm', log_key=None, search_logs=True):
     return abs(sample.getDistance(instrument.getSource())) * m2units[unit]
 
 
+def search_source_sample_distance_meta_name(source, specified_meta_name):
+    """Search meta data (sample logs) for source-sample distance
+
+    Parameters
+    ----------
+    source : PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number.
+    specified_meta_name : str, None
+        Only search for the given string in the source's meta data (logs). Do not use default log keys
+
+    Returns
+    -------
+    ~list
+        item = (str, float, str)
+        meta data name, sample detector distance value, unit
+
+    """
+    # Allowed meta data name for source-sample distance including aliases
+    # Currently EPICS uses 'source_aperture_sample_aperture_distance'
+    log_keys = {'source-sample-distance', 'source_sample-distance',
+                'source_sample_distance', 'sample-source-distance',
+                'sample_source-distance', 'sample_source_distance',
+                'source_aperture_sample_distance',
+                'source_aperture_sample_aperture_distance'}
+
+    return _search_meta_data(source, log_keys, specified_meta_name)
+
+
 def sample_detector_distance(source, unit='mm', log_key=None,
                              search_logs=True):
     r"""

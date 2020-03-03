@@ -38,8 +38,8 @@ def test_set_mono_meta_data(workspace_with_instrument):
 
     # verify pixel size
     test_ps_x, test_ps_y = pixel_size(data_ws)
-    assert test_ps_x == 0.0021
-    assert test_ps_y == 0.0022
+    assert test_ps_x == 0.0021, 'Expected: {}, Got: {}'.format(0.0021, test_ps_x)
+    assert test_ps_y == 0.0022, 'Expected: {}, Got: {}'.format(0.0022, test_ps_y)
 
 
 @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 3}], indirect=True)

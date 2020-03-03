@@ -262,8 +262,8 @@ def pixel_size(workspace):
 
     if 'pixel_size_x' in sample_logs.keys() and 'pixel_size_y' in sample_logs.keys():
         # Pixel size is from meta data
-        pixel_size_x = sample_logs['pixel_size_x']
-        pixel_size_y = sample_logs['pixel_size_y']
+        pixel_size_x = sample_logs['pixel_size_x'].value
+        pixel_size_y = sample_logs['pixel_size_y'].value
     else:
         # Pixel size is from detector shape
         det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # 3 values

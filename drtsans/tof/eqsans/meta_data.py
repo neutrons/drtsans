@@ -1,5 +1,6 @@
 # Method in this module is to set meta data to EQSANS Mantid Workspaces
 from mantid.simpleapi import AddSampleLogMultiple
+from drtsans.meta_data import set_up_sample_detector_distance
 
 __all__ = ['set_meta_data']
 
@@ -60,7 +61,9 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
 
     # Sample to detector distance
     if sample_to_detector_distance is not None:
-        meta_data_list.append(('detectorZ', sample_to_detector_distance, 'm'))
+        sub_list = set_up_sample_detector_distance(workspace, source_to_sample_distance, 'm',
+                                                   'detectorZ')
+        meta_data_list.extend(sub_list)
 
     # Sample thickness
     if sample_thickness is not None:

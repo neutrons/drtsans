@@ -1,27 +1,48 @@
 # Method in this module is to set meta data to SANS Mantid Workspaces
+from drtsans.geometry import search_sample_detector_distance_meta_name
 
 
-__all__ = ['set_meta_data']
+__all__ = ['set_meta_data', 'set_up_sample_detector_distance']
 
 
-def set_source_sample_distance(workspace, source_to_sample_distance):
-    """Set source to sample distance to meta data
+def set_up_sample_detector_distance(workspace, sample_detector_distance, distance_unit,
+                                    non_exist_default_name):
+    """Set detector to sample distance to meta data
 
     Parameters
     ----------
     workspace: str, ~mantid.api.MatrixWorkspace
         Mantid workspace instance or workspace name
-    source_to_sample_distance:  float, None
+    sample_detector_distance:  float, None
         sample to detector distance in meter
+    distance_unit: str
+        unit for source sample distance
+    non_exist_default_name: str
+        meta data name for sample detector distance if None of the default name exist
 
     Returns
     -------
-    None
+    ~list
+        item = (str, float, str) as log name, log value, log unit
 
     """
     # Ignore if source to sample distance is None
-    if source_to_sample_distance is None:
+    if sample_detector_distance is None:
         return
+
+    # Get the possible meta data names for this distance
+    log_names = zip(*search_sample_detector_distance_meta_name(workspace, None))[0]
+
+    # Set meta data name from default if the default one cannot be found
+    if len(log_names) == 0:
+        log_names = [non_exist_default_name]
+
+    # Create the list for log, value, unit
+    meta_overwrite_list = list()
+    for log_name in log_names:
+        meta_overwrite_list.append((log_name, sample_detector_distance, distance_unit))
+
+    return meta_overwrite_list
 
 
 def set_meta_data(workspace, wave_length=None, wavelength_spread=None,

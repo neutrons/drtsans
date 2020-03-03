@@ -383,21 +383,6 @@ def sample_detector_distance(source, unit='mm', log_key=None,
 
     if search_logs is True:
         # Search the logs for the distance
-        # log_keys = ('detector-sample-distance', 'detector_sample-distance',
-        #             'detector_sample_distance', 'sample-detector-distance',
-        #             'sample_detector-distance',
-        #             'sample_detector_distance')  # latest one
-        # if log_key is not None:
-        #     log_keys = (log_key)
-        # sample_logs = SampleLogs(source)
-        # try:
-        #     lk = set(log_keys).intersection(set(sample_logs.keys())).pop()
-        #     lk_value = float(sample_logs.single_value(lk))
-        #     # Default unit of lk is mm unless "m" specified
-        #     return lk_value * m2units[unit] if sample_logs[lk].units == 'm' else lk_value * mm2units[unit]
-        # except KeyError:
-        #     pass
-
         meta_info_list = search_sample_detector_distance_meta_name(source, log_key)
         if len(meta_info_list) == 0:
             # No meta data found: Use instrument information to get distance

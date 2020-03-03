@@ -11,7 +11,8 @@ from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
-           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance', 'pixel_size']
+           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance', 'pixel_size',
+           'search_sample_detector_distance_meta_name']
 detector_z_log = 'detectorZ'
 
 
@@ -380,26 +381,87 @@ def sample_detector_distance(source, unit='mm', log_key=None,
     m2units = dict(mm=1e3, m=1.0)
     mm2units = dict(mm=1.0, m=1e-3)
 
-    # Search the logs for the distance
     if search_logs is True:
-        log_keys = ('detector-sample-distance', 'detector_sample-distance',
-                    'detector_sample_distance', 'sample-detector-distance',
-                    'sample_detector-distance',
-                    'sample_detector_distance')  # latest one
-        if log_key is not None:
-            log_keys = (log_key)
-        sample_logs = SampleLogs(source)
-        try:
-            lk = set(log_keys).intersection(set(sample_logs.keys())).pop()
-            lk_value = float(sample_logs.single_value(lk))
-            # Default unit of lk is mm unless "m" specified
-            return lk_value * m2units[unit] if sample_logs[lk].units == 'm' else lk_value * mm2units[unit]
-        except KeyError:
+        # Search the logs for the distance
+        # log_keys = ('detector-sample-distance', 'detector_sample-distance',
+        #             'detector_sample_distance', 'sample-detector-distance',
+        #             'sample_detector-distance',
+        #             'sample_detector_distance')  # latest one
+        # if log_key is not None:
+        #     log_keys = (log_key)
+        # sample_logs = SampleLogs(source)
+        # try:
+        #     lk = set(log_keys).intersection(set(sample_logs.keys())).pop()
+        #     lk_value = float(sample_logs.single_value(lk))
+        #     # Default unit of lk is mm unless "m" specified
+        #     return lk_value * m2units[unit] if sample_logs[lk].units == 'm' else lk_value * mm2units[unit]
+        # except KeyError:
+        #     pass
+
+        meta_data_name, meta_data_value, meta_data_unit = search_sample_detector_distance_meta_name(source, log_key)
+        if meta_data_name is None:
+            # Use instrument information to get distance
             pass
+        else:
+            # Calculate from log value considering unit
+            distance = meta_data_value * m2units[unit] if meta_data_unit == 'm' else meta_data_value * mm2units[unit]
+            return distance
+
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
     det = instrument.getComponentByName(detector_name(source))
     return det.getDistance(instrument.getSample()) * m2units[unit]
+
+
+def search_sample_detector_distance_meta_name(source, specified_meta_name):
+    """Search meta data (sample logs) for sample detector distance
+
+    Parameters
+    ----------
+    source : PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number.
+    specified_meta_name : str, None
+        Only search for the given string in the source's meta data (logs). Do not use default log keys
+
+    Returns
+    -------
+    str, float, str
+        meta data name, sample detector distance value, unit
+
+    """
+    # Determine the possible meta data names to search for
+    if specified_meta_name is None:
+        # Possible meta data name
+        log_keys = {'detector-sample-distance', 'detector_sample-distance', 'detector_sample_distance',
+                    'sample-detector-distance', 'sample_detector-distance',
+                    'sample_detector_distance'}  # latest one
+    else:
+        # User specified
+        log_keys = {specified_meta_name}
+    # Get sample logs
+    sample_logs = SampleLogs(source)
+
+    # Intersection:
+    common_set = log_keys.intersection((sample_logs.keys()))
+
+    # Decide log name
+    if len(common_set) == 1:
+        # Find 1 and only 1
+        meta_name = common_set.pop()
+        lk_value = float(sample_logs.single_value(meta_name))
+        distance_unit = sample_logs[meta_name].units
+    elif len(common_set) == 0:
+        # No found
+        meta_name = None
+        lk_value = None
+        distance_unit = None
+    else:
+        # More than 1.  It is not an allowed case
+        raise RuntimeError('In {}, more than 1 meta data ({}) exist for sample-detector distance'
+                           ''.format(str(source), common_set))
+
+    return meta_name, lk_value, distance_unit
 
 
 def source_detector_distance(source, unit='mm', search_logs=True):

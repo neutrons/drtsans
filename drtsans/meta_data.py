@@ -4,6 +4,26 @@
 __all__ = ['set_meta_data']
 
 
+def set_source_sample_distance(workspace, source_to_sample_distance):
+    """Set source to sample distance to meta data
+
+    Parameters
+    ----------
+    workspace: str, ~mantid.api.MatrixWorkspace
+        Mantid workspace instance or workspace name
+    source_to_sample_distance:  float, None
+        sample to detector distance in meter
+
+    Returns
+    -------
+    None
+
+    """
+    # Ignore if source to sample distance is None
+    if source_to_sample_distance is None:
+        return
+
+
 def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                   sample_to_detector_distance=None, source_to_sample_distance=None,
                   sample_aperture_size=None, sample_thickness=None,

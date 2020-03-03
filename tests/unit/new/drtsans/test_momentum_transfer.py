@@ -3,7 +3,7 @@ import numpy as np
 from pytest import approx
 from drtsans.geometry import pixel_centers
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
-from drtsans.momentum_transfer import convert_to_q, convert_to_subpixels, _filter_and_replicate, subpixel_info
+from drtsans.momentum_transfer import convert_to_q, _filter_and_replicate, subpixel_info
 from drtsans.dataobjects import IQazimuthal
 from mantid.simpleapi import MaskDetectors
 
@@ -135,34 +135,6 @@ def test_convert_q_crystal(generic_workspace):
     # test with simple resolution - it should thow not implemented
     with pytest.raises(NotImplementedError):
         assert convert_to_q(ws, mode='crystallographic', resolution_function=fake_resolution1)
-
-
-@pytest.mark.parametrize('generic_workspace',
-                         [{'Nx': 2, 'Ny': 2,
-                           'name': 'GPSANS', 'dx': 1, 'dy': 1}],
-                         indirect=True)
-def test_subpixel_binning(generic_workspace):
-    ws = generic_workspace
-    # create data
-    qx = np.array([-0.001, -0.001, 0.001, 0.001])
-    qy = np.array([-0.001, 0.001, -0.001, 0.001])
-    intensity = np.array([52., 34., 90., 75.])
-    sigma_Qx = np.array([15e-5, 13e-5, 16e-5, 14e-5])
-    sigma_Qy = np.array([15e-5, 13e-5, 16e-5, 14e-5])
-    i_q_azi = IQazimuthal(intensity, np.sqrt(intensity), qx, qy, delta_qx=sigma_Qx, delta_qy=sigma_Qy)
-    # calculate subpixels
-    res = convert_to_subpixels(i_q_azi, ws, 'azimuthal')
-    # Q offsets from the original pixel
-    d_qx = 0.0005
-    d_qy = 0.0005
-    # loop over the original pixels
-    for i in range(4):
-        assert res.intensity[i:16:4] == approx([intensity[i]] * 4)
-        assert res.error[i:16:4] == approx([np.sqrt(intensity[i])] * 4)
-        assert res.delta_qx[i:16:4] == approx([sigma_Qx[i]] * 4)
-        assert res.delta_qy[i:16:4] == approx([sigma_Qy[i]] * 4)
-        assert res.qx[i:16:4] == approx(qx[i] + np.array([-d_qx, -d_qx, d_qx, d_qx]))
-        assert res.qy[i:16:4] == approx(qy[i] + np.array([-d_qy, d_qy, -d_qy, d_qy]))
 
 
 @pytest.fixture(scope='module')

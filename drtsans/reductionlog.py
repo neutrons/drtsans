@@ -1,5 +1,8 @@
 from datetime import datetime
 import h5py
+import glob
+import os
+import re
 import json
 import socket
 from mantid import __version__ as mantid_version
@@ -252,6 +255,28 @@ def _save_iq_to_log(iq=None, topEntry=None):
                        units='1/A')
 
 
+def _retrieve_beam_radius_from_out_file(outfolder=''):
+    name_of_out_file = glob.glob(os.path.join(outfolder, '*.out'))
+    with open(name_of_out_file[0], 'r') as handler:
+        file_contain = handler.readlines()
+    string_to_look_for = 'Radius calculated from the input workspace ='
+    for _line in file_contain:
+        if string_to_look_for in _line:
+            regular_exp = r'.*= (?P<radius>.*) mm\n'
+            m = re.search(regular_exp, _line)
+            if m:
+                return m.group('radius')
+    return ""
+
+
+def _appendCalculatedBeamRadius(specialparameters, json=None, outfolder=''):
+    beam_radius_in_json = json['configuration']['mmRadiusForTransmission']
+    if beam_radius_in_json == "":
+        beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
+    specialparameters = {**specialparameters, 'calculated_transmission_radius (mm)': beam_radius_in_json}
+    return specialparameters
+
+
 def savereductionlog(filename='', detectordata=None, **kwargs):
     r'''Save the reduction log
 
@@ -377,5 +402,11 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                                       data=[np.string_(username)])
 
         specialparameters = kwargs.get('specialparameters', None)
+
+        # add calculated beam radius if beam radius is None
+        specialparameters = _appendCalculatedBeamRadius(specialparameters,
+                                                        json=_reduction_parameters,
+                                                        outfolder=os.path.dirname(filename))
+
         if specialparameters:
             _savespecialparameters(entry, specialparameters, 'special_parameters')

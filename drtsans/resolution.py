@@ -224,7 +224,7 @@ def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, ins
     pixel_info: ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep
     instrument_parameters: InstrumentSetupParameters
-        Information abot instrument
+        Information about instrument
 
 
     """

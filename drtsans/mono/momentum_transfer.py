@@ -5,7 +5,7 @@ import drtsans.momentum_transfer
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans.geometry import (sample_aperture_diameter, sample_detector_distance, source_aperture_diameter,
-                              source_sample_distance)
+                              source_sample_distance, pixel_size)
 
 __all__ = ['convert_to_q']
 
@@ -127,6 +127,12 @@ def convert_to_q(ws, mode, resolution_function=mono_resolution, **kwargs):
 
 def retrieve_instrument_setup(ws, pixel_sizes=None):
     """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
+
+    Priority for pixel size x and y
+    1. user-specified in script (pixel_sizes)
+    2. meta data over-written in workspace
+    3. from instrument detector
+
     :param ws:
     :param pixel_sizes: dictionary for pixel sizes
     :return: MomentumTransferResolutionParameters instance
@@ -140,9 +146,8 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy
-        det_shape = ws.getDetector(0).shape().getBoundingBox().width()  # 3 values
-        size_x = det_shape[0]
-        size_y = det_shape[1]
+        size_x, size_y = pixel_size(ws)
+
     else:
         # User specified, overriding values from intrument directly
         size_x = pixel_sizes['x']

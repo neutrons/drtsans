@@ -460,6 +460,13 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
             wavelength = np.array(wavelength)
             _check_parallel(intensity, wavelength)
 
+        # make the qx and qy have the same shape as the data
+        if len(intensity.shape) == 2 and len(qx.shape) == 1 and len(qy.shape) == 1:
+            qy_length = qy.shape[0]
+            qx_length = qx.shape[0]
+            qx = np.tile(qx, (qy_length, 1))
+            qy = np.tile(qy, (qx_length, 1)).transpose()
+
         # pass everything to namedtuple
         return super(IQazimuthal, cls).__new__(cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength)
 

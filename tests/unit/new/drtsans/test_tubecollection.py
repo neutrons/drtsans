@@ -70,7 +70,7 @@ class TestSpectrumInfo:
     def test_some_methods(self, simple_tubes_panel):
         # Test for only one workspace index
         s = tubecollection.SpectrumInfo(simple_tubes_panel['workspace'], 4)
-        assert s.l1 == pytest.approx(5.0)  # l1 doesn't take an index as first argument
+        assert s.l1 == pytest.approx(11.0)  # l1 doesn't take an index as first argument
         assert s.isMasked is False  # isMasked only takes one argument, the index
         s.setMasked(True)  # setMasked takes two arguments: an index and a bool
         assert s.isMasked is True
@@ -80,7 +80,7 @@ class TestSpectrumInfo:
         assert len(s) == 1
         # Test for more than one workspace index
         s = tubecollection.SpectrumInfo(simple_tubes_panel['workspace'], [1, 4, 7])
-        assert s.l1 == pytest.approx([5.0, 5.0, 5.0])
+        assert s.l1 == pytest.approx([11.0, 11.0, 11.0])
         assert list(s.isMasked) == [False, True, False]  # remember we changed before the mask for workspace index 4
         assert s.setMasked(True)  # mask all spectra
         assert list(s.isMasked) == [True, True, True]
@@ -229,7 +229,7 @@ class TestTubeSpectrum(object):
         tube.setScaleFactor(V3D(0.98, 1.03, 1.11))
         assert tube.scaleFactor == pytest.approx([0.98, 1.03, 1.11])
         assert tube.samplePosition == pytest.approx(np.array([0.0, 0.0, 0.0]))
-        assert tube.l1 == pytest.approx(5.0)
+        assert tube.l1 == pytest.approx(11.0)
         assert tube.position == pytest.approx(np.array([1, 0, 0]))
 
 

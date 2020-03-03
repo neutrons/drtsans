@@ -419,12 +419,36 @@ def search_sample_detector_distance_meta_name(source, specified_meta_name):
         meta data name, sample detector distance value, unit
 
     """
+    log_keys = {'detector-sample-distance', 'detector_sample-distance', 'detector_sample_distance',
+                'sample-detector-distance', 'sample_detector-distance',
+                'sample_detector_distance'}  # latest one
+
+    return _search_meta_data(source, log_keys, specified_meta_name)
+
+
+def _search_meta_data(source, default_search_set, specified_meta_name):
+    """
+
+    Parameters
+    ----------
+    source : PyObject
+        Instrument object, MatrixWorkspace, workspace name, file name,
+        run number.
+    default_search_set: ~set
+        Set of strings of possible meta data name in workspace's run properties
+    specified_meta_name: str
+        User-specified meta data name overriding default_search_set
+    Returns
+    -------
+    ~list
+        item = (str, float, str)
+        meta data name, sample detector distance value, unit
+
+    """
     # Determine the possible meta data names to search for
     if specified_meta_name is None:
         # Possible meta data name
-        log_keys = {'detector-sample-distance', 'detector_sample-distance', 'detector_sample_distance',
-                    'sample-detector-distance', 'sample_detector-distance',
-                    'sample_detector_distance'}  # latest one
+        log_keys = default_search_set
     else:
         # User specified
         log_keys = {specified_meta_name}

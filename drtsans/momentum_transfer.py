@@ -203,7 +203,7 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     # get the data
     lam = ws.extractX()
     delta_lam = lam[:, 1:] - lam[:, :-1]
-    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5
+    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5  # wavelengths at the bin centers
     intensity = ws.extractY()
     error = ws.extractE()
 
@@ -226,19 +226,19 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     # Has the user requested subpixels?
     keep = info.keep.astype(bool)  # valid spectra indexes (unmasked, not monitor)
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
+    [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
+        mod_q = (4. * np.pi * np.sin(two_theta * 0.5) / lam.reshape(len(two_theta), number_of_bins)).ravel()
     else:
         # retain only those pixels that are unmasked or not monitor
         [mod_q, ] = _filter_and_replicate([mod_q, ], keep, n_horizontal=1, n_vertical=1)
 
     # retain only those pixels that are unmasked or not monitor
     # if user requested subpixels, then replicate pixel quantities for each subpixel
-    lam, intensity, error, delta_q = _filter_and_replicate([lam, intensity, error, delta_q],
-                                                           keep, n_horizontal, n_vertical)
+    intensity, error, delta_q = _filter_and_replicate([intensity, error, delta_q], keep, n_horizontal, n_vertical)
 
     return IQmod(intensity=intensity, error=error, mod_q=mod_q, delta_mod_q=delta_q, wavelength=lam)
 
@@ -306,12 +306,13 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     # Has the user requested subpixels?
     keep = info.keep.astype(bool)  # valid spectra indexes (unmasked, not monitor)
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
+    [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
-        azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
+        mod_q = (4. * np.pi * np.sin(two_theta * 0.5) / lam.reshape(len(two_theta), number_of_bins)).ravel()
+        azimuthal = np.repeat(subpixel_polar_coords.azimuthal, number_of_bins)
         qx = -mod_q * np.cos(azimuthal)  # note the convention for the left handed reference frame
         qy = mod_q * np.sin(azimuthal)
     else:
@@ -320,8 +321,8 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
 
     # retain only those pixels that are unmasked or not monitor
     # if user requested subpixels, then replicate pixel quantities for each subpixel
-    lam, intensity, error, delta_qx, delta_qy = _filter_and_replicate([lam, intensity, error, delta_qx, delta_qy],
-                                                                      keep, n_horizontal, n_vertical)
+    intensity, error, delta_qx, delta_qy = _filter_and_replicate([intensity, error, delta_qx, delta_qy],
+                                                                  keep, n_horizontal, n_vertical)
 
     return IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy, delta_qx=delta_qx, delta_qy=delta_qy,
                        wavelength=lam)
@@ -394,22 +395,23 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
     # Has the user requested subpixels?
     keep = info.keep.astype(bool)  # valid spectra indexes (unmasked, not monitor)
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
+    [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
-        temp = 2. * np.pi / lam
-        qx = temp * np.sin(two_theta) * np.cos(azimuthal)
-        qy = temp * np.sin(two_theta) * np.sin(azimuthal)
-        qz = temp * (np.cos(two_theta) - 1.)
+        azimuthal = np.repeat(subpixel_polar_coords.azimuthal, number_of_bins).reshape(-1, number_of_bins)
+        temp = 2. * np.pi / lam.reshape(len(two_theta), number_of_bins)
+        qx = (temp * np.sin(two_theta) * np.cos(azimuthal)).ravel()
+        qy = (temp * np.sin(two_theta) * np.sin(azimuthal)).ravel()
+        qz = (temp * (np.cos(two_theta) - 1.)).ravel()
     else:
         # retain only those pixels that are unmasked or not monitor
         [qx, qy, qz] = _filter_and_replicate([qx, qy, qz], keep, n_horizontal=1, n_vertical=1)
 
     # retain only those pixels that are unmasked or not monitor
     # if user requested subpixels, then replicate pixel quantities for each subpixel
-    lam, intensity, error = _filter_and_replicate([lam, intensity, error], keep, n_horizontal, n_vertical)
+    intensity, error = _filter_and_replicate([intensity, error], keep, n_horizontal, n_vertical)
     delta_qx, delta_qy, delta_qz = _filter_and_replicate([delta_qx, delta_qy, delta_qz],
                                                          keep, n_horizontal, n_vertical)
 
@@ -563,7 +565,4 @@ def _filter_and_replicate(arrays, unmasked_indexes, n_horizontal=1, n_vertical=1
         List of filtered and replicated arrays
     """
     # It's assumed that arrays are of the shape (...,1) so that reshape(-1) will eliminate the last dimension
-    processed_arrays = [array[unmasked_indexes, :].reshape(-1) for array in arrays]
-    if n_horizontal * n_vertical > 1:
-        processed_arrays = [np.repeat(array, n_horizontal * n_vertical) for array in processed_arrays]
-    return processed_arrays
+    return [np.repeat(array[unmasked_indexes, :], n_horizontal * n_vertical, axis=0).reshape(-1) for array in arrays]

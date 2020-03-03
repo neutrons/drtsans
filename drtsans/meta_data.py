@@ -1,8 +1,37 @@
 # Method in this module is to set meta data to SANS Mantid Workspaces
-from drtsans.geometry import search_sample_detector_distance_meta_name
+from drtsans.geometry import search_sample_detector_distance_meta_name, search_source_sample_distance_meta_name
 
 
-__all__ = ['set_meta_data', 'set_up_sample_detector_distance']
+__all__ = ['set_meta_data', 'set_up_sample_detector_distance', 'set_up_source_sample_distance']
+
+
+def set_up_source_sample_distance(workspace, source_sample_distance, distance_unit,
+                                  non_exist_default_name):
+    """Set source to sample distance to meta data
+
+    Parameters
+    ----------
+    workspace: str, ~mantid.api.MatrixWorkspace
+        Mantid workspace instance or workspace name
+    source_sample_distance:  float, None
+        source to sample distance in meter
+    distance_unit: str
+        unit for source sample distance
+    non_exist_default_name: str
+        meta data name for sample detector distance if None of the default name exist
+
+    Returns
+    -------
+    ~list
+        item = (str, float, str) as log name, log value, log unit
+
+    """
+    # Ignore if source to sample distance is None
+    if source_sample_distance is None:
+        return list()
+
+    return set_up_distance(workspace, source_sample_distance, distance_unit,
+                           search_source_sample_distance_meta_name, non_exist_default_name)
 
 
 def set_up_sample_detector_distance(workspace, sample_detector_distance, distance_unit,
@@ -32,25 +61,6 @@ def set_up_sample_detector_distance(workspace, sample_detector_distance, distanc
 
     return set_up_distance(workspace, sample_detector_distance, distance_unit,
                            search_sample_detector_distance_meta_name, non_exist_default_name)
-
-    #
-    # # Get the possible meta data names for this distance
-    # meta_info_list = search_sample_detector_distance_meta_name(workspace, None)
-    # # Get a tuple of list split from meta_info_list
-    # log_names = list(zip(*meta_info_list))
-    #
-    # # Set meta data name from default if the default one cannot be found
-    # if len(log_names) == 0:
-    #     log_names = [non_exist_default_name]
-    # else:
-    #     log_names = log_names[0]
-    #
-    # # Create the list for log, value, unit
-    # meta_overwrite_list = list()
-    # for log_name in log_names:
-    #     meta_overwrite_list.append((log_name, sample_detector_distance, distance_unit))
-    #
-    # return meta_overwrite_list
 
 
 def set_up_distance(workspace, distance, distance_unit, meta_search_function, non_exist_default_name):

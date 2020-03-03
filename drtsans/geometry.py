@@ -398,12 +398,15 @@ def sample_detector_distance(source, unit='mm', log_key=None,
         # except KeyError:
         #     pass
 
-        meta_data_name, meta_data_value, meta_data_unit = search_sample_detector_distance_meta_name(source, log_key)
-        if meta_data_name is None:
-            # Use instrument information to get distance
+        meta_info_list = search_sample_detector_distance_meta_name(source, log_key)
+        if len(meta_info_list) == 0:
+            # No meta data found: Use instrument information to get distance
             pass
         else:
             # Calculate from log value considering unit
+            # In case there are more than 1 log is found, it is assumed that all of them shall have the same
+            # value, i.e., some of them are alias
+            meta_data_name, meta_data_value, meta_data_unit = meta_info_list[0]
             distance = meta_data_value * m2units[unit] if meta_data_unit == 'm' else meta_data_value * mm2units[unit]
             return distance
 
@@ -426,7 +429,8 @@ def search_sample_detector_distance_meta_name(source, specified_meta_name):
 
     Returns
     -------
-    str, float, str
+    ~list
+        item = (str, float, str)
         meta data name, sample detector distance value, unit
 
     """
@@ -443,25 +447,16 @@ def search_sample_detector_distance_meta_name(source, specified_meta_name):
     sample_logs = SampleLogs(source)
 
     # Intersection:
-    common_set = log_keys.intersection((sample_logs.keys()))
+    found_log_names = list(log_keys.intersection((sample_logs.keys())))
 
     # Decide log name
-    if len(common_set) == 1:
-        # Find 1 and only 1
-        meta_name = common_set.pop()
+    meta_list = list()
+    for meta_name in found_log_names:
         lk_value = float(sample_logs.single_value(meta_name))
         distance_unit = sample_logs[meta_name].units
-    elif len(common_set) == 0:
-        # No found
-        meta_name = None
-        lk_value = None
-        distance_unit = None
-    else:
-        # More than 1.  It is not an allowed case
-        raise RuntimeError('In {}, more than 1 meta data ({}) exist for sample-detector distance'
-                           ''.format(str(source), common_set))
+        meta_list.append((meta_name, lk_value, distance_unit))
 
-    return meta_name, lk_value, distance_unit
+    return meta_list
 
 
 def source_detector_distance(source, unit='mm', search_logs=True):

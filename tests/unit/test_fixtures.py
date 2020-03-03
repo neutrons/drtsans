@@ -182,7 +182,7 @@ def test_n_pack_IDF(n_pack_IDF):
 
     <!--SOURCE-->
     <component type="moderator">
-        <location z="5.0"/>
+        <location z="-11.0"/>
     </component>
     <type name="moderator" is="Source"/>
 

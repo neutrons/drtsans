@@ -8,6 +8,7 @@ import drtsans.resolution
 from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
+from drtsans.geometry import pixel_size
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 from mantid.kernel import logger
@@ -153,9 +154,10 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
 
     if pixel_sizes is None:
         # Retrieve from workspace but not easy
-        det_shape = ws.getDetector(0).shape().getBoundingBox().width()  # 3 values
-        size_x = det_shape[0]
-        size_y = det_shape[1]
+        # det_shape = ws.getDetector(0).shape().getBoundingBox().width()  # 3 values
+        # size_x = det_shape[0]
+        # size_y = det_shape[1]
+        size_x, size_y = pixel_size(ws)
     else:
         # User specified, overriding values from intrument directly
         size_x = pixel_sizes['x']

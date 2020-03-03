@@ -11,7 +11,7 @@ from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
-           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance']
+           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance', 'pixel_size']
 detector_z_log = 'detectorZ'
 
 
@@ -234,6 +234,43 @@ def pixel_centers(input_workspace, indexes, shape=None):
         positions += translation
     # no code for rectangular, since componentInfo.position does return the center pixel
     return positions
+
+
+def pixel_size(workspace):
+    """Find pixel size (X and Y) fro a workspace
+
+    Priority
+    1. pixel_size_x and pixel_size_y in workspace's logs
+    2. from instrument's detector info
+
+    Parameters
+    ----------
+    workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        workspace for detector size
+
+    Returns
+    -------
+    float, float
+        pixel size X, pixel size Y
+
+    """
+    # Get workspace
+    workspace = mtd[str(workspace)]
+
+    # Get sample logs
+    sample_logs = SampleLogs(workspace)
+
+    if 'pixel_size_x' in sample_logs.keys() and 'pixel_size_y' in sample_logs.keys():
+        # Pixel size is from meta data
+        pixel_size_x = sample_logs['pixel_size_x'].value
+        pixel_size_y = sample_logs['pixel_size_y'].value
+    else:
+        # Pixel size is from detector shape
+        det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # 3 values
+        pixel_size_x = det_shape[0]
+        pixel_size_y = det_shape[1]
+
+    return pixel_size_x, pixel_size_y
 
 
 def get_instrument(source):

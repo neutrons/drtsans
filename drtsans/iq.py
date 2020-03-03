@@ -291,12 +291,13 @@ def select_i_of_q_by_wedge(i_of_q, min_wedge_angle, max_wedge_angle):
 def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT):
     """Annular 1D binning
 
-    Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
-    Given I(Qx, Qy) and will convert to I(Q) in the code
+    Calculates: I(azimuthal), sigma I and dazmuthal by assigning pixels to proper azimuthal angle bins
+    Given I(Qx, Qy) and will convert to :py:obj:`~drtsans.IQmod` in the code. The independent axis is
+    actually the azimuthal angle around the ring.
 
     Parameters
     ----------
-    i_of_q :  drtsans.dataobjects.IQazimuthal
+    i_of_q :  ~drtsans.dataobjects.IQazimuthal
         I(Qx, Qy), sigma I(Qx, Qy), Qx, Qy, dQx and dQy
     theta_bin_params : ~drtsans.BinningParams
         binning parameters on annular angle 'theta'
@@ -325,8 +326,7 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     Returns
     -------
     drtsans.dataobjects.IQmod
-        Annular-binned I(Q) in 1D
-
+        Annular-binned I(azimuthal) in 1D
     """
     # Determine azimuthal angle bins (i.e., theta bins)
     if theta_bin_params.min < 0. or theta_bin_params.max > 360.:
@@ -343,34 +343,45 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     # Calculate Q from Qx and Qy
     q_array = np.sqrt(i_of_q.qx ** 2 + i_of_q.qy ** 2)
     # calculate dQ from dQx and dQy
-    dq_array = np.sqrt(i_of_q.delta_qx ** 2 + i_of_q.delta_qy ** 2)
+    if i_of_q.delta_qx and i_of_q.delta_qy:
+        dq_array = np.sqrt(i_of_q.delta_qx ** 2 + i_of_q.delta_qy ** 2)
+    else:
+        dq_array = None
 
     # Filter by q_min and q_max
-    allowed_q_index = (q_array > q_min) & (q_array < q_max)
+    allowed_q_index = np.logical_and((q_array > q_min), (q_array < q_max))
 
     # Check input I(Q) whether it meets assumptions
     check_iq_for_binning(i_of_q)
 
-    # binning
+    # select binning method
+    # the methods call the independent axis "Q", but are generic to whatever values are passed in
+    do_1d_binning = None  # reference to function that was selected
     if method == BinningMethod.NOWEIGHT:
         # no weight binning
-        binned_iq = _do_1d_no_weight_binning(theta_array[allowed_q_index],
-                                             dq_array[allowed_q_index],
-                                             i_of_q.intensity[allowed_q_index],
-                                             i_of_q.error[allowed_q_index],
-                                             theta_bins.centers, theta_bins.edges)
+        do_1d_binning = _do_1d_no_weight_binning
     elif method == BinningMethod.WEIGHTED:
         # weighted binning
-        binned_iq = _do_1d_weighted_binning(theta_array[allowed_q_index],
-                                            dq_array[allowed_q_index],
-                                            i_of_q.intensity[allowed_q_index],
-                                            i_of_q.error[allowed_q_index],
-                                            theta_bins.centers, theta_bins.edges)
+        do_1d_binning = _do_1d_weighted_binning
     else:
         # not supported case
         raise RuntimeError('Binning method {} is not recognized'.format(method))
 
-    return binned_iq
+    # apply the selected binning method by either using or skipping the dq_array
+    if dq_array:
+        binned_i_of_azimuthal = do_1d_binning(theta_array[allowed_q_index],
+                                              dq_array[allowed_q_index],
+                                              i_of_q.intensity[allowed_q_index],
+                                              i_of_q.error[allowed_q_index],
+                                              theta_bins.centers, theta_bins.edges)
+    else:
+        binned_i_of_azimuthal = do_1d_binning(theta_array[allowed_q_index],
+                                              None,
+                                              i_of_q.intensity[allowed_q_index],
+                                              i_of_q.error[allowed_q_index],
+                                              theta_bins.centers, theta_bins.edges)
+
+    return binned_i_of_azimuthal
 
 
 def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):

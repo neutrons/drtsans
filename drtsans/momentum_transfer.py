@@ -1,95 +1,18 @@
 import numpy as np
 
 from mantid.simpleapi import mtd
-from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod, getDataType, DataType
+
+r"""
+Hyperlinks to drtsans functions
+IQazimuthal, IQcrystal, IQmod <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
+pixel_centers <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/pixel_centers.py>
+namedtuplefy, unpack_v3d <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+"""  # noqa: E501
+from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod
 from drtsans.geometry import pixel_centers
 from drtsans.settings import namedtuplefy, unpack_v3d
-from drtsans.detector import Detector
 
-__all__ = ['convert_to_q', 'convert_to_subpixels']
-
-
-def convert_to_subpixels(i_q_azimuthal, workspace, mode, Nx=2, Ny=2, detector='detector1'):
-    r"""
-    Creates the subpixels arrays for the intensity, error, momentum transfer and resolution
-
-    Parameters
-    ----------
-    i_q_azimuthal: ~drtsans.dataobjects.IQazimuthal
-        The named tuple containing the data and momentum transfer in azimuthal mode
-    workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
-        workspace from which contains information about the number of detector pixels
-    mode: str
-        Available options are 'scalar', 'azimuthal'
-    Nx: int
-        number of subpixels in the horizontal direction
-    Ny: int
-        number of subpixels in the vertical direction
-    detector: str
-        either 'detector1' or 'wing_detector' - used to get the number of pixels
-
-    Returns
-    -------
-    ~collections.namedtuple
-        either ~IQmod or ~IQazimuthal
-    """
-    if getDataType(i_q_azimuthal) != DataType.IQ_AZIMUTHAL:
-        raise RuntimeError("This method requires an input of IQazimuthal type")
-    if mode not in ['scalar', 'azimuthal']:
-        raise ValueError("mode must be one of 'scalar', 'azimuthal'")
-    ws = mtd[str(workspace)]
-    detector_information = Detector(ws, detector)
-    # assume vertical tubes
-    x_pixels = detector_information.n_tubes
-    y_pixels = detector_information.n_pixels_per_tube
-    # get the step in qx and qy
-    qx_max = np.max(i_q_azimuthal.qx)
-    qx_min = np.min(i_q_azimuthal.qx)
-    d_qx = (qx_max - qx_min)/((x_pixels - 1) * Nx)
-    qy_max = np.max(i_q_azimuthal.qy)
-    qy_min = np.min(i_q_azimuthal.qy)
-    d_qy = (qy_max - qy_min)/((y_pixels - 1) * Ny)
-
-    # create the arrays
-    new_qx = []
-    new_qy = []
-    # only Qx and Qy change
-    for i in range(Nx):
-        for j in range(Ny):
-            new_qx.append(i_q_azimuthal.qx+(i - (Nx - 1) / 2) * d_qx)
-            new_qy.append(i_q_azimuthal.qy+(j - (Ny - 1) / 2) * d_qy)
-    new_qx = np.concatenate(new_qx)
-    new_qy = np.concatenate(new_qy)
-    # the rest are just Nx*Ny copies of the original
-    new_intensity = np.concatenate([i_q_azimuthal.intensity] * (Nx * Ny))
-    new_error = np.concatenate([i_q_azimuthal.error] * (Nx * Ny))
-    if i_q_azimuthal.delta_qx is not None:
-        new_delta_qx = np.concatenate([i_q_azimuthal.delta_qx] * (Nx * Ny))
-    else:
-        new_delta_qx = None
-    if i_q_azimuthal.delta_qy is not None:
-        new_delta_qy = np.concatenate([i_q_azimuthal.delta_qy] * (Nx * Ny))
-    else:
-        new_delta_qy = None
-    if i_q_azimuthal.wavelength is not None:
-        new_wavelength = np.concatenate([i_q_azimuthal.wavelength] * (Nx * Ny))
-    else:
-        new_wavelength = None
-
-    # create the output
-    if mode == 'azimuthal':
-        iq = IQazimuthal(new_intensity, new_error, new_qx, new_qy,
-                         delta_qx=new_delta_qx, delta_qy=new_delta_qy,
-                         wavelength=new_wavelength)
-    else:
-        # transform to |Q|
-        new_q = np.sqrt(new_qx**2 + new_qy**2)
-        if new_delta_qx is not None and new_delta_qy is not None:
-            new_dq = np.sqrt(new_delta_qx**2 + new_delta_qy**2)
-        else:
-            new_dq = None
-        iq = IQmod(new_intensity, new_error, new_q, delta_mod_q=new_dq, wavelength=new_wavelength)
-    return iq
+__all__ = ['convert_to_q']
 
 
 def convert_to_q(ws, mode, resolution_function=None, **kwargs):
@@ -125,6 +48,8 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
 
     Note the minus sign in :math:`Q_x` in the azimuthal mode, so it increases
     to the right when looking at the detector.
+
+    devs - Andrei Savici <saviciat@ornl.gov>
 
     Parameters
     ----------
@@ -178,6 +103,9 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
         :ref:`ConvertToPointData <algm-ConvertToPointData-v1>`,
         :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
 
+    devs - Andrei Savici <saviciat@ornl.gov>
+           Jose Borreguero <borreguerojm@ornl.gov>
+
     Parameters
     ----------
 
@@ -201,9 +129,9 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
 
     """
     # get the data
-    lam = ws.extractX()
-    delta_lam = lam[:, 1:] - lam[:, :-1]
-    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5
+    lam = ws.extractX()  # wavelength boundaries
+    delta_lam = lam[:, 1:] - lam[:, :-1]  # wavelength bins
+    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5  # wavelengths at the bin centers
     intensity = ws.extractY()
     error = ws.extractE()
 
@@ -226,19 +154,24 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     # Has the user requested subpixels?
     keep = info.keep.astype(bool)  # valid spectra indexes (unmasked, not monitor)
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
+    # We filter out the bad pixels and then for each pixel we replicate the list of wavelength bin centers,
+    # as many times as the number of subpixels in the pixel.
+    [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
+        # We need to replicate the two_theta of a subpixel as many times as wavelength bin centers
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
+        # for a given subpixel, we have as many Q-modules as wavelength bin centers
+        mod_q = (4. * np.pi * np.sin(two_theta * 0.5) / lam.reshape(len(two_theta), number_of_bins)).ravel()
     else:
         # retain only those pixels that are unmasked or not monitor
         [mod_q, ] = _filter_and_replicate([mod_q, ], keep, n_horizontal=1, n_vertical=1)
 
     # retain only those pixels that are unmasked or not monitor
-    # if user requested subpixels, then replicate pixel quantities for each subpixel
-    lam, intensity, error, delta_q = _filter_and_replicate([lam, intensity, error, delta_q],
-                                                           keep, n_horizontal, n_vertical)
+    # if user requested subpixels, then replicate pixel quantities as many times as the number of subpixels
+    # in the pixel
+    intensity, error, delta_q = _filter_and_replicate([intensity, error, delta_q], keep, n_horizontal, n_vertical)
 
     return IQmod(intensity=intensity, error=error, mod_q=mod_q, delta_mod_q=delta_q, wavelength=lam)
 
@@ -251,6 +184,9 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
         :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
         :ref:`ConvertToPointData <algm-ConvertToPointData-v1>`,
         :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
+
+    devs - Andrei Savici <saviciat@ornl.gov>
+           Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -277,14 +213,14 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
 
     """
     # get the data
-    lam = ws.extractX()
-    delta_lam = lam[:, 1:] - lam[:, :-1]
-    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5
+    lam = ws.extractX()  # wavelength boundaries
+    delta_lam = lam[:, 1:] - lam[:, :-1]  # wavelength bins
+    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5  # wavelengths at the bin centers
     intensity = ws.extractY()
     error = ws.extractE()
 
     # get geometry info from the original workspace for resolution
-    info = pixel_info(ws)
+    info = pixel_info(ws)  # polar coordinates for each pixel
     number_of_bins = lam.shape[1]
     two_theta = np.repeat(info.two_theta, number_of_bins).reshape(-1, number_of_bins)
     mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
@@ -306,12 +242,17 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     # Has the user requested subpixels?
     keep = info.keep.astype(bool)  # valid spectra indexes (unmasked, not monitor)
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
+    # We filter out the bad pixels and then for each pixel we replicate the list of wavelength bin centers,
+    # as many times as the number of subpixels in the pixel.
+    [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
+        # We need to replicate the two_theta of a subpixel as many times as wavelength bin centers
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        mod_q = 4. * np.pi * np.sin(two_theta * 0.5) / lam
-        azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
+        # for a given subpixel, we have as many Q-modules as wavelength bin centers
+        mod_q = (4. * np.pi * np.sin(two_theta * 0.5) / lam.reshape(len(two_theta), number_of_bins)).ravel()
+        azimuthal = np.repeat(subpixel_polar_coords.azimuthal, number_of_bins)
         qx = -mod_q * np.cos(azimuthal)  # note the convention for the left handed reference frame
         qy = mod_q * np.sin(azimuthal)
     else:
@@ -319,9 +260,10 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
         qx, qy = _filter_and_replicate([qx, qy], keep, n_horizontal=1, n_vertical=1)
 
     # retain only those pixels that are unmasked or not monitor
-    # if user requested subpixels, then replicate pixel quantities for each subpixel
-    lam, intensity, error, delta_qx, delta_qy = _filter_and_replicate([lam, intensity, error, delta_qx, delta_qy],
-                                                                      keep, n_horizontal, n_vertical)
+    # if user requested subpixels, then replicate pixel quantities as many times as the number of subpixels
+    # in the pixel
+    intensity, error, delta_qx, delta_qy = _filter_and_replicate([intensity, error, delta_qx, delta_qy],
+                                                                 keep, n_horizontal, n_vertical)
 
     return IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy, delta_qx=delta_qx, delta_qy=delta_qy,
                        wavelength=lam)
@@ -335,6 +277,9 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
         :ref:`ConvertUnits <algm-ConvertUnits-v1>`,
         :ref:`ConvertToPointData <algm-ConvertToPointData-v1>`,
         :ref:`DeleteWorkspace <algm-DeleteWorkspace-v1>`
+
+    devs - Andrei Savici <saviciat@ornl.gov>
+           Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -363,14 +308,14 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
 
     """
     # get the data
-    lam = ws.extractX()
-    delta_lam = lam[:, 1:] - lam[:, :-1]
-    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5
+    lam = ws.extractX()  # wavelength boundaries
+    delta_lam = lam[:, 1:] - lam[:, :-1]  # wavelength bins
+    lam = (lam[:, 1:] + lam[:, :-1]) * 0.5  # wavelengths at the bin centers
     intensity = ws.extractY()
     error = ws.extractE()
 
     # get geometry info from the original workspace for resolution
-    info = pixel_info(ws)
+    info = pixel_info(ws)  # polar coordinates for each pixel
     number_of_bins = lam.shape[1]
     two_theta = np.repeat(info.two_theta, number_of_bins).reshape(-1, number_of_bins)
     azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
@@ -394,22 +339,27 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
     # Has the user requested subpixels?
     keep = info.keep.astype(bool)  # valid spectra indexes (unmasked, not monitor)
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
+    # We filter out the bad pixels and then for each pixel we replicate the list of wavelength bin centers,
+    # as many times as the number of subpixels in the pixel.
+    [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
+        # We need to replicate the two_theta of a subpixel as many times as wavelength bin centers
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        azimuthal = np.repeat(info.azimuthal, number_of_bins).reshape(-1, number_of_bins)
-        temp = 2. * np.pi / lam
-        qx = temp * np.sin(two_theta) * np.cos(azimuthal)
-        qy = temp * np.sin(two_theta) * np.sin(azimuthal)
-        qz = temp * (np.cos(two_theta) - 1.)
+        azimuthal = np.repeat(subpixel_polar_coords.azimuthal, number_of_bins).reshape(-1, number_of_bins)
+        temp = 2. * np.pi / lam.reshape(len(two_theta), number_of_bins)
+        qx = (temp * np.sin(two_theta) * np.cos(azimuthal)).ravel()
+        qy = (temp * np.sin(two_theta) * np.sin(azimuthal)).ravel()
+        qz = (temp * (np.cos(two_theta) - 1.)).ravel()
     else:
         # retain only those pixels that are unmasked or not monitor
         [qx, qy, qz] = _filter_and_replicate([qx, qy, qz], keep, n_horizontal=1, n_vertical=1)
 
     # retain only those pixels that are unmasked or not monitor
-    # if user requested subpixels, then replicate pixel quantities for each subpixel
-    lam, intensity, error = _filter_and_replicate([lam, intensity, error], keep, n_horizontal, n_vertical)
+    # if user requested subpixels, then replicate pixel quantities as many times as the number of subpixels
+    # in the pixel
+    intensity, error = _filter_and_replicate([intensity, error], keep, n_horizontal, n_vertical)
     delta_qx, delta_qy, delta_qz = _filter_and_replicate([delta_qx, delta_qy, delta_qz],
                                                          keep, n_horizontal, n_vertical)
 
@@ -417,16 +367,11 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
                      delta_qx=delta_qx, delta_qy=delta_qy, delta_qz=delta_qz, wavelength=lam)
 
 
-def custom_pixel_info(input_workspace, n_horizontal=1, n_vertical=1):
-    if n_horizontal == 1 and n_vertical == 1:
-        return pixel_info(input_workspace)  # takes less than 1 second for GPSANS detector
-    else:
-        return subpixel_info(input_workspace, n_horizontal, n_vertical)  # takes about 13 seconds for GPSANS detector
-
-
 def _masked_or_monitor(spec_info, idx):
     r"""
     Helper function to check if a spectra is valid
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -448,6 +393,8 @@ def _masked_or_monitor(spec_info, idx):
 def pixel_info(input_workspace):
     r"""
     Helper function to extract two theta angle, azimuthal angle, l2, and a "keep" flag for unmasked pixel detectors.
+
+    devs - Andrei Savici <saviciat@ornl.gov>
 
     Parameters
     ----------
@@ -472,7 +419,10 @@ def pixel_info(input_workspace):
 @namedtuplefy
 def subpixel_info(input_workspace, n_horizontal, n_vertical):
     r"""
-    Calculate the two theta angle, azimuthal angle, l2 for the subpixels of each unmasked pixel detector.
+    Calculate the polar coordinates (two theta angle, azimuthal angle, l2) for the subpixels of each
+    unmasked pixel detector.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -497,7 +447,7 @@ def subpixel_info(input_workspace, n_horizontal, n_vertical):
     spectrum_info = workspace.spectrumInfo()
     component_info = workspace.componentInfo()
 
-    # Find valid workspace indexes
+    # Find workspace indexes not masked, and associated to a detector that is not a monitor (a pixel detector).
     def valid_index(idx):
         return not(spectrum_info.isMonitor(idx) or spectrum_info.isMasked(idx) or not spectrum_info.hasDetectors(idx))
     valid_indexes = [idx for idx in range(number_spectra) if valid_index(idx) is True]
@@ -506,33 +456,40 @@ def subpixel_info(input_workspace, n_horizontal, n_vertical):
     get_spectrum_definition = spectrum_info.getSpectrumDefinition
     info_indexes = [get_spectrum_definition(idx)[0][0] for idx in valid_indexes]
 
-    # Find the position of the pixel centers
+    # Find the position of the pixel centers in the frame of reference of the sample
     pixel_positions = pixel_centers(input_workspace, info_indexes)
     sample_position = component_info.samplePosition()
     pixel_positions -= sample_position
 
-    # Fractional coordinates of subpixels are the same for all pixels.
+    # Fractional coordinates of subpixels, which are the same for all parent pixels.
+    # The frame of reference is located at the center of a pixel of width==1 and height==1
     x_fractional = np.linspace(0.5, -0.5, n_horizontal, endpoint=False) - 1 / (2 * n_horizontal)
     y_fractional = np.linspace(-0.5, 0.5, n_vertical, endpoint=False) + 1 / (2 * n_vertical)
     z_fractional = np.array([0])
     # xyz_fractional.shape = (number_subpixels, 3)
     xyz_fractional = np.array(np.meshgrid(x_fractional, y_fractional, z_fractional)).T.reshape(-1, 3)
 
-    # Find the dimensions of each pixel. Due to calibrations, each pixel will have its own size
-    last_info_index = info_indexes[-1]
+    # Find the dimensions of each pixel. Due to barscan and tube-width calibrations, each pixel will have its own size
+    last_info_index = info_indexes[-1]  # index of the last valid pixel
+    # The nominal pixel dimensions are the same for all pixels. We find the nominal dimnesions of the last pixel
     nominal_pixel_dimensions = np.array(component_info.shape(last_info_index).getBoundingBox().width())
+    # Each pixel has a specific (x, y, z) scale factor
     scale_factors = np.array([unpack_v3d(component_info.scaleFactor, i) for i in info_indexes])
+    # The product of each specific scale factor and the nominal pixel dimension gives us the specific pixel dimensions
     pixel_dimensions = scale_factors * nominal_pixel_dimensions  # shape = (number_pixels, 3)
 
     # Internal coordinates of subpixels are different for each pixel, because each pixel has its own size
     # xyz_internal.shape = (number_pixels, number_subpixels, 3)
+    # We have a frame of reference for each pixel, located at the center of the pixel
     xyz_internal = pixel_dimensions[:, None, :] * xyz_fractional[None, :, :]
 
-    # We obtain coordinates of subpixels in the laboratory frame of reference
-    #  by translating each subpixel by the pixel center coordinates
+    # We obtain coordinates of subpixels in the sample's frame of reference
+    # by translating the internal coordinates of the subpixels by a vector equal to the position of the pixel centers
+    # with respect to the sample's position.
     xyz = xyz_internal + pixel_positions[:, None, :]  # shape = (number_pixels, number_subpixels, 3)
     xyz = xyz.reshape((len(info_indexes) * n_horizontal * n_vertical, 3))
 
+    # Calculate polar coordinates from the cartesian xyz coordinates
     l2 = np.linalg.norm(xyz, axis=1)  # shape = (number_subpixels * number_pixels, )
     two_theta = np.arccos(xyz[:, 2] / l2)  # cos(two_theta) = z / l2
     azimuthal = np.arctan2(xyz[:, 1], xyz[:, 0])  # numpy.arctan2(y, x) is quadrant-aware
@@ -546,6 +503,9 @@ def _filter_and_replicate(arrays, unmasked_indexes, n_horizontal=1, n_vertical=1
     these values for each subpixel if subpixels are requested.
 
     For every array in ```arrays```, the same filter and replication steps are applied.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+
     Parameters
     ----------
     arrays: list
@@ -563,7 +523,4 @@ def _filter_and_replicate(arrays, unmasked_indexes, n_horizontal=1, n_vertical=1
         List of filtered and replicated arrays
     """
     # It's assumed that arrays are of the shape (...,1) so that reshape(-1) will eliminate the last dimension
-    processed_arrays = [array[unmasked_indexes, :].reshape(-1) for array in arrays]
-    if n_horizontal * n_vertical > 1:
-        processed_arrays = [np.repeat(array, n_horizontal * n_vertical) for array in processed_arrays]
-    return processed_arrays
+    return [np.repeat(array[unmasked_indexes, :], n_horizontal * n_vertical, axis=0).reshape(-1) for array in arrays]

@@ -3,7 +3,7 @@ import pytest
 from mantid import mtd
 from mantid.simpleapi import GroupWorkspaces
 
-from drtsans.mono.biosans import load_histogram, load_events, transform_to_wavelength, merge_data
+from drtsans.mono.biosans import load_histogram, load_events, transform_to_wavelength, sum_data
 from drtsans.samplelogs import SampleLogs
 
 
@@ -62,12 +62,12 @@ def test_api_load(biosans_f):
         wavelength_spread_log / wavelength_log, abs=1e-3)
 
 
-def test_merge_data(reference_dir):
+def test_sum_data(reference_dir):
     # Merge the same file twice
     workspace1 = load_events('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans, output_workspace='workspace1')
 
     with pytest.raises(ValueError) as excinfo:
-        merge_data('workspace1', "merged")
+        sum_data('workspace1', "merged")
     assert "is not a Workspace2D" in str(excinfo.value)  # Should complain about wrong workspace type
 
     workspace1 = transform_to_wavelength(workspace1)
@@ -77,7 +77,7 @@ def test_merge_data(reference_dir):
     sample_logs1 = SampleLogs(workspace1)
     sample_logs2 = SampleLogs(workspace2)
 
-    merged_workspaces = merge_data([workspace1, workspace2],  output_workspace="merged")
+    merged_workspaces = sum_data([workspace1, workspace2],  output_workspace="merged")
 
     merged_sample_logs = SampleLogs(merged_workspaces)
 
@@ -101,18 +101,18 @@ def test_merge_data(reference_dir):
 
     # Test different input formats
     # List of workspace names
-    merged_workspaces_2 = merge_data(["workspace1", "workspace2"],  output_workspace="merged2")
+    merged_workspaces_2 = sum_data(["workspace1", "workspace2"],  output_workspace="merged2")
     assert SampleLogs(merged_workspaces_2).duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633,
                                                                            abs=1e-11)
 
     # Comma separated list of workspace space
-    merged_workspaces_3 = merge_data("workspace1, workspace2",  output_workspace="merged3")
+    merged_workspaces_3 = sum_data("workspace1, workspace2",  output_workspace="merged3")
     assert SampleLogs(merged_workspaces_3).duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633,
                                                                            abs=1e-11)
 
     # Workspace group
     ws_group = GroupWorkspaces('workspace1, workspace2')
-    merged_workspaces_4 = merge_data(ws_group,  output_workspace="merged4")
+    merged_workspaces_4 = sum_data(ws_group,  output_workspace="merged4")
     assert SampleLogs(merged_workspaces_4).duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633,
                                                                            abs=1e-11)
 

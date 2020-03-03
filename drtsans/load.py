@@ -11,7 +11,7 @@ from mantid.simpleapi import mtd
 from mantid.simpleapi import LoadEventNexus, MergeRuns
 import mantid
 
-__all__ = ['load_events', 'merge_data']
+__all__ = ['load_events', 'sum_data']
 
 
 def __monitor_counts(filename, monitor_name='monitor1'):
@@ -121,7 +121,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     return mtd[output_workspace]
 
 
-def merge_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):
+def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):
     r"""
     Merge data set together, summing the listed logs
 

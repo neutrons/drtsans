@@ -4,7 +4,7 @@ import numpy as np
 
 from mantid.simpleapi import (Rebin, SumSpectra, mtd)
 from drtsans.settings import (amend_config, unique_workspace_name as uwn)
-from drtsans.tof.eqsans.load import load_events, load_events_monitor, merge_data
+from drtsans.tof.eqsans.load import load_events, load_events_monitor, sum_data
 from drtsans.tof.eqsans.correct_frame import transform_to_wavelength
 from drtsans.samplelogs import SampleLogs
 
@@ -51,7 +51,7 @@ def test_merge_Data(reference_dir):
     sample_logs1 = SampleLogs(ws1)
     sample_logs2 = SampleLogs(ws2)
 
-    merged_workspaces = merge_data([ws0, ws1, ws2],  output_workspace="merged")
+    merged_workspaces = sum_data([ws0, ws1, ws2],  output_workspace="merged")
 
     merged_sample_logs = SampleLogs(merged_workspaces)
 

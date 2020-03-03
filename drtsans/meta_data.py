@@ -31,11 +31,15 @@ def set_up_sample_detector_distance(workspace, sample_detector_distance, distanc
         return
 
     # Get the possible meta data names for this distance
-    log_names = zip(*search_sample_detector_distance_meta_name(workspace, None))[0]
+    meta_info_list = search_sample_detector_distance_meta_name(workspace, None)
+    # Get a tuple of list split from meta_info_list
+    log_names = list(zip(*meta_info_list))
 
     # Set meta data name from default if the default one cannot be found
     if len(log_names) == 0:
         log_names = [non_exist_default_name]
+    else:
+        log_names = log_names[0]
 
     # Create the list for log, value, unit
     meta_overwrite_list = list()

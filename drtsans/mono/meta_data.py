@@ -65,7 +65,7 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
 
     # Sample to detector distance
     if sample_to_detector_distance is not None:
-        sub_list = set_up_sample_detector_distance(workspace, source_to_sample_distance, 'm',
+        sub_list = set_up_sample_detector_distance(workspace, sample_to_detector_distance, 'm',
                                                    'sample_detector_distance')
         meta_data_list.extend(sub_list)
 

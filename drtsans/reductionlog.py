@@ -278,7 +278,7 @@ def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder='')
 
     try:
         beam_radius_in_json = json['configuration']['mmRadiusForTransmission']
-    except:
+    except KeyError:
         return specialparameters
 
     if beam_radius_in_json == "":

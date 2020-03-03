@@ -154,7 +154,8 @@ def reduction(json_params, config):
                       weighting=flag_weighted,
                       nbins=int(json_params["configuration"]["numQxQyBins"]))
 
-    return Iq, Iqxqy
+    return {'iq': Iq,
+            'iqxqy': Iqxqy}
 
 
 if __name__ == "__main__":
@@ -199,7 +200,9 @@ if __name__ == "__main__":
 
         msapi.logger.warning("WE NEED A WAY TO PASS A BEAM CENTER")
 
-    (Iq, Iqxqy) = reduction(json_params, config)
+    reduction_dict = reduction(json_params, config)
+    Iq = reduction_dict['iq']
+    Iqxqy = reduction_dict['iqxqy']
 
     # list of arguments for log file ========================================================
     filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')

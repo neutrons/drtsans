@@ -161,8 +161,6 @@ if __name__ == "__main__":
         msapi.logger.notice("use default center (0.025239, 0.0170801)")
     # load and prepare scattering data
     sample_file = json_params.get("sampleFileName", "EQSANS_{}".format(sample_run))
-
-
     ws = eqsans.prepare_data(sample_file, output_suffix='_sample', **config)
     msapi.logger.warning(str(config))
     # TODO check the next two values if empty
@@ -208,7 +206,8 @@ if __name__ == "__main__":
                                                       trans_value=float(transmission_value))
         else:
             msapi.logger.notice('...applying transmission correction with transmission file.')
-            transmission_fn = json_params["transmission"].get("transmissionFileName", "EQSANS_{}".format(transmission_run))
+            transmission_fn = json_params["transmission"].get("transmissionFileName",
+                                                              "EQSANS_{}".format(transmission_run))
             ws_tr_sample = eqsans.prepare_data(transmission_fn, output_suffix='_trans_sample', **config)
             raw_tr_ws = eqsans.calculate_transmission(ws_tr_sample,
                                                       ws_tr_direct,

@@ -1,12 +1,12 @@
 from mantid.simpleapi import (mtd, LoadNexusMonitors)
 from drtsans.settings import amend_config
 from drtsans.samplelogs import SampleLogs
-from drtsans.load import load_events as generic_load_events, merge_data
+from drtsans.load import load_events as generic_load_events, sum_data
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.tof.eqsans.correct_frame import (correct_detector_frame, correct_monitor_frame)
 import os
 
-__all__ = ['load_events', 'load_events_monitor', 'merge_data']
+__all__ = ['load_events', 'load_events_monitor', 'sum_data']
 
 
 def load_events_monitor(run, data_dir=None, output_workspace=None):

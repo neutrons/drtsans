@@ -1,8 +1,20 @@
 import numpy as np
 import pytest
+
+r"""
+Hyperlinks to mantid algorithms
+CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
+LoadInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
+"""
 from mantid.simpleapi import CreateWorkspace, LoadInstrument
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+
+r"""
+Hyperlinks to drtsans functions
+convert_to_q <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py>
+namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+"""  # noqa: E501
 from drtsans.momentum_transfer import convert_to_q
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 
 
 # Instrument definition file for two tubes, each tube contains two pixels.
@@ -187,12 +199,17 @@ def data_subpixels_convert_to_q():
 
 
 def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
-    r"""Compare Q values from the coarse instrument where we divide each pixel into a 2x2 = 4 subpixels with
+    r"""
+    Compare Q values from the coarse instrument where we divide each pixel into a 2x2 = 4 subpixels with
     Q values from the fine instrument.
     The number of subpixels in the coarse instrument is the same as the number of pixels in the fine instrument.
     Furthermore, the location and dimensions of the subpixels in the coarse instrument coincides with the
     location and dimensions of the pixels in the fine instrument. Hence, Q values and intensities between
-    corresponding subpixel and pixel should match"""
+    corresponding subpixel and pixel should match
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+
+    """
     data = data_subpixels_convert_to_q  # handy shortcut
     # Workspace containing an instrument made of two tubes, and two pixels per tube
     coarse_workspace = CreateWorkspace(DataX=data.wavelength_bin_boundaries, UnitX='Wavelength',
@@ -228,6 +245,7 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
     permutation = [0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15]  # from coarse index to fine index
 
     # Test modulus Q between subpixels from the coarse instrument and pixels from the fine instrument
+    # "coarse_iq" is an IQmod object, containing values for the intensity, error, Q-modulus, wavelength
     coarse_iq = convert_to_q(coarse_workspace, 'scalar', n_horizontal=data.n_h, n_vertical=data.n_v)
     fine_iq = convert_to_q(fine_workspace, 'scalar')  # no subpixels here (n_horizontal = n_vertical = 1)
     # check the following quantities are identical between the two scenarios
@@ -237,6 +255,7 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
         assert coarse_values == pytest.approx(fine_values)
 
     # Test azimuthal Q (Qx, Qy) between subpixels and fine pixels
+    # "coarse_iq" is an IQazimuthal object, containing values for the intensity, error, Qx, Qy, wavelength
     coarse_iq = convert_to_q(coarse_workspace, 'azimuthal', n_horizontal=data.n_h, n_vertical=data.n_v)
     fine_iq = convert_to_q(fine_workspace, 'azimuthal')
     for quantity in ('qx', 'qy', 'intensity', 'error', 'wavelength'):
@@ -245,6 +264,7 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
         assert coarse_values == pytest.approx(fine_values)
 
     # Test crystal Q (Qx, Qy, Qz) between subpixels and fine pixels
+    # "coarse_iq" is an IQcrystal object, containing values for the intensity, error, Qx, Qy, Qz, wavelength
     coarse_iq = convert_to_q(coarse_workspace, 'crystallographic', n_horizontal=data.n_h, n_vertical=data.n_v)
     fine_iq = convert_to_q(fine_workspace, 'crystallographic')
     for quantity in ('qx', 'qy', 'qz', 'intensity', 'error', 'wavelength'):

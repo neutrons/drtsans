@@ -1,10 +1,22 @@
 import pytest
 import numpy as np
 from pytest import approx
-from drtsans.geometry import pixel_centers
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
-from drtsans.momentum_transfer import convert_to_q, _filter_and_replicate, subpixel_info
+
+r"""
+Hyperlinks to mantid algorithms
+MaskDetectors <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html>
+"""
 from mantid.simpleapi import MaskDetectors
+
+r"""
+Hyperlinks to drtsans functions
+pixel_centers <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py>
+convert_to_q, _filter_and_replicate, subpixel_info <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py>
+namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+"""  # noqa: E501
+from drtsans.geometry import pixel_centers
+from drtsans.momentum_transfer import convert_to_q, _filter_and_replicate, subpixel_info
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 
 
 def fake_resolution1(*args, **kwargs):
@@ -140,7 +152,7 @@ def test_convert_q_crystal(generic_workspace):
 @namedtuplefy
 def data_subpixel_info():
     r"""Data to be used for `test_subpixel_info`"""
-    return dict(number_pixels=4,
+    return dict(number_pixels=4,  # number of pixels in the instrument
                 wavelength_bin_boundaries=[2.0, 2.1],
                 intensities=[[1.0, 2.0],  # first tube
                              [3.0, 2.0]],  # second tube
@@ -149,7 +161,7 @@ def data_subpixel_info():
                 n_horizontal=2,  # number of subpixel along the X-axis
                 n_vertical=4,  # number of subpixel along the Y-axis
                 number_subpixels=8,  # just n_horizontal * n_vertical
-                # subpixel coordinates for a pixel centered at (x, y) == (0, 0)
+                # subpixel (x, y) coordinates for a pixel centered at (x, y) == (0, 0)
                 subpixel_positions=[[5, -7.5], [5, -2.5], [5, 2.5], [5, 7.5],
                                     [-5, -7.5], [-5, -2.5], [-5, 2.5], [-5, 7.5]],
                 sample_detector_distance=1.0  # all subpixels have same Z coordinate
@@ -164,35 +176,55 @@ def data_subpixel_info():
                          indirect=True)
 def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
     r"""
-    Subpixel binning for a detector array made up of two tubes, each with two pixels.
+    Test for correct generatio of subpixel polar coordinates in a detector array made up of two tubes,
+    each with two pixels.
     There's no spacing between tubes.
     Detector is 1 meter away from the sample
     The shape of a detector pixel is a cylinder of 20mm diameter and 20mm in height.
+    Each pixel is divided in 8 subpixels (n_horizontal=2, n_vertical=4)'
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+
     """
     data = data_subpixel_info  # handy shortcut
     input_workspace = unique_workspace_dundername()  # temporary workspace
+    # A workspace containing data.intensities in an instrument made up of two tubes with two pixels per tube
     workspace = workspace_with_instrument(axis_values=data.wavelength_bin_boundaries,
                                           intensities=data.intensities,
                                           output_workspace=input_workspace)
-    workspace.detectorInfo().setMasked(2, True)  # Mask the third pixel
+    workspace.detectorInfo().setMasked(2, True)  # Mask the third pixel. No subpixes will be calculated for this one
+
+    # Compare the positions of the pixels in the workspace against data.pixel_positions
     spectrum_info = workspace.spectrumInfo()
     get_spectrum_definition = spectrum_info.getSpectrumDefinition
+    # Find the detectorInfo() indexes starting from the workspace indexes. These indexes are neccessary to later
+    # find out the (x, y) coordinates of the pixels
     info_indexes = [get_spectrum_definition(idx)[0][0] for idx in range(workspace.getNumberHistograms())]
-    # test the positions of the pixels against expected_pixel_positions
     pixel_positions = pixel_centers(input_workspace, info_indexes)
     assert 1.e03 * pixel_positions[:, :-1] == pytest.approx(np.array(data.pixel_positions))
-    # Find the position of the subpixels in polar coordinates (info data structure)
+
+    # Find the position of the subpixels in polar coordinates, contained in data structure "info"
     info = subpixel_info(input_workspace, data.n_horizontal, data.n_vertical)
     # Transform from polar to cartesian coordinates
     x = info.l2 * np.sin(info.two_theta) * np.cos(info.azimuthal)
     y = info.l2 * np.sin(info.two_theta) * np.sin(info.azimuthal)
     z = info.l2 * np.cos(info.two_theta)
+    # All subpixels have the same Z-coordinate. Test this
     assert z == pytest.approx(data.sample_detector_distance * np.ones(len(info.keep) * data.number_subpixels))
-    # array `xy` contains the coordinates of the subpixels, in mili-meters
+
+    # Construct array `xy` which will contain the coordinates of the subpixels, in mili-meters
     # xy.shape = (number_pixels, number_subpixels, 2)
+    # xy[0] contains the XY coordinates of the subpixel contained within the first pixel, xy[1] for the
+    # second pixel, and so on.
+    # We only retain coordinates for pixels that were not masked, thus we use info.keep array
     xy = np.column_stack((x, y)).reshape((len(info.keep), data.number_subpixels, 2))
-    # Translate the subpixels by removing the center pixel positions, so that each center pixel is at (0, 0)
-    # After translation, all four set of subpixels have the same coordinates
+
+    # We test the coordinates of the subpixels in each unmasked pixel, one pixel at a time.
+    # The procedure is as follows:
+    # 1. use info.keep to filter out those indexes corresponding to masked pixels. In our case, index 2.
+    # 2. translate the subpixel coordinates such that the position of the parent pixel is at (x, y) = (0, 0).
+    # 3. compare the subpixel coordinates to data.subpixel_positions. These are the expected subpixel coordinates
+    #    for a parent pixel having its position at (x, y) = (0, 0).
     xy = 1000 * (xy - pixel_positions[info.keep, :-1][:, None, :])
     for subpixel_positions in xy:  # unmasked pixels
         assert subpixel_positions == pytest.approx(np.array(data.subpixel_positions))

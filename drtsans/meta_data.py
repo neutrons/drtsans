@@ -33,7 +33,6 @@ def set_up_sample_detector_distance(workspace, sample_detector_distance, distanc
     return set_up_distance(workspace, sample_detector_distance, distance_unit,
                            search_sample_detector_distance_meta_name, non_exist_default_name)
 
-
     #
     # # Get the possible meta data names for this distance
     # meta_info_list = search_sample_detector_distance_meta_name(workspace, None)

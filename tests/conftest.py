@@ -754,7 +754,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         x_center = float(req_params.get('x_center', 0))
         y_center = float(req_params.get('y_center', 0))
         z_center = float(req_params.get('z_center', 5.0))
-        l1 = float(req_params.get('l1', 5.0))
+        l1 = -1. * abs(float(req_params.get('l1', -11.)))
         max_pixel_index = number_tubes * number_pixels - 1
         #
         # Generate the tube type

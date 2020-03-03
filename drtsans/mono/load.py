@@ -185,4 +185,5 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         for ws_name in temp_workspaces:
             if mtd.doesExist(ws_name):
                 mtd.remove(ws_name)
+
         return ws

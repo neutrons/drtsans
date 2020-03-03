@@ -4,7 +4,7 @@ import numpy as np
 
 from mantid.simpleapi import (Rebin, SumSpectra, mtd)
 from drtsans.settings import (amend_config, unique_workspace_name as uwn)
-from drtsans.tof.eqsans.load import load_events, load_events_monitor, sum_data
+from drtsans.tof.eqsans.load import load_events, load_events_monitor, sum_data, load_events_and_histogram
 from drtsans.tof.eqsans.correct_frame import transform_to_wavelength
 from drtsans.samplelogs import SampleLogs
 
@@ -79,6 +79,31 @@ def test_merge_Data(reference_dir):
     assert mtd[str(ws1)].extractY().sum() == 1318463
     assert mtd[str(ws2)].extractY().sum() == 65694
     assert mtd[str(merged_workspaces)].extractY().sum() == 289051 + 1318463 + 65694
+
+
+def test_load_events_and_histogram(reference_dir):
+    ws0 = load_events_and_histogram('EQSANS_101595', data_dir=reference_dir.new.eqsans)
+
+    assert ws0.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws0.name() == "EQSANS_101595"
+
+    sample_logs0 = SampleLogs(ws0)
+
+    assert sample_logs0.duration.value == pytest.approx(215.531066895, abs=1e-9)
+    assert sample_logs0.getProtonCharge() == pytest.approx(83.37074628055555, abs=1e-9)
+    assert sample_logs0.proton_charge.size() == 12933
+
+    ws1 = load_events_and_histogram('EQSANS_101595,EQSANS_104088,EQSANS_105428',
+                                    data_dir=reference_dir.new.eqsans)
+
+    assert ws1.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws1.name() == "EQSANS_101595_104088_105428"
+
+    sample_logs1 = SampleLogs(ws1)
+    assert sample_logs1.duration.value == pytest.approx(215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9)
+    assert sample_logs1.getProtonCharge() == pytest.approx(83.37074628055555, + 111.1237739861111 + 27.799524525,
+                                                           abs=1e-9)
+    assert sample_logs1.proton_charge.size() == 12933 + 17343 + 4341
 
 
 if __name__ == '__main__':

@@ -395,7 +395,7 @@ if __name__ == "__main__":
         # [CD, 2/10/2020] option for weighting has been added
 
     # list of arguments for log file =======================================================
-    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    filename = os.path.join(json_params["configuration"]["outputDir"], output_file + '_reduction_log.hdf')
     starttime = datetime.now().isoformat()
     # username = 'Neymar'
     pythonfile = __file__

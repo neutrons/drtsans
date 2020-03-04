@@ -37,11 +37,14 @@ def load_sensitivity_workspace(sensitivity_filename, output_workspace):
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
     """
-
     if not path_exists(sensitivity_filename):
         msg = 'Cannot find file "{}"'.format(sensitivity_filename)
         raise RuntimeError(msg)
     LoadNexusProcessed(Filename=sensitivity_filename, OutputWorkspace=output_workspace, LoadHistory=False)
+
+    # nans in workspace to masked pixels
+    mask_pixels_with_nan(output_workspace)
+
     return mtd[output_workspace]
 
 # flake8: noqa: C901
@@ -98,9 +101,9 @@ def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
     MaskDetectors(Workspace=output_workspace,
                   MaskedWorkspace=sensitivity_workspace)
 
-    # nans in workspace to masked pixels
-    temp_sensitivity = mask_pixels_with_nan(sensitivity_workspace)
-
+    temp_sensitivity = uwn(prefix='__sensitivity_')
+    CloneWorkspace(InputWorkspace=sensitivity_workspace,
+                   OutputWorkspace=temp_sensitivity)
     if min_threshold is not None:
         MaskDetectorsIf(InputWorkspace=temp_sensitivity,
                         Operator='LessEqual',
@@ -141,16 +144,19 @@ def mask_pixels_with_nan(sensitivity_workspace):
     BAD_PIXEL = 1.e10
 
     # convert nan's to non-physical value for sensitivity
-    temp_sensitivity = ReplaceSpecialValues(InputWorkspace=sensitivity_workspace,
-                                            OutputWorkspace=uwn(prefix="__sensitivity_"),
-                                            NaNValue=BAD_PIXEL)
+    ReplaceSpecialValues(InputWorkspace=sensitivity_workspace,
+                         OutputWorkspace=sensitivity_workspace,
+                         NaNValue=BAD_PIXEL)
 
-    temp_sensitivity = MaskDetectorsIf(InputWorkspace=temp_sensitivity,
-                    Operator='GreaterEqual',
-                    Value=BAD_PIXEL,
-                    Mode='SelectIf',
-                    OutputWorkspace=temp_sensitivity)
+    # mask the "bad" pixels
+    temp_sensitivity = MaskDetectorsIf(InputWorkspace=sensitivity_workspace,
+                                       Operator='GreaterEqual',
+                                       Value=BAD_PIXEL,
+                                       Mode='SelectIf',
+                                       OutputWorkspace=sensitivity_workspace)
 
-    return temp_sensitivity
-
+    ReplaceSpecialValues(InputWorkspace=sensitivity_workspace,
+                         OutputWorkspace=sensitivity_workspace,
+                         BigNumberThreshold=BAD_PIXEL-1.,
+                         BigNumberValue=1.)
 

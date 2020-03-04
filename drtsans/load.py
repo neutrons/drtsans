@@ -11,7 +11,7 @@ from mantid.simpleapi import mtd
 from mantid.simpleapi import LoadEventNexus, MergeRuns
 import mantid
 
-__all__ = ['load_events', 'merge_data']
+__all__ = ['load_events', 'sum_data']
 
 
 def __monitor_counts(filename, monitor_name='monitor1'):
@@ -121,7 +121,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     return mtd[output_workspace]
 
 
-def merge_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):
+def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):
     r"""
     Merge data set together, summing the listed logs
 
@@ -142,6 +142,10 @@ def merge_data(data_list, output_workspace, sum_logs=("duration", "timer", "moni
     if isinstance(data_list, str):
         data_list = [data.strip() for data in data_list.split(',')]
 
+    # If only one input workpsace then just return that workspace
+    if len(data_list) == 0:
+        return mtd[data_list[0]]
+
     # Check workspaces are of correct type
     for data in data_list:
         if not mtd.doesExist(str(data)):
@@ -157,4 +161,4 @@ def merge_data(data_list, output_workspace, sum_logs=("duration", "timer", "moni
               OutputWorkspace=output_workspace,
               SampleLogsSum=','.join(sum_logs))
 
-    return output_workspace
+    return mtd[output_workspace]

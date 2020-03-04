@@ -93,6 +93,8 @@ def _savereductionparams(nxentry, parameters, name_of_entry):
         if isinstance(_value, dict):
             _savereductionparams(nxentry, _value, _key)
         else:
+            if _value is None:
+                _value = ''
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
 
@@ -173,6 +175,8 @@ def _savespecialparameters(nxentry, dict_special_parameters, name_of_entry):
         if isinstance(_value, dict):
             _savereductionparams(nxentry, _value, _key)
         else:
+            if _value is None:
+                _value = ""
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
 

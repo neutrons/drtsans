@@ -159,7 +159,7 @@ def test_writing_metadata():
     starttime = '1993-03-18T21:00:00'
     username = 'Neymar'
     user = 'Cavani'
-    specialparameters = {'key1': 10, 'key2': 'text here'}
+    specialparameters = {'key1': 10, 'key3': None, 'key2': 'text here'}
 
     test_iq = _create_iq()
     tmp_log_filename = _create_tmp_log_filename()
@@ -185,6 +185,7 @@ def test_writing_metadata():
         assert _strValue(reduction_information_entry['user'], 'name') == username
         assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
         assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
+        assert reduction_information_entry['special_parameters']['key3'].value == ""
 
 
 def _test_data(tested_data=[], ref_data=[], abs=None):

@@ -50,6 +50,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
                                             ws_tr_direct,
                                             radius=cfg['transmission_radius'],
                                             radius_unit="mm")
+
+        transmission_dict = {'value': tr_ws.extractY(),
+                             'error': tr_ws.extractE()}
+
         # remove the temporary workspaces
         ws_tr_sample.delete()
         ws_tr_direct.delete()
@@ -61,7 +65,7 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         if str(tr_ws) in msapi.mtd:  # protect against non-workspaces
             tr_ws.delete()
 
-    return ws
+    return ws, transmission_dict
 
 
 def reduction(json_params, config):
@@ -97,7 +101,7 @@ def reduction(json_params, config):
         empty_run_fn = json_params["empty"]["runNumber"]
         if not os.path.exists(empty_run_fn):
             empty_run_fn = json_params["instrumentName"] + "_" + empty_run_fn
-        ws = apply_transmission(ws, transmission_run, empty_run_fn, config)
+        ws, sample_transmission_dict = apply_transmission(ws, transmission_run, empty_run_fn, config)
 
     # Background
     bkg_run = json_params["background"]["runNumber"]
@@ -114,7 +118,7 @@ def reduction(json_params, config):
             empty_run = json_params["empty"]["runNumber"]
             if not os.path.exists(empty_run):
                 empty_run = json_params["instrumentName"] + "_" + empty_run
-            ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)
+            ws_bck, background_transmission_dict = apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
         ws = drtsans.subtract_background(ws, background=ws_bck)
@@ -155,7 +159,9 @@ def reduction(json_params, config):
                       nbins=int(json_params["configuration"]["numQxQyBins"]))
 
     return {'iq': Iq,
-            'iqxqy': Iqxqy}
+            'iqxqy': Iqxqy,
+            'sample_transmission': sample_transmission_dict,
+            'background_transmission': background_transmission_dict}
 
 
 if __name__ == "__main__":
@@ -203,11 +209,12 @@ if __name__ == "__main__":
     reduction_dict = reduction(json_params, config)
     Iq = reduction_dict['iq']
     Iqxqy = reduction_dict['iqxqy']
+    sample_transmission_dict = reduction_dict['sample_transmission']
+    background_transmission_dict = reduction_dict['background_transmission']
 
     # list of arguments for log file ========================================================
     filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
     starttime = datetime.now().isoformat()
-    # username = 'Neymar'
     pythonfile = __file__
     reductionparams = log_json_params
     specialparameters = {'beam_center': {'x': config['center_x'],

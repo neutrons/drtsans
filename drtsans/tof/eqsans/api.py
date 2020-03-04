@@ -12,6 +12,7 @@ from drtsans.tof.eqsans.load import load_events, load_events_monitor
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 from drtsans.mask_utils import apply_mask
 from drtsans.tof.eqsans.normalization import normalize_by_flux
+from drtsans.tof.eqsans.meta_data import set_meta_data
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_monitors', 'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -57,6 +58,10 @@ def prepare_data(data,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
                  sensitivity_file_path=None, sensitivity_workspace=None,
+                 sample_to_detector_distance=None, source_to_sample_distance=None,
+                 sample_aperture_diameter=None, sample_thickness=None,
+                 source_aperture_diameter=None,
+                 pixel_size_x=None, pixel_size_y=None,
                  output_workspace=None, output_suffix=''):
     r"""
     Load an EQSANS data file and bring the data to a point where it can be used. This includes applying basic
@@ -113,6 +118,21 @@ def prepare_data(data,
     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
+    sample_to_detector_distance: float, None
+        sample to detector distance in meter
+    source_to_sample_distance: float, None
+        source to sample distance in mm
+    sample_aperture_diameter: float, None
+        sample aperture diameter in unit mm
+    sample_thickness: None, float
+        sample thickness in unit cm
+    source_aperture_diameter: float, None
+        source aperture diameter in unit meter
+    pixel_size_x: float, None
+        pixel size in x direction in unit as meter
+    pixel_size_y: float, None
+        pixel size in Y direction in unit as meter
+
     output_workspace: str
         Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
     output_suffix: str
@@ -178,6 +198,13 @@ def prepare_data(data,
                              output_workspace=monitor_workspace)
             kw['monitor_workspace'] = monitor_workspace
         output_workspace = normalize_by_flux(output_workspace, flux, **kw)
+
+    # Overwrite meta data
+    set_meta_data(output_workspace, None, None,
+                  sample_to_detector_distance, source_to_sample_distance,
+                  sample_aperture_diameter, sample_thickness,
+                  source_aperture_diameter,
+                  pixel_size_x, pixel_size_y)
 
     if isinstance(output_workspace, str):
         return mtd[output_workspace]  # shouldn't happen

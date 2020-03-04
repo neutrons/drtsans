@@ -83,8 +83,10 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                            ''.format(pixel_size_x, pixel_size_y))
 
     # Add log value
-    log_names, log_values, log_units = zip(*meta_data_list)
-
-    AddSampleLogMultiple(Workspace=workspace, LogNames=log_names,
-                         LogValues=log_values,
-                         LogUnits=log_units)
+    if len(meta_data_list) > 0:
+        # only work on non-empty meta data list
+        log_names, log_values, log_units = zip(*meta_data_list)
+        # add meta data (as sample logs) to workspace
+        AddSampleLogMultiple(Workspace=workspace, LogNames=log_names,
+                             LogValues=log_values,
+                             LogUnits=log_units)

@@ -3,7 +3,8 @@ import pytest
 from mantid import mtd
 from mantid.simpleapi import GroupWorkspaces
 
-from drtsans.mono.biosans import (load_histogram, load_events,
+
+from drtsans.mono.biosans import (load_histogram, load_events, load_and_split,
                                   transform_to_wavelength, sum_data, load_events_and_histogram)
 from drtsans.samplelogs import SampleLogs
 
@@ -139,6 +140,44 @@ def test_load_events_and_histogram(reference_dir):
     assert sample_logs2.duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633, abs=1e-11)
     assert sample_logs2.wavelength.size() == 692 + 2
     assert mtd[str(workspace2)].extractY().sum() == 11067715 + 1
+
+
+def test_load_and_split(reference_dir):
+    # Check that is fails with missing required paramters
+    with pytest.raises(ValueError) as excinfo:
+        load_and_split('CG3_961', data_dir=reference_dir.new.biosans)
+    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
+
+    filtered_ws = load_and_split('CG3_961', data_dir=reference_dir.new.biosans, time_interval=1000)
+
+    assert filtered_ws.size() == 2
+
+    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(1000, abs=1e-11)
+    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(809.48427990000005, abs=1e-11)
+
+    assert SampleLogs(filtered_ws.getItem(0)).monitor.value == 10553922
+    assert SampleLogs(filtered_ws.getItem(1)).monitor.value == 8619525
+
+    assert filtered_ws.getItem(0).getNumberEvents() == 6149184
+    assert filtered_ws.getItem(1).getNumberEvents() == 4918534
+
+    # check metadata is set correctly
+    assert SampleLogs(filtered_ws.getItem(0)).slice.value == 1
+    assert SampleLogs(filtered_ws.getItem(1)).slice.value == 2
+    assert SampleLogs(filtered_ws.getItem(0)).number_of_slices.value == 2
+    assert SampleLogs(filtered_ws.getItem(1)).number_of_slices.value == 2
+    assert SampleLogs(filtered_ws.getItem(0)).slice_parameter.value == "relative time from start"
+    assert SampleLogs(filtered_ws.getItem(1)).slice_parameter.value == "relative time from start"
+    assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 1000
+    assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 1000
+    assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 0
+    assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 1000
+    assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 1000
+    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == pytest.approx(1809.4842799, abs=1e-5)
+    assert SampleLogs(filtered_ws.getItem(0)).slice_start.units == 'seconds'
+    assert SampleLogs(filtered_ws.getItem(1)).slice_start.units == 'seconds'
+    assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == 'seconds'
+    assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == 'seconds'
 
 
 if __name__ == '__main__':

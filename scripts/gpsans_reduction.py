@@ -95,6 +95,7 @@ def reduction(json_params, config):
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
+    sample_transmission_dict = {}
     if transmission_run.strip() != '':
         if not os.path.exists(transmission_run):
             transmission_run = json_params["instrumentName"] + "_" + transmission_run
@@ -105,6 +106,7 @@ def reduction(json_params, config):
 
     # Background
     bkg_run = json_params["background"]["runNumber"]
+    background_transmission_dict = {}
     if bkg_run != '':
         if not os.path.exists(bkg_run):
             bkg_run = json_params["instrumentName"] + "_" + bkg_run
@@ -213,7 +215,7 @@ if __name__ == "__main__":
     background_transmission_dict = reduction_dict['background_transmission']
 
     # list of arguments for log file ========================================================
-    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    filename = os.path.join(json_params["configuration"]["outputDir"], output_file + '_reduction_log.hdf')
     starttime = datetime.now().isoformat()
     pythonfile = __file__
     reductionparams = log_json_params

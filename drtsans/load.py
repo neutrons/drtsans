@@ -131,8 +131,10 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
     provided or a log_name and log_value_interval.
 
     Metadata added to output workspace includes the ``slice`` number,
-    ``number_of_slices``, ``slice_parameter``, ``slice_start`` and
-    ``slice_end``.
+    ``number_of_slices``, ``slice_parameter``, ``slice_interval``,
+    ``slice_start`` and ``slice_end``.
+
+    For EQSANS two WorkspaceGroup's are return, one for the filtered data and one for filtered monitors
 
     Parameters
     ----------
@@ -215,20 +217,20 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                  GroupWorkspaces=True,
                  OutputWorkspaceIndexedFrom1=True)
 
+    # Filter monitors
+    FilterEvents(InputWorkspace=str(ws)+'_monitors',
+                 SplitterWorkspace='_filter',
+                 OutputWorkspaceBaseName=output_workspace+'_monitors',
+                 InformationWorkspace='_info',
+                 FilterByPulseTime=True,
+                 GroupWorkspaces=True,
+                 SpectrumWithoutDetector='Skip only if TOF correction',
+                 OutputWorkspaceIndexedFrom1=True)
     if is_mono:
-        # Filter monitors
-        FilterEvents(InputWorkspace=str(ws)+'_monitors',
-                     SplitterWorkspace='_filter',
-                     OutputWorkspaceBaseName=output_workspace+'_mon',
-                     InformationWorkspace='_info',
-                     FilterByPulseTime=True,
-                     GroupWorkspaces=True,
-                     SpectrumWithoutDetector='Skip only if TOF correction',
-                     OutputWorkspaceIndexedFrom1=True)
         # Set monitor log to be correct for each workspace
         for n in range(mtd[output_workspace].getNumberOfEntries()):
             SampleLogs(mtd[output_workspace].getItem(n)).insert('monitor',
-                                                                mtd[output_workspace+'_mon']
+                                                                mtd[output_workspace+'_monitors']
                                                                 .getItem(n).getNumberEvents())
 
     # Add metadata for each slice with details
@@ -239,6 +241,7 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         samplelogs.insert("slice_info", mtd['_info'].cell(n, 1))
         if time_interval:
             samplelogs.insert('slice_parameter', "relative time from start")
+            samplelogs.insert('slice_interval', time_interval)
             # Calculate relative start and end time
             samplelogs.insert('slice_start', (mtd['_filter'].cell(n, 0)
                                               - samplelogs.startTime().totalNanoseconds())/1e9, 'seconds')
@@ -246,10 +249,14 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                                             - samplelogs.startTime().totalNanoseconds())/1e9, 'seconds')
         else:
             samplelogs.insert('slice_parameter', log_name)
-            samplelogs.insert('slice_start', samplelogs[log_name].firstValue(), samplelogs[log_name].units)
-            samplelogs.insert('slice_end', samplelogs[log_name].lastValue(), samplelogs[log_name].units)
+            samplelogs.insert('slice_interval', log_value_interval)
+            samplelogs.insert('slice_start', float(samplelogs[log_name].value.min()), samplelogs[log_name].units)
+            samplelogs.insert('slice_end', float(samplelogs[log_name].value.max()), samplelogs[log_name].units)
 
-    return mtd[output_workspace]
+    if is_mono:
+        return mtd[output_workspace]
+    else:  # EQSANS requires the filtered monitor workspace
+        return mtd[output_workspace], mtd[output_workspace+'_monitors']
 
 
 def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):

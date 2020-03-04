@@ -142,7 +142,7 @@ def test_load_events_and_histogram(reference_dir):
     assert mtd[str(workspace2)].extractY().sum() == 11067715 + 1
 
 
-def test_load_and_split_time_interval(reference_dir):
+def test_load_and_split(reference_dir):
     # Check that is fails with missing required paramters
     with pytest.raises(ValueError) as excinfo:
         load_and_split('CG3_961', data_dir=reference_dir.new.biosans)
@@ -168,6 +168,8 @@ def test_load_and_split_time_interval(reference_dir):
     assert SampleLogs(filtered_ws.getItem(1)).number_of_slices.value == 2
     assert SampleLogs(filtered_ws.getItem(0)).slice_parameter.value == "relative time from start"
     assert SampleLogs(filtered_ws.getItem(1)).slice_parameter.value == "relative time from start"
+    assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 1000
+    assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 0
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 1000

@@ -339,7 +339,7 @@ if __name__ == "__main__":
         if linear_binning:
             q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
         else:
-            if flag_logqbinsperdecade == '':
+            if (flag_logqbinsperdecade == '') or (flag_logqbinsdecadecenter is None):
                 q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D,
                                                n_bins_per_decade=None,
                                                decade_on_center=flag_logqbinsdecadecenter,

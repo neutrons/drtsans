@@ -233,7 +233,8 @@ if __name__ == "__main__":
     save_ascii_binned_1D(filename, "I(Q)", merged_profile)
 
     # list of arguments for log file =======================================================
-    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    filename = os.path.join(json_params["configuration"]["outputDir"], json_params['outputFilename'] +
+                            '_reduction_log.hdf')
     starttime = datetime.now().isoformat()
     # username = 'Neymar'
     pythonfile = __file__

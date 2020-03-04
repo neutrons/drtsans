@@ -39,6 +39,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         msapi.logger.notice('Applying transmission correction with fixed value.')
         ws = sans.apply_transmission_correction(ws,
                                                 trans_value=float(transmission_run))
+
+        transmission_dict = {'value': float(transmission_run),
+                             'error': ''}
+
     else:
         msapi.logger.notice('Applying transmission correction with transmission file.')
 
@@ -221,6 +225,8 @@ if __name__ == "__main__":
     reductionparams = log_json_params
     specialparameters = {'beam_center': {'x': config['center_x'],
                                          'y': config['center_y']},
+                         'sample_transmission': sample_transmission_dict,
+                         'background_transmission': background_transmission_dict,
                          }
     detectordata = {'main': {'iq': Iq, 'iqxqy': Iqxqy}}
     drtsans.savereductionlog(filename=filename,

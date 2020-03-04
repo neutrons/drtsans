@@ -3,6 +3,7 @@ from drtsans.dataobjects import IQazimuthal
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
+import numpy as np
 import pytest
 
 
@@ -53,6 +54,41 @@ def test_1d_annular_no_wt():
                                                                            'is incorrect comparing to {}.' \
                                                                            ''.format(binned_iq.delta_mod_q[1],
                                                                                      0.01154)
+    # this is actually theta
+    np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=theta_max-18, num=num_bins))
+
+
+def test_1d_annular_out_of_range_angles():
+    """Test annular binning I(Qx, Qy) supplying the azimuthal angle outside of 0<azimuthal<360deg
+
+    The test data comes from example in '1D_annular_no_sub_no_wt' eqsans_tof_q_binning_tests_R5.xlsx
+    File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
+                   eqsans_tof_q_binning_tests_R5.xlsx
+    Returns
+    -------
+    None
+
+    """
+    # Initialize range of theta angle and Q
+    theta_min = -90
+    theta_max = 270.
+    num_bins = 10
+
+    q_min = 0.003
+    q_max = 0.006
+
+    # Generate testing data: Get Q2D data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+
+    # Test the high level method
+    # Define input data
+    test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
+                           delta_qx=dqx_array, delta_qy=dqy_array)
+
+    # Annular binning
+    theta_binning = BinningParams(theta_min, theta_max, num_bins)
+    with pytest.raises(ValueError):
+        bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
 
 if __name__ == '__main__':

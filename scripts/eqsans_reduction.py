@@ -206,8 +206,10 @@ if __name__ == "__main__":
     else:
         apply_transmission_value = False
 
+    sample_transmission_dict = {}
     if apply_transmission_run or apply_transmission_value:
         if apply_transmission_value:
+            sample_transmission_dict['value'] = float(transmission_value)
             msapi.logger.notice('...applying transmission correction with fixed value.')
             ws = eqsans.apply_transmission_correction(ws,
                                                       trans_value=float(transmission_value))
@@ -224,6 +226,9 @@ if __name__ == "__main__":
                                                   ws_tr_direct,
                                                   radius=rad_trans,
                                                   radius_unit="mm")
+            sample_transmission_dict['value'] = tr_ws.extractY()
+            sample_transmission_dict['error'] = tr_ws.extractE()
+
             # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
             # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
             # [CD, 1/30/2020] and save both of them as ascii file
@@ -241,6 +246,7 @@ if __name__ == "__main__":
 
     # background
     bkg_run = json_params["background"]["runNumber"]
+    background_transmission_dict = {}
     if bkg_run.strip() != '':
         msapi.logger.notice('...applying bkg_subtraction.')
         bkg_fn = "EQSANS_{}".format(bkg_run)
@@ -260,6 +266,7 @@ if __name__ == "__main__":
                 msapi.logger.notice('...applying bkg_transmission correction with fixed value.')
                 ws_bkg = eqsans.apply_transmission_correction(ws_bkg,
                                                               trans_value=float(bkg_transmission_value))
+                background_transmission_dict['value'] = float(bkg_transmission_value)
             else:
                 msapi.logger.notice('...applying bkg_transmission correction with transmission file.')
                 bkg_trans_fn = "EQSANS_{}".format(bkg_transmission_run)
@@ -273,6 +280,12 @@ if __name__ == "__main__":
                                                               ws_tr_direct,
                                                               radius=rad_trans,
                                                               radius_unit="mm")
+
+                background_transmission_dict['background_raw_transmission'] = {'value': ws_cal_raw_tr_bkg.extractY(),
+                                                                               'error': ws_cal_raw_tr_bkg.extractE()}
+                background_transmission_dict['background_transmission'] = {'value': ws_cal_tr_bkg.extractY(),
+                                                                           'error': ws_cal_tr_bkg.extractE()}
+
                 # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
                 # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
                 # [CD, 1/30/2020] and save both of them as ascii file
@@ -403,9 +416,10 @@ if __name__ == "__main__":
     specialparameters = {'beam_center': {'x': config['center_x'],
                                          'y': config['center_y'],
                                          },
+                         'sample_transmission': sample_transmission_dict,
+                         'background_transmission': background_transmission_dict,
                          }
     detectordata = {}
-
     for _key in log_binned_i_of_q.keys():
         name = "frame_{}".format(_key)
         detectordata[name] = {'iq': log_binned_i_of_q[_key],

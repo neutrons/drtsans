@@ -153,38 +153,38 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXprocess(entry, 'drtsans')
 
 
-def test_writing_das_log():
-    data = '/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5'
-    output_workspace = 'BC_8148'
-    ws = load_events(data,
-                     overwrite_instrument=True,
-                     output_workspace=output_workspace,
-                     output_suffix="",
-                     sample_offset=0)
-
-    # expected values
-    expected_values = {'run_number': {'value': '8148',
-                                      'units': ""},
-                       'monitor': {'value': 3338109,
-                                   'units': ''}}
-
-    # Add sample logs
-    sample_logs = SampleLogs(ws)
-
-    test_iq = _create_iq()
-    tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename,
-                     detectordata={'main_detector': {'iq': test_iq}},
-                     samplelogs=sample_logs)
-
-    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-
-    with h5py.File(tmp_log_filename, 'r') as handle:
-        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
-        sample_logs_entry = _getGroup(reduction_information_entry, 'sample_logs', 'NXnote')
-
-        for _key in expected_values.keys():
-            assert sample_logs_entry[_key].value == str(expected_values[_key]['value'])
+# def test_writing_das_log():
+#     data = '/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5'
+#     output_workspace = 'BC_8148'
+#     ws = load_events(data,
+#                      overwrite_instrument=True,
+#                      output_workspace=output_workspace,
+#                      output_suffix="",
+#                      sample_offset=0)
+#
+#     # expected values
+#     expected_values = {'run_number': {'value': '8148',
+#                                       'units': ""},
+#                        'monitor': {'value': 3338109,
+#                                    'units': ''}}
+#
+#     # Add sample logs
+#     sample_logs = SampleLogs(ws)
+#
+#     test_iq = _create_iq()
+#     tmp_log_filename = _create_tmp_log_filename()
+#     savereductionlog(tmp_log_filename,
+#                      detectordata={'main_detector': {'iq': test_iq}},
+#                      samplelogs=sample_logs)
+#
+#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+#
+#     with h5py.File(tmp_log_filename, 'r') as handle:
+#         reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+#         sample_logs_entry = _getGroup(reduction_information_entry, 'sample_logs', 'NXnote')
+#
+#         for _key in expected_values.keys():
+#             assert sample_logs_entry[_key].value == str(expected_values[_key]['value'])
 
 
 def test_writing_metadata():

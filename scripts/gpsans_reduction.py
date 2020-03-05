@@ -12,6 +12,7 @@ import mantid.simpleapi as msapi  # noqa E402
 
 import drtsans  # noqa E402
 from drtsans.mono import gpsans as sans  # noqa E402
+from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.path import registered_workspace # noqa #402
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
@@ -39,6 +40,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         msapi.logger.notice('Applying transmission correction with fixed value.')
         ws = sans.apply_transmission_correction(ws,
                                                 trans_value=float(transmission_run))
+
+        transmission_dict = {'value': float(transmission_run),
+                             'error': ''}
+
     else:
         msapi.logger.notice('Applying transmission correction with transmission file.')
 
@@ -50,6 +55,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
                                             ws_tr_direct,
                                             radius=cfg['transmission_radius'],
                                             radius_unit="mm")
+
+        transmission_dict = {'value': tr_ws.extractY(),
+                             'error': tr_ws.extractE()}
+
         # remove the temporary workspaces
         ws_tr_sample.delete()
         ws_tr_direct.delete()
@@ -61,7 +70,7 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         if str(tr_ws) in msapi.mtd:  # protect against non-workspaces
             tr_ws.delete()
 
-    return ws
+    return ws, transmission_dict
 
 
 def reduction(json_params, config):
@@ -91,16 +100,18 @@ def reduction(json_params, config):
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
+    sample_transmission_dict = {}
     if transmission_run.strip() != '':
         if not os.path.exists(transmission_run):
             transmission_run = json_params["instrumentName"] + "_" + transmission_run
         empty_run_fn = json_params["empty"]["runNumber"]
         if not os.path.exists(empty_run_fn):
             empty_run_fn = json_params["instrumentName"] + "_" + empty_run_fn
-        ws = apply_transmission(ws, transmission_run, empty_run_fn, config)
+        ws, sample_transmission_dict = apply_transmission(ws, transmission_run, empty_run_fn, config)
 
     # Background
     bkg_run = json_params["background"]["runNumber"]
+    background_transmission_dict = {}
     if bkg_run != '':
         if not os.path.exists(bkg_run):
             bkg_run = json_params["instrumentName"] + "_" + bkg_run
@@ -114,7 +125,7 @@ def reduction(json_params, config):
             empty_run = json_params["empty"]["runNumber"]
             if not os.path.exists(empty_run):
                 empty_run = json_params["instrumentName"] + "_" + empty_run
-            ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)
+            ws_bck, background_transmission_dict = apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
         ws = drtsans.subtract_background(ws, background=ws_bck)
@@ -154,7 +165,11 @@ def reduction(json_params, config):
                       weighting=flag_weighted,
                       nbins=int(json_params["configuration"]["numQxQyBins"]))
 
-    return Iq, Iqxqy
+    return {'iq': Iq,
+            'iqxqy': Iqxqy,
+            'sample_transmission': sample_transmission_dict,
+            'background_transmission': background_transmission_dict,
+            'sample_wks': ws}
 
 
 if __name__ == "__main__":
@@ -199,17 +214,24 @@ if __name__ == "__main__":
 
         msapi.logger.warning("WE NEED A WAY TO PASS A BEAM CENTER")
 
-    (Iq, Iqxqy) = reduction(json_params, config)
+    reduction_dict = reduction(json_params, config)
+    Iq = reduction_dict['iq']
+    Iqxqy = reduction_dict['iqxqy']
+    sample_transmission_dict = reduction_dict['sample_transmission']
+    background_transmission_dict = reduction_dict['background_transmission']
+    sample_wks = reduction_dict['sample_wks']
 
     # list of arguments for log file ========================================================
-    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    filename = os.path.join(json_params["configuration"]["outputDir"], output_file + '_reduction_log.hdf')
     starttime = datetime.now().isoformat()
-    # username = 'Neymar'
     pythonfile = __file__
     reductionparams = log_json_params
     specialparameters = {'beam_center': {'x': config['center_x'],
                                          'y': config['center_y']},
+                         'sample_transmission': sample_transmission_dict,
+                         'background_transmission': background_transmission_dict,
                          }
+    samplelogs = {'main': SampleLogs(sample_wks)}
     detectordata = {'main': {'iq': Iq, 'iqxqy': Iqxqy}}
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
@@ -217,4 +239,5 @@ if __name__ == "__main__":
                              pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
+                             samplelogs=samplelogs,
                              )

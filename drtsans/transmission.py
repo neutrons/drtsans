@@ -68,6 +68,7 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
         radius = beam_radius(input_reference, unit='mm')
     else:
         radius = float(radius) if radius_unit == 'mm' else 1.e3 * radius  # to mm
+        logger.information('beam radius is (mm) {}'.format(radius))
     if radius <= 0.:
         raise ValueError('Encountered negative beam radius={}mm'.format(radius))
 

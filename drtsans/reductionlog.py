@@ -1,5 +1,8 @@
 from datetime import datetime
 import h5py
+import glob
+import os
+import re
 import json
 import socket
 from mantid import __version__ as mantid_version
@@ -90,6 +93,8 @@ def _savereductionparams(nxentry, parameters, name_of_entry):
         if isinstance(_value, dict):
             _savereductionparams(nxentry, _value, _key)
         else:
+            if _value is None:
+                _value = ''
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
 
@@ -162,7 +167,9 @@ def _savespecialparameters(nxentry, dict_special_parameters, name_of_entry):
     nxentry: HDF handle
         Entry group to put information in
     dict_special_parameters: dict
-        dictionary where to get the parametes froms
+        dictionary where to get the parameters from
+    name_of_entry: String
+        Name of the top tree structure
     '''
     nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
 
@@ -170,8 +177,38 @@ def _savespecialparameters(nxentry, dict_special_parameters, name_of_entry):
         if isinstance(_value, dict):
             _savereductionparams(nxentry, _value, _key)
         else:
+            if _value is None:
+                _value = ""
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
+
+
+def _savesamplelogs(nxentry, dict_sample_logs, name_of_entry):
+    """Save all the DAS logs infos
+
+    Parameters
+    ----------
+    nxentry: HDF handle
+        Entry group to put information in
+    dict_sample_logs: SampleLogs object
+    name_of_entry: String
+        Name of the top tree structure
+    """
+    nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
+
+    for _sample_key in dict_sample_logs.keys():
+        nxentry_log = _createnxgroup(nxentry, _sample_key, 'NXnote')
+        local_dict_sample_logs = dict_sample_logs[_sample_key]
+        for _key in local_dict_sample_logs.keys():
+            _value = str(local_dict_sample_logs[_key].value)
+            if _value is None:
+                _value = ""
+            _units = str(local_dict_sample_logs[_key].units)
+            if _units is None:
+                _units = ""
+            _new_entry = nxentry_log.create_dataset(name=_key, data=_value)
+            _new_entry.attrs['NX_class'] = 'NXdata'
+            _new_entry.attrs['units'] = _units
 
 
 def _create_groupe(entry=None, name='Default', data=[], units=''):
@@ -252,6 +289,42 @@ def _save_iq_to_log(iq=None, topEntry=None):
                        units='1/A')
 
 
+def _retrieve_beam_radius_from_out_file(outfolder=''):
+    name_of_out_file = glob.glob(os.path.join(outfolder, '*.out'))
+    if name_of_out_file == []:
+        return ""
+
+    with open(name_of_out_file[0], 'r') as handler:
+        file_contain = handler.readlines()
+    string_to_look_for = 'Radius calculated from the input workspace ='
+    for _line in file_contain:
+        if string_to_look_for in _line:
+            regular_exp = r'.*= (?P<radius>.*) mm\n'
+            m = re.search(regular_exp, _line)
+            if m:
+                return m.group('radius')
+    return ""
+
+
+def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder=''):
+    if json is None:
+        return specialparameters
+
+    try:
+        beam_radius_in_json = json['configuration']['mmRadiusForTransmission']
+    except KeyError:
+        return specialparameters
+
+    if beam_radius_in_json == "":
+        beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
+
+    if specialparameters is None:
+        specialparameters = {'calculated_transmission_radius (mm)': beam_radius_in_json}
+    else:
+        specialparameters = {**specialparameters, 'calculated_transmission_radius (mm)': beam_radius_in_json}
+    return specialparameters
+
+
 def savereductionlog(filename='', detectordata=None, **kwargs):
     r'''Save the reduction log
 
@@ -288,6 +361,8 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         will be gotten from the system environment ``USERNAME`` (optional)
     specialparameters: dict
         dictionary of any other arguments you want to keep in the log file
+    samplelogs: SampleLogs
+        SampleLogs object of all the EPICS infos logged into the NeXus (and visible on ONCat)
     '''
     if filename == '':
         filename = '_reduction_log.hdf'
@@ -377,5 +452,15 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                                       data=[np.string_(username)])
 
         specialparameters = kwargs.get('specialparameters', None)
+
+        # add calculated beam radius if beam radius is None
+        specialparameters = _appendCalculatedBeamRadius(specialparameters,
+                                                        json=_reduction_parameters,
+                                                        outfolder=os.path.dirname(filename))
+
         if specialparameters:
             _savespecialparameters(entry, specialparameters, 'special_parameters')
+
+        samplelogs = kwargs.get('samplelogs', None)
+        if samplelogs:
+            _savesamplelogs(entry, samplelogs, 'sample_logs')

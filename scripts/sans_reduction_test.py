@@ -12,7 +12,7 @@ if __name__ == '__main__':
         json_string = ' '.join(sys.argv[1:])
         json_parameters = json.loads(json_string)
         filename = '{}_{}'.format('EQSANS',
-                                  json_parameters['run_number'])
+                                  json_parameters['runNumber'])
         w = LoadEventNexus(filename)
         Segfault(DryRun=not json_parameters['fail'])
     else:

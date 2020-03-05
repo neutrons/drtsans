@@ -27,7 +27,8 @@ def test_gpsans_find_beam_center():
                                   center_y=0,
                                   flux_method='monitor',
                                   solid_angle=False,
-                                  output_workspace='BC_8148')
+                                  output_workspace='BC_8148',
+                                  sample_thickness=0.1)
 
     # Find beam center
     beam_center = find_beam_center(beam_center_ws)

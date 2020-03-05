@@ -174,6 +174,10 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
 
     """
     # Determine azimuthal angle bins (i.e., theta bins)
+    if theta_bin_params.min < 0. or theta_bin_params.max > 360.:
+        msg = 'must specify range 0<=theta<=360deg found {}<=theta<={}deg'.format(theta_bin_params.min,
+                                                                                  theta_bin_params.max)
+        raise ValueError(msg)
     theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
 
     # Calculate theta array

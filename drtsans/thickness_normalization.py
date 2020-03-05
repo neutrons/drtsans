@@ -19,4 +19,6 @@ def normalize_by_thickness(input_workspace, thickness):
     if thickness <= 0.0:
         msg = 'Sample thickness should be positive. Got {}'.format(thickness)
         raise ValueError(msg)
-    return mtd[str(input_workspace)] / thickness
+    out = mtd[str(input_workspace)]
+    out /= thickness
+    return out

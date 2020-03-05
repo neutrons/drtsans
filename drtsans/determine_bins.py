@@ -35,9 +35,13 @@ def determine_1d_linear_bins(x_min, x_max, bins):
     if x_min is None or x_max is None or x_min >= x_max:
         raise RuntimeError('x min {} and x max {} must not be None and x min shall be less than x max'
                            ''.format(x_min, x_max))
+    # force the number of bins to be an integer and error check it
+    bins = int(bins)
+    if bins <= 0:
+        raise ValueError('Encountered illegal number of bins: {}'.format(bins))
 
     # Calculate Q step size
-    delta_x = (x_max - x_min) / bins
+    delta_x = float((x_max - x_min) / bins)
     # Determine bin edges
     bin_edges = np.arange(bins + 1).astype('float') * delta_x + x_min
     # Determine bin centers from edges

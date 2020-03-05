@@ -8,10 +8,11 @@ import h5py
 # https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
 from mantid.simpleapi import mtd
 # https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
-from mantid.simpleapi import LoadEventNexus, MergeRuns
+from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
 import mantid
 
-__all__ = ['load_events', 'sum_data']
+
+__all__ = ['load_events', 'sum_data', 'load_and_split']
 
 
 def __monitor_counts(filename, monitor_name='monitor1'):
@@ -119,6 +120,143 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
     return mtd[output_workspace]
+
+
+def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                   detector_offset=0., sample_offset=0.,
+                   time_interval=None, log_name=None, log_value_interval=None,
+                   reuse_workspace=False, **kwargs):
+    r"""Load an event NeXus file and filter into a WorkspaceGroup depending
+    on the provided filter options. Either a time_interval must be
+    provided or a log_name and log_value_interval.
+
+    Metadata added to output workspace includes the ``slice`` number,
+    ``number_of_slices``, ``slice_parameter``, ``slice_interval``,
+    ``slice_start`` and ``slice_end``.
+
+    For EQSANS two WorkspaceGroup's are return, one for the filtered data and one for filtered monitors
+
+    Parameters
+    ----------
+    run: str, ~mantid.api.IEventWorkspace
+        Examples: ``CG3_55555``, ``CG355555`` or file path.
+    output_workspace: str
+        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
+    data_dir: str, list
+        Additional data search directories
+    overwrite_instrument: bool, str
+        If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
+        latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
+        desired IDF.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
+    detector_offset: float
+        Additional translation of the detector along the Z-axis, in mm. Positive
+        moves the detector downstream.
+    sample_offset: float
+        Additional translation of the sample, in mm. The sample flange remains
+        at the origin of coordinates. Positive moves the sample downstream.
+    time_interval: float or list of floats
+        Array for lengths of time intervals for splitters.  If the array has one value,
+        then all splitters will have same time intervals. If the size of the array is larger
+        than one, then the splitters can have various time interval values.
+    log_name: string
+        Name of the sample log to use to filter. For example, the pulse charge is recorded in ‘ProtonCharge’.
+    log_value_interval: float
+        Delta of log value to be sliced into from min log value and max log value.
+    reuse_workspace: bool
+        When true, return the ``output_workspace`` if it already exists
+    kwargs: dict
+        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
+
+    Returns
+    -------
+    WorkspaceGroup
+        Reference to the workspace groups containing all the split workspaces
+
+    """
+
+    if not (time_interval or (log_name and log_value_interval)):
+        raise ValueError("Must provide with time_interval or log_name and log_value_interval")
+
+    ws = load_events(run=run,
+                     data_dir=data_dir,
+                     output_workspace='_load_tmp',
+                     overwrite_instrument=overwrite_instrument,
+                     output_suffix=output_suffix,
+                     detector_offset=detector_offset,
+                     sample_offset=sample_offset,
+                     reuse_workspace=reuse_workspace,
+                     **dict(kwargs, LoadMonitors=True))
+
+    # determine if this is a monochromatic measurement
+    instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
+    is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
+              (instrument_unique_name == InstrumentEnumName.GPSANS)
+
+    # create default name for output workspace
+    if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
+        run_number = extract_run_number(run) if isinstance(run, str) else ''
+        output_workspace = '{}_{}{}'.format(instrument_unique_name, run_number, output_suffix)
+
+    # Create event filter workspace
+    GenerateEventsFilter(InputWorkspace=str(ws),
+                         OutputWorkspace='_filter',
+                         InformationWorkspace='_info',
+                         TimeInterval=time_interval,
+                         LogName=log_name,
+                         LogValueInterval=log_value_interval)
+
+    # Filter data
+    FilterEvents(InputWorkspace=str(ws),
+                 SplitterWorkspace='_filter',
+                 OutputWorkspaceBaseName=output_workspace,
+                 InformationWorkspace='_info',
+                 FilterByPulseTime=True,
+                 GroupWorkspaces=True,
+                 OutputWorkspaceIndexedFrom1=True)
+
+    # Filter monitors
+    FilterEvents(InputWorkspace=str(ws)+'_monitors',
+                 SplitterWorkspace='_filter',
+                 OutputWorkspaceBaseName=output_workspace+'_monitors',
+                 InformationWorkspace='_info',
+                 FilterByPulseTime=True,
+                 GroupWorkspaces=True,
+                 SpectrumWithoutDetector='Skip only if TOF correction',
+                 OutputWorkspaceIndexedFrom1=True)
+    if is_mono:
+        # Set monitor log to be correct for each workspace
+        for n in range(mtd[output_workspace].getNumberOfEntries()):
+            SampleLogs(mtd[output_workspace].getItem(n)).insert('monitor',
+                                                                mtd[output_workspace+'_monitors']
+                                                                .getItem(n).getNumberEvents())
+
+    # Add metadata for each slice with details
+    for n in range(mtd[output_workspace].getNumberOfEntries()):
+        samplelogs = SampleLogs(mtd[output_workspace].getItem(n))
+        samplelogs.insert('slice', n+1)
+        samplelogs.insert('number_of_slices', mtd[output_workspace].getNumberOfEntries())
+        samplelogs.insert("slice_info", mtd['_info'].cell(n, 1))
+        if time_interval:
+            samplelogs.insert('slice_parameter', "relative time from start")
+            samplelogs.insert('slice_interval', time_interval)
+            # Calculate relative start and end time
+            samplelogs.insert('slice_start', (mtd['_filter'].cell(n, 0)
+                                              - samplelogs.startTime().totalNanoseconds())/1e9, 'seconds')
+            samplelogs.insert('slice_end', (mtd['_filter'].cell(n, 1)
+                                            - samplelogs.startTime().totalNanoseconds())/1e9, 'seconds')
+        else:
+            samplelogs.insert('slice_parameter', log_name)
+            samplelogs.insert('slice_interval', log_value_interval)
+            samplelogs.insert('slice_start', float(samplelogs[log_name].value.min()), samplelogs[log_name].units)
+            samplelogs.insert('slice_end', float(samplelogs[log_name].value.max()), samplelogs[log_name].units)
+
+    if is_mono:
+        return mtd[output_workspace]
+    else:  # EQSANS requires the filtered monitor workspace
+        return mtd[output_workspace], mtd[output_workspace+'_monitors']
 
 
 def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):

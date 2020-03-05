@@ -15,6 +15,7 @@ from drtsans.mono.absolute_units import empty_beam_scaling
 from drtsans.mono.gpsans.attenuation import attenuation_factor
 from drtsans.path import registered_workspace
 from drtsans import subtract_background
+from drtsans.mono.meta_data import set_meta_data
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration']
@@ -29,6 +30,11 @@ def prepare_data(data,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
                  sensitivity_file_path=None, sensitivity_workspace=None,
+                 wave_length=None, wavelength_spread=None,
+                 sample_to_detector_distance=None, source_to_sample_distance=None,
+                 sample_aperture_diameter=None, sample_thickness=None,
+                 source_aperture_diameter=None,
+                 pixel_size_x=None, pixel_size_y=None,
                  output_workspace=None, output_suffix='', **kwargs):
     r"""
     Load a GPSANS data file and bring the data to a point where it can be used. This includes applying basic
@@ -74,6 +80,24 @@ def prepare_data(data,
     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
+    wave_length: float, None
+        wave length in Angstrom
+    wavelength_spread: float, None
+        wave length spread in Angstrom
+    sample_to_detector_distance: float, None
+        sample to detector distance in meter
+    source_to_sample_distance: float, None
+        source to sample distance in meter
+    sample_aperture_diameter: float, None
+        sample aperture diameter in mm
+    sample_thickness: None, float
+        sample thickness in unit cm
+    source_aperture_diameter: float, None
+        source aperture size radius in unit mm
+    pixel_size_x: float, None
+        pixel size in x direction in unit as meter
+    pixel_size_y: float, None
+        pixel size in Y direction in unit as meter
     output_workspace: str
         Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
     output_suffix: str
@@ -115,6 +139,13 @@ def prepare_data(data,
     # Mask either detector
     if mask_detector is not None:
         MaskDetectors(ws_name, ComponentList=mask_detector)
+
+    # Overwrite meta data
+    set_meta_data(ws_name, wave_length, wavelength_spread,
+                  sample_to_detector_distance, source_to_sample_distance,
+                  sample_aperture_diameter, sample_thickness,
+                  source_aperture_diameter,
+                  pixel_size_x, pixel_size_y)
 
     return prepare_data_workspaces(ws_name,
                                    center_x=center_x,

@@ -104,6 +104,9 @@ def test_eqsans_prepare_sensitivities():
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 
+    # Clean
+    os.remove(output_sens_file)
+
 
 def test_cg3_main_prepare_sensitivities():
     """Integration test on algorithms to prepare sensitivities for BIOSANS's main detector
@@ -183,6 +186,9 @@ def test_cg3_main_prepare_sensitivities():
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 
+    # Clean
+    os.remove(output_sens_file)
+
 
 def test_cg3_wing_prepare_sensitivities():
     """Integration test on algorithms to prepare sensitivities for BIOSANS's wing detector
@@ -219,7 +225,7 @@ def test_cg3_wing_prepare_sensitivities():
     BEAM_TRAP_SIZE_FACTOR = 2
 
     # Corrections
-    SOLID_ANGLE_CORRECTION = False
+    SOLID_ANGLE_CORRECTION = True
     # Flag to do dependent correction with transmission correction
     THETA_DEPENDENT_CORRECTION = True
 
@@ -263,6 +269,9 @@ def test_cg3_wing_prepare_sensitivities():
                          '/sans/sensitivities/CG3_Sens_Wing.nxs'
 
     verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1E-7)
+
+    # Clean
+    os.remove(output_sens_file)
 
 
 def test_cg2_sensitivities():
@@ -325,6 +334,9 @@ def test_cg2_sensitivities():
                    '/sans/sensitivities/CG2_Sens_Moving_Dets.nxs'
 
     verify_sensitivities_file(output_sens_file, gold_gp_file, atol=1E-7)
+
+    # Clean
+    os.remove(output_sens_file)
 
 
 if __name__ == '__main__':

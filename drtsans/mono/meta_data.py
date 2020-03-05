@@ -1,6 +1,6 @@
 # Method in this module is to set meta data to SANS Mantid Workspaces
 from mantid.simpleapi import AddSampleLogMultiple
-from drtsans.meta_data import set_up_sample_detector_distance
+from drtsans.meta_data import set_up_sample_detector_distance, set_up_source_sample_distance
 
 
 __all__ = ['set_meta_data']
@@ -61,7 +61,10 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
 
     # Source sample distance
     if source_to_sample_distance is not None:
-        meta_data_list.append(('source_sample_distance', source_to_sample_distance, 'm'))
+        sub_list = set_up_source_sample_distance(workspace,  source_to_sample_distance, 'm',
+                                                 'source_sample_distance')
+        meta_data_list.extend(sub_list)
+        # meta_data_list.append(('source_sample_distance', source_to_sample_distance, 'm'))
 
     # Sample to detector distance
     if sample_to_detector_distance is not None:
@@ -84,8 +87,10 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                            ''.format(pixel_size_x, pixel_size_y))
 
     # Add log value
-    log_names, log_values, log_units = zip(*meta_data_list)
-
-    AddSampleLogMultiple(Workspace=workspace, LogNames=log_names,
-                         LogValues=log_values,
-                         LogUnits=log_units)
+    if len(meta_data_list) > 0:
+        # only work on non-empty meta data list
+        log_names, log_values, log_units = zip(*meta_data_list)
+        # add meta data (as sample logs) to workspace
+        AddSampleLogMultiple(Workspace=workspace, LogNames=log_names,
+                             LogValues=log_values,
+                             LogUnits=log_units)

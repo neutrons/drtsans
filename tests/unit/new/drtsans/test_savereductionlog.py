@@ -8,9 +8,7 @@ from drtsans import savereductionlog
 from drtsans.iq import determine_1d_log_bins
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins
 from drtsans.dataobjects import IQmod
-from drtsans.mono.load import load_events
 from drtsans.dataobjects import IQazimuthal
-from drtsans.samplelogs import SampleLogs
 from tempfile import NamedTemporaryFile
 from drtsans import __version__ as drtsans_version
 from mantid import __version__ as mantid_version

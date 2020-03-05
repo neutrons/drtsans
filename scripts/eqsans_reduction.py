@@ -14,6 +14,7 @@ from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
 from drtsans.instruments import extract_run_number # noqa E402
 from drtsans.tof.eqsans import cfg  # noqa E402
+from drtsans.samplelogs import SampleLogs  # noqa E402
 from common_utils import get_Iqxqy  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.path import registered_workspace # noqa E402
@@ -424,12 +425,14 @@ if __name__ == "__main__":
         name = "frame_{}".format(_key)
         detectordata[name] = {'iq': log_binned_i_of_q[_key],
                               'iqxqy': log_iqxqy[_key]}
+    samplelogs = {'main': SampleLogs(ws)}
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
                              reductionparams=reductionparams,
                              pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
+                             samplelogs=samplelogs,
                              )
 
     # [CD 2/7/2020] log 'finish'

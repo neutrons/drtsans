@@ -158,9 +158,8 @@ def prepare_data(data,
     # Interestingly, this function cannot handle constant dLambda/Lamba binning...
     output_workspace = transform_to_wavelength(output_workspace, bin_width=bin_width,
                                                low_tof_clip=low_tof_clip,
-                                               high_tof_clip=high_tof_clip)
+                                               high_tof_clip=high_tof_clip, keep_events=False)
 
-    # The initial estimate of the uncertainties are made next.
     output_workspace = set_init_uncertainties(output_workspace)
 
     # Next, we subtract dark current, if it exists.

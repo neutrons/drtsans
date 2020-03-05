@@ -184,12 +184,7 @@ def test_writing_das_log():
         sample_logs_entry = _getGroup(reduction_information_entry, 'sample_logs', 'NXnote')
 
         for _key in expected_values.keys():
-
-            print("_key:{}, _value:{}, _units={}".format(_key,
-                                                         sample_logs[_key].value,
-                                                         sample_logs[_key].units))
-
-            assert sample_logs[_key].value == expected_values[_key]['value']
+            assert sample_logs_entry[_key].value == str(expected_values[_key]['value'])
 
 
 def test_writing_metadata():

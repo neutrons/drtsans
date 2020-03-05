@@ -7,7 +7,7 @@ __all__ = ['set_meta_data']
 
 
 def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
-                  sample_to_detector_distance=None, source_to_sample_distance=None,
+                  sample_offset=0.,
                   sample_aperture_diameter=None, sample_thickness=None,
                   source_aperture_diameter=None,
                   pixel_size_x=None, pixel_size_y=None):
@@ -21,10 +21,8 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
         wave length in Angstrom
     wavelength_spread: float, None
         wave length spread in Angstrom
-    sample_to_detector_distance: float, None
-        sample to detector distance in meter
-    source_to_sample_distance: float, None
-        source to sample distance in meter
+    sample_offset: float
+        offset of sample from origin in unit mm
     sample_aperture_diameter: float, None
         sample aperture diameter in mm
     sample_thickness: None, float
@@ -59,18 +57,8 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     if source_aperture_diameter is not None:
         meta_data_list.append(('source_aperture_diameter', source_aperture_diameter, 'mm'))
 
-    # Source sample distance
-    if source_to_sample_distance is not None:
-        sub_list = set_up_source_sample_distance(workspace,  source_to_sample_distance, 'm',
-                                                 'source_sample_distance')
-        meta_data_list.extend(sub_list)
-        # meta_data_list.append(('source_sample_distance', source_to_sample_distance, 'm'))
-
-    # Sample to detector distance
-    if sample_to_detector_distance is not None:
-        sub_list = set_up_sample_detector_distance(workspace, sample_to_detector_distance, 'm',
-                                                   'sample_detector_distance')
-        meta_data_list.extend(sub_list)
+    # Sample offset
+    meta_data_list.append(('sample_offset', sample_offset, 'mm'))
 
     # Sample thickness
     if sample_thickness is not None:

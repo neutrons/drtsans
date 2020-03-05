@@ -722,21 +722,21 @@ def translate_sample_by_z(workspace, z):
     """
     # only move if the value is non-zero
     if z != 0.:
+        ws_name = str(workspace)
         MoveInstrumentComponent(Workspace=str(workspace), Z=z,
                                 ComponentName='sample-position',
                                 RelativePosition=True)
+        workspace = mtd[ws_name]
+        print('[INFO] Instrument sample position is moved to {}'.format(workspace.getInstrument().getPos()))
 
     # update the appropriate log
+    # 'source_aperture_sample_aperture_distance' is not coupled with sample/source distance. Thus
+    # it won't be updated
     sample_logs = SampleLogs(workspace)
     logname_to_set = 'source-sample-distance'  # default
-    # look for name of the log/property to update
-    for logname in ['source-sample-distance', 'source_aperture_sample_aperture_distance']:
-        if logname in sample_logs:
-            logname_to_set = logname
-            break
-
     sample_logs.insert(logname_to_set, source_sample_distance(workspace, search_logs=False, unit='mm'),
                        unit='mm')
+    # FIXME - sample-detector distance shall be updated too
 
 
 def translate_detector_by_z(input_workspace, z=None, relative=True):

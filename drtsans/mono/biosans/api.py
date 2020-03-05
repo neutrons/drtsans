@@ -24,7 +24,6 @@ def prepare_data(data,
                  solid_angle=True,
                  sensitivity_file_path=None, sensitivity_workspace=None,
                  wave_length=None, wavelength_spread=None,
-                 sample_to_detector_distance=None, source_to_sample_distance=None,
                  sample_aperture_diameter=None, sample_thickness=None,
                  source_aperture_diameter=None,
                  pixel_size_x=None, pixel_size_y=None,
@@ -79,10 +78,6 @@ def prepare_data(data,
         wave length in Angstrom
     wavelength_spread: float, None
         wave length spread in Angstrom
-    sample_to_detector_distance: float, None
-        sample to detector distance in meter
-    source_to_sample_distance: float, None
-        source to sample distance in meter
     sample_aperture_diameter: float, None
         sample aperture diameter in mm
     sample_thickness: None, float
@@ -150,7 +145,7 @@ def prepare_data(data,
 
     # Overwrite meta data
     set_meta_data(ws_name, wave_length, wavelength_spread,
-                  sample_to_detector_distance, source_to_sample_distance,
+                  sample_offset,
                   sample_aperture_diameter, sample_thickness,
                   source_aperture_diameter,
                   pixel_size_x, pixel_size_y)

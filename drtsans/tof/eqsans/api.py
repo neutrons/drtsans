@@ -58,7 +58,6 @@ def prepare_data(data,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
                  sensitivity_file_path=None, sensitivity_workspace=None,
-                 sample_to_detector_distance=None, source_to_sample_distance=None,
                  sample_aperture_diameter=None, sample_thickness=None,
                  source_aperture_diameter=None,
                  pixel_size_x=None, pixel_size_y=None,
@@ -118,10 +117,6 @@ def prepare_data(data,
     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
-    sample_to_detector_distance: float, None
-        sample to detector distance in meter
-    source_to_sample_distance: float, None
-        source to sample distance in mm
     sample_aperture_diameter: float, None
         sample aperture diameter in unit mm
     sample_thickness: None, float
@@ -201,7 +196,7 @@ def prepare_data(data,
 
     # Overwrite meta data
     set_meta_data(output_workspace, None, None,
-                  sample_to_detector_distance, source_to_sample_distance,
+                  sample_offset,
                   sample_aperture_diameter, sample_thickness,
                   source_aperture_diameter,
                   pixel_size_x, pixel_size_y)

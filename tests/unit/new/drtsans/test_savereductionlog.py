@@ -8,7 +8,9 @@ from drtsans import savereductionlog
 from drtsans.iq import determine_1d_log_bins
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins
 from drtsans.dataobjects import IQmod
+from drtsans.mono.load import load_events
 from drtsans.dataobjects import IQazimuthal
+from drtsans.samplelogs import SampleLogs
 from tempfile import NamedTemporaryFile
 from drtsans import __version__ as drtsans_version
 from mantid import __version__ as mantid_version
@@ -151,8 +153,46 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXprocess(entry, 'drtsans')
 
 
-def test_writing_metadata():
+def test_writing_das_log():
+    data = '/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5'
+    output_workspace = 'BC_8148'
+    ws = load_events(data,
+                     overwrite_instrument=True,
+                     output_workspace=output_workspace,
+                     output_suffix="",
+                     sample_offset=0)
 
+    # expected values
+    expected_values = {'run_number': {'value': '8148',
+                                      'units': ""},
+                       'monitor': {'value': 3338109,
+                                   'units': ''}}
+
+    # Add sample logs
+    sample_logs = SampleLogs(ws)
+
+    test_iq = _create_iq()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename,
+                     detectordata={'main_detector': {'iq': test_iq}},
+                     samplelogs=sample_logs)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+        sample_logs_entry = _getGroup(reduction_information_entry, 'sample_logs', 'NXnote')
+
+        for _key in expected_values.keys():
+
+            print("_key:{}, _value:{}, _units={}".format(_key,
+                                                         sample_logs[_key].value,
+                                                         sample_logs[_key].units))
+
+            assert sample_logs[_key].value == expected_values[_key]['value']
+
+
+def test_writing_metadata():
     pythonscript = "this is my python script"
     pythonfile = 'this_is_my_file.py'
     reductionparams = {'reduction parameter 1': 'value1'}

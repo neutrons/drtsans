@@ -336,15 +336,15 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
 
     # Calculate theta array
-    theta_array = np.arctan2(i_of_q.qy, i_of_q.qx) * 180. / np.pi
+    theta_array = np.rad2deg(np.arctan2(i_of_q.qy, i_of_q.qx))
     # convert -0 to -180 to 180 to 360
     theta_array[np.where(theta_array < 0)] += 360.
 
     # Calculate Q from Qx and Qy
-    q_array = np.sqrt(i_of_q.qx ** 2 + i_of_q.qy ** 2)
+    q_array = np.sqrt(np.square(i_of_q.qx) + np.square(i_of_q.qy))
     # calculate dQ from dQx and dQy
     if i_of_q.delta_qx and i_of_q.delta_qy:
-        dq_array = np.sqrt(i_of_q.delta_qx ** 2 + i_of_q.delta_qy ** 2)
+        dq_array = np.sqrt(np.square(i_of_q.delta_qx) + np.square(i_of_q.delta_qy))
     else:
         dq_array = None
 

@@ -231,7 +231,7 @@ if __name__ == "__main__":
                          'sample_transmission': sample_transmission_dict,
                          'background_transmission': background_transmission_dict,
                          }
-    samplelogs = SampleLogs(sample_wks)
+    samplelogs = {'main': SampleLogs(sample_wks)}
     detectordata = {'main': {'iq': Iq, 'iqxqy': Iqxqy}}
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,

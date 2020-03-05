@@ -196,16 +196,19 @@ def _savesamplelogs(nxentry, dict_sample_logs, name_of_entry):
     """
     nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
 
-    for _key in dict_sample_logs.keys():
-        _value = str(dict_sample_logs[_key].value)
-        if _value is None:
-            _value = ""
-        _units = str(dict_sample_logs[_key].units)
-        if _units is None:
-            _units = ""
-        _new_entry = nxentry.create_dataset(name=_key, data=_value)
-        _new_entry.attrs['NX_class'] = 'NXdata'
-        _new_entry.attrs['units'] = _units
+    for _sample_key in dict_sample_logs.keys():
+        nxentry_log = _createnxgroup(nxentry, _sample_key, 'NXnote')
+        local_dict_sample_logs = dict_sample_logs[_sample_key]
+        for _key in local_dict_sample_logs.keys():
+            _value = str(local_dict_sample_logs[_key].value)
+            if _value is None:
+                _value = ""
+            _units = str(local_dict_sample_logs[_key].units)
+            if _units is None:
+                _units = ""
+            _new_entry = nxentry_log.create_dataset(name=_key, data=_value)
+            _new_entry.attrs['NX_class'] = 'NXdata'
+            _new_entry.attrs['units'] = _units
 
 
 def _create_groupe(entry=None, name='Default', data=[], units=''):

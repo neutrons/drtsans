@@ -16,6 +16,7 @@ from drtsans.stitch import stitch_profiles  # noqa E402
 from drtsans.plots import plot_IQmod  # noqa E402
 from drtsans.mono import biosans as sans  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
+from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D  # noqa E402
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
 from drtsans.path import registered_workspace # noqa E402
@@ -173,7 +174,8 @@ def reduction(json_params, config):
     return {'iq': iq_output,
             'iqxqy': iqxqy_output,
             'sample_transmission': sample_transmission_dict,
-            'background_transmission': background_transmission_dict}
+            'background_transmission': background_transmission_dict,
+            'sample_wks': ws}
 
 
 if __name__ == "__main__":
@@ -224,6 +226,7 @@ if __name__ == "__main__":
     iqxqy_1 = reduction_1_dict['iqxqy']
     sample_transmission_1 = reduction_1_dict['sample_transmission']
     background_transmission_1 = reduction_1_dict['background_transmission']
+    sample_wks_1 = reduction_1_dict['sample_wks']
 
     config['is_wing'] = True
     config['mask_detector'] = 'detector1'
@@ -236,6 +239,7 @@ if __name__ == "__main__":
     iqxqy_2 = reduction_2_dict['iqxqy']
     sample_transmission_2 = reduction_2_dict['sample_transmission']
     background_transmission_2 = reduction_2_dict['background_transmission']
+    sample_wks_2 = reduction_2_dict['sample_wks']
 
     # Stitch the main detector and the wing
     overlap = 0.2
@@ -269,6 +273,8 @@ if __name__ == "__main__":
                          'background_transmission': {'main': background_transmission_1,
                                                      'wing': background_transmission_2},
                          }
+    samplelogs = {'main': SampleLogs(sample_wks_1),
+                  'wing': SampleLogs(sample_wks_2)}
     detectordata = {'main': {'iq': iq_1, 'iqxqy': iqxqy_1},
                     'wing': {'iq': iq_2, 'iqxqy': iqxqy_2},
                     'combined': {'iq': merged_profile}}
@@ -278,4 +284,5 @@ if __name__ == "__main__":
                              pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
+                             samplelogs=samplelogs,
                              )

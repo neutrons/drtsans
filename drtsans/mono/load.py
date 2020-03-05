@@ -184,6 +184,9 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         ws = sum_data(temp_workspaces,
                       output_workspace=output_workspace)
 
+        # After summing data re-calculate initial uncertainties
+        ws = set_init_uncertainties(ws)
+
         # Remove temporary wokspace
         for ws_name in temp_workspaces:
             if mtd.doesExist(ws_name):

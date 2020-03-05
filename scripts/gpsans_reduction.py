@@ -12,6 +12,7 @@ import mantid.simpleapi as msapi  # noqa E402
 
 import drtsans  # noqa E402
 from drtsans.mono import gpsans as sans  # noqa E402
+from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.path import registered_workspace # noqa #402
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
@@ -167,7 +168,8 @@ def reduction(json_params, config):
     return {'iq': Iq,
             'iqxqy': Iqxqy,
             'sample_transmission': sample_transmission_dict,
-            'background_transmission': background_transmission_dict}
+            'background_transmission': background_transmission_dict,
+            'sample_wks': ws}
 
 
 if __name__ == "__main__":
@@ -217,6 +219,7 @@ if __name__ == "__main__":
     Iqxqy = reduction_dict['iqxqy']
     sample_transmission_dict = reduction_dict['sample_transmission']
     background_transmission_dict = reduction_dict['background_transmission']
+    sample_wks = reduction_dict['sample_wks']
 
     # list of arguments for log file ========================================================
     filename = os.path.join(json_params["configuration"]["outputDir"], output_file + '_reduction_log.hdf')
@@ -228,6 +231,7 @@ if __name__ == "__main__":
                          'sample_transmission': sample_transmission_dict,
                          'background_transmission': background_transmission_dict,
                          }
+    samplelogs = SampleLogs(sample_wks)
     detectordata = {'main': {'iq': Iq, 'iqxqy': Iqxqy}}
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
@@ -235,4 +239,5 @@ if __name__ == "__main__":
                              pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
+                             samplelogs=samplelogs,
                              )

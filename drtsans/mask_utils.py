@@ -96,14 +96,17 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
         Combination of panel, mask, and :ref:`MaskBTP <algm-MaskBTP-v1>` masks
     """
     input_workspace = str(input_workspace)
+    # determine the output workspace name
     if output_workspace is None:
         output_workspace = unique_workspace_dundername()
-    instrument = mtd[input_workspace].getInstrument().getName()
+    # instrument = mtd[input_workspace].getInstrument().getName()
     if mask is not None:
         if isinstance(mask, str):
             if os.path.splitext(mask)[1] == '.xml':
-                mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
-                                          RefWorkspace=input_workspace, OutputWorkspace=unique_workspace_dundername())
+                # mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
+                #                           RefWorkspace=input_workspace,
+                #                           OutputWorkspace=unique_workspace_dundername())
+                mask_workspace = load_mask_xml(mask, input_workspace)
             else:
                 mask_workspace = load_mask(mask)
             MaskDetectors(Workspace=input_workspace, MaskedWorkspace=mask_workspace)
@@ -147,6 +150,35 @@ def load_mask(mask_file='', output_workspace=None):
     if not output_workspace:
         output_workspace = unique_workspace_dundername()
     mask_workspace = LoadNexusProcessed(Filename=mask_file, OutputWorkspace=output_workspace)
+    return mask_workspace
+
+
+def load_mask_xml(mask_file, ref_workspace, output_workspace=None):
+    """ Load mask file in a workspace
+
+    Parameters
+    ----------
+    mask_file
+    ref_workspace
+    output_workspace
+
+    Returns
+    -------
+
+    """
+
+    # Create output MaskWorkspace name if not specified
+    if not output_workspace:
+        output_workspace = unique_workspace_dundername()
+
+    # Get instrument name
+    ref_workspace = str(ref_workspace)
+    instrument = mtd[ref_workspace].getInstrument().getName()
+
+    # Load
+    mask_workspace = LoadMask(Instrument=instrument, InputFile=mask_file,
+                              RefWorkspace=ref_workspace, OutputWorkspace=output_workspace)
+
     return mask_workspace
 
 

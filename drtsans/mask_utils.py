@@ -106,7 +106,7 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
                 # mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
                 #                           RefWorkspace=input_workspace,
                 #                           OutputWorkspace=unique_workspace_dundername())
-                load_mask_xml(mask, input_workspace, output_workspace)
+                mask_workspace = load_mask_xml(mask, input_workspace, output_workspace)
             else:
                 mask_workspace = load_mask(mask)
             MaskDetectors(Workspace=input_workspace, MaskedWorkspace=mask_workspace)

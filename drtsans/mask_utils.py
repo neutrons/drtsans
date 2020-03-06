@@ -150,6 +150,35 @@ def load_mask(mask_file='', output_workspace=None):
     return mask_workspace
 
 
+def load_mask_xml(mask_file, ref_workspace, output_workspace=None):
+    """ Load mask file in a workspace
+
+    Parameters
+    ----------
+    mask_file
+    ref_workspace
+    output_workspace
+
+    Returns
+    -------
+
+    """
+
+    # Create output MaskWorkspace name if not specified
+    if not output_workspace:
+        output_workspace = unique_workspace_dundername()
+
+    # Get instrument name
+    ref_workspace = str(ref_workspace)
+    instrument = mtd[ref_workspace].getInstrument().getName()
+
+    # Load
+    mask_workspace = LoadMask(Instrument=instrument, InputFile=mask_file,
+                              RefWorkspace=ref_workspace, OutputWorkspace=output_workspace)
+
+    return mask_workspace
+
+
 def mask_spectra_with_special_values(input_workspace, output_workspace=None):
     r"""
     Mask spectra in a workspace containing non-finite values.

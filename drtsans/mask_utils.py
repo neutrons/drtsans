@@ -96,10 +96,11 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
         Combination of panel, mask, and :ref:`MaskBTP <algm-MaskBTP-v1>` masks
     """
     input_workspace = str(input_workspace)
-    if output_workspace is None:
-        output_workspace = unique_workspace_dundername()
-    instrument = mtd[input_workspace].getInstrument().getName()
+    # instrument = mtd[input_workspace].getInstrument().getName()
     if mask is not None:
+        # determine the output workspace name
+        if output_workspace is None:
+            output_workspace = unique_workspace_dundername()
         if isinstance(mask, str):
             if os.path.splitext(mask)[1] == '.xml':
                 # mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,

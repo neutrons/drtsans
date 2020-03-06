@@ -110,7 +110,8 @@ def _q_label(backend, subscript=''):
         return label + ' (1/{})'.format(u'\u212B')
 
 
-def plot_IQmod(workspaces, filename, loglog=True, backend='d3'):
+def plot_IQmod(workspaces, filename, loglog=True, backend='d3',
+               errorbar_kwargs={}, **kwargs):
     '''Save a plot representative of the supplied workspaces
 
     Parameters
@@ -126,6 +127,13 @@ def plot_IQmod(workspaces, filename, loglog=True, backend='d3'):
         If true will set both axis to logarithmic, otherwise leave them as linear
     backend: Backend
         Which backend to save the file using
+    errorbar_kwargs: dict
+        Optional arguments to :py:obj:`matplotlib.axes.Axes.errorbar`
+        Can be a comma separated list for each workspace
+        e.g. ``{'label':'main,wing,both', 'color':'r,b,g', 'marker':'o,v,.'}``
+    kwargs: dict
+        Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
+
     '''
     backend = Backend.getMode(backend)
     for workspace in workspaces:
@@ -134,29 +142,45 @@ def plot_IQmod(workspaces, filename, loglog=True, backend='d3'):
             raise RuntimeError('Do not know how to plot type="{}"'.format(datatype))
 
     fig, ax = plt.subplots()
-    for workspace in workspaces:
-        ax.errorbar(workspace.mod_q, workspace.intensity, yerr=workspace.error)
+    handles = []
+    for n, workspace in enumerate(workspaces):
+        eb, _, _ = ax.errorbar(workspace.mod_q, workspace.intensity, yerr=workspace.error)
+        for key in errorbar_kwargs:
+            value = [v.strip() for v in errorbar_kwargs[key].split(',')]
+            plt.setp(eb, key, value[min(n, len(value)-1)])
     ax.set_xlabel(_q_label(backend))
     ax.set_ylabel('Intensity')
     if loglog:
         ax.set_xscale('log')
         ax.set_yscale('log')
 
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(handles, labels)
+
+    if kwargs:
+        plt.setp(ax, **kwargs)
+
     _saveFile(fig, filename, backend)
 
 
-def plot_IQazimuthal(workspace, filename, backend='d3'):
+def plot_IQazimuthal(workspace, filename, backend='d3',
+                     imshow_kwargs={}, **kwargs):
     '''Save a plot representative of the supplied workspace
 
     Parameters
     ----------
-    workspaces: ~drtsans.dataobjects.IQazimuthal
+    workspace: ~drtsans.dataobjects.IQazimuthal
         The workspace to plot. This assumes the data is binned on a constant grid.
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
     backend: Backend
         Which backend to save the file using
+    imshow_kwargs: dict
+        Optional arguments to :py:obj:`matplotlib.axes.Axes.imshow` e.g. ``{"norm": LogNorm()}``
+    kwargs: dict
+        Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
     '''
     backend = Backend.getMode(backend)
     datatype = getDataType(workspace)
@@ -172,10 +196,13 @@ def plot_IQazimuthal(workspace, filename, backend='d3'):
     current_cmap = matplotlib.cm.get_cmap()
     current_cmap.set_bad(color='grey')
     pcm = ax.imshow(workspace.intensity.T, extent=(qxmin, qxmax, qymin, qymax),
-                    norm=LogNorm(), origin='lower', aspect='auto')
+                    origin='lower', aspect='auto', **imshow_kwargs)
     fig.colorbar(pcm, ax=ax)
     ax.set_xlabel(_q_label(backend, 'x'))
     ax.set_ylabel(_q_label(backend, 'y'))
+
+    if kwargs:
+        plt.setp(ax, **kwargs)
 
     _saveFile(fig, filename, backend)
 

@@ -1,6 +1,6 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
-from drtsans.dataobjects import IQazimuthal, IQmod
+from drtsans.dataobjects import IQazimuthal, IQmod, q_azimuthal_to_q_modulo, concatenate
 from enum import Enum
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
@@ -8,7 +8,7 @@ from drtsans.determine_bins import determine_1d_linear_bins, determine_1d_log_bi
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
-__all__ = ['bin_intensity_into_q1d', 'select_i_of_q_by_wedge',
+__all__ = ['bin_all', 'bin_intensity_into_q1d', 'select_i_of_q_by_wedge',
            'bin_annular_into_q1d', 'bin_intensity_into_q2d', 'BinningMethod', 'check_iq_for_binning',
            'determine_1d_linear_bins', 'determine_1d_log_bins', 'BinningParams']
 
@@ -53,6 +53,161 @@ def check_iq_for_binning(i_of_q):
 
     if len(error_message) > 0:
         raise RuntimeError('Input I(Q) for binning does not meet assumption:\n{}'.format(error_message))
+
+
+def valid_wedge(min_angle, max_angle):
+    """
+    Helper function to validate wedge. It checks that the values  are in the [-90,270) range and
+    that the wedge angle is less than 180 degrees
+
+    Parameters
+    ----------
+    min_angle: float
+    max_angle: float
+
+    Returns
+    -------
+    list
+        (min_angle, max_angle) tuple. If min_angle < 270 and max_angle > -90
+        the function returns two wedges [(min_angle,270.1),(-90.1,max_angle)]
+    """
+    if min_angle >= 270. or min_angle < -90:
+        raise ValueError("minimum angle not in the [-90,270) range")
+    if max_angle >= 270. or max_angle < -90:
+        raise ValueError("maximum angle not in the [-90,270) range")
+    if max_angle == min_angle:
+        raise ValueError("maximum angle = minimum angle")
+    if max_angle > min_angle:
+        if max_angle - min_angle < 180.:
+            return [(min_angle, max_angle)]
+        raise ValueError("wedge angle is greater than 180 degrees")
+    if (min_angle - max_angle <= 180):
+        raise ValueError("wedge angle is greater than 180 degrees")
+    return [(min_angle, 270.1), (-90.1, max_angle)]
+
+
+def get_wedges(min_angle, max_angle):
+    """
+    Helper function to return all wedges defined by the min_angle and max_angle,
+    including the wedge offset by 180 degrees
+
+    Parameters
+    ----------
+    min_angle: float
+    max_angle: float
+
+    Returns
+    -------
+    list
+        (min_angle, max_angle) tuples.
+    """
+    wedges = valid_wedge(min_angle, max_angle)
+    opp_min = min_angle + 180.
+    opp_max = max_angle + 180.
+    if opp_min >= 270:
+        opp_min -= 360.
+    if opp_max >= 270.:
+        opp_max -= 360
+    wedges.extend(valid_wedge(opp_min, opp_max))
+    return wedges
+
+
+def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins, bin1d_type='scalar',
+            log_scale=False, even_decade=False, qmin=None, qmax=None,
+            annular_angle_bin=1., wedges=None, error_weighted=False):
+    r"""Do all 1D and 2D binning for a configuration or detector
+
+    Parameters
+    ----------
+    i_qxqy: ~drtsans.dataobjects.IQazimuthal
+        Object containing 2D unbinned data I(Qx, Qy). It will be used for 2D binned data,
+        and 1D wedge or annular binned data
+    i_modq: ~drtsans.dataobjects.IQmod
+        Object containing 1D unbinned data I(\|Q\|). It will be used for scalar binned data
+    nxbins: int
+        number of bins in the x direction for 2D binning
+    nybins: int
+        number of bins in the y direction for 2D binning
+    n1dbins: int
+        number of bins for the 1d binning. When using th elog scale, it is number of bins per decade
+    bin1d_type: str
+        type of binning for 1D data. Possible choices are 'scalar', 'annular', or 'wedge'
+    log_scale: bool
+        if True, 1D scalar or wedge binning will be logarithmic. Ignored for anything else
+    even_decade: bool
+        Flag to have even decade for minimum and maximum value in the generated bins
+    qmin: float
+        minimum 1D q
+    qmax: float
+        maximum 1D q
+    annular_angle_bin: float
+        width of annular bin in degrrees. Annular binning is linear
+    wedges: list
+        list of tuples (angle_min, angle_max) for the wedges. Both numbers have to be in
+        the [-90,270) range. It will add the wedge offset by 180 degrees
+    error_weighted: bool
+        if True, the binning is done using the Weighted method
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQazimuthal
+        binned IQazimuthal
+    list
+        list of binned ~drtsans.dataobjects.IQmod objects. The list has length
+        1, unless the 'wedge' mode is selected, when the length is the number of
+        original wedges
+    """
+    method = BinningMethod.NOWEIGHT
+    if error_weighted:
+        method = BinningMethod.WEIGHTED
+
+    # 2D binning
+    qx_min = np.min(i_qxqy.qx)
+    qx_max = np.max(i_qxqy.qx)
+    binning_x = determine_1d_linear_bins(qx_min, qx_max, nxbins)
+    qy_min = np.min(i_qxqy.qy)
+    qy_max = np.max(i_qxqy.qy)
+    binning_y = determine_1d_linear_bins(qy_min, qy_max, nybins)
+
+    binned_q2d = bin_intensity_into_q2d(i_qxqy,
+                                        binning_x,
+                                        binning_y,
+                                        method=method)
+
+    # 1D binning
+    binned_q1d_list = []
+    if bin1d_type == 'annular':
+        bin_params = BinningParams(0., 360., int(360. / annular_angle_bin))
+        kwargs = {'method': method}
+        if qmin is not None:
+            kwargs['q_min'] = qmin
+        if qmax is not None:
+            kwargs['q_max'] = qmax
+        binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, **kwargs))
+    else:
+        if qmin is None:
+            qmin = i_modq.mod_q.min()
+        if qmax is None:
+            qmax = i_modq.mod_q.max()
+        if bin1d_type == 'scalar':
+            unbinned_1d = [i_modq]
+        elif bin1d_type == 'wedge':
+            unbinned_1d = []
+            for wedge in wedges:
+                wedge_angles = get_wedges(wedge[0], wedge[1])
+                wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, wa[0], wa[1]) for wa in wedge_angles]
+                unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))
+        else:
+            raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
+
+        if log_scale:
+            bins_1d = determine_1d_log_bins(qmin, qmax, n_bins_per_decade=n1dbins, even_decade=even_decade)
+        else:
+            bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
+
+        for ub1d in unbinned_1d:
+            binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
+    return binned_q2d, binned_q1d_list
 
 
 def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.WEIGHTED):

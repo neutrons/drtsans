@@ -61,6 +61,8 @@ def fake_resolution2(*args, **kwargs):
                          indirect=True)
 def test_convert_to_mod_q(generic_workspace):
     ws = generic_workspace
+    # We will ignore intensities from the third spectrum (workspace index = 2). Thus, only three values for the
+    # modulus of the momentum transfer will be obtained, one for each of the three valid  spectra.
     MaskDetectors(ws, WorkspaceIndexList=[2])
     intensity, error, modq, dq, lam = convert_to_q(ws, mode='scalar')
     assert intensity == approx([10, 20, 40], abs=1e-5)

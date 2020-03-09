@@ -857,7 +857,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
     else:  # of a set of files or workspaces, each contains intensities for a scan with the bar fixed
         # determine if the list contains files or workspaces
         first_scan = barscan_dataset[0]
-        if isinstance(first_scan, str) and os.path.exists(first_scan):  #list of files
+        if isinstance(first_scan, str) and os.path.exists(first_scan):  # list of files
             barscan_workspace_basename = temporary_workspace()
             # iterate over the files, serving one at a time
             for scan_index, scan_data in enumerate(barscan_dataset):
@@ -874,7 +874,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
         DeleteWorkspaces(temporary_workspaces)
 
 
-def calculate_barscan_calibration(barscan_files, component='detector1', bar_position_log='dcal_Readback',
+def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_position_log='dcal_Readback',
                                   formula='565 - {y}', order=5, inspect_data=False):
     r"""
     Calculate pixel positions (only Y-coordinae) as well as pixel heights from a barscan calibration session.
@@ -887,10 +887,11 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
 
     Parameters
     ----------
-    barscan_files: str, list
-        Path(s) to barscan run file(s). If only one file, it should contain multiple positions of the bar.
-        If a list of files, then each file contains the pixel_intensities for every pixel for a fixed position of the
-        bar.
+    barscan_dataset: str, list
+        Path(s) to barscan run file(s), or list of workspaces. If only one file, it should contain multiple
+        positions of the bar. If a list of files, then each file contains the pixel_intensities recorded with a
+        constant position for the bar. If a list of workspaces, each workspace must contain the same information as
+        when passing a list of files.
     component: str
         Name of the detector panel scanned with the bar. Usually, 'detector1`.
     bar_position_log: str
@@ -924,7 +925,7 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
     # bottom_shadow_pixels.shape = (number of scans, number of tubes)
     bottom_shadow_pixels = []
     delete_workspaces = False if inspect_data is True else False  # retain workspace per scan if we want to inspect
-    for bar_position, barscan_workspace in barscan_workspace_generator(barscan_files,
+    for bar_position, barscan_workspace in barscan_workspace_generator(barscan_dataset,
                                                                        bar_position_log=bar_position_log,
                                                                        delete_workspaces=delete_workspaces):
         if instrument_name is None:  # retrieve some info from the first bar position

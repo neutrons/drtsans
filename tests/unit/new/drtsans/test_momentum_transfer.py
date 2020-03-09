@@ -255,10 +255,17 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
 
 def test_filter_and_replicate():
     def to_np(alist):
+        r"""Given a python list of length L, return a numpy array with shape (L, 1)"""
         return np.array(alist).reshape((len(alist), 1))
     lam, intensity, error = to_np([1., 2., 3.]), to_np([100., 81., 64.]), to_np([10., 9., 8.])
-    keep = np.array([1, 2])
-    lam, intensity, error = _filter_and_replicate((lam, intensity, error), keep, 2, 1)
+    # lam is numpy array array([[1.0], [2.0], [3.0]])
+    keep = np.array([1, 2])  # Keep only data with indexes 1 and 2 (i.e., discard the data with index 0)
+    # Apply function _filter_and_replicate to arrays 'lam', 'intensity', and 'error'.
+    # 1. discard the first item of array 'lam'. Array 'lam' becomes array([[2.0], [3.0]])
+    # 2. replicate each item a total number of n_horizontal * n_vertical = 2. Array 'lam' becomes
+    #    array([[2.0, 2.0], [3.0, 3.0]])
+    # 3. flatten array 'lam' by dropping the second dimension. Array 'lam' becomes array([2., 2., 3., 3.])
+    lam, intensity, error = _filter_and_replicate((lam, intensity, error), keep, n_horizontal=2, n_vertical=1)
     assert lam == pytest.approx([2., 2., 3., 3.])
     assert intensity == pytest.approx([81., 81., 64., 64.])
     assert error == pytest.approx([9., 9., 8., 8.])

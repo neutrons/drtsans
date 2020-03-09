@@ -257,36 +257,43 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                            units='1/A')
 
 
-def _save_iq_to_log(iq=None, topEntry=None):
-    # with h5py.File(filename, 'w') as handle:
-    entry = topEntry.create_group('I(Q)')
-    entry.attrs['NX_class'] = 'NXdata'
-    entry.attrs['signal'] = 'I'
-    entry.attrs['axes'] = 'Q'
+def _save_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
 
-    # intensity
-    _create_groupe(entry=entry,
-                   name='I',
-                   data=iq.intensity,
-                   units='1/cm')
+    if (type(iq) is list) and len(iq) > 1:
+        for _index, _iq in enumerate(iq):
+            _save_iq_to_log(iq=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index))
+    else:
+        entry_name = 'I(Q)'
+        if entryNameExt:
+            entry_name += "_" + entryNameExt
+        entry = topEntry.create_group(entry_name)
+        entry.attrs['NX_class'] = 'NXdata'
+        entry.attrs['signal'] = 'I'
+        entry.attrs['axes'] = 'Q'
 
-    # errors
-    _create_groupe(entry=entry,
-                   name='Idev',
-                   data=iq.error,
-                   units='1/cm')
-
-    # mod_q
-    if not (iq.mod_q is None):
+        # intensity
         _create_groupe(entry=entry,
-                       name='Q',
-                       data=iq.mod_q,
-                       units='1/A')
+                       name='I',
+                       data=iq.intensity,
+                       units='1/cm')
 
+        # errors
         _create_groupe(entry=entry,
-                       name='Qdev',
-                       data=iq.delta_mod_q,
-                       units='1/A')
+                       name='Idev',
+                       data=iq.error,
+                       units='1/cm')
+
+        # mod_q
+        if not (iq.mod_q is None):
+            _create_groupe(entry=entry,
+                           name='Q',
+                           data=iq.mod_q,
+                           units='1/A')
+
+            _create_groupe(entry=entry,
+                           name='Qdev',
+                           data=iq.delta_mod_q,
+                           units='1/A')
 
 
 def _retrieve_beam_radius_from_out_file(outfolder=''):

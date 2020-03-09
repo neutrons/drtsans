@@ -208,27 +208,30 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
 
 
 def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-pixel',
-                  imshow_kwargs={'norm': LogNorm(vmin = 1)}):
-    r"""Save a 2D plot representative of the supplied workspace
+                  panel_name=None, imshow_kwargs={'norm': LogNorm(vmin = 1)}):
+    r"""
+    Save a 2D plot representative of the supplied workspace
 
-     Parameters
-     ----------
-     workspaces: str, ~mantid.api.MatrixWorkspace
-         The workspace to plot
-     filename: str
-         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
-         backend, the type of file is determined from the file extension
-     axes_mode: str
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace
+        The workspace to plot
+    filename: str
+        The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
+        backend, the type of file is determined from the file extension
+    backend: Backend
+        Which backend to save the file using
+    axes_mode: str
         Plot intensities versus different axes. Options are: 'xy' for plotting versus pixel coordinates;
-        'tube-pixel' for plotting versus tube and pixel index.
-     backend: Backend
-         Which backend to save the file using
-     imshow_kwargs: dict
-         Optional arguments to matplotlib.axes.Axes.imshow
-     """
+       'tube-pixel' for plotting versus tube and pixel index.
+    panel_name: str
+        Name of the double panel detector array. If :py:obj:`None`, plots will be generated for all arrays.
+    imshow_kwargs: dict
+        Optional arguments to matplotlib.axes.Axes.imshow
+    """
     workspace = mtd[str(input_workspace)]
     backend = Backend.getMode(backend)
-    detector_names = panel_names(input_workspace)
+    detector_names = [panel_name, ] if panel_name is not None else panel_names(input_workspace)
     fig = plt.figure()
     for i_detector, detector_name in enumerate(detector_names):
         collection = TubeCollection(workspace, detector_name).sorted(view='decreasing X')

@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-from pytest import approx
 
 r"""
 Hyperlinks to mantid algorithms
@@ -76,28 +75,28 @@ def test_convert_to_mod_q(generic_workspace):
     # For every detector pixel, calculate the intensity, intensity error, Q-value, it's error, and the associated
     # vawelength.
     intensity, error, modq, dq, lam = convert_to_q(ws, mode='scalar')
-    assert intensity == approx([10, 20, 40], abs=1e-5)
-    assert error == approx([1, 2, 4], abs=1e-5)
+    assert intensity == pytest.approx([10, 20, 40], abs=1e-5)
+    assert error == pytest.approx([1, 2, 4], abs=1e-5)
     # we are not passing any resolution function as argument 'resolution_function' in function
     # 'convert_to_q'. Thus, we assume infinite precision and the error in Q is therefore zero.
-    assert dq == approx([0, 0, 0], abs=1e-5)
-    assert lam == approx([6, 6, 6], abs=1e-5)  # 6 Angstroms is the middle point of the bin [5.9, 6.1]
+    assert dq == pytest.approx([0, 0, 0], abs=1e-5)
+    assert lam == pytest.approx([6, 6, 6], abs=1e-5)  # 6 Angstroms is the middle point of the bin [5.9, 6.1]
 
     # All detector pixels subtend the same scattering angle. Detectors are located at coordinates
     # (x, y, z) = (+-0.5, +-0.5, 5.0)
     two_theta = np.arccos(5./np.sqrt(5**2 + 0.5**2 + 0.5**2))  # cos(two_theta) = z / sqrt(x^2 + y^2 + z^2)
-    assert ws.spectrumInfo().twoTheta(0) == approx(two_theta, abs=1e-5)
+    assert ws.spectrumInfo().twoTheta(0) == pytest.approx(two_theta, abs=1e-5)
 
     # assert the Q value for each detector pixel. Again, all Q-values are the same because all two_theta values
     # are the same for all three unmasked detector pixels
     q = 4. * np.pi * np.sin(two_theta * 0.5) / 6.
-    assert modq == approx([q, q, q], abs=1e-5)
+    assert modq == pytest.approx([q, q, q], abs=1e-5)
 
     # test namedtuple result and resolution
     # Function fake_resolution1 returns the workspace index of the pixel detector as the error of
     # the Q modulus for that pixel detector
     result = convert_to_q(ws, mode='scalar', resolution_function=fake_resolution1)
-    assert result.delta_mod_q == approx([0, 1, 3], abs=1e-5)
+    assert result.delta_mod_q == pytest.approx([0, 1, 3], abs=1e-5)
 
     # test geometry dependent resolution
     result = convert_to_q(ws, mode='scalar', resolution_function=fake_resolution2)
@@ -105,7 +104,7 @@ def test_convert_to_mod_q(generic_workspace):
     # spectrum number are -45, 45, -135, 135
     # Function fake_resolution1 returns the azimuthal angle of the pixel detector as the error of
     #     # the Q modulus for that pixel detector
-    assert np.degrees(result.delta_mod_q) == approx([-45, 45, 135], abs=1e-5)
+    assert np.degrees(result.delta_mod_q) == pytest.approx([-45, 45, 135], abs=1e-5)
 
 
 @pytest.mark.parametrize('generic_workspace',
@@ -120,20 +119,20 @@ def test_convert_q_azimuthal(generic_workspace):
     ws = generic_workspace
     MaskDetectors(ws, WorkspaceIndexList=[2])
     result = convert_to_q(ws, mode='azimuthal')
-    assert result.intensity == approx([10, 20, 40], abs=1e-5)
-    assert result.error == approx([1, 2, 4], abs=1e-5)
-    assert result.delta_qx == approx([0, 0, 0], abs=1e-5)
-    assert result.delta_qy == approx([0, 0, 0], abs=1e-5)
-    assert result.wavelength == approx([6, 6, 6], abs=1e-5)
+    assert result.intensity == pytest.approx([10, 20, 40], abs=1e-5)
+    assert result.error == pytest.approx([1, 2, 4], abs=1e-5)
+    assert result.delta_qx == pytest.approx([0, 0, 0], abs=1e-5)
+    assert result.delta_qy == pytest.approx([0, 0, 0], abs=1e-5)
+    assert result.wavelength == pytest.approx([6, 6, 6], abs=1e-5)
     two_theta = np.arccos(5./np.sqrt(25.5))
     q = 4. * np.pi * np.sin(two_theta * 0.5) / 6.
-    assert result.qx * (-1) == approx([q * np.sqrt(0.5), q*np.sqrt(0.5), -q*np.sqrt(0.5)], abs=1e-5)
-    assert result.qy == approx([-q * np.sqrt(0.5), q*np.sqrt(0.5), q*np.sqrt(0.5)], abs=1e-5)
+    assert result.qx * (-1) == pytest.approx([q * np.sqrt(0.5), q*np.sqrt(0.5), -q*np.sqrt(0.5)], abs=1e-5)
+    assert result.qy == pytest.approx([-q * np.sqrt(0.5), q*np.sqrt(0.5), q*np.sqrt(0.5)], abs=1e-5)
 
     # test with simple resolution
     result = convert_to_q(ws, mode='azimuthal', resolution_function=fake_resolution1)
-    assert result.delta_qx == approx([-q * np.sqrt(2.), 0, q * np.sqrt(2.)], abs=1e-5)
-    assert result.delta_qy == approx([0, -q * np.sqrt(2.), 0], abs=1e-5)
+    assert result.delta_qx == pytest.approx([-q * np.sqrt(2.), 0, q * np.sqrt(2.)], abs=1e-5)
+    assert result.delta_qy == pytest.approx([0, -q * np.sqrt(2.), 0], abs=1e-5)
 
 
 @pytest.mark.parametrize('generic_workspace',
@@ -148,23 +147,23 @@ def test_convert_q_crystal(generic_workspace):
     ws = generic_workspace
     MaskDetectors(ws, WorkspaceIndexList=[2])
     result = convert_to_q(ws, mode='crystallographic')
-    assert result.intensity == approx([10, 20, 40], abs=1e-5)
-    assert result.error == approx([1, 2, 4], abs=1e-5)
-    assert result.delta_qx == approx([0, 0, 0], abs=1e-5)
-    assert result.delta_qy == approx([0, 0, 0], abs=1e-5)
-    assert result.delta_qz == approx([0, 0, 0], abs=1e-5)
-    assert result.wavelength == approx([6, 6, 6], abs=1e-5)
+    assert result.intensity == pytest.approx([10, 20, 40], abs=1e-5)
+    assert result.error == pytest.approx([1, 2, 4], abs=1e-5)
+    assert result.delta_qx == pytest.approx([0, 0, 0], abs=1e-5)
+    assert result.delta_qy == pytest.approx([0, 0, 0], abs=1e-5)
+    assert result.delta_qz == pytest.approx([0, 0, 0], abs=1e-5)
+    assert result.wavelength == pytest.approx([6, 6, 6], abs=1e-5)
     two_theta = np.arccos(5./np.sqrt(25.5))
     kf = 2. * np.pi / 6.
-    assert result.qx == approx([kf * np.sin(two_theta) * np.sqrt(0.5),
-                                kf * np.sin(two_theta) * np.sqrt(0.5),
-                                -kf * np.sin(two_theta) * np.sqrt(0.5)], abs=1e-5)
-    assert result.qy == approx([-kf * np.sin(two_theta) * np.sqrt(0.5),
-                                kf * np.sin(two_theta) * np.sqrt(0.5),
-                                kf * np.sin(two_theta) * np.sqrt(0.5)], abs=1e-5)
-    assert result.qz == approx([kf * (np.cos(two_theta) - 1),
-                                kf * (np.cos(two_theta) - 1),
-                                kf * (np.cos(two_theta) - 1)], abs=1e-5)
+    assert result.qx == pytest.approx([kf * np.sin(two_theta) * np.sqrt(0.5),
+                                       kf * np.sin(two_theta) * np.sqrt(0.5),
+                                      -kf * np.sin(two_theta) * np.sqrt(0.5)], abs=1e-5)
+    assert result.qy == pytest.approx([-kf * np.sin(two_theta) * np.sqrt(0.5),
+                                       kf * np.sin(two_theta) * np.sqrt(0.5),
+                                       kf * np.sin(two_theta) * np.sqrt(0.5)], abs=1e-5)
+    assert result.qz == pytest.approx([kf * (np.cos(two_theta) - 1),
+                                       kf * (np.cos(two_theta) - 1),
+                                       kf * (np.cos(two_theta) - 1)], abs=1e-5)
 
     # test with simple resolution - it should thow not implemented
     with pytest.raises(NotImplementedError):
@@ -224,7 +223,7 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
     # find out the (x, y) coordinates of the pixels
     info_indexes = [get_spectrum_definition(idx)[0][0] for idx in range(workspace.getNumberHistograms())]
     pixel_positions = pixel_centers(input_workspace, info_indexes)
-    assert 1.e03 * pixel_positions[:, :-1] == pytest.approx(np.array(data.pixel_positions))
+    assert 1.e03 * pixel_positions[:, :-1] == pytest.approx(np.array(data.pixel_positions), abs=1e-6)
 
     # Find the position of the subpixels in polar coordinates, contained in data structure "info"
     info = subpixel_info(input_workspace, data.n_horizontal, data.n_vertical)
@@ -233,7 +232,8 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
     y = info.l2 * np.sin(info.two_theta) * np.sin(info.azimuthal)
     z = info.l2 * np.cos(info.two_theta)
     # All subpixels have the same Z-coordinate. Test this (factor 1.e-03 to convert from mili-meters to meters)
-    assert z == pytest.approx(1.e-03 * data.sample_detector_distance * np.ones(len(info.keep) * data.number_subpixels))
+    assert z == pytest.approx(1.e-03 * data.sample_detector_distance * np.ones(len(info.keep) * data.number_subpixels),
+                              abs=1e-6)
 
     # Construct array `xy` which will contain the coordinates of the subpixels, in mili-meters
     # xy.shape = (number_pixels, number_subpixels, 2)
@@ -250,7 +250,7 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
     #    for a parent pixel having its position at (x, y) = (0, 0).
     xy = 1000 * (xy - pixel_positions[info.keep, :-1][:, None, :])
     for subpixel_positions in xy:  # unmasked pixels
-        assert subpixel_positions == pytest.approx(np.array(data.subpixel_positions))
+        assert subpixel_positions == pytest.approx(np.array(data.subpixel_positions), abs=1e-6)
 
 
 def test_filter_and_replicate():

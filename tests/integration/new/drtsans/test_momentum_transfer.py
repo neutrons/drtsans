@@ -240,6 +240,21 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
     #         | 0  2 |  8 10 |                        |-----------------|
     #         ----------------                        | 0 | 4 |  8 | 12 |
     #                                                 -------------------
+    # Subpixel indexes are generated as follows:
+    # 1. Divide pixel with index 0 into four pixels. The pixel becomes a little detector with two "tubes" and two
+    # "pixels per tube":
+    #       pixel with index 0       is split into 4 subpixels.   Compare to pixel indexes of the fine insrument
+    #       ----------------              ----------------                -------------------
+    #       |      |      |               |      |      |                 |   |   |    |    |
+    #       |      |      |               |      |      |                 |-----------------|
+    #       |-------------|               |-------------|                 |   |   |    |    |
+    #       | **** |      |               | 1  3 |      |                 |-----------------|
+    #       | **** |      |               | 0  2 |      |                 | 1 | 5 |    |    |
+    #       ---------------               ---------------                 |-----------------|
+    #                                                                     | 0 | 4 |    |    |
+    #                                                                     -------------------
+    # 2. Divive pixel with index 1 into four pixels. The index for the firs subpixel of pixel 2 will be "4".
+    #
     # We require a permutation of the coarse subpixel indexes in order to compare results from the coarse
     # instrument with subpixels to results from the fine instrument.
     permutation = [0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15]  # from coarse index to fine index

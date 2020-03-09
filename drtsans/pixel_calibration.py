@@ -7,6 +7,7 @@ import numexpr
 import os
 import sys
 
+
 r""" Hyperlinks to mantid algorithms
 ApplyCalibration <https://docs.mantidproject.org/nightly/algorithms/ApplyCalibration-v1.html>
 CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
@@ -16,7 +17,6 @@ DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorksp
 FilterEvents <https://docs.mantidproject.org/nightly/algorithms/FilterEvents-v1.html>
 GenerateEventsFilter <https://docs.mantidproject.org/nightly/algorithms/GenerateEventsFilter-v1.html>
 Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
-LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 LoadEmptyInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html>
 LoadInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
@@ -27,8 +27,8 @@ SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
 from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateEmptyTableWorkspace, CreateWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
-                              LoadEmptyInstrument, LoadInstrument, LoadNexus, MaskDetectors, MaskDetectorsIf,
-                              ReplaceSpecialValues, SaveNexus)
+                              LoadEmptyInstrument, LoadInstrument, LoadEventNexus, LoadNexus, MaskDetectors,
+                              MaskDetectorsIf, ReplaceSpecialValues, SaveNexus)
 from mantid.api import mtd
 
 r"""
@@ -793,7 +793,7 @@ def event_splitter(barscan_workspace, split_workspace=None, info_workspace=None,
     return bar_positions
 
 
-def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback'):
+def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback', delete_workspaces=True):
     r"""
     A python generator to be used when the user wants to iterate over the runs that hold the bar at a fixed
     position. Each iteration prompts this generator to return the position of the bar and a workspace containing the
@@ -803,14 +803,17 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
 
     Parameters
     ----------
-     barscan_files: str, list
-        Path(s) to barscan run file(s). If only one file, it should contain multiple positions of the bar. The
-        generator will split the file into multiple workpaces, each one containing the scan of the bar at a
-        particular position. If a list of files, then each file contains the pixel_intensities recorded
-        with a constant position for the bar.
+    barscan_dataset: str, list
+        Path(s) to barscan run file(s), or list of workspaces. If only one file, it should contain multiple
+        positions of the bar. The generator will split the file into multiple workpaces, each one containing
+        the scan of the bar at a particular position. If a list of files, then each file contains the
+        pixel_intensities recorded with a constant position for the bar. If a list of workspaces, each workspace
+        must contain the same information as when passing a list of files.
     bar_position_log: str
         Name of the log entry in the barscan run file containing the position of the bar (Y-coordinate, in 'mm')
         with respect to some particular frame of reference, not necessarily the one located at the sample.
+    delete_workspaces: Bool
+        Delete temporary workspaces one we have iterated over all the scans.
 
     Returns
     -------
@@ -827,14 +830,14 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         temporary_workspaces.append(name)
         return name
 
-    if isinstance(barscan_files, str):
+    if isinstance(barscan_dataset, str):
         # the whole barscan is contained in a single file. Must be splitted into subruns. Each subrun will contain
         # intensities for a run with the bar held at a fixed position.
         spliter_workspace = temporary_workspace()
         info_workspace = temporary_workspace()
         barscan_workspace = temporary_workspace()
         # BOTTLENECK
-        LoadNexus(barscan_files, OutputWorkspace=barscan_workspace)
+        LoadEventNexus(barscan_dataset, OutputWorkspace=barscan_workspace)
         # Create the splitting scheme and save it in table workspaces `spliter_workspace` and `info_workspace`.
         bar_positions = event_splitter(barscan_workspace, split_workspace=spliter_workspace,
                                        info_workspace=info_workspace, bar_position_log=bar_position_log)
@@ -851,18 +854,28 @@ def barscan_workspace_generator(barscan_files, bar_position_log='dcal_Readback')
         # Iterate over the subruns, serving one at a time
         for i, bar_position in enumerate(bar_positions):
             yield bar_position, splitted_workspace_group + '_' + str(i)  # serve a bar position and a subrun workspace
-    else:  # the barscan is made up of a set of files, each contains intensities for a scan with the bar fixed
-        barscan_workspace = temporary_workspace()
-        # iterate over the files, serving one at a time
-        for file_name in barscan_files:
-            LoadNexus(file_name, OutputWorkspace=barscan_workspace)
-            bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
-            yield bar_position, barscan_workspace  # serve a bar position and a run workspace
-    DeleteWorkspaces(temporary_workspaces)  # clean up the now useless workspaces
+    else:  # of a set of files or workspaces, each contains intensities for a scan with the bar fixed
+        # determine if the list contains files or workspaces
+        first_scan = barscan_dataset[0]
+        if isinstance(first_scan, str) and os.path.exists(first_scan):  #list of files
+            barscan_workspace_basename = temporary_workspace()
+            # iterate over the files, serving one at a time
+            for scan_index, scan_data in enumerate(barscan_dataset):
+                barscan_workspace = f'{barscan_workspace_basename}_{scan_index:03d}'
+                Load(scan_data, OutputWorkspace=barscan_workspace)
+                bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
+                yield bar_position, barscan_workspace  # serve a bar position and a run workspace
+        else:  # list of workspaces
+            for scan_data in barscan_dataset:
+                bar_position = SampleLogs(scan_data).find_log_with_units(bar_position_log, 'mm')
+                yield bar_position, scan_data
+    # Clean up workspaces we instantiated for each scan
+    if delete_workspaces is True:
+        DeleteWorkspaces(temporary_workspaces)
 
 
 def calculate_barscan_calibration(barscan_files, component='detector1', bar_position_log='dcal_Readback',
-                                  formula='565 - {y}', order=5):
+                                  formula='565 - {y}', order=5, inspect_data=False):
     r"""
     Calculate pixel positions (only Y-coordinae) as well as pixel heights from a barscan calibration session.
 
@@ -887,31 +900,37 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
         Formula to obtain the position of the bar (Y-coordinate) in the frame of reference located at the sample.
     order: int
         Highest degree for the polynomial that will fit the observed positions of the bar.
+    inspect_data: Bool
+        Additional pieces of data returned by this function in order to assess the correctness of the barscan
+        calculation. These data are returned as a dictionary with the current entries:
+        - bar_positions: list of Y-coordinates of the bar for each scan holding the bar at a particular position.
+        - bar workspaces: list of ~mantid.api.MatrixWorkspace objects, each containing
+        - bottom_shadow_pixels: ~numpy.ndarray of shape (number of scans, number of tubes) listing the indexes for
+          the pixels shadowed by the lower portion of the bar.
 
     Returns
     -------
-    dict
-        Dictionary with the following entries:
-        - instrument, str, Standard name of the instrument.
-        - component, str, name of the double detector array, usually "detector1".
-        - run, int, run number associated to the calibration.
-        - unit: str, the units for the positions and heights. Set to 'mm' for mili-meters.
-        - positions, list, List of Y-coordinate for each pixel.
-        - heights, list, List of pixel heights.
+    ~drtsans.pixel_calbration.Table, dict
+        If ```inspect_data``` is :py:obj:`False`, only a table object is returned. Otherwise a tube is returned
+        where the first component is the table, and the second item is a dictionary with the additional pieces of data.
     """
+    addons = dict(bar_positions=[], bar_workspaces=[])  # for inspecting the result of the calibration
     instrument_name, number_pixels_in_tube, number_tubes = None, None, None  # initialize some variables
     run_numbers, daystamp = set(), None  # initialize some variables
     bar_positions = []  # Y-coordinates of the bar for each scan
     # `bottom_shadow_pixels` is a 2D array defining the position of the bar on the detector, in pixel coordinates
     # The first index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes)
-    # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tubes
+    # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tube
+    # bottom_shadow_pixels.shape = (number of scans, number of tubes)
     bottom_shadow_pixels = []
+    delete_workspaces = False if inspect_data is True else False  # retain workspace per scan if we want to inspect
     for bar_position, barscan_workspace in barscan_workspace_generator(barscan_files,
-                                                                       bar_position_log=bar_position_log):
+                                                                       bar_position_log=bar_position_log,
+                                                                       delete_workspaces=delete_workspaces):
         if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
             daystamp = day_stamp(barscan_workspace)
-        run_numbers.add(int(SampleLogs(barscan_workspace).single_value('run_number')))
+        run_numbers.add(int(SampleLogs(barscan_workspace).run_number.value))
         # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
         formula_bar_position_inserted = formula.format(y=bar_position)
         bar_positions.append(float(numexpr.evaluate(formula_bar_position_inserted)))
@@ -944,11 +963,16 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
                 # this tube may be malfunctioning for the current barscan
                 bottom_shadow_pixels_per_scan.append(INCORRECT_PIXEL_ASSIGNMENT)
         bottom_shadow_pixels.append(bottom_shadow_pixels_per_scan)
+        # Add iteration info to the addons
+        addons['bar_positions'].append(bar_position)
+        addons['bar_workspaces'].append(barscan_workspace)
+
     bottom_shadow_pixels = np.array(bottom_shadow_pixels)
     bar_positions = np.array(bar_positions)
 
     # Deal with corner cases not resolved with the find_edges algorithm
     resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions)
+    addons['bottom_shadow_pixels'] = bottom_shadow_pixels
 
     if len(bottom_shadow_pixels) <= order:
         raise ValueError(f"There are not enough bar positions to fo a fit with a polynomyal of order {order}.")
@@ -969,7 +993,10 @@ def calculate_barscan_calibration(barscan_files, component='detector1', bar_posi
                     component=component,
                     daystamp=daystamp,
                     runnumbers=sorted(list(run_numbers)))
-    return Table(metadata, detector_ids=detector_ids, positions=positions, heights=heights)
+    calibration = Table(metadata, detector_ids=detector_ids, positions=positions, heights=heights)
+
+    # decide on what to return
+    return calibration, addons if inspect_data is True else calibration
 
 
 def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):

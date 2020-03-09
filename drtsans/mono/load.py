@@ -55,7 +55,7 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
     in wavelength.
 
     **Mantid Algorithms used:**
-    :ref:`Divide <algm-HFIRSANS2Wavelength-v1>`,
+    :ref:`HFIRSANS2Wavelength <algm-HFIRSANS2Wavelength-v1>`,
 
     Parameters
     ----------
@@ -63,7 +63,7 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
         Events workspace in time-of-flight.
     output_workspace: str
         Name of the output workspace. If :py:obj:`None`, the name of the input_workspace will be
-        used, thus overwritting the input workspace.
+        used, thus overwriting the input workspace.
     Returns
     -------
     ~mantid.api.MatrixWorkspace
@@ -73,10 +73,7 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
 
     HFIRSANS2Wavelength(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
 
-    # Set initial uncertainties
-    output_workspace = set_init_uncertainties(output_workspace)
-
-    return output_workspace
+    return mtd[output_workspace]
 
 
 def load_mono(filename, **kwargs):
@@ -141,7 +138,7 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
     if isinstance(run, str):
         run = [r.strip() for r in run.split(',')]
 
-    # if only one run just load and transform to wavelength adn return workspace
+    # if only one run just load and transform to wavelength and return workspace
     if len(run) == 1:
         ws = load_events(run=run[0],
                          data_dir=data_dir,
@@ -153,6 +150,7 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
                          reuse_workspace=reuse_workspace,
                          **kwargs)
         ws = transform_to_wavelength(ws)
+        ws = set_init_uncertainties(ws)
         return ws
     else:
         instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument

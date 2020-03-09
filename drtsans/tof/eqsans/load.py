@@ -183,6 +183,7 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
         center_detector(ws, center_x=center_x, center_y=center_y)  # operates in-place
 
         ws = transform_to_wavelength(ws)
+        ws = set_init_uncertainties(ws)
         return ws
     else:
         instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
@@ -210,7 +211,7 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
             if center_x is None or center_y is None:
                 center_x, center_y = find_beam_center(temp_workspace_name, mask=mask)
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
-            transform_to_wavelength(temp_workspace_name)
+            transform_to_wavelength(temp_workspace_name, keep_events=False)
             temp_workspaces.append(temp_workspace_name)
 
         # Sum temporary loaded workspaces

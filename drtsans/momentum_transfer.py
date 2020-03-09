@@ -59,7 +59,8 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     mode: str
         Available options are 'scalar', 'azimuthal', and 'crystallographic'
     resolution_function:
-        Function to calculate resolution
+        Function to calculate resolution. If :py:obj:`None`, then we assume an infinite preccission in Q and the
+        associated error is thus zero.
     kwargs:
         Parameters to be passed to the resolution function
 

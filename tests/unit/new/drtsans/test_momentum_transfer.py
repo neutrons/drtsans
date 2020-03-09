@@ -60,23 +60,42 @@ def fake_resolution2(*args, **kwargs):
                            'name':'BIOSANS', 'dx': 1, 'dy': 1}],
                          indirect=True)
 def test_convert_to_mod_q(generic_workspace):
+    r"""
+    Calculate Q-values and associated intensities for every detector-pixel and every wavelength bin. We have only
+    one wavelength bin, so we only have one Q-value per pixel detector. This Q-value is associated to the midpoint
+    of the wavelength bin.
+
+    The instrument is a flat detector with four pixels. All pixels subtend the same two_theta scattering angle with
+    the direction of the incoming neutron beam (along the Z-axis). Thus, there's only one value of two_theta of
+    relevance.
+    """
     ws = generic_workspace
     # We will ignore intensities from the third spectrum (workspace index = 2). Thus, only three values for the
     # modulus of the momentum transfer will be obtained, one for each of the three valid  spectra.
     MaskDetectors(ws, WorkspaceIndexList=[2])
+    # For every detector pixel, calculate the intensity, intensity error, Q-value, it's error, and the associated
+    # vawelength.
     intensity, error, modq, dq, lam = convert_to_q(ws, mode='scalar')
     assert intensity == approx([10, 20, 40], abs=1e-5)
     assert error == approx([1, 2, 4], abs=1e-5)
+    # we are not passing any resolution function as argument 'resolution_function' in function
+    # 'convert_to_q'. Thus, we assume infinite precision and the error in Q is therefore zero.
     assert dq == approx([0, 0, 0], abs=1e-5)
-    assert lam == approx([6, 6, 6], abs=1e-5)
-    # position of the detectors are at (0,5, 0.5, 5.0) and symmetric
-    two_theta = np.arccos(5./np.sqrt(25.5))
+    assert lam == approx([6, 6, 6], abs=1e-5)  # 6 Angstroms is the middle point of the bin [5.9, 6.1]
+
+    # All detector pixels subtend the same scattering angle. Detectors are located at coordinates
+    # (x, y, z) = (+-0.5, +-0.5, 5.0)
+    two_theta = np.arccos(5./np.sqrt(5**2 + 0.5**2 + 0.5**2))  # cos(two_theta) = z / sqrt(x^2 + y^2 + z^2)
     assert ws.spectrumInfo().twoTheta(0) == approx(two_theta, abs=1e-5)
 
+    # assert the Q value for each detector pixel. Again, all Q-values are the same because all two_theta values
+    # are the same for all three unmasked detector pixels
     q = 4. * np.pi * np.sin(two_theta * 0.5) / 6.
     assert modq == approx([q, q, q], abs=1e-5)
 
     # test namedtuple result and resolution
+    # Function fake_resolution1 returns the workspace index of the pixel detector as the error of
+    # the Q modulus for that pixel detector
     result = convert_to_q(ws, mode='scalar', resolution_function=fake_resolution1)
     assert result.delta_mod_q == approx([0, 1, 3], abs=1e-5)
 
@@ -84,6 +103,8 @@ def test_convert_to_mod_q(generic_workspace):
     result = convert_to_q(ws, mode='scalar', resolution_function=fake_resolution2)
     # note that x axis is pointing to the left, so the azimuthal angles by
     # spectrum number are -45, 45, -135, 135
+    # Function fake_resolution1 returns the azimuthal angle of the pixel detector as the error of
+    #     # the Q modulus for that pixel detector
     assert np.degrees(result.delta_mod_q) == approx([-45, 45, 135], abs=1e-5)
 
 

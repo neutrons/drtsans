@@ -73,7 +73,7 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
 
     HFIRSANS2Wavelength(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
 
-    return output_workspace
+    return mtd[output_workspace]
 
 
 def load_mono(filename, **kwargs):

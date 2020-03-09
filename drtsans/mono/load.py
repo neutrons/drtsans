@@ -63,7 +63,7 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
         Events workspace in time-of-flight.
     output_workspace: str
         Name of the output workspace. If :py:obj:`None`, the name of the input_workspace will be
-        used, thus overwritting the input workspace..
+        used, thus overwriting the input workspace.
     Returns
     -------
     ~mantid.api.MatrixWorkspace

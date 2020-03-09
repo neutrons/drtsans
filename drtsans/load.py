@@ -5,6 +5,7 @@ from drtsans.path import exists as path_exists
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config
 import h5py
+import re
 # https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
 from mantid.simpleapi import mtd
 # https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
@@ -238,7 +239,8 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         samplelogs = SampleLogs(mtd[output_workspace].getItem(n))
         samplelogs.insert('slice', n+1)
         samplelogs.insert('number_of_slices', mtd[output_workspace].getNumberOfEntries())
-        samplelogs.insert("slice_info", mtd['_info'].cell(n, 1))
+        slice_info = mtd[output_workspace].getItem(n).getComment()
+        samplelogs.insert("slice_info", slice_info)
         if time_interval:
             samplelogs.insert('slice_parameter', "relative time from start")
             samplelogs.insert('slice_interval', time_interval)
@@ -250,8 +252,9 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         else:
             samplelogs.insert('slice_parameter', log_name)
             samplelogs.insert('slice_interval', log_value_interval)
-            samplelogs.insert('slice_start', float(samplelogs[log_name].value.min()), samplelogs[log_name].units)
-            samplelogs.insert('slice_end', float(samplelogs[log_name].value.max()), samplelogs[log_name].units)
+            slice_start, slice_end = re.sub(r".*\.From\.|\.Value.*", "", slice_info).split('.To.')
+            samplelogs.insert('slice_start', float(slice_start), samplelogs[log_name].units)
+            samplelogs.insert('slice_end', float(slice_end), samplelogs[log_name].units)
 
     if is_mono:
         return mtd[output_workspace]

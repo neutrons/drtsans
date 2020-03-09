@@ -180,14 +180,14 @@ def data_subpixel_info():
                 intensities=[[1.0, 2.0],  # first tube
                              [3.0, 2.0]],  # second tube
                 # Pixel (x, y) coordinates, in mili-meters
-                pixel_positions=[[10, -10], [10, 10], [-10, -10], [-10, 10]],
+                pixel_positions=[[10, -10], [10, 10], [-10, -10], [-10, 10]],  # units are mm
                 n_horizontal=2,  # number of subpixel along the X-axis
                 n_vertical=4,  # number of subpixel along the Y-axis
                 number_subpixels=8,  # just n_horizontal * n_vertical
                 # subpixel (x, y) coordinates for a pixel centered at (x, y) == (0, 0)
-                subpixel_positions=[[5, -7.5], [5, -2.5], [5, 2.5], [5, 7.5],
+                subpixel_positions=[[5, -7.5], [5, -2.5], [5, 2.5], [5, 7.5],  # units are mm
                                     [-5, -7.5], [-5, -2.5], [-5, 2.5], [-5, 7.5]],
-                sample_detector_distance=1.0  # all subpixels have same Z coordinate
+                sample_detector_distance=1000.0  # all subpixels have same Z coordinate (units are mm)
                 )
 
 
@@ -232,8 +232,8 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
     x = info.l2 * np.sin(info.two_theta) * np.cos(info.azimuthal)
     y = info.l2 * np.sin(info.two_theta) * np.sin(info.azimuthal)
     z = info.l2 * np.cos(info.two_theta)
-    # All subpixels have the same Z-coordinate. Test this
-    assert z == pytest.approx(data.sample_detector_distance * np.ones(len(info.keep) * data.number_subpixels))
+    # All subpixels have the same Z-coordinate. Test this (factor 1.e-03 to convert from mili-meters to meters)
+    assert z == pytest.approx(1.e-03 * data.sample_detector_distance * np.ones(len(info.keep) * data.number_subpixels))
 
     # Construct array `xy` which will contain the coordinates of the subpixels, in mili-meters
     # xy.shape = (number_pixels, number_subpixels, 2)

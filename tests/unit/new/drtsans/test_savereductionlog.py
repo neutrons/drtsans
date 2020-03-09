@@ -260,6 +260,7 @@ def test_writing_iq_wedge_mode():
                    ref_data=np.array([0.011912, 0.11912]),
                    abs=1e-6)
 
+
 def test_writing_iq_scalar_mode():
     test_iq = _create_iq()
     tmp_log_filename = _create_tmp_log_filename()

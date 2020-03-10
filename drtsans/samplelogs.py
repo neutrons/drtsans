@@ -1,6 +1,8 @@
 import numpy as np
 
 from mantid.api import (Run, MatrixWorkspace)
+from mantid.kernel import (BoolTimeSeriesProperty, DateAndTime, FloatTimeSeriesProperty, Int64TimeSeriesProperty,
+                           StringTimeSeriesProperty)
 from mantid.simpleapi import mtd
 
 
@@ -60,6 +62,38 @@ class SampleLogs(object):
             value = value[0]  # copies AddSampleLog behavior
 
         self._ws.mutableRun().addProperty(name, value, unit, True)
+
+    def insert_time_series(self, name, elapsed_times, values, start_time='2000-01-01T00:00:00', unit=''):
+        r"""
+        Insert a ~mantid.kernel.FloatTimeSeriesProperty in the logs
+
+        Parameters
+        ----------
+        name: str
+            log entry name
+        start_time: str
+            Starting time for the run
+        elapsed_times: list
+            List of elapsed times after ```start_time```, in seconds.
+        values: list
+            List of log values, same length as the list of times
+        unit str
+            Log unit
+        """
+        # Determine the type of the time series
+        series_types = {bool: FloatTimeSeriesProperty, float: FloatTimeSeriesProperty,
+                        int: Int64TimeSeriesProperty, str: FloatTimeSeriesProperty}
+        series_property = series_types.get(type(values[0]), FloatTimeSeriesProperty)(name)
+
+        # Insert one pair of (time, elapsed_time) at a time
+        seconds_to_nanoseconds = 1.e09  # from seconds to nanoseconds
+        start = DateAndTime(start_time)
+        for (elapsed_time, value) in zip(elapsed_times, values):
+            series_property.addValue(start + int(elapsed_time * seconds_to_nanoseconds), value)
+
+        # include the whole time series property in the metadata
+        self._ws.mutableRun().addProperty(name, series_property, unit, True)
+
 
     @property
     def mantid_logs(self):

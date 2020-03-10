@@ -8,10 +8,12 @@ from drtsans.mask_utils import apply_mask
 from drtsans.mono.load import load_events, transform_to_wavelength
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
-from drtsans.mono.meta_data import set_meta_data
+from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data']
+
+SAMPLE_SI_DISTANCE_METER = 0.071  # meter, i.e., 71 mm)
 
 
 def prepare_data(data,
@@ -102,13 +104,15 @@ def prepare_data(data,
     # Detector offset and sample offset are disabled
     if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
         raise RuntimeError('biosans.api.prepare_data does not work with detector_offset or sample_offset')
-    else:
-        # detector_offset and sample_offset shall be calculated from sample logs or overwritten sample logs
-        pass
 
-    # TODO: missing detector_offset for wing detector
+    # Load event without moving detector and sample after loading NeXus and instrument
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     detector_offset=detector_offset, sample_offset=sample_offset)
+                     detector_offset=0., sample_offset=0.)
+
+    # Reset the offset
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_DISTANCE_METER)
+    # TODO - translate instrument with offsets
+
     ws_name = str(ws)
     transform_to_wavelength(ws_name)
 

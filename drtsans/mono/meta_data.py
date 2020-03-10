@@ -2,7 +2,7 @@
 from mantid.simpleapi import AddSampleLogMultiple
 
 
-__all__ = ['set_meta_data']
+__all__ = ['set_meta_data', 'get_sample_detector_offset']
 
 
 def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
@@ -81,3 +81,26 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
         AddSampleLogMultiple(Workspace=workspace, LogNames=log_names,
                              LogValues=log_values,
                              LogUnits=log_units)
+
+
+def get_sample_detector_offset(workspace, zero_sample_offset_sample_si_distance):
+    """Get sample offset and detector offset from meta data
+
+    Parameters
+    ----------
+    workspace: str, ~mantid.api.MatrixWorkspace
+        Mantid workspace instance or workspace name
+    zero_sample_offset_sample_si_distance: float
+        default sample to Si window distance, i.e., distance without sample offset
+
+    Returns
+    -------
+    ~tuple
+        sample offset (float) and detector offset (float)
+
+    """
+    assert workspace is not None
+    assert zero_sample_offset_sample_si_distance > 0
+
+    return 0., 0.
+

@@ -15,10 +15,12 @@ from drtsans.mono.absolute_units import empty_beam_scaling
 from drtsans.mono.gpsans.attenuation import attenuation_factor
 from drtsans.path import registered_workspace
 from drtsans import subtract_background
-from drtsans.mono.meta_data import set_meta_data
+from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration']
+
+SAMPLE_SI_DISTANCE_METER = 0.0  # meter, i.e., 0. mm)
 
 
 def prepare_data(data,
@@ -115,6 +117,10 @@ def prepare_data(data,
     #         So one offset is sufficient
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
                      detector_offset=0, sample_offset=sample_offset)
+
+    # Reset the offset
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_DISTANCE_METER)
+    # TODO - translate instrument with offsets
 
     ws_name = str(ws)
     transform_to_wavelength(ws_name)

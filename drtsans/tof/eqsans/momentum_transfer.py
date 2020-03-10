@@ -6,7 +6,7 @@ import drtsans.momentum_transfer
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py
 from drtsans.tof.eqsans.geometry import (sample_aperture_diameter, source_aperture_diameter,
-                                         source_aperture_sample_distance, source_sample_distance)
+                                         source_aperture_sample_distance)
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
 from drtsans.geometry import pixel_size

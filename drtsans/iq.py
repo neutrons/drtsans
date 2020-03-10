@@ -1,6 +1,7 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
-from drtsans.dataobjects import IQazimuthal, IQmod, q_azimuthal_to_q_modulo, concatenate
+from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
+    q_azimuthal_to_q_modulo, concatenate
 from enum import Enum
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
@@ -288,6 +289,46 @@ def select_i_of_q_by_wedge(i_of_q, min_wedge_angle, max_wedge_angle):
     return wedge_i_of_q
 
 
+def _toQmodAndAzimuthal(data):
+    '''This function returns the values of qmod and azimuthal that are parallel
+    to the original data array. It requiresthat the data is IQazimuthal
+
+    Parameters
+    ==========
+    data: ~drtsans.dataobjects.IQazimuthal
+
+    Results
+    =======
+    tuple
+        ```(qmod, dqmod, azimuthal)``` with the same dimensionality as the data.intensity
+        with Q in angstrom and azimuthal angle in degrees'''
+    if not getDataType(data) == DataType.IQ_AZIMUTHAL:
+        raise RuntimeError('Calculating qmod and azimuthal only works for IQazimuthal')
+
+    # reshape the qx and qy if intensity array is 2d
+    if len(data.intensity.shape) == 2 and len(data.qx.shape) == 1 and len(data.qy.shape) == 1:
+        qx = np.tile(data.qx, (data.qy.shape[0], 1))
+        qy = np.tile(data.qy, (data.qx.shape[0], 1)).transpose()
+    else:
+        qx = data.qx
+        qy = data.qy
+
+    # calculate q-scalar
+    q = np.sqrt(np.square(qx) + np.square(qy))
+
+    # calculate dQ from dQx and dQy
+    if data.delta_qx and data.delta_qy:
+        dq = np.sqrt(np.square(data.delta_qx) + np.square(data.delta_qy))
+    else:
+        dq = None
+
+    # azimuthal is expected to be positive so use cyclical nature of trig functions
+    azimuthal = np.rad2deg(np.arctan2(qy, qx))
+    azimuthal[azimuthal < 0.] += 360.
+
+    return q, dq, azimuthal
+
+
 def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT):
     """Annular 1D binning
 
@@ -335,18 +376,8 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
         raise ValueError(msg)
     theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
 
-    # Calculate theta array
-    theta_array = np.rad2deg(np.arctan2(i_of_q.qy, i_of_q.qx))
-    # convert -0 to -180 to 180 to 360
-    theta_array[np.where(theta_array < 0)] += 360.
-
-    # Calculate Q from Qx and Qy
-    q_array = np.sqrt(np.square(i_of_q.qx) + np.square(i_of_q.qy))
-    # calculate dQ from dQx and dQy
-    if i_of_q.delta_qx and i_of_q.delta_qy:
-        dq_array = np.sqrt(np.square(i_of_q.delta_qx) + np.square(i_of_q.delta_qy))
-    else:
-        dq_array = None
+    # convert the data to q and azimuthal angle
+    q_array, dq_array, theta_array = _toQmodAndAzimuthal(i_of_q)
 
     # Filter by q_min and q_max
     allowed_q_index = np.logical_and((q_array > q_min), (q_array < q_max))

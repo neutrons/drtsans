@@ -1,5 +1,7 @@
 import numpy as np
-from drtsans.dataobjects import DataType, getDataType
+from drtsans.dataobjects import DataType, getDataType, IQmod
+from drtsans.determine_bins import determine_1d_linear_bins
+from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 from drtsans.settings import unique_workspace_dundername
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import CreateWorkspace
@@ -84,40 +86,6 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     max_vec[max_vec > 270.] -= 360.
 
     return list(zip(min_vec, max_vec))
-
-
-def _toQmodAndAzimuthal(data):
-    '''This function returns the values of qmod and azimuthal that are parallel
-    to the original data array. It requiresthat the data is IQazimuthal
-
-    Parameters
-    ==========
-    data: ~drtsans.dataobjects.Azimuthal
-
-    Results
-    =======
-    tuple
-        ```(qmod, azimuthal)``` with the same dimensionality as the data.intensity
-        with Q in angstrom and azimuthal angle in degrees'''
-    if not getDataType(data) == DataType.IQ_AZIMUTHAL:
-        raise RuntimeError('Calculating qmod and azimuthal only works for IQazimuthal')
-
-    # reshape the qx and qy if intensity array is 2d
-    if len(data.intensity.shape) == 2 and len(data.qx.shape) == 1 and len(data.qy.shape) == 1:
-        qx = np.tile(data.qx, (data.qy.shape[0], 1))
-        qy = np.tile(data.qy, (data.qx.shape[0], 1)).transpose()
-    else:
-        qx = data.qx
-        qy = data.qy
-
-    # calculate q-scalar
-    q = np.sqrt(np.square(qx) + np.square(qy))
-
-    # azimuthal is expected to be positive so use cyclical nature of trig functions
-    azimuthal = np.arctan2(qy, qx)
-    azimuthal[azimuthal < 0.] += 2. * np.pi
-
-    return q, np.rad2deg(azimuthal)
 
 
 def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):

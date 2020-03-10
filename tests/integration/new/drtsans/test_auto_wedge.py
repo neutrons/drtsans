@@ -5,11 +5,11 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 '''
 import pytest
 import numpy as np
-from drtsans.dataobjects import IQazimuthal
+from drtsans.dataobjects import IQazimuthal, IQmod
 from drtsans import getWedgeSelection
 # test internal functions
-from drtsans.auto_wedge import _toQmodAndAzimuthal, _binInQAndAzimuthal, _fitQAndAzimuthal
-
+from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
+from drtsans.iq import  _toQmodAndAzimuthal
 
 def _create_2d_data():
     '''This creates the IQazimuthal data from ``Raw_Data_Anisotropic_v2_new`` the pages are
@@ -44,7 +44,7 @@ def _create_2d_data():
     data2d = IQazimuthal(intensity=intensities, error=errors,
                          qx=np.linspace(-5., 5., 11, dtype=float),
                          qy=np.linspace(5., -5., 11, dtype=float))
-    assert data2d.intensity.shape == (11, 11)
+    assert data2d.intensity.shape == (11 * 11,)
     return data2d
 
 
@@ -299,8 +299,9 @@ def test_calc_qmod_and_azimuthal():
     data2d = _create_2d_data()
 
     # convert to q and azimuthal
-    qmod, azimuthal = _toQmodAndAzimuthal(data2d)
+    qmod, delta_qmod, azimuthal = _toQmodAndAzimuthal(data2d)
     assert qmod.shape == data2d.intensity.shape
+    assert delta_qmod is None
     assert azimuthal.shape == data2d.intensity.shape
 
     # numbers taken from the spreadsheet

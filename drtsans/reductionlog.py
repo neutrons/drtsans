@@ -1,5 +1,8 @@
 from datetime import datetime
 import h5py
+import glob
+import os
+import re
 import json
 import socket
 from mantid import __version__ as mantid_version
@@ -70,12 +73,19 @@ def _savereductionjson(nxentry, parameters):
         The parameters supplied to the reduction script. This will be converted
         to a json string if it isn't one already.
     '''
+
+    if 'filename' in parameters.keys():
+        filename = parameters['filename']
+    else:
+        filename = ''
+
     # convert the parameters into a string to save
-    if not isinstance(parameters, str):
-        parameters = json.dumps(parameters)
+    if not isinstance(parameters['data'], str):
+        parameters = json.dumps(parameters['data'])
 
     return _savenxnote(nxentry, 'reduction_json',
-                       'application/json', file_name='',
+                       'application/json',
+                       file_name=filename,
                        data=parameters)
 
 
@@ -90,6 +100,8 @@ def _savereductionparams(nxentry, parameters, name_of_entry):
         if isinstance(_value, dict):
             _savereductionparams(nxentry, _value, _key)
         else:
+            if _value is None:
+                _value = ''
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
 
@@ -162,7 +174,9 @@ def _savespecialparameters(nxentry, dict_special_parameters, name_of_entry):
     nxentry: HDF handle
         Entry group to put information in
     dict_special_parameters: dict
-        dictionary where to get the parametes froms
+        dictionary where to get the parameters from
+    name_of_entry: String
+        Name of the top tree structure
     '''
     nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
 
@@ -170,8 +184,38 @@ def _savespecialparameters(nxentry, dict_special_parameters, name_of_entry):
         if isinstance(_value, dict):
             _savereductionparams(nxentry, _value, _key)
         else:
+            if _value is None:
+                _value = ""
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
+
+
+def _savesamplelogs(nxentry, dict_sample_logs, name_of_entry):
+    """Save all the DAS logs infos
+
+    Parameters
+    ----------
+    nxentry: HDF handle
+        Entry group to put information in
+    dict_sample_logs: SampleLogs object
+    name_of_entry: String
+        Name of the top tree structure
+    """
+    nxentry = _createnxgroup(nxentry, name_of_entry, 'NXnote')
+
+    for _sample_key in dict_sample_logs.keys():
+        nxentry_log = _createnxgroup(nxentry, _sample_key, 'NXnote')
+        local_dict_sample_logs = dict_sample_logs[_sample_key]
+        for _key in local_dict_sample_logs.keys():
+            _value = str(local_dict_sample_logs[_key].value)
+            if _value is None:
+                _value = ""
+            _units = str(local_dict_sample_logs[_key].units)
+            if _units is None:
+                _units = ""
+            _new_entry = nxentry_log.create_dataset(name=_key, data=_value)
+            _new_entry.attrs['NX_class'] = 'NXdata'
+            _new_entry.attrs['units'] = _units
 
 
 def _create_groupe(entry=None, name='Default', data=[], units=''):
@@ -218,38 +262,94 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                            name='Qydev',
                            data=iqxqy.delta_qy,
                            units='1/A')
-
-
-def _save_iq_to_log(iq=None, topEntry=None):
-    # with h5py.File(filename, 'w') as handle:
-    entry = topEntry.create_group('I(Q)')
-    entry.attrs['NX_class'] = 'NXdata'
-    entry.attrs['signal'] = 'I'
-    entry.attrs['axes'] = 'Q'
-
-    # intensity
-    _create_groupe(entry=entry,
-                   name='I',
-                   data=iq.intensity,
-                   units='1/cm')
-
-    # errors
-    _create_groupe(entry=entry,
-                   name='Idev',
-                   data=iq.error,
-                   units='1/cm')
-
-    # mod_q
-    if not (iq.mod_q is None):
+        # wavelength
+        wavelength = "{}".format(iqxqy.wavelength) if iqxqy.wavelength else "N/A"
         _create_groupe(entry=entry,
-                       name='Q',
-                       data=iq.mod_q,
-                       units='1/A')
+                       name='Wavelength',
+                       data=wavelength,
+                       units='A')
 
+
+def _save_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
+
+    if (type(iq) is list) and len(iq) > 1:
+        for _index, _iq in enumerate(iq):
+            _save_iq_to_log(iq=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index))
+    else:
+        entry_name = 'I(Q)'
+        if entryNameExt:
+            entry_name += "_" + entryNameExt
+        entry = topEntry.create_group(entry_name)
+        entry.attrs['NX_class'] = 'NXdata'
+        entry.attrs['signal'] = 'I'
+        entry.attrs['axes'] = 'Q'
+
+        # intensity
         _create_groupe(entry=entry,
-                       name='Qdev',
-                       data=iq.delta_mod_q,
-                       units='1/A')
+                       name='I',
+                       data=iq.intensity,
+                       units='1/cm')
+
+        # errors
+        _create_groupe(entry=entry,
+                       name='Idev',
+                       data=iq.error,
+                       units='1/cm')
+
+        # mod_q
+        if not (iq.mod_q is None):
+            _create_groupe(entry=entry,
+                           name='Q',
+                           data=iq.mod_q,
+                           units='1/A')
+
+            _create_groupe(entry=entry,
+                           name='Qdev',
+                           data=iq.delta_mod_q,
+                           units='1/A')
+
+        # wavelength
+        wavelength = "{}".format(iq.wavelength) if iq.wavelength else "N/A"
+        _create_groupe(entry=entry,
+                       name='Wavelength',
+                       data=wavelength,
+                       units='A')
+
+
+def _retrieve_beam_radius_from_out_file(outfolder=''):
+    name_of_out_file = glob.glob(os.path.join(outfolder, '*.out'))
+    if name_of_out_file == []:
+        return ""
+
+    with open(name_of_out_file[0], 'r') as handler:
+        file_contain = handler.readlines()
+    string_to_look_for = 'Radius calculated from the input workspace ='
+    for _line in file_contain:
+        if string_to_look_for in _line:
+            regular_exp = r'.*= (?P<radius>.*) mm\n'
+            m = re.search(regular_exp, _line)
+            if m:
+                return m.group('radius')
+    return ""
+
+
+def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder=''):
+    if json is None:
+        return specialparameters
+
+    try:
+        beam_radius_in_json = json['configuration']['mmRadiusForTransmission']
+    except KeyError:
+        return specialparameters
+
+    if beam_radius_in_json == "":
+        beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
+
+    if specialparameters is None:
+        specialparameters = {'transmission_radius_used (mm)': beam_radius_in_json}
+    else:
+        specialparameters = {**specialparameters, 'transmission_radius_used (mm)': beam_radius_in_json}
+    return specialparameters
 
 
 def savereductionlog(filename='', detectordata=None, **kwargs):
@@ -288,6 +388,8 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         will be gotten from the system environment ``USERNAME`` (optional)
     specialparameters: dict
         dictionary of any other arguments you want to keep in the log file
+    samplelogs: SampleLogs
+        SampleLogs object of all the EPICS infos logged into the NeXus (and visible on ONCat)
     '''
     if filename == '':
         filename = '_reduction_log.hdf'
@@ -342,12 +444,16 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         entry = _createnxgroup(handle, 'reduction_information', 'NXentry')
 
         # read the contents of the script
-        _savepythonscript(entry, pythonfile=kwargs.get('pythonfile', ''),
-                          pythonscript=kwargs.get('python', ''))
-        _reduction_parameters = kwargs.get('reductionparams')
-        _savereductionjson(entry, parameters=_reduction_parameters)
-        _savereductionparams(entry, parameters=_reduction_parameters,
-                             name_of_entry='reduction_parameters')
+        _pythonfile = kwargs.get("pythonfile", None)
+        if _pythonfile:
+            _savepythonscript(entry, pythonfile=kwargs.get('pythonfile', None),
+                              pythonscript=kwargs.get('python', ''))
+
+        _reduction_parameters = kwargs.get('reductionparams', '')
+        if _reduction_parameters:
+            _savereductionjson(entry, parameters=_reduction_parameters)
+            _savereductionparams(entry, parameters=_reduction_parameters['data'],
+                                 name_of_entry='reduction_parameters')
 
         # timestamp of when it happened - default to now
         starttime = kwargs.get('starttime', datetime.now().isoformat())
@@ -378,4 +484,14 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
 
         specialparameters = kwargs.get('specialparameters', None)
         if specialparameters:
+            # add calculated beam radius if beam radius is None
+            specialparameters = _appendCalculatedBeamRadius(specialparameters,
+                                                            json=_reduction_parameters,
+                                                            outfolder=os.path.dirname(filename))
+
+        if specialparameters:
             _savespecialparameters(entry, specialparameters, 'special_parameters')
+
+        samplelogs = kwargs.get('samplelogs', None)
+        if samplelogs:
+            _savesamplelogs(entry, samplelogs, 'sample_logs')

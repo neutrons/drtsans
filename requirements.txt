@@ -5,3 +5,4 @@ numexpr
 pandas
 sortedcontainers
 tinydb
+ipywidgets

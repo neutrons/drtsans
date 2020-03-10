@@ -88,7 +88,7 @@ def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None,
     if even_decade:
         # both c_min and c_max shall be on even decade
         # x_min and x_max shall be enclosed in the range of (10^c_min, 10^c_max)
-        c_min = np.log10(x_min)
+        c_min = np.floor(np.log10(x_min))
         c_max = np.ceil(np.log10(x_max))
     else:
         # c_min and c_max are from x_min and x_max directly

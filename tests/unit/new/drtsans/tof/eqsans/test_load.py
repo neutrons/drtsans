@@ -143,12 +143,12 @@ def test_load_and_split(reference_dir):
     assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 0.1
     assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 0.1
     assert SampleLogs(filtered_ws.getItem(2)).slice_interval.value == 0.1
-    assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 19.94
-    assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 0
-    assert SampleLogs(filtered_ws.getItem(2)).slice_start.value == 20.01
-    assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 19.98
-    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == 20.07
-    assert SampleLogs(filtered_ws.getItem(2)).slice_end.value == 20.07
+    assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 19.85
+    assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 19.95
+    assert SampleLogs(filtered_ws.getItem(2)).slice_start.value == 20.05
+    assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 19.95
+    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == 20.05
+    assert SampleLogs(filtered_ws.getItem(2)).slice_end.value == 20.15
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.units == 'C'
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.units == 'C'
     assert SampleLogs(filtered_ws.getItem(2)).slice_start.units == 'C'

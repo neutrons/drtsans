@@ -59,7 +59,8 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     mode: str
         Available options are 'scalar', 'azimuthal', and 'crystallographic'
     resolution_function:
-        Function to calculate resolution
+        Function to calculate resolution. If :py:obj:`None`, then we assume an infinite preccission in Q and the
+        associated error is thus zero.
     kwargs:
         Parameters to be passed to the resolution function
 
@@ -156,13 +157,17 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
     # We filter out the bad pixels and then for each pixel we replicate the list of wavelength bin centers,
     # as many times as the number of subpixels in the pixel.
+    # `lam` becomes an 1D array of length (number_of_good_pixels * number_of_bins * n_horizontal * n_vertical)
     [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
         # We need to replicate the two_theta of a subpixel as many times as wavelength bin centers
+        # `two_theta` is a 2D array of shape (number_of_good_pixels * n_horizontal * n_vertical, number_of_bins)
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        # for a given subpixel, we have as many Q-modules as wavelength bin centers
+        # For a given subpixel, we have as many Q-moduli as wavelength bin centers, i.e, number_of_bins
+        # We need to reshape `lam` to have the same shape as `two_theta`. After that, we flatten the resulting
+        # mod_q array into a 1D array of length (number_of_good_pixels * number_of_bins * n_horizontal * n_vertical)
         mod_q = (4. * np.pi * np.sin(two_theta * 0.5) / lam.reshape(len(two_theta), number_of_bins)).ravel()
     else:
         # retain only those pixels that are unmasked or not monitor
@@ -244,13 +249,17 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
     # We filter out the bad pixels and then for each pixel we replicate the list of wavelength bin centers,
     # as many times as the number of subpixels in the pixel.
+    # `lam` becomes an 1D array of length (number_of_good_pixels * number_of_bins * n_horizontal * n_vertical)
     [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
         # We need to replicate the two_theta of a subpixel as many times as wavelength bin centers
+        # `two_theta` is a 2D array of shape (number_of_good_pixels * n_horizontal * n_vertical, number_of_bins)
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
-        # for a given subpixel, we have as many Q-modules as wavelength bin centers
+        # For a given subpixel, we have as many Q-modules as wavelength bin centers, i.e, number_of_bins
+        # We need to reshape `lam` to have the same shape as `two_theta`. After that, we flatten the resulting
+        # mod_q array into a 1D array of length (number_of_good_pixels * number_of_bins * n_horizontal * n_vertical)
         mod_q = (4. * np.pi * np.sin(two_theta * 0.5) / lam.reshape(len(two_theta), number_of_bins)).ravel()
         azimuthal = np.repeat(subpixel_polar_coords.azimuthal, number_of_bins)
         qx = -mod_q * np.cos(azimuthal)  # note the convention for the left handed reference frame
@@ -341,13 +350,16 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
     n_horizontal, n_vertical = kwargs.get('n_horizontal', 1), kwargs.get('n_vertical', 1)
     # We filter out the bad pixels and then for each pixel we replicate the list of wavelength bin centers,
     # as many times as the number of subpixels in the pixel.
+    # lam becomes an 1D array of length (number_of_good_pixels * number_of_bins * n_horizontal * n_vertical)
     [lam, ] = _filter_and_replicate([lam, ], keep, n_horizontal, n_vertical)
     if n_horizontal * n_vertical > 1:
         # Calculate modulus Q for each subpixel
         subpixel_polar_coords = subpixel_info(ws, n_horizontal, n_vertical)
-        # We need to replicate the two_theta of a subpixel as many times as wavelength bin centers
+        # We need to replicate the two_theta of a subpixel as many times as wavelength bin centers.
+        # `two_theta` is a 2D array of shape (number_of_good_pixels * n_horizontal * n_vertical, number_of_bins)
         two_theta = np.repeat(subpixel_polar_coords.two_theta, number_of_bins).reshape(-1, number_of_bins)
         azimuthal = np.repeat(subpixel_polar_coords.azimuthal, number_of_bins).reshape(-1, number_of_bins)
+        # We need to reshape `lam` to have the same shape as `two_theta`.
         temp = 2. * np.pi / lam.reshape(len(two_theta), number_of_bins)
         qx = (temp * np.sin(two_theta) * np.cos(azimuthal)).ravel()
         qy = (temp * np.sin(two_theta) * np.sin(azimuthal)).ravel()
@@ -471,9 +483,12 @@ def subpixel_info(input_workspace, n_horizontal, n_vertical):
 
     # Find the dimensions of each pixel. Due to barscan and tube-width calibrations, each pixel will have its own size
     last_info_index = info_indexes[-1]  # index of the last valid pixel
-    # The nominal pixel dimensions are the same for all pixels. We find the nominal dimnesions of the last pixel
+    # The nominal pixel dimensions are the same for all pixels. We find the nominal dimensions of the last pixel.
+    # The `nominal_pixel_dimensions` for EQSANS are (0.00804, 0.00804, 0.00409) along X, Y, and Z, respectively.
     nominal_pixel_dimensions = np.array(component_info.shape(last_info_index).getBoundingBox().width())
-    # Each pixel has a specific (x, y, z) scale factor
+    # Each pixel has a specific (x, y, z) scale factor. For instance, pixel 42 may have scale factor
+    # (0.79, 1.02, 1.00). Thus, the final dimension of this pixel is
+    # (0.00804 * 0.79, 0.00804 * 1.02, 0.00409 * 1.00) == (0.00635, 0.00820, 0.00409)
     scale_factors = np.array([unpack_v3d(component_info.scaleFactor, i) for i in info_indexes])
     # The product of each specific scale factor and the nominal pixel dimension gives us the specific pixel dimensions
     pixel_dimensions = scale_factors * nominal_pixel_dimensions  # shape = (number_pixels, 3)
@@ -500,7 +515,8 @@ def subpixel_info(input_workspace, n_horizontal, n_vertical):
 def _filter_and_replicate(arrays, unmasked_indexes, n_horizontal=1, n_vertical=1):
     r"""
     Retain only items in the array corresponding to unmasked pixels, and replicate
-    these values for each subpixel if subpixels are requested.
+    these values for each subpixel if subpixels are requested. Finally, flatten the array
+    to one-dimension.
 
     For every array in ```arrays```, the same filter and replication steps are applied.
 

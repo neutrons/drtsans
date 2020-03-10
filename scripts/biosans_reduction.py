@@ -16,6 +16,7 @@ from drtsans.stitch import stitch_profiles  # noqa E402
 from drtsans.plots import plot_IQmod  # noqa E402
 from drtsans.mono import biosans as sans  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
+from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.save_ascii import save_ascii_binned_1D  # noqa E402
 from common_utils import get_Iq, get_Iqxqy, setup_configuration  # noqa E402
 from drtsans.path import registered_workspace # noqa E402
@@ -41,6 +42,10 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
         msapi.logger.notice('Applying transmission correction with fixed value.')
         ws = sans.apply_transmission_correction(ws,
                                                 trans_value=float(transmission_run))
+
+        transmission_dict = {'value': float(transmission_run),
+                             'error': ''}
+
     else:
         msapi.logger.notice('Applying transmission correction with transmission file.')
 
@@ -55,8 +60,17 @@ def apply_transmission(ws, transmission_run, empty_run, cfg):
                                             ws_tr_direct,
                                             radius=cfg['transmission_radius'],
                                             radius_unit="mm")
+
+        transmission_dict = {'value': tr_ws.extractY(),
+                             'error': tr_ws.extractE()}
+
         ws = sans.apply_transmission_correction(ws, trans_workspace=tr_ws)
-    return ws
+
+        # remove transmission correction
+        if str(tr_ws) in msapi.mtd:  # protect against non-workspaces
+            tr_ws.delete()
+
+    return ws, transmission_dict
 
 
 def wksp_suffix(suffix, config):
@@ -94,16 +108,18 @@ def reduction(json_params, config):
 
     # Transmission
     transmission_run = json_params["transmission"]["runNumber"]
+    sample_transmission_dict = {}
     if transmission_run.strip() != '':
         if not os.path.exists(transmission_run):
             transmission_run = json_params["instrumentName"] + "_" + transmission_run
         empty_run = json_params["empty"]["runNumber"]
         if not os.path.exists(empty_run):
             empty_run = json_params["instrumentName"] + "_" + empty_run
-        ws = apply_transmission(ws, transmission_run, empty_run, config)
+        ws, sample_transmission_dict = apply_transmission(ws, transmission_run, empty_run, config)
 
     # Background
     bkg_run = json_params["background"]["runNumber"]
+    background_transmission_dict = {}
     if bkg_run != "":
         if os.path.exists(bkg_run):
             bkg_run = json_params["instrumentName"] + "_" + bkg_run
@@ -114,7 +130,7 @@ def reduction(json_params, config):
         if transmission_run.strip() != '':
             transmission_fn = transmission_run
             empty_run = json_params["empty"]["runNumber"]
-            ws_bck = apply_transmission(ws_bck, transmission_fn, empty_run, config)
+            ws_bck, background_transmission_dict = apply_transmission(ws_bck, transmission_fn, empty_run, config)
 
         # Subtract background
         ws = drtsans.subtract_background(ws, background=ws_bck)
@@ -155,7 +171,11 @@ def reduction(json_params, config):
                              weighting=flag_weighted,
                              nbins=int(json_params["configuration"]["numQxQyBins"]))
 
-    return iq_output, iqxqy_output
+    return {'iq': iq_output,
+            'iqxqy': iqxqy_output,
+            'sample_transmission': sample_transmission_dict,
+            'background_transmission': background_transmission_dict,
+            'sample_wks': ws}
 
 
 if __name__ == "__main__":
@@ -201,7 +221,12 @@ if __name__ == "__main__":
     # This could be hidden in the API and done automatically.
     config['is_wing'] = False
     config['mask_detector'] = 'wing_detector'
-    iq_1, iqxqy_1 = reduction(json_params, config)
+    reduction_1_dict = reduction(json_params, config)
+    iq_1 = reduction_1_dict['iq']
+    iqxqy_1 = reduction_1_dict['iqxqy']
+    sample_transmission_1 = reduction_1_dict['sample_transmission']
+    background_transmission_1 = reduction_1_dict['background_transmission']
+    sample_wks_1 = reduction_1_dict['sample_wks']
 
     config['is_wing'] = True
     config['mask_detector'] = 'detector1'
@@ -209,7 +234,12 @@ if __name__ == "__main__":
         filename = json_params['configuration']['sensitivityFileName'].replace('_flood_', '_flood_wing_')
         config['sensitivity_file_path'] = filename
 
-    iq_2, iqxqy_2 = reduction(json_params, config)
+    reduction_2_dict = reduction(json_params, config)
+    iq_2 = reduction_2_dict['iq']
+    iqxqy_2 = reduction_2_dict['iqxqy']
+    sample_transmission_2 = reduction_2_dict['sample_transmission']
+    background_transmission_2 = reduction_2_dict['background_transmission']
+    sample_wks_2 = reduction_2_dict['sample_wks']
 
     # Stitch the main detector and the wing
     overlap = 0.2
@@ -228,7 +258,8 @@ if __name__ == "__main__":
     save_ascii_binned_1D(filename, "I(Q)", merged_profile)
 
     # list of arguments for log file =======================================================
-    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    filename = os.path.join(json_params["configuration"]["outputDir"], json_params['outputFilename'] +
+                            '_reduction_log.hdf')
     starttime = datetime.now().isoformat()
     # username = 'Neymar'
     pythonfile = __file__
@@ -237,7 +268,13 @@ if __name__ == "__main__":
                                          'y': config['center_y'],
                                          'y_wing': config['center_y_wing'],
                                          },
+                         'sample_transmission': {'main': sample_transmission_1,
+                                                 'wing': sample_transmission_2},
+                         'background_transmission': {'main': background_transmission_1,
+                                                     'wing': background_transmission_2},
                          }
+    samplelogs = {'main': SampleLogs(sample_wks_1),
+                  'wing': SampleLogs(sample_wks_2)}
     detectordata = {'main': {'iq': iq_1, 'iqxqy': iqxqy_1},
                     'wing': {'iq': iq_2, 'iqxqy': iqxqy_2},
                     'combined': {'iq': merged_profile}}
@@ -247,4 +284,5 @@ if __name__ == "__main__":
                              pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
+                             samplelogs=samplelogs,
                              )

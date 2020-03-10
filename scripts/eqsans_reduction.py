@@ -14,6 +14,7 @@ from drtsans.iq import bin_intensity_into_q1d, BinningMethod, bin_intensity_into
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
 from drtsans.instruments import extract_run_number # noqa E402
 from drtsans.tof.eqsans import cfg  # noqa E402
+from drtsans.samplelogs import SampleLogs  # noqa E402
 from common_utils import get_Iqxqy  # noqa E402
 from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 from drtsans.path import registered_workspace # noqa E402
@@ -42,13 +43,14 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise RuntimeError("reduction code requires a parameter json string")
     if os.path.isfile(sys.argv[1]):
-        # print(sys.argv[1])
-        with open(sys.argv[1], 'r') as fd:
+        json_filename = sys.argv[1]
+        with open(json_filename, 'r') as fd:
             json_params = json.load(fd)
     else:
-        json_string = " ".join(sys.argv[1:])
-        json_params = json.loads(json_string)
+        json_filename = " ".join(sys.argv[1:])
+        json_params = json.loads(json_filename)
     log_json_params = copy.deepcopy(json_params)
+    log_json_params = {'data': log_json_params, 'filename': json_filename}
     msapi.logger.notice(json.dumps(json_params, indent=2))
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
@@ -199,8 +201,10 @@ if __name__ == "__main__":
     else:
         apply_transmission_value = False
 
+    sample_transmission_dict = {}
     if apply_transmission_run or apply_transmission_value:
         if apply_transmission_value:
+            sample_transmission_dict['value'] = float(transmission_value)
             msapi.logger.notice('...applying transmission correction with fixed value.')
             ws = eqsans.apply_transmission_correction(ws,
                                                       trans_value=float(transmission_value))
@@ -218,6 +222,10 @@ if __name__ == "__main__":
                                                   ws_tr_direct,
                                                   radius=rad_trans,
                                                   radius_unit="mm")
+            sample_transmission_dict['value'] = tr_ws.extractY()
+            sample_transmission_dict['error'] = tr_ws.extractE()
+            sample_transmission_dict['wavelengths'] = tr_ws.extractX()
+
             # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
             # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
             # [CD, 1/30/2020] and save both of them as ascii file
@@ -235,6 +243,7 @@ if __name__ == "__main__":
 
     # background
     bkg_run = json_params["background"]["runNumber"]
+    background_transmission_dict = {}
     if bkg_run.strip() != '':
         msapi.logger.notice('...applying bkg_subtraction.')
         bkg_fn = json_params["background"].get("backgroundFileName", "EQSANS_{}".format(bkg_run))
@@ -253,6 +262,7 @@ if __name__ == "__main__":
                 msapi.logger.notice('...applying bkg_transmission correction with fixed value.')
                 ws_bkg = eqsans.apply_transmission_correction(ws_bkg,
                                                               trans_value=float(bkg_transmission_value))
+                background_transmission_dict['value'] = float(bkg_transmission_value)
             else:
                 msapi.logger.notice('...applying bkg_transmission correction with transmission file.')
                 bkg_trans_fn = json_params["background"]["transmission"].get("backgroundTransmissionFileName",
@@ -267,6 +277,16 @@ if __name__ == "__main__":
                                                               ws_tr_direct,
                                                               radius=rad_trans,
                                                               radius_unit="mm")
+
+                background_transmission_dict['background_raw_transmission'] = {'value': ws_cal_raw_tr_bkg.extractY(),
+                                                                               'error': ws_cal_raw_tr_bkg.extractE(),
+                                                                               'wavelengths':
+                                                                                   ws_cal_raw_tr_bkg.extractX()}
+                background_transmission_dict['background_transmission'] = {'value': ws_cal_tr_bkg.extractY(),
+                                                                           'error': ws_cal_tr_bkg.extractE(),
+                                                                           'wavelengths':
+                                                                           ws_cal_tr_bkg.extractX()}
+
                 # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
                 # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
                 # [CD, 1/30/2020] and save both of them as ascii file
@@ -333,7 +353,7 @@ if __name__ == "__main__":
         if linear_binning:
             q_bins = determine_1d_linear_bins(q_min, q_max, numQBins1D)
         else:
-            if flag_logqbinsperdecade == '':
+            if (flag_logqbinsperdecade == '') or (flag_logqbinsdecadecenter is None):
                 q_bins = determine_1d_log_bins(q_min, q_max, n_bins=numQBins1D,
                                                n_bins_per_decade=None,
                                                decade_on_center=flag_logqbinsdecadecenter,
@@ -389,7 +409,7 @@ if __name__ == "__main__":
         # [CD, 2/10/2020] option for weighting has been added
 
     # list of arguments for log file =======================================================
-    filename = os.path.join(json_params["configuration"]["outputDir"], '_reduction_log.hdf')
+    filename = os.path.join(json_params["configuration"]["outputDir"], output_file + '_reduction_log.hdf')
     starttime = datetime.now().isoformat()
     # username = 'Neymar'
     pythonfile = __file__
@@ -397,19 +417,22 @@ if __name__ == "__main__":
     specialparameters = {'beam_center': {'x': config['center_x'],
                                          'y': config['center_y'],
                                          },
+                         'sample_transmission': sample_transmission_dict,
+                         'background_transmission': background_transmission_dict,
                          }
     detectordata = {}
-
     for _key in log_binned_i_of_q.keys():
-        name = "frame_{}".format(_key)
+        name = "frame_{}".format(_key+1)
         detectordata[name] = {'iq': log_binned_i_of_q[_key],
                               'iqxqy': log_iqxqy[_key]}
+    samplelogs = {'main': SampleLogs(ws)}
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
                              reductionparams=reductionparams,
                              pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
+                             samplelogs=samplelogs,
                              )
 
     # [CD 2/7/2020] log 'finish'

@@ -151,15 +151,49 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXprocess(entry, 'drtsans')
 
 
-def test_writing_metadata():
+# def test_writing_das_log():
+#     data = '/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5'
+#     output_workspace = 'BC_8148'
+#     ws = load_events(data,
+#                      overwrite_instrument=True,
+#                      output_workspace=output_workspace,
+#                      output_suffix="",
+#                      sample_offset=0)
+#
+#     # expected values
+#     expected_values = {'run_number': {'value': '8148',
+#                                       'units': ""},
+#                        'monitor': {'value': 3338109,
+#                                    'units': ''}}
+#
+#     # Add sample logs
+#     sample_logs = SampleLogs(ws)
+#
+#     test_iq = _create_iq()
+#     tmp_log_filename = _create_tmp_log_filename()
+#     savereductionlog(tmp_log_filename,
+#                      detectordata={'main_detector': {'iq': test_iq}},
+#                      samplelogs=sample_logs)
+#
+#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+#
+#     with h5py.File(tmp_log_filename, 'r') as handle:
+#         reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+#         sample_logs_entry = _getGroup(reduction_information_entry, 'sample_logs', 'NXnote')
+#
+#         for _key in expected_values.keys():
+#             assert sample_logs_entry[_key].value == str(expected_values[_key]['value'])
 
+
+def test_writing_metadata():
     pythonscript = "this is my python script"
     pythonfile = 'this_is_my_file.py'
-    reductionparams = {'reduction parameter 1': 'value1'}
+    reductionparams = {'data': {'reduction parameter 1': 'value1'},
+                       'filename': "json_filename.json"}
     starttime = '1993-03-18T21:00:00'
     username = 'Neymar'
     user = 'Cavani'
-    specialparameters = {'key1': 10, 'key2': 'text here'}
+    specialparameters = {'key1': 10, 'key3': None, 'key2': 'text here'}
 
     test_iq = _create_iq()
     tmp_log_filename = _create_tmp_log_filename()
@@ -185,6 +219,7 @@ def test_writing_metadata():
         assert _strValue(reduction_information_entry['user'], 'name') == username
         assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
         assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
+        assert reduction_information_entry['special_parameters']['key3'].value == ""
 
 
 def _test_data(tested_data=[], ref_data=[], abs=None):
@@ -195,7 +230,39 @@ def _test_data(tested_data=[], ref_data=[], abs=None):
             _tested == pytest.approx(_ref, abs=abs)
 
 
-def test_writing_iq():
+def test_writing_iq_wedge_mode():
+    test_iq_1 = _create_iq()
+    test_iq = list([test_iq_1, test_iq_1])
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq}})
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        top_group = _getGroup(handle, 'main_detector', 'NXdata')
+        iq_nxdata = _getGroup(top_group, 'I(Q)_wedge0', 'NXdata')
+
+        data = iq_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iq_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Q'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.0078897, 0.0059338]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Qdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.011912, 0.11912]),
+                   abs=1e-6)
+
+
+def test_writing_iq_scalar_mode():
     test_iq = _create_iq()
     tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq}})
@@ -265,7 +332,7 @@ def test_writing_iqxqy():
                    ref_data=np.array([0.008423, 0.008423]))
 
 
-def test_writing_iq_and_iqxqy():
+def test_writing_iq_and_iqxqy_scalar_mode():
     test_iq = _create_iq()
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
@@ -328,13 +395,78 @@ def test_writing_iq_and_iqxqy():
                    ref_data=np.array([0.008423, 0.008423]))
 
 
+def test_writing_iq_and_iqxqy_wedge_mode():
+    test_iq_1 = _create_iq()
+    test_iq = list([test_iq_1, test_iq_1])
+    test_iqxqy = _create_iqxqy()
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq,
+                                                                       'iqxqy': test_iqxqy}})
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        top_group = _getGroup(handle, 'main_detector', 'NXdata')
+
+        iq_nxdata = _getGroup(top_group, 'I(Q)_wedge0', 'NXdata')
+
+        data = iq_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iq_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Q'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.0078897, 0.0059338]),
+                   abs=1e-7)
+
+        data = iq_nxdata['Qdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.011912, 0.11912]),
+                   abs=1e-6)
+
+        iqxqy_nxdata = _getGroup(top_group, 'I(QxQy)', 'NXdata')
+
+        data = iqxqy_nxdata['I'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([93, 60]))
+
+        data = iqxqy_nxdata['Idev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([9.64365076, 7.74596669]),
+                   abs=1e-8)
+
+        data = iqxqy_nxdata['Qx'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([-0.006134, -0.003254]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qxdev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]),
+                   abs=1e-6)
+
+        data = iqxqy_nxdata['Qy'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.004962, 0.004962]))
+
+        data = iqxqy_nxdata['Qydev'][:]
+        _test_data(tested_data=data,
+                   ref_data=np.array([0.008423, 0.008423]))
+
+
 def test_reduction_parameters():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
 
     json_file = _getConfigJsonFile()
     with open(json_file, 'r') as file_handle:
-        data = json.load(file_handle)
+        data = {'data': json.load(file_handle),
+                'filename': json_file}
 
     detectordata = {'main_detector': {'iqxqy': test_iqxqy}}
     savereductionlog(tmp_log_filename, detectordata=detectordata, reductionparams=data)
@@ -348,11 +480,11 @@ def test_reduction_parameters():
         assert _strValue(reduction_information_entry['mantid'], 'version') == mantid_version
 
         red_val = reduction_information_entry['reduction_parameters']['background']['transmission']['runNumber'].value
-        test_val = data['background']['transmission']['runNumber']
+        test_val = data['data']['background']['transmission']['runNumber']
         assert red_val == test_val
 
         red_val = reduction_information_entry['reduction_parameters']['iptsNumber'].value
-        test_val = data['iptsNumber']
+        test_val = data['data']['iptsNumber']
         assert red_val == test_val
 
 

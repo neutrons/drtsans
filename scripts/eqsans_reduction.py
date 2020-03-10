@@ -429,7 +429,7 @@ if __name__ == "__main__":
     detectordata = {}
     for _key in log_binned_i_of_q.keys():
         name = "frame_{}".format(_key+1)
-        detectordata[name] = {'iq': log_binned_i_of_q[_key],
+        detectordata[name] = {'iq': [log_binned_i_of_q[_key]],
                               'iqxqy': log_iqxqy[_key]}
     samplelogs = {'main': SampleLogs(ws)}
     drtsans.savereductionlog(filename=filename,

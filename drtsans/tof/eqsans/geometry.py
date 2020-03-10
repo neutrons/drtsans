@@ -350,10 +350,10 @@ def beam_radius(input_workspace, unit='mm'):
         Estimated beam radius
     """
     source_aperture_diam = source_aperture_diameter(input_workspace, unit=unit)
-    source_sample_dist = source_sample_distance(input_workspace)
+    source_aperture_sample_dist = source_aperture_sample_distance(input_workspace, unit=unit)
 
     sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
     sample_detector_dist = sample_detector_distance(input_workspace)
 
     return sample_aperture_diam +\
-        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_sample_dist)
+        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_aperture_sample_dist)

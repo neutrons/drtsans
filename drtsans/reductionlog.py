@@ -326,9 +326,9 @@ def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder='')
         beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
 
     if specialparameters is None:
-        specialparameters = {'calculated_transmission_radius (mm)': beam_radius_in_json}
+        specialparameters = {'transmission_radius_used (mm)': beam_radius_in_json}
     else:
-        specialparameters = {**specialparameters, 'calculated_transmission_radius (mm)': beam_radius_in_json}
+        specialparameters = {**specialparameters, 'transmission_radius_used (mm)': beam_radius_in_json}
     return specialparameters
 
 

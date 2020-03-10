@@ -73,12 +73,19 @@ def _savereductionjson(nxentry, parameters):
         The parameters supplied to the reduction script. This will be converted
         to a json string if it isn't one already.
     '''
+
+    if 'filename' in parameters.keys():
+        filename = parameters['filename']
+    else:
+        filename = ''
+
     # convert the parameters into a string to save
-    if not isinstance(parameters, str):
-        parameters = json.dumps(parameters)
+    if not isinstance(parameters['data'], str):
+        parameters = json.dumps(parameters['data'])
 
     return _savenxnote(nxentry, 'reduction_json',
-                       'application/json', file_name='',
+                       'application/json',
+                       file_name=filename,
                        data=parameters)
 
 
@@ -255,6 +262,12 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                            name='Qydev',
                            data=iqxqy.delta_qy,
                            units='1/A')
+        # wavelength
+        wavelength = "{}".format(iqxqy.wavelength) if iqxqy.wavelength else "N/A"
+        _create_groupe(entry=entry,
+                       name='Wavelength',
+                       data=wavelength,
+                       units='A')
 
 
 def _save_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
@@ -295,6 +308,13 @@ def _save_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
                            data=iq.delta_mod_q,
                            units='1/A')
 
+        # wavelength
+        wavelength = "{}".format(iq.wavelength) if iq.wavelength else "N/A"
+        _create_groupe(entry=entry,
+                       name='Wavelength',
+                       data=wavelength,
+                       units='A')
+
 
 def _retrieve_beam_radius_from_out_file(outfolder=''):
     name_of_out_file = glob.glob(os.path.join(outfolder, '*.out'))
@@ -326,9 +346,9 @@ def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder='')
         beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
 
     if specialparameters is None:
-        specialparameters = {'calculated_transmission_radius (mm)': beam_radius_in_json}
+        specialparameters = {'transmission_radius_used (mm)': beam_radius_in_json}
     else:
-        specialparameters = {**specialparameters, 'calculated_transmission_radius (mm)': beam_radius_in_json}
+        specialparameters = {**specialparameters, 'transmission_radius_used (mm)': beam_radius_in_json}
     return specialparameters
 
 
@@ -424,12 +444,16 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         entry = _createnxgroup(handle, 'reduction_information', 'NXentry')
 
         # read the contents of the script
-        _savepythonscript(entry, pythonfile=kwargs.get('pythonfile', ''),
-                          pythonscript=kwargs.get('python', ''))
-        _reduction_parameters = kwargs.get('reductionparams')
-        _savereductionjson(entry, parameters=_reduction_parameters)
-        _savereductionparams(entry, parameters=_reduction_parameters,
-                             name_of_entry='reduction_parameters')
+        _pythonfile = kwargs.get("pythonfile", None)
+        if _pythonfile:
+            _savepythonscript(entry, pythonfile=kwargs.get('pythonfile', None),
+                              pythonscript=kwargs.get('python', ''))
+
+        _reduction_parameters = kwargs.get('reductionparams', '')
+        if _reduction_parameters:
+            _savereductionjson(entry, parameters=_reduction_parameters)
+            _savereductionparams(entry, parameters=_reduction_parameters['data'],
+                                 name_of_entry='reduction_parameters')
 
         # timestamp of when it happened - default to now
         starttime = kwargs.get('starttime', datetime.now().isoformat())
@@ -459,11 +483,11 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                                       data=[np.string_(username)])
 
         specialparameters = kwargs.get('specialparameters', None)
-
-        # add calculated beam radius if beam radius is None
-        specialparameters = _appendCalculatedBeamRadius(specialparameters,
-                                                        json=_reduction_parameters,
-                                                        outfolder=os.path.dirname(filename))
+        if specialparameters:
+            # add calculated beam radius if beam radius is None
+            specialparameters = _appendCalculatedBeamRadius(specialparameters,
+                                                            json=_reduction_parameters,
+                                                            outfolder=os.path.dirname(filename))
 
         if specialparameters:
             _savespecialparameters(entry, specialparameters, 'special_parameters')

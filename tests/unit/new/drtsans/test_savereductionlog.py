@@ -188,7 +188,8 @@ def _checkProcessingEntry(handle, **kwargs):
 def test_writing_metadata():
     pythonscript = "this is my python script"
     pythonfile = 'this_is_my_file.py'
-    reductionparams = {'reduction parameter 1': 'value1'}
+    reductionparams = {'data': {'reduction parameter 1': 'value1'},
+                       'filename': "json_filename.json"}
     starttime = '1993-03-18T21:00:00'
     username = 'Neymar'
     user = 'Cavani'
@@ -464,7 +465,8 @@ def test_reduction_parameters():
 
     json_file = _getConfigJsonFile()
     with open(json_file, 'r') as file_handle:
-        data = json.load(file_handle)
+        data = {'data': json.load(file_handle),
+                'filename': json_file}
 
     detectordata = {'main_detector': {'iqxqy': test_iqxqy}}
     savereductionlog(tmp_log_filename, detectordata=detectordata, reductionparams=data)
@@ -478,11 +480,11 @@ def test_reduction_parameters():
         assert _strValue(reduction_information_entry['mantid'], 'version') == mantid_version
 
         red_val = reduction_information_entry['reduction_parameters']['background']['transmission']['runNumber'].value
-        test_val = data['background']['transmission']['runNumber']
+        test_val = data['data']['background']['transmission']['runNumber']
         assert red_val == test_val
 
         red_val = reduction_information_entry['reduction_parameters']['iptsNumber'].value
-        test_val = data['iptsNumber']
+        test_val = data['data']['iptsNumber']
         assert red_val == test_val
 
 

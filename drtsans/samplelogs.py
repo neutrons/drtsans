@@ -81,8 +81,8 @@ class SampleLogs(object):
             Log unit
         """
         # Determine the type of the time series
-        series_types = {bool: FloatTimeSeriesProperty, float: FloatTimeSeriesProperty,
-                        int: Int64TimeSeriesProperty, str: FloatTimeSeriesProperty}
+        series_types = {bool: BoolTimeSeriesProperty, float: FloatTimeSeriesProperty,
+                        int: Int64TimeSeriesProperty, str: StringTimeSeriesProperty}
         series_property = series_types.get(type(values[0]), FloatTimeSeriesProperty)(name)
 
         # Insert one pair of (time, elapsed_time) at a time
@@ -93,7 +93,6 @@ class SampleLogs(object):
 
         # include the whole time series property in the metadata
         self._ws.mutableRun().addProperty(name, series_property, unit, True)
-
 
     @property
     def mantid_logs(self):

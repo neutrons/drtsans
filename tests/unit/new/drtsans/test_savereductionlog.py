@@ -193,6 +193,40 @@ def _test_data(tested_data=[], ref_data=[], abs=None):
 #             assert sample_logs_entry[_key].value == str(expected_values[_key]['value'])
 
 
+def test_writing_metadata_with_no_reductionparams():
+    pythonscript = "this is my python script"
+    pythonfile = 'this_is_my_file.py'
+    starttime = '1993-03-18T21:00:00'
+    username = 'Neymar'
+    user = 'Cavani'
+    specialparameters = {'key1': 10, 'key3': None, 'key2': 'text here'}
+
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    savereductionlog(tmp_log_filename,
+                     detectordata={'main_detector': {'iq': test_iq}},
+                     python=pythonscript,
+                     starttime=starttime,
+                     pythonfile=pythonfile,
+                     user=user,
+                     username=username,
+                     specialparameters=specialparameters)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
+
+        assert _strValue(reduction_information_entry['reduction_script'], 'data') == pythonscript
+        assert _strValue(reduction_information_entry['reduction_script'], 'file_name') == pythonfile
+        assert _strValue(reduction_information_entry, 'start_time') == starttime
+        assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
+        assert _strValue(reduction_information_entry['user'], 'name') == username
+        assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
+        assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
+        assert reduction_information_entry['special_parameters']['key3'].value == ""
+
+
 def test_writing_metadata():
     pythonscript = "this is my python script"
     pythonfile = 'this_is_my_file.py'

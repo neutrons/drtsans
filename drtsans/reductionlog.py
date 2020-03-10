@@ -346,6 +346,8 @@ def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder='')
         beam_radius_in_json = json['configuration']['mmRadiusForTransmission']
     except KeyError:
         return specialparameters
+    except TypeError:
+        return specialparameters
 
     if beam_radius_in_json == "":
         beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
@@ -490,8 +492,12 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         specialparameters = kwargs.get('specialparameters', None)
         if specialparameters:
             # add calculated beam radius if beam radius is None
+            if _reduction_parameters:
+                json_entry = _reduction_parameters['data']
+            else:
+                json_entry = None
             specialparameters = _appendCalculatedBeamRadius(specialparameters,
-                                                            json=_reduction_parameters,
+                                                            json=json_entry,
                                                             outfolder=os.path.dirname(filename))
 
         if specialparameters:

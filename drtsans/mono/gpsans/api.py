@@ -104,6 +104,13 @@ def prepare_data(data,
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
+    # Detector offset and sample offset are disabled
+    if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
+        raise RuntimeError('gpsans.api.prepare_data does not work with detector_offset or sample_offset')
+    else:
+        # detector_offset and sample_offset shall be calculated from sample logs or overwritten sample logs
+        pass
+
     # GPSANS: detector offset is fixed to 0. Only detector sample distance is essential.
     #         So one offset is sufficient
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,

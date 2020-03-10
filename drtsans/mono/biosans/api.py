@@ -99,6 +99,13 @@ def prepare_data(data,
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
+    # Detector offset and sample offset are disabled
+    if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
+        raise RuntimeError('biosans.api.prepare_data does not work with detector_offset or sample_offset')
+    else:
+        # detector_offset and sample_offset shall be calculated from sample logs or overwritten sample logs
+        pass
+
     # TODO: missing detector_offset for wing detector
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
                      detector_offset=detector_offset, sample_offset=sample_offset)

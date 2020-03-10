@@ -230,6 +230,7 @@ if __name__ == "__main__":
                                                   radius_unit="mm")
             sample_transmission_dict['value'] = tr_ws.extractY()
             sample_transmission_dict['error'] = tr_ws.extractE()
+            sample_transmission_dict['wavelengths'] = tr_ws.extractX()
 
             # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
             # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
@@ -284,9 +285,13 @@ if __name__ == "__main__":
                                                               radius_unit="mm")
 
                 background_transmission_dict['background_raw_transmission'] = {'value': ws_cal_raw_tr_bkg.extractY(),
-                                                                               'error': ws_cal_raw_tr_bkg.extractE()}
+                                                                               'error': ws_cal_raw_tr_bkg.extractE(),
+                                                                               'wavelengths':
+                                                                                   ws_cal_raw_tr_bkg.extractX()}
                 background_transmission_dict['background_transmission'] = {'value': ws_cal_tr_bkg.extractY(),
-                                                                           'error': ws_cal_tr_bkg.extractE()}
+                                                                           'error': ws_cal_tr_bkg.extractE(),
+                                                                           'wavelengths':
+                                                                           ws_cal_tr_bkg.extractX()}
 
                 # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
                 # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values

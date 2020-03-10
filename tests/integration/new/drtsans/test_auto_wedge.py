@@ -282,14 +282,28 @@ def _create_2d_histogram_data():
     q_max = 7.5
     q_delta = 1.
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
+    # verify the first and last values
+    assert q_bins[0] == 0.5, 'q_bins[0]'
+    assert q_bins[-1] == 7.5, 'q_bins[-1]'
 
+    # create azimuthal angles as bin centers
     azimuthal_delta = 5.
-    azimuthal_max = 540. + azimuthal_delta
-    azimuthal_bins = np.arange(-.5 * azimuthal_delta, azimuthal_max, azimuthal_delta, dtype=float)
+    azimuthal_max = 540.
+    azimuthal_bins = np.arange(start=0., stop=azimuthal_max + azimuthal_delta,
+                               step=azimuthal_delta, dtype=float)
+    # verify the first and last values
+    assert azimuthal_bins[0] == 0., 'azimuthal_bins[0]'
+    assert azimuthal_bins[-1] == 540., 'azimuthal_bins[-1]'
+    azimuthal_bins += 2.5
 
-    assert intensity.shape == (len(azimuthal_bins) - 1, len(q_bins) - 1)
+    assert intensity.shape == (len(azimuthal_bins), len(q_bins) - 1)
 
-    return intensity, error, azimuthal_bins, q_bins
+    azimuthal_rings = []
+    for i in range(intensity.shape[1]):
+        azimuthal_rings.append(IQmod(intensity=intensity.T[i], error=error.T[i],
+                                     mod_q=azimuthal_bins))
+
+    return q_bins, azimuthal_rings
 
 
 def test_calc_qmod_and_azimuthal():
@@ -329,15 +343,15 @@ def test_calc_qmod_and_azimuthal():
                               [219, 225, 233, 243, 256, 270, 284, 297, 307, 315, 321],
                               [225, 231, 239, 248, 259, 270, 281, 292, 301, 309, 315]], dtype=float)
 
-    np.testing.assert_allclose(qmod, q_exp, atol=.005)
-    np.testing.assert_allclose(azimuthal, azimuthal_exp, atol=.5)
+    np.testing.assert_allclose(qmod, q_exp.ravel(), atol=.005)
+    np.testing.assert_allclose(azimuthal, azimuthal_exp.ravel(), atol=.5)
 
 
 def test_bin_into_q_and_azimuthal():
     '''Test binning into Q and azimuthal matches the results from "Anisotropic Data - Q vs Phi"'''
     # get the test data
     data2d = _create_2d_data()
-    intensity_exp, error_exp, _, _ = _create_2d_histogram_data()
+    q_exp, azimuthal_rings_exp = _create_2d_histogram_data()
 
     # parameters for azimuthal
     azimuthal_delta = 5.
@@ -348,32 +362,28 @@ def test_bin_into_q_and_azimuthal():
     q_delta = 1.
 
     # get the histogrammed data
-    intensity, error, azimuthal, q = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
-                                                         azimuthal_delta=azimuthal_delta)
+    q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
+                                             azimuthal_delta=azimuthal_delta)
 
-    # verify generic shape and range values
-    assert azimuthal.min() == -0.5 * azimuthal_delta  # phi bins are centered on [0, 5, 10, ...]
-    assert azimuthal.max() == 540. + 0.5 * azimuthal_delta
-    assert q.min() == q_min
-    assert q.max() == q_max  # using bin boundaries
+    # verify the q-binning
+    assert q.min() == q_min == q_exp.min()
+    assert q.max() == q_max == q_exp.max() # using bin boundaries
 
-    assert intensity.shape == intensity_exp.shape
-    assert error.shape == error_exp.shape
-    # verify shape is consistent with histogramming
-    assert intensity.shape == (len(azimuthal) - 1, len(q) - 1)
+    for spectrum, spectrum_exp in zip(azimuthal_rings, azimuthal_rings_exp):
+        assert spectrum.intensity.shape == spectrum_exp.intensity.shape
+        np.testing.assert_allclose(spectrum.mod_q, spectrum_exp.mod_q, atol=0.05, equal_nan=True)
+        assert spectrum.delta_mod_q is None
 
-    # validate results
-    for i in range(len(intensity)):  # loop over rows to make debugging easier
-        msg = 'i={} | {}deg <= azimuthal < {}deg'.format(i+3, azimuthal[i], azimuthal[i+1])
-        np.testing.assert_allclose(intensity[i], intensity_exp[i], atol=.05, equal_nan=True, err_msg=msg)
-        np.testing.assert_allclose(error[i], error_exp[i], atol=.05, equal_nan=True, err_msg=msg)
+        np.testing.assert_allclose(spectrum.intensity, spectrum_exp.intensity, atol=0.05, equal_nan=True)
+        np.testing.assert_allclose(spectrum.error, spectrum_exp.error, atol=0.05, equal_nan=True)
 
 
 def test_fitting():
     '''Test that the fitting generates reasonable results for fitting the peaks'''
-    intensity, error, azimuthal, q = _create_2d_histogram_data()
+    q, azimuthal_rings = _create_2d_histogram_data()
+    #intensity, error, azimuthal, q = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    center_list, fwhm_list = _fitQAndAzimuthal(intensity, error, azimuthal, q,
+    center_list, fwhm_list = _fitQAndAzimuthal(azimuthal_rings, q,
                                                signal_to_noise_min=2.0,
                                                azimuthal_start=110.,
                                                maxchisq=1000.)

@@ -370,11 +370,11 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
         Annular-binned I(azimuthal) in 1D
     """
     # Determine azimuthal angle bins (i.e., theta bins)
-    if theta_bin_params.min < 0. or theta_bin_params.max > 360.:
+    theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
+    if theta_bins.centers.min() < 0. or theta_bins.centers.max() > 360.:
         msg = 'must specify range 0<=theta<=360deg found {}<=theta<={}deg'.format(theta_bin_params.min,
                                                                                   theta_bin_params.max)
         raise ValueError(msg)
-    theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
 
     # convert the data to q and azimuthal angle
     q_array, dq_array, theta_array = _toQmodAndAzimuthal(i_of_q)
@@ -446,13 +446,13 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
     assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
 
     # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
-    num_pt_array, bin_x = np.histogram(q_array, bins=bin_edges)
+    num_pt_array, _ = np.histogram(q_array, bins=bin_edges)
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-    i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array)
+    i_raw_array, _ = np.histogram(q_array, bins=bin_edges, weights=iq_array)
 
     # Square of summed uncertainties for each bin
-    sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array ** 2)
+    sigma_sqr_array, _ = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array ** 2)
 
     # Final I(Q):     I_k       = \frac{I_{k, raw}}{N_k}
     i_final_array = i_raw_array / num_pt_array
@@ -460,8 +460,11 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
     sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
 
     # Calculate Q resolution of binned
-    binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
-    bin_q_resolution = binned_dq / num_pt_array
+    if dq_array is None:
+        bin_q_resolution = None
+    else:
+        binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
+        bin_q_resolution = binned_dq / num_pt_array
 
     # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
     # IQmod is a class for holding 1D binned data.

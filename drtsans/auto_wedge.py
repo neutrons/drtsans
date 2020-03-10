@@ -1,5 +1,5 @@
 import numpy as np
-from drtsans.dataobjects import DataType, getDataType, IQmod
+from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 from drtsans.settings import unique_workspace_dundername
@@ -48,10 +48,9 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     tuple
       tuple of tuples i.e. ``((angle_min1, angle_max1), (angle_min2, angle_max2), ...)``
     '''
-
-    intensity, error, azimuthal, q = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
-                                                         azimuthal_delta=azimuthal_delta)
-    center_vec, fwhm_vec = _fitQAndAzimuthal(intensity, error, q_bins=q, azimuthal_bins=azimuthal,
+    q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
+                                             azimuthal_delta=azimuthal_delta)
+    center_vec, fwhm_vec = _fitQAndAzimuthal(azimuthal_rings, q_bins=q,
                                              signal_to_noise_min=signal_to_noise_min, azimuthal_start=110.,
                                              maxchisq=1000.)
 
@@ -109,66 +108,43 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     tuple
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     '''
-    q, azimuthal = _toQmodAndAzimuthal(data)
-
-    print('Q-range requested {:.4f} <= Q <= {:.4f}'.format(q_min, q_max))
-    print('Q-range found     {:.4f} <= Q <= {:.4f}'.format(np.min(q), np.max(q)))
 
     # the bonus two steps is to get the end-point in the array
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
-    # additional half-circle is to pick up things that are symmetric near azimuthal=0
-    azimuthal_max = 540. + azimuthal_delta
-    azimuthal_bins = np.arange(-.5 * azimuthal_delta, azimuthal_max, azimuthal_delta, dtype=float)
 
-    # create output data
-    intensity = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
-    error = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
+    # create azimuthal binning BinningParams takes number of steps
+    azimuthal_offset = 0.5 * azimuthal_delta
+    azimuthal_binning = BinningParams(0. - azimuthal_offset, 360. - azimuthal_offset,
+                                      bins=int(360. / azimuthal_delta))
+    # create the I(azimuthal) for each q-ring
+    data_of_q_rings = []
+    for qmin_ring, qmax_ring in zip(q_bins[:-1], q_bins[1:]):
+        # bin into I(azimuthal)
+        I_azimuthal = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring,
+                                           BinningMethod.NOWEIGHT)
 
-    # rather than print every data point that cannot be binned, collect statistics
-    no_q_bin = 0
-    no_azi_bin = 0
+        # Create a copy of the arrays with the 360->540deg region repeated
+        # ignore - delta_mod_q wavelength
+        mod_q_new = determine_1d_linear_bins(x_min=0., x_max=540.+azimuthal_delta,
+                                             bins=1 + int(540. / azimuthal_delta)).centers
+        num_orig_bins = I_azimuthal.mod_q.size
+        num_repeated_bins = mod_q_new.size - num_orig_bins
 
-    # do the binning - twice around the circle (starting at 0deg, then 360deg)
-    # while this loops through the data twice, it does not require copying data
-    for azimuthal_offset in [0., 360.]:  # first pass is 0->360, second pass is 360->720 but `break`s at 540 deg
-        # unravel so each point is treated independently
-        # Data from _toQmodAndAzimuthal can be 2-dimensional and ravel does nothing for 1D data.
-        for q_val, azimuthal_val, i_val, e_val in zip(q.ravel(), azimuthal.ravel() + azimuthal_offset,
-                                                      data.intensity.ravel(), data.error.ravel()):
-            # stop searching past 540
-            if azimuthal_val > azimuthal_max:
-                break
+        intensity_new = np.zeros(mod_q_new.size)
+        intensity_new[:num_orig_bins] = I_azimuthal.intensity
+        intensity_new[-1 * num_repeated_bins:] = I_azimuthal.intensity[:num_repeated_bins]
 
-            # find the correct bin in Q
-            q_index = q_bins.searchsorted(q_val, side='right')
-            if q_index >= q_bins.size or q_index == 0:
-                no_q_bin += 1
-                continue
+        error_new = np.zeros(mod_q_new.size)
+        error_new[:num_orig_bins] = I_azimuthal.error
+        error_new[-1 * num_repeated_bins:] = I_azimuthal.error[:num_repeated_bins]
 
-            # find the correct bin in azimuthal
-            azimuthal_index = azimuthal_bins.searchsorted(azimuthal_val, side='right')
-            if azimuthal_index >= azimuthal_bins.size or q_index == 0:
-                no_azi_bin += 1
-                continue
+        I_azimuthal = IQmod(intensity=intensity_new, error=error_new, mod_q=mod_q_new)
 
-            # increment the counts array
-            intensity[azimuthal_index - 1, q_index - 1] += i_val
-            error[azimuthal_index - 1, q_index - 1] += e_val
+        # append to the list of spectra
+        data_of_q_rings.append(I_azimuthal)
 
-    # print information about how many data-points were not binned
-    if no_q_bin > 0:
-        print('Failed to bin {} of {} data points because out of Q-range ({} < Q < {}A)'.format(no_q_bin, q.size,
-                                                                                                q_min, q_max))
-    if no_azi_bin > 0:
-        print('Failed to bin {} of {} data points because out of azimuthal-range ({} < Q < {}A)'.format(no_azi_bin,
-                                                                                                        azimuthal.size,
-                                                                                                        0., 540.))
-    # bins that didn't accumulate uncertainties are set to nan
-    mask = (error == 0.)  # indexes where there is no error
-    intensity[mask] = np.nan  # set those values to nan
-    error[mask] = np.nan
-
-    return intensity, error, azimuthal_bins, q_bins
+    # return intensity, error, azimuthal_bins, q_bins TODO REMOVE
+    return q_bins, data_of_q_rings
 
 
 def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_width):

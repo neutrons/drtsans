@@ -151,6 +151,14 @@ def _checkProcessingEntry(handle, **kwargs):
     _checkNXprocess(entry, 'drtsans')
 
 
+def _test_data(tested_data=[], ref_data=[], abs=None):
+    for _tested, _ref in zip(tested_data, ref_data):
+        if abs is None:
+            assert _tested == _ref
+        else:
+            _tested == pytest.approx(_ref, abs=abs)
+
+
 # def test_writing_das_log():
 #     data = '/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5'
 #     output_workspace = 'BC_8148'
@@ -195,7 +203,7 @@ def test_writing_metadata():
     user = 'Cavani'
     specialparameters = {'key1': 10, 'key3': None, 'key2': 'text here'}
 
-    test_iq = _create_iq()
+    test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename,
                      detectordata={'main_detector': {'iq': test_iq}},
@@ -220,14 +228,6 @@ def test_writing_metadata():
         assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
         assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
         assert reduction_information_entry['special_parameters']['key3'].value == ""
-
-
-def _test_data(tested_data=[], ref_data=[], abs=None):
-    for _tested, _ref in zip(tested_data, ref_data):
-        if abs is None:
-            assert _tested == _ref
-        else:
-            _tested == pytest.approx(_ref, abs=abs)
 
 
 def test_writing_iq_wedge_mode():
@@ -263,7 +263,7 @@ def test_writing_iq_wedge_mode():
 
 
 def test_writing_iq_scalar_mode():
-    test_iq = _create_iq()
+    test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq}})
 
@@ -333,7 +333,7 @@ def test_writing_iqxqy():
 
 
 def test_writing_iq_and_iqxqy_scalar_mode():
-    test_iq = _create_iq()
+    test_iq = [_create_iq()]
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq,
@@ -397,7 +397,7 @@ def test_writing_iq_and_iqxqy_scalar_mode():
 
 def test_writing_iq_and_iqxqy_wedge_mode():
     test_iq_1 = _create_iq()
-    test_iq = list([test_iq_1, test_iq_1])
+    test_iq = [test_iq_1, test_iq_1]
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq,

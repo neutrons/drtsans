@@ -269,51 +269,55 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                        data=wavelength,
                        units='A')
 
+def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
 
-def _save_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
+    entry_name = 'I(Q)'
+    if entryNameExt:
+        entry_name += "_" + entryNameExt
+    entry = topEntry.create_group(entry_name)
+    entry.attrs['NX_class'] = 'NXdata'
+    entry.attrs['signal'] = 'I'
+    entry.attrs['axes'] = 'Q'
+
+    # intensity
+    _create_groupe(entry=entry,
+                   name='I',
+                   data=iq.intensity,
+                   units='1/cm')
+
+    # errors
+    _create_groupe(entry=entry,
+                   name='Idev',
+                   data=iq.error,
+                   units='1/cm')
+
+    # mod_q
+    if not (iq.mod_q is None):
+        _create_groupe(entry=entry,
+                       name='Q',
+                       data=iq.mod_q,
+                       units='1/A')
+
+        _create_groupe(entry=entry,
+                       name='Qdev',
+                       data=iq.delta_mod_q,
+                       units='1/A')
+
+    # wavelength
+    wavelength = "{}".format(iq.wavelength) if iq.wavelength else "N/A"
+    _create_groupe(entry=entry,
+                   name='Wavelength',
+                   data=wavelength,
+                   units='A')
+
+
+def _save_iq_to_log(iq=None, topEntry=None):
 
     if (type(iq) is list) and len(iq) > 1:
         for _index, _iq in enumerate(iq):
-            _save_iq_to_log(iq=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index))
+            __save_individual_iq_to_log(iq=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index))
     else:
-        entry_name = 'I(Q)'
-        if entryNameExt:
-            entry_name += "_" + entryNameExt
-        entry = topEntry.create_group(entry_name)
-        entry.attrs['NX_class'] = 'NXdata'
-        entry.attrs['signal'] = 'I'
-        entry.attrs['axes'] = 'Q'
-
-        # intensity
-        _create_groupe(entry=entry,
-                       name='I',
-                       data=iq.intensity,
-                       units='1/cm')
-
-        # errors
-        _create_groupe(entry=entry,
-                       name='Idev',
-                       data=iq.error,
-                       units='1/cm')
-
-        # mod_q
-        if not (iq.mod_q is None):
-            _create_groupe(entry=entry,
-                           name='Q',
-                           data=iq.mod_q,
-                           units='1/A')
-
-            _create_groupe(entry=entry,
-                           name='Qdev',
-                           data=iq.delta_mod_q,
-                           units='1/A')
-
-        # wavelength
-        wavelength = "{}".format(iq.wavelength) if iq.wavelength else "N/A"
-        _create_groupe(entry=entry,
-                       name='Wavelength',
-                       data=wavelength,
-                       units='A')
+        __save_individual_iq_to_log(iq=iq[0], topEntry=topEntry, entryNameExt="")
 
 
 def _retrieve_beam_radius_from_out_file(outfolder=''):

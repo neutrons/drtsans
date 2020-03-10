@@ -32,7 +32,7 @@ def verify_sensitivities_file(test_sens_file, gold_sens_file, atol=None):
     np.testing.assert_allclose(gold_e, test_e, atol=atol, equal_nan=True)
 
 
-def test_eqsans_prepare_sensitivities():
+def test_eqsans_prepare_sensitivities(reference_dir):
     """Integration test on algorithm to prepare EQSANS' sensitivities
 
     Returns
@@ -91,16 +91,15 @@ def test_eqsans_prepare_sensitivities():
     preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
     # Run
-    output_sens_file = 'IntegrateTest_EQSANS_Sens.nxs'
-    preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD,
-                     output_nexus_name=output_sens_file)
+    # Absolute path overrides saving to the default output directory selected by the developer in Mantid's preferences.
+    output_sens_file = '/tmp/IntegrateTest_EQSANS_Sens.nxs'
+    preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_nexus_name=output_sens_file)
 
     # Verify file existence
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_eq_file = '/SNS/EQSANS/shared/sans-backend/data/new/ornl' \
-                   '/sans/sensitivities/EQSANS_sens_patched.nxs'
+    gold_eq_file = os.path.join(reference_dir.new.sans, 'sensitivities', 'EQSANS_sens_patched.nxs')
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 

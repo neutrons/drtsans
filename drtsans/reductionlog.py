@@ -269,6 +269,7 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                        data=wavelength,
                        units='A')
 
+
 def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
 
     entry_name = 'I(Q)'

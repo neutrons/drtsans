@@ -109,7 +109,8 @@ def get_sample_detector_offset(workspace, zero_sample_offset_sample_si_distance,
     # Calculate the sample offset and detector offset without overwriting value
     # This is caused by incorrect IDF which does not use SampleToSi.
     sample_logs = SampleLogs(workspace)
-    sample_to_si = sample_logs.find_log_with_units('SampleToSi', 'm')
+    sample_to_si = sample_logs.find_log_with_units('CG2:CS:SampleToSi', 'mm') * 1E-3
+    print('[DEBUG] Sample to Si = {} meter'.format(sample_to_si))
 
     # Offsets: shift both sample and detector to conserve sample-detector distance
     # Move instrument_component sample (relative) to [0, 0, 0.071 - SampleToSi/1000]

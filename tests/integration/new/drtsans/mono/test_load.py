@@ -20,7 +20,7 @@ def test_load_gpsans():
     ws = load_events(nexus_file_name, output_workspace='gptest01', overwrite_instrument=True,
                      detector_offset=0, sample_offset=0)
 
-    sample_offset, detector_offset = get_sample_detector_offset(ws, 0.071, None, None)
+    sample_offset, detector_offset = get_sample_detector_offset(ws, 0.0, None, None)
 
     assert sample_offset == 0.
     assert detector_offset == 0.
@@ -63,4 +63,3 @@ def test_load_biosans_overwrite_meta():
 
 if __name__ == '__main__':
     pytest.main([__file__])
-

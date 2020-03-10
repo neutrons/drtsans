@@ -98,16 +98,14 @@ def source_aperture(other, unit='m'):
     r"""
     Find the source aperture diameter and position
 
-    After the moderator (source) there are three consecutive discs
-    (termed wheels), each with eight holes in them (eight slits).
-    Appropriate log entries (VbeamSlit, VbeamSlit2, VbeamSlit3) indicate
-    the slit index for each of the three wheels. Thus, the position
-    of the source and the source aperture are not the same. The most
-    restrictive slit will define the source aperture
+    After the moderator (source) there are three consecutive discs (termed slits), each with eight holes of
+    different apertures. Appropriate log entries (VbeamSlit, VbeamSlit2, VbeamSlit3) indicate the aperture index for
+    each of the three disc slits. Thus, the position of the source and the source aperture are not the same. The most
+    restrictive slit will define the source aperture. Restriction is determined by the smallest angle subtended
+    from the slit to the sample, here assumed to be a pinhole.
 
-    Log entries beamslit, beamslit2, and beamslit3 store the required
-    rotation angle for each wheel in order to align the appropriate slit
-    with the neutron beam. These angles are not used in reduction.
+    Log entries beamslit, beamslit2, and beamslit3 store the required rotation angle for each wheel in order to align
+    the appropriate slit with the neutron beam. These angles are not used in the reduction.
 
     Parameters
     ----------
@@ -122,25 +120,50 @@ def source_aperture(other, unit='m'):
         - float: diameter, in requested units
         - float: distance to sample, in requested units
     """
-    n_wheels = 3
-    index_to_diameter = [[5.0, 10.0, 10.0, 15.0, 20.0, 20.0, 25.0, 40.0],
-                         [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0],
-                         [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0]]
-    distance_to_source = [10080, 11156, 12150]  # in mili-meters
-    sl = SampleLogs(other)
-    slit_indexes = [int(sl[log_key].value.mean()) - 1 for log_key in
-                    ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3']]
-    diameter = 20.0  # default slit size
-    asd = -1.0  # aperture to sample distance
-    ssd = source_sample_distance(other, unit='mm')
-    for wheel_index in range(n_wheels):
-        slit_index = slit_indexes[wheel_index]
-        y = ssd - distance_to_source[wheel_index]  # aperture to sample dist
-        if 0 <= slit_index < 6:
-            x = index_to_diameter[wheel_index][slit_index]
-            if asd < 0 or x / y < diameter / asd:
-                diameter = x
-                asd = y
+    sample_logs = SampleLogs(other)
+    if 'sample_aperture_diameter' in sample_logs and 'source_aperture_sample_distance' in sample_logs:
+        diameter = float(sample_logs.sample_aperture_diameter.value)  # assumed in mili meters
+        asd = float(sample_logs.source_aperture_sample_distance.value)  # assumed in mili meters
+    else:  # determine the aperture using the three diameter-variable slits
+        source_aperture_distance = [10080, 11156, 12150]  # source to aperture distance, in mili-meters
+        number_slits = len(source_aperture_distance)
+
+        # Slit diameters for the different slits. Diameters have changed during time so we use the run number to
+        # identify which sets of diameters to pick
+        # Entries are of the form: (start_run_number, end_run_number): [slits set]
+        index_to_diameters = {(0, 9999): [[5.0, 10.0, 10.0, 15.0, 20.0, 20.0, 25.0, 40.0],
+                                          [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0],
+                                          [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0]],
+                              (10000, float('inf')): [[5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0, 25.0],
+                                                      [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0],
+                                                      [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0]]
+                              }
+
+        # Find the appropriate set of slit diameters
+        run_number = int(sample_logs.run_number.value)
+        for (start, end) in index_to_diameters:
+            if start <= run_number <= end:
+                index_to_diameter = index_to_diameters[(start, end)]
+                break
+
+        # entries vBeamSlit, vBeamSlit2, and vBeamSlit3 contain the slit number, identifying the slit diameter
+        # for each of the three slits
+        diameter_indexes = [int(sample_logs[log_key].value.mean()) - 1
+                            for log_key in ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3']]
+
+        # Determine which of the three slits subtend the smallest angle with the sample, assumed to be a pinhole.
+        # The angle is estimated as the ratio aperture_diameter / aperture_sample_distance.
+        # `slit_index` runs from zero to two, specifying the slits we're selecting
+        # `diameter_index` runs from zero to seven, specifying the diameter we're selecting
+        ssd = source_sample_distance(other, unit='mm')
+        diameter, asd = float('inf'), 1.0  # start with an infinite diameter / asd ratio
+        for slit_index in range(number_slits):  # iterate over the three slits
+            diameter_index = diameter_indexes[slit_index]  # index specifies which of the 8 apertures to choose from
+            tentative_asd = ssd - source_aperture_distance[slit_index]  # distance from the aperture to the sample
+            tentative_diameter = index_to_diameter[slit_index][diameter_index]  # slit diameter
+            if tentative_diameter / tentative_asd < diameter / asd:  # we found a smaller subtending angle
+                diameter = tentative_diameter
+                asd = tentative_asd
     if unit == 'm':
         diameter /= 1000.0
         asd /= 1000.0
@@ -201,15 +224,15 @@ def insert_aperture_logs(ws):
     ws: MatrixWorkspace
         Insert metadata in this workspace's logs
     """
-    sl = SampleLogs(ws)
-    if 'sample_aperture_diameter' not in sl.keys():
+    sample_logs = SampleLogs(ws)
+    if 'sample_aperture_diameter' not in sample_logs.keys():
         sample_aperture_diameter(ws, unit='mm')  # function will insert the log
-    if 'source_aperture_diameter' not in sl.keys():
+    if 'source_aperture_diameter' not in sample_logs.keys():
         sad = source_aperture_diameter(ws, unit='mm')
-        sl.insert('source_aperture_diameter', sad, unit='mm')
-    if 'source_aperture_sample_distance' not in sl.keys():
+        sample_logs.insert('source_aperture_diameter', sad, unit='mm')
+    if 'source_aperture_sample_distance' not in sample_logs.keys():
         sds = source_aperture(ws, unit='mm').distance_to_sample
-        sl.insert('source_aperture_sample_distance', sds, unit='mm')
+        sample_logs.insert('source_aperture_sample_distance', sds, unit='mm')
 
 
 def detector_id(pixel_coordinates, tube_size=256):

@@ -38,6 +38,7 @@ SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drts
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name, instrument_standard_name
+from drtsans.mask_utils import apply_mask
 from drtsans.path import exists as file_exists
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
@@ -793,7 +794,7 @@ def event_splitter(barscan_workspace, split_workspace=None, info_workspace=None,
     return bar_positions
 
 
-def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback', delete_workspaces=True):
+def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback', mask=None, delete_workspaces=True):
     r"""
     A python generator to be used when the user wants to iterate over the runs that hold the bar at a fixed
     position. Each iteration prompts this generator to return the position of the bar and a workspace containing the
@@ -812,6 +813,8 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
     bar_position_log: str
         Name of the log entry in the barscan run file containing the position of the bar (Y-coordinate, in 'mm')
         with respect to some particular frame of reference, not necessarily the one located at the sample.
+    mask: mask file path, ~mantid.api.MaskWorkspace, :py:obj:`list`
+        A mask to be applied. If :py:obj:`list`, it is a list of detector ID's.
     delete_workspaces: Bool
         Delete temporary workspaces one we have iterated over all the scans.
 
@@ -853,7 +856,10 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
         temporary_workspaces.append('TOFCorrectWS')  # spurious workspace spawned by FilterEvents
         # Iterate over the subruns, serving one at a time
         for i, bar_position in enumerate(bar_positions):
-            yield bar_position, splitted_workspace_group + '_' + str(i)  # serve a bar position and a subrun workspace
+            barscan_workspace = splitted_workspace_group + '_' + str(i)
+            if mask is not None:
+                apply_mask(barscan_workspace, mask=mask)
+            yield bar_position, barscan_workspace  # serve a bar position and a subrun workspace
     else:  # of a set of files or workspaces, each contains intensities for a scan with the bar fixed
         # determine if the list contains files or workspaces
         first_scan = barscan_dataset[0]
@@ -863,19 +869,23 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
             for scan_index, scan_data in enumerate(barscan_dataset):
                 barscan_workspace = f'{barscan_workspace_basename}_{scan_index:03d}'
                 Load(scan_data, OutputWorkspace=barscan_workspace)
+                if mask is not None:
+                    apply_mask(barscan_workspace, mask=mask)
                 bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
                 yield bar_position, barscan_workspace  # serve a bar position and a run workspace
         else:  # list of workspaces
-            for scan_data in barscan_dataset:
-                bar_position = SampleLogs(scan_data).find_log_with_units(bar_position_log, 'mm')
-                yield bar_position, scan_data
+            for barscan_workspace in barscan_dataset:
+                if mask is not None:
+                    apply_mask(barscan_workspace, mask=mask)
+                bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
+                yield bar_position, barscan_workspace
     # Clean up workspaces we instantiated for each scan
     if delete_workspaces is True:
         DeleteWorkspaces(temporary_workspaces)
 
 
 def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_position_log='dcal_Readback',
-                                  formula='565 - {y}', order=5, inspect_data=False):
+                                  formula='565 - {y}', order=5, mask=None, inspect_data=False):
     r"""
     Calculate pixel positions (only Y-coordinae) as well as pixel heights from a barscan calibration session.
 
@@ -901,6 +911,8 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         Formula to obtain the position of the bar (Y-coordinate) in the frame of reference located at the sample.
     order: int
         Highest degree for the polynomial that will fit the observed positions of the bar.
+    mask: mask file path, ~mantid.api.MaskWorkspace, :py:obj:`list`
+        A mask to be applied. If :py:obj:`list`, it is a list of detector ID's.
     inspect_data: Bool
         Additional pieces of data returned by this function in order to assess the correctness of the barscan
         calculation. These data are returned as a dictionary with the current entries:
@@ -927,6 +939,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     delete_workspaces = False if inspect_data is True else False  # retain workspace per scan if we want to inspect
     for bar_position, barscan_workspace in barscan_workspace_generator(barscan_dataset,
                                                                        bar_position_log=bar_position_log,
+                                                                       mask=mask,
                                                                        delete_workspaces=delete_workspaces):
         if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
@@ -988,6 +1001,10 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         # Store as lists so that they can be easily serializable
         positions.extend(list(1.e-03 * fit_results.calculated_positions))  # store with units of meters
         heights.extend(list(1.e-03 * fit_results.calculated_heights))  # store with units of meters
+
+    # Calculate the average positions and heights
+    average_positions = np.average(np.array(positions), axis=1)
+    average_heights = np.average(np.array(heights), axis=1)
 
     metadata = dict(caltype=CalType.BARSCAN.name,
                     instrument=instrument_name,

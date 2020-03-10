@@ -1,6 +1,8 @@
 # Test load GPSANS and BIOSANS data
 import pytest
 import os
+from drtsans.mono.load import load_events
+from drtsans.mono.meta_data import get_sample_detector_offset
 
 
 def test_load_gpsans():
@@ -14,7 +16,14 @@ def test_load_gpsans():
     if not os.path.exists(nexus_file_name):
         pytest.skip('Skip due to NeXus file {} is not accessible.'.format(nexus_file_name))
 
-    assert True
+    # Load data
+    ws = load_events(nexus_file_name, output_workspace='gptest01', overwrite_instrument=True,
+                     detector_offset=0, sample_offset=0)
+
+    sample_offset, detector_offset = get_sample_detector_offset(ws, 0.071, None, None)
+
+    assert sample_offset == 0.
+    assert detector_offset == 0.
 
 
 def test_load_gpsans_overwrite_meta():

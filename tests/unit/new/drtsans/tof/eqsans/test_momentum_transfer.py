@@ -112,6 +112,8 @@ def test_convert_to_q_eqsans(workspace_with_instrument):
                                    uncertainties=np.sqrt(intensities_array), view='array')
     AddSampleLog(Workspace=ws, LogName='source_aperture_diameter', LogText='50.', LogUnit='mm', LogType='Number')
     AddSampleLog(Workspace=ws, LogName='sample_aperture_diameter', LogText='20.', LogUnit='mm', LogType='Number')
+    AddSampleLog(Workspace=ws, LogName='source_aperture_sample_distance', LogText='4000.', LogUnit='mm',
+                 LogType='Number')
     # make sure we created the workspace right
     assert ws.readX(0) == approx([2.95, 3.05, 3.15, 3.25], abs=1e-8)
     assert ws.readY(0) == approx([72, 30, 59], abs=1e-8)

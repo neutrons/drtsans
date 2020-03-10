@@ -9,7 +9,8 @@ from mantid.simpleapi import LoadInstrument
 
 from drtsans.geometry import main_detector_panel
 from drtsans.tof.eqsans.geometry import (detector_id, pixel_coordinates, sample_aperture_diameter, source_aperture,
-                                         source_aperture_diameter, source_monitor_distance, translate_detector_by_z)
+                                         source_aperture_diameter, source_aperture_sample_distance,
+                                         source_monitor_distance, translate_detector_by_z)
 from drtsans.samplelogs import SampleLogs
 
 
@@ -80,6 +81,22 @@ def test_source_aperture_diameter(serve_events_workspace):
     sad = SampleLogs(ws).single_value('source_aperture_diameter')
     # ISSUE187 TODO Enable assert sad == approx(20)
     assert sad > 0
+
+
+@pytest.mark.parametrize('data', data_source_aperture)
+@pytest.mark.parametrize('generic_workspace', [{'name': 'EQ-SANS', 'l1': -14.122}], indirect=True)
+def test_source_aperture_sample_distance(generic_workspace, data):
+    workspace = generic_workspace
+    sample_logs = SampleLogs(workspace)
+    sample_logs.insert('run_number', data.run_number)
+    for log_key in ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3']:
+        data_index = data._fields.index(log_key)  # which item in object `data` stores info for this particular slit?
+        diameter_index = data[data_index]  # diameter index for the particular slit
+        times = [0.0, 3600]  # the run started at time 0.0 and ended after one hour, here in seconds
+        sample_logs.insert_time_series(log_key, times, [diameter_index, diameter_index])
+    assert source_aperture_sample_distance(workspace, unit='m') == pytest.approx(data.asd, abs=1.e-05)
+    # Check the distance was inserted in the metadata, in units of mili-meters
+    assert SampleLogs(workspace).source_aperture_sample_distance.value == pytest.approx(1000 * data.asd, abs=1.e-05)
 
 
 def test_source_monitor_distance(serve_events_workspace):

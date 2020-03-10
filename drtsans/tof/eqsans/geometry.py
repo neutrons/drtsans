@@ -4,7 +4,7 @@ from drtsans.geometry import get_instrument, source_sample_distance, sample_dete
     translate_sample_by_z, translate_detector_by_z
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter',
-           'translate_sample_by_z', 'translate_detector_by_z']
+           'source_aperture_sample_distance', 'translate_sample_by_z', 'translate_detector_by_z']
 
 
 def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
@@ -214,6 +214,36 @@ def source_aperture_diameter(run, unit='mm'):
     return source_aperture_diameter_entry
 
 
+def source_aperture_sample_distance(run, unit='mm'):
+    r"""
+    Find the distance from the source aperture to the sample.
+
+    Either report log vale or compute this quantity. If the distance has to be computed, then stores the value
+    in log key "source_aperture_sample_distance", with mili-meter units.
+
+    Parameters
+    ----------
+    run: Mantid Run instance, MatrixWorkspace, file name, run number
+    unit: str
+        Length unit, either 'm' or 'mm'
+
+    Returns
+    -------
+    float
+    """
+    log_key = 'source_aperture_sample_distance'
+    sample_logs = SampleLogs(run)
+    if log_key in sample_logs.keys():
+        sasd = sample_logs.single_value(log_key)  # units are 'mm'
+    else:
+        sasd = source_aperture(run, unit='mm').distance_to_sample
+        sample_logs.insert(log_key, sasd, unit='mm')
+    if unit == 'm':
+        sasd /= 1000.0
+
+    return sasd
+
+
 def insert_aperture_logs(ws):
     r"""
     Insert source and sample aperture diameters in the logs, as well as
@@ -320,10 +350,10 @@ def beam_radius(input_workspace, unit='mm'):
         Estimated beam radius
     """
     source_aperture_diam = source_aperture_diameter(input_workspace, unit=unit)
-    source_sample_dist = source_sample_distance(input_workspace)
+    source_aperture_sample_dist = source_aperture_sample_distance(input_workspace, unit=unit)
 
     sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
     sample_detector_dist = sample_detector_distance(input_workspace)
 
     return sample_aperture_diam +\
-        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_sample_dist)
+        sample_detector_dist * (sample_aperture_diam + source_aperture_diam) / (2 * source_aperture_sample_dist)

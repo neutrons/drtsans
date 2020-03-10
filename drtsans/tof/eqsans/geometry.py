@@ -4,7 +4,7 @@ from drtsans.geometry import get_instrument, source_sample_distance, sample_dete
     translate_sample_by_z, translate_detector_by_z
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter',
-           'translate_sample_by_z', 'translate_detector_by_z']
+           'source_aperture_sample_distance', 'translate_sample_by_z', 'translate_detector_by_z']
 
 
 def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):

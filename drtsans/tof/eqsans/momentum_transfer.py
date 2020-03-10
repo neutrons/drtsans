@@ -5,7 +5,8 @@ import drtsans.momentum_transfer
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py
-from drtsans.tof.eqsans.geometry import source_aperture_diameter, sample_aperture_diameter, source_sample_distance
+from drtsans.tof.eqsans.geometry import (sample_aperture_diameter, source_aperture_diameter,
+                                         source_aperture_sample_distance, source_sample_distance)
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
 from drtsans.geometry import pixel_size
@@ -146,7 +147,7 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     :return: MomentumTransferResolutionParameters instance
     """
     # Retrieve L1 and L2 from instrument geometry
-    l1 = source_sample_distance(ws, unit='m', search_logs=False)
+    l1 = source_aperture_sample_distance(ws, unit='m')
     l2 = sans_geometry.sample_detector_distance(ws, unit='m',
                                                 search_logs=False)
     r1 = 0.5 * source_aperture_diameter(ws, unit='m')

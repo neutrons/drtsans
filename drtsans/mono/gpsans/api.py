@@ -13,7 +13,7 @@ from drtsans.instruments import extract_run_number
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
 from drtsans.plots import plot_IQmod, plot_IQazimuthal
-from drtsans.reductionlog import  savereductionlog
+from drtsans.reductionlog import savereductionlog
 from drtsans.solid_angle import solid_angle_correction
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.mask_utils import apply_mask, load_mask
@@ -724,7 +724,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         samplelogs = {}
         for i, raw_sample_ws in enumerate(loaded_ws.sample):
             run_number = raw_sample_ws.getRunNumber()
-            samplelogs[str(run_number)] =  SampleLogs(raw_sample_ws)
+            samplelogs[str(run_number)] = SampleLogs(raw_sample_ws)
         if len(loaded_ws.sample) > 1:
             samplelogs['combined'] = SampleLogs(processed_data_main)
 

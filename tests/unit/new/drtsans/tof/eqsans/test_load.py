@@ -87,6 +87,7 @@ def test_load_events_and_histogram(reference_dir):
 
     assert ws0.data.getAxis(0).getUnit().caption() == 'Wavelength'
     assert ws0.data.name() == "EQSANS_101595"
+    assert ws0.monitor is None
 
     sample_logs0 = SampleLogs(ws0.data)
 
@@ -99,6 +100,7 @@ def test_load_events_and_histogram(reference_dir):
 
     assert ws1.data.getAxis(0).getUnit().caption() == 'Wavelength'
     assert ws1.data.name() == "EQSANS_101595_104088_105428"
+    assert ws1.monitor is None
 
     sample_logs1 = SampleLogs(ws1.data)
     assert sample_logs1.duration.value == pytest.approx(215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9)

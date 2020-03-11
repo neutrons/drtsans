@@ -34,6 +34,10 @@ __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configurat
            'load_all_files', 'plot_reduction_output', 'reduce_single_configuration']
 
 
+SAMPLE_SI_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)
+SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
+
+
 @namedtuplefy
 def load_all_files(reduction_input, prefix='', load_params=None):
     """
@@ -134,9 +138,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 dark_current=dark_current,
                 sensitivity=sensitivity_ws,
                 mask=mask_ws)
-
-SAMPLE_SI_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)
-SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
 
 
 def prepare_data(data,

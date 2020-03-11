@@ -45,7 +45,7 @@ def _create_2d_data():
     data2d = IQazimuthal(intensity=intensities, error=errors,
                          qx=np.linspace(-5., 5., 11, dtype=float),
                          qy=np.linspace(5., -5., 11, dtype=float))
-    assert data2d.intensity.shape == (11 * 11,)
+    assert data2d.intensity.shape == (11, 11)
     return data2d
 
 
@@ -314,10 +314,10 @@ def test_calc_qmod_and_azimuthal():
     data2d = _create_2d_data()
 
     # convert to q and azimuthal
-    qmod, delta_qmod, azimuthal = _toQmodAndAzimuthal(data2d)
-    assert qmod.shape == data2d.intensity.shape
+    intensity, error, qmod, delta_qmod, azimuthal = _toQmodAndAzimuthal(data2d)
+    assert qmod.shape == intensity.shape
     assert delta_qmod is None
-    assert azimuthal.shape == data2d.intensity.shape
+    assert azimuthal.shape == intensity.shape
 
     # numbers taken from the spreadsheet
     q_exp = np.array([[7.07, 6.40, 5.83, 5.39, 5.10, 5.00, 5.10, 5.39, 5.83, 6.40, 7.07],

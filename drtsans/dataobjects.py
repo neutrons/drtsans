@@ -467,17 +467,6 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
             qx = np.tile(qx, (qy_length, 1))
             qy = np.tile(qy, (qx_length, 1)).transpose()
 
-        # linearize the arrays
-        if len(intensity.shape) == 2:
-            intensity = intensity.ravel()
-            error = error.ravel()
-            qx = qx.ravel()
-            qy = qy.ravel()
-            if delta_qx:
-                delta_qx = delta_qx.ravel()
-            if delta_qy:
-                delta_qy = delta_qy.ravel()
-
         # pass everything to namedtuple
         return super(IQazimuthal, cls).__new__(cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength)
 

@@ -1,8 +1,8 @@
 import numpy as np
-from drtsans.dataobjects import DataType, getDataType
+from drtsans.dataobjects import IQmod
+from drtsans.determine_bins import determine_1d_linear_bins
+from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 from drtsans.settings import unique_workspace_dundername
-# https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
-from mantid.simpleapi import CreateWorkspace
 # https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
 from mantid.simpleapi import DeleteWorkspace
 # https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html
@@ -46,10 +46,9 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     tuple
       tuple of tuples i.e. ``((angle_min1, angle_max1), (angle_min2, angle_max2), ...)``
     '''
-
-    intensity, error, azimuthal, q = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
-                                                         azimuthal_delta=azimuthal_delta)
-    center_vec, fwhm_vec = _fitQAndAzimuthal(intensity, error, q_bins=q, azimuthal_bins=azimuthal,
+    q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
+                                             azimuthal_delta=azimuthal_delta)
+    center_vec, fwhm_vec = _fitQAndAzimuthal(azimuthal_rings, q_bins=q,
                                              signal_to_noise_min=signal_to_noise_min, azimuthal_start=110.,
                                              maxchisq=1000.)
 
@@ -86,40 +85,6 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     return list(zip(min_vec, max_vec))
 
 
-def _toQmodAndAzimuthal(data):
-    '''This function returns the values of qmod and azimuthal that are parallel
-    to the original data array. It requiresthat the data is IQazimuthal
-
-    Parameters
-    ==========
-    data: ~drtsans.dataobjects.Azimuthal
-
-    Results
-    =======
-    tuple
-        ```(qmod, azimuthal)``` with the same dimensionality as the data.intensity
-        with Q in angstrom and azimuthal angle in degrees'''
-    if not getDataType(data) == DataType.IQ_AZIMUTHAL:
-        raise RuntimeError('Calculating qmod and azimuthal only works for IQazimuthal')
-
-    # reshape the qx and qy if intensity array is 2d
-    if len(data.intensity.shape) == 2 and len(data.qx.shape) == 1 and len(data.qy.shape) == 1:
-        qx = np.tile(data.qx, (data.qy.shape[0], 1))
-        qy = np.tile(data.qy, (data.qx.shape[0], 1)).transpose()
-    else:
-        qx = data.qx
-        qy = data.qy
-
-    # calculate q-scalar
-    q = np.sqrt(np.square(qx) + np.square(qy))
-
-    # azimuthal is expected to be positive so use cyclical nature of trig functions
-    azimuthal = np.arctan2(qy, qx)
-    azimuthal[azimuthal < 0.] += 2. * np.pi
-
-    return q, np.rad2deg(azimuthal)
-
-
 def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     '''This function bins the data in Qmod and azimuthal accoring to the supplied parameters. The maximum
     azimuthal is 540deg to allow for finding a peak at/near azimuthal=0deg.
@@ -141,66 +106,43 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     tuple
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     '''
-    q, azimuthal = _toQmodAndAzimuthal(data)
-
-    print('Q-range requested {:.4f} <= Q <= {:.4f}'.format(q_min, q_max))
-    print('Q-range found     {:.4f} <= Q <= {:.4f}'.format(np.min(q), np.max(q)))
 
     # the bonus two steps is to get the end-point in the array
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
-    # additional half-circle is to pick up things that are symmetric near azimuthal=0
-    azimuthal_max = 540. + azimuthal_delta
-    azimuthal_bins = np.arange(-.5 * azimuthal_delta, azimuthal_max, azimuthal_delta, dtype=float)
 
-    # create output data
-    intensity = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
-    error = np.zeros((azimuthal_bins.size-1, q_bins.size-1), dtype=float)
+    # create azimuthal binning BinningParams takes number of steps
+    azimuthal_offset = 0.5 * azimuthal_delta
+    azimuthal_binning = BinningParams(0. - azimuthal_offset, 360. - azimuthal_offset,
+                                      bins=int(360. / azimuthal_delta))
+    # create the I(azimuthal) for each q-ring
+    data_of_q_rings = []
+    for qmin_ring, qmax_ring in zip(q_bins[:-1], q_bins[1:]):
+        # bin into I(azimuthal)
+        I_azimuthal = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring,
+                                           BinningMethod.NOWEIGHT)
 
-    # rather than print every data point that cannot be binned, collect statistics
-    no_q_bin = 0
-    no_azi_bin = 0
+        # Create a copy of the arrays with the 360->540deg region repeated
+        # ignore - delta_mod_q wavelength
+        mod_q_new = determine_1d_linear_bins(x_min=0., x_max=540.+azimuthal_delta,
+                                             bins=1 + int(540. / azimuthal_delta)).centers
+        num_orig_bins = I_azimuthal.mod_q.size
+        num_repeated_bins = mod_q_new.size - num_orig_bins
 
-    # do the binning - twice around the circle (starting at 0deg, then 360deg)
-    # while this loops through the data twice, it does not require copying data
-    for azimuthal_offset in [0., 360.]:  # first pass is 0->360, second pass is 360->720 but `break`s at 540 deg
-        # unravel so each point is treated independently
-        # Data from _toQmodAndAzimuthal can be 2-dimensional and ravel does nothing for 1D data.
-        for q_val, azimuthal_val, i_val, e_val in zip(q.ravel(), azimuthal.ravel() + azimuthal_offset,
-                                                      data.intensity.ravel(), data.error.ravel()):
-            # stop searching past 540
-            if azimuthal_val > azimuthal_max:
-                break
+        intensity_new = np.zeros(mod_q_new.size)
+        intensity_new[:num_orig_bins] = I_azimuthal.intensity
+        intensity_new[-1 * num_repeated_bins:] = I_azimuthal.intensity[:num_repeated_bins]
 
-            # find the correct bin in Q
-            q_index = q_bins.searchsorted(q_val, side='right')
-            if q_index >= q_bins.size or q_index == 0:
-                no_q_bin += 1
-                continue
+        error_new = np.zeros(mod_q_new.size)
+        error_new[:num_orig_bins] = I_azimuthal.error
+        error_new[-1 * num_repeated_bins:] = I_azimuthal.error[:num_repeated_bins]
 
-            # find the correct bin in azimuthal
-            azimuthal_index = azimuthal_bins.searchsorted(azimuthal_val, side='right')
-            if azimuthal_index >= azimuthal_bins.size or q_index == 0:
-                no_azi_bin += 1
-                continue
+        I_azimuthal = IQmod(intensity=intensity_new, error=error_new, mod_q=mod_q_new)
 
-            # increment the counts array
-            intensity[azimuthal_index - 1, q_index - 1] += i_val
-            error[azimuthal_index - 1, q_index - 1] += e_val
+        # append to the list of spectra
+        data_of_q_rings.append(I_azimuthal)
 
-    # print information about how many data-points were not binned
-    if no_q_bin > 0:
-        print('Failed to bin {} of {} data points because out of Q-range ({} < Q < {}A)'.format(no_q_bin, q.size,
-                                                                                                q_min, q_max))
-    if no_azi_bin > 0:
-        print('Failed to bin {} of {} data points because out of azimuthal-range ({} < Q < {}A)'.format(no_azi_bin,
-                                                                                                        azimuthal.size,
-                                                                                                        0., 540.))
-    # bins that didn't accumulate uncertainties are set to nan
-    mask = (error == 0.)  # indexes where there is no error
-    intensity[mask] = np.nan  # set those values to nan
-    error[mask] = np.nan
-
-    return intensity, error, azimuthal_bins, q_bins
+    # return intensity, error, azimuthal_bins, q_bins TODO REMOVE
+    return q_bins, data_of_q_rings
 
 
 def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_width):
@@ -229,9 +171,13 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     azimuthal_new = azimuthal_start  # where to search around
     azimuthal_last = azimuthal_start  # last known value
     while True:
+        # determine new windows staying at least 90.deg inside the edges
+        window_min = np.max((azimuthal_new - window_half_width, azimuthal.min() + 90.))
+        window_max = np.min((azimuthal_new + window_half_width, azimuthal.max() - 90.))
+
         # create a search window around azimuthal_new
-        left_index = azimuthal.searchsorted(azimuthal_new - window_half_width, side='right')
-        right_index = azimuthal.searchsorted(azimuthal_new + window_half_width, side='right')
+        left_index = azimuthal.searchsorted(window_min, side='right')
+        right_index = azimuthal.searchsorted(window_max, side='right')
         # the highest value in the window
         max_value = intensity[left_index:right_index].max()
         # where that is in the window
@@ -261,7 +207,7 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     return max_value, mean, sigma
 
 
-def _fitSpectrum(intensity, error, azimuthal_bins, q_value, signal_to_noise_min, azimuthal_start):
+def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start):
     '''Extract the peak fit parameters for the data. This is done by observing where 2 maxima are in the
     spectrum then fitting for the peak parameters. This makes the assumption that the two peaks are 180deg
     apart.
@@ -287,26 +233,23 @@ def _fitSpectrum(intensity, error, azimuthal_bins, q_value, signal_to_noise_min,
         dict[name] = (value, error) where all of the fit parameters are converted.
         f0 is background, then f1...fn are the fitted peaks
     '''
-    # centers are more useful for various things below
-    azimuthal_centers = 0.5 * (azimuthal_bins[:-1] + azimuthal_bins[1:])
-
     # define a default window size based on the number of peaks the function supports
     # currently only two peaks that are approximately 180deg apart is supported
     NUM_PEAK = 2
     WINDOW_SIZE = 0.6 * (360. / NUM_PEAK)
 
     # filter out the nans
-    mask = np.logical_not(np.isnan(intensity))
+    mask = np.logical_not(np.isnan(spectrum.intensity))
     if np.sum(mask) < 10:  # do not allow fitting less points than there are parameters
         raise RuntimeError('Less than 8 points being fit with 7 parameters (found {} points)'.format(np.sum(mask)))
 
     # first estimate background as minimum value
     # this will be subtracted off from found intensities during estimation
-    background = intensity[mask].min()
+    background = spectrum.intensity[mask].min()
 
     # check if there is signal to noise greater than 2
     # this calculation assumes that the background is positive
-    signal_to_noise = np.sum(intensity[mask]) / (float(np.sum(mask)) * background)
+    signal_to_noise = np.sum(spectrum.intensity[mask]) / (float(np.sum(mask)) * background)
     if signal_to_noise < signal_to_noise_min:
         raise RuntimeError('Estimated signal to noise is smaller than {}: found {:.2f}'.format(signal_to_noise_min,
                                                                                                signal_to_noise))
@@ -318,30 +261,29 @@ def _fitSpectrum(intensity, error, azimuthal_bins, q_value, signal_to_noise_min,
     gaussian_str = 'name=Gaussian,Height={},PeakCentre={},Sigma={}'
 
     # guess where one peak might be, start with a window of WINDOW_SIZE each side around 110
-    intensity_peak, azimuthal_first, sigma = _estimatePeakParameters(intensity[mask], azimuthal_centers[mask],
+    intensity_peak, azimuthal_first, sigma = _estimatePeakParameters(spectrum.intensity[mask],
+                                                                     spectrum.mod_q[mask],
                                                                      azimuthal_start=azimuthal_start,
                                                                      window_half_width=WINDOW_SIZE)
     function.append(gaussian_str.format(intensity_peak-background, azimuthal_first, sigma))
 
     # assume the other peak is 360 / NUM_PEAK degrees away
-    azimuthal_start = azimuthal_first + 360. / NUM_PEAK
-    intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(intensity[mask], azimuthal_centers[mask],
+    azimuthal_start = azimuthal_first + (360. / NUM_PEAK)
+    intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(spectrum.intensity[mask],
+                                                                      spectrum.mod_q[mask],
                                                                       azimuthal_start=azimuthal_start,
                                                                       window_half_width=WINDOW_SIZE)
     function.append(gaussian_str.format(intensity_peak-background, azimuthal_second, sigma))
 
     # create workspace version of data
-    # this uses bin boundaries and includes the nans so `Fit` has to be told to ignore them
-    q_azimuthal_workspace = unique_workspace_dundername()
-    CreateWorkspace(DataX=azimuthal_bins, DataY=intensity, DataE=error, Nspec=1,
-                    UnitX='Degrees', OutputWorkspace=q_azimuthal_workspace,
-                    VerticalAxisUnit='MomentumTransfer', VerticalAxisValues=str(q_value),
-                    Distribution=True, EnableLogging=False)
+    # this includes the nans so `Fit` has to be told to ignore them
+    q_azimuthal_workspace = spectrum.to_workspace()
 
     # fit the positions of the two suspected peaks
     fit_workspace_prefix = unique_workspace_dundername()
     try:
         fitresult = Fit(Function=';'.join(function), InputWorkspace=q_azimuthal_workspace, Output=fit_workspace_prefix,
+                        StartX=spectrum.mod_q.min() + 90., EndX=spectrum.mod_q.min() + 90. + 360.,
                         OutputParametersOnly=True, IgnoreInvalidData=True)
     except RuntimeError as e:
         raise RuntimeError('Failed to fit Q={}'.format(q_value)) from e
@@ -375,7 +317,7 @@ def _toPositionAndFWHM(fitresult, peak_label, maxchisq):
     if fitresult['chisq'][0] > maxchisq:
         return (np.nan, np.nan), (np.nan, np.nan)
     else:
-        height = fitresult[peak_label + '.Height']
+        # height = fitresult[peak_label + '.Height']
         center = fitresult[peak_label + '.PeakCentre']
         fwhm = tuple([value * SIGMA_TO_FWHM for value in fitresult[peak_label + '.Sigma']])
 
@@ -386,8 +328,8 @@ def _toPositionAndFWHM(fitresult, peak_label, maxchisq):
 
     # Weights for are height divided by uncertainty. This results in stronger peaks with lower fitting
     # uncertainty contributing more to the parameters in azimuthal angle.
-    center = center[0], height[0] / center[1]
-    fwhm = fwhm[0], height[0] / fwhm[1]
+    center = center[0], 1. / center[1]
+    fwhm = fwhm[0], 1. / fwhm[1]
 
     return (center, fwhm)
 
@@ -430,7 +372,7 @@ def _weighted_position_and_width(peaks):
         raise RuntimeError('Cannot determine fitted positions from zero weights') from e
 
 
-def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, signal_to_noise_min, azimuthal_start, maxchisq):
+def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_start, maxchisq):
     '''Find the peaks in the azimuthal spectra, then combine them into
     two composite centers and fwhm. This is currently coded to only
     look for two peaks.
@@ -457,16 +399,19 @@ def _fitQAndAzimuthal(intensity, error, azimuthal_bins, q_bins, signal_to_noise_
     list, list
         The first list is the peak centers, the second is the peak fwhm
     '''
+    if len(azimuthal_rings) != len(q_bins) - 1:
+        raise RuntimeError('must supply q-bin boundaries')
+
     # change to centers in Q for messages
     q_centers = 0.5 * (q_bins[:-1] + q_bins[1:])
 
     # select out a single spectrum
     peakResults = [[], []]
     q_centers_used = []
-    for spec_index, q_center in enumerate(q_centers):
+    for spectrum, q_center in zip(azimuthal_rings, q_centers):
         try:
             # print('Fitting spectrum {} with Q={}A'.format(spec_index, q_center))
-            fitresult = _fitSpectrum(intensity.T[spec_index], error.T[spec_index], azimuthal_bins, q_center,
+            fitresult = _fitSpectrum(spectrum, q_center,
                                      signal_to_noise_min=signal_to_noise_min, azimuthal_start=azimuthal_start)
             newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ['f1', 'f2']]
 

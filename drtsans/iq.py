@@ -1,6 +1,7 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
-from drtsans.dataobjects import IQazimuthal, IQmod, q_azimuthal_to_q_modulo, concatenate
+from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
+    q_azimuthal_to_q_modulo, concatenate
 from enum import Enum
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
@@ -241,11 +242,11 @@ def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.WEIGHTED):
     if bin_method == BinningMethod.WEIGHTED:
         # weighed binning
         binned_q = _do_1d_weighted_binning(i_of_q.mod_q, i_of_q.delta_mod_q, i_of_q.intensity, i_of_q.error,
-                                           q_bins.centers, q_bins.edges)
+                                           q_bins)
     else:
         # no-weight binning
         binned_q = _do_1d_no_weight_binning(i_of_q.mod_q, i_of_q.delta_mod_q, i_of_q.intensity, i_of_q.error,
-                                            q_bins.centers, q_bins.edges)
+                                            q_bins)
 
     return binned_q
 
@@ -288,15 +289,56 @@ def select_i_of_q_by_wedge(i_of_q, min_wedge_angle, max_wedge_angle):
     return wedge_i_of_q
 
 
+def _toQmodAndAzimuthal(data):
+    '''This function returns the values of qmod and azimuthal that are parallel
+    to the original data array. It requiresthat the data is IQazimuthal
+
+    Parameters
+    ==========
+    data: ~drtsans.dataobjects.IQazimuthal
+
+    Results
+    =======
+    tuple
+        ``(intensity, error, qmod, dqmod, azimuthal)`` as 1d arrays
+        with Q in angstrom and azimuthal angle in degrees'''
+    if not getDataType(data) == DataType.IQ_AZIMUTHAL:
+        raise RuntimeError('Calculating qmod and azimuthal only works for IQazimuthal')
+
+    # reshape the qx and qy if intensity array is 2d
+    if len(data.intensity.shape) == 2 and len(data.qx.shape) == 1 and len(data.qy.shape) == 1:
+        qx = np.tile(data.qx, (data.qy.shape[0], 1))
+        qy = np.tile(data.qy, (data.qx.shape[0], 1)).transpose()
+    else:
+        qx = data.qx
+        qy = data.qy
+
+    # calculate q-scalar
+    q = np.sqrt(np.square(qx) + np.square(qy)).ravel()
+
+    # calculate dQ from dQx and dQy
+    if data.delta_qx is None or data.delta_qy is None:
+        dq = None
+    else:
+        dq = np.sqrt(np.square(data.delta_qx) + np.square(data.delta_qy)).ravel()
+
+    # azimuthal is expected to be positive so use cyclical nature of trig functions
+    azimuthal = np.rad2deg(np.arctan2(qy, qx)).ravel()
+    azimuthal[azimuthal < 0.] += 360.
+
+    return data.intensity.ravel(), data.error.ravel(), q, dq, azimuthal
+
+
 def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT):
     """Annular 1D binning
 
-    Calculates: I(Q), sigma I and dQ by assigning pixels to proper azimuthal angle bins
-    Given I(Qx, Qy) and will convert to I(Q) in the code
+    Calculates: I(azimuthal), sigma I and dazmuthal by assigning pixels to proper azimuthal angle bins
+    Given I(Qx, Qy) and will convert to :py:obj:`~drtsans.IQmod` in the code. The independent axis is
+    actually the azimuthal angle around the ring.
 
     Parameters
     ----------
-    i_of_q :  drtsans.dataobjects.IQazimuthal
+    i_of_q :  ~drtsans.dataobjects.IQazimuthal
         I(Qx, Qy), sigma I(Qx, Qy), Qx, Qy, dQx and dQy
     theta_bin_params : ~drtsans.BinningParams
         binning parameters on annular angle 'theta'
@@ -325,55 +367,55 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     Returns
     -------
     drtsans.dataobjects.IQmod
-        Annular-binned I(Q) in 1D
-
+        Annular-binned I(azimuthal) in 1D
     """
     # Determine azimuthal angle bins (i.e., theta bins)
-    if theta_bin_params.min < 0. or theta_bin_params.max > 360.:
+    theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
+    if theta_bins.centers.min() < 0. or theta_bins.centers.max() > 360.:
         msg = 'must specify range 0<=theta<=360deg found {}<=theta<={}deg'.format(theta_bin_params.min,
                                                                                   theta_bin_params.max)
         raise ValueError(msg)
-    theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
-
-    # Calculate theta array
-    theta_array = np.arctan2(i_of_q.qy, i_of_q.qx) * 180. / np.pi
-    # convert -0 to -180 to 180 to 360
-    theta_array[np.where(theta_array < 0)] += 360.
-
-    # Calculate Q from Qx and Qy
-    q_array = np.sqrt(i_of_q.qx ** 2 + i_of_q.qy ** 2)
-    # calculate dQ from dQx and dQy
-    dq_array = np.sqrt(i_of_q.delta_qx ** 2 + i_of_q.delta_qy ** 2)
-
-    # Filter by q_min and q_max
-    allowed_q_index = (q_array > q_min) & (q_array < q_max)
 
     # Check input I(Q) whether it meets assumptions
     check_iq_for_binning(i_of_q)
 
-    # binning
+    # convert the data to q and azimuthal angle
+    intensity, error, q_array, dq_array, theta_array = _toQmodAndAzimuthal(i_of_q)
+
+    # Filter by q_min and q_max
+    allowed_q_index = np.logical_and((q_array > q_min), (q_array < q_max))
+
+    # select binning method
+    # the methods call the independent axis "Q", but are generic to whatever values are passed in
+    do_1d_binning = None  # reference to function that was selected
     if method == BinningMethod.NOWEIGHT:
         # no weight binning
-        binned_iq = _do_1d_no_weight_binning(theta_array[allowed_q_index],
-                                             dq_array[allowed_q_index],
-                                             i_of_q.intensity[allowed_q_index],
-                                             i_of_q.error[allowed_q_index],
-                                             theta_bins.centers, theta_bins.edges)
+        do_1d_binning = _do_1d_no_weight_binning
     elif method == BinningMethod.WEIGHTED:
         # weighted binning
-        binned_iq = _do_1d_weighted_binning(theta_array[allowed_q_index],
-                                            dq_array[allowed_q_index],
-                                            i_of_q.intensity[allowed_q_index],
-                                            i_of_q.error[allowed_q_index],
-                                            theta_bins.centers, theta_bins.edges)
+        do_1d_binning = _do_1d_weighted_binning
     else:
         # not supported case
         raise RuntimeError('Binning method {} is not recognized'.format(method))
 
-    return binned_iq
+    # apply the selected binning method by either using or skipping the dq_array
+    if dq_array is None:
+        binned_i_of_azimuthal = do_1d_binning(theta_array[allowed_q_index],
+                                              None,
+                                              intensity[allowed_q_index],
+                                              error[allowed_q_index],
+                                              theta_bins)
+    else:
+        binned_i_of_azimuthal = do_1d_binning(theta_array[allowed_q_index],
+                                              dq_array[allowed_q_index],
+                                              intensity[allowed_q_index],
+                                              error[allowed_q_index],
+                                              theta_bins)
+
+    return binned_i_of_azimuthal
 
 
-def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_centers, bin_edges):
+def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bins):
     """ Bin I(Q) by given bin edges and do no-weight binning
 
     This method implements equation 11.34, 11.35 and 11.36 in master document.
@@ -390,10 +432,9 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
         I(Q) in 1D array flattened from 2D detector
     sigmaq_array: ndarray
         sigma I(Q) in 1D array flattened from 2D detector
-    bin_centers: numpy.ndarray
-        bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
-    bin_edges: numpy.ndarray
-        bin edges
+    bins: ~drtsans.determine_bins.Bins
+        Bin centers and edges
+
     Returns
     -------
     ~drtsans.dataobjects.IQmod
@@ -401,16 +442,16 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
 
     """
     # check input
-    assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
+    assert bins.centers.shape[0] + 1 == bins.edges.shape[0]
 
     # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
-    num_pt_array, bin_x = np.histogram(q_array, bins=bin_edges)
+    num_pt_array, _ = np.histogram(q_array, bins=bins.edges)
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-    i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array)
+    i_raw_array, _ = np.histogram(q_array, bins=bins.edges, weights=iq_array)
 
     # Square of summed uncertainties for each bin
-    sigma_sqr_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=sigmaq_array ** 2)
+    sigma_sqr_array, _ = np.histogram(q_array, bins=bins.edges, weights=sigmaq_array ** 2)
 
     # Final I(Q):     I_k       = \frac{I_{k, raw}}{N_k}
     i_final_array = i_raw_array / num_pt_array
@@ -418,16 +459,19 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, bin_cent
     sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
 
     # Calculate Q resolution of binned
-    binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
-    bin_q_resolution = binned_dq / num_pt_array
+    if dq_array is None:
+        bin_q_resolution = None
+    else:
+        binned_dq, bin_x = np.histogram(q_array, bins=bins.edges, weights=dq_array)
+        bin_q_resolution = binned_dq / num_pt_array
 
     # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
     # IQmod is a class for holding 1D binned data.
     return IQmod(intensity=i_final_array, error=sigma_final_array,
-                 mod_q=bin_centers, delta_mod_q=bin_q_resolution)
+                 mod_q=bins.centers, delta_mod_q=bin_q_resolution)
 
 
-def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_centers, bin_edges):
+def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bins):
     """ Bin I(Q) by given bin edges and do weighted binning
 
     This method implements equation 11.22, 11.23 and 11.24 in master document for 1-dimensional Q
@@ -461,10 +505,9 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
         I(Q) in 1D array flattened from 2D detector
     sigma_iq_array: ndarray
         sigma I(Q) in 1D array flattened from 2D detector
-    bin_centers: numpy.ndarray
-        bin centers. Note not all the bin center is center of bin_edge(i) and bin_edge(i+1)
-    bin_edges: numpy.ndarray
-        bin edges
+    bins: ~drtsans.determine_bins.Bins
+        Bin centers and edges
+
     Returns
     -------
     ~drtsans.dataobjects.IQmod
@@ -472,20 +515,20 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
 
     """
     # Check input
-    assert bin_centers.shape[0] + 1 == bin_edges.shape[0]
+    assert bins.centers.shape[0] + 1 == bins.edges.shape[0]
 
     # Calculate 1/sigma^2 for multiple uses
     invert_sigma2_array = 1. / (sigma_iq_array ** 2)
 
     # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
     # sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
-    w_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=invert_sigma2_array)
+    w_array, _ = np.histogram(q_array, bins=bins.edges, weights=invert_sigma2_array)
 
     # Calculate Equation 11.22: I(Q)
     #  I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
     #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
     # denominator in Equation 11.22: sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2)
-    i_raw_array, bin_x = np.histogram(q_array, bins=bin_edges, weights=iq_array * invert_sigma2_array)
+    i_raw_array, _ = np.histogram(q_array, bins=bins.edges, weights=iq_array * invert_sigma2_array)
     # denominator divided by nominator (11.22)
     i_final_array = i_raw_array / w_array
 
@@ -502,14 +545,17 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
     # sigmaQ(Q') = sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2) /
     #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
     # denominator in Equation 11.24: sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2)
-    binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array * invert_sigma2_array)
-    # denominator divided by nominator (11.24)
-    bin_q_resolution = binned_dq / i_raw_array
+    if dq_array is None:
+        bin_q_resolution = None
+    else:
+        binned_dq, _ = np.histogram(q_array, bins=bins.edges, weights=dq_array * invert_sigma2_array)
+        # denominator divided by nominator (11.24)
+        bin_q_resolution = binned_dq / i_raw_array
 
     # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
     # IQmod is a class for holding 1D binned data.
     return IQmod(intensity=i_final_array, error=sigma_final_array,
-                 mod_q=bin_centers, delta_mod_q=bin_q_resolution)
+                 mod_q=bins.centers, delta_mod_q=bin_q_resolution)
 
 
 def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT):

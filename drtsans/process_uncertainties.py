@@ -1,7 +1,7 @@
 # https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SetUncertainties-v1.html
 from mantid.simpleapi import mtd, CloneWorkspace, SetUncertainties
-from mantid.api import EventType
+from mantid.api import EventType, IEventWorkspace
 import numpy
 
 
@@ -42,7 +42,7 @@ def set_init_uncertainties(input_workspace, output_workspace=None):
     # in the case of event workspaces, don't do anything if they are RAW events (eventType=='TOF')
     # and the histogram representation doesn't have any zeros
     input_ws = mtd[input_workspace]
-    if input_ws.id() == 'EventWorkspace' \
+    if isinstance(input_ws, IEventWorkspace) \
        and input_ws.getSpectrum(0).getEventType() == EventType.TOF \
        and input_ws.findY(0.) == (-1, -1):
         # clone the input_workspace or return it

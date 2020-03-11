@@ -51,7 +51,7 @@ class SampleLogs(object):
         ----------
         name: str
             log entry name
-        value: str, int, double, list
+        value: str or int or double or list
             Value to insert
         unit: str
             Log unit

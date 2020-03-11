@@ -23,11 +23,10 @@ from drtsans.mono.absolute_units import empty_beam_scaling
 from drtsans.mono.gpsans.attenuation import attenuation_factor
 from drtsans.mono.gpsans import convert_to_q
 from drtsans import subtract_background
-
-from drtsans.mono.meta_data import get_sample_detector_offset
-from drtsans.mono.meta_data import set_meta_data
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
+from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
+from drtsans.load import move_instrument
 
 
 # Functions exposed to the general user (public) API
@@ -136,7 +135,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 sensitivity=sensitivity_ws,
                 mask=mask_ws)
 
-SAMPLE_SI_DISTANCE_METER = 0.0  # meter, i.e., 0. mm)
+SAMPLE_SI_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)
+SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
 
 
 def prepare_data(data,
@@ -231,8 +231,9 @@ def prepare_data(data,
                      detector_offset=0, sample_offset=sample_offset)
 
     # Reset the offset
-    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_DISTANCE_METER)
-    # TODO - translate instrument with offsets
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME, SAMPLE_SI_DISTANCE_METER)
+    # Translate instrument with offsets
+    move_instrument(ws, sample_offset, detector_offset)
 
     ws_name = str(ws)
     transform_to_wavelength(ws_name)

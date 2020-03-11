@@ -31,8 +31,8 @@ def trasmission_data(reference_dir):
 
 def test_beam_radius(trasmission_data):
     r"""Verify the beam radius is correctly calculated using the source and sample apertures"""
-    assert_almost_equal(beam_radius(trasmission_data.sample), 11.1, decimal=1)
-    assert_almost_equal(beam_radius(trasmission_data.sample_skip), 13.5, decimal=1)
+    assert_almost_equal(beam_radius(trasmission_data.sample), 15.6, decimal=1)
+    assert_almost_equal(beam_radius(trasmission_data.sample_skip), 27.1, decimal=1)
 
 
 def test_fit_band(trasmission_data):

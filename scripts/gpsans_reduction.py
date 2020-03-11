@@ -232,7 +232,7 @@ if __name__ == "__main__":
                          'background_transmission': background_transmission_dict,
                          }
     samplelogs = {'main': SampleLogs(sample_wks)}
-    detectordata = {'main': {'iq': Iq, 'iqxqy': Iqxqy}}
+    detectordata = {'main': {'iq': [Iq], 'iqxqy': Iqxqy}}
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
                              reductionparams=reductionparams,

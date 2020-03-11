@@ -1,24 +1,140 @@
 """ GPSANS API """
 import os
+import numpy as np
+import ast
+from collections import namedtuple
+
 from mantid.simpleapi import mtd, MaskDetectors
 
+from drtsans.path import registered_workspace
+from drtsans.instruments import extract_run_number
+from drtsans.settings import namedtuplefy
+from drtsans.plots import plot_IQmod, plot_IQazimuthal
 from drtsans.solid_angle import solid_angle_correction
-from drtsans.beam_finder import center_detector
-from drtsans.mask_utils import apply_mask
-from drtsans.mono.load import load_events, transform_to_wavelength
+from drtsans.beam_finder import center_detector, find_beam_center
+from drtsans.mask_utils import apply_mask, load_mask
+from drtsans.mono.load import load_events, transform_to_wavelength, load_events_and_histogram
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
-from drtsans.transmission import apply_transmission_correction
+from drtsans.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.mono.absolute_units import empty_beam_scaling
 from drtsans.mono.gpsans.attenuation import attenuation_factor
-from drtsans.path import registered_workspace
+from drtsans.mono.gpsans import convert_to_q
 from drtsans import subtract_background
-from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
+
+from drtsans.mono.meta_data import get_sample_detector_offset
+from drtsans.mono.meta_data import set_meta_data
+from drtsans.iq import bin_all
+from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
+
 
 # Functions exposed to the general user (public) API
-__all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration']
+__all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration',
+           'load_all_files', 'plot_reduction_output', 'reduce_single_configuration']
+
+
+@namedtuplefy
+def load_all_files(reduction_input, prefix='', load_params=None):
+    """
+    load all required files at the beginning, and transform them to histograms
+    """
+    instrument_name = reduction_input["instrumentName"]
+    ipts = reduction_input["iptsNumber"]
+    sample = reduction_input["runNumber"]
+    sample_trans = reduction_input["transmission"]["runNumber"]
+    bkgd = reduction_input["background"]["runNumber"]
+    bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
+    empty = reduction_input["emptyTrans"]["runNumber"]
+    center = reduction_input["beamCenter"]["runNumber"]
+    if reduction_input["configuration"]["useBlockedBeam"]:
+        blocked_beam = reduction_input["configuration"]["BlockBeamFileName"]
+    else:
+        blocked_beam = None
+
+    # sample offsets, etc
+    if load_params is None:
+        load_params = {}
+    wavelength = reduction_input["configuration"]["wavelength"]
+    wavelengthSpread = reduction_input["configuration"]["wavelengthSpread"]
+    if wavelength and wavelengthSpread:
+        load_params["wavelengthinstrumentName"] = wavelength
+        load_params["wavelengthSpread"] = wavelengthSpread
+
+    if reduction_input["configuration"]["useDefaultMask"]:
+        default_mask = [ast.literal_eval(mask_par) for mask_par in reduction_input["configuration"]["DefaultMask"]]
+    else:
+        default_mask = []
+    for run_number in [center, sample, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
+        if run_number:
+            ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+            if not registered_workspace(ws_name):
+                path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
+                filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
+                print(f"Loading filename {filename}")
+                load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+                for btp_params in default_mask:
+                    apply_mask(ws_name, **btp_params)
+
+    # do the same for dark current if exists
+    dark_current = None
+    if reduction_input["configuration"]["useDarkFileName"]:
+        dark_current_file = reduction_input["configuration"]["darkFileName"]
+        if dark_current_file:
+            run_number = extract_run_number(dark_current_file)
+            ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+            if not registered_workspace(ws_name):
+                print(f"Loading filename {dark_current_file}")
+                dark_current = load_events_and_histogram(dark_current_file,
+                                                         output_workspace=ws_name,
+                                                         **load_params)
+                for btp_params in default_mask:
+                    apply_mask(ws_name, **btp_params)
+            else:
+                dark_current = mtd[ws_name]
+
+    # load required processed_files
+    sensitivity_ws_name = None
+    if reduction_input["configuration"]["useSensitivityFileName"]:
+        flood_file = reduction_input["configuration"]["sensitivityFileName"]
+        if flood_file:
+            sensitivity_ws_name = f'{prefix}_sensitivity'
+            if not registered_workspace(sensitivity_ws_name):
+                print(f"Loading filename {flood_file}")
+                load_sensitivity_workspace(flood_file, output_workspace=sensitivity_ws_name)
+
+    mask_ws = None
+    if reduction_input["configuration"]["useMaskFileName"]:
+        custom_mask_file = reduction_input["configuration"]["maskFileName"]
+        if custom_mask_file:
+            mask_ws_name = f'{prefix}_mask'
+            if not registered_workspace(mask_ws_name):
+                print(f"Loading filename {custom_mask_file}")
+                mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
+            else:
+                mask_ws = mtd[mask_ws_name]
+    print('Done loading')
+
+    raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']
+    raw_bkgd_ws = mtd[f'{prefix}_{instrument_name}_{bkgd}_raw_histo'] if bkgd else None
+    raw_blocked_ws = mtd[f'{prefix}_{instrument_name}_{blocked_beam}_raw_histo'] if blocked_beam else None
+    raw_center_ws = mtd[f'{prefix}_{instrument_name}_{center}_raw_histo']
+    raw_empty_ws = mtd[f'{prefix}_{instrument_name}_{empty}_raw_histo'] if empty else None
+    raw_sample_trans_ws = mtd[f'{prefix}_{instrument_name}_{sample_trans}_raw_histo'] if sample_trans else None
+    raw_bkg_trans_ws = mtd[f'{prefix}_{instrument_name}_{bkgd_trans}_raw_histo'] if bkgd_trans else None
+    sensitivity_ws = mtd[sensitivity_ws_name] if sensitivity_ws_name else None
+
+    return dict(sample=[raw_sample_ws],
+                background=raw_bkgd_ws,
+                center=raw_center_ws,
+                empty=raw_empty_ws,
+                sample_transmission=raw_sample_trans_ws,
+                background_transmission=raw_bkg_trans_ws,
+                blocked_beam=raw_blocked_ws,
+                dark_current=dark_current,
+                sensitivity=sensitivity_ws,
+                mask=mask_ws)
 
 SAMPLE_SI_DISTANCE_METER = 0.0  # meter, i.e., 0. mm)
 
@@ -26,7 +142,7 @@ SAMPLE_SI_DISTANCE_METER = 0.0  # meter, i.e., 0. mm)
 def prepare_data(data,
                  mask_detector=None,
                  detector_offset=0, sample_offset=0,
-                 center_x=None, center_y=None, center_y_wing=None,
+                 center_x=None, center_y=None,
                  dark_current=None,
                  flux_method=None,
                  mask=None, mask_panel=None, btp=dict(),
@@ -57,10 +173,6 @@ def prepare_data(data,
         point between the neutron beam and the detector array will have ``x=0``.
     center_y: float
         Move the center of the detector to this Y-coordinate. If :py:obj:`None`, the
-        detector will be moved such that the Y-coordinate of the intersection
-        point between the neutron beam and the detector array will have ``y=0``.
-    center_y_wing: float
-        Move the center of the wing detector to this Y-coordinate. If :py:obj:`None`, the
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
     dark_current: int, str, ~mantid.api.IEventWorkspace
@@ -442,3 +554,183 @@ def process_single_configuration(sample_ws_raw,
         sample_ws *= absolute_scale
 
     return mtd[output_workspace]
+
+
+def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
+    flux_method = reduction_input["configuration"]["normalization"]
+    try:
+        transmission_radius = float(reduction_input["configuration"]["mmRadiusForTransmission"])
+    except ValueError:
+        transmission_radius = None
+    solid_angle = reduction_input["configuration"]["useSolidAngleCorrection"]
+    sample_trans_value = reduction_input["transmission"]["value"]
+    bkg_trans_value = reduction_input["background"]["transmission"]["value"]
+    theta_deppendent_transmission = reduction_input["configuration"]["useThetaDepTransCorrection"]
+    mask_panel = None
+    if reduction_input["configuration"]["useMaskBackTubes"]:
+        mask_panel = 'back'
+    output_suffix = ''
+    try:
+        thickness = float(reduction_input['thickness'])
+    except ValueError:
+        thickness = 1.
+    absolute_scale_method = reduction_input["configuration"]["absoluteScaleMethod"]
+    try:
+        beam_radius = float(reduction_input["configuration"]["DBScalingBeamRadius"])
+    except ValueError:
+        beam_radius = None
+    try:
+        absolute_scale = float(reduction_input["configuration"]["StandardAbsoluteScale"])
+    except ValueError:
+        absolute_scale = 1.
+
+    output_dir = reduction_input["configuration"]["outputDir"]
+
+    nxbins_main = int(reduction_input["configuration"]["numQxQyBins"])
+    nybins_main = int(nxbins_main)
+    bin1d_type = reduction_input["configuration"]["1DQbinType"]
+    log_binning = reduction_input["configuration"]["QbinType"] == 'log'
+    even_decades = reduction_input["configuration"]["EvenDecades"]
+    nbins_main = int(reduction_input["configuration"]["numQBins"])
+    outputFilename = reduction_input["outputFilename"]
+    weighted_errors = reduction_input["configuration"]["useErrorWeighting"]
+    try:
+        qmin = float(reduction_input["configuration"]["Qmin"])
+    except ValueError:
+        qmin = None
+    qmax = None
+    try:
+        qmax = float(reduction_input["configuration"]["Qmax"])
+    except ValueError:
+        qmax = None
+    try:
+        annular_bin = float(reduction_input["configuration"]["AnnularAngleBin"])
+    except ValueError:
+        annular_bin = 1.
+    wedges_min = np.fromstring(reduction_input["configuration"]["WedgeMinAngles"], sep=',')
+    wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
+    if len(wedges_min) != len(wedges_max):
+        raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
+    wedges = list(zip(wedges_min, wedges_max))
+
+    xc, yc = find_beam_center(loaded_ws.center)
+    print("Center  =", xc, yc)
+
+    # empty beam transmission workspace
+    if loaded_ws.empty is not None:
+        empty_trans_ws_name = f'{prefix}_empty'
+        empty_trans_ws = prepare_data_workspaces(loaded_ws.empty,
+                                                 flux_method=flux_method,
+                                                 center_x=xc,
+                                                 center_y=yc,
+                                                 solid_angle=False,
+                                                 sensitivity_ws=loaded_ws.sensitivity,
+                                                 output_workspace=empty_trans_ws_name)
+    else:
+        empty_trans_ws = None
+
+    # background transmission
+    if loaded_ws.background_transmission:
+        bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
+        bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
+                                                          flux_method=flux_method,
+                                                          center_x=xc,
+                                                          center_y=yc,
+                                                          solid_angle=False,
+                                                          sensitivity_ws=loaded_ws.sensitivity,
+                                                          output_workspace=bkgd_trans_ws_name)
+        bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
+                                               radius=transmission_radius, radius_unit="mm")
+        print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+    else:
+        bkgd_trans_ws = None
+
+    # sample transmission
+    if loaded_ws.sample_transmission:
+        sample_trans_ws_name = f'{prefix}_sample_trans'
+        sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
+                                                            flux_method=flux_method,
+                                                            center_x=xc,
+                                                            center_y=yc,
+                                                            solid_angle=False,
+                                                            sensitivity_ws=loaded_ws.sensitivity,
+                                                            output_workspace=sample_trans_ws_name)
+        sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
+                                                 radius=transmission_radius, radius_unit="mm")
+        print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
+    else:
+        sample_trans_ws = None
+
+    output = []
+    for i, raw_sample_ws in enumerate(loaded_ws.sample):
+        if len(loaded_ws.sample) > 1:
+            output_suffix = f'_{i}'
+        processed_data_main = process_single_configuration(raw_sample_ws,
+                                                           sample_trans_ws=sample_trans_ws,
+                                                           sample_trans_value=sample_trans_value,
+                                                           bkg_ws_raw=loaded_ws.background,
+                                                           bkg_trans_ws=bkgd_trans_ws,
+                                                           bkg_trans_value=bkg_trans_value,
+                                                           blocked_ws_raw=loaded_ws.blocked_beam,
+                                                           theta_deppendent_transmission=theta_deppendent_transmission,
+                                                           center_x=xc, center_y=yc,
+                                                           dark_current=loaded_ws.dark_current,
+                                                           flux_method=flux_method,
+                                                           mask_ws=loaded_ws.mask,
+                                                           mask_panel=mask_panel,
+                                                           solid_angle=solid_angle,
+                                                           sensitivity_workspace=loaded_ws.sensitivity,
+                                                           output_workspace=f'processed_data_main',
+                                                           output_suffix=output_suffix,
+                                                           thickness=thickness,
+                                                           absolute_scale_method=absolute_scale_method,
+                                                           empty_beam_ws=empty_trans_ws,
+                                                           beam_radius=beam_radius,
+                                                           absolute_scale=absolute_scale,
+                                                           keep_processed_workspaces=False)
+        # binning
+        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
+        iq1d_main_in = convert_to_q(processed_data_main, mode='scalar')
+        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main, nbins_main,
+                                               bin1d_type=bin1d_type, log_scale=log_binning,
+                                               even_decade=even_decades, qmin=qmin, qmax=qmax,
+                                               annular_angle_bin=annular_bin, wedges=wedges,
+                                               error_weighted=weighted_errors)
+
+        # save ASCII files
+        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D.txt')
+        save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
+
+        for j in range(len(iq1d_main_out)):
+            add_suffix = ""
+            if len(iq1d_main_out) > 1:
+                add_suffix = f'_wedge_{j}'
+            ascii_1D_filename = os.path.join(output_dir, '1D',
+                                             f'{outputFilename}{output_suffix}_1D{add_suffix}.txt')
+            save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq1d_main_out[j])
+
+        IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
+        current_output = IofQ_output(I2D_main=iq2d_main_out,
+                                     I1D_main=iq1d_main_out)
+        output.append(current_output)
+    return output
+
+
+def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None):
+    output_dir = reduction_input["configuration"]["outputDir"]
+    outputFilename = reduction_input["outputFilename"]
+    output_suffix = ''
+    if imshow_kwargs is None:
+        imshow_kwargs = {}
+    for i, out in enumerate(reduction_output):
+        if len(reduction_output) > 1:
+            output_suffix = f'_{i}'
+        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D.png')
+        plot_IQazimuthal(out.I2D_main, filename, backend='mpl', imshow_kwargs=imshow_kwargs, title='Main')
+        for j in range(len(out.I1D_main)):
+            add_suffix = ""
+            if len(out.I1D_main) > 1:
+                add_suffix = f'_wedge_{j}'
+            filename = os.path.join(output_dir, '1D', f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
+            plot_IQmod([out.I1D_main[j]], filename, loglog=True,
+                       backend='mpl', errorbar_kwargs={'label': 'main'})

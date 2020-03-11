@@ -548,7 +548,7 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bins):
     if dq_array is None:
         bin_q_resolution = None
     else:
-        binned_dq, _ = np.histogram(q_array, bins=bin_edges, weights=dq_array * invert_sigma2_array)
+        binned_dq, _ = np.histogram(q_array, bins=bins.edges, weights=dq_array * invert_sigma2_array)
         # denominator divided by nominator (11.24)
         bin_q_resolution = binned_dq / i_raw_array
 

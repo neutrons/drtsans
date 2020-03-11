@@ -85,10 +85,11 @@ def test_merge_Data(reference_dir):
 def test_load_events_and_histogram(reference_dir):
     ws0 = load_events_and_histogram('EQSANS_101595', data_dir=reference_dir.new.eqsans)
 
-    assert ws0.getAxis(0).getUnit().caption() == 'Wavelength'
-    assert ws0.name() == "EQSANS_101595"
+    assert ws0.data.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws0.data.name() == "EQSANS_101595"
+    assert ws0.monitor is None
 
-    sample_logs0 = SampleLogs(ws0)
+    sample_logs0 = SampleLogs(ws0.data)
 
     assert sample_logs0.duration.value == pytest.approx(215.531066895, abs=1e-9)
     assert sample_logs0.getProtonCharge() == pytest.approx(83.37074628055555, abs=1e-9)
@@ -97,10 +98,11 @@ def test_load_events_and_histogram(reference_dir):
     ws1 = load_events_and_histogram('EQSANS_101595,EQSANS_104088,EQSANS_105428',
                                     data_dir=reference_dir.new.eqsans)
 
-    assert ws1.getAxis(0).getUnit().caption() == 'Wavelength'
-    assert ws1.name() == "EQSANS_101595_104088_105428"
+    assert ws1.data.getAxis(0).getUnit().caption() == 'Wavelength'
+    assert ws1.data.name() == "EQSANS_101595_104088_105428"
+    assert ws1.monitor is None
 
-    sample_logs1 = SampleLogs(ws1)
+    sample_logs1 = SampleLogs(ws1.data)
     assert sample_logs1.duration.value == pytest.approx(215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9)
     assert sample_logs1.getProtonCharge() == pytest.approx(83.37074628055555, + 111.1237739861111 + 27.799524525,
                                                            abs=1e-9)

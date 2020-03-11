@@ -5,10 +5,11 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 '''
 import pytest
 import numpy as np
-from drtsans.dataobjects import IQazimuthal
+from drtsans.dataobjects import IQazimuthal, IQmod
 from drtsans import getWedgeSelection
 # test internal functions
-from drtsans.auto_wedge import _toQmodAndAzimuthal, _binInQAndAzimuthal, _fitQAndAzimuthal
+from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
+from drtsans.iq import _toQmodAndAzimuthal
 
 
 def _create_2d_data():
@@ -35,7 +36,7 @@ def _create_2d_data():
                        [14.1, 14.1, 17.3, 14.5, 20.7, 19.5, 16.7, 17.0, 20.0, 19.5, 18.2],
                        [20.0, 23.5, 20.5, 14.1, 14.8, 17.9, 17.9, 15.5, 26.5, 24.5, 18.7],
                        [22.4, 24.5, 33.2, 38.7, 14.1, 13.4, 14.8, 38.7, 31.6, 26.5, 20.0],
-                       [24.5, 26.5, 38.7, 46.9, 55.7, 00.0, 54.8, 48.0, 36.1, 28.3, 22.4],
+                       [24.5, 26.5, 38.7, 46.9, 55.7, 01.0, 54.8, 48.0, 36.1, 28.3, 22.4],
                        [22.4, 24.5, 34.6, 38.7, 20.0, 15.8, 15.5, 38.7, 31.6, 26.5, 20.0],
                        [20.0, 23.5, 15.2, 16.7, 19.5, 15.5, 14.1, 14.8, 26.5, 24.5, 18.7],
                        [15.8, 17.9, 14.8, 14.8, 15.8, 18.4, 18.4, 17.0, 14.8, 14.8, 17.3],
@@ -282,14 +283,28 @@ def _create_2d_histogram_data():
     q_max = 7.5
     q_delta = 1.
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
+    # verify the first and last values
+    assert q_bins[0] == 0.5, 'q_bins[0]'
+    assert q_bins[-1] == 7.5, 'q_bins[-1]'
 
+    # create azimuthal angles as bin centers
     azimuthal_delta = 5.
-    azimuthal_max = 540. + azimuthal_delta
-    azimuthal_bins = np.arange(-.5 * azimuthal_delta, azimuthal_max, azimuthal_delta, dtype=float)
+    azimuthal_max = 540.
+    azimuthal_bins = np.arange(start=0., stop=azimuthal_max + azimuthal_delta,
+                               step=azimuthal_delta, dtype=float)
+    # verify the first and last values
+    assert azimuthal_bins[0] == 0., 'azimuthal_bins[0]'
+    assert azimuthal_bins[-1] == 540., 'azimuthal_bins[-1]'
+    azimuthal_bins += 2.5
 
-    assert intensity.shape == (len(azimuthal_bins) - 1, len(q_bins) - 1)
+    assert intensity.shape == (len(azimuthal_bins), len(q_bins) - 1)
 
-    return intensity, error, azimuthal_bins, q_bins
+    azimuthal_rings = []
+    for i in range(intensity.shape[1]):
+        azimuthal_rings.append(IQmod(intensity=intensity.T[i], error=error.T[i],
+                                     mod_q=azimuthal_bins))
+
+    return q_bins, azimuthal_rings
 
 
 def test_calc_qmod_and_azimuthal():
@@ -299,9 +314,10 @@ def test_calc_qmod_and_azimuthal():
     data2d = _create_2d_data()
 
     # convert to q and azimuthal
-    qmod, azimuthal = _toQmodAndAzimuthal(data2d)
-    assert qmod.shape == data2d.intensity.shape
-    assert azimuthal.shape == data2d.intensity.shape
+    intensity, error, qmod, delta_qmod, azimuthal = _toQmodAndAzimuthal(data2d)
+    assert qmod.shape == intensity.shape
+    assert delta_qmod is None
+    assert azimuthal.shape == intensity.shape
 
     # numbers taken from the spreadsheet
     q_exp = np.array([[7.07, 6.40, 5.83, 5.39, 5.10, 5.00, 5.10, 5.39, 5.83, 6.40, 7.07],
@@ -328,15 +344,15 @@ def test_calc_qmod_and_azimuthal():
                               [219, 225, 233, 243, 256, 270, 284, 297, 307, 315, 321],
                               [225, 231, 239, 248, 259, 270, 281, 292, 301, 309, 315]], dtype=float)
 
-    np.testing.assert_allclose(qmod, q_exp, atol=.005)
-    np.testing.assert_allclose(azimuthal, azimuthal_exp, atol=.5)
+    np.testing.assert_allclose(qmod, q_exp.ravel(), atol=.005)
+    np.testing.assert_allclose(azimuthal, azimuthal_exp.ravel(), atol=.5)
 
 
 def test_bin_into_q_and_azimuthal():
     '''Test binning into Q and azimuthal matches the results from "Anisotropic Data - Q vs Phi"'''
     # get the test data
     data2d = _create_2d_data()
-    intensity_exp, error_exp, _, _ = _create_2d_histogram_data()
+    q_exp, azimuthal_rings_exp = _create_2d_histogram_data()
 
     # parameters for azimuthal
     azimuthal_delta = 5.
@@ -347,38 +363,33 @@ def test_bin_into_q_and_azimuthal():
     q_delta = 1.
 
     # get the histogrammed data
-    intensity, error, azimuthal, q = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
-                                                         azimuthal_delta=azimuthal_delta)
+    q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
+                                             azimuthal_delta=azimuthal_delta)
 
-    # verify generic shape and range values
-    assert azimuthal.min() == -0.5 * azimuthal_delta  # phi bins are centered on [0, 5, 10, ...]
-    assert azimuthal.max() == 540. + 0.5 * azimuthal_delta
-    assert q.min() == q_min
-    assert q.max() == q_max  # using bin boundaries
+    # verify the q-binning
+    assert q.min() == q_min == q_exp.min()
+    assert q.max() == q_max == q_exp.max()  # using bin boundaries
 
-    assert intensity.shape == intensity_exp.shape
-    assert error.shape == error_exp.shape
-    # verify shape is consistent with histogramming
-    assert intensity.shape == (len(azimuthal) - 1, len(q) - 1)
+    for spectrum, spectrum_exp in zip(azimuthal_rings, azimuthal_rings_exp):
+        assert spectrum.intensity.shape == spectrum_exp.intensity.shape
+        np.testing.assert_allclose(spectrum.mod_q, spectrum_exp.mod_q, atol=0.05, equal_nan=True)
+        assert spectrum.delta_mod_q is None
 
-    # validate results
-    for i in range(len(intensity)):  # loop over rows to make debugging easier
-        msg = 'i={} | {}deg <= azimuthal < {}deg'.format(i+3, azimuthal[i], azimuthal[i+1])
-        np.testing.assert_allclose(intensity[i], intensity_exp[i], atol=.05, equal_nan=True, err_msg=msg)
-        np.testing.assert_allclose(error[i], error_exp[i], atol=.05, equal_nan=True, err_msg=msg)
+        np.testing.assert_allclose(spectrum.intensity, spectrum_exp.intensity, atol=0.05, equal_nan=True)
+        np.testing.assert_allclose(spectrum.error, spectrum_exp.error, atol=0.05, equal_nan=True)
 
 
 def test_fitting():
     '''Test that the fitting generates reasonable results for fitting the peaks'''
-    intensity, error, azimuthal, q = _create_2d_histogram_data()
+    q, azimuthal_rings = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    center_list, fwhm_list = _fitQAndAzimuthal(intensity, error, azimuthal, q,
+    center_list, fwhm_list = _fitQAndAzimuthal(azimuthal_rings, q,
                                                signal_to_noise_min=2.0,
                                                azimuthal_start=110.,
                                                maxchisq=1000.)
 
-    assert center_list[0] == pytest.approx(180., abs=1.)
-    assert center_list[1] == pytest.approx(360., abs=1.)
+    assert center_list[0] == pytest.approx(180., abs=3.)
+    assert center_list[1] == pytest.approx(360., abs=4.)
     assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.)
 
 
@@ -405,26 +416,26 @@ def test_integration():
         assert -90. < max_val < 270.
 
     # first peak
-    assert 0.5 * (mins_and_maxes[0][0] + mins_and_maxes[0][1]) == pytest.approx(180., abs=1.), \
+    assert 0.5 * (mins_and_maxes[0][0] + mins_and_maxes[0][1]) == pytest.approx(180., abs=3.), \
         'First center is at 180.'
-    assert mins_and_maxes[0][0] == pytest.approx(169., abs=.5)
-    assert mins_and_maxes[0][1] == pytest.approx(192., abs=.5)
+    assert mins_and_maxes[0][0] == pytest.approx(171., abs=.5)
+    assert mins_and_maxes[0][1] == pytest.approx(195., abs=.5)
 
     # first background - the extra 360 is to get around the circle
-    assert 0.5 * (mins_and_maxes[1][0] + mins_and_maxes[1][1] + 360) == pytest.approx(270., abs=1.2), \
+    assert 0.5 * (mins_and_maxes[1][0] + mins_and_maxes[1][1] + 360) == pytest.approx(272., abs=1.2), \
         'Second center is at 270.'
-    assert mins_and_maxes[1][0] == pytest.approx(249., abs=.5)
-    assert mins_and_maxes[1][1] == pytest.approx(-70., abs=.5)
+    assert mins_and_maxes[1][0] == pytest.approx(255., abs=.5)
+    assert mins_and_maxes[1][1] == pytest.approx(-69., abs=.5)
 
     # second peak
-    assert 0.5 * (mins_and_maxes[2][0] + mins_and_maxes[2][1]) == pytest.approx(0., abs=1.), 'Third center is at 0.'
-    assert mins_and_maxes[2][0] == pytest.approx(-11., abs=.5)
-    assert mins_and_maxes[2][1] == pytest.approx(12., abs=.5)
+    assert 0.5 * (mins_and_maxes[2][0] + mins_and_maxes[2][1]) == pytest.approx(3., abs=1.), 'Third center is at 0.'
+    assert mins_and_maxes[2][0] == pytest.approx(-9., abs=.5)
+    assert mins_and_maxes[2][1] == pytest.approx(16., abs=.5)
 
     # second background
-    assert 0.5 * (mins_and_maxes[3][0] + mins_and_maxes[3][1]) == pytest.approx(90., abs=2.), 'Forth center is at 90.'
-    assert mins_and_maxes[3][0] == pytest.approx(71., abs=.5)
-    assert mins_and_maxes[3][1] == pytest.approx(112., abs=.5)
+    assert 0.5 * (mins_and_maxes[3][0] + mins_and_maxes[3][1]) == pytest.approx(90., abs=5.), 'Forth center is at 90.'
+    assert mins_and_maxes[3][0] == pytest.approx(76., abs=.5)
+    assert mins_and_maxes[3][1] == pytest.approx(111., abs=.5)
 
 
 if __name__ == '__main__':

@@ -3,19 +3,17 @@ from mantid.api import mtd
 # Import rolled up to complete a single top-level API
 from drtsans import (apply_sensitivity_correction, solid_angle_correction)
 from drtsans import subtract_background
-from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa: F401
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 from drtsans.save_2d import save_nist_dat, save_nexus
-from drtsans.tof.eqsans.correct_frame import smash_monitor_spikes, transform_to_wavelength
-from drtsans.tof.eqsans.load import load_events, load_events_monitor
+from drtsans.tof.eqsans.load import load_events_and_histogram
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 from drtsans.mask_utils import apply_mask
 from drtsans.tof.eqsans.normalization import normalize_by_flux
 from drtsans.tof.eqsans.meta_data import set_meta_data
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
-           'prepare_monitors', 'prepare_data', 'save_ascii_1D', 'save_xml_1D',
+           'prepare_data', 'save_ascii_1D', 'save_xml_1D',
            'save_nist_dat', 'save_nexus', 'set_init_uncertainties']
 
 
@@ -23,30 +21,6 @@ def apply_solid_angle_correction(input_workspace):
     """Apply solid angle correction. This uses :func:`drtsans.solid_angle_correction`."""
     return solid_angle_correction(input_workspace,
                                   detector_type='VerticalTube')
-
-
-def prepare_monitors(data, bin_width=0.1, output_workspace=None):
-    r"""
-    Loads monitor counts, correct TOF, and transforms to wavelength.
-
-    Parameters
-    ----------
-    data: int, str, ~mantid.api.IEventWorkspace
-        Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
-    bin_width: float
-        Bin width for the output workspace, in Angstroms.
-    output_workspace: str
-        Name of the output workspace. If None, then it will be
-        ``EQSANS_XXXXX_monitors`` with number XXXXX determined from ``data``.
-
-    Returns
-    -------
-    ~mantid.api.MatrixWorkspace
-    """
-    w = load_events_monitor(data, output_workspace=output_workspace)
-    w = smash_monitor_spikes(w)
-    w = transform_to_wavelength(w, bin_width=bin_width)
-    return w
 
 
 def prepare_data(data,
@@ -141,26 +115,17 @@ def prepare_data(data,
     """
     # First, load the event stream data into a workspace
     # The output_workspace name is for the Mantid workspace
-    output_workspace = load_events(data, detector_offset=detector_offset,
-                                   sample_offset=sample_offset,
-                                   output_workspace=output_workspace, output_suffix=output_suffix)
+    workspaces = load_events_and_histogram(data,
+                                           detector_offset=detector_offset,
+                                           sample_offset=sample_offset,
+                                           output_workspace=output_workspace, output_suffix=output_suffix,
+                                           center_x=center_x, center_y=center_y,
+                                           bin_width=bin_width,
+                                           low_tof_clip=low_tof_clip, high_tof_clip=high_tof_clip,
+                                           keep_events=(dark_current is None),
+                                           monitors=(flux_method == 'monitor'))
 
-    # The beam center should be provided by the reduction
-    # script calling this function, but if it is not specified...
-    if center_x is None or center_y is None:
-        center_x, center_y = find_beam_center(output_workspace, mask=mask)
-    center_detector(output_workspace, center_x=center_x, center_y=center_y)  # operates in-place
-
-    # now that the instrument geometry has been set, we can convert
-    # the event stream into neutrons binned into wavelength.
-    # The conversion corrects for the different path lengths from
-    # the sample to the detector pixels.
-    # Interestingly, this function cannot handle constant dLambda/Lamba binning...
-    output_workspace = transform_to_wavelength(output_workspace, bin_width=bin_width,
-                                               low_tof_clip=low_tof_clip,
-                                               high_tof_clip=high_tof_clip, keep_events=(dark_current is None))
-
-    output_workspace = set_init_uncertainties(output_workspace)
+    output_workspace = workspaces.data
 
     # Next, we subtract dark current, if it exists.
     # Note that the function handles the normalization internally.
@@ -187,10 +152,7 @@ def prepare_data(data,
     if flux_method is not None:
         kw = dict(method=flux_method)
         if flux_method == 'monitor':
-            monitor_workspace = str(output_workspace) + '_monitors'
-            prepare_monitors(data, bin_width=bin_width,
-                             output_workspace=monitor_workspace)
-            kw['monitor_workspace'] = monitor_workspace
+            kw['monitor_workspace'] = str(workspaces.monitor)
         output_workspace = normalize_by_flux(output_workspace, flux, **kw)
 
     # Overwrite meta data

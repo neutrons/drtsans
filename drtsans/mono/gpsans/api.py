@@ -1,4 +1,5 @@
 """ GPSANS API """
+from datetime import datetime
 import os
 import numpy as np
 import ast
@@ -9,7 +10,9 @@ from mantid.simpleapi import mtd, MaskDetectors
 from drtsans.path import registered_workspace
 from drtsans.instruments import extract_run_number
 from drtsans.settings import namedtuplefy
+from drtsans.samplelogs import SampleLogs
 from drtsans.plots import plot_IQmod, plot_IQazimuthal
+from drtsans.reductionlog import  savereductionlog
 from drtsans.solid_angle import solid_angle_correction
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.mask_utils import apply_mask, load_mask
@@ -615,6 +618,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         empty_trans_ws = None
 
     # background transmission
+    background_transmission_dict = {}
     if loaded_ws.background_transmission:
         bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
         bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
@@ -627,10 +631,13 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
         print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+        background_transmission_dict = {'value': bkgd_trans_ws.extractY(),
+                                        'error': bkgd_trans_ws.extractE()}
     else:
         bkgd_trans_ws = None
 
     # sample transmission
+    sample_transmission_dict = {}
     if loaded_ws.sample_transmission:
         sample_trans_ws_name = f'{prefix}_sample_trans'
         sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
@@ -643,6 +650,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
         print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
+        sample_transmission_dict = {'value': sample_trans_ws.extractY(),
+                                    'error': sample_trans_ws.extractE()}
     else:
         sample_trans_ws = None
 
@@ -698,6 +707,28 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         current_output = IofQ_output(I2D_main=iq2d_main_out,
                                      I1D_main=iq1d_main_out)
         output.append(current_output)
+
+        # # save reduction log
+        # filename = os.path.join(json_params["configuration"]["outputDir"], output_file + '_reduction_log.hdf')
+        # starttime = datetime.now().isoformat()
+        # pythonfile = __file__
+        # reductionparams = log_json_params
+        # specialparameters = {'beam_center': {'x': config['center_x'],
+        #                                      'y': config['center_y']},
+        #                      'sample_transmission': sample_transmission_dict,
+        #                      'background_transmission': background_transmission_dict,
+        #                      }
+        # samplelogs = {'main': SampleLogs(sample_wks)}
+        # detectordata = {'main': {'iq': [Iq], 'iqxqy': Iqxqy}}
+        # savereductionlog(filename=filename,
+        #                  detectordata=detectordata,
+        #                  reductionparams=reductionparams,
+        #                  pythonfile=pythonfile,
+        #                  starttime=starttime,
+        #                  specialparameters=specialparameters,
+        #                  samplelogs=samplelogs,
+        #                  )
+
     return output
 
 

@@ -85,9 +85,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     # special loading case for sample to allow the slicing options
     ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
     if not registered_workspace(ws_name):
-        filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
-        print(f"Loading filename {filename}")
         if timeslice or logslice:
+            filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
+            print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_input["configuration"]["timesliceinterval"])
                 logslicename = None
@@ -105,6 +105,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
         else:
+            filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
+            print(f"Loading filename {filename}")
             load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)

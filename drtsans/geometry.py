@@ -727,7 +727,8 @@ def translate_sample_by_z(workspace, z):
                                 ComponentName='sample-position',
                                 RelativePosition=True)
         workspace = mtd[ws_name]
-        print('[INFO] Instrument sample position is moved to {}'.format(workspace.getInstrument().getPos()))
+        print('[INFO] Instrument sample position is moved to {}'
+              ''.format(workspace.getInstrument().getSample().getPos()))
 
     # update the appropriate log
     # 'source_aperture_sample_aperture_distance' is not coupled with sample/source distance. Thus
@@ -771,6 +772,9 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
     if z is not None:
         update_log = True
         if (not relative) or (z != 0.):
+            print('[DEBUG] Moving detector along Z = {}  is relative = {} to component {}'
+                  ''.format(z, relative, detector_name(input_workspace)))
+
             MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
                                     RelativePosition=relative)
 

@@ -51,7 +51,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     else:
         blocked_beam = None
 
-    # sample eoffset, ets
+    # sample offsets, etc
     if load_params is None:
         load_params = {}
     wavelength = reduction_input["configuration"]["wavelength"]

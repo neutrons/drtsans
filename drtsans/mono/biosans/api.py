@@ -32,6 +32,10 @@ __all__ = ['prepare_data', 'load_all_files', 'plot_reduction_output',
            'reduce_single_configuration']
 
 
+SAMPLE_SI_DISTANCE_METER = 0.071  # meter, (i.e., 71 mm)
+SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
+
+
 @namedtuplefy
 def load_all_files(reduction_input, prefix='', load_params=None):
     """
@@ -687,9 +691,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                      I1D_combined=iq1d_combined_out)
         output.append(current_output)
     return output
-
-SAMPLE_SI_DISTANCE_METER = 0.071  # meter, (i.e., 71 mm)
-SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
 def prepare_data(data,

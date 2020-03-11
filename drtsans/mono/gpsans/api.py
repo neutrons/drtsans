@@ -25,6 +25,7 @@ __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configurat
 SAMPLE_SI_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)
 SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
 
+
 def prepare_data(data,
                  mask_detector=None,
                  detector_offset=0, sample_offset=0,

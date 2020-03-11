@@ -191,7 +191,7 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
         Additional mask to be applied. If `list`, it is a list of
         detector ID's.
     monitors: boolean
-        Option to load the monitors as well as the data, if True``smash_monitor_spikes``
+        Option to load the monitors as well as the data, if False monitor will be None
     keep_events: bool
         The final histogram will be an EventsWorkspace if True.
     kwargs: dict

@@ -43,13 +43,14 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise RuntimeError("reduction code requires a parameter json string")
     if os.path.isfile(sys.argv[1]):
-        # print(sys.argv[1])
-        with open(sys.argv[1], 'r') as fd:
+        json_filename = sys.argv[1]
+        with open(json_filename, 'r') as fd:
             json_params = json.load(fd)
     else:
-        json_string = " ".join(sys.argv[1:])
-        json_params = json.loads(json_string)
+        json_filename = " ".join(sys.argv[1:])
+        json_params = json.loads(json_filename)
     log_json_params = copy.deepcopy(json_params)
+    log_json_params = {'data': log_json_params, 'filename': json_filename}
     msapi.logger.notice(json.dumps(json_params, indent=2))
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
@@ -229,6 +230,7 @@ if __name__ == "__main__":
                                                   radius_unit="mm")
             sample_transmission_dict['value'] = tr_ws.extractY()
             sample_transmission_dict['error'] = tr_ws.extractE()
+            sample_transmission_dict['wavelengths'] = tr_ws.extractX()
 
             # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
             # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
@@ -283,9 +285,13 @@ if __name__ == "__main__":
                                                               radius_unit="mm")
 
                 background_transmission_dict['background_raw_transmission'] = {'value': ws_cal_raw_tr_bkg.extractY(),
-                                                                               'error': ws_cal_raw_tr_bkg.extractE()}
+                                                                               'error': ws_cal_raw_tr_bkg.extractE(),
+                                                                               'wavelengths':
+                                                                                   ws_cal_raw_tr_bkg.extractX()}
                 background_transmission_dict['background_transmission'] = {'value': ws_cal_tr_bkg.extractY(),
-                                                                           'error': ws_cal_tr_bkg.extractE()}
+                                                                           'error': ws_cal_tr_bkg.extractE(),
+                                                                           'wavelengths':
+                                                                           ws_cal_tr_bkg.extractX()}
 
                 # [CD, 1/30/2020] radius default input has changed from "None" to "rad_trans"
                 # [CD, 1/30/2020] Here, we need both fitted transmission and raw transmission as return values
@@ -422,8 +428,8 @@ if __name__ == "__main__":
                          }
     detectordata = {}
     for _key in log_binned_i_of_q.keys():
-        name = "frame_{}".format(_key)
-        detectordata[name] = {'iq': log_binned_i_of_q[_key],
+        name = "frame_{}".format(_key+1)
+        detectordata[name] = {'iq': [log_binned_i_of_q[_key]],
                               'iqxqy': log_iqxqy[_key]}
     samplelogs = {'main': SampleLogs(ws)}
     drtsans.savereductionlog(filename=filename,

@@ -502,7 +502,7 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bin_cen
     # sigmaQ(Q') = sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2) /
     #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
     # denominator in Equation 11.24: sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2)
-    binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array)
+    binned_dq, bin_x = np.histogram(q_array, bins=bin_edges, weights=dq_array * invert_sigma2_array)
     # denominator divided by nominator (11.24)
     bin_q_resolution = binned_dq / i_raw_array
 

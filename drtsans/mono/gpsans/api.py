@@ -1,4 +1,5 @@
 """ GPSANS API """
+import copy
 from datetime import datetime
 import os
 import numpy as np
@@ -708,26 +709,28 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                      I1D_main=iq1d_main_out)
         output.append(current_output)
 
-        # # save reduction log
-        # filename = os.path.join(json_params["configuration"]["outputDir"], output_file + '_reduction_log.hdf')
-        # starttime = datetime.now().isoformat()
-        # pythonfile = __file__
-        # reductionparams = log_json_params
-        # specialparameters = {'beam_center': {'x': config['center_x'],
-        #                                      'y': config['center_y']},
-        #                      'sample_transmission': sample_transmission_dict,
-        #                      'background_transmission': background_transmission_dict,
-        #                      }
-        # samplelogs = {'main': SampleLogs(sample_wks)}
-        # detectordata = {'main': {'iq': [Iq], 'iqxqy': Iqxqy}}
-        # savereductionlog(filename=filename,
-        #                  detectordata=detectordata,
-        #                  reductionparams=reductionparams,
-        #                  pythonfile=pythonfile,
-        #                  starttime=starttime,
-        #                  specialparameters=specialparameters,
-        #                  samplelogs=samplelogs,
-        #                  )
+        # save reduction log
+        filename = os.path.join(reduction_input["configuration"]["outputDir"], outputFilename + '_reduction_log.hdf')
+        starttime = datetime.now().isoformat()
+        pythonfile = __file__
+        reductionparams = {'data': copy.deepcopy(reduction_input),
+                           'filename': 'internal_file'}
+        specialparameters = {'beam_center': {'x': xc,
+                                             'y': yc},
+                             'sample_transmission': sample_transmission_dict,
+                             'background_transmission': background_transmission_dict,
+                             }
+
+        samplelogs = {'main': SampleLogs(loaded_ws.sample[0])}
+        detectordata = {'main': {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}}
+        savereductionlog(filename=filename,
+                         detectordata=detectordata,
+                         reductionparams=reductionparams,
+                         pythonfile=pythonfile,
+                         starttime=starttime,
+                         # specialparameters=specialparameters,
+                         # samplelogs=samplelogs,
+                         )
 
     return output
 

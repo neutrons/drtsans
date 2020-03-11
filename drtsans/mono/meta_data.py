@@ -101,11 +101,15 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
         Sample to Si (window) meta data name
     zero_sample_offset_sample_si_distance: float
         default sample to Si window distance, i.e., distance without sample offset
+    overwrite_sample_si_distance: float or None
+        sample to Si window distance to overwrite.  Unit = mm (consistent with the unit of original meta data)
+    overwrite_sample_detector_distance : float or None
+        sample detector distance to overwrite. Unit = m (consistent with the unit of original meta data)
 
     Returns
     -------
     ~tuple
-        sample offset (float) and detector offset (float)
+        sample offset (float) in unit meter and detector offset (float) in unit meter
 
     """
     # Calculate the sample offset and detector offset without overwriting value
@@ -122,14 +126,20 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
 
     # Get sample detector distance by calculation from instrument geometry directly
     sample_det_distance = sample_detector_distance(workspace, unit='m')
+    print('Sample detector distance = {}'.format(sample_det_distance))
 
     # With overwriting distance(s)
     if overwrite_sample_si_distance is not None or overwrite_sample_detector_distance is not None:
         # 2 cases to handle.  The order must be conserved
         if overwrite_sample_si_distance is not None:
-            # Sample-Si distance is overwritten. NeXus-recorded sample-detector-distance is thus inaccurate
+            # Sample-Si distance is overwritten. NeXus-recorded sample-detector-distance is thus inaccurate.
+            # convert unit of (overwrite)-sample-Si-distance to meter
+            overwrite_sample_si_distance *= 1E-3
+
             # Shift the sample position only without moving detector
-            overwrite_offset = zero_sample_offset_sample_si_distance - overwrite_sample_si_distance
+            overwrite_offset = sample_to_si - overwrite_sample_si_distance
+            print('DEBUG: SampleToSi = {}, SampleToSiOverwrite = {}, Original SampleOffset = {}'
+                  ''.format(sample_to_si, overwrite_sample_si_distance, sample_offset))
             sample_offset += overwrite_offset
             sample_det_distance -= overwrite_offset
             sample_to_si = overwrite_offset

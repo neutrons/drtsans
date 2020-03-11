@@ -103,10 +103,8 @@ def _savereductionparams(nxentry, parameters, name_of_entry):
             _new_entry = nxentry.create_dataset(name=_key, data=str(_value))
             _new_entry.attrs['NX_class'] = 'NXdata'
         else:
-            print("NOT dictionary, so -> key:{} and value:{}".format(_key, _value))
             if _value is None:
                 _value = ''
-            print("---> key:{} and value:{}".format(_key, _value))
             _new_entry = nxentry.create_dataset(name=_key, data=_value)
             _new_entry.attrs['NX_class'] = 'NXdata'
 

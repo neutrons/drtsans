@@ -228,4 +228,3 @@ def test_overwrite_both_distance(generic_IDF):
     # 3. shift the detector position by overwrite-sample-detector distance, i.e., (-4.32 + (1400 - 1250) = 145.68 mm
     assert sample_offset == pytest.approx(-4.32 * 1E-3, 1E-12)
     assert detector_offset == pytest.approx(0.14568, 1E-12)
-

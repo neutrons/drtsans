@@ -16,12 +16,14 @@ from drtsans.mono.gpsans.attenuation import attenuation_factor
 from drtsans.path import registered_workspace
 from drtsans import subtract_background
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
+from drtsans.load import move_instrument
+
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration']
 
-SAMPLE_SI_DISTANCE_METER = 0.0  # meter, i.e., 0. mm)
-
+SAMPLE_SI_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)
+SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
 
 def prepare_data(data,
                  mask_detector=None,
@@ -119,8 +121,9 @@ def prepare_data(data,
                      detector_offset=0, sample_offset=sample_offset)
 
     # Reset the offset
-    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_DISTANCE_METER)
-    # TODO - translate instrument with offsets
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME, SAMPLE_SI_DISTANCE_METER)
+    # Translate instrument with offsets
+    move_instrument(ws, sample_offset, detector_offset)
 
     ws_name = str(ws)
     transform_to_wavelength(ws_name)

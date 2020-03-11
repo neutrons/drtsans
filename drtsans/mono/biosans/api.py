@@ -9,11 +9,14 @@ from drtsans.mono.load import load_events, transform_to_wavelength
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
+from drtsans.load import move_instrument
+
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data']
 
-SAMPLE_SI_DISTANCE_METER = 0.071  # meter, i.e., 71 mm)
+SAMPLE_SI_DISTANCE_METER = 0.071  # meter, (i.e., 71 mm)
+SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
 def prepare_data(data,
@@ -110,8 +113,9 @@ def prepare_data(data,
                      detector_offset=0., sample_offset=0.)
 
     # Reset the offset
-    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_DISTANCE_METER)
-    # TODO - translate instrument with offsets
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME, SAMPLE_SI_DISTANCE_METER)
+    # Translate instrument with offsets
+    move_instrument(ws, sample_offset, detector_offset)
 
     ws_name = str(ws)
     transform_to_wavelength(ws_name)

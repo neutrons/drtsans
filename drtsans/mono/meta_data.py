@@ -84,7 +84,7 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                              LogUnits=log_units)
 
 
-def get_sample_detector_offset(workspace, zero_sample_offset_sample_si_distance,
+def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offset_sample_si_distance,
                                overwrite_sample_si_distance=None, overwrite_sample_detector_distance=None):
     """Get sample offset and detector offset from meta data
 
@@ -97,6 +97,8 @@ def get_sample_detector_offset(workspace, zero_sample_offset_sample_si_distance,
     ----------
     workspace: str, ~mantid.api.MatrixWorkspace
         Mantid workspace instance or workspace name
+    sample_si_meta_name : str
+        Sample to Si (window) meta data name
     zero_sample_offset_sample_si_distance: float
         default sample to Si window distance, i.e., distance without sample offset
 
@@ -109,7 +111,7 @@ def get_sample_detector_offset(workspace, zero_sample_offset_sample_si_distance,
     # Calculate the sample offset and detector offset without overwriting value
     # This is caused by incorrect IDF which does not use SampleToSi.
     sample_logs = SampleLogs(workspace)
-    sample_to_si = sample_logs.find_log_with_units('CG2:CS:SampleToSi', 'mm') * 1E-3
+    sample_to_si = sample_logs.find_log_with_units(sample_si_meta_name, 'mm') * 1E-3
     print('[DEBUG] Sample to Si = {} meter'.format(sample_to_si))
 
     # Offsets: shift both sample and detector to conserve sample-detector distance
@@ -147,4 +149,3 @@ def get_sample_detector_offset(workspace, zero_sample_offset_sample_si_distance,
           ''.format(sample_offset, detector_offset, sample_det_distance, sample_to_si))
 
     return sample_offset, detector_offset
-

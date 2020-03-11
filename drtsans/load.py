@@ -13,7 +13,7 @@ from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, Fi
 import mantid
 
 
-__all__ = ['load_events', 'sum_data', 'load_and_split']
+__all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
 
 
 def __monitor_counts(filename, monitor_name='monitor1'):
@@ -121,6 +121,33 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
     return mtd[output_workspace]
+
+
+def move_instrument(workspace, sample_offset, detector_offset):
+    """Move instrument sample and detector
+
+    Parameters
+    ----------
+    workspace:
+        Workspace with instrument's sample or detector translated along z-axis
+    sample_offset: float
+        sample offset in unit meter
+    detector_offset: float
+        detector offset in unit meter
+
+    Returns
+    -------
+    workspace
+
+    """
+    # Get workspace name
+    workspace_name = str(workspace)
+
+    # Move sample and detector
+    translate_sample_by_z(workspace, sample_offset)
+    translate_detector_by_z(workspace, detector_offset)
+
+    return mtd[workspace_name]
 
 
 def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',

@@ -714,9 +714,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                error_weighted=weighted_errors)
 
         # save ASCII files
-        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.txt')
+        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.dat')
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
-        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.txt')
+        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.dat')
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
 
         iq1d_combined_out = []

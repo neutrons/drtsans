@@ -99,13 +99,13 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             for _w in mtd[ws_name]:
                 _w = transform_to_wavelength(_w)
                 for btp_params in default_mask:
-                    biosans.apply_mask(_w, **btp_params)
+                    biosans.api.apply_mask(_w, **btp_params)
         else:
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
             biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             for btp_params in default_mask:
-                biosans.apply_mask(ws_name, **btp_params)
+                biosans.api.apply_mask(ws_name, **btp_params)
 
     # load all other files
     for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:

@@ -773,20 +773,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         samplelogs = {'main': SampleLogs(processed_data_main),
                       'wing': SampleLogs(processed_data_wing)}
 
-        detectordata = {'combined': {'iq': iq_output_both}}
+        detectordata = {'combined': {'iq': [iq_output_both]}}
         index = 0
         for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
-                                                                  iq2d_main_out, iq2d_wing_out):
-            detectordata["main_{}".format(index)] = _iq1d_main
-
-            _1d_wing_name = "wing_{}".format(_iq1d_wing.getRunNumber())
-            detectordata["main_{}".format(index)] = _iq1d_wing
-
-            _2d_main_name = "main_{}".format(_iq2d_main.getRunNumber())
-            detectordata["main_{}".format(index)] = _iq2d_main
-
-            _2d_wing_name = "wing_{}".format(_iq2d_wing.getRunNumber())
-            detectordata["main_{}".format(index)] = _iq2d_wing
+                                                                  [iq2d_main_out], [iq2d_wing_out]):
+            detectordata["main_{}".format(index)] = {'iq':[_iq1d_main],
+                                                     'iqxqy':_iq2d_main}
+            detectordata["wing_{}".format(index)] = {'iq':[_iq1d_wing],
+                                                     'iqxqy':_iq2d_wing}
 
         savereductionlog(filename=filename,
                          detectordata=detectordata,
@@ -794,7 +788,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          pythonfile=pythonfile,
                          starttime=starttime,
                          specialparameters=specialparameters,
-                         # samplelogs=samplelogs,
+                         samplelogs=samplelogs,
                          )
 
     return output

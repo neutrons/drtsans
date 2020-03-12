@@ -1,4 +1,6 @@
 """ BIOSANS API """
+import copy
+from datetime import datetime
 import os
 import numpy as np
 import ast
@@ -10,9 +12,11 @@ import drtsans
 from drtsans.path import registered_workspace
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
 from drtsans.instruments import extract_run_number
+from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy
 from drtsans.plots import plot_IQmod, plot_IQazimuthal
 from drtsans import subtract_background
+from drtsans.reductionlog import savereductionlog
 from drtsans.mono import biosans
 from drtsans.mono.biosans import solid_angle_correction
 from drtsans.mask_utils import apply_mask, load_mask
@@ -99,13 +103,13 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             for _w in mtd[ws_name]:
                 _w = transform_to_wavelength(_w)
                 for btp_params in default_mask:
-                    biosans.api.apply_mask(_w, **btp_params)
+                    apply_mask(_w, **btp_params)
         else:
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
             biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             for btp_params in default_mask:
-                biosans.api.apply_mask(ws_name, **btp_params)
+                apply_mask(ws_name, **btp_params)
 
     # load all other files
     for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
@@ -116,7 +120,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 print(f"Loading filename {filename}")
                 biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 for btp_params in default_mask:
-                    biosans.api.apply_mask(ws_name, **btp_params)
+                    apply_mask(ws_name, **btp_params)
 
     # do the same for dark current if exists
     dark_current_main = None
@@ -133,7 +137,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                                                       output_workspace=ws_name,
                                                                       **load_params)
                 for btp_params in default_mask:
-                    biosans.api.apply_mask(ws_name, **btp_params)
+                    apply_mask(ws_name, **btp_params)
             else:
                 dark_current_main = mtd[ws_name]
             run_number = extract_run_number(dark_current_file_wing)
@@ -144,7 +148,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                                                       output_workspace=ws_name,
                                                                       **load_params)
                 for btp_params in default_mask:
-                    biosans.api.apply_mask(ws_name, **btp_params)
+                    apply_mask(ws_name, **btp_params)
             else:
                 dark_current_wing = mtd[ws_name]
 
@@ -432,7 +436,14 @@ def process_single_configuration(sample_ws_raw,
     if blocked_ws_raw:
         sample_ws = subtract_background(sample_ws, blocked_ws)
     # apply transmission to the sample
+    transmission_dict = {}
     if sample_trans_ws or sample_trans_value:
+        if sample_trans_value:
+            transmission_dict = {'value': float(sample_trans_value),
+                                 'error': ''}
+        else:
+            transmission_dict = {'value': sample_trans_ws.extractY(),
+                                 'error': sample_trans_ws.extractE()}
         sample_ws = apply_transmission_correction(sample_ws,
                                                   trans_workspace=sample_trans_ws,
                                                   trans_value=sample_trans_value,
@@ -440,6 +451,7 @@ def process_single_configuration(sample_ws_raw,
                                                   output_workspace=output_workspace)
 
     # process background, if not already processed
+    background_transmission_dict = {}
     if bkg_ws_raw:
         bkgd_ws_name = output_suffix + '_background'
         if not registered_workspace(bkgd_ws_name):
@@ -450,6 +462,12 @@ def process_single_configuration(sample_ws_raw,
                 bkgd_ws = subtract_background(bkgd_ws, blocked_ws)
             # apply transmission to bkgd
             if bkg_trans_ws or bkg_trans_value:
+                if bkg_trans_value:
+                    background_transmission_dict = {'value': float(bkg_trans_value),
+                                                    'error': ''}
+                else:
+                    background_transmission_dict = {'value': bkg_trans_ws.extractY(),
+                                                    'error': bkg_trans_ws.extractE()}
                 bkgd_ws = apply_transmission_correction(bkgd_ws,
                                                         trans_workspace=bkg_trans_ws,
                                                         trans_value=bkg_trans_value,
@@ -488,7 +506,8 @@ def process_single_configuration(sample_ws_raw,
     else:
         sample_ws *= absolute_scale
 
-    return mtd[str(sample_ws)]
+    return mtd[str(sample_ws)], {'sample': transmission_dict,
+                                 'background': background_transmission_dict}
 
 
 def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):
@@ -628,54 +647,55 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
-        processed_data_main = process_single_configuration(raw_sample_ws,
-                                                           sample_trans_ws=sample_trans_ws,
-                                                           sample_trans_value=sample_trans_value,
-                                                           bkg_ws_raw=loaded_ws.background,
-                                                           bkg_trans_ws=bkgd_trans_ws,
-                                                           bkg_trans_value=bkg_trans_value,
-                                                           blocked_ws_raw=loaded_ws.blocked_beam,
-                                                           theta_deppendent_transmission=theta_deppendent_transmission,
-                                                           center_x=xc, center_y=yc, center_y_wing=yw,
-                                                           dark_current=loaded_ws.dark_current_main,
-                                                           flux_method=flux_method,
-                                                           mask_detector='wing_detector',
-                                                           mask_ws=loaded_ws.mask,
-                                                           mask_panel=mask_panel,
-                                                           solid_angle=solid_angle,
-                                                           sensitivity_workspace=loaded_ws.sensitivity_main,
-                                                           output_workspace=f'processed_data_main',
-                                                           output_suffix=output_suffix,
-                                                           thickness=thickness,
-                                                           absolute_scale_method=absolute_scale_method,
-                                                           empty_beam_ws=empty_trans_ws,
-                                                           beam_radius=beam_radius,
-                                                           absolute_scale=absolute_scale,
-                                                           keep_processed_workspaces=False)
-        processed_data_wing = process_single_configuration(raw_sample_ws,
-                                                           sample_trans_ws=sample_trans_ws,
-                                                           sample_trans_value=sample_trans_value,
-                                                           bkg_ws_raw=loaded_ws.background,
-                                                           bkg_trans_ws=bkgd_trans_ws,
-                                                           bkg_trans_value=bkg_trans_value,
-                                                           blocked_ws_raw=loaded_ws.blocked_beam,
-                                                           theta_deppendent_transmission=theta_deppendent_transmission,
-                                                           center_x=xc, center_y=yc, center_y_wing=yw,
-                                                           dark_current=loaded_ws.dark_current_wing,
-                                                           flux_method=flux_method,
-                                                           mask_detector='detector1',
-                                                           mask_ws=loaded_ws.mask,
-                                                           mask_panel=mask_panel,
-                                                           solid_angle=solid_angle,
-                                                           sensitivity_workspace=loaded_ws.sensitivity_wing,
-                                                           output_workspace=f'processed_data_wing',
-                                                           output_suffix=output_suffix,
-                                                           thickness=thickness,
-                                                           absolute_scale_method=absolute_scale_method,
-                                                           empty_beam_ws=empty_trans_ws,
-                                                           beam_radius=beam_radius,
-                                                           absolute_scale=absolute_scale,
-                                                           keep_processed_workspaces=False)
+
+        processed_data_main, trans_main = process_single_configuration(raw_sample_ws,
+                                                                       sample_trans_ws=sample_trans_ws,
+                                                                       sample_trans_value=sample_trans_value,
+                                                                       bkg_ws_raw=loaded_ws.background,
+                                                                       bkg_trans_ws=bkgd_trans_ws,
+                                                                       bkg_trans_value=bkg_trans_value,
+                                                                       blocked_ws_raw=loaded_ws.blocked_beam,
+                                                                       theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+                                                                       center_x=xc, center_y=yc, center_y_wing=yw,
+                                                                       dark_current=loaded_ws.dark_current_main,
+                                                                       flux_method=flux_method,
+                                                                       mask_detector='wing_detector',
+                                                                       mask_ws=loaded_ws.mask,
+                                                                       mask_panel=mask_panel,
+                                                                       solid_angle=solid_angle,
+                                                                       sensitivity_workspace=loaded_ws.sensitivity_main,  # noqa E502
+                                                                       output_workspace=f'processed_data_main_{i}',
+                                                                       output_suffix=output_suffix,
+                                                                       thickness=thickness,
+                                                                       absolute_scale_method=absolute_scale_method,
+                                                                       empty_beam_ws=empty_trans_ws,
+                                                                       beam_radius=beam_radius,
+                                                                       absolute_scale=absolute_scale,
+                                                                       keep_processed_workspaces=False)
+        processed_data_wing, trans_wing = process_single_configuration(raw_sample_ws,
+                                                                       sample_trans_ws=sample_trans_ws,
+                                                                       sample_trans_value=sample_trans_value,
+                                                                       bkg_ws_raw=loaded_ws.background,
+                                                                       bkg_trans_ws=bkgd_trans_ws,
+                                                                       bkg_trans_value=bkg_trans_value,
+                                                                       blocked_ws_raw=loaded_ws.blocked_beam,
+                                                                       theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+                                                                       center_x=xc, center_y=yc, center_y_wing=yw,
+                                                                       dark_current=loaded_ws.dark_current_wing,
+                                                                       flux_method=flux_method,
+                                                                       mask_detector='detector1',
+                                                                       mask_ws=loaded_ws.mask,
+                                                                       mask_panel=mask_panel,
+                                                                       solid_angle=solid_angle,
+                                                                       sensitivity_workspace=loaded_ws.sensitivity_wing,  # noqa E502
+                                                                       output_workspace=f'processed_data_wing_{i}',
+                                                                       output_suffix=output_suffix,
+                                                                       thickness=thickness,
+                                                                       absolute_scale_method=absolute_scale_method,
+                                                                       empty_beam_ws=empty_trans_ws,
+                                                                       beam_radius=beam_radius,
+                                                                       absolute_scale=absolute_scale,
+                                                                       keep_processed_workspaces=False)
 
         # binning
         iq2d_main_in = biosans.convert_to_q(processed_data_main, mode='azimuthal')
@@ -734,6 +754,44 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                      I1D_wing=iq1d_wing_out,
                                      I1D_combined=iq1d_combined_out)
         output.append(current_output)
+
+        # save reduction log
+
+        filename = os.path.join(reduction_input["configuration"]["outputDir"], outputFilename + '_reduction_log.hdf')
+        starttime = datetime.now().isoformat()
+        pythonfile = __file__
+        reductionparams = {'data': copy.deepcopy(reduction_input),
+                           'filename': 'internal_file'}
+        specialparameters = {'beam_center': {'x': xc,
+                                             'y': yc,
+                                             'y_wing': yw},
+                             'sample_transmission': {'main': trans_main['sample'],
+                                                     'wing': trans_wing['sample']},
+                             'background_transmission': {'main': trans_main['background'],
+                                                         'wing': trans_wing['background']}
+                             }
+
+        samplelogs = {'main': SampleLogs(processed_data_main),
+                      'wing': SampleLogs(processed_data_wing)}
+
+        detectordata = {'combined': {'iq': [iq_output_both]}}
+        index = 0
+        for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
+                                                                  [iq2d_main_out], [iq2d_wing_out]):
+            detectordata["main_{}".format(index)] = {'iq': [_iq1d_main],
+                                                     'iqxqy': _iq2d_main}
+            detectordata["wing_{}".format(index)] = {'iq': [_iq1d_wing],
+                                                     'iqxqy': _iq2d_wing}
+
+        savereductionlog(filename=filename,
+                         detectordata=detectordata,
+                         reductionparams=reductionparams,
+                         pythonfile=pythonfile,
+                         starttime=starttime,
+                         specialparameters=specialparameters,
+                         samplelogs=samplelogs,
+                         )
+
     return output
 
 

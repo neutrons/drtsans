@@ -96,12 +96,14 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
         kwargs = args[0]._asdict()
     except AttributeError:
         pass
-    qx = kwargs['qx']
-    qy = kwargs['qy']
-    intensity = kwargs['intensity']
-    error = kwargs['error']
-    dqx = kwargs['delta_qx']
-    dqy = kwargs['delta_qy']
+    # make everything a 1d array
+    # this does nothing if the array is already 1d
+    qx = kwargs['qx'].ravel()
+    qy = kwargs['qy'].ravel()
+    intensity = kwargs['intensity'].ravel()
+    error = kwargs['error'].ravel()
+    dqx = kwargs['delta_qx'].ravel()
+    dqy = kwargs['delta_qy'].ravel()
 
     print(qx.shape, qy.shape, intensity.shape)
     with open(filename, "w+") as f:
@@ -110,14 +112,13 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
                 + '       dQx (1/A)       dQy (1/A)\n')
         f.write('ASCII data\n\n')
 
-        for i in range(len(qx)):
-            for j in range(len(qy)):
-                f.write('{:.6E}\t'.format(qx[i]))
-                f.write('{:.6E}\t'.format(qy[j]))
-                f.write('{:.6E}\t'.format(intensity[i, j]))
-                f.write('{:.6E}\t'.format(error[i, j]))
-                f.write('{:.6E}\t'.format(dqx[i, j]))
-                f.write('{:.6E}\n'.format(dqy[i, j]))
+        for i in range(len(intensity)):
+            f.write('{:.6E}\t'.format(qx[i]))
+            f.write('{:.6E}\t'.format(qy[i]))
+            f.write('{:.6E}\t'.format(intensity[i]))
+            f.write('{:.6E}\t'.format(error[i]))
+            f.write('{:.6E}\t'.format(dqx[i]))
+            f.write('{:.6E}\n'.format(dqy[i]))
 
 
 def save_ascii_2D(q2, q2x, q2y, title, filename):

@@ -1,15 +1,17 @@
 from mantid.simpleapi import (mtd, LoadNexusMonitors)
-from drtsans.settings import amend_config
+from drtsans.settings import amend_config, namedtuplefy
 from drtsans.samplelogs import SampleLogs
 from drtsans.load import load_events as generic_load_events, sum_data, load_and_split
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.tof.eqsans.geometry import source_monitor_distance
-from drtsans.tof.eqsans.correct_frame import (correct_detector_frame, correct_monitor_frame, transform_to_wavelength)
+from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
+                                              correct_monitor_frame, transform_to_wavelength, smash_monitor_spikes)
 from drtsans.instruments import extract_run_number, instrument_enum_name
 from drtsans.process_uncertainties import set_init_uncertainties
 import os
 
-__all__ = ['load_events', 'load_events_monitor', 'sum_data', 'load_events_and_histogram', 'load_and_split']
+__all__ = ['load_events', 'load_events_monitor', 'sum_data', 'load_events_and_histogram',
+           'load_and_split', 'prepare_monitors']
 
 
 def load_events_monitor(run, data_dir=None, output_workspace=None):
@@ -48,6 +50,30 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
                                         unit='mm')
     correct_monitor_frame(output_workspace)
     return mtd[output_workspace]
+
+
+def prepare_monitors(data, bin_width=0.1, output_workspace=None):
+    r"""
+    Loads monitor counts, correct TOF, and transforms to wavelength.
+
+    Parameters
+    ----------
+    data: int, str, ~mantid.api.IEventWorkspace
+        Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    bin_width: float
+        Bin width for the output workspace, in Angstroms.
+    output_workspace: str
+        Name of the output workspace. If None, then it will be
+        ``EQSANS_XXXXX_monitors`` with number XXXXX determined from ``data``.
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+    """
+    w = load_events_monitor(data, output_workspace=output_workspace)
+    w = smash_monitor_spikes(w)
+    w = transform_to_wavelength(w, bin_width=bin_width)
+    return w
 
 
 def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
@@ -106,9 +132,12 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     return mtd[output_workspace]
 
 
+@namedtuplefy
 def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
                               data_dir=None, output_workspace=None, output_suffix='',
-                              center_x=None, center_y=None, mask=None,
+                              bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
+                              center_x=None, center_y=None, mask=None, monitors=False,
+                              keep_events=True,
                               **kwargs):
     r"""Load events from one or more NeXus files with initial corrections
     for geometry, time-of-flight and beam center. Convert to
@@ -142,6 +171,14 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
+    bin_width: float
+        Bin width for the output workspace, in Angstroms.
+    low_tof_clip: float
+        Ignore events with a time-of-flight (TOF) smaller than the minimal
+        TOF plus this quantity.
+    high_tof_clip: float
+        Ignore events with a time-of-flight (TOF) bigger than the maximal
+        TOF minus this quantity.
     center_x: float
         Move the center of the detector to this X-coordinate. If :py:obj:`None`, the
         detector will be moved such that the X-coordinate of the intersection
@@ -153,22 +190,36 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
     mask: mask file path, MaskWorkspace, list
         Additional mask to be applied. If `list`, it is a list of
         detector ID's.
+    monitors: boolean
+        Option to load the monitors as well as the data, if False monitor will be None
+    keep_events: bool
+        The final histogram will be an EventsWorkspace if True.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
     Returns
     -------
-    ~mantid.api.IEventWorkspace
-        Reference to the events workspace
-
+    namedtuple
+        Fields of namedtuple
+        data: the loaded data
+        monitor: the monitor for the data, if monitors==True else None
     """
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):
         run = [r.strip() for r in run.split(',')]
 
-    # if only one run just load and transform to wavelength adn return workspace
+    if output_workspace is not None:
+        monitor_workspace = output_workspace + "_monitors"
+    else:
+        monitor_workspace = None
+    # if only one run just load and transform to wavelength and return workspace
     if len(run) == 1:
+        if monitors:
+            ws_monitors = prepare_monitors(run[0], bin_width, monitor_workspace)
+        else:
+            ws_monitors = None
+
         ws = load_events(run=run[0],
                          detector_offset=detector_offset,
                          sample_offset=sample_offset,
@@ -182,9 +233,15 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
             center_x, center_y = find_beam_center(ws, mask=mask)
         center_detector(ws, center_x=center_x, center_y=center_y)  # operates in-place
 
-        ws = transform_to_wavelength(ws)
+        ws = transform_to_wavelength(ws, bin_width=bin_width,
+                                     low_tof_clip=low_tof_clip,
+                                     high_tof_clip=high_tof_clip,
+                                     keep_events=keep_events)
+
         ws = set_init_uncertainties(ws)
-        return ws
+
+        return dict(data=ws,
+                    monitor=ws_monitors)
     else:
         instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
 
@@ -196,10 +253,15 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
 
         # list of worksapce to sum
         temp_workspaces = []
+        temp_monitors_workspaces = []
 
         # load and transform each workspace in turn
         for n, r in enumerate(run):
             temp_workspace_name = '__tmp_ws_{}'.format(n)
+            temp_monitors_workspace_name = temp_workspace_name+"_monitors"
+            if monitors:
+                prepare_monitors(r, bin_width, temp_monitors_workspace_name)
+
             load_events(run=r,
                         detector_offset=detector_offset,
                         sample_offset=sample_offset,
@@ -211,8 +273,21 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
             if center_x is None or center_y is None:
                 center_x, center_y = find_beam_center(temp_workspace_name, mask=mask)
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
-            transform_to_wavelength(temp_workspace_name, keep_events=False)
+            transform_to_wavelength(temp_workspace_name,
+                                    bin_width=bin_width,
+                                    low_tof_clip=low_tof_clip,
+                                    high_tof_clip=high_tof_clip,
+                                    keep_events=keep_events)
             temp_workspaces.append(temp_workspace_name)
+
+        # Sum temporary loaded monitor workspaces
+        if monitors:
+            ws_monitors = sum_data(temp_monitors_workspaces,
+                                   output_workspace=monitor_workspace)
+            # After summing data re-calculate initial uncertainties
+            ws_monitors = set_init_uncertainties(ws_monitors)
+        else:
+            ws_monitors = None
 
         # Sum temporary loaded workspaces
         ws = sum_data(temp_workspaces,
@@ -226,4 +301,5 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
             if mtd.doesExist(ws_name):
                 mtd.remove(ws_name)
 
-        return ws
+        return dict(data=ws,
+                    monitor=ws_monitors)

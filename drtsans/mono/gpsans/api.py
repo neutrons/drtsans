@@ -17,7 +17,7 @@ from drtsans.reductionlog import savereductionlog
 from drtsans.solid_angle import solid_angle_correction
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.mask_utils import apply_mask, load_mask
-from drtsans.mono.load import load_events, transform_to_wavelength, load_events_and_histogram
+from drtsans.mono.load import load_events, transform_to_wavelength, load_events_and_histogram, load_and_split
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
@@ -68,11 +68,54 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         default_mask = [ast.literal_eval(mask_par) for mask_par in reduction_input["configuration"]["DefaultMask"]]
     else:
         default_mask = []
-    for run_number in [center, sample, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
+
+    path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
+
+    # check for time/log slicing
+    timeslice = reduction_input["configuration"].get("timeslice")
+    logslice = reduction_input["configuration"].get("logslice")
+
+    if timeslice and logslice:
+        raise ValueError("Can't do both time slicing and log slicing")
+
+    if timeslice or logslice:
+        if len(sample.split(',')) > 1:
+            raise ValueError("Can't do slicing on summed data sets")
+
+    # special loading case for sample to allow the slicing options
+    ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
+    if not registered_workspace(ws_name):
+        if timeslice or logslice:
+            filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
+            print(f"Loading filename {filename}")
+            if timeslice:
+                timesliceinterval = float(reduction_input["configuration"]["timesliceinterval"])
+                logslicename = None
+                logsliceinterval = None
+            elif logslice:
+                timesliceinterval = None
+                logslicename = reduction_input["configuration"]["logslicename"]
+                logsliceinterval = float(reduction_input["configuration"]["logsliceinterval"])
+            load_and_split(filename, output_workspace=ws_name,
+                           time_interval=timesliceinterval,
+                           log_name=logslicename, log_value_interval=logsliceinterval,
+                           **load_params)
+            for _w in mtd[ws_name]:
+                _w = transform_to_wavelength(_w)
+                for btp_params in default_mask:
+                    apply_mask(_w, **btp_params)
+        else:
+            filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
+            print(f"Loading filename {filename}")
+            load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            for btp_params in default_mask:
+                apply_mask(ws_name, **btp_params)
+
+    # load all other files
+    for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
-                path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
                 load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
@@ -119,6 +162,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     print('Done loading')
 
     raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']
+    if raw_sample_ws.id() == 'WorkspaceGroup':
+        raw_sample_ws_list = [w for w in raw_sample_ws]
+    else:
+        raw_sample_ws_list = [raw_sample_ws]
     raw_bkgd_ws = mtd[f'{prefix}_{instrument_name}_{bkgd}_raw_histo'] if bkgd else None
     raw_blocked_ws = mtd[f'{prefix}_{instrument_name}_{blocked_beam}_raw_histo'] if blocked_beam else None
     raw_center_ws = mtd[f'{prefix}_{instrument_name}_{center}_raw_histo']
@@ -127,7 +174,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     raw_bkg_trans_ws = mtd[f'{prefix}_{instrument_name}_{bkgd_trans}_raw_histo'] if bkgd_trans else None
     sensitivity_ws = mtd[sensitivity_ws_name] if sensitivity_ws_name else None
 
-    return dict(sample=[raw_sample_ws],
+    return dict(sample=raw_sample_ws_list,
                 background=raw_bkgd_ws,
                 center=raw_center_ws,
                 empty=raw_empty_ws,
@@ -741,7 +788,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     return output
 
 
-def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None):
+def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):
     output_dir = reduction_input["configuration"]["outputDir"]
     outputFilename = reduction_input["outputFilename"]
     output_suffix = ''
@@ -757,5 +804,5 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             if len(out.I1D_main) > 1:
                 add_suffix = f'_wedge_{j}'
             filename = os.path.join(output_dir, '1D', f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
-            plot_IQmod([out.I1D_main[j]], filename, loglog=True,
+            plot_IQmod([out.I1D_main[j]], filename, loglog=loglog,
                        backend='mpl', errorbar_kwargs={'label': 'main'})

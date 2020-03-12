@@ -654,7 +654,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        bkg_trans_ws=bkgd_trans_ws,
                                                                        bkg_trans_value=bkg_trans_value,
                                                                        blocked_ws_raw=loaded_ws.blocked_beam,
-                                                                       theta_deppendent_transmission=
+                                                                       theta_deppendent_transmission=\
                                                                        theta_deppendent_transmission,
                                                                        center_x=xc, center_y=yc, center_y_wing=yw,
                                                                        dark_current=loaded_ws.dark_current_main,

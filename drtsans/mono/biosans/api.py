@@ -654,8 +654,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        bkg_trans_ws=bkgd_trans_ws,
                                                                        bkg_trans_value=bkg_trans_value,
                                                                        blocked_ws_raw=loaded_ws.blocked_beam,
-                                                                       theta_deppendent_transmission=\
-                                                                       theta_deppendent_transmission,
+                                                                       theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
                                                                        center_x=xc, center_y=yc, center_y_wing=yw,
                                                                        dark_current=loaded_ws.dark_current_main,
                                                                        flux_method=flux_method,
@@ -663,8 +662,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        mask_ws=loaded_ws.mask,
                                                                        mask_panel=mask_panel,
                                                                        solid_angle=solid_angle,
-                                                                       sensitivity_workspace=
-                                                                       loaded_ws.sensitivity_main,
+                                                                       sensitivity_workspace=loaded_ws.sensitivity_main,  # noqa E502
                                                                        output_workspace=f'processed_data_main_{i}',
                                                                        output_suffix=output_suffix,
                                                                        thickness=thickness,
@@ -680,8 +678,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        bkg_trans_ws=bkgd_trans_ws,
                                                                        bkg_trans_value=bkg_trans_value,
                                                                        blocked_ws_raw=loaded_ws.blocked_beam,
-                                                                       theta_deppendent_transmission=
-                                                                       theta_deppendent_transmission,
+                                                                       theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
                                                                        center_x=xc, center_y=yc, center_y_wing=yw,
                                                                        dark_current=loaded_ws.dark_current_wing,
                                                                        flux_method=flux_method,
@@ -689,8 +686,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        mask_ws=loaded_ws.mask,
                                                                        mask_panel=mask_panel,
                                                                        solid_angle=solid_angle,
-                                                                       sensitivity_workspace=
-                                                                       loaded_ws.sensitivity_wing,
+                                                                       sensitivity_workspace=loaded_ws.sensitivity_wing,  # noqa E502
                                                                        output_workspace=f'processed_data_wing_{i}',
                                                                        output_suffix=output_suffix,
                                                                        thickness=thickness,

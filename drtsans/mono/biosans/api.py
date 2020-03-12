@@ -647,6 +647,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
+
         processed_data_main, trans_main = process_single_configuration(raw_sample_ws,
                                                                        sample_trans_ws=sample_trans_ws,
                                                                        sample_trans_value=sample_trans_value,

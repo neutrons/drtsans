@@ -654,7 +654,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        bkg_trans_ws=bkgd_trans_ws,
                                                                        bkg_trans_value=bkg_trans_value,
                                                                        blocked_ws_raw=loaded_ws.blocked_beam,
-                                                                       theta_deppendent_transmission=theta_deppendent_transmission,
+                                                                       theta_deppendent_transmission=
+                                                                       theta_deppendent_transmission,
                                                                        center_x=xc, center_y=yc, center_y_wing=yw,
                                                                        dark_current=loaded_ws.dark_current_main,
                                                                        flux_method=flux_method,
@@ -662,7 +663,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        mask_ws=loaded_ws.mask,
                                                                        mask_panel=mask_panel,
                                                                        solid_angle=solid_angle,
-                                                                       sensitivity_workspace=loaded_ws.sensitivity_main,
+                                                                       sensitivity_workspace=
+                                                                       loaded_ws.sensitivity_main,
                                                                        output_workspace=f'processed_data_main_{i}',
                                                                        output_suffix=output_suffix,
                                                                        thickness=thickness,
@@ -678,7 +680,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        bkg_trans_ws=bkgd_trans_ws,
                                                                        bkg_trans_value=bkg_trans_value,
                                                                        blocked_ws_raw=loaded_ws.blocked_beam,
-                                                                       theta_deppendent_transmission=theta_deppendent_transmission,
+                                                                       theta_deppendent_transmission=
+                                                                       theta_deppendent_transmission,
                                                                        center_x=xc, center_y=yc, center_y_wing=yw,
                                                                        dark_current=loaded_ws.dark_current_wing,
                                                                        flux_method=flux_method,
@@ -686,7 +689,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        mask_ws=loaded_ws.mask,
                                                                        mask_panel=mask_panel,
                                                                        solid_angle=solid_angle,
-                                                                       sensitivity_workspace=loaded_ws.sensitivity_wing,
+                                                                       sensitivity_workspace=
+                                                                       loaded_ws.sensitivity_wing,
                                                                        output_workspace=f'processed_data_wing_{i}',
                                                                        output_suffix=output_suffix,
                                                                        thickness=thickness,
@@ -777,10 +781,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         index = 0
         for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
                                                                   [iq2d_main_out], [iq2d_wing_out]):
-            detectordata["main_{}".format(index)] = {'iq':[_iq1d_main],
-                                                     'iqxqy':_iq2d_main}
-            detectordata["wing_{}".format(index)] = {'iq':[_iq1d_wing],
-                                                     'iqxqy':_iq2d_wing}
+            detectordata["main_{}".format(index)] = {'iq': [_iq1d_main],
+                                                     'iqxqy': _iq2d_main}
+            detectordata["wing_{}".format(index)] = {'iq': [_iq1d_wing],
+                                                     'iqxqy': _iq2d_wing}
 
         savereductionlog(filename=filename,
                          detectordata=detectordata,

@@ -929,9 +929,10 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         Additional pieces of data returned by this function in order to assess the correctness of the barscan
         calculation. These data are returned as a dictionary with the current entries:
         - bar_positions: list of Y-coordinates of the bar for each scan holding the bar at a particular position.
-        - bar workspaces: list of ~mantid.api.MatrixWorkspace objects, each containing
+        - bar workspaces: list of ~mantid.api.MatrixWorkspace objects, each containing the bar at a particular
+        position.
         - bottom_shadow_pixels: ~numpy.ndarray of shape (number of scans, number of tubes) listing the indexes for
-          the pixels shadowed by the lower portion of the bar.
+        the pixels shadowed by the lower portion of the bar.
 
     Returns
     -------

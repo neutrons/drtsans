@@ -14,6 +14,7 @@ from mantid.api import mtd # noqa E402
 from drtsans.tubecollection import TubeCollection # noqa E402
 from drtsans.dataobjects import DataType, getDataType # noqa E402
 from drtsans.geometry import panel_names # noqa E402
+from drtsans.iq import get_wedges # noqa E402
 
 __all__ = ['plot_IQmod', 'plot_IQazimuthal', 'plot_detector']
 
@@ -165,6 +166,9 @@ def plot_IQmod(workspaces, filename, loglog=True, backend='d3',
 
 
 def plot_IQazimuthal(workspace, filename, backend='d3',
+                     qmin=None, qmax=None,
+                     wedges=None, symmetric_wedges=True,
+                     mask_alpha=0.6,
                      imshow_kwargs={}, **kwargs):
     '''Save a plot representative of the supplied workspace
 
@@ -175,6 +179,18 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
+    qmin: float
+        minimum 1D Q for plotting selection area
+    qmax: float
+        maximum 1D Q for plotting selection area
+    wedges: list
+        list of tuples (angle_min, angle_max) for the wedges. Select wedges to plot.
+        Both numbers have to be in the [-90,270) range. It will add the wedge offset
+        by 180 degrees dependent on ``symmetric_wedges``
+    symmetric_wedges: bool
+        Add the wedge offset by 180 degrees if True
+    mask_alpha: float
+        Opacity for for selection area
     backend: Backend
         Which backend to save the file using
     imshow_kwargs: dict
@@ -192,11 +208,54 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
     qymin = workspace.qy.min()
     qymax = workspace.qy.max()
 
+    # create region of interest overlay
+    roi = None
+    if qmin is not None:
+        # no need to check for exsting roi
+        roi = np.square(workspace.qx) + np.square(workspace.qy) > np.square(qmin)
+    if qmax is not None:
+        roi_qmax = np.square(workspace.qx) + np.square(workspace.qy) < np.square(qmax)
+        if roi is None:
+            roi = roi_qmax
+        else:
+            roi = np.logical_and(roi, roi_qmax)
+    if wedges is not None:
+        # create bool array selecting nothing
+        roi_wedges = np.logical_not(workspace.qx < 1000.)
+        # expand the supplied variables into an easier form
+        wedge_angles = []
+        for wedge in [get_wedges(left, right, symmetric_wedges) for (left, right) in wedges]:
+            wedge_angles.extend(wedge)
+
+        # create the individual selections and combine with 'or'
+        azimuthal = np.rad2deg(np.arctan2(workspace.qy, workspace.qx))
+        azimuthal[azimuthal <= -90.] += 360.
+        for left, right in wedge_angles:
+            wedge = np.logical_and((azimuthal > left), (azimuthal < right))
+            roi_wedges = np.logical_or(roi_wedges, wedge)
+
+        # combine with existing roi
+        if roi is None:
+            roi = roi_wedges
+        else:
+            roi = np.logical_and(roi, roi_wedges)
+
+    # put together the plot
     fig, ax = plt.subplots()
     current_cmap = matplotlib.cm.get_cmap()
     current_cmap.set_bad(color='grey')
     pcm = ax.imshow(workspace.intensity.T, extent=(qxmin, qxmax, qymin, qymax),
                     origin='lower', aspect='auto', **imshow_kwargs)
+    # add calculated region of interest
+    if roi is not None:
+        roi = np.ma.masked_where(roi, roi.astype(int))
+        ax.imshow(roi, alpha=mask_alpha, extent=(qxmin, qxmax, qymin, qymax),
+                  cmap='gray', vmax=roi.max(),
+                  interpolation='none',
+                  origin='lower', aspect='auto')
+        pcm.cmap.set_bad(alpha=0.5)
+
+    # rest of plotting arguments
     fig.colorbar(pcm, ax=ax)
     ax.set_xlabel(_q_label(backend, 'x'))
     ax.set_ylabel(_q_label(backend, 'y'))

@@ -102,6 +102,15 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                    **load_params)
             for _w in mtd[ws_name]:
                 _w = transform_to_wavelength(_w)
+                # Overwrite meta data
+                set_meta_data(str(_w),
+                              wave_length=wavelength,
+                              wavelength_spread=wavelengthSpread,
+                              sample_thickness=None,
+                              sample_aperture_diameter=None,
+                              source_aperture_diameter=None,
+                              pixel_size_x=None,
+                              pixel_size_y=None)
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
         else:

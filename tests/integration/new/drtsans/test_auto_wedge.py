@@ -5,11 +5,18 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 '''
 import pytest
 import numpy as np
-from drtsans.dataobjects import IQazimuthal, IQmod
-from drtsans import getWedgeSelection
-# test internal functions
+import os
 from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
-from drtsans.iq import _toQmodAndAzimuthal
+from drtsans.dataobjects import IQazimuthal, IQmod
+from drtsans.determine_bins import determine_1d_linear_bins
+from drtsans import getWedgeSelection
+from drtsans.mono import biosans
+from drtsans.plots import plot_IQazimuthal
+# test internal function _toQmodAndAzimuthal as well
+from drtsans.iq import _toQmodAndAzimuthal, BinningMethod, bin_intensity_into_q2d, select_i_of_q_by_wedge
+from matplotlib.colors import LogNorm # noqa E402
+from mantid.simpleapi import LoadNexusProcessed
+from tempfile import NamedTemporaryFile
 
 
 def _create_2d_data():
@@ -436,6 +443,47 @@ def test_integration():
     assert 0.5 * (mins_and_maxes[3][0] + mins_and_maxes[3][1]) == pytest.approx(90., abs=5.), 'Forth center is at 90.'
     assert mins_and_maxes[3][0] == pytest.approx(76., abs=.5)
     assert mins_and_maxes[3][1] == pytest.approx(111., abs=.5)
+
+
+def test_real_data_biosans(reference_dir):
+    MSamp_fn = os.path.join(reference_dir.new.biosans, 'CG3_127_5532_mBSub.h5')
+    MBuff_fn = os.path.join(reference_dir.new.biosans, 'CG3_127_5562_mBSub.h5')
+
+    ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace='sample', LoadHistory=False)
+    ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace='Main_buffer', LoadHistory=False)
+    ws_ms -= ws_mb  # subtract the buffer
+    ws_mb.delete()
+
+    # convert to I(qx,qy)
+    q2d_data = biosans.convert_to_q(ws_ms, mode='azimuthal')
+    ws_ms.delete()
+
+    # calculate the wedge angles to use
+    wedge_angles = getWedgeSelection(q2d_data, 0.00, 0.001, 0.02, 0.5, peak_width=0.25,
+                                     background_width=1.5, signal_to_noise_min=1.2)
+    assert len(wedge_angles) == 4, 'Expect 4 separate wedges'
+
+    # use these to integrate the wedges
+    for azi_min, azi_max in wedge_angles:
+        print('integrating from {}deg to {} deg'.format(azi_min, azi_max))
+        iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
+        assert iq_wedge
+
+    # rebin the data onto a regular grid for plotting
+    nbins = 100.
+    linear_x_bins = determine_1d_linear_bins(q2d_data.qx.min(), q2d_data.qx.max(), nbins)
+    linear_y_bins = determine_1d_linear_bins(q2d_data.qy.min(), q2d_data.qy.max(), nbins)
+    q2d_data = bin_intensity_into_q2d(q2d_data, linear_x_bins, linear_y_bins, BinningMethod.NOWEIGHT)
+
+    # save an image
+    filename = NamedTemporaryFile(delete=False, prefix='CG3_127_5532_Iqxqy', suffix='.png').name
+    plot_IQazimuthal(q2d_data, filename, backend='mpl', wedges=wedge_angles, symmetric_wedges=False,
+                     imshow_kwargs={'norm': LogNorm()})
+    print('saved image to', filename)
+
+    # verify the plot was created and remove the file
+    assert os.path.exists(filename), '"{}" does not exist'.format(filename)
+    os.remove(filename)
 
 
 if __name__ == '__main__':

@@ -14,8 +14,8 @@ LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import (AddSampleLog, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus, LoadNexus,
-                              SaveNexus)
+from mantid.simpleapi import (AddSampleLog, CreateWorkspace, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus,
+                              LoadNexus, SaveNexus)
 
 r"""
 Hyperlinks to drtsans functions
@@ -405,6 +405,43 @@ def test_debug_biosans_wing_detector_barscan(reference_dir):
     calibration.save(database='/tmp/junk.json', tablefile='junk.nxs')
     LoadEventNexus(barscan_files[0], OutputWorkspace='reference_workspace')
     views = calibration.as_intensities('reference_workspace')
+    print(views)
+
+
+def test_gpsans_tube_calibration(reference_dir):
+    r"""Calculate tube widths from a flood file"""
+    flood_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_8143.nxs')
+    uncalibrated_workspace = unique_workspace_dundername()
+    LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
+    calibration = calculate_apparent_tube_width(uncalibrated_workspace, load_barscan_calibration=False)
+    calibrated_workspace = unique_workspace_dundername()
+    calibration.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
+
+    def linear_density(workspace):
+        r"""Tube total intensity per unit length of tube width"""
+        collection = TubeCollection(workspace, 'detector1').sorted(view='decreasing X')
+        intensities = np.array([np.sum(tube.readY) for tube in collection])
+        widths = np.array([tube[0].width for tube in collection])
+        return list(intensities / widths)
+
+    def amplitude(density):
+        return np.std(density) / np.mean(density)
+
+    uncalibrated_densities = linear_density(uncalibrated_workspace)
+    calibrated_densities = linear_density(calibrated_workspace)
+    assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.13, abs=0.01)
+
+    number_tubes = len(uncalibrated_densities)
+    comparison_workspace = unique_workspace_dundername()
+    CreateWorkspace(DataX=range(number_tubes),
+                    DataY=np.array([uncalibrated_densities, calibrated_densities]),
+                    NSpec=2,
+                    Outputworkspace=comparison_workspace)
+    uncalibrated_wiggle = np.std(uncalibrated_densities) / np.mean(uncalibrated_densities)
+    calibrated_wiggle = np.std(calibrated_densities) / np.mean(calibrated_densities)
+    assert calibrated_wiggle / uncalibrated_wiggle == pytest.approx(0.13, abs=0.01)
+    SaveNexus(comparison_workspace, '/tmp/comparison.nxs')
+    views = calibration.as_intensities()
     print(views)
 
 

@@ -25,10 +25,10 @@ MaskDetectorsIf <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors
 ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import (ApplyCalibration, CloneWorkspace, CreateEmptyTableWorkspace, CreateWorkspace,
+from mantid.simpleapi import (ApplyCalibration, ClearMaskFlag, CloneWorkspace, CreateEmptyTableWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
-                              LoadEmptyInstrument, LoadInstrument, LoadEventNexus, LoadNexus, MaskDetectors,
-                              MaskDetectorsIf, ReplaceSpecialValues, SaveNexus)
+                              LoadEventNexus, LoadNexus, MaskDetectors, MaskDetectorsIf, Rebin,
+                              ReplaceSpecialValues, SaveNexus)
 from mantid.api import mtd
 
 r"""
@@ -51,6 +51,7 @@ __all__ = ['apply_calibrations', 'as_intensities', 'calculate_apparent_tube_widt
 r"""Flags a problem when running the barscan algorithm that identifies the pixel corresponding
 to the bottom of the shadow cast by the bar on the detector array."""
 INCORRECT_PIXEL_ASSIGNMENT = -1
+
 
 r"""Default files storing the metadata of the pixel calibrations. There's one file for each instrument."""
 database_file = {InstrumentEnumName.BIOSANS: '/HFIR/CG3/shared/calibration/pixel_calibration.json',
@@ -391,7 +392,7 @@ class Table:
             json.dump(entries, json_file)
 
     @namedtuplefy
-    def as_intensities(self):
+    def as_intensities(self, reference_workspace):
         r"""
         Returns one workspace for each pixel property that is calibrated (e.g., pixel height),
         and the calibration datum is stored as the intensity value for that pixel. Intended to
@@ -414,6 +415,11 @@ class Table:
         :ref:`LoadInstrument <algm-LoadInstrument-v1>`,
         <https://docs.mantidproject.org/algorithms/LoadInstrument-v1.html>
 
+        Parameters
+        ----------
+        reference_workspace: str, ~mantid.api.MatrixWorkspace, , ~mantid.api.IEventsWorkspace
+            Workspace having the same embedded instrument as the instrument used in the barscan calculation
+
         Returns
         -------
         namedtuple
@@ -422,29 +428,38 @@ class Table:
             - 'widths' for a TUBEWIDTH calibration
         """
 
-        empty_instrument = LoadEmptyInstrument(InstrumentName=self.instrument,
-                                               OutputWorkspace=unique_workspace_dundername())
-        # Find workspace indexes having a calibrated detector
+        # Create the template workspace for the views. It will contain a single intensity value per histogram
+        reference = unique_workspace_dundername()
+        # We only need one intensity value per histogram
+        Rebin(InputWorkspace=reference_workspace, OutputWorkspace=reference, Params=1, PreserveEvents=False)
+        # In the event that the reference workspace has any of the calibrated detector pixels masked, we have to
+        # preemptively clear the mask of all pixels
+        ClearMaskFlag(Workspace=reference)
+
+        # Find workspace indexes having a calibrated detector, otherwise flag them to be masked
         detector_ids = self.detector_ids
         wi_to_ri = []  # from workspace index to table's row index
-        for workspace_index in range(empty_instrument.getNumberHistograms()):
-            detector = empty_instrument.getDetector(workspace_index)  # associated detector pixel
+        workspace_indexes_to_mask = []
+        get_detector = mtd[reference].getDetector
+        for workspace_index in range(mtd[reference].getNumberHistograms()):
+            detector = get_detector(workspace_index)  # associated detector pixel
             try:
                 # Find the entry in the calibration table for the detector with a particular detector ID
                 wi_to_ri.append((workspace_index, detector_ids.index(detector.getID())))
             except ValueError:  # This detector was not calibrated, thus is not in detector_ids
+                workspace_indexes_to_mask.append(workspace_index)
                 continue
 
+        # Mask those uncalibrated detectors
+        MaskDetectors(Workspace=reference, WorkspaceIndexList=workspace_indexes_to_mask)
+
         def transfer_values_to_workspace(property_values, property_name):
-            intensities = empty_instrument.extractY()  # extractY returns a copy
+            r"""Create a workspace with the modified intensities, and overlay them in the appropriate instrument"""
+            output_workspace = f'{self.table.name()}_{property_name}'
+            workspace = CloneWorkspace(InputWorkspace=reference, OutputWorkspace=output_workspace)
             # substitute the intensity in this histogram with the calibration datum for the detector pixel
             for wi, ri in wi_to_ri:
-                intensities[wi] = property_values[ri]
-            # Create a workspace with the modified intensities, and overlay them in the appropriate instrument
-            output_workspace = f'{self.table.name()}_{property_name}'
-            workspace = CreateWorkspace(DataX=[0, 1], DataY=intensities, Nspec=empty_instrument.getNumberHistograms(),
-                                        OutputWorkspace=output_workspace)
-            LoadInstrument(Workspace=workspace, InstrumentName=self.instrument, RewriteSpectraMap=True)
+                workspace.dataY(wi)[:] = property_values[ri]
             return mtd[output_workspace]
 
         calibration_properties = ['positions', 'heights'] if self.caltype == 'BARSCAN' else ['widths', ]
@@ -453,11 +468,13 @@ class Table:
             values = getattr(self, cal_prop)
             returned_views[cal_prop] = transfer_values_to_workspace(values, cal_prop)
 
-        # # Mantid cannot display negative intensities
-        values = np.array(self.positions)
-        returned_views['positions_mantid'] = transfer_values_to_workspace(values - np.min(values), 'positions_mantid')
+        # Mantid cannot display negative intensities
+        if 'positions' in calibration_properties:
+            values = np.array(self.positions)
+            returned_views['positions_mantid'] = transfer_values_to_workspace(values - np.min(values),
+                                                                              'positions_mantid')
 
-        empty_instrument.delete()
+        DeleteWorkspaces([reference, ])
         return returned_views
 
 
@@ -727,6 +744,7 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
         # evaluate the heights
         calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
     except Exception:
+        coefficients = np.ones(int(order)) * np.nan
         calculated_positions = np.ones(tube_pixels) * np.nan
         calculated_heights = np.ones(tube_pixels) * np.nan
 
@@ -827,18 +845,13 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
     """
     temporary_workspaces = list()  # store the names of the workspaces to be removed
 
-    def temporary_workspace():
-        r"""Create a random workspace name, and flag it for removal that happens when the generator finishes."""
-        name = unique_workspace_dundername()
-        temporary_workspaces.append(name)
-        return name
-
     if isinstance(barscan_dataset, str):
         # the whole barscan is contained in a single file. Must be splitted into subruns. Each subrun will contain
         # intensities for a run with the bar held at a fixed position.
-        spliter_workspace = temporary_workspace()
-        info_workspace = temporary_workspace()
-        barscan_workspace = temporary_workspace()
+        spliter_workspace = unique_workspace_dundername()
+        info_workspace = unique_workspace_dundername()
+        barscan_workspace = unique_workspace_dundername()
+        temporary_workspaces.extend([spliter_workspace, info_workspace, barscan_workspace])
         # BOTTLENECK
         LoadEventNexus(barscan_dataset, OutputWorkspace=barscan_workspace)
         # Create the splitting scheme and save it in table workspaces `spliter_workspace` and `info_workspace`.
@@ -854,36 +867,35 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
                      TimeSeriesPropertyLogs=[bar_position_log], ExcludeSpecifiedLogs=False)
         temporary_workspaces.append(splitted_workspace_group)
         temporary_workspaces.append('TOFCorrectWS')  # spurious workspace spawned by FilterEvents
-        # Iterate over the subruns, serving one at a time
-        for i, bar_position in enumerate(bar_positions):
-            barscan_workspace = splitted_workspace_group + '_' + str(i)
-            if mask is not None:
-                apply_mask(barscan_workspace, mask=mask)
-            yield bar_position, barscan_workspace  # serve a bar position and a subrun workspace
+        barscan_workspaces = [splitted_workspace_group + '_' + str(i) for i in len(bar_positions)]
     else:  # of a set of files or workspaces, each contains intensities for a scan with the bar fixed
         # determine if the list contains files or workspaces
         first_scan = barscan_dataset[0]
-        if isinstance(first_scan, str) and os.path.exists(first_scan):  # list of files
-            barscan_workspace_basename = temporary_workspace()
-            # iterate over the files, serving one at a time
+        if isinstance(first_scan, str) and os.path.exists(first_scan):  # list of files, thus load into workspaces
+            barscan_workspaces = list()
+            barscan_workspace_basename = unique_workspace_dundername()
             for scan_index, scan_data in enumerate(barscan_dataset):
                 barscan_workspace = f'{barscan_workspace_basename}_{scan_index:03d}'
-                Load(scan_data, OutputWorkspace=barscan_workspace)
-                if mask is not None:
-                    apply_mask(barscan_workspace, mask=mask)
-                bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
-                yield bar_position, barscan_workspace  # serve a bar position and a run workspace
-        else:  # list of workspaces
-            for barscan_workspace in barscan_dataset:
-                if mask is not None:
-                    apply_mask(barscan_workspace, mask=mask)
-                bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
-                yield bar_position, barscan_workspace
+                temporary_workspaces.append(barscan_workspace)
+                LoadEventNexus(scan_data, OutputWorkspace=barscan_workspace, LoadMonitors=False)
+                barscan_workspaces.append(barscan_workspace)
+        else:  # barscan_dataset is a set of workspaces
+            barscan_workspaces = barscan_dataset
+        bar_positions = [SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
+                         for barscan_workspace in barscan_workspaces]
+
+    # Serve bar positions and workspaces, one at a time
+    for bar_position, barscan_workspace in zip(bar_positions, barscan_workspaces):
+        if mask is not None:
+            apply_mask(barscan_workspace, mask=mask)
+        yield bar_position, barscan_workspace
+
     # Clean up workspaces we instantiated for each scan
     if delete_workspaces is True:
         DeleteWorkspaces(temporary_workspaces)
 
 
+# flake8: noqa: C901
 def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_position_log='dcal_Readback',
                                   formula='565 - {y}', order=5, mask=None, inspect_data=False):
     r"""
@@ -936,7 +948,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tube
     # bottom_shadow_pixels.shape = (number of scans, number of tubes)
     bottom_shadow_pixels = []
-    delete_workspaces = False if inspect_data is True else False  # retain workspace per scan if we want to inspect
+    delete_workspaces = True if inspect_data is False else False  # retain workspace per scan if we want to inspect
     for bar_position, barscan_workspace in barscan_workspace_generator(barscan_dataset,
                                                                        bar_position_log=bar_position_log,
                                                                        mask=mask,
@@ -963,7 +975,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
             pixel_indexes = [tube.spectrum_info_index for tube in collection]
             number_tubes, number_pixels_in_tube = len(collection), len(collection[0])
             # Find the detector ID's for the tube collection, that is, the selected component
-            # BOTTLENECK
+            # BOTTLENECK, but it's run one time
             detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
         # pixel_intensities is a list, whose items are the integrated intensities for each pixel. The index of this
         # list coincides with the spectrumInfo index.
@@ -973,8 +985,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
                 # Find the bottom shadow pixel for the current tube and current barscan run
                 pixel_intensities_in_tube = pixel_intensities[pixel_indexes_in_tube]
                 bottom_shadow_pixels_per_scan.append(find_edges(pixel_intensities_in_tube).bottom_shadow_pixel)
-            except Exception:
-                # this tube may be malfunctioning for the current barscan
+            except IndexError:  # tube masked or malfunctioning
                 bottom_shadow_pixels_per_scan.append(INCORRECT_PIXEL_ASSIGNMENT)
         bottom_shadow_pixels.append(bottom_shadow_pixels_per_scan)
         # Add iteration info to the addons
@@ -999,12 +1010,22 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
                                     tube_pixels=number_pixels_in_tube)
         # Store the fitted Y-coordinates and heights of each pixel in the current tube
         # Store as lists so that they can be easily serializable
-        positions.extend(list(1.e-03 * fit_results.calculated_positions))  # store with units of meters
-        heights.extend(list(1.e-03 * fit_results.calculated_heights))  # store with units of meters
+        positions.append(list(1.e-03 * fit_results.calculated_positions))  # store with units of meters
+        heights.append(list(1.e-03 * fit_results.calculated_heights))  # store with units of meters
 
-    # Calculate the average positions and heights
-    average_positions = np.average(np.array(positions), axis=1)
-    average_heights = np.average(np.array(heights), axis=1)
+    # Find the average pixel positions and heights in a tube using all good tubes. Then apply these to
+    # any bad tube
+    positions = np.array(positions)  # shape = (number_tubes, number_pixels_in_tube)
+    heights = np.array(heights)
+    bad_tube_indexes = np.isnan(np.sum(positions, axis=1))  # array containing True at the index of a bad tube
+    if np.any(bad_tube_indexes):  # there's at least one bad tube
+        average_positions = np.average(positions[~bad_tube_indexes], axis=0)
+        average_heights = np.average(heights[~bad_tube_indexes], axis=0)
+        for tube_index in np.where(bad_tube_indexes)[0]:  # insert averages in the bad tubes
+            positions[tube_index] = average_positions
+            heights[tube_index] = average_heights
+    positions = list(positions.ravel())
+    heights = list(heights.ravel())
 
     metadata = dict(caltype=CalType.BARSCAN.name,
                     instrument=instrument_name,
@@ -1015,6 +1036,23 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
 
     # decide on what to return
     return calibration, addons if inspect_data is True else calibration
+
+
+def bad_tube(bottom_shadow_pixels):
+    r"""
+    Check if all pixels for this tube have been flagged as ```INCORRECT_PIXEL_ASSIGNMENT```. Happens when the
+    tube has been masked or it was malfunctioning when the scans were taken.
+
+    Parameters
+    ----------
+    bottom_shadow_pixels: list
+        Pixel indexes defining the positions of the bottom of the bar in the barscan
+
+    Returns
+    -------
+    bool
+    """
+    return list(set(bottom_shadow_pixels)) == [INCORRECT_PIXEL_ASSIGNMENT, ]
 
 
 def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
@@ -1036,7 +1074,9 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     illuminated pixels, it leaves a few non-illuminated pixels as active pixels. The bottom shadow pixel can then
     be incorrectly assigned as one of these non-illuminated pixels. The results are outliers pixel indexes.
     Example: 249 248 246 4 244 242.... Here "4" is in incorrectly assigned pixel index as bottom of the bar
-    We must find these outliers and assign them as incorrect. We use a linear fit to find out outliers
+    We must find these outliers and assign them as incorrect. We use a linear fit to find out outliers.
+
+    Fixes to corner cases are skippedd for bad tubes (see ~drtsans.pixel_calibration.bad_tube).
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
@@ -1050,6 +1090,8 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     number_bar_positions, number_tubes = bottom_shadow_pixels.shape
     # Iterate over each tube
     for tube_index in range(number_tubes):
+        if bad_tube(bottom_shadow_pixels[:, tube_index]):
+            continue  # this tube has all pixels marked as incorrectly assigned. Don't attempt to fix corner issues.
         # Correct corner case 1
         jump_index = None
         y = bottom_shadow_pixels[:, tube_index]
@@ -1063,7 +1105,10 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         y = bottom_shadow_pixels[:, tube_index]  # bar positions in pixel coordinates
         x = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
         # Linear fit between bar positions in pixel coordinates and mili-meters
-        coefficients = np.polynomial.polynomial.polyfit(x, y[y != INCORRECT_PIXEL_ASSIGNMENT], 1)
+        try:
+            coefficients = np.polynomial.polynomial.polyfit(x, y[y != INCORRECT_PIXEL_ASSIGNMENT], 1)
+        except TypeError:  # empty array `x`, meaning this tube was masked or malfunctioning
+            continue
         y_fitted = np.polynomial.polynomial.polyval(bar_positions, coefficients)
         residuals = np.abs(y - y_fitted)  # deviations between the linear fit and the actual positions
         # We flag as incorrect assignments those positions largely deviating from the linear fit.
@@ -1175,7 +1220,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
 
 
 @namedtuplefy
-def as_intensities(input_workspace, component='detector1'):
+def as_intensities(input_workspace, component='detector1', views=['positions', 'heights', 'widths']):
     r"""
     Returns one workspace for each pixel property that is calibrated (e.g., pixel height),
     and the calibration datum is stored as the intensity value for that pixel. Intended to
@@ -1203,6 +1248,8 @@ def as_intensities(input_workspace, component='detector1'):
         Workspace from which pixel properties are retrieved.
     component: str
         Name of one of the double detector array panels. For BIOSANS we have 'detector1' or 'wing-detector'.
+    views: list
+        Generate views for the pixel properties provided.
 
     Returns
     -------
@@ -1210,23 +1257,27 @@ def as_intensities(input_workspace, component='detector1'):
         A namedtuple containing the ~mantid.api.MatrixWorkspace workspaces
         with fields 'positions', 'positions_mantid', 'heights', and 'widths'
     """
+    tube_properties = {'positions': 'pixel_y', 'heights': 'pixel_heights', 'widths': 'pixel_widths'}
     # Collect pixel information from the input workspace
     collection = TubeCollection(input_workspace, component).sorted(view='decreasing X')
     indexes = np.array([], dtype=int)  # workspace indexes
-    pixel_props = dict(positions=np.array([]), heights=np.array([]), widths=np.array([]))
+    pixel_props = dict()
     for tube in collection:
         indexes = np.hstack((indexes, tube.spectrum_info_index))
-        pixel_props['positions'] = np.hstack((pixel_props['positions'], tube.pixel_y))
-        pixel_props['heights'] = np.hstack((pixel_props['heights'], tube.pixel_heights))
-        pixel_props['widths'] = np.hstack((pixel_props['widths'], tube.pixel_widths))
+        for view in views:
+            current = pixel_props.get(view, np.array([]))
+            addition = getattr(tube, tube_properties[view])
+            pixel_props[view] = np.hstack((current, addition))
+
     # Mantid can only show positive quantities in the instrument view
-    pixel_props['positions_mantid'] = pixel_props['positions'] - np.min(pixel_props['positions'])
+    if 'positions' in pixel_props:
+        pixel_props['positions_mantid'] = pixel_props['positions'] - np.min(pixel_props['positions'])
 
     number_histograms = mtd[str(input_workspace)].getNumberHistograms()
     intensities = np.zeros(number_histograms)
 
     returned_views = {}
-    for cal_prop in ['positions', 'positions_mantid', 'heights', 'widths']:
+    for cal_prop in pixel_props:
         output_workspace = f'{str(input_workspace)}_{cal_prop}'  # Workspace containing the property as  intensity
         intensities[indexes] = pixel_props[cal_prop]
         workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)

@@ -877,7 +877,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
             for scan_index, scan_data in enumerate(barscan_dataset):
                 barscan_workspace = f'{barscan_workspace_basename}_{scan_index:03d}'
                 temporary_workspaces.append(barscan_workspace)
-                LoadEventNexus(scan_data, OutputWorkspace=barscan_workspace, LoadMonitors=False)
+                Load(scan_data, OutputWorkspace=barscan_workspace)
                 barscan_workspaces.append(barscan_workspace)
         else:  # barscan_dataset is a set of workspaces
             barscan_workspaces = barscan_dataset
@@ -1036,7 +1036,10 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     calibration = Table(metadata, detector_ids=detector_ids, positions=positions, heights=heights)
 
     # decide on what to return
-    return calibration, addons if inspect_data is True else calibration
+    if inspect_data is True:
+        return calibration, addons
+    else:
+        return calibration
 
 
 def bad_tube(bottom_shadow_pixels):

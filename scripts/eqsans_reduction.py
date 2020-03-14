@@ -423,6 +423,8 @@ if __name__ == "__main__":
     detectordata = {}
     for _key in log_binned_i_of_q.keys():
         name = "frame_{}".format(_key+1)
+        print("type([_iq1d_out]= {}".format(type([log_binned_i_of_q[_key]])))
+        print("type(log_iqxqy[_index]= {}".format(type(log_iqxqy[_key])))
         detectordata[name] = {'iq': [log_binned_i_of_q[_key]],
                               'iqxqy': log_iqxqy[_key]}
     samplelogs = {'main': SampleLogs(ws)}

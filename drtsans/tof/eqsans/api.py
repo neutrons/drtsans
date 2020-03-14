@@ -1,4 +1,6 @@
 """ Top-level API for EQSANS """
+from datetime import datetime
+import copy
 import numpy as np
 import os
 
@@ -6,6 +8,7 @@ from collections import namedtuple
 
 from mantid.simpleapi import mtd, logger
 # Import rolled up to complete a single top-level API
+import drtsans
 from drtsans import (apply_sensitivity_correction, load_sensitivity_workspace, solid_angle_correction)
 from drtsans import subtract_background
 from drtsans.settings import namedtuplefy
@@ -20,6 +23,7 @@ from drtsans.path import registered_workspace
 from drtsans.tof.eqsans.load import load_events, load_events_and_histogram
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 from drtsans.tof.eqsans.cfg import load_config
+from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.tof.eqsans.normalization import normalize_by_flux
 from drtsans.tof.eqsans.meta_data import set_meta_data
@@ -380,6 +384,7 @@ def process_single_configuration(sample_ws_raw,
     -------
     ~mantid.dataobjects.Workspace2D
         Reference to the processed workspace
+    Sample workspace
     """
     if not output_workspace:
         output_workspace = output_suffix + '_sample'
@@ -437,7 +442,7 @@ def process_single_configuration(sample_ws_raw,
     else:
         sample_ws *= absolute_scale
 
-    return mtd[output_workspace]
+    return mtd[output_workspace], sample_ws
 
 
 def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
@@ -525,6 +530,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         empty_trans_ws = None
 
     # background transmission
+    background_transmission_dict = {}
     if loaded_ws.background_transmission:
         bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
         bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
@@ -536,10 +542,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
         print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+        background_transmission_dict['value'] = bkgd_trans_ws.extractY()
+        background_transmission_dict['error'] = bkgd_trans_ws.extractE()
+        background_transmission_dict['wavelengths'] = bkgd_trans_ws.extractX()
     else:
         bkgd_trans_ws = None
 
     # sample transmission
+    sample_transmission_dict = {}
     if loaded_ws.sample_transmission:
         sample_trans_ws_name = f'{prefix}_sample_trans'
         sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
@@ -551,36 +561,41 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
         print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
+        sample_transmission_dict['value'] = sample_trans_ws.extractY()
+        sample_transmission_dict['error'] = sample_trans_ws.extractE()
+        sample_transmission_dict['wavelengths'] = sample_trans_ws.extractX()
     else:
         sample_trans_ws = None
 
     output = []
+    detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
+        name = "frame_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
         print('Dark', loaded_ws.dark_current)
-        processed_data_main = process_single_configuration(raw_sample_ws,
-                                                           sample_trans_ws=sample_trans_ws,
-                                                           sample_trans_value=sample_trans_value,
-                                                           bkg_ws_raw=loaded_ws.background,
-                                                           bkg_trans_ws=bkgd_trans_ws,
-                                                           bkg_trans_value=bkg_trans_value,
-                                                           theta_deppendent_transmission=theta_deppendent_transmission,
-                                                           dark_current=loaded_ws.dark_current,
-                                                           flux_method=flux_method,
-                                                           flux=flux,
-                                                           mask_ws=loaded_ws.mask,
-                                                           mask_panel=mask_panel,
-                                                           solid_angle=solid_angle,
-                                                           sensitivity_workspace=loaded_ws.sensitivity,
-                                                           output_workspace=f'processed_data_main',
-                                                           output_suffix=output_suffix,
-                                                           thickness=thickness,
-                                                           absolute_scale_method=absolute_scale_method,
-                                                           empty_beam_ws=empty_trans_ws,
-                                                           beam_radius=beam_radius,
-                                                           absolute_scale=absolute_scale,
-                                                           keep_processed_workspaces=False)
+        processed_data_main, sample_ws = process_single_configuration(raw_sample_ws,
+                                                                      sample_trans_ws=sample_trans_ws,
+                                                                      sample_trans_value=sample_trans_value,
+                                                                      bkg_ws_raw=loaded_ws.background,
+                                                                      bkg_trans_ws=bkgd_trans_ws,
+                                                                      bkg_trans_value=bkg_trans_value,
+                                                                      theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+                                                                      dark_current=loaded_ws.dark_current,
+                                                                      flux_method=flux_method,
+                                                                      flux=flux,
+                                                                      mask_ws=loaded_ws.mask,
+                                                                      mask_panel=mask_panel,
+                                                                      solid_angle=solid_angle,
+                                                                      sensitivity_workspace=loaded_ws.sensitivity,
+                                                                      output_workspace=f'processed_data_main',
+                                                                      output_suffix=output_suffix,
+                                                                      thickness=thickness,
+                                                                      absolute_scale_method=absolute_scale_method,
+                                                                      empty_beam_ws=empty_trans_ws,
+                                                                      beam_radius=beam_radius,
+                                                                      absolute_scale=absolute_scale,
+                                                                      keep_processed_workspaces=False)
         # binning
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar')
@@ -589,6 +604,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                annular_angle_bin=annular_bin, wedges=wedges,
                                                error_weighted=weighted_errors)
+
+        detectordata[name] = {'iq': iq1d_main_out,
+                              'iqxqy': iq2d_main_out}
 
         # save ASCII files
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D.txt')
@@ -606,6 +624,30 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         current_output = IofQ_output(I2D_main=iq2d_main_out,
                                      I1D_main=iq1d_main_out)
         output.append(current_output)
+
+    # create reduction log
+    filename = os.path.join(reduction_input["configuration"]["outputDir"], outputFilename + '_reduction_log.hdf')
+    starttime = datetime.now().isoformat()
+    pythonfile = __file__
+    reductionparams = {'data': copy.deepcopy(reduction_input),
+                       'filename': 'internal_file'}
+    specialparameters = {'beam_center': {'x': 'not implemented yet',
+                                         'y': 'not implemented yet',
+                                         },
+                         'sample_transmission': sample_transmission_dict,
+                         'background_transmission': background_transmission_dict,
+                         }
+
+    samplelogs = {'main': SampleLogs(sample_ws)}
+    drtsans.savereductionlog(filename=filename,
+                             detectordata=detectordata,
+                             reductionparams=reductionparams,
+                             pythonfile=pythonfile,
+                             starttime=starttime,
+                             specialparameters=specialparameters,
+                             samplelogs=samplelogs,
+                             )
+
     return output
 
 

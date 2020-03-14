@@ -126,7 +126,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
                    detector_offset=0., sample_offset=0.,
                    time_interval=None, log_name=None, log_value_interval=None,
-                   reuse_workspace=False, **kwargs):
+                   reuse_workspace=False, monitors=False, **kwargs):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
     on the provided filter options. Either a time_interval must be
     provided or a log_name and log_value_interval.
@@ -181,6 +181,14 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
     if not (time_interval or (log_name and log_value_interval)):
         raise ValueError("Must provide with time_interval or log_name and log_value_interval")
 
+    # determine if this is a monochromatic measurement
+    instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
+    is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
+              (instrument_unique_name == InstrumentEnumName.GPSANS)
+
+    # monitors are required for gpsans and biosans
+    monitors = monitors or is_mono
+
     ws = load_events(run=run,
                      data_dir=data_dir,
                      output_workspace='_load_tmp',
@@ -189,12 +197,7 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                      detector_offset=detector_offset,
                      sample_offset=sample_offset,
                      reuse_workspace=reuse_workspace,
-                     **dict(kwargs, LoadMonitors=True))
-
-    # determine if this is a monochromatic measurement
-    instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
-    is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
-              (instrument_unique_name == InstrumentEnumName.GPSANS)
+                     **dict(kwargs, LoadMonitors=monitors or is_mono))
 
     # create default name for output workspace
     if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
@@ -218,15 +221,17 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                  GroupWorkspaces=True,
                  OutputWorkspaceIndexedFrom1=True)
 
-    # Filter monitors
-    FilterEvents(InputWorkspace=str(ws)+'_monitors',
-                 SplitterWorkspace='_filter',
-                 OutputWorkspaceBaseName=output_workspace+'_monitors',
-                 InformationWorkspace='_info',
-                 FilterByPulseTime=True,
-                 GroupWorkspaces=True,
-                 SpectrumWithoutDetector='Skip only if TOF correction',
-                 OutputWorkspaceIndexedFrom1=True)
+    if monitors:
+        # Filter monitors
+        FilterEvents(InputWorkspace=str(ws)+'_monitors',
+                     SplitterWorkspace='_filter',
+                     OutputWorkspaceBaseName=output_workspace+'_monitors',
+                     InformationWorkspace='_info',
+                     FilterByPulseTime=True,
+                     GroupWorkspaces=True,
+                     SpectrumWithoutDetector='Skip only if TOF correction',
+                     OutputWorkspaceIndexedFrom1=True)
+
     if is_mono:
         # Set monitor log to be correct for each workspace
         for n in range(mtd[output_workspace].getNumberOfEntries()):
@@ -256,9 +261,9 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
             samplelogs.insert('slice_start', float(slice_start), samplelogs[log_name].units)
             samplelogs.insert('slice_end', float(slice_end), samplelogs[log_name].units)
 
-    if is_mono:
+    if is_mono or not monitors:
         return mtd[output_workspace]
-    else:  # EQSANS requires the filtered monitor workspace
+    else:  # If EQSANS and the filtered monitors are also being returned
         return mtd[output_workspace], mtd[output_workspace+'_monitors']
 
 

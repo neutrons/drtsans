@@ -20,7 +20,7 @@ from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.beam_finder import find_beam_center
 from drtsans.instruments import extract_run_number
 from drtsans.path import registered_workspace
-from drtsans.tof.eqsans.load import load_events, load_events_and_histogram
+from drtsans.tof.eqsans.load import load_events, load_events_and_histogram, load_and_split
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 from drtsans.tof.eqsans.cfg import load_config
 from drtsans.samplelogs import SampleLogs  # noqa E402
@@ -103,11 +103,52 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if load_params['monitors']:
         raise RuntimeError('Normalization by monitor option will be enabled in a later drt-sans release')
 
-    for run_number in [sample, bkgd, empty, sample_trans, bkgd_trans]:
+    path = f"/SNS/{instrument_name}/IPTS-{ipts}/nexus"
+
+    # check for time/log slicing
+    timeslice = reduction_input["configuration"].get("timeslice")
+    logslice = reduction_input["configuration"].get("logslice")
+
+    if timeslice and logslice:
+        raise ValueError("Can't do both time slicing and log slicing")
+
+    if timeslice or logslice:
+        if len(sample.split(',')) > 1:
+            raise ValueError("Can't do slicing on summed data sets")
+
+    # special loading case for sample to allow the slicing options
+    ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
+    if not registered_workspace(ws_name):
+        if timeslice or logslice:
+            filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
+            print(f"Loading filename {filename}")
+            if timeslice:
+                timesliceinterval = float(reduction_input["configuration"]["timesliceinterval"])
+                logslicename = None
+                logsliceinterval = None
+            elif logslice:
+                timesliceinterval = None
+                logslicename = reduction_input["configuration"]["logslicename"]
+                logsliceinterval = float(reduction_input["configuration"]["logsliceinterval"])
+            load_and_split(filename, output_workspace=ws_name,
+                           time_interval=timesliceinterval,
+                           log_name=logslicename, log_value_interval=logsliceinterval,
+                           **load_params)
+            for _w in mtd[ws_name]:
+                if default_mask:
+                    apply_mask(_w, mask=default_mask)
+        else:
+            filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
+            print(f"Loading filename {filename}")
+            load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            if default_mask:
+                apply_mask(ws_name, mask=default_mask)
+
+    # load all other files
+    for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
-                path = f"/SNS/{instrument_name}/IPTS-{ipts}/nexus"
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
                 load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
@@ -132,6 +173,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 dark_current_ws = mtd[ws_name]
 
     sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']
+    if sample_ws.id() == 'WorkspaceGroup':
+        sample_ws_list = [w for w in sample_ws]
+    else:
+        sample_ws_list = [sample_ws]
     background_ws = mtd[f'{prefix}_{instrument_name}_{bkgd}_raw_histo'] if bkgd else None
     empty_ws = mtd[f'{prefix}_{instrument_name}_{empty}_raw_histo'] if empty else None
     sample_transmission_ws = mtd[f'{prefix}_{instrument_name}_{sample_trans}_raw_histo'] if sample_trans else None
@@ -192,15 +237,16 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     except (KeyError, ValueError):
         pixel_size_y = None
 
-    set_meta_data(sample_ws, wave_length=None, wavelength_spread=None,
-                  sample_offset=load_params['sample_offset'],
-                  sample_aperture_diameter=sample_aperture_diameter,
-                  sample_thickness=sample_thickness,
-                  source_aperture_diameter=None,
-                  pixel_size_x=pixel_size_x,
-                  pixel_size_y=pixel_size_y)
+    for ws in sample_ws_list:
+        set_meta_data(ws, wave_length=None, wavelength_spread=None,
+                      sample_offset=load_params['sample_offset'],
+                      sample_aperture_diameter=sample_aperture_diameter,
+                      sample_thickness=sample_thickness,
+                      source_aperture_diameter=None,
+                      pixel_size_x=pixel_size_x,
+                      pixel_size_y=pixel_size_y)
     ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
-    return dict(sample=[ws_mon_pair(data=sample_ws, monitor=sample_mon_ws)],
+    return dict(sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],
                 background=ws_mon_pair(data=background_ws, monitor=background_mon_ws),
                 empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
                 sample_transmission=ws_mon_pair(data=sample_transmission_ws, monitor=sample_transmission_mon_ws),

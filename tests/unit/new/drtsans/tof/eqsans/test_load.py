@@ -5,7 +5,9 @@ import numpy as np
 from mantid.simpleapi import (Rebin, SumSpectra, mtd)
 from drtsans.settings import (amend_config, unique_workspace_name as uwn)
 from drtsans.tof.eqsans.load import (load_events, load_events_monitor,
-                                     sum_data, load_events_and_histogram, load_and_split)
+                                     sum_data,
+                                     load_events_and_histogram)
+from drtsans.load import load_and_split as generic_load_and_split
 from drtsans.tof.eqsans.correct_frame import transform_to_wavelength
 from drtsans.samplelogs import SampleLogs
 
@@ -109,10 +111,11 @@ def test_load_events_and_histogram(reference_dir):
     assert sample_logs1.proton_charge.size() == 12933 + 17343 + 4341
 
 
-def test_load_and_split(reference_dir):
+def test_generic_load_and_split(reference_dir):
     # split by the SampleTemp log
-    filtered_ws, filtered_ws_monitors = load_and_split('EQSANS_104088', data_dir=reference_dir.new.eqsans,
-                                                       log_name='SampleTemp', log_value_interval=0.1)
+    filtered_ws, filtered_ws_monitors = generic_load_and_split('EQSANS_104088', data_dir=reference_dir.new.eqsans,
+                                                               log_name='SampleTemp', log_value_interval=0.1,
+                                                               monitors=True)
 
     assert filtered_ws.size() == 3
     assert filtered_ws_monitors.size() == 3

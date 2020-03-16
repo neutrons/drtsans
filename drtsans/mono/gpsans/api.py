@@ -646,7 +646,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         qmin = float(reduction_input["configuration"]["Qmin"])
     except ValueError:
         qmin = None
-    qmax = None
     try:
         qmax = float(reduction_input["configuration"]["Qmax"])
     except ValueError:
@@ -827,13 +826,37 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
     output_dir = reduction_input["configuration"]["outputDir"]
     outputFilename = reduction_input["outputFilename"]
     output_suffix = ''
+
+    bin1d_type = reduction_input["configuration"]["1DQbinType"]
+
     if imshow_kwargs is None:
         imshow_kwargs = {}
     for i, out in enumerate(reduction_output):
         if len(reduction_output) > 1:
             output_suffix = f'_{i}'
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D.png')
-        plot_IQazimuthal(out.I2D_main, filename, backend='mpl', imshow_kwargs=imshow_kwargs, title='Main')
+
+        if bin1d_type == 'wedge':
+            wedges_min = np.fromstring(reduction_input["configuration"]["WedgeMinAngles"], sep=',')
+            wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
+            wedges = list(zip(wedges_min, wedges_max))
+        else:
+            wedges = None
+
+        qmin = qmax = None
+        if bin1d_type == 'wedge' or bin1d_type == 'annular':
+            try:
+                qmin = float(reduction_input["configuration"]["Qmin"])
+            except ValueError:
+                pass
+            try:
+                qmax = float(reduction_input["configuration"]["Qmax"])
+            except ValueError:
+                pass
+
+        plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
+                         imshow_kwargs=imshow_kwargs, title='Main',
+                         wedges=wedges, qmin=qmin, qmax=qmax)
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:

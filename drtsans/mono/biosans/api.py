@@ -83,9 +83,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             raise ValueError("Can't do slicing on summed data sets")
 
     # special loading case for sample to allow the slicing options
-    ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
-    if not registered_workspace(ws_name):
-        if timeslice or logslice:
+    if timeslice or logslice:
+        ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
+        if not registered_workspace(ws_name):
             filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
             print(f"Loading filename {filename}")
             if timeslice:
@@ -113,7 +113,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                               pixel_size_y=None)
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
-        else:
+    else:
+        ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
+        if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
             biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
@@ -189,11 +191,11 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 mask_ws = mtd[mask_ws_name]
     print('Done loading')
 
-    raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']
-    if raw_sample_ws.id() == 'WorkspaceGroup':
+    if registered_workspace(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'):
+        raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group']
         raw_sample_ws_list = [w for w in raw_sample_ws]
     else:
-        raw_sample_ws_list = [raw_sample_ws]
+        raw_sample_ws_list = [mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']]
     raw_bkgd_ws = mtd[f'{prefix}_{instrument_name}_{bkgd}_raw_histo'] if bkgd else None
     raw_blocked_ws = mtd[f'{prefix}_{instrument_name}_{blocked_beam}_raw_histo'] if blocked_beam else None
     raw_center_ws = mtd[f'{prefix}_{instrument_name}_{center}_raw_histo']

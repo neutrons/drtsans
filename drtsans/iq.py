@@ -87,7 +87,7 @@ def valid_wedge(min_angle, max_angle):
     return [(min_angle, 270.1), (-90.1, max_angle)]
 
 
-def get_wedges(min_angle, max_angle):
+def get_wedges(min_angle, max_angle, symmetric_wedges=True):
     """
     Helper function to return all wedges defined by the min_angle and max_angle,
     including the wedge offset by 180 degrees
@@ -96,6 +96,8 @@ def get_wedges(min_angle, max_angle):
     ----------
     min_angle: float
     max_angle: float
+    symmetric_wedges: bool
+        Add the wedge offset by 180 degrees if True
 
     Returns
     -------
@@ -103,19 +105,21 @@ def get_wedges(min_angle, max_angle):
         (min_angle, max_angle) tuples.
     """
     wedges = valid_wedge(min_angle, max_angle)
-    opp_min = min_angle + 180.
-    opp_max = max_angle + 180.
-    if opp_min >= 270:
-        opp_min -= 360.
-    if opp_max >= 270.:
-        opp_max -= 360
-    wedges.extend(valid_wedge(opp_min, opp_max))
+    if symmetric_wedges:
+        opp_min = min_angle + 180.
+        opp_max = max_angle + 180.
+        if opp_min >= 270:
+            opp_min -= 360.
+        if opp_max >= 270.:
+            opp_max -= 360
+        wedges.extend(valid_wedge(opp_min, opp_max))
     return wedges
 
 
 def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins, bin1d_type='scalar',
             log_scale=False, even_decade=False, qmin=None, qmax=None,
-            annular_angle_bin=1., wedges=None, error_weighted=False):
+            annular_angle_bin=1., wedges=None, symmetric_wedges=True,
+            error_weighted=False):
     r"""Do all 1D and 2D binning for a configuration or detector
 
     Parameters
@@ -145,7 +149,10 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins, bin1d_type='scalar',
         width of annular bin in degrrees. Annular binning is linear
     wedges: list
         list of tuples (angle_min, angle_max) for the wedges. Both numbers have to be in
-        the [-90,270) range. It will add the wedge offset by 180 degrees
+        the [-90,270) range. It will add the wedge offset by 180 degrees dependent
+        on ``symmetric_wedges``
+    symmetric_wedges: bool
+        It will add the wedge offset by 180 degrees if True
     error_weighted: bool
         if True, the binning is done using the Weighted method
 
@@ -195,7 +202,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins, bin1d_type='scalar',
         elif bin1d_type == 'wedge':
             unbinned_1d = []
             for wedge in wedges:
-                wedge_angles = get_wedges(wedge[0], wedge[1])
+                wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
                 wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, wa[0], wa[1]) for wa in wedge_angles]
                 unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))
         else:

@@ -1,7 +1,7 @@
 from mantid.simpleapi import (mtd, LoadNexusMonitors)
 from drtsans.settings import amend_config, namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.load import load_events as generic_load_events, sum_data, load_and_split
+from drtsans.load import load_events as generic_load_events, sum_data, load_and_split as generic_load_and_split
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
@@ -303,3 +303,34 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
 
         return dict(data=ws,
                     monitor=ws_monitors)
+
+
+def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
+                   data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                   bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
+                   center_x=None, center_y=None, mask=None, monitors=False,
+                   keep_events=True,
+                   time_interval=None, log_name=None, log_value_interval=None,
+                   reuse_workspace=False, **kwargs):
+
+    ws = generic_load_and_split(run=run, data_dir=data_dir,
+                                output_workspace=output_workspace, overwrite_instrument=overwrite_instrument,
+                                output_suffix=output_suffix,
+                                detector_offset=detector_offset, sample_offset=sample_offset,
+                                time_interval=time_interval, log_name=log_name, log_value_interval=log_value_interval,
+                                reuse_workspace=reuse_workspace, monitors=False, **kwargs)
+
+    for _w in ws:
+        correct_detector_frame(_w, path_to_pixel=path_to_pixel)
+        if center_x is None or center_y is None:
+            center_x, center_y = find_beam_center(_w, mask=mask)
+        center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
+
+        transform_to_wavelength(_w, bin_width=bin_width,
+                                low_tof_clip=low_tof_clip,
+                                high_tof_clip=high_tof_clip,
+                                keep_events=keep_events)
+
+        set_init_uncertainties(_w)
+
+    return ws

@@ -484,11 +484,11 @@ def subpixel_info(input_workspace, n_horizontal, n_vertical):
     # Find the dimensions of each pixel. Due to barscan and tube-width calibrations, each pixel will have its own size
     last_info_index = info_indexes[-1]  # index of the last valid pixel
     # The nominal pixel dimensions are the same for all pixels. We find the nominal dimensions of the last pixel.
-    # The `nominal_pixel_dimensions` for EQSANS are (0.00804, 0.00804, 0.00409) along X, Y, and Z, respectively.
+    # The `nominal_pixel_dimensions` for EQSANS are (0.00804, 0.00409, 0.00804) along X, Y, and Z, respectively.
     nominal_pixel_dimensions = np.array(component_info.shape(last_info_index).getBoundingBox().width())
     # Each pixel has a specific (x, y, z) scale factor. For instance, pixel 42 may have scale factor
     # (0.79, 1.02, 1.00). Thus, the final dimension of this pixel is
-    # (0.00804 * 0.79, 0.00804 * 1.02, 0.00409 * 1.00) == (0.00635, 0.00820, 0.00409)
+    # (0.00804 * 0.79, 0.00409 * 1.02, 0.00804 * 1.00) == (0.00635, 0.00417, 0.00804)
     scale_factors = np.array([unpack_v3d(component_info.scaleFactor, i) for i in info_indexes])
     # The product of each specific scale factor and the nominal pixel dimension gives us the specific pixel dimensions
     pixel_dimensions = scale_factors * nominal_pixel_dimensions  # shape = (number_pixels, 3)

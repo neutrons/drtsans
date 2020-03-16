@@ -81,6 +81,24 @@ def test_IQazimuthal_2d(backend, filename):
 
 
 @pytest.mark.parametrize('backend, filename',
+                         [('mpl', 'test_IQazimuthal_2d_selections.png'),
+                          ('d3', 'test_IQazimuthal_2d_selections.json')],
+                         ids=['mpl', 'd3'])
+def test_IQazimuthal_2d_selections(backend, filename):
+    '''Test plotting IQazimuthal with 2d Qx and Qy arrays'''
+    x, y = np.meshgrid(np.linspace(0., 4*np.pi, 50),
+                       np.linspace(.5 * np.pi, 4.5*np.pi, 50),
+                       sparse=False, indexing='ij')
+    error = np.zeros(x.shape)
+    data = np.sin(x) + np.cos(y)
+    data = IQazimuthal(intensity=data, error=error, qx=x, qy=y)
+
+    plot_IQazimuthal(data, filename=filename, backend=backend,
+                     qmin=0., qmax=2., wedges=((-45., 45.),))
+    fileCheckAndRemove(filename, False)
+
+
+@pytest.mark.parametrize('backend, filename',
                          [('mpl', 'test_detector.png'),
                           ('d3', 'test_detector.json')],
                          ids=['mpl', 'd3'])

@@ -29,7 +29,7 @@
         "useDefaultMask": true,
         "DefaultMask":["{'Pixel':'1-18,239-256'}", "{'Bank':'18-24,42-48'}"],
         "useBlockedBeam": false,
-        "BlockBeamFileName":"",
+        "BlockBeamRunNumber":"",
         "darkMainFileName": "/HFIR/CG3/shared/Cycle486/CG3_5187.nxs.h5",   
         "darkWingFileName": "/HFIR/CG3/shared/Cycle486/CG3_5187.nxs.h5",    
         "useDarkFileName": true,

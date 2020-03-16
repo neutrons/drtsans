@@ -431,19 +431,6 @@ def test_gpsans_tube_calibration(reference_dir):
     calibrated_densities = linear_density(calibrated_workspace)
     assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.13, abs=0.01)
 
-    number_tubes = len(uncalibrated_densities)
-    comparison_workspace = unique_workspace_dundername()
-    CreateWorkspace(DataX=range(number_tubes),
-                    DataY=np.array([uncalibrated_densities, calibrated_densities]),
-                    NSpec=2,
-                    Outputworkspace=comparison_workspace)
-    uncalibrated_wiggle = np.std(uncalibrated_densities) / np.mean(uncalibrated_densities)
-    calibrated_wiggle = np.std(calibrated_densities) / np.mean(calibrated_densities)
-    assert calibrated_wiggle / uncalibrated_wiggle == pytest.approx(0.13, abs=0.01)
-    SaveNexus(comparison_workspace, '/tmp/comparison.nxs')
-    views = calibration.as_intensities()
-    print(views)
-
 
 if __name__ == '__main__':
     pytest.main([__file__])

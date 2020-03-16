@@ -14,8 +14,8 @@ LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import (AddSampleLog, CreateWorkspace, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus,
-                              LoadNexus, SaveNexus)
+from mantid.simpleapi import (AddSampleLog, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus, LoadNexus,
+                              SaveNexus)
 
 r"""
 Hyperlinks to drtsans functions

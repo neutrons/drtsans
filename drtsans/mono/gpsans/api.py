@@ -8,6 +8,7 @@ from collections import namedtuple
 
 from mantid.simpleapi import mtd, MaskDetectors
 
+from drtsans import getWedgeSelection
 from drtsans.path import registered_workspace
 from drtsans.instruments import extract_run_number
 from drtsans.settings import namedtuplefy
@@ -660,6 +661,26 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
     wedges = list(zip(wedges_min, wedges_max))
 
+    # automatically determine wedge binning if it wasn't explicitly set
+    autoWedgeOpts = {}
+    symmetric_wedges = True
+    if bin1d_type == 'wedge':
+        if wedges_min.size == 0:
+            autoWedgeOpts = {'q_min': float(reduction_input['configuration']['autoWedgeQmin']),
+                             'q_delta': float(reduction_input['configuration']['autoWedgeQdelta']),
+                             'q_max': float(reduction_input['configuration']['autoWedgeQmax']),
+                             'azimuthal_delta': float(reduction_input['configuration']['autoWedgeAzimuthalDelta']),
+                             'peak_width': float(reduction_input['configuration'].get('autoWedgePeakWidth', 0.25)),
+                             'background_width': float(reduction_input['configuration'].get('autoWedgeBackgroundWidth',
+                                                                                            1.5)),
+                             'signal_to_noise_min': float(reduction_input['configuration'].get('autoSignalToNoiseMin',
+                                                                                               2.))}
+            # auto-aniso returns all of the wedges
+            symmetric_wedges = False
+        else:
+            raise RuntimeError('Selected 1DQbinType="wedge", must either specify wedge angles or parameters '
+                               'for automatically determining them')
+
     xc, yc = find_beam_center(loaded_ws.center)
     print("Center  =", xc, yc)
 
@@ -742,12 +763,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                            absolute_scale=absolute_scale,
                                                            keep_processed_workspaces=False)
         # binning
-        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar')
+        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
+        if bool(autoWedgeOpts):  # determine wedges automatically
+            wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
         iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main, nbins_main,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                annular_angle_bin=annular_bin, wedges=wedges,
+                                               symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
 
         # save ASCII files

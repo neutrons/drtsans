@@ -54,13 +54,9 @@ if __name__ == "__main__":
     msapi.logger.notice(json.dumps(json_params, indent=2))
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
-    output_file = json_params["outputFilename"]
     sample_run = json_params["runNumber"]
-    if _represents_int(sample_run):
-        configuration_file_parameters = _get_configuration_file_parameters(sample_run)
-    else:
-        configuration_file_parameters = _get_configuration_file_parameters(extract_run_number(sample_run))
-
+    output_file = json_params.get("outputFilename", "EQSANS_{}".format(sample_run))
+    configuration_file_parameters = _get_configuration_file_parameters(sample_run)
     config = dict()
     json_conf = json_params["configuration"]
 
@@ -151,7 +147,7 @@ if __name__ == "__main__":
 
     # find the beam center
     empty_run = json_params["empty"]["runNumber"]
-    empty_fn = json_params["instrumentName"] + '_' + empty_run
+    empty_fn = json_params["empty"].get("emptyFileName", json_params["instrumentName"] + '_' + empty_run)
     # TODO apply empty flag?
     if empty_run != "":
         db_ws = eqsans.load_events(empty_fn)
@@ -166,10 +162,7 @@ if __name__ == "__main__":
         config["center_y"] = 0.0170801
         msapi.logger.notice("use default center (0.025239, 0.0170801)")
     # load and prepare scattering data
-    sample_file = "EQSANS_{}".format(sample_run)
-    if not output_file:
-        output_file = sample_file
-
+    sample_file = json_params.get("sampleFileName", "EQSANS_{}".format(sample_run))
     ws = eqsans.prepare_data(sample_file, output_suffix='_sample', **config)
     msapi.logger.warning(str(config))
     # TODO check the next two values if empty
@@ -217,7 +210,8 @@ if __name__ == "__main__":
                                                       trans_value=float(transmission_value))
         else:
             msapi.logger.notice('...applying transmission correction with transmission file.')
-            transmission_fn = "EQSANS_{}".format(transmission_run)
+            transmission_fn = json_params["transmission"].get("transmissionFileName",
+                                                              "EQSANS_{}".format(transmission_run))
             ws_tr_sample = eqsans.prepare_data(transmission_fn, output_suffix='_trans_sample', **config)
             raw_tr_ws = eqsans.calculate_transmission(ws_tr_sample,
                                                       ws_tr_direct,
@@ -252,8 +246,7 @@ if __name__ == "__main__":
     background_transmission_dict = {}
     if bkg_run.strip() != '':
         msapi.logger.notice('...applying bkg_subtraction.')
-        bkg_fn = "EQSANS_{}".format(bkg_run)
-
+        bkg_fn = json_params["background"].get("backgroundFileName", "EQSANS_{}".format(bkg_run))
         ws_bkg = eqsans.prepare_data(bkg_fn, output_suffix='_bkg', **config)
 
         # apply transmission background
@@ -272,7 +265,8 @@ if __name__ == "__main__":
                 background_transmission_dict['value'] = float(bkg_transmission_value)
             else:
                 msapi.logger.notice('...applying bkg_transmission correction with transmission file.')
-                bkg_trans_fn = "EQSANS_{}".format(bkg_transmission_run)
+                bkg_trans_fn = json_params["background"]["transmission"].get("backgroundTransmissionFileName",
+                                                                             "EQSANS_{}".format(bkg_transmission_run))
                 ws_bkg_trans = eqsans.prepare_data(bkg_trans_fn, output_suffix='_bkg_trans', **config)
                 ws_cal_raw_tr_bkg = eqsans.calculate_transmission(ws_bkg_trans,
                                                                   ws_tr_direct,
@@ -429,6 +423,8 @@ if __name__ == "__main__":
     detectordata = {}
     for _key in log_binned_i_of_q.keys():
         name = "frame_{}".format(_key+1)
+        print("type([_iq1d_out]= {}".format(type([log_binned_i_of_q[_key]])))
+        print("type(log_iqxqy[_index]= {}".format(type(log_iqxqy[_key])))
         detectordata[name] = {'iq': [log_binned_i_of_q[_key]],
                               'iqxqy': log_iqxqy[_key]}
     samplelogs = {'main': SampleLogs(ws)}

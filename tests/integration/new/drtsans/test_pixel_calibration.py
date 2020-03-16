@@ -14,7 +14,8 @@ LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import AddSampleLog, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus, LoadNexus, SaveNexus
+from mantid.simpleapi import (AddSampleLog, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus, LoadNexus,
+                              SaveNexus)
 
 r"""
 Hyperlinks to drtsans functions
@@ -364,6 +365,7 @@ def test_calculate_gpsans_barscan(reference_dir):
     DeleteWorkspace(table_worskpace)
 
 
+@pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
 def test_gpsans_calibration(reference_dir, clean_workspace):
     # Load an events file to search a calibration for
     gpsans_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_7465.nxs.h5')
@@ -387,6 +389,23 @@ def test_gpsans_calibration(reference_dir, clean_workspace):
     assert 1.e3 * tube.pixel_heights[0:3] == pytest.approx([4.58, 4.57, 4.55], abs=0.01)
     # Verify as_intensities doesn't throw
     as_intensities(input_workspace)
+
+
+@pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
+def test_debug_biosans_wing_detector_barscan(reference_dir):
+    r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
+    data_dir = '/HFIR/CG3/IPTS-23782/nexus/'
+    first_run, last_run = 838, 953
+    detector_array = 'wing_detector'  # calibration for the wing detector
+    formula = '{y} - 640'  # translate from scan log value to Y-coordinate in the sample's reference frame.
+    barscan_files = [path_join(data_dir, f'CG3_{run}.nxs.h5') for run in range(first_run, 1 + last_run)]
+    mask_file = '/home/jbq/repositories/sans-backend/sans-backend2/notebooks/barscan/biosans_mask_bank88_tube4.xml'
+    calibration, addons = calculate_barscan_calibration(barscan_files[0::3], component=detector_array,
+                                                        formula=formula, mask=mask_file)
+    calibration.save(database='/tmp/junk.json', tablefile='junk.nxs')
+    LoadEventNexus(barscan_files[0], OutputWorkspace='reference_workspace')
+    views = calibration.as_intensities('reference_workspace')
+    print(views)
 
 
 if __name__ == '__main__':

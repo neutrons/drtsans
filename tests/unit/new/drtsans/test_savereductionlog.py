@@ -192,7 +192,6 @@ def _test_data(tested_data=[], ref_data=[], abs=None):
 #         for _key in expected_values.keys():
 #             assert sample_logs_entry[_key].value == str(expected_values[_key]['value'])
 
-
 def test_writing_metadata_with_no_reductionparams():
     pythonscript = "this is my python script"
     pythonfile = 'this_is_my_file.py'

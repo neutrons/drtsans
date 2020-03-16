@@ -51,7 +51,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     empty = reduction_input["emptyTrans"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
     if reduction_input["configuration"]["useBlockedBeam"]:
-        blocked_beam = reduction_input["configuration"]["BlockBeamFileName"]
+        blocked_beam = reduction_input["configuration"]["BlockBeamRunNumber"]
     else:
         blocked_beam = None
 

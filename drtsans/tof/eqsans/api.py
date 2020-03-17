@@ -11,7 +11,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 from mantid.simpleapi import mtd, logger, SaveAscii, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
 import drtsans  # noqa E402
-from drtsans import (apply_sensitivity_correction, load_sensitivity_workspace, solid_angle_correction)  # noqa E402
+from drtsans import (apply_sensitivity_correction, getWedgeSelection, load_sensitivity_workspace, solid_angle_correction)  # noqa E402
 from drtsans import subtract_background  # noqa E402
 from drtsans.settings import namedtuplefy  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
@@ -573,6 +573,27 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
     wedges = list(zip(wedges_min, wedges_max))
 
+    # automatically determine wedge binning if it wasn't explicitly set
+    autoWedgeOpts = {}
+    symmetric_wedges = True
+    if bin1d_type == 'wedge':
+        if wedges_min.size == 0:
+            try:
+                autoWedgeOpts = {'q_min': float(reduction_input['configuration']['autoWedgeQmin']),
+                                 'q_delta': float(reduction_input['configuration']['autoWedgeQdelta']),
+                                 'q_max': float(reduction_input['configuration']['autoWedgeQmax']),
+                                 'azimuthal_delta': float(reduction_input['configuration']['autoWedgeAzimuthalDelta']),
+                                 'peak_width': float(reduction_input['configuration'].get('autoWedgePeakWidth', 0.25)),
+                                 'background_width': float(reduction_input['configuration']
+                                                           .get('autoWedgeBackgroundWidth', 1.5)),
+                                 'signal_to_noise_min': float(reduction_input['configuration']
+                                                              .get('autoSignalToNoiseMin', 2.))}
+                # auto-aniso returns all of the wedges
+                symmetric_wedges = False
+            except (KeyError, ValueError) as e:
+                raise RuntimeError('Selected 1DQbinType="wedge", must either specify wedge angles or parameters '
+                                   'for automatically determining them') from e
+
     # empty beam transmission workspace
     if loaded_ws.empty.data is not None:
         empty_trans_ws_name = f'{prefix}_empty'
@@ -683,10 +704,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
         SaveNexus(processed_data_main, Filename=filename)
         # binning
-        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar')
-        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
+        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
+        if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
+            wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
         iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
+        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         fr_label = ''
         for wl_frame in range(n_wl_frames):
@@ -697,6 +720,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                    bin1d_type=bin1d_type, log_scale=log_binning,
                                                    even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                    annular_angle_bin=annular_bin, wedges=wedges,
+                                                   symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
 
             detectordata[name+fr_label] = {'iq': iq1d_main_out,

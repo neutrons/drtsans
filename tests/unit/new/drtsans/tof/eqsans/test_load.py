@@ -161,6 +161,9 @@ def test_generic_load_and_split(reference_dir):
     assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == 'C'
     assert SampleLogs(filtered_ws.getItem(2)).slice_start.units == 'C'
 
+    mtd.remove(str(filtered_ws))
+    mtd.remove(str(filtered_ws_monitors))
+
 
 def test_load_and_split(reference_dir):
     # split by the SampleTemp log
@@ -212,6 +215,8 @@ def test_load_and_split(reference_dir):
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == 'C'
     assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == 'C'
     assert SampleLogs(filtered_ws.getItem(2)).slice_start.units == 'C'
+
+    mtd.remove(str(filtered_ws))
 
 
 if __name__ == '__main__':

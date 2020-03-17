@@ -9,6 +9,7 @@ from collections import namedtuple
 from mantid.simpleapi import mtd, MaskDetectors
 
 import drtsans
+from drtsans import getWedgeSelection
 from drtsans.path import registered_workspace
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
 from drtsans.instruments import extract_run_number
@@ -51,7 +52,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     empty = reduction_input["emptyTrans"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
     if reduction_input["configuration"]["useBlockedBeam"]:
-        blocked_beam = reduction_input["configuration"]["BlockBeamFileName"]
+        blocked_beam = reduction_input["configuration"]["BlockBeamRunNumber"]
     else:
         blocked_beam = None
 
@@ -83,9 +84,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             raise ValueError("Can't do slicing on summed data sets")
 
     # special loading case for sample to allow the slicing options
-    ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
-    if not registered_workspace(ws_name):
-        if timeslice or logslice:
+    if timeslice or logslice:
+        ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
+        if not registered_workspace(ws_name):
             filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
             print(f"Loading filename {filename}")
             if timeslice:
@@ -113,7 +114,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                               pixel_size_y=None)
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
-        else:
+    else:
+        ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
+        if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
             biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
@@ -189,11 +192,11 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 mask_ws = mtd[mask_ws_name]
     print('Done loading')
 
-    raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']
-    if raw_sample_ws.id() == 'WorkspaceGroup':
+    if registered_workspace(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'):
+        raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group']
         raw_sample_ws_list = [w for w in raw_sample_ws]
     else:
-        raw_sample_ws_list = [raw_sample_ws]
+        raw_sample_ws_list = [mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']]
     raw_bkgd_ws = mtd[f'{prefix}_{instrument_name}_{bkgd}_raw_histo'] if bkgd else None
     raw_blocked_ws = mtd[f'{prefix}_{instrument_name}_{blocked_beam}_raw_histo'] if blocked_beam else None
     raw_center_ws = mtd[f'{prefix}_{instrument_name}_{center}_raw_histo']
@@ -523,15 +526,41 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
     output_dir = reduction_input["configuration"]["outputDir"]
     outputFilename = reduction_input["outputFilename"]
     output_suffix = ''
+
+    bin1d_type = reduction_input["configuration"]["1DQbinType"]
+
     if imshow_kwargs is None:
         imshow_kwargs = {}
     for i, out in enumerate(reduction_output):
         if len(reduction_output) > 1:
             output_suffix = f'_{i}'
+
+        if bin1d_type == 'wedge':
+            wedges_min = np.fromstring(reduction_input["configuration"]["WedgeMinAngles"], sep=',')
+            wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
+            wedges = list(zip(wedges_min, wedges_max))
+        else:
+            wedges = None
+
+        qmin = qmax = None
+        if bin1d_type == 'wedge' or bin1d_type == 'annular':
+            try:
+                qmin = float(reduction_input["configuration"]["Qmin"])
+            except ValueError:
+                pass
+            try:
+                qmax = float(reduction_input["configuration"]["Qmax"])
+            except ValueError:
+                pass
+
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.png')
-        plot_IQazimuthal(out.I2D_main, filename, backend='mpl', imshow_kwargs=imshow_kwargs, title='Main')
+        plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
+                         imshow_kwargs=imshow_kwargs, title='Main',
+                         wedges=wedges, qmin=qmin, qmax=qmax)
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.png')
-        plot_IQazimuthal(out.I2D_wing, filename, backend='mpl', imshow_kwargs=imshow_kwargs, title='Wing')
+        plot_IQazimuthal(out.I2D_wing, filename, backend='mpl',
+                         imshow_kwargs=imshow_kwargs, title='Wing',
+                         wedges=wedges, qmin=qmin, qmax=qmax)
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -586,7 +615,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         qmin = float(reduction_input["configuration"]["Qmin"])
     except ValueError:
         qmin = None
-    qmax = None
     try:
         qmax = float(reduction_input["configuration"]["Qmax"])
     except ValueError:
@@ -600,6 +628,27 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     if len(wedges_min) != len(wedges_max):
         raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
     wedges = list(zip(wedges_min, wedges_max))
+
+    # automatically determine wedge binning if it wasn't explicitly set
+    autoWedgeOpts = {}
+    symmetric_wedges = True
+    if bin1d_type == 'wedge':
+        if wedges_min.size == 0:
+            try:
+                autoWedgeOpts = {'q_min': float(reduction_input['configuration']['autoWedgeQmin']),
+                                 'q_delta': float(reduction_input['configuration']['autoWedgeQdelta']),
+                                 'q_max': float(reduction_input['configuration']['autoWedgeQmax']),
+                                 'azimuthal_delta': float(reduction_input['configuration']['autoWedgeAzimuthalDelta']),
+                                 'peak_width': float(reduction_input['configuration'].get('autoWedgePeakWidth', 0.25)),
+                                 'background_width': float(reduction_input['configuration']
+                                                           .get('autoWedgeBackgroundWidth', 1.5)),
+                                 'signal_to_noise_min': float(reduction_input['configuration']
+                                                              .get('autoSignalToNoiseMin', 2.))}
+                # auto-aniso returns all of the wedges
+                symmetric_wedges = False
+            except (KeyError, ValueError):
+                raise RuntimeError('Selected 1DQbinType="wedge", must either specify wedge angles or parameters '
+                                   'for automatically determining them')
 
     xc, yc, yw = biosans.find_beam_center(loaded_ws.center)
     print("Center  =", xc, yc, yw)
@@ -710,19 +759,23 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                                        keep_processed_workspaces=False)
 
         # binning
-        iq2d_main_in = biosans.convert_to_q(processed_data_main, mode='azimuthal')
         iq1d_main_in = biosans.convert_to_q(processed_data_main, mode='scalar')
+        iq2d_main_in = biosans.convert_to_q(processed_data_main, mode='azimuthal')
+        if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
+            wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
         iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main, nbins_main,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                annular_angle_bin=annular_bin, wedges=wedges,
+                                               symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
-        iq2d_wing_in = biosans.convert_to_q(processed_data_wing, mode='azimuthal')
         iq1d_wing_in = biosans.convert_to_q(processed_data_wing, mode='scalar')
+        iq2d_wing_in = biosans.convert_to_q(processed_data_wing, mode='azimuthal')
         iq2d_wing_out, iq1d_wing_out = bin_all(iq2d_wing_in, iq1d_wing_in, nxbins_wing, nybins_wing, nbins_wing,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                annular_angle_bin=annular_bin, wedges=wedges,
+                                               symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
 
         # save ASCII files

@@ -101,7 +101,7 @@ def test_load_events_and_histogram(reference_dir):
     assert sample_logs0.proton_charge.size() == 12933
 
     ws1 = load_events_and_histogram('EQSANS_101595,EQSANS_104088,EQSANS_105428',
-                                    data_dir=reference_dir.new.eqsans)
+                                    data_dir=reference_dir.new.eqsans, keep_events=False)
 
     assert ws1.data.getAxis(0).getUnit().caption() == 'Wavelength'
     assert ws1.data.name() == "EQSANS_101595_104088_105428"

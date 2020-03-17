@@ -86,6 +86,10 @@ def write_configfile(input_json_file, basename):
     return outputdir, output_json_file
 
 
+def unique_basename(basename):
+    return os.path.basename(NamedTemporaryFile(prefix=basename+'_', delete=False).name)
+
+
 def run_reduction(pythonscript, json_file):
     # determine python script with full path
     scriptdir = os.path.join(os.path.abspath(os.path.curdir), 'scripts')
@@ -111,7 +115,8 @@ def run_reduction(pythonscript, json_file):
 
 def check_and_cleanup(outputdir, basename):
     # verify that the output files were created and cleanup
-    for extension in EXTENSIONS[basename]:
+    basename_short = '_'.join(basename.split('_')[:-1])
+    for extension in EXTENSIONS[basename_short]:
         filename = os.path.join(outputdir, basename + extension)
         assert os.path.isfile(filename), '"{}" does not exist'.format(filename)
         os.remove(filename)
@@ -140,6 +145,7 @@ def test_eqsans(configfile, basename, required):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
+    basename = unique_basename(basename)
     outputdir, json_file = write_configfile(configfile, basename)
 
     run_reduction('eqsans_reduction.py', json_file)
@@ -159,6 +165,7 @@ def test_biosans(configfile, basename, required):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
+    basename = unique_basename(basename)
     outputdir, json_file = write_configfile(configfile, basename)
 
     run_reduction('biosans_reduction.py', json_file)
@@ -178,6 +185,7 @@ def test_gpsans(configfile, basename, required):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
+    basename = unique_basename(basename)
     outputdir, json_file = write_configfile(configfile, basename)
 
     run_reduction('gpsans_reduction.py', json_file)

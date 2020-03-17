@@ -243,7 +243,7 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
         return dict(data=ws,
                     monitor=ws_monitors)
     else:
-        if keep_events == True:
+        if keep_events:
             raise NotImplementedError("Cannot merge runs together with keep_events=True.")
 
         instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument

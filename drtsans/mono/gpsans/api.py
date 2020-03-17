@@ -31,6 +31,7 @@ from drtsans import subtract_background
 from drtsans.mono.meta_data import set_meta_data
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
+from drtsans.process_uncertainties import set_init_uncertainties
 
 
 # Functions exposed to the general user (public) API
@@ -103,6 +104,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                            **load_params)
             for _w in mtd[ws_name]:
                 _w = transform_to_wavelength(_w)
+                _w = set_init_uncertainties(_w)
                 # Overwrite meta data
                 set_meta_data(str(_w),
                               wave_length=wavelength,

@@ -29,7 +29,30 @@ def create_gold_result():
         [0.925610, 0.943893, 1.003907, 1.035687, 0.933013, 1.005357, 1.055469, 1.017117]
     ])
 
-    return gold_sens_matrix
+    gold_uncertainty_matrix = np.array([
+        [0.219001, 0.272036, 0.174035, 0.256469, 0.223259, 0.300262, 0.238803, 0.191695],
+        [0.119961, 0.116387, 0.119961, 0.121711, 0.121711, 0.119077, 0.119077, 0.117290],
+        [0.125142, 0.119961, 0.120839, 0.118187, 0.117290, 0.124293, 0.121711, 0.120839],
+        [0.117290, 0.121711, 0.121711, 0.120839, 0.121711, 0.119077, 0.117290, 0.116387],
+        [0.118187, 0.119961, 0.117290, 0.124293, 0.125142, 0.122578, 0.121711, 0.119077],
+        [0.123438, 0.119961, 0.119077, 0.121711, 0.117290, 0.122578, 0.120839, 0.123438],
+        [0.118187, np.nan, 0.117290, 0.124293, 0.124293, 0.116387, 0.116387, 0.120839],
+        [0.122578, 0.118187, 0.119961, 0.121711, 0.124293, 0.119077, 0.125142, 0.119077],
+        [0.121711, 0.125142, 0.122578, 0.126769, 0.123438, 0.119961, 0.119961, 0.118187],
+        [0.119961, 0.119961, 0.120839, 0.114177, 0.122578, 0.122578, 0.118187, 0.124293],
+        [0.122578, 0.125142, 0.120839, 0.118187, 0.124293, 0.118187, 0.119077, 0.123438],
+        [0.119961, 0.117290, 0.118187, 0.119077, 0.119077, 0.125142, 0.121711, 0.123438],
+        [0.120839, 0.121711, 0.123438, 0.124293, 0.118187, np.nan, 0.120839, 0.125142],
+        [0.123438, 0.116387, 0.122578, 0.117290, 0.120839, 0.118187, 0.117290, 0.120839],
+        [0.119961, 0.119077, 0.121711, 0.119077, 0.120839, 0.122578, 0.118187, 0.120839],
+        [0.117290, 0.122578, 0.119961, 0.120839, 0.117290, 0.117290, 0.120839, 0.124293],
+        [0.116387, 0.116387, 0.118187, 0.122578, 0.119961, 0.125142, 0.125142, 0.123438],
+        [0.116387, 0.122578, 0.122578, 0.125142, 0.118187, 0.123438, 0.125142, 0.122578],
+        [0.118187, 0.116387, 0.119961, 0.121711, 0.119077, 0.116387, 0.121711, 0.120839],
+        [0.035379, 0.042823, 0.028597, 0.038726, 0.035874, 0.046481, 0.037820, 0.031042]
+    ])
+
+    return gold_sens_matrix, gold_uncertainty_matrix
 
 
 @pytest.mark.parametrize('workspace_with_instrument',
@@ -354,7 +377,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     print('Shape[Out] = {}, {}'.format(out_result.shape, out_uncertainty.shape))
 
-    gold_sensitivity_matrix = create_gold_result()
+    gold_sensitivity_matrix, gold_uncertainty_matrix = create_gold_result()
 
     assert gold_sensitivity_matrix.shape == out_result.shape
     print(gold_sensitivity_matrix[0, 0], out_result[0, 0])
@@ -362,7 +385,5 @@ def test_prepare_sensitivity(workspace_with_instrument):
     print(gold_sensitivity_matrix[19, 0], out_result[19, 0])
     print(gold_sensitivity_matrix[19, 7], out_result[19, 7])
 
-    # assert_allclose(result, out_result, equal_nan=True, atol=0.001)
-    # assert_allclose(result_uncertainty, out_uncertainty, equal_nan=True, atol=0.001)
-
-    assert 1 == 2
+    assert_allclose(gold_sensitivity_matrix, out_result, equal_nan=True, atol=0.001)
+    assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)

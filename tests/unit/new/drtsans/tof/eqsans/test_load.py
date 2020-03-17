@@ -8,9 +8,8 @@ from drtsans.tof.eqsans.load import (load_events, load_events_monitor,
                                      sum_data,
                                      load_events_and_histogram)
 from drtsans.load import load_and_split as generic_load_and_split
-from drtsans.tof.eqsans.correct_frame import transform_to_wavelength
+from drtsans.tof.eqsans.correct_frame import transform_to_wavelength, set_init_uncertainties
 from drtsans.samplelogs import SampleLogs
-
 
 def test_load_events(reference_dir):
     # default workspace name is file hint
@@ -45,10 +44,13 @@ def test_load_events_monitor(reference_dir):
 def test_merge_Data(reference_dir):
     ws0 = load_events('EQSANS_101595', data_dir=reference_dir.new.eqsans)
     ws0 = transform_to_wavelength(ws0)
+    ws0 = set_init_uncertainties(ws0)
     ws1 = load_events('EQSANS_104088', data_dir=reference_dir.new.eqsans)
     ws1 = transform_to_wavelength(ws1)
+    ws1 = set_init_uncertainties(ws1)
     ws2 = load_events('EQSANS_105428', data_dir=reference_dir.new.eqsans)
     ws2 = transform_to_wavelength(ws2)
+    ws2 = set_init_uncertainties(ws2)
 
     sample_logs0 = SampleLogs(ws0)
     sample_logs1 = SampleLogs(ws1)

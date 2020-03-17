@@ -17,7 +17,7 @@ from drtsans.geometry import source_detector_distance
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.process_uncertainties import set_init_uncertainties
 
-__all__ = ['transform_to_wavelength', ]
+__all__ = ['transform_to_wavelength',' set_init_uncertainties']
 
 
 def _is_frame_skipping(input_workspace):
@@ -557,8 +557,8 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
 
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=True, set_init_uncertainty=True,
-                            interior_clip=False, output_workspace=None):
+                            keep_events=True, interior_clip=False,
+                            output_workspace=None):
     r"""
     API function that converts corrected TOF's to Wavelength.
 
@@ -576,8 +576,6 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
         TOF minus this quantity.
     keep_events: bool
         The final histogram will be an EventsWorkspace if True.
-    set_init_uncertainty: bool
-        Assign the error to histogram bins having no counts.
     interior_clip: False
         If True, trim slow neutrons from the lead pulse (using
         ``high_tof_clip``) and fast neutrons from the skip pulse (using
@@ -604,9 +602,5 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
     log_band_structure(output_workspace, bands)
     w = log_tof_structure(output_workspace, low_tof_clip,
                           high_tof_clip, interior_clip=interior_clip)
-
-    # uncertainty when no counts in the bin
-    if set_init_uncertainty:
-        w = set_init_uncertainties(w)
 
     return w

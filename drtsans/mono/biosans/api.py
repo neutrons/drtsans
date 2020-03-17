@@ -21,7 +21,7 @@ from drtsans.reductionlog import savereductionlog
 from drtsans.mono import biosans
 from drtsans.mono.biosans import solid_angle_correction
 from drtsans.mask_utils import apply_mask, load_mask
-from drtsans.mono.load import load_events, transform_to_wavelength
+from drtsans.mono.load import load_events, transform_to_wavelength, set_init_uncertainties
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.mono.meta_data import set_meta_data
@@ -103,6 +103,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                    **load_params)
             for _w in mtd[ws_name]:
                 _w = transform_to_wavelength(_w)
+                _w = set_init_uncertainties(_w)
                 # Overwrite meta data
                 set_meta_data(str(_w),
                               wave_length=wavelength,
@@ -953,6 +954,7 @@ def prepare_data(data,
                      detector_offset=detector_offset, sample_offset=sample_offset)
     ws_name = str(ws)
     transform_to_wavelength(ws_name)
+    set_init_uncertainties(ws_name)
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
         biosans.center_detector(ws_name, center_x=center_x,
@@ -970,6 +972,7 @@ def prepare_data(data,
         else:
             dark_ws = load_events(dark_current, overwrite_instrument=True)
             dark_ws = transform_to_wavelength(dark_ws)
+            dark_ws = set_init_uncertainties(dark_ws)
         subtract_dark_current(ws_name, dark_ws)
 
     # Normalization

@@ -5,6 +5,33 @@ from drtsans.sensitivity_correction_patch import calculate_sensitivity_correctio
 from numpy.testing import assert_allclose
 
 
+def create_gold_result():
+    gold_sens_matrix = np.array([
+        [0.988311, 0.954631, 0.979880, 1.028280, 0.992308, 1.003966, 1.004865, 0.935518],
+        [0.989734, 0.932358, 0.989734, 1.018422, 1.018422, 0.975390, 0.975390, 0.946702],
+        [1.075797, 0.989734, 1.004078, 0.961046, 0.946702, 1.061453, 1.018422, 1.004078],
+        [0.946702, 1.018422, 1.018422, 1.004078, 1.018422, 0.975390, 0.946702, 0.932358],
+        [0.961046, 0.989734, 0.946702, 1.061453, 1.075797, 1.032766, 1.018422, 0.975390],
+        [1.047110, 0.989734, 0.975390, 1.018422, 0.946702, 1.032766, 1.004078, 1.047110],
+        [0.961046, np.nan, 0.946702, 1.061453, 1.061453, 0.932358, 0.932358, 1.004078],
+        [1.032766, 0.961046, 0.989734, 1.018422, 1.061453, 0.975390, 1.075797, 0.975390],
+        [1.018422, 1.075797, 1.032766, 1.004416, 1.047110, 0.989734, 0.989734, 0.961046],
+        [0.989734, 0.989734, 1.004078, 1.004193, 1.032766, 1.032766, 0.961046, 1.061453],
+        [1.032766, 1.075797, 1.004078, 0.961046, 1.061453, 0.961046, 0.975390, 1.047110],
+        [0.989734, 0.946702, 0.961046, 0.975390, 0.975390, 1.075797, 1.018422, 1.047110],
+        [1.004078, 1.018422, 1.047110, 1.061453, 0.961046, np.nan, 1.004078, 1.075797],
+        [1.047110, 0.932358, 1.032766, 0.946702, 1.004078, 0.961046, 0.946702, 1.004078],
+        [0.989734, 0.975390, 1.018422, 0.975390, 1.004078, 1.032766, 0.961046, 1.004078],
+        [0.946702, 1.032766, 0.989734, 1.004078, 0.946702, 0.946702, 1.004078, 1.061453],
+        [0.932358, 0.932358, 0.961046, 1.032766, 0.989734, 1.075797, 1.075797, 1.047110],
+        [0.932358, 1.032766, 1.032766, 1.075797, 0.961046, 1.047110, 1.075797, 1.032766],
+        [0.961046, 0.932358, 0.989734, 1.018422, 0.975390, 0.932358, 1.018422, 1.004078],
+        [0.925610, 0.943893, 1.003907, 1.035687, 0.933013, 1.005357, 1.055469, 1.017117]
+    ])
+
+    return gold_sens_matrix
+
+
 @pytest.mark.parametrize('workspace_with_instrument',
                          [dict(name='EQSANS', Nx=8, Ny=20)], indirect=True)
 def test_prepare_sensitivity_prototype(workspace_with_instrument):
@@ -325,7 +352,15 @@ def test_prepare_sensitivity(workspace_with_instrument):
     out_result = np.flip(np.transpose(out.extractY().reshape(8, 20)), 0)
     out_uncertainty = np.flip(np.transpose(out.extractE().reshape(8, 20)), 0)
 
-    print('Shape[Out] = {}, {}'.format(out_result.shape, out_uncertainty.shape()))
+    print('Shape[Out] = {}, {}'.format(out_result.shape, out_uncertainty.shape))
+
+    gold_sensitivity_matrix = create_gold_result()
+
+    assert gold_sensitivity_matrix.shape == out_result.shape
+    print(gold_sensitivity_matrix[0, 0], out_result[0, 0])
+    print(gold_sensitivity_matrix[0, 7], out_result[0, 7])
+    print(gold_sensitivity_matrix[19, 0], out_result[19, 0])
+    print(gold_sensitivity_matrix[19, 7], out_result[19, 7])
 
     # assert_allclose(result, out_result, equal_nan=True, atol=0.001)
     # assert_allclose(result_uncertainty, out_uncertainty, equal_nan=True, atol=0.001)

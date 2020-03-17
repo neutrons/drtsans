@@ -32,7 +32,6 @@ from drtsans import subtract_background
 from drtsans.mono.meta_data import set_meta_data
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
-from drtsans.process_uncertainties import set_init_uncertainties
 
 
 # Functions exposed to the general user (public) API

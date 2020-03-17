@@ -29,7 +29,6 @@ from drtsans.transmission import apply_transmission_correction, calculate_transm
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
-from drtsans.process_uncertainties import set_init_uncertainties
 # from drtsans.mono.absolute_units import empty_beam_scaling
 # from drtsans.mono.gpsans.attenuation import attenuation_factor
 

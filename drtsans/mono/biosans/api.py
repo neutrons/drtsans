@@ -535,12 +535,8 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
         if len(reduction_output) > 1:
             output_suffix = f'_{i}'
 
-        if bin1d_type == 'wedge':
-            wedges_min = np.fromstring(reduction_input["configuration"]["WedgeMinAngles"], sep=',')
-            wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
-            wedges = list(zip(wedges_min, wedges_max))
-        else:
-            wedges = None
+        wedges = reduction_input["configuration"]["wedges"] if bin1d_type == 'wedge' else None
+        symmetric_wedges = reduction_input["configuration"].get("symmetric_wedges", True)
 
         qmin = qmax = None
         if bin1d_type == 'wedge' or bin1d_type == 'annular':
@@ -556,11 +552,13 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.png')
         plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Main',
-                         wedges=wedges, qmin=qmin, qmax=qmax)
+                         wedges=wedges, symmetric_wedges=symmetric_wedges,
+                         qmin=qmin, qmax=qmax)
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.png')
         plot_IQazimuthal(out.I2D_wing, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Wing',
-                         wedges=wedges, qmin=qmin, qmax=qmax)
+                         wedges=wedges, symmetric_wedges=symmetric_wedges,
+                         qmin=qmin, qmax=qmax)
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -763,6 +761,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in = biosans.convert_to_q(processed_data_main, mode='azimuthal')
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
+
+        # set the found wedge values to the reduction input, this will allow correct plotting
+        reduction_input["configuration"]["wedges"] = wedges
+        reduction_input["configuration"]["symmetric_wedges"] = symmetric_wedges
+
         iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main, nbins_main,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,

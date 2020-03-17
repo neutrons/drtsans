@@ -56,8 +56,9 @@ def test_prepare_sensitivity_prototype(workspace_with_instrument):
     ffm_with_mask = mask * flood_field_measurement
     ffm_uncertainty_with_mask = mask * flood_field_measurement_uncertainty
 
-    n_elements = ffm_with_mask.shape[0] * ffm_with_mask.shape[1] \
-                 - np.count_nonzero(np.isnan(ffm_with_mask)) - np.count_nonzero(np.isneginf(ffm_with_mask))
+    n_nan_elements = np.count_nonzero(np.isnan(ffm_with_mask))
+    n_ninf_elements = np.count_nonzero(np.isneginf(ffm_with_mask))
+    n_elements = ffm_with_mask.shape[0] * ffm_with_mask.shape[1] - n_nan_elements - n_ninf_elements
     F = np.sum(
         [value for value in ffm_with_mask.ravel() if not np.isnan(value) and not np.isneginf(value)]) / n_elements
     dF = np.sqrt(np.sum([value ** 2 for value in ffm_uncertainty_with_mask.ravel()
@@ -145,8 +146,9 @@ def test_prepare_sensitivity_prototype(workspace_with_instrument):
 
     # The final sensitivity, S(m,n), is produced by dividing this result
     # by the average value per Equations A3.13 and A3.14
-    n_elements = ffm_with_mask.shape[0] * ffm_with_mask.shape[1] \
-                 - np.count_nonzero(np.isnan(extrapolation)) - np.count_nonzero(np.isneginf(extrapolation))
+    n_nan_elements = np.count_nonzero(np.isnan(extrapolation))
+    n_ninf_elements = np.count_nonzero(np.isneginf(extrapolation))
+    n_elements = ffm_with_mask.shape[0] * ffm_with_mask.shape[1] - n_nan_elements - n_ninf_elements
     final_sensitivity = np.sum([value for value in extrapolation.ravel()
                                 if not np.isnan(value) and not np.isneginf(value)]) / n_elements
     final_sensitivity_uncertainty = np.sqrt(np.sum([value ** 2 for value in extrapolation_uncertainty.ravel()

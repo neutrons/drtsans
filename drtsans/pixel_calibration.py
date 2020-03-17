@@ -1162,7 +1162,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
         input_workspace = unique_workspace_dundername()
         Load(Filename=flood_input, OutputWorkspace=input_workspace)
     else:
-        input_workspace = flood_input
+        input_workspace = str(flood_input)  # workspace object or workspace name
 
     integrated_intensities = unique_workspace_dundername()
     Integration(InputWorkspace=input_workspace, OutputWorkspace=integrated_intensities)
@@ -1187,7 +1187,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     #
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
-    collection = TubeCollection(integrated_intensities, 'detector1').sorted(view='decreasing X')
+    collection = TubeCollection(integrated_intensities, component).sorted(view='decreasing X')  # BOTTLENECK
     detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
     count_densities = list()
     for tube in collection:
@@ -1219,7 +1219,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
                     instrument=instrument_standard_name(input_workspace),
                     component=component,
                     daystamp=day_stamp(input_workspace),
-                    runnumbers=[SampleLogs(input_workspace).single_value('run_number'), ])
+                    runnumbers=[int(SampleLogs(input_workspace).run_number.value), ])
     return Table(metadata, detector_ids=detector_ids, widths=widths)
 
 

@@ -677,9 +677,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                               .get('autoSignalToNoiseMin', 2.))}
                 # auto-aniso returns all of the wedges
                 symmetric_wedges = False
-            except (KeyError, ValueError):
+            except (KeyError, ValueError) as e:
                 raise RuntimeError('Selected 1DQbinType="wedge", must either specify wedge angles or parameters '
-                                   'for automatically determining them')
+                                   'for automatically determining them') from e
 
     xc, yc = find_beam_center(loaded_ws.center)
     print("Center  =", xc, yc)

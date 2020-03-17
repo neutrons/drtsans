@@ -22,6 +22,7 @@ from drtsans.tof.eqsans import (load_events, transform_to_wavelength, set_init_u
                                 normalize_by_monitor)
 from drtsans.tof.eqsans.normalization import load_beam_flux_file, load_flux_to_monitor_ratio_file
 
+
 @pytest.fixture(scope='module')
 def beam_flux(reference_dir):
     r"""Filepath to the flux file"""

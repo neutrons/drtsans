@@ -11,6 +11,7 @@ from drtsans.load import load_and_split as generic_load_and_split
 from drtsans.tof.eqsans.correct_frame import transform_to_wavelength, set_init_uncertainties
 from drtsans.samplelogs import SampleLogs
 
+
 def test_load_events(reference_dir):
     # default workspace name is file hint
     with amend_config(data_dir=reference_dir.new.eqsans):

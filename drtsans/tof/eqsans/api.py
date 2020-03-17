@@ -11,7 +11,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 from mantid.simpleapi import mtd, logger, SaveAscii, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
 import drtsans  # noqa E402
-from drtsans import (apply_sensitivity_correction, load_sensitivity_workspace, solid_angle_correction)  # noqa E402
+from drtsans import (apply_sensitivity_correction, getWedgeSelection, load_sensitivity_workspace, solid_angle_correction)  # noqa E402
 from drtsans import subtract_background  # noqa E402
 from drtsans.settings import namedtuplefy  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
@@ -33,6 +33,7 @@ from drtsans.tof.eqsans.meta_data import set_meta_data  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
+from drtsans.dataobjects import save_iqmod  # noqa E402
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -573,6 +574,27 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
     wedges = list(zip(wedges_min, wedges_max))
 
+    # automatically determine wedge binning if it wasn't explicitly set
+    autoWedgeOpts = {}
+    symmetric_wedges = True
+    if bin1d_type == 'wedge':
+        if wedges_min.size == 0:
+            try:
+                autoWedgeOpts = {'q_min': float(reduction_input['configuration']['autoWedgeQmin']),
+                                 'q_delta': float(reduction_input['configuration']['autoWedgeQdelta']),
+                                 'q_max': float(reduction_input['configuration']['autoWedgeQmax']),
+                                 'azimuthal_delta': float(reduction_input['configuration']['autoWedgeAzimuthalDelta']),
+                                 'peak_width': float(reduction_input['configuration'].get('autoWedgePeakWidth', 0.25)),
+                                 'background_width': float(reduction_input['configuration']
+                                                           .get('autoWedgeBackgroundWidth', 1.5)),
+                                 'signal_to_noise_min': float(reduction_input['configuration']
+                                                              .get('autoSignalToNoiseMin', 2.))}
+                # auto-aniso returns all of the wedges
+                symmetric_wedges = False
+            except (KeyError, ValueError) as e:
+                raise RuntimeError('Selected 1DQbinType="wedge", must either specify wedge angles or parameters '
+                                   'for automatically determining them') from e
+
     # empty beam transmission workspace
     if loaded_ws.empty.data is not None:
         empty_trans_ws_name = f'{prefix}_empty'
@@ -683,10 +705,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
         SaveNexus(processed_data_main, Filename=filename)
         # binning
-        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar')
-        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
+        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
+        if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
+            wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
         iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
+        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         fr_label = ''
         for wl_frame in range(n_wl_frames):
@@ -697,13 +721,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                    bin1d_type=bin1d_type, log_scale=log_binning,
                                                    even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                    annular_angle_bin=annular_bin, wedges=wedges,
+                                                   symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
 
             detectordata[name+fr_label] = {'iq': iq1d_main_out,
                                            'iqxqy': iq2d_main_out}
 
             # save ASCII files
-            filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_2D.dat')
+            filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
             save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
             for j in range(len(iq1d_main_out)):
@@ -712,8 +737,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                     add_suffix = f'_wedge_{j}'
                 add_suffix += fr_label
                 ascii_1D_filename = os.path.join(output_dir,
-                                                 f'{outputFilename}{output_suffix}_1D{add_suffix}.dat')
-                save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq1d_main_out[j])
+                                                 f'{outputFilename}{output_suffix}{add_suffix}_Iq.dat')
+                save_iqmod(iq1d_main_out[j], ascii_1D_filename)
 
             IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
             current_output = IofQ_output(I2D_main=iq2d_main_out,
@@ -779,7 +804,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             except ValueError:
                 pass
 
-        filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}_2D.png')
+        filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}_Iqxqy.png')
         plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Main',
                          wedges=wedges, qmin=qmin, qmax=qmax)
@@ -788,7 +813,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f'_wedge_{j}'
-            filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
+            filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{add_suffix}_Iq.png')
             plot_IQmod([out.I1D_main[j]], filename, loglog=True,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
 

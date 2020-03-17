@@ -5,7 +5,7 @@ import numpy as np
 from mantid.simpleapi import (Rebin, SumSpectra, mtd)
 from drtsans.settings import (amend_config, unique_workspace_name as uwn)
 from drtsans.tof.eqsans.load import (load_events, load_events_monitor,
-                                     sum_data,
+                                     sum_data, load_and_split,
                                      load_events_and_histogram)
 from drtsans.load import load_and_split as generic_load_and_split
 from drtsans.tof.eqsans.correct_frame import transform_to_wavelength, set_init_uncertainties
@@ -137,6 +137,58 @@ def test_generic_load_and_split(reference_dir):
     assert filtered_ws_monitors.getItem(0).getNumberEvents() == 1440
     assert filtered_ws_monitors.getItem(1).getNumberEvents() == 49869
     assert filtered_ws_monitors.getItem(2).getNumberEvents() == 720
+
+    # check metadata is set correctly
+    assert SampleLogs(filtered_ws.getItem(0)).slice.value == 1
+    assert SampleLogs(filtered_ws.getItem(1)).slice.value == 2
+    assert SampleLogs(filtered_ws.getItem(2)).slice.value == 3
+    assert SampleLogs(filtered_ws.getItem(0)).number_of_slices.value == 3
+    assert SampleLogs(filtered_ws.getItem(1)).number_of_slices.value == 3
+    assert SampleLogs(filtered_ws.getItem(2)).number_of_slices.value == 3
+    assert SampleLogs(filtered_ws.getItem(0)).slice_parameter.value == "SampleTemp"
+    assert SampleLogs(filtered_ws.getItem(1)).slice_parameter.value == "SampleTemp"
+    assert SampleLogs(filtered_ws.getItem(2)).slice_parameter.value == "SampleTemp"
+    assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 0.1
+    assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 0.1
+    assert SampleLogs(filtered_ws.getItem(2)).slice_interval.value == 0.1
+    assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 19.85
+    assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 19.95
+    assert SampleLogs(filtered_ws.getItem(2)).slice_start.value == 20.05
+    assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 19.95
+    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == 20.05
+    assert SampleLogs(filtered_ws.getItem(2)).slice_end.value == 20.15
+    assert SampleLogs(filtered_ws.getItem(0)).slice_start.units == 'C'
+    assert SampleLogs(filtered_ws.getItem(1)).slice_start.units == 'C'
+    assert SampleLogs(filtered_ws.getItem(2)).slice_start.units == 'C'
+    assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == 'C'
+    assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == 'C'
+    assert SampleLogs(filtered_ws.getItem(2)).slice_start.units == 'C'
+
+
+def test_load_and_split(reference_dir):
+    # split by the SampleTemp log
+    filtered_ws = load_and_split('EQSANS_104088', data_dir=reference_dir.new.eqsans,
+                                 log_name='SampleTemp', log_value_interval=0.1)
+
+    assert filtered_ws.size() == 3
+
+    assert filtered_ws.name() == 'EQSANS_104088'
+
+    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(8.007968453, abs=1e-7)
+    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(277.040577412, abs=1e-7)
+    assert SampleLogs(filtered_ws.getItem(2)).duration.value == pytest.approx(3.997389135, abs=1e-7)
+
+    assert filtered_ws.getItem(0).getAxis(0).getUnit().caption() == 'Wavelength'
+    assert filtered_ws.getItem(1).getAxis(0).getUnit().caption() == 'Wavelength'
+    assert filtered_ws.getItem(2).getAxis(0).getUnit().caption() == 'Wavelength'
+
+    # check values for Y and E don't change unexpectedly
+    assert filtered_ws.getItem(0).extractY().max() == 3
+    assert filtered_ws.getItem(1).extractY().max() == 27
+    assert filtered_ws.getItem(2).extractY().max() == 3
+    assert filtered_ws.getItem(0).extractE().max() == pytest.approx(1.7320508, abs=1e-7)
+    assert filtered_ws.getItem(1).extractE().max() == pytest.approx(5.1961524, abs=1e-7)
+    assert filtered_ws.getItem(2).extractE().max() == pytest.approx(1.7320508, abs=1e-7)
 
     # check metadata is set correctly
     assert SampleLogs(filtered_ws.getItem(0)).slice.value == 1

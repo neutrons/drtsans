@@ -98,8 +98,8 @@ def test_load_biosans():
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1E-7)
 
 
-def test_load_biosans_sample_off():
-    """Test load BIOSANS data
+def test_load_biosans_sample_off_nominal():
+    """Test load BIOSANS data with sample position off nominal position
 
     Returns
     -------
@@ -114,55 +114,48 @@ def test_load_biosans_sample_off():
     ws = load_events(nexus_file_name, output_workspace='biotest01', overwrite_instrument=True,
                      detector_offset=0, sample_offset=0)
 
-    # Check current instrument setup and meta data (sample logs)
-    logs = SampleLogs(ws)
-    print('[TEST INFO] (Raw) sampleToSi = {} mm'.format(logs.find_log_with_units('CG3:CS:SampleToSi', unit='mm')))
-    raw_sample_det_distance = sample_detector_distance(ws)
-    print('[TEST INFO] (Raw) sample to detector distance = {} /{} meter'
-          ''.format(raw_sample_det_distance,
-                    sample_detector_distance(ws, log_key='sample_detector_distance', search_logs=True)))
-
-    # Calculate offset without any overwriting
-    # sample and detector offsets can only be retrieved from a loaded workspace
-    # This is a technical debt
-    sample_offset, detector_offset = get_sample_detector_offset(ws, 'CG3:CS:SampleToSi', 71. * 1E-3)
-    print('[TEST INFO] Sample offset = {}, Detector offset = {}'
-          ''.format(sample_offset, detector_offset))
-
-    assert sample_offset == pytest.approx(0., 1E-12)
-    assert detector_offset == pytest.approx(0., 1E-12)
-
-    # In this file, SampleToSi is 71 mm. Thus there won't be any offset for sample and detector
-    # assert np.testing.assert_allclose(sample_pos)
+    # Verify: sample position at (0., 0., 0.)
+    sample_pos = np.array(ws.getInstrument().getSample().getPos())
+    expected_sample_pos = np.array([0., 0., 0.])
+    np.testing.assert_allclose(sample_pos, expected_sample_pos, atol=1E-12)
+    # Verify: sample detector distance is equal to 7.00000019 meter
+    sample_det_distance_cal = sample_detector_distance(ws, unit='m', search_logs=False)
+    sample_det_distance_meta = sample_detector_distance(ws, unit='mm', search_logs=True)
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1E-3, 1E-7)
+    assert sample_det_distance_cal == pytest.approx(7.00000019, 1E-7)
 
     # Second test on SampleToSi distance other than 71.00 mm
-    # reset sample log CG3:CS:SampleToSi
+    # Simulate sample log CG3:CS:SampleToSi
+    # Note: this is not overwriting SampleSiDistance
     test_sample_si_distance = 74.21
     AddSampleLogMultiple(Workspace=ws, LogNames='{}'.format('CG3:CS:SampleToSi'),
                          LogValues='{}'.format(test_sample_si_distance),
                          LogUnits='mm')
 
-    # Calculate offsets
     # Calculate offset without any overwriting
     sample_offset, detector_offset = get_sample_detector_offset(ws, 'CG3:CS:SampleToSi', 71. * 1E-3)
     print('[TEST INFO 2] Sample offset = {}, Detector offset = {}'
           ''.format(sample_offset, detector_offset))
 
+    # Both sample and detector shall move toward souce (-Y direction) with (74.21 - 71.) = 3.21 mm
+    assert sample_offset == -0.00321
+    assert detector_offset == -0.00321
+
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset)
 
-    # Verify
-    # re-calculate the sample detector distance
-    new_sample_det_distance = sample_detector_distance(ws, unit='m', search_logs=False)
-    # check whether the sample detector distance from meta data in workspace is consistent
-    meta_sample_det_distance = sample_detector_distance(ws, unit='mm', search_logs=True)
-    print('[TEST INFO 2] Sample detector distance after moving = {} meter'.format(new_sample_det_distance))
-    print('[TEST INFO 2] Sample position = {}'.format(ws.getInstrument().getSample().getPos()))
+    # Verify: sample position at (0., 0., -0.00321)
+    sample_pos = np.array(ws.getInstrument().getSample().getPos())
+    expected_sample_pos = np.array([0., 0., -0.00321])
+    np.testing.assert_allclose(sample_pos, expected_sample_pos, atol=1E-12)
+
+    # Verify the sample detector distance which shall be same as raw meta data
+    sample_det_distance_cal = sample_detector_distance(ws, unit='m', search_logs=False)
+    sample_det_distance_meta = sample_detector_distance(ws, unit='mm', search_logs=True)
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1E-3, 1E-7)
+    assert sample_det_distance_cal == pytest.approx(7.00000019, 1E-7)
 
     assert 1 == 3
-
-    assert new_sample_det_distance == raw_sample_det_distance * 1E-3
-    assert new_sample_det_distance == meta_sample_det_distance * 1E-3
 
 
 def test_load_biosans_overwrite_meta():

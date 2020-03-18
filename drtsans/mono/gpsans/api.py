@@ -802,7 +802,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
         # save reduction log
 
-        filename = os.path.join(reduction_input["configuration"]["outputDir"], outputFilename + '_reduction_log.hdf')
+        filename = os.path.join(reduction_input["configuration"]["outputDir"],
+                                outputFilename + f'_reduction_log{output_suffix}.hdf')
         starttime = datetime.now().isoformat()
         pythonfile = __file__
         reductionparams = {'data': copy.deepcopy(reduction_input),
@@ -812,13 +813,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                              'sample_transmission': sample_transmission_dict,
                              'background_transmission': background_transmission_dict,
                              }
-        samplelogs = {}
-        for i, raw_sample_ws in enumerate(loaded_ws.sample):
-            run_number = raw_sample_ws.getRunNumber()
-            samplelogs[str(run_number)] = SampleLogs(raw_sample_ws)
-        if len(loaded_ws.sample) > 1:
-            samplelogs['combined'] = SampleLogs(processed_data_main)
-
+        samplelogs = {'main': SampleLogs(processed_data_main)}
         detectordata = {'main': {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}}
         savereductionlog(filename=filename,
                          detectordata=detectordata,

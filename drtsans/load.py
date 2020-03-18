@@ -117,6 +117,16 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     # move instrument components - sample position must happen first
 
     # FIXME (485) - This shall be modified accordingly
+
+    # --- Debug Exception Section
+    out_ws = mtd[str(output_workspace)]
+    print('Sample position = {}'.format(out_ws.instrument().getSample().getPos()))
+    from drtsans.geometry import sample_detector_distance
+    print('SDD = {} (meta) and {} (calculated)'.format(sample_detector_distance(output_workspace, search_logs=True),
+                                                       sample_detector_distance(output_workspace, search_logs=False)))
+    raise NotImplementedError('DEBUG STOP 485!')
+    # --- END
+
     translate_source_by_z(output_workspace, z=None, relative=False)
     translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
     translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary

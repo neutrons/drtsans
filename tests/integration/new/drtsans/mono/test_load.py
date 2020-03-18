@@ -156,6 +156,52 @@ def test_load_biosans_sample_off_nominal():
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1E-7)
 
 
+def test_load_biosans_overwrite_swd():
+    """Test load BIOSANS data with overwriting sample Si window distance
+
+    Returns
+    -------
+
+    """
+    # Decide to skip data or not
+    nexus_file_name = '/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5'
+    if not os.path.exists(nexus_file_name):
+        pytest.skip('Skip due to NeXus file {} is not accessible.'.format(nexus_file_name))
+
+    # Load data
+    ws = load_events(nexus_file_name, output_workspace='biotest02', overwrite_instrument=True,
+                     detector_offset=0, sample_offset=0)
+
+    # Check current instrument setup and meta data (sample logs)
+    logs = SampleLogs(ws)
+    print('[TEST INFO] SampleToSi = {} mm'.format(logs.find_log_with_units('CG3:CS:SampleToSi', unit='mm')))
+    raw_sample_det_distance = sample_detector_distance(ws)
+    print('[TEST INFO] Sample to detector distance = {} /{} meter'
+          ''.format(raw_sample_det_distance,
+                    sample_detector_distance(ws, log_key='sample_detector_distance', search_logs=True)))
+
+    # Calculate offset with overwriting to sample-detector-distance
+    sample_offset, detector_offset = get_sample_detector_offset(ws, 'CG3:CS:SampleToSi', 71. * 1E-3,
+                                                                overwrite_sample_si_distance=74.21)
+    print('[TEST INFO] Sample offset = {}, Detector offset = {}'
+          ''.format(sample_offset, detector_offset))
+
+    # Move sample and detector
+    ws = move_instrument(ws, sample_offset, detector_offset)
+
+    # Verify: sample position at (0., 0., -0.00321) because SampleToSi is overwritten to 74.21 mm
+    sample_pos = np.array(ws.getInstrument().getSample().getPos())
+    expected_sample_pos = np.array([0., 0., -0.00321])
+    np.testing.assert_allclose(sample_pos, expected_sample_pos, atol=1E-12)
+
+    # Verify the sample detector distance shall be increased by 3.21mm due to the shift of sample position
+    sample_det_distance_cal = sample_detector_distance(ws, unit='m', search_logs=False)
+    assert sample_det_distance_cal == pytest.approx(7.00321, 1E-7)
+    # verify the values from calculated and from meta data are identical
+    sample_det_distance_meta = sample_detector_distance(ws, unit='mm', search_logs=True)
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1E-3, 1E-7)
+
+
 def test_load_biosans_overwrite_sdd():
     """Test load BIOSANS data with overwriting sample detector distance related meta data
 

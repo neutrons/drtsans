@@ -1,7 +1,6 @@
 import pytest
 from pytest import approx
 from os.path import join as pj
-
 r"""
 Hyperlinks to Mantid algorithms
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
@@ -18,8 +17,9 @@ normalize_by_time,...load_flux_to_monitor_ratio_file <https://code.ornl.gov/sns-
 """  # noqa: E501
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
-from drtsans.tof.eqsans import (load_events, transform_to_wavelength, prepare_monitors, normalize_by_flux,
-                                normalize_by_proton_charge_and_flux, normalize_by_time, normalize_by_monitor)
+from drtsans.tof.eqsans import (load_events, transform_to_wavelength, set_init_uncertainties, prepare_monitors,
+                                normalize_by_flux, normalize_by_proton_charge_and_flux, normalize_by_time,
+                                normalize_by_monitor)
 from drtsans.tof.eqsans.normalization import load_beam_flux_file, load_flux_to_monitor_ratio_file
 
 
@@ -44,6 +44,7 @@ def data_ws(reference_dir):
         for run in ('92353', '88565'):
             w = load_events('EQSANS_{}'.format(run), output_workspace=unique_workspace_dundername())
             ws[run] = transform_to_wavelength(w, output_workspace=w.name())
+            ws[run] = set_init_uncertainties(ws[run])
     return ws
 
 

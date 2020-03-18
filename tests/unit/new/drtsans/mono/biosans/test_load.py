@@ -4,7 +4,7 @@ from mantid import mtd
 from mantid.simpleapi import GroupWorkspaces
 
 
-from drtsans.mono.biosans import (load_histogram, load_events, load_and_split,
+from drtsans.mono.biosans import (load_histogram, load_events, load_and_split, set_init_uncertainties,
                                   transform_to_wavelength, sum_data, load_events_and_histogram)
 from drtsans.samplelogs import SampleLogs
 
@@ -73,8 +73,10 @@ def test_sum_data(reference_dir):
     assert "is not a Workspace2D" in str(excinfo.value)  # Should complain about wrong workspace type
 
     workspace1 = transform_to_wavelength(workspace1)
+    workspace1 = set_init_uncertainties(workspace1)
     workspace2 = load_events('CG3_960.nxs.h5', data_dir=reference_dir.new.biosans, output_workspace='workspace2')
     workspace2 = transform_to_wavelength(workspace2)
+    workspace2 = set_init_uncertainties(workspace2)
 
     sample_logs1 = SampleLogs(workspace1)
     sample_logs2 = SampleLogs(workspace2)

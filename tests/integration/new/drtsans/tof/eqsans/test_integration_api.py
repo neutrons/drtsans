@@ -20,7 +20,6 @@ from drtsans.settings import amend_config, namedtuplefy, unique_workspace_dunder
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import detector_name
 
-
 keys = ('run', 'num_events', 'sdd', 'ssd', 'min_tof', 'max_tof',
         'skip_frame', 'w_min', 'w_max', 'flux_normalized')
 
@@ -55,6 +54,7 @@ def run_infoset(reference_dir, request):
         eqsans.load_events(run, output_workspace=tof_workspace)
     wavelength_workspace = eqsans.transform_to_wavelength(tof_workspace, low_tof_clip=500, high_tof_clip=2000,
                                                           output_workspace=unique_workspace_dundername())
+    wavelength_workspace = eqsans.set_init_uncertainties(wavelength_workspace)
     return {**run_set, **dict(ws=tof_workspace, wl=wavelength_workspace)}
 
 
@@ -100,6 +100,7 @@ def test_transform_to_wavelength(run_infoset):
     ws = eqsans.transform_to_wavelength(run_infoset.ws, low_tof_clip=500,
                                         high_tof_clip=2000,
                                         output_workspace=unique_workspace_dundername())
+    ws = eqsans.set_init_uncertainties(ws)
     sl = SampleLogs(ws)
     assert sl.wavelength_min.value == approx(run_infoset.w_min, abs=0.05)
     assert sl.wavelength_max.value == approx(run_infoset.w_max, abs=0.05)

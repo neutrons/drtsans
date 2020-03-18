@@ -12,7 +12,7 @@ from drtsans.instruments import extract_run_number, instrument_enum_name
 
 __all__ = ['load_events', 'sum_data', 'load_histogram',
            'transform_to_wavelength', 'load_mono',
-           'load_events_and_histogram', 'load_and_split']
+           'load_events_and_histogram', 'load_and_split', 'set_init_uncertainties']
 
 
 def load_histogram(filename, output_workspace=None, wavelength=None, wavelength_spread=None, sample_det_cent=None):

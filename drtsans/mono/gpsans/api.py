@@ -18,7 +18,8 @@ from drtsans.reductionlog import savereductionlog
 from drtsans.solid_angle import solid_angle_correction
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.mask_utils import apply_mask, load_mask
-from drtsans.mono.load import load_events, transform_to_wavelength, load_events_and_histogram, load_and_split
+from drtsans.mono.load import (load_events, transform_to_wavelength, load_events_and_histogram, load_and_split,
+                               set_init_uncertainties)
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
@@ -31,7 +32,6 @@ from drtsans import subtract_background
 from drtsans.mono.meta_data import set_meta_data
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
-from drtsans.process_uncertainties import set_init_uncertainties
 
 
 # Functions exposed to the general user (public) API
@@ -286,6 +286,7 @@ def prepare_data(data,
 
     ws_name = str(ws)
     transform_to_wavelength(ws_name)
+    set_init_uncertainties(ws_name)
 
     if center_x is not None and center_y is not None:
         center_detector(ws_name, center_x=center_x, center_y=center_y)
@@ -297,6 +298,7 @@ def prepare_data(data,
         else:
             dark_ws = load_events(dark_current, overwrite_instrument=True)
             dark_ws = transform_to_wavelength(dark_ws)
+            dark_ws = set_init_uncertainties(dark_ws)
     else:
         dark_ws = None
 

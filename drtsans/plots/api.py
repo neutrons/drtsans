@@ -267,7 +267,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
 
 
 def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-pixel',
-                  panel_name=None, imshow_kwargs={'norm': LogNorm(vmin = 1)}):
+                  panel_name=None, imshow_kwargs={'norm': LogNorm(vmin=1)}):
     r"""
     Save a 2D plot representative of the supplied workspace
 
@@ -307,6 +307,7 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
         elif axes_mode == 'xy':
             n_pixels = len(collection[0])  # number of pixels in the first tube
             x = np.array([tube.position[0] * np.ones(n_pixels) for tube in collection])
+            axis.set_xlim(max(x.ravel()), min(x.ravel()))  # X-axis should plot from larger to smaller values
             # BOTTLENECK-1
             y = np.array([tube.pixel_y for tube in collection])
             # BOTTLENECK-2 (but 6 times faster than BOTTLENECK-1)

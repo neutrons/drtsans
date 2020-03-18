@@ -160,7 +160,7 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
         # Update sample-silicon-window distance
         curr_value = logs.find_log_with_units(sample_si_name, unit='mm')
         # sample offset is at same direction to +Y, while 'SampleToSi' is toward -Y
-        new_value = curr_value + -1 * sample_offset * 1E-3   # convert from meter to mm
+        new_value = curr_value + -1 * sample_offset * 1E3   # convert from meter to mm
         AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format(sample_si_name),
                              LogValues='{}'.format(new_value),
                              LogUnits='mm')

@@ -42,7 +42,7 @@ def test_load_gpsans():
 
     # Move instrument
     # Move sample and detector
-    ws = move_instrument(ws, sample_offset, detector_offset)
+    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True, sample_si_name='CG2:CS:SampleToSi')
 
     # Verify
     new_sample_det_distance = sample_detector_distance(ws, unit='m', search_logs=False)
@@ -142,7 +142,8 @@ def test_load_biosans_sample_off_nominal():
     assert detector_offset == pytest.approx(-0.00321, 1E-12)
 
     # Move sample and detector
-    ws = move_instrument(ws, sample_offset, detector_offset)
+    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+                         sample_si_name='CG3:CS:SampleToSi')
 
     # Verify: sample position at (0., 0., -0.00321)
     sample_pos = np.array(ws.getInstrument().getSample().getPos())
@@ -172,14 +173,6 @@ def test_load_biosans_overwrite_swd():
     ws = load_events(nexus_file_name, output_workspace='biotest02', overwrite_instrument=True,
                      detector_offset=0, sample_offset=0)
 
-    # Check current instrument setup and meta data (sample logs)
-    logs = SampleLogs(ws)
-    print('[TEST INFO] SampleToSi = {} mm'.format(logs.find_log_with_units('CG3:CS:SampleToSi', unit='mm')))
-    raw_sample_det_distance = sample_detector_distance(ws)
-    print('[TEST INFO] Sample to detector distance = {} /{} meter'
-          ''.format(raw_sample_det_distance,
-                    sample_detector_distance(ws, log_key='sample_detector_distance', search_logs=True)))
-
     # Calculate offset with overwriting to sample-detector-distance
     sample_offset, detector_offset = get_sample_detector_offset(ws, 'CG3:CS:SampleToSi', 71. * 1E-3,
                                                                 overwrite_sample_si_distance=74.21)
@@ -187,7 +180,8 @@ def test_load_biosans_overwrite_swd():
           ''.format(sample_offset, detector_offset))
 
     # Move sample and detector
-    ws = move_instrument(ws, sample_offset, detector_offset)
+    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+                         sample_si_name='CG3:CS:SampleToSi')
 
     # Verify: sample position at (0., 0., -0.00321) because SampleToSi is overwritten to 74.21 mm
     sample_pos = np.array(ws.getInstrument().getSample().getPos())
@@ -200,6 +194,10 @@ def test_load_biosans_overwrite_swd():
     # verify the values from calculated and from meta data are identical
     sample_det_distance_meta = sample_detector_distance(ws, unit='mm', search_logs=True)
     assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1E-3, 1E-7)
+    # verify that SampleToSi is overwritten to 74.21 mm
+    logs = SampleLogs(ws)
+    swd = logs.find_log_with_units('CG3:CS:SampleToSi', unit='mm')
+    assert swd == pytest.approx(74.21, 1E-10)
 
 
 def test_load_biosans_overwrite_sdd():
@@ -233,7 +231,8 @@ def test_load_biosans_overwrite_sdd():
           ''.format(sample_offset, detector_offset))
 
     # Move sample and detector
-    ws = move_instrument(ws, sample_offset, detector_offset)
+    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+                         sample_si_name='CG3:CS:SampleToSi')
 
     # Verify: sample position at (0., 0., 0.) because SampleToSi == 71 mm and not overwritten
     sample_pos = np.array(ws.getInstrument().getSample().getPos())

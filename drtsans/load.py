@@ -10,6 +10,7 @@ import re
 from mantid.simpleapi import mtd
 # https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
 from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
+from mantid.simpleapi import AddSampleLogMultiple
 import mantid
 
 
@@ -115,6 +116,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
     # move instrument components - sample position must happen first
 
+    # FIXME (485) - This shall be modified accordingly
     translate_source_by_z(output_workspace, z=None, relative=False)
     translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
     translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
@@ -123,7 +125,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     return mtd[output_workspace]
 
 
-def move_instrument(workspace, sample_offset, detector_offset):
+def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sample_si_name=None):
     """Move instrument sample and detector
 
     Parameters
@@ -134,6 +136,10 @@ def move_instrument(workspace, sample_offset, detector_offset):
         sample offset in unit meter
     detector_offset: float
         detector offset in unit meter
+    is_mono: bool
+        Flag that it belongs to a mono-SANS
+    sample_si_name: str
+        Name of Sample to silicon window name
 
     Returns
     -------
@@ -146,6 +152,19 @@ def move_instrument(workspace, sample_offset, detector_offset):
     # Move sample and detector
     translate_sample_by_z(workspace, sample_offset)
     translate_detector_by_z(workspace, detector_offset)
+
+    # Reset the SampleToSi log and sample_detector_distance log for mono-SANS
+    if is_mono:
+        logs = SampleLogs(workspace)
+
+        # Update sample-silicon-window distance
+        curr_value = logs.find_log_with_units(sample_si_name , unit='mm')
+        # sample offset is at same direction to +Y, while 'SampleToSi' is toward -Y
+        new_value = curr_value + -1 * sample_offset
+        AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format(sample_si_name),
+                             LogValues='{}'.format(new_value),
+                             LogUnits='mm')
+    # END-IF
 
     return mtd[workspace_name]
 

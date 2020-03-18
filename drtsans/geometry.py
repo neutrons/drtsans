@@ -733,6 +733,7 @@ def translate_sample_by_z(workspace, z):
     # update the appropriate log
     # 'source_aperture_sample_aperture_distance' is not coupled with sample/source distance. Thus
     # it won't be updated
+    # FIXME - This is a technical debt because NO instrument or other drt-sans code actually does use this value
     sample_logs = SampleLogs(workspace)
     logname_to_set = 'source-sample-distance'  # default
     sample_logs.insert(logname_to_set, source_sample_distance(workspace, search_logs=False, unit='mm'),

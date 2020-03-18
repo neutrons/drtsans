@@ -11,7 +11,7 @@ from mantid.api import mtd
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (load_events, transform_to_wavelength, normalize_by_time, normalize_by_monitor,
-                                normalize_by_proton_charge_and_flux)
+                                normalize_by_proton_charge_and_flux, set_init_uncertainties)
 
 
 def test_normalize_by_time(reference_dir):
@@ -21,6 +21,7 @@ def test_normalize_by_time(reference_dir):
     output_workspace = unique_workspace_dundername()
     load_events('EQSANS_68168', data_dir=reference_dir.new.eqsans, output_workspace=output_workspace)
     workspace = transform_to_wavelength(output_workspace)
+    workspace = set_init_uncertainties(workspace)
     time_duration = SampleLogs(output_workspace).duration.value
 
     # Let's pick one spectrum (spectrum 42) and verify we are dividing its intensity by the time duration

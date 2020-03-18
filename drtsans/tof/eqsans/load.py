@@ -5,9 +5,9 @@ from drtsans.load import load_events as generic_load_events, sum_data, load_and_
 from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
-                                              correct_monitor_frame, transform_to_wavelength, smash_monitor_spikes)
+                                              correct_monitor_frame, transform_to_wavelength, smash_monitor_spikes,
+                                              set_init_uncertainties)
 from drtsans.instruments import extract_run_number, instrument_enum_name
-from drtsans.process_uncertainties import set_init_uncertainties
 import os
 
 __all__ = ['load_events', 'load_events_monitor', 'sum_data', 'load_events_and_histogram',
@@ -73,6 +73,7 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
     w = load_events_monitor(data, output_workspace=output_workspace)
     w = smash_monitor_spikes(w)
     w = transform_to_wavelength(w, bin_width=bin_width)
+    w = set_init_uncertainties(w)
     return w
 
 
@@ -237,12 +238,14 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
                                      low_tof_clip=low_tof_clip,
                                      high_tof_clip=high_tof_clip,
                                      keep_events=keep_events)
-
         ws = set_init_uncertainties(ws)
 
         return dict(data=ws,
                     monitor=ws_monitors)
     else:
+        if keep_events:
+            raise NotImplementedError("Cannot merge runs together with keep_events=True.")
+
         instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
 
         # create default name for output workspace, uses all input
@@ -330,7 +333,6 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                 low_tof_clip=low_tof_clip,
                                 high_tof_clip=high_tof_clip,
                                 keep_events=keep_events)
-
         set_init_uncertainties(_w)
 
     return ws

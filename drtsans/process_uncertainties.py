@@ -1,6 +1,7 @@
 # https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SetUncertainties-v1.html
 from mantid.simpleapi import mtd, CloneWorkspace, SetUncertainties
+from mantid.api import EventType, IEventWorkspace
 import numpy
 
 
@@ -40,9 +41,10 @@ def set_init_uncertainties(input_workspace, output_workspace=None):
 
     # in the case of event workspaces, don't do anything if they are RAW events (eventType=='TOF')
     # and the histogram representation doesn't have any zeros
-    if mtd[input_workspace].id() == 'EventWorkspace' \
-       and str(mtd[input_workspace].getSpectrum(0).getEventType()) == 'TOF' \
-       and not numpy.count_nonzero(mtd[input_workspace].extractY() == 0.):
+    input_ws = mtd[input_workspace]
+    if isinstance(input_ws, IEventWorkspace) \
+       and input_ws.getSpectrum(0).getEventType() == EventType.TOF \
+       and input_ws.findY(0.) == (-1, -1):
         # clone the input_workspace or return it
         if input_workspace == output_workspace:
             return mtd[input_workspace]
@@ -59,7 +61,7 @@ def set_init_uncertainties(input_workspace, output_workspace=None):
     output_ws = mtd[output_workspace]
 
     # Set nan as the uncertainty for all nan-intensity - check that there are nans first
-    if numpy.count_nonzero(numpy.isnan(output_ws.extractY())):
+    if output_ws.findY(numpy.nan) != (-1, -1):
         for ws_index in range(output_ws.getNumberHistograms()):
             vec_y = output_ws.readY(ws_index)
             if numpy.count_nonzero(numpy.isnan(vec_y)):

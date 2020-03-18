@@ -125,8 +125,7 @@ def fit_band(input_workspace, band, fit_function='name=UserFunction,Formula=a*x+
     # transmission values for wavelengths corresponding to the lead pulse of an input_workspace that contains
     # raw transmissions for the lead and skipped pulses
     CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
-    insert_fitted_values(output_workspace, mantid_fit.OutputWorkspace)
-    insert_fitted_errors(output_workspace, mantid_fit)
+    insert_fitted(output_workspace, mantid_fit.OutputWorkspace)
 
     return dict(fitted_workspace=mtd[output_workspace], mantid_fit_output=mantid_fit)
 
@@ -208,9 +207,9 @@ def fit_raw_transmission(input_workspace, fit_function='name=UserFunction,Formul
     return r
 
 
-def insert_fitted_values(input_workspace, mantid_fit_workspace):
+def insert_fitted(input_workspace, mantid_fit_workspace):
     r"""
-    Substitute transmission raw values with fitted transmission values over
+    Substitute transmission raw values and errors with fitted transmission values and errors over
     a range of wavelengths, and set zero elsewhere.
 
     Parameters
@@ -236,57 +235,8 @@ def insert_fitted_values(input_workspace, mantid_fit_workspace):
     input_handle.dataY(0)[:] = np.zeros(input_handle.dataY(0).size)
     input_handle.dataY(0)[first_insertion_index: last_insertion_index] = fitted_transmission_values
 
-
-def insert_fitted_errors(input_workspace, mantid_fit_output):
-    r"""
-    Substitute raw errors with errors derived from the model transmission
-    over a wavelength band. Substitute with zero errors elsewhere
-
-    Errors are calculated using the errors in the fitting parameters of the transmission model.
-    For instance, the errors in the slope and intercept of a linear model.
-    We employ numerical derivative of the fit function with respect to the fitting parameters
-
-    Parameters
-    ----------
-    input_workspace: str, ~mantid.api.MatrixWorkspace
-        Workspace to contain the fitted error transmission values
-    mantid_fit_output: namedtuple
-        Return value of Mantid's Fit algorithm
-    lower_wavelength_boundary: float
-        Lower wavelength boundary of the range of fitted transmission values
-    upper_wavelength_boundary: float
-        Upper wavelength boundary of the range of fitted transmission values
-    """
-    fit_function = mantid_fit_output.Function  # Fit function object
-
-    # Find the fitting wavelengths, and use the midpoint wavelengths for the error estimation
-    fitting_wavelength_range = mantid_fit_output.OutputWorkspace.readX(0)
-    fitting_wavelengths = (fitting_wavelength_range[: -1] + fitting_wavelength_range[1:]) / 2  # midpoints
-
-    # Iterate over the fitting parameters, calculating their numerical derivatives and their error contributions
-    fitting_errors = np.zeros(len(fitting_wavelengths))  # we accumulate the individual errors in this array
-    parameter_table = mantid_fit_output.OutputParameters  # contain the optimized parameters of the
-    for row_index in range(parameter_table.rowCount() - 1):  # last row is the Chi-square, thus we exclude it
-        row = parameter_table.row(row_index)
-        parameter_name, parameter_value, parameter_error = [row[key] for key in ('Name', 'Value', 'Error')]
-        # evaluate the fit function by increasing the parameter value
-        fit_function[parameter_name] += parameter_error  # slightly increase the parameter's value
-        evaluation_plus = fit_function(fitting_wavelengths)  # evaluate function at the fitting wavelengths
-        # re-evaluate the fit function by decreasing the parameter value
-        fit_function[parameter_name] -= 2 * parameter_error
-        evaluation_minus = fit_function(fitting_wavelengths)
-        numerical_derivative = (evaluation_plus - evaluation_minus) / (2 * parameter_error)
-        fitting_errors += (numerical_derivative * parameter_error)**2  # error contribution from this parameter
-        fit_function[parameter_name] += parameter_error  # restore the original value
-    fitting_errors = np.sqrt(fitting_errors)
-
-    # Find the array indexes enclosing the range of fitted wavelengths
-    first_fitted_wavelength, last_fitted_wavelength = fitting_wavelength_range[0], fitting_wavelength_range[-1]
-    input_handle = mtd[str(input_workspace)]
-    input_wavelength_range = input_handle.readX(0)
-    first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[0][0]
-    last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[0][0]
-
-    # Insert the fitting errors, and set zero elsewhere.
-    input_handle.dataE(0)[:] = np.zeros(input_handle.dataE(0).size)
-    input_handle.dataE(0)[first_insertion_index: last_insertion_index] = fitting_errors
+    # Insert the fitted transmission values and errors, and set zero elsewhere
+    for target, fitted_values in ((input_handle.dataY(0), mantid_fit_handle.readY(1)),
+                                  (input_handle.dataE(0), mantid_fit_handle.readE(1))):
+        target[:] = np.zeros(target.size)
+        target[first_insertion_index: last_insertion_index] = fitted_values

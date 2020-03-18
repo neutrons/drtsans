@@ -408,5 +408,29 @@ def test_debug_biosans_wing_detector_barscan(reference_dir):
     print(views)
 
 
+def test_gpsans_tube_calibration(reference_dir):
+    r"""Calculate tube widths from a flood file"""
+    flood_file = path_join(reference_dir.new.gpsans, 'pixel_calibration', 'CG2_8143.nxs')
+    uncalibrated_workspace = unique_workspace_dundername()
+    LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
+    calibration = calculate_apparent_tube_width(uncalibrated_workspace, load_barscan_calibration=False)
+    calibrated_workspace = unique_workspace_dundername()
+    calibration.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
+
+    def linear_density(workspace):
+        r"""Tube total intensity per unit length of tube width"""
+        collection = TubeCollection(workspace, 'detector1').sorted(view='decreasing X')
+        intensities = np.array([np.sum(tube.readY) for tube in collection])
+        widths = np.array([tube[0].width for tube in collection])
+        return list(intensities / widths)
+
+    def amplitude(density):
+        return np.std(density) / np.mean(density)
+
+    uncalibrated_densities = linear_density(uncalibrated_workspace)
+    calibrated_densities = linear_density(calibrated_workspace)
+    assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.13, abs=0.01)
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

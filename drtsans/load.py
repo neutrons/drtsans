@@ -158,12 +158,21 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
         logs = SampleLogs(workspace)
 
         # Update sample-silicon-window distance
-        curr_value = logs.find_log_with_units(sample_si_name , unit='mm')
+        curr_value = logs.find_log_with_units(sample_si_name, unit='mm')
         # sample offset is at same direction to +Y, while 'SampleToSi' is toward -Y
         new_value = curr_value + -1 * sample_offset
         AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format(sample_si_name),
                              LogValues='{}'.format(new_value),
                              LogUnits='mm')
+
+        # Adjust sample_to_detector_distance
+        curr_sdd = logs.find_log_with_units('sample_detector_distance', unit='m')
+        # shift shall be (-sample_offset + detector_offset)
+        curr_sdd += -sample_offset + detector_offset
+        # Set
+        AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format('sample_detector_distance'),
+                             LogValues='{}'.format(curr_sdd),
+                             LogUnits='m')
     # END-IF
 
     return mtd[workspace_name]

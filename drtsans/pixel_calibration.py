@@ -166,7 +166,7 @@ class Table:
             and daystamp. (e.g. "barscan_gpsans_detector1_20200311").
 
         Returns
-        -------
+        -------'
         ~drtsans.pixel_calibration.Table
         """
         # Search the database for a match to the required metadata
@@ -270,7 +270,7 @@ class Table:
 
     def __getattr__(self, item):
         r"""
-        Access metadata's keys as attributes of the ```Table``` object. For instance,
+        Access metadata's keys asattributes of the ```Table``` object. For instance,
         self.metadata['instrument'] can be accessed as self.instrument
         """
         if item not in self.__dict__:
@@ -350,7 +350,7 @@ class Table:
         ApplyCalibration(Workspace=output_workspace, CalibrationTable=self.table)
         return mtd[output_workspace]
 
-    def save(self, database=None, tablefile=None):
+    def save(self, database=None, tablefile=None, overwrite=False):
         r"""
         Save the calibration metadata in a JSON file, and the calibration table workspace in a Nexus file.
 
@@ -373,23 +373,68 @@ class Table:
             and daystamp. (e.g. "barscan_gpsans_detector1_20200311"). The file is saved under
             subdirectory 'tables', located within the directory of the ```database``` file.
             For instance, '/HFIR/CG3/shared/calibration/tables/barscan_gpsans_detector1_20200311.nxs'
+        overwrite: bool
+            Substitute existing entry with same metadata
         """
         if database is None:
             database = database_file[instrument_enum_name(self.instrument)]  # default database file
-        if tablefile is None:
-            cal_dir = os.path.join(os.path.dirname(database), 'tables')
-            os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if alredy exists
-            tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + '.nxs'
-        self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
-        SaveNexus(InputWorkspace=self.table, Filename=tablefile)
-        # Append the calibration metadata to the metadata entries of the database
+
+        # Load existing calibrations
         entries = list()
         if os.path.exists(database):  # the database may not exist if we're not saving to the default database
             with open(database, mode='r') as json_file:
                 entries = json.load(json_file)  # list of metadata entries
-        entries.append(self.metadata)
+
+        # Is there an entry with the same metadata?
+        discard_index = None
+        for i in range(len(entries)):
+            if self.duplicate_metadata(entries[i]) is True:
+                if overwrite is True:
+                    discard_index = i  # index in the list of entries to replace
+                    break
+                else:
+                    raise ValueError('A calibration with the same metadata already exists in the database.'
+                                     'Use "overwrite=True" if you want to overwrite the existing calibration')
+
+        # Save the table containing the actual data.
+        if tablefile is None:
+            cal_dir = os.path.join(os.path.dirname(database), 'tables')  # directory where to save the table file
+            os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if already exists
+            tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + '.nxs'
+        self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
+        # save new table and overwrite existing one if having the same name
+        SaveNexus(InputWorkspace=self.table, Filename=tablefile)
+
+        # Save the metadata, and replace an existing duplicate entry if required to do so
+        if discard_index is not None:
+            entries[discard_index] = self.metadata  # replace the metadata
+        else:
+            entries.append(self.metadata)  # this is a new entry
+
         with open(database, mode='w') as json_file:
-            json.dump(entries, json_file)
+            json.dump(entries, json_file)  # save the updated table
+
+    def duplicate_metadata(self, metadata):
+        r"""
+        Find if the metadata coincides with a query metadata.
+
+        Keys used for comparison are "caltype", "component", "daystamp", "instrument", and "runnumbers".
+
+        Parameters
+        ----------
+        metadata: dict
+
+        Returns
+        -------
+        bool
+        """
+        for key in ('caltype', 'instrument', 'component', 'daystamp'):
+            if self.metadata[key] != metadata[key]:
+                return False
+        # We don't require the run numbers to be sorted
+        if set(self.metadata['runnumbers']) != set(self.metadata['runnumbers']):
+            return False
+        return True
 
     @namedtuplefy
     def as_intensities(self, reference_workspace):

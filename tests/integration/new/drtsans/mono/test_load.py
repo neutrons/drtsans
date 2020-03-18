@@ -155,11 +155,9 @@ def test_load_biosans_sample_off_nominal():
     assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1E-3, 1E-7)
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1E-7)
 
-    assert 1 == 3
 
-
-def test_load_biosans_overwrite_meta():
-    """Test load BIOSANS data with overwriting sample/detector position related meta data
+def test_load_biosans_overwrite_sdd():
+    """Test load BIOSANS data with overwriting sample detector distance related meta data
 
     Returns
     -------
@@ -191,12 +189,17 @@ def test_load_biosans_overwrite_meta():
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset)
 
-    # Verify
-    new_sample_det_distance = sample_detector_distance(ws, unit='m', search_logs=False)
-    print('[TEST INFO 2] Sample detector distance after moving = {} meter'.format(new_sample_det_distance))
-    print('[TEST INFO 2] Sample position = {}'.format(ws.getInstrument().getSample().getPos()))
+    # Verify: sample position at (0., 0., 0.) because SampleToSi == 71 mm and not overwritten
+    sample_pos = np.array(ws.getInstrument().getSample().getPos())
+    expected_sample_pos = np.array([0., 0., 0.])
+    np.testing.assert_allclose(sample_pos, expected_sample_pos, atol=1E-12)
 
-    assert new_sample_det_distance == pytest.approx(7.1234, 1E-7)
+    # Verify the sample detector distance which shall be same as raw meta data
+    sample_det_distance_cal = sample_detector_distance(ws, unit='m', search_logs=False)
+    assert sample_det_distance_cal == pytest.approx(7.1234, 1E-7)
+    # verify the values from calculated and from meta data are identical
+    sample_det_distance_meta = sample_detector_distance(ws, unit='mm', search_logs=True)
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1E-3, 1E-7)
 
 
 if __name__ == '__main__':

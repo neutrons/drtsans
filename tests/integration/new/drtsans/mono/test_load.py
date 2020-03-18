@@ -138,8 +138,8 @@ def test_load_biosans_sample_off_nominal():
           ''.format(sample_offset, detector_offset))
 
     # Both sample and detector shall move toward souce (-Y direction) with (74.21 - 71.) = 3.21 mm
-    assert sample_offset == -0.00321
-    assert detector_offset == -0.00321
+    assert sample_offset == pytest.approx(-0.00321, 1E-12)
+    assert detector_offset == pytest.approx(-0.00321, 1E-12)
 
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset)

@@ -33,6 +33,8 @@ def test_load_gpsans():
           ''.format(raw_sample_det_distance,
                     sample_detector_distance(ws, unit='m', log_key='sample_detector_distance', search_logs=True)))
 
+    # sample and detector offsets can only be retrieved from a loaded workspace
+    # This is a technical debt
     sample_offset, detector_offset = get_sample_detector_offset(ws, 'CG2:CS:SampleToSi', 0.)
 
     assert sample_offset == -0.088
@@ -75,6 +77,8 @@ def test_load_biosans():
                     sample_detector_distance(ws, log_key='sample_detector_distance', search_logs=True)))
 
     # Calculate offset without any overwriting
+    # sample and detector offsets can only be retrieved from a loaded workspace
+    # This is a technical debt
     sample_offset, detector_offset = get_sample_detector_offset(ws, 'CG3:CS:SampleToSi', 71. * 1E-3)
     print('[TEST INFO] Sample offset = {}, Detector offset = {}'
           ''.format(sample_offset, detector_offset))
@@ -102,11 +106,17 @@ def test_load_biosans():
     ws = move_instrument(ws, sample_offset, detector_offset)
 
     # Verify
+    # re-calculate the sample detector distance
     new_sample_det_distance = sample_detector_distance(ws, unit='m', search_logs=False)
+    # check whether the sample detector distance from meta data in workspace is consistent
+    meta_sample_det_distance = sample_detector_distance(ws, unit='mm', search_logs=True)
     print('[TEST INFO 2] Sample detector distance after moving = {} meter'.format(new_sample_det_distance))
     print('[TEST INFO 2] Sample position = {}'.format(ws.getInstrument().getSample().getPos()))
 
+    assert 1 == 3
+
     assert new_sample_det_distance == raw_sample_det_distance * 1E-3
+    assert new_sample_det_distance == meta_sample_det_distance * 1E-3
 
 
 def test_load_biosans_overwrite_meta():

@@ -615,9 +615,24 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     nybins_wing = int(nxbins_wing)
     bin1d_type = reduction_input["configuration"]["1DQbinType"]
     log_binning = reduction_input["configuration"]["QbinType"] == 'log'
-    even_decades = reduction_input["configuration"]["EvenDecades"]
-    nbins_main = int(reduction_input["configuration"]["numMainQBins"])
-    nbins_wing = int(reduction_input["configuration"]["numWingQBins"])
+    even_decades = reduction_input["configuration"].get("LogQBinsEvenDecade", False)
+    decade_on_center = reduction_input["configuration"].get("LogQBinsDecadeCenter", False)
+    try:
+        nbins_main = int(reduction_input["configuration"].get("numMainQBins"))
+    except (ValueError, KeyError, TypeError):
+        nbins_main = None
+    try:
+        nbins_main_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecadeMain"))
+    except (ValueError, KeyError, TypeError):
+        nbins_main_per_decade = None
+    try:
+        nbins_wing = int(reduction_input["configuration"].get("numWingQBins"))
+    except (ValueError, KeyError, TypeError):
+        nbins_wing = None
+    try:
+        nbins_wing_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecadeWing"))
+    except (ValueError, KeyError, TypeError):
+        nbins_wing_per_decade = None
     outputFilename = reduction_input["outputFilename"]
     weighted_errors = reduction_input["configuration"]["useErrorWeighting"]
     try:
@@ -777,7 +792,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         reduction_input["configuration"]["wedges"] = wedges
         reduction_input["configuration"]["symmetric_wedges"] = symmetric_wedges
 
-        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main, nbins_main,
+        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main,
+                                               n1dbins=nbins_main, n1dbins_per_decade=nbins_main_per_decade,
+                                               decade_on_center=decade_on_center,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                annular_angle_bin=annular_bin, wedges=wedges,
@@ -785,7 +802,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                error_weighted=weighted_errors)
         iq1d_wing_in = biosans.convert_to_q(processed_data_wing, mode='scalar')
         iq2d_wing_in = biosans.convert_to_q(processed_data_wing, mode='azimuthal')
-        iq2d_wing_out, iq1d_wing_out = bin_all(iq2d_wing_in, iq1d_wing_in, nxbins_wing, nybins_wing, nbins_wing,
+        iq2d_wing_out, iq1d_wing_out = bin_all(iq2d_wing_in, iq1d_wing_in, nxbins_wing, nybins_wing,
+                                               n1dbins=nbins_wing, n1dbins_per_decade=nbins_wing_per_decade,
+                                               decade_on_center=decade_on_center,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                annular_angle_bin=annular_bin, wedges=wedges,

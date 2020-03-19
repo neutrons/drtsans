@@ -216,7 +216,11 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
         if log_scale:
-            bins_1d = determine_1d_log_bins(qmin, qmax, n_bins_per_decade=n1dbins, even_decade=even_decade)
+            bins_1d = determine_1d_log_bins(qmin, qmax,
+                                            n_bins_per_decade=n1dbins_per_decade,
+                                            n_bins=n1dbins,
+                                            decade_on_center=decade_on_center,
+                                            even_decade=even_decade)
         else:
             bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
 

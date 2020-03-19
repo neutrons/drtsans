@@ -582,6 +582,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
     wedges = list(zip(wedges_min, wedges_max))
 
+    # set the found wedge values to the reduction input, this will allow correct plotting
+    reduction_input["configuration"]["wedges"] = wedges
+    reduction_input["configuration"]["symmetric_wedges"] = True
+
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
     symmetric_wedges = True
@@ -794,12 +798,8 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
         if len(reduction_output) > 1:
             output_suffix = f'_{i}'
 
-        if bin1d_type == 'wedge':
-            wedges_min = np.fromstring(reduction_input["configuration"]["WedgeMinAngles"], sep=',')
-            wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
-            wedges = list(zip(wedges_min, wedges_max))
-        else:
-            wedges = None
+        wedges = reduction_input["configuration"]["wedges"] if bin1d_type == 'wedge' else None
+        symmetric_wedges = reduction_input["configuration"].get("symmetric_wedges", True)
 
         qmin = qmax = None
         if bin1d_type == 'wedge' or bin1d_type == 'annular':
@@ -815,7 +815,8 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}_Iqxqy.png')
         plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Main',
-                         wedges=wedges, qmin=qmin, qmax=qmax)
+                         wedges=wedges, symmetric_wedges=symmetric_wedges,
+                         qmin=qmin, qmax=qmax)
 
         for j in range(len(out.I1D_main)):
             add_suffix = ""

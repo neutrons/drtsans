@@ -724,7 +724,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     # background transmission
     background_transmission_dict = {}
-    if loaded_ws.background_transmission:
+    if loaded_ws.background_transmission is not None and empty_trans_ws is not None:
         bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
         bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
                                                           flux_method=flux_method,
@@ -743,7 +743,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     # sample transmission
     sample_transmission_dict = {}
-    if loaded_ws.sample_transmission:
+    if loaded_ws.sample_transmission is not None and empty_trans_ws is not None:
         sample_trans_ws_name = f'{prefix}_sample_trans'
         sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
                                                             flux_method=flux_method,

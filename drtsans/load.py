@@ -116,30 +116,29 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
     # move instrument components - sample position must happen first
 
-    # FIXME (485) - This shall be modified accordingly
-
-    # --- Debug Exception Section
-    out_ws = mtd[str(output_workspace)]
-    print('Before translate source and sample')
-    print('Sample position = {}'.format(out_ws.instrument().getSample().getPos()))
-    from drtsans.geometry import sample_detector_distance
-    print('SDD = {} (meta) and {} (calculated)'.format(sample_detector_distance(output_workspace, search_logs=True),
-                                                       sample_detector_distance(output_workspace, search_logs=False)))
-    # --- END
-
+    # Translate source along Z-axis
     translate_source_by_z(output_workspace, z=None, relative=False)
-    translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
-    translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
-    translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
-    # --- Debug Exception Section
-    out_ws = mtd[str(output_workspace)]
-    print('After translate source and sample')
-    print('Sample position = {}'.format(out_ws.instrument().getSample().getPos()))
-    from drtsans.geometry import sample_detector_distance
-    print('SDD = {} (meta) and {} (calculated)'.format(sample_detector_distance(output_workspace, search_logs=True),
-                                                       sample_detector_distance(output_workspace, search_logs=False)))
-    # --- END
+    # FIXME (485) - This shall be modified accordingly
+    if is_mono:
+        # HFIR-SANS: use new method
+        # --- Debug Exception Section
+        out_ws = mtd[str(output_workspace)]
+        print('Before translate source and sample')
+        print('Sample position = {}'.format(out_ws.getInstrument().getSample().getPos()))
+        from drtsans.geometry import sample_detector_distance
+        print('SDD = {} (meta) and {} (calculated)'
+              ''.format(sample_detector_distance(output_workspace, search_logs=True),
+                        sample_detector_distance(output_workspace, search_logs=False)))
+        # --- END
+
+        # Determine detector and sample offset from meta data afterwards
+
+    else:
+        # For TOF (i.e., EQSANS), still translate sample and detector as usual
+        translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
+        translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
+        translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
     return mtd[output_workspace]
 

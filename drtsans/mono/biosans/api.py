@@ -128,7 +128,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
-            biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            biosans.load_events_and_histogram(filename, output_workspace=ws_name,
+                                              sample_to_si_name='CG3:CS:SampleToSi', si_nominal_distance=0.071,
+                                              **load_params)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
 

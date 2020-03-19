@@ -8,6 +8,10 @@ from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd
 from drtsans.load import load_events, sum_data, load_and_split
 from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.instruments import extract_run_number, instrument_enum_name
+from drtsans.mono.meta_data import get_sample_detector_offset
+from drtsans.load import move_instrument
+from drtsans.geometry import sample_detector_distance
+from drtsans.samplelogs import SampleLogs
 
 
 __all__ = ['load_events', 'sum_data', 'load_histogram',
@@ -98,8 +102,9 @@ def load_mono(filename, **kwargs):
 
 
 def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
-                              detector_offset=0., sample_offset=0.,
-                              reuse_workspace=False, **kwargs):
+                              detector_offset=0., sample_offset=0., reuse_workspace=False,
+                              sample_to_si_name=None, si_nominal_distance=None,
+                              **kwargs):
     r"""Load one or more event Nexus file produced by the instruments at
     HFIR. Convert to wavelength and sums the data.
 
@@ -167,14 +172,41 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         # load and transform each workspace in turn
         for n, r in enumerate(run):
             temp_workspace_name = '__tmp_ws_{}'.format(n)
-            load_events(run=r,
-                        data_dir=data_dir,
-                        output_workspace=temp_workspace_name,
-                        overwrite_instrument=overwrite_instrument,
-                        detector_offset=detector_offset,
-                        sample_offset=sample_offset,
-                        reuse_workspace=reuse_workspace,
-                        **kwargs)
+            # Load event but not move sample or detector position by meta data
+            temp_ws = load_events(run=r,
+                                  data_dir=data_dir,
+                                  output_workspace=temp_workspace_name,
+                                  overwrite_instrument=overwrite_instrument,
+                                  detector_offset=detector_offset,
+                                  sample_offset=sample_offset,
+                                  reuse_workspace=reuse_workspace,
+                                  **kwargs)
+
+            # Calculate offset with overwriting to sample-detector-distance
+            if sample_to_si_name is not None:
+                sample_offset, detector_offset = \
+                    get_sample_detector_offset(temp_ws,
+                                               sample_si_meta_name=sample_to_si_name,
+                                               zero_sample_offset_sample_si_distance=si_nominal_distance,
+                                               overwrite_sample_si_distance=None,
+                                               overwrite_sample_detector_distance=None)
+                print('[TEST INFO] Sample offset = {}, Detector offset = {}'
+                      ''.format(sample_offset, detector_offset))
+
+                # Move sample and detector
+                temp_ws = move_instrument(temp_ws, sample_offset, detector_offset, is_mono=True,
+                                          sample_si_name=sample_to_si_name)
+
+                # Check
+                # Check current instrument setup and meta data (sample logs)
+                logs = SampleLogs(temp_ws)
+                print('[TEST INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
+                print('[TEST INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
+                      ''.format(sample_detector_distance(temp_ws, search_logs=False),
+                                sample_detector_distance(temp_ws, search_logs=True))
+
+            # END-IF
+
             transform_to_wavelength(temp_workspace_name)
             temp_workspaces.append(temp_workspace_name)
 

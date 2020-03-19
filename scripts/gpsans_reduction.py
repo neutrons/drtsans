@@ -1,8 +1,10 @@
 import sys
 import os
 import json
-from drtsans.mono.gpsans import load_all_files, reduce_single_configuration, plot_reduction_output
-import drtsans
+import warnings
+warnings.simplefilter(action="ignore", category=FutureWarning)
+from drtsans.mono.gpsans import load_all_files, reduce_single_configuration, plot_reduction_output  # noqa E402
+import drtsans  # noqa E402
 import mantid.simpleapi as msapi  # noqa E402
 
 if __name__ == "__main__":

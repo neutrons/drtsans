@@ -116,8 +116,10 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
     return wedges
 
 
-def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins, bin1d_type='scalar',
-            log_scale=False, even_decade=False, qmin=None, qmax=None,
+def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
+            n1dbins_per_decade=None, bin1d_type='scalar',
+            log_scale=False, decade_on_center=False,
+            even_decade=False, qmin=None, qmax=None,
             annular_angle_bin=1., wedges=None, symmetric_wedges=True,
             error_weighted=False):
     r"""Do all 1D and 2D binning for a configuration or detector
@@ -134,11 +136,16 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins, bin1d_type='scalar',
     nybins: int
         number of bins in the y direction for 2D binning
     n1dbins: int
-        number of bins for the 1d binning. When using th elog scale, it is number of bins per decade
+        number of bins for the 1d binning.
+    n1dbins_per_decade: int
+        Total number of bins will be this value multiplied by
+        number of decades from X min to X max
     bin1d_type: str
         type of binning for 1D data. Possible choices are 'scalar', 'annular', or 'wedge'
     log_scale: bool
         if True, 1D scalar or wedge binning will be logarithmic. Ignored for anything else
+    decade_on_center: bool
+        Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
     even_decade: bool
         Flag to have even decade for minimum and maximum value in the generated bins
     qmin: float
@@ -209,7 +216,11 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins, bin1d_type='scalar',
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
         if log_scale:
-            bins_1d = determine_1d_log_bins(qmin, qmax, n_bins_per_decade=n1dbins, even_decade=even_decade)
+            bins_1d = determine_1d_log_bins(qmin, qmax,
+                                            n_bins_per_decade=n1dbins_per_decade,
+                                            n_bins=n1dbins,
+                                            decade_on_center=decade_on_center,
+                                            even_decade=even_decade)
         else:
             bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
 

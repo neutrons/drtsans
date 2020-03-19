@@ -659,8 +659,16 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     nybins_main = int(nxbins_main)
     bin1d_type = reduction_input["configuration"]["1DQbinType"]
     log_binning = reduction_input["configuration"]["QbinType"] == 'log'
-    even_decades = reduction_input["configuration"]["EvenDecades"]
-    nbins_main = int(reduction_input["configuration"]["numQBins"])
+    even_decades = reduction_input["configuration"].get("LogQBinsEvenDecade", False)
+    decade_on_center = reduction_input["configuration"].get("LogQBinsDecadeCenter", False)
+    try:
+        nbins_main = int(reduction_input["configuration"].get("numQBins"))
+    except (ValueError, KeyError, TypeError):
+        nbins_main = None
+    try:
+        nbins_main_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecade"))
+    except (ValueError, KeyError, TypeError):
+        nbins_main_per_decade = None
     outputFilename = reduction_input["outputFilename"]
     weighted_errors = reduction_input["configuration"]["useErrorWeighting"]
     try:
@@ -704,6 +712,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     xc, yc = find_beam_center(loaded_ws.center)
     print("Center  =", xc, yc)
+
+    # process the center if using it in absolute scaling
+    if absolute_scale_method == 'direct_beam':
+        processed_center_ws_name = f'{prefix}_processed_center'
+        processed_center_ws = prepare_data_workspaces(loaded_ws.center,
+                                                      flux_method=flux_method,
+                                                      center_x=xc,
+                                                      center_y=yc,
+                                                      solid_angle=False,
+                                                      sensitivity_ws=loaded_ws.sensitivity,
+                                                      output_workspace=processed_center_ws_name)
+    else:
+        processed_center_ws = None
 
     # empty beam transmission workspace
     if loaded_ws.empty is not None:
@@ -779,7 +800,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                            output_suffix=output_suffix,
                                                            thickness=thickness,
                                                            absolute_scale_method=absolute_scale_method,
-                                                           empty_beam_ws=empty_trans_ws,
+                                                           empty_beam_ws=processed_center_ws,
                                                            beam_radius=beam_radius,
                                                            absolute_scale=absolute_scale,
                                                            keep_processed_workspaces=False)
@@ -793,7 +814,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         reduction_input["configuration"]["wedges"] = wedges
         reduction_input["configuration"]["symmetric_wedges"] = symmetric_wedges
 
-        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main, nbins_main,
+        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main,
+                                               n1dbins=nbins_main, n1dbins_per_decade=nbins_main_per_decade,
+                                               decade_on_center=decade_on_center,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
                                                even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                annular_angle_bin=annular_bin, wedges=wedges,

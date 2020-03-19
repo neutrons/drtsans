@@ -552,8 +552,16 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     nybins_main = int(nxbins_main)
     bin1d_type = reduction_input["configuration"]["1DQbinType"]
     log_binning = reduction_input["configuration"]["QbinType"] == 'log'
-    even_decades = reduction_input["configuration"]["LogQBinsEvenDecade"]
-    nbins_main = int(reduction_input["configuration"]["numQBins"])
+    even_decades = reduction_input["configuration"].get("LogQBinsEvenDecade", False)
+    decade_on_center = reduction_input["configuration"].get("LogQBinsDecadeCenter", False)
+    try:
+        nbins_main = int(reduction_input["configuration"].get("numQBins"))
+    except (ValueError, KeyError, TypeError):
+        nbins_main = None
+    try:
+        nbins_main_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecade"))
+    except (ValueError, KeyError, TypeError):
+        nbins_main_per_decade = None
     outputFilename = reduction_input["outputFilename"]
     weighted_errors = reduction_input["configuration"]["useErrorWeighting"]
     try:
@@ -573,6 +581,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     if len(wedges_min) != len(wedges_max):
         raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
     wedges = list(zip(wedges_min, wedges_max))
+
+    # set the found wedge values to the reduction input, this will allow correct plotting
+    reduction_input["configuration"]["wedges"] = wedges
+    reduction_input["configuration"]["symmetric_wedges"] = True
 
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
@@ -673,7 +685,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         sample_trans_ws = None
 
     output = []
-    detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "frame_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
@@ -713,11 +724,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         fr_label = ''
+        detectordata = {}
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
-                fr_label = f'_wl_frame_{wl_frame}'
+                fr_label = f'_frame_{wl_frame}'
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                                   nxbins_main, nybins_main, nbins_main,
+                                                   nxbins_main, nybins_main, n1dbins=nbins_main,
+                                                   n1dbins_per_decade=nbins_main_per_decade,
+                                                   decade_on_center=decade_on_center,
                                                    bin1d_type=bin1d_type, log_scale=log_binning,
                                                    even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                    annular_angle_bin=annular_bin, wedges=wedges,
@@ -784,12 +798,8 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
         if len(reduction_output) > 1:
             output_suffix = f'_{i}'
 
-        if bin1d_type == 'wedge':
-            wedges_min = np.fromstring(reduction_input["configuration"]["WedgeMinAngles"], sep=',')
-            wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
-            wedges = list(zip(wedges_min, wedges_max))
-        else:
-            wedges = None
+        wedges = reduction_input["configuration"]["wedges"] if bin1d_type == 'wedge' else None
+        symmetric_wedges = reduction_input["configuration"].get("symmetric_wedges", True)
 
         qmin = qmax = None
         if bin1d_type == 'wedge' or bin1d_type == 'annular':
@@ -805,7 +815,8 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}_Iqxqy.png')
         plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Main',
-                         wedges=wedges, qmin=qmin, qmax=qmax)
+                         wedges=wedges, symmetric_wedges=symmetric_wedges,
+                         qmin=qmin, qmax=qmax)
 
         for j in range(len(out.I1D_main)):
             add_suffix = ""

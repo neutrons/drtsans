@@ -33,6 +33,7 @@ EXTENSIONS = {'EQSANS_88980': ['_bkgd_88974_trans.txt',
                                 '_reduction_log.hdf',
                                 '_trans.txt'],
               'CG3_4822': [],
+              'CG3_5532': [],  # auto-wedge
               'CG2_8944': []}
 
 
@@ -163,9 +164,10 @@ def test_eqsans(configfile, basename, required):
 
 
 @pytest.mark.parametrize('configfile, basename, required',
-                         [('biosans_reduction.json', 'CG3_4822',
-                           ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', ))],
-                         ids=['4822'])
+                         [('biosans_reduction.json', 'CG3_4822', ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', )),
+                          ('biosans_autowedge_reduction.json', 'CG3_5532',
+                           ('/HFIR/CG3/IPTS-21089/nexus/CG3_5532.nxs.h5', ))],
+                         ids=['4822', '5532_wedge'])
 def test_biosans(configfile, basename, required):
     check_for_required_files(required)
 

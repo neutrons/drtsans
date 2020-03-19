@@ -834,7 +834,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
         # save reduction log
 
-        filename = os.path.join(reduction_input["configuration"]["outputDir"], outputFilename + '_reduction_log.hdf')
+        filename = os.path.join(reduction_input["configuration"]["outputDir"],
+                                outputFilename + f'_reduction_log{output_suffix}.hdf')
         starttime = datetime.now().isoformat()
         pythonfile = __file__
         reductionparams = {'data': copy.deepcopy(reduction_input),

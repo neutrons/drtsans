@@ -1,6 +1,6 @@
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans.dataobjects import IQmod, IQazimuthal
-from mantid.simpleapi import LoadEmptyInstrument, CropWorkspace
+from mantid.simpleapi import CropWorkspace, LoadEmptyInstrument, LoadNexus
 import numpy as np
 import os
 import pytest
@@ -109,6 +109,15 @@ def test_detector(backend, filename):
 
     plot_detector(workspace, filename, backend)
     fileCheckAndRemove(filename, False)
+
+
+def test_xaxis_direction(reference_dir):
+    r"""Test values of X-axis in plot_detector decrease when looking at the picture from left to right"""
+    # wing_detector.nxs contains intensities for the wing detector that can be plotted
+    workspace = LoadNexus(os.path.join(reference_dir.new.sans, 'plots', 'wing_detector.nxs'))
+    filename = 'test_xaxis_direction.png'
+    plot_detector(workspace, filename=filename, backend='mpl', panel_name='wing_detector', axes_mode='xy')
+    fileCheckAndRemove(filename, remove=True)
 
 
 if __name__ == '__main__':

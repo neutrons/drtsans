@@ -154,6 +154,29 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
                          sample_offset=sample_offset,
                          reuse_workspace=reuse_workspace,
                          **kwargs)
+        # Calculate offset with overwriting to sample-detector-distance
+        if sample_to_si_name is not None:
+            sample_offset, detector_offset = \
+                get_sample_detector_offset(ws,
+                                           sample_si_meta_name=sample_to_si_name,
+                                           zero_sample_offset_sample_si_distance=si_nominal_distance,
+                                           overwrite_sample_si_distance=None,
+                                           overwrite_sample_detector_distance=None)
+            print('[TEST INFO] Sample offset = {}, Detector offset = {}'
+                  ''.format(sample_offset, detector_offset))
+
+            # Move sample and detector
+            ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+                                      sample_si_name=sample_to_si_name)
+
+            # Check
+            # Check current instrument setup and meta data (sample logs)
+            logs = SampleLogs(ws)
+            print('[TEST INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
+            print('[TEST INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
+                  ''.format(sample_detector_distance(ws, search_logs=False),
+                            sample_detector_distance(ws, search_logs=True)))
+
         ws = transform_to_wavelength(ws)
         ws = set_init_uncertainties(ws)
         return ws

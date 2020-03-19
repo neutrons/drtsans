@@ -681,7 +681,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         sample_trans_ws = None
 
     output = []
-    detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "frame_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
@@ -721,6 +720,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         fr_label = ''
+        detectordata = {}
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
                 fr_label = f'_frame_{wl_frame}'

@@ -1,6 +1,8 @@
 import json
 import os
 import sys
+import warnings
+warnings.simplefilter(action="ignore", category=FutureWarning)
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.tof.eqsans.api import load_all_files, reduce_single_configuration, plot_reduction_output  # noqa E402
 

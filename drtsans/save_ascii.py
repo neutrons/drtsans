@@ -105,7 +105,6 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
     dqx = kwargs['delta_qx'].ravel()
     dqy = kwargs['delta_qy'].ravel()
 
-    print(qx.shape, qy.shape, intensity.shape)
     with open(filename, "w+") as f:
         f.write('# ' + title + '\n')
         f.write('#Qx (1/A)       Qy (1/A)        I (1/cm)        dI (1/cm)'

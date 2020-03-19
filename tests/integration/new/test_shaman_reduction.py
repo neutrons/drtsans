@@ -32,12 +32,8 @@ EXTENSIONS = {'EQSANS_88980': ['_bkgd_88974_trans.txt',
                                 '_raw_trans.txt',
                                 '_reduction_log.hdf',
                                 '_trans.txt'],
-              'CG3_1433': ['_merged_Iq.json', '_merged_Iq.png'],
-              'CG2_1481': ['_Iq.json', '_Iq.png', '_Iq.txt', '_Iqxqy.json', '_Iqxqy.png', '_Iqxqy.txt']}
-# double for loop to simplify creating the mix of extensions for CG3_1433
-for iq_type in '_Iq', '_Iqxqy', '_wing_Iq', '_wing_Iqxqy':
-    for ext in 'json', 'png', 'txt':
-        EXTENSIONS['CG3_1433'].append('{}.{}'.format(iq_type, ext))
+              'CG3_4822': [],
+              'CG2_8944': []}
 
 
 def write_configfile(input_json_file, basename):
@@ -86,6 +82,10 @@ def write_configfile(input_json_file, basename):
     return outputdir, output_json_file
 
 
+def unique_basename(basename):
+    return os.path.basename(NamedTemporaryFile(prefix=basename+'_', delete=False).name)
+
+
 def run_reduction(pythonscript, json_file):
     # determine python script with full path
     scriptdir = os.path.join(os.path.abspath(os.path.curdir), 'scripts')
@@ -109,18 +109,28 @@ def run_reduction(pythonscript, json_file):
     print(pythonscript, 'took', time.clock() - start, 'seconds')
 
 
-def check_and_cleanup(outputdir, basename):
+def check_and_cleanup(outputdir, basename_short, basename):
     # verify that the output files were created and cleanup
-    for extension in EXTENSIONS[basename]:
+    for extension in EXTENSIONS[basename_short]:
         filename = os.path.join(outputdir, basename + extension)
         assert os.path.isfile(filename), '"{}" does not exist'.format(filename)
         os.remove(filename)
 
     # remove the output and error logs if they were created, neither is required to exist
-    for ext in ['.out', '.err']:
+    for ext in ['.out', '.err', '_reduction_log.hdf']:
         logname = os.path.join(outputdir, basename + ext)
         if os.path.isfile(logname):
             os.remove(logname)
+
+    # verify that there isn't anything else with the same prefix
+    extra_files = [os.path.join(outputdir, name) for name in os.listdir(outputdir) if basename in name]
+    nonempty_files = []
+    for filename in extra_files:
+        if os.path.isfile(filename) and os.stat(filename).st_size == 0:
+            os.remove(filename)
+        else:
+            nonempty_files.append(filename)
+    assert not nonempty_files, 'Found extra files {}'.format(','.join(nonempty_files))
 
 
 def check_for_required_files(filenames):
@@ -140,11 +150,12 @@ def test_eqsans(configfile, basename, required):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
-    outputdir, json_file = write_configfile(configfile, basename)
+    basename_long = unique_basename(basename)
+    outputdir, json_file = write_configfile(configfile, basename_long)
 
     run_reduction('eqsans_reduction.py', json_file)
 
-    check_and_cleanup(outputdir, basename)
+    check_and_cleanup(outputdir, basename, basename_long)
 
     # delete the modified configuration file
     if os.path.isfile(json_file):
@@ -152,18 +163,19 @@ def test_eqsans(configfile, basename, required):
 
 
 @pytest.mark.parametrize('configfile, basename, required',
-                         [('biosans_reduction.json', 'CG3_1433',
-                           ('/HFIR/CG3/IPTS-24665/nexus/CG3_1433.nxs.h5', ))],
-                         ids=['1433'])
+                         [('biosans_reduction.json', 'CG3_4822',
+                           ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', ))],
+                         ids=['4822'])
 def test_biosans(configfile, basename, required):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
-    outputdir, json_file = write_configfile(configfile, basename)
+    basename_long = unique_basename(basename)
+    outputdir, json_file = write_configfile(configfile, basename_long)
 
     run_reduction('biosans_reduction.py', json_file)
 
-    check_and_cleanup(outputdir, basename)
+    check_and_cleanup(outputdir, basename, basename_long)
 
     # delete the modified configuration file
     if os.path.isfile(json_file):
@@ -171,18 +183,19 @@ def test_biosans(configfile, basename, required):
 
 
 @pytest.mark.parametrize('configfile, basename, required',
-                         [('gpsans_reduction.json', 'CG2_1481',
-                           ('/HFIR/CG2/IPTS-23801/nexus/CG2_1481.nxs.h5', ))],
-                         ids=['1481'])
+                         [('gpsans_reduction.json', 'CG2_8944',
+                           ('/HFIR/CG2/IPTS-20775/nexus/CG2_8944.nxs.h5', ))],
+                         ids=['8944'])
 def test_gpsans(configfile, basename, required):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
-    outputdir, json_file = write_configfile(configfile, basename)
+    basename_long = unique_basename(basename)
+    outputdir, json_file = write_configfile(configfile, basename_long)
 
     run_reduction('gpsans_reduction.py', json_file)
 
-    check_and_cleanup(outputdir, basename)
+    check_and_cleanup(outputdir, basename, basename_long)
 
     # delete the modified configuration file
     if os.path.isfile(json_file):

@@ -609,19 +609,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     decade_on_center = reduction_input["configuration"].get("LogQBinsDecadeCenter", False)
     try:
         nbins_main = int(reduction_input["configuration"].get("numMainQBins"))
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, TypeError):
         nbins_main = None
     try:
         nbins_main_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecadeMain"))
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, TypeError):
         nbins_main_per_decade = None
     try:
         nbins_wing = int(reduction_input["configuration"].get("numWingQBins"))
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, TypeError):
         nbins_wing = None
     try:
         nbins_wing_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecadeWing"))
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, TypeError):
         nbins_wing_per_decade = None
     outputFilename = reduction_input["outputFilename"]
     weighted_errors = reduction_input["configuration"]["useErrorWeighting"]

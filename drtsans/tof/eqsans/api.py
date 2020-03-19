@@ -552,8 +552,16 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     nybins_main = int(nxbins_main)
     bin1d_type = reduction_input["configuration"]["1DQbinType"]
     log_binning = reduction_input["configuration"]["QbinType"] == 'log'
-    even_decades = reduction_input["configuration"]["LogQBinsEvenDecade"]
-    nbins_main = int(reduction_input["configuration"]["numQBins"])
+    even_decades = reduction_input["configuration"].get("LogQBinsEvenDecade", False)
+    decade_on_center = reduction_input["configuration"].get("LogQBinsDecadeCenter", False)
+    try:
+        nbins_main = int(reduction_input["configuration"].get("numQBins"))
+    except (ValueError, KeyError):
+        nbins_main = None
+    try:
+        nbins_main_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecade"))
+    except (ValueError, KeyError):
+        nbins_main_per_decade = None
     outputFilename = reduction_input["outputFilename"]
     weighted_errors = reduction_input["configuration"]["useErrorWeighting"]
     try:
@@ -715,9 +723,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         fr_label = ''
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
-                fr_label = f'_wl_frame_{wl_frame}'
+                fr_label = f'_frame_{wl_frame}'
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                                   nxbins_main, nybins_main, nbins_main,
+                                                   nxbins_main, nybins_main, n1dbins=nbins_main,
+                                                   n1dbins_per_decade=nbins_main_per_decade,
+                                                   decade_on_center=decade_on_center,
                                                    bin1d_type=bin1d_type, log_scale=log_binning,
                                                    even_decade=even_decades, qmin=qmin, qmax=qmax,
                                                    annular_angle_bin=annular_bin, wedges=wedges,

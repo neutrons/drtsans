@@ -286,7 +286,7 @@ def prepare_data_workspaces(data,
     """
     if not output_workspace:
         output_workspace = str(data)
-        output_workspace.replace('_raw_histo', '') + '_processed_histo'
+        output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
 
     mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 

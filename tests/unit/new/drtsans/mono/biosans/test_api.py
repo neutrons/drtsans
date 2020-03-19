@@ -1,6 +1,6 @@
 import pytest
 import os
-from drtsans.mono.biosans.api import load_all_files
+from drtsans.mono.biosans.api import load_all_files, prepare_data_workspaces
 
 
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/IPTS-23782/nexus/CG3_960.nxs.h5'),
@@ -45,6 +45,23 @@ def test_load_all_files_simple():
     assert loaded.dark_current is None
     assert loaded.sensitivity is None
     assert loaded.mask is None
+
+
+@pytest.mark.parametrize('generic_workspace', [{'name': 'ws_raw_histo'}], indirect=True)
+def test_prepare_data_workspaces_simple(generic_workspace):
+    ws = generic_workspace  # friendly name
+
+    output = prepare_data_workspaces(ws)
+    # this should make a clone of the workspace
+    assert ws is not output
+    # and change the workspace name automatically
+    assert ws.name() == "ws_raw_histo"
+    assert output.name() == "ws_processed_histo"
+
+    output2 = prepare_data_workspaces(ws, output_workspace="foobar")
+    # the ws name should change to what is set
+    assert ws.name() == "ws_raw_histo"
+    assert output2.name() == "foobar"
 
 
 if __name__ == '__main__':

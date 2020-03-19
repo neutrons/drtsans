@@ -122,7 +122,10 @@ def test_sum_data(reference_dir):
 
 
 def test_load_events_and_histogram(reference_dir):
-    workspace = load_events_and_histogram('CG3_961.nxs.h5', data_dir=reference_dir.new.biosans)
+    workspace = load_events_and_histogram('CG3_961.nxs.h5',
+                                          sample_to_si_name='CG3:CS:SampleToSi',
+                                          si_nominal_distance=0.071,
+                                          data_dir=reference_dir.new.biosans)
     assert workspace.getAxis(0).getUnit().caption() == 'Wavelength'
     assert workspace.name() == "BIOSANS_961"
 
@@ -132,7 +135,9 @@ def test_load_events_and_histogram(reference_dir):
     assert sample_logs.wavelength.size() == 692
     assert mtd[str(workspace)].extractY().sum() == 11067715
 
-    workspace2 = load_events_and_histogram('CG3_961.nxs.h5, CG3_960.nxs.h5', data_dir=reference_dir.new.biosans)
+    workspace2 = load_events_and_histogram('CG3_961.nxs.h5, CG3_960.nxs.h5', data_dir=reference_dir.new.biosans,
+                                           sample_to_si_name='CG3:CS:SampleToSi',
+                                           si_nominal_distance=0.071)
     assert workspace2.getAxis(0).getUnit().caption() == 'Wavelength'
     assert workspace2.name() == "BIOSANS_961_960"
 

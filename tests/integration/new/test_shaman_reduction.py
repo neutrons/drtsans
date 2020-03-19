@@ -32,12 +32,8 @@ EXTENSIONS = {'EQSANS_88980': ['_bkgd_88974_trans.txt',
                                 '_raw_trans.txt',
                                 '_reduction_log.hdf',
                                 '_trans.txt'],
-              'CG3_1433': ['_merged_Iq.json', '_merged_Iq.png'],
+              'CG3_4822': [],
               'CG2_8944': []}
-# double for loop to simplify creating the mix of extensions for CG3_1433
-for iq_type in '_Iq', '_Iqxqy', '_wing_Iq', '_wing_Iqxqy':
-    for ext in 'json', 'png', 'txt':
-        EXTENSIONS['CG3_1433'].append('{}.{}'.format(iq_type, ext))
 
 
 def write_configfile(input_json_file, basename):
@@ -167,9 +163,9 @@ def test_eqsans(configfile, basename, required):
 
 
 @pytest.mark.parametrize('configfile, basename, required',
-                         [('biosans_reduction.json', 'CG3_1433',
-                           ('/HFIR/CG3/IPTS-24665/nexus/CG3_1433.nxs.h5', ))],
-                         ids=['1433'])
+                         [('biosans_reduction.json', 'CG3_4822',
+                           ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', ))],
+                         ids=['4822'])
 def test_biosans(configfile, basename, required):
     check_for_required_files(required)
 

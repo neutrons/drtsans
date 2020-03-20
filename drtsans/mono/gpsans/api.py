@@ -32,6 +32,7 @@ from drtsans import subtract_background
 from drtsans.mono.meta_data import set_meta_data
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
+from drtsans.path import allow_overwrite
 
 
 # Functions exposed to the general user (public) API
@@ -844,6 +845,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          samplelogs=samplelogs,
                          )
 
+    # change permissions to all files to allow overwrite
+    allow_overwrite(reduction_input["configuration"]["outputDir"])
+    allow_overwrite(os.path.join(reduction_input["configuration"]["outputDir"], '1D'))
+    allow_overwrite(os.path.join(reduction_input["configuration"]["outputDir"], '2D'))
+
     return output
 
 
@@ -886,3 +892,7 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             filename = os.path.join(output_dir, '1D', f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
             plot_IQmod([out.I1D_main[j]], filename, loglog=loglog,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
+
+    # allow overwrite
+    allow_overwrite(os.path.join(output_dir, '1D'))
+    allow_overwrite(os.path.join(output_dir, '2D'))

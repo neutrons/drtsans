@@ -91,5 +91,26 @@ def test_1d_annular_out_of_range_angles():
         bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
 
+def test_1d_flat_data():
+    # 2d array of ones with -10 <= Qx/Qy <= 10
+    data2d = IQazimuthal(intensity=np.full((21, 21), 1., dtype=float),
+                         error=np.full((21, 21), 1., dtype=float),
+                         qx=np.arange(-10, 11, 1, dtype=float),
+                         qy=np.arange(-10, 11, 1, dtype=float))
+
+    # perform the annular binning
+    theta_binning = BinningParams(0, 360, 18)   # 20 deg bins
+    binned_iq = bin_annular_into_q1d(data2d, theta_binning, q_min=9., q_max=10.,
+                                     method=BinningMethod.NOWEIGHT)
+
+    # verify the results
+    assert binned_iq.intensity.size == 18
+    np.testing.assert_equal(binned_iq.intensity, 1.)
+    # uncertainties are proportional to the number of input bins contributing to the annullar wedge
+    np.testing.assert_allclose(binned_iq.error, 0.6, atol=.11)
+    # actually the azimuthal angle
+    np.testing.assert_equal(binned_iq.mod_q, np.arange(10., 360., 20.))
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

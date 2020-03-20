@@ -786,6 +786,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
         if bool(autoWedgeOpts):  # determine wedges automatically
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
+            print('found wedge angles:')
+            for left, right in wedges:
+                print('  {:.1f} to {:.1f}'.format(left, right))
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_input["configuration"]["wedges"] = wedges

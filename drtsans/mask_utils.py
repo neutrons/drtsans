@@ -68,7 +68,7 @@ def masked_indexes(input_workspace, invert=False):
     return np.where(mask_array)[0]
 
 
-def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **btp):
+def apply_mask(input_workspace, mask=None, panel=None, **btp):
     r"""
     Apply a mask to a workspace.
 
@@ -84,21 +84,11 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
         detector ID's. If `None`, it is expected that `maskbtp` is not empty.
     panel: str
         Either 'front' or 'back' to mask a whole panel
-    output_workspace: str
-        Name of the output ~mantid.api.MatrixWorkspace. If ``None``, a random name will be provided for the workspace.
     btp: dict
         Options to Mantid algorithm :ref:`MaskBTP <algm-MaskBTP-v1>` or :ref:`MaskAngle <algm-MaskAngle-v1>`.
         Will be used if  ``mask=None``
-
-    Returns
-    -------
-    MaskWorkspace
-        Combination of panel, mask, and :ref:`MaskBTP <algm-MaskBTP-v1>` masks
     """
     input_workspace = str(input_workspace)
-    # determine the output workspace name
-    if output_workspace is None:
-        output_workspace = unique_workspace_dundername()
     # instrument = mtd[input_workspace].getInstrument().getName()
     if mask is not None:
         if isinstance(mask, str):
@@ -126,8 +116,6 @@ def apply_mask(input_workspace, mask=None, panel=None, output_workspace=None, **
         if bool(btp):  # see if any parameters are left
             print('Try to mask BTP to workspace {} with {}'.format(input_workspace, btp))
             MaskBTP(Workspace=input_workspace, **btp)
-    return ExtractMask(InputWorkspace=input_workspace,
-                       OutputWorkspace=output_workspace).OutputWorkspace
 
 
 def load_mask(mask_file='', output_workspace=None):

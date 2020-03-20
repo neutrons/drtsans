@@ -52,8 +52,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     mask_spectra_with_special_values(flat_ws)
 
     if mask is not None or mask_options != {}:
-        mask_workspace = apply_mask(flat_ws, mask=mask, **mask_options)
-        mask_workspace.delete()  # we don't need the mask workspace so keep it clean
+        apply_mask(flat_ws, mask=mask, **mask_options)
 
     if solid_angle_method:
         solid_angle_correction(flat_ws, detector_type=solid_angle_method)

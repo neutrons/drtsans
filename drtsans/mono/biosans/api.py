@@ -137,7 +137,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             except ValueError:
                 overwrite_swd = None
             try:
-                overwrite_sdd = reduction_input['configuration'].get('SampleDetectorDistance')
+                overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
             except ValueError:
                 overwrite_sdd = None
             print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))

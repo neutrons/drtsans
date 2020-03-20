@@ -451,8 +451,7 @@ def process_single_configuration(sample_ws_raw,
                                  empty_beam_ws=None,
                                  beam_radius=None,
                                  absolute_scale=1.,
-                                 keep_processed_workspaces=True,
-                                 **kwargs):
+                                 keep_processed_workspaces=True):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)

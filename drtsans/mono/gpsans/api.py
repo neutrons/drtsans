@@ -329,8 +329,7 @@ def prepare_data(data,
                                    mask_btp=btp,
                                    solid_angle=solid_angle,
                                    sensitivity_workspace=sensitivity_workspace,
-                                   output_workspace=output_workspace,
-                                   output_suffix=output_suffix)
+                                   output_workspace=output_workspace)
 
 
 def prepare_data_workspaces(data,

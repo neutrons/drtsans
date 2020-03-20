@@ -132,8 +132,14 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             # Set overwrite sample-si-distance and sample-detector-distance
 
             # Retrieve parameters for overwriting geometry related meta data
-            overwrite_swd = reduction_input['configuration'].get('SampleToSi')
-            overwrite_sdd = reduction_input['configuration'].get('SampleDetectorDistance')
+            try:
+                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi'))
+            except ValueError:
+                overwrite_swd = None
+            try:
+                overwrite_sdd = reduction_input['configuration'].get('SampleDetectorDistance')
+            except ValueError:
+                overwrite_sdd = None
             print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
             #
             biosans.load_events_and_histogram(filename, output_workspace=ws_name,

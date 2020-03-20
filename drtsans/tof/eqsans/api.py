@@ -34,6 +34,8 @@ from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  #
 from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
+from drtsans.path import allow_overwrite  # noqa E402
+
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -778,6 +780,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                  specialparameters=specialparameters,
                                  samplelogs=samplelogs)
 
+    # change permissions to all files to allow overwrite
+    allow_overwrite(reduction_input["configuration"]["outputDir"])
+
     return output
 
 
@@ -821,6 +826,9 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{add_suffix}_Iq.png')
             plot_IQmod([out.I1D_main[j]], filename, loglog=True,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
+
+    # change permissions to all files to allow overwrite
+    allow_overwrite(output_dir)
 
 
 def apply_solid_angle_correction(input_workspace):

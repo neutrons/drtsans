@@ -30,6 +30,7 @@ from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
 from drtsans.path import allow_overwrite
+from drtsans.dataobjects import IQmod
 # from drtsans.mono.absolute_units import empty_beam_scaling
 # from drtsans.mono.gpsans.attenuation import attenuation_factor
 
@@ -830,13 +831,16 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
             except ValueError:
                 OLT_Qmax = iq1d_main_in.mod_q.max()
 
-            iq_output_both = biosans.stitch_profiles(profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
-                                                     overlaps=[OLT_Qmin, OLT_Qmax],
-                                                     target_profile_index=0)
+            try:
+                iq_output_both = biosans.stitch_profiles(profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
+                                                         overlaps=[OLT_Qmin, OLT_Qmax],
+                                                         target_profile_index=0)
 
-            ascii_1D_filename = os.path.join(output_dir, '1D',
-                                             f'{outputFilename}{output_suffix}_1D_both{add_suffix}.txt')
-            save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq_output_both)
+                ascii_1D_filename = os.path.join(output_dir, '1D',
+                                                 f'{outputFilename}{output_suffix}_1D_both{add_suffix}.txt')
+                save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq_output_both)
+            except ZeroDivisionError:
+                iq_output_both = IQmod(intensity=[], error=[], mod_q=[])
             iq1d_combined_out.append(iq_output_both)
         IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I2D_wing', 'I1D_main', 'I1D_wing', 'I1D_combined'])
         current_output = IofQ_output(I2D_main=iq2d_main_out,
@@ -866,7 +870,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         samplelogs = {'main': SampleLogs(processed_data_main),
                       'wing': SampleLogs(processed_data_wing)}
 
-        detectordata = {'combined': {'iq': [iq_output_both]}}
+        if iq_output_both.intensity.size > 0:
+            detectordata = {'combined': {'iq': [iq_output_both]}}
+        else:
+            detectordata = {}
         index = 0
         for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
                                                                   [iq2d_main_out], [iq2d_wing_out]):

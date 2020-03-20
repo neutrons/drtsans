@@ -231,8 +231,7 @@ def prepare_data_workspaces(data,
                             mask_btp=None,       # mask bank/tube/pixel
                             solid_angle=True,
                             sensitivity_workspace=None,
-                            output_workspace=None,
-                            output_suffix='', **kwargs):
+                            output_workspace=None):
     r"""
     Given a " raw"data workspace, this function provides the following:
 
@@ -275,9 +274,6 @@ def prepare_data_workspaces(data,
         overrides the sensitivity_filename if both are provided.
     output_workspace: str
         The output workspace name. If None will create data.name()+output_suffix
-    output_suffix: str
-        replace '_raw_histo' in the output workspace name.
-        If empty, the default is '_processed_histo'
 
     Returns
     -------
@@ -677,7 +673,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                  center_y=yc,
                                                  center_y_wing=yw,
                                                  solid_angle=False,
-                                                 sensitivity_ws=loaded_ws.sensitivity_main,
+                                                 sensitivity_workspace=loaded_ws.sensitivity_main,
                                                  output_workspace=empty_trans_ws_name)
     else:
         empty_trans_ws = None
@@ -692,7 +688,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                           center_y=yc,
                                                           center_y_wing=yw,
                                                           solid_angle=False,
-                                                          sensitivity_ws=loaded_ws.sensitivity_main,
+                                                          sensitivity_workspace=loaded_ws.sensitivity_main,
                                                           output_workspace=bkgd_trans_ws_name)
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
@@ -710,7 +706,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                             center_y=yc,
                                                             center_y_wing=yw,
                                                             solid_angle=False,
-                                                            sensitivity_ws=loaded_ws.sensitivity_main,
+                                                            sensitivity_workspace=loaded_ws.sensitivity_main,
                                                             output_workspace=sample_trans_ws_name)
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")

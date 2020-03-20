@@ -104,6 +104,7 @@ def load_mono(filename, **kwargs):
 def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
                               detector_offset=0., sample_offset=0., reuse_workspace=False,
                               sample_to_si_name=None, si_nominal_distance=None,
+                              sample_to_si_value=None, sample_detector_distance_value=None,
                               **kwargs):
     r"""Load one or more event Nexus file produced by the instruments at
     HFIR. Convert to wavelength and sums the data.
@@ -160,8 +161,8 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
                 get_sample_detector_offset(ws,
                                            sample_si_meta_name=sample_to_si_name,
                                            zero_sample_offset_sample_si_distance=si_nominal_distance,
-                                           overwrite_sample_si_distance=None,
-                                           overwrite_sample_detector_distance=None)
+                                           overwrite_sample_si_distance=sample_to_si_value,
+                                           overwrite_sample_detector_distance=sample_detector_distance_value)
             print('[MONO-LOAD INFO] Sample offset = {}, Detector offset = {}'
                   ''.format(sample_offset, detector_offset))
 

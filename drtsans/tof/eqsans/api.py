@@ -716,6 +716,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
+            print('found wedge angles:')
+            for left, right in wedges:
+                print('  {:.1f} to {:.1f}'.format(left, right))
+
         iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)

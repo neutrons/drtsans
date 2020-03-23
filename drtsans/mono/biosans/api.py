@@ -129,8 +129,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
 
-            # Set overwrite sample-si-distance and sample-detector-distance
-
             # Retrieve parameters for overwriting geometry related meta data
             try:
                 overwrite_swd = float(reduction_input['configuration'].get('SampleToSi'))

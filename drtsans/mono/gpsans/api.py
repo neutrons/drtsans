@@ -126,7 +126,23 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
-            load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+
+            # Retrieve parameters for overwriting geometry related meta data
+            try:
+                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi'))
+            except ValueError:
+                overwrite_swd = None
+            try:
+                overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
+            except ValueError:
+                overwrite_sdd = None
+            print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
+            #
+            load_events_and_histogram(filename, output_workspace=ws_name,
+                                      sample_to_si_name='CG2:CS:SampleToSi', si_nominal_distance=0.,
+                                      sample_to_si_value=overwrite_swd,
+                                      sample_detector_distance_value=overwrite_sdd,
+                                      **load_params)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
 

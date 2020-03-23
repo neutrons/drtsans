@@ -102,7 +102,7 @@ def load_mono(filename, **kwargs):
 
 
 def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
-                              detector_offset=0., sample_offset=0., reuse_workspace=False,
+                              reuse_workspace=False,
                               sample_to_si_name=None, si_nominal_distance=None,
                               sample_to_si_value=None, sample_detector_distance_value=None,
                               **kwargs):
@@ -121,15 +121,14 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
+    sample_to_si_name: str
+        Meta data name for sample to Silicon window distance
+    si_nominal_distance:
+    sample_to_si_value:
+    sample_detector_distance_value:
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
-    detector_offset: float
-        Additional translation of the detector along the Z-axis, in mm. Positive
-        moves the detector downstream.
-    sample_offset: float
-        Additional translation of the sample, in mm. The sample flange remains
-        at the origin of coordinates. Positive moves the sample downstream.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
     kwargs: dict
@@ -139,47 +138,56 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
     -------
     ~mantid.api.MatrixWorkspace
     """
+    # Check inputs
+    if sample_to_si_name is None:
+        raise NotImplementedError('Sample to Si window name must be specified thus cannot be None')
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):
         run = [r.strip() for r in run.split(',')]
-
-    # if only one run just load and transform to wavelength and return workspace
+    # Load NeXus file(s)
     if len(run) == 1:
+        # if only one run just load and transform to wavelength and return workspace
         ws = load_events(run=run[0],
                          data_dir=data_dir,
                          output_workspace=output_workspace,
                          overwrite_instrument=overwrite_instrument,
                          output_suffix=output_suffix,
-                         detector_offset=detector_offset,
-                         sample_offset=sample_offset,
+                         detector_offset=0.,
+                         sample_offset=0.,
                          reuse_workspace=reuse_workspace,
                          **kwargs)
+
         # Calculate offset with overwriting to sample-detector-distance
-        if sample_to_si_name is not None:
-            sample_offset, detector_offset = \
-                get_sample_detector_offset(ws,
-                                           sample_si_meta_name=sample_to_si_name,
-                                           zero_sample_offset_sample_si_distance=si_nominal_distance,
-                                           overwrite_sample_si_distance=sample_to_si_value,
-                                           overwrite_sample_detector_distance=sample_detector_distance_value)
-            print('[MONO-LOAD INFO] Sample offset = {}, Detector offset = {}'
-                  ''.format(sample_offset, detector_offset))
+        ws = set_sample_detector_position(ws, sample_to_si_name, si_nominal_distance,
+                                          sample_to_si_value, sample_detector_distance_value)
 
-            # Move sample and detector
-            ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
-                                 sample_si_name=sample_to_si_name)
+        # print('[MONO-LOAD INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
+        #       ''.format(sample_detector_distance(ws, search_logs=False),
+        #                 sample_detector_distance(ws, search_logs=True)))
+        # sample_offset, detector_offset = \
+        #     get_sample_detector_offset(ws,
+        #                                sample_si_meta_name=sample_to_si_name,
+        #                                zero_sample_offset_sample_si_distance=si_nominal_distance,
+        #                                overwrite_sample_si_distance=sample_to_si_value,
+        #                                overwrite_sample_detector_distance=sample_detector_distance_value)
+        # print('[MONO-LOAD INFO] Sample offset = {}, Detector offset = {}'
+        #       ''.format(sample_offset, detector_offset))
 
-            # Check
-            # Check current instrument setup and meta data (sample logs)
-            logs = SampleLogs(ws)
-            print('[MONO-LOAD INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
-            print('[MONO-LOAD INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
-                  ''.format(sample_detector_distance(ws, search_logs=False),
-                            sample_detector_distance(ws, search_logs=True)))
-            print('[MONO-LOAD INFO] Sample @ {}'.format(ws.getInstrument().getSample().getPos()))
-        # END-IF
+        # # Move sample and detector
+        # ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+        #                      sample_si_name=sample_to_si_name)
 
+        # # Check
+        # # Check current instrument setup and meta data (sample logs)
+        # logs = SampleLogs(ws)
+        # print('[MONO-LOAD INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
+        # print('[MONO-LOAD INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
+        #       ''.format(sample_detector_distance(ws, search_logs=False),
+        #                 sample_detector_distance(ws, search_logs=True)))
+        # print('[MONO-LOAD INFO] Sample @ {}'.format(ws.getInstrument().getSample().getPos()))
+
+        # Transform to wavelength and set unit uncertainties
         ws = transform_to_wavelength(ws)
         ws = set_init_uncertainties(ws)
         return ws
@@ -203,34 +211,39 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
                                   data_dir=data_dir,
                                   output_workspace=temp_workspace_name,
                                   overwrite_instrument=overwrite_instrument,
-                                  detector_offset=detector_offset,
-                                  sample_offset=sample_offset,
+                                  detector_offset=0.,
+                                  sample_offset=0.,
                                   reuse_workspace=reuse_workspace,
                                   **kwargs)
 
             # Calculate offset with overwriting to sample-detector-distance
-            if sample_to_si_name is not None:
-                sample_offset, detector_offset = \
-                    get_sample_detector_offset(temp_ws,
-                                               sample_si_meta_name=sample_to_si_name,
-                                               zero_sample_offset_sample_si_distance=si_nominal_distance,
-                                               overwrite_sample_si_distance=None,
-                                               overwrite_sample_detector_distance=None)
-                print('[TEST INFO] Sample offset = {}, Detector offset = {}'
-                      ''.format(sample_offset, detector_offset))
+            set_sample_detector_position(temp_ws,
+                                         sample_to_si_window_name=sample_to_si_name,
+                                         si_window_to_nominal_distance=si_nominal_distance,
+                                         sample_si_window_overwrite_value=sample_to_si_value,
+                                         sample_detector_distance_overwrite_value=sample_detector_distance_value)
 
-                # Move sample and detector
-                temp_ws = move_instrument(temp_ws, sample_offset, detector_offset, is_mono=True,
-                                          sample_si_name=sample_to_si_name)
-
-                # Check
-                # Check current instrument setup and meta data (sample logs)
-                logs = SampleLogs(temp_ws)
-                print('[TEST INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
-                print('[TEST INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
-                      ''.format(sample_detector_distance(temp_ws, search_logs=False),
-                                sample_detector_distance(temp_ws, search_logs=True)))
-            # END-IF
+            #     sample_offset, detector_offset = \
+            #         get_sample_detector_offset(temp_ws,
+            #                                    sample_si_meta_name=sample_to_si_name,
+            #                                    zero_sample_offset_sample_si_distance=si_nominal_distance,
+            #                                    overwrite_sample_si_distance=None,
+            #                                    overwrite_sample_detector_distance=None)
+            #     print('[TEST INFO] Sample offset = {}, Detector offset = {}'
+            #           ''.format(sample_offset, detector_offset))
+            #
+            #     # Move sample and detector
+            #     temp_ws = move_instrument(temp_ws, sample_offset, detector_offset, is_mono=True,
+            #                               sample_si_name=sample_to_si_name)
+            #
+            #     # Check
+            #     # Check current instrument setup and meta data (sample logs)
+            #     logs = SampleLogs(temp_ws)
+            #     print('[TEST INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
+            #     print('[TEST INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
+            #           ''.format(sample_detector_distance(temp_ws, search_logs=False),
+            #                     sample_detector_distance(temp_ws, search_logs=True)))
+            # # END-IF
             transform_to_wavelength(temp_workspace_name)
             temp_workspaces.append(temp_workspace_name)
 
@@ -247,3 +260,61 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
                 mtd.remove(ws_name)
 
         return ws
+
+
+def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nominal_distance,
+                                 sample_si_window_overwrite_value,
+                                 sample_detector_distance_overwrite_value):
+    """
+
+    Parameters
+    ----------
+    ws: ~mantid.api.MatrixWorkspace
+        Workspace where the instrument is for sample detector position to set correctly
+    sample_to_si_window_name: str
+        meta data name for Sample to Silicon window distance
+    si_window_to_nominal_distance: float
+        Silicon window to nominal position distance in unit of millimeter
+    sample_si_window_overwrite_value: float or None
+        value to overwrite sample to silicon window distance in unit of millimeter
+        None for not overwriting
+    sample_detector_distance_overwrite_value: float or None
+        value to overwrite sample to detector distance in unit of meter
+        None for not overwriting
+
+    Returns
+    -------
+
+    """
+    # Information output before
+    logs = SampleLogs(ws)
+    print('[META-GEOM  Init] Sample to detector distance = {} (calculated) /{} (meta) meter'
+          ''.format(sample_detector_distance(ws, search_logs=False),
+                    sample_detector_distance(ws, search_logs=True)))
+    print('[META-GEOM      ] SampleToSi = {} mm'
+          ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
+
+    # Calculate sample and detector offsets for moving
+    sample_offset, detector_offset = \
+        get_sample_detector_offset(ws,
+                                   sample_si_meta_name=sample_to_si_window_name,
+                                   zero_sample_offset_sample_si_distance=si_window_to_nominal_distance,
+                                   overwrite_sample_si_distance=sample_si_window_overwrite_value,
+                                   overwrite_sample_detector_distance=sample_detector_distance_overwrite_value)
+    print('[META_GEOM  INFO] Sample offset = {}, Detector offset = {}'
+          ''.format(sample_offset, detector_offset))
+
+    # Move sample and detector
+    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+                         sample_si_name=sample_to_si_window_name)
+
+    # Check current instrument setup and meta data (sample logs)
+    logs = SampleLogs(ws)
+    print('[MONO-LOAD Final] Sample to detector distance = {} (calculated) /{} (meta) meter'
+          ''.format(sample_detector_distance(ws, search_logs=False),
+                    sample_detector_distance(ws, search_logs=True)))
+    print('[MONO-LOAD      ] Sample position = {}'.format(ws.getInstrument().getSample().getPos()))
+    print('[MONO-LOAD      ] SampleToSi = {} mm'
+          ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
+
+    return ws

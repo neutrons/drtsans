@@ -239,7 +239,8 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
             #     # Check
             #     # Check current instrument setup and meta data (sample logs)
             #     logs = SampleLogs(temp_ws)
-            #     print('[TEST INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
+            #     print('[TEST INFO] SampleToSi = {} mm
+            #     '.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
             #     print('[TEST INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
             #           ''.format(sample_detector_distance(temp_ws, search_logs=False),
             #                     sample_detector_distance(temp_ws, search_logs=True)))

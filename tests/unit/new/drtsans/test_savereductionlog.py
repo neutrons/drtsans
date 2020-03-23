@@ -372,8 +372,8 @@ def test_writing_iq_and_iqxqy_scalar_mode():
     test_iq = [_create_iq()]
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, detectordata={'slice_1': { 'main_detector': {'iq': test_iq,
-                                                                                  'iqxqy': test_iqxqy}}})
+    savereductionlog(tmp_log_filename, detectordata={'slice_1': {'main_detector': {'iq': test_iq,
+                                                                                   'iqxqy': test_iqxqy}}})
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
@@ -538,6 +538,7 @@ def test_wrong_detectordata_format():
     with pytest.raises(RuntimeError):
         savereductionlog("tmp_file_name", detectordata={'main_detector': {'iq': [1, 2, 3],
                                                                           'iqxqy': [1, 3, 5]}})
+
 
 def test_wrong_detectordata_name():
     with pytest.raises(KeyError):

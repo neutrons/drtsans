@@ -685,7 +685,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
-        name = "frame_{}".format(i+1)
+        name = "slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
@@ -765,7 +765,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     filename = os.path.join(reduction_input["configuration"]["outputDir"],
                             outputFilename + f'_reduction_log.hdf')
     starttime = datetime.now().isoformat()
-    pythonfile = __file__
+    try:
+        pythonfile = __file__
+    except NameError:
+        pythonfile = "Launched from notebook"
     reductionparams = {'data': copy.deepcopy(reduction_input),
                        'filename': 'internal_file'}
     specialparameters = {'beam_center': {'x': 'not implemented yet',

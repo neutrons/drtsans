@@ -154,7 +154,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             if not registered_workspace(ws_name):
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
-                load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+                load_events_and_histogram(filename, output_workspace=ws_name,
+                                          sample_to_si_name='CG2:CS:SampleToSi', si_nominal_distance=0.0,
+                                          **load_params)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 

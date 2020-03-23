@@ -861,9 +861,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
                                                                   [iq2d_main_out], [iq2d_wing_out]):
             _inside_detectordata["main_{}".format(index)] = {'iq': [_iq1d_main],
-                                                     'iqxqy': _iq2d_main}
+                                                             'iqxqy': _iq2d_main}
             _inside_detectordata["wing_{}".format(index)] = {'iq': [_iq1d_wing],
-                                                     'iqxqy': _iq2d_wing}
+                                                             'iqxqy': _iq2d_wing}
 
         detectordata[name] = _inside_detectordata
 

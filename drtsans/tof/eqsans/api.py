@@ -727,9 +727,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         fr_label = ''
+        _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):
-            if n_wl_frames > 1:
-                fr_label = f'_frame_{wl_frame}'
+            fr_label = f'frame_{wl_frame}'
+
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
                                                    n1dbins_per_decade=nbins_main_per_decade,
@@ -740,8 +741,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
 
-            detectordata[name+fr_label] = {'iq': iq1d_main_out,
-                                           'iqxqy': iq2d_main_out}
+            _inside_detectordata[fr_label] = {'iq': iq1d_main_out,
+                                              'iqxqy': iq2d_main_out}
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
@@ -761,6 +762,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                          I1D_main=iq1d_main_out)
             output.append(current_output)
 
+        detectordata[name] = _inside_detectordata
+
     # create reduction log
     filename = os.path.join(reduction_input["configuration"]["outputDir"],
                             outputFilename + f'_reduction_log.hdf')
@@ -779,6 +782,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          'background_transmission_raw': background_transmission_raw_dict}
 
     samplelogs = {'main': SampleLogs(processed_data_main)}
+
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
                              reductionparams=reductionparams,

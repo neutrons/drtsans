@@ -332,7 +332,7 @@ def _test_data(tested_data=[], ref_data=[], abs=None):
 #     savereductionlog(tmp_log_filename, detectordata={'slice_1': {'main_detector': {'iqxqy': test_iqxqy}}})
 #
 #     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-#
+# #
 #     with h5py.File(tmp_log_filename, 'r') as handle:
 #         top_group = _getGroup(handle, 'slice_1', 'NXdata')
 #         mid_group = _getGroup(top_group, 'main_detector', 'NXdata')
@@ -534,8 +534,12 @@ def test_no_arrays():
 
 def test_wrong_detectordata_format():
     with pytest.raises(RuntimeError):
-        savereductionlog("tmp_file_name", detectordata={'main_detector': {'iq': [1,2,3],
-                                                                          'iqxqy': [1,3,5]}})
+        savereductionlog("tmp_file_name", detectordata={'main_detector': {'iq': [1, 2, 3],
+                                                                          'iqxqy': [1, 3, 5]}})
+
+def test_wrong_detectordata_name():
+    with pytest.raises(KeyError):
+        savereductionlog("tmp_file_name", detectordata={'main_detector': {'frame': {'iqiq': [1, 2, 3]}}})
 
 
 if __name__ == '__main__':

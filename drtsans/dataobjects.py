@@ -218,7 +218,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         -------
         ~drtsans.dataobjects.IQmod
         """
-        frame = pd.read_csv(file, sep=sep, dtype=np.float64)
+        frame = pd.read_csv(file, sep=sep, dtype=np.float64, na_values='NAN')
         args = [frame[label].values for label in ['intensity', 'error', 'mod_q']]
         kwargs = {label: frame[label].values for label in ['delta_mod_q', 'wavelength']
                   if label in list(frame.columns)}
@@ -349,7 +349,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
             i_q_mod_cols.append('wavelength')
 
         # Write to file
-        frame.to_csv(file_name, columns=i_q_mod_cols, index=False, sep=sep, float_format=float_format)
+        frame.to_csv(file_name, columns=i_q_mod_cols, index=False, sep=sep, float_format=float_format, na_rep='NAN')
 
 
 def load_iqmod(file, sep=' '):

@@ -305,11 +305,26 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
             image = axis.imshow(np.transpose(data), aspect='auto', origin='lower', **imshow_kwargs)
             axis_properties = {'set_xlabel': 'tube', 'set_ylabel': 'pixel', 'set_title': f'{detector_name}'}
         elif axes_mode == 'xy':
+            # array x and y denote the corners of the pixels when projected on the XY plane
             n_pixels = len(collection[0])  # number of pixels in the first tube
-            x = np.array([tube.position[0] * np.ones(n_pixels) for tube in collection])
+            # Find the "left" sides of the tubes
+            x = [(tube.position[0] - tube[0].width / 2) * np.ones(n_pixels + 1) for tube in collection]
+            # Append the "right" side of the last tube
+            last_tube = collection[-1]
+            x.append((last_tube.position[0] + last_tube[0].width / 2) * np.ones(n_pixels + 1))
+            x = np.array(x)
             axis.set_xlim(max(x.ravel()), min(x.ravel()))  # X-axis should plot from larger to smaller values
             # BOTTLENECK-1
-            y = np.array([tube.pixel_y for tube in collection])
+            y = list()
+            for tube in collection:
+                # Lower positions of the pixels along the Y-axis
+                pixel_y_boundaries = list(tube.pixel_y - tube.pixel_heights / 2)
+                # Append the top position on the last pixel
+                last_pixel = tube[-1]
+                pixel_y_boundaries.append(last_pixel.position[1] + last_pixel.height / 2)
+                y.append(pixel_y_boundaries)
+            y.append(y[-1])
+            y = np.array(y)
             # BOTTLENECK-2 (but 6 times faster than BOTTLENECK-1)
             image = axis.pcolormesh(x, y, data)
             axis_properties = {'set_xlabel': 'X', 'set_ylabel': 'Y', 'set_title': f'{detector_name}'}

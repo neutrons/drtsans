@@ -34,6 +34,8 @@ from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  #
 from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
+from drtsans.path import allow_overwrite  # noqa E402
+
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -277,8 +279,7 @@ def prepare_data_workspaces(data,
                             mask_btp=None,       # mask bank/tube/pixel
                             solid_angle=True,
                             sensitivity_workspace=None,
-                            output_workspace=None,
-                            output_suffix='', **kwargs):
+                            output_workspace=None):
 
     r"""
     Given a " raw"data workspace, this function provides the following:
@@ -320,9 +321,6 @@ def prepare_data_workspaces(data,
         overrides the sensitivity_filename if both are provided.
     output_workspace: str
         The output workspace name. If None will create data.name()+output_suffix
-    output_suffix: str
-        replace '_raw_histo' in the output workspace name.
-        If empty, the default is '_processed_histo'
 
     Returns
     -------
@@ -331,7 +329,7 @@ def prepare_data_workspaces(data,
     """
     if not output_workspace:
         output_workspace = str(data.data)
-        output_workspace.replace('_raw_histo', '') + '_processed_histo'
+        output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
 
     mtd[str(data.data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 
@@ -614,7 +612,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                  flux_method=flux_method,
                                                  flux=flux,
                                                  solid_angle=False,
-                                                 sensitivity_ws=loaded_ws.sensitivity,
+                                                 sensitivity_workspace=loaded_ws.sensitivity,
                                                  output_workspace=empty_trans_ws_name)
     else:
         empty_trans_ws = None
@@ -628,7 +626,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                           flux_method=flux_method,
                                                           flux=flux,
                                                           solid_angle=False,
-                                                          sensitivity_ws=loaded_ws.sensitivity,
+                                                          sensitivity_workspace=loaded_ws.sensitivity,
                                                           output_workspace=bkgd_trans_ws_name)
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
@@ -660,7 +658,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                             flux_method=flux_method,
                                                             flux=flux,
                                                             solid_angle=False,
-                                                            sensitivity_ws=loaded_ws.sensitivity,
+                                                            sensitivity_workspace=loaded_ws.sensitivity,
                                                             output_workspace=sample_trans_ws_name)
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
@@ -720,6 +718,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
+            print('found wedge angles:')
+            for left, right in wedges:
+                print('  {:.1f} to {:.1f}'.format(left, right))
+
         iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
@@ -782,6 +784,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                  specialparameters=specialparameters,
                                  samplelogs=samplelogs)
 
+    # change permissions to all files to allow overwrite
+    allow_overwrite(reduction_input["configuration"]["outputDir"])
+
     return output
 
 
@@ -825,6 +830,9 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{add_suffix}_Iq.png')
             plot_IQmod([out.I1D_main[j]], filename, loglog=True,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
+
+    # change permissions to all files to allow overwrite
+    allow_overwrite(output_dir)
 
 
 def apply_solid_angle_correction(input_workspace):

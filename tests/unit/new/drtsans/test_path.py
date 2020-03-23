@@ -1,8 +1,11 @@
 import pytest
+import pathlib
+import stat
 from mantid.simpleapi import CreateWorkspace
-from drtsans.path import abspath, exists, registered_workspace
+from drtsans.path import abspath, exists, registered_workspace, allow_overwrite
 from drtsans.settings import amend_config, unique_workspace_dundername as uwd
 from os.path import exists as os_exists
+from tempfile import gettempdir, NamedTemporaryFile
 
 # arbitrarily selected IPTS to see if the mount is in place
 HAVE_EQSANS_MOUNT = os_exists('/SNS/EQSANS/IPTS-23732/')
@@ -70,6 +73,23 @@ def test_registered_workspace():
     w = CreateWorkspace(DataX=[1], Datay=[1], OutputWorkspace=w_name)
     assert registered_workspace(w_name) is True
     assert registered_workspace(w) is True
+
+
+def test_allow_overwrite():
+    tmpdir = gettempdir()
+    # create an empty file
+    tmpfile = NamedTemporaryFile(dir=tmpdir, delete=False)
+    tmpfile.close()
+    # check if others write permission is false
+    path = pathlib.Path(tmpfile.name)
+    assert not bool(path.stat().st_mode & stat.S_IWOTH)
+    allow_overwrite(tmpdir)
+    # check permissions
+    assert bool(path.stat().st_mode & stat.S_IWUSR)
+    assert bool(path.stat().st_mode & stat.S_IWGRP)
+    assert bool(path.stat().st_mode & stat.S_IWOTH)
+    # delete file
+    path.unlink()
 
 
 if __name__ == '__main__':

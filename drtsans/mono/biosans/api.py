@@ -28,7 +28,8 @@ from drtsans.transmission import apply_transmission_correction, calculate_transm
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
-
+from drtsans.path import allow_overwrite
+from drtsans.dataobjects import IQmod
 # from drtsans.mono.absolute_units import empty_beam_scaling
 # from drtsans.mono.gpsans.attenuation import attenuation_factor
 
@@ -261,8 +262,7 @@ def prepare_data_workspaces(data,
                             mask_btp=None,       # mask bank/tube/pixel
                             solid_angle=True,
                             sensitivity_workspace=None,
-                            output_workspace=None,
-                            output_suffix='', **kwargs):
+                            output_workspace=None):
     r"""
     Given a " raw"data workspace, this function provides the following:
 
@@ -305,9 +305,6 @@ def prepare_data_workspaces(data,
         overrides the sensitivity_filename if both are provided.
     output_workspace: str
         The output workspace name. If None will create data.name()+output_suffix
-    output_suffix: str
-        replace '_raw_histo' in the output workspace name.
-        If empty, the default is '_processed_histo'
 
     Returns
     -------
@@ -316,7 +313,7 @@ def prepare_data_workspaces(data,
     """
     if not output_workspace:
         output_workspace = str(data)
-        output_workspace.replace('_raw_histo', '') + '_processed_histo'
+        output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
 
     mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 
@@ -380,8 +377,7 @@ def process_single_configuration(sample_ws_raw,
                                  empty_beam_ws=None,
                                  beam_radius=None,
                                  absolute_scale=1.,
-                                 keep_processed_workspaces=True,
-                                 **kwargs):
+                                 keep_processed_workspaces=True):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
@@ -598,6 +594,10 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             plot_IQmod([out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
                        filename, loglog=loglog, backend='mpl', errorbar_kwargs={'label': 'main,wing,both'})
 
+    # allow overwrite
+    allow_overwrite(os.path.join(output_dir, '1D'))
+    allow_overwrite(os.path.join(output_dir, '2D'))
+
 
 def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     flux_method = reduction_input["configuration"]["normalization"]
@@ -707,13 +707,13 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                  center_y=yc,
                                                  center_y_wing=yw,
                                                  solid_angle=False,
-                                                 sensitivity_ws=loaded_ws.sensitivity_main,
+                                                 sensitivity_workspace=loaded_ws.sensitivity_main,
                                                  output_workspace=empty_trans_ws_name)
     else:
         empty_trans_ws = None
 
     # background transmission
-    if loaded_ws.background_transmission:
+    if loaded_ws.background_transmission is not None and empty_trans_ws is not None:
         bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
         bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
                                                           flux_method=flux_method,
@@ -722,7 +722,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                           center_y=yc,
                                                           center_y_wing=yw,
                                                           solid_angle=False,
-                                                          sensitivity_ws=loaded_ws.sensitivity_main,
+                                                          sensitivity_workspace=loaded_ws.sensitivity_main,
                                                           output_workspace=bkgd_trans_ws_name)
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
@@ -731,7 +731,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         bkgd_trans_ws = None
 
     # sample transmission
-    if loaded_ws.sample_transmission:
+    if loaded_ws.sample_transmission is not None and empty_trans_ws is not None:
         sample_trans_ws_name = f'{prefix}_sample_trans'
         sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
                                                             flux_method=flux_method,
@@ -740,7 +740,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                             center_y=yc,
                                                             center_y_wing=yw,
                                                             solid_angle=False,
-                                                            sensitivity_ws=loaded_ws.sensitivity_main,
+                                                            sensitivity_workspace=loaded_ws.sensitivity_main,
                                                             output_workspace=sample_trans_ws_name)
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
@@ -807,6 +807,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in = biosans.convert_to_q(processed_data_main, mode='azimuthal')
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
+            print('found wedge angles:')
+            for left, right in wedges:
+                print('  {:.1f} to {:.1f}'.format(left, right))
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_input["configuration"]["wedges"] = wedges
@@ -857,13 +860,16 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
             except ValueError:
                 OLT_Qmax = iq1d_main_in.mod_q.max()
 
-            iq_output_both = biosans.stitch_profiles(profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
-                                                     overlaps=[OLT_Qmin, OLT_Qmax],
-                                                     target_profile_index=0)
+            try:
+                iq_output_both = biosans.stitch_profiles(profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
+                                                         overlaps=[OLT_Qmin, OLT_Qmax],
+                                                         target_profile_index=0)
 
-            ascii_1D_filename = os.path.join(output_dir, '1D',
-                                             f'{outputFilename}{output_suffix}_1D_both{add_suffix}.txt')
-            save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq_output_both)
+                ascii_1D_filename = os.path.join(output_dir, '1D',
+                                                 f'{outputFilename}{output_suffix}_1D_both{add_suffix}.txt')
+                save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq_output_both)
+            except ZeroDivisionError:
+                iq_output_both = IQmod(intensity=[], error=[], mod_q=[])
             iq1d_combined_out.append(iq_output_both)
         IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I2D_wing', 'I1D_main', 'I1D_wing', 'I1D_combined'])
         current_output = IofQ_output(I2D_main=iq2d_main_out,
@@ -893,7 +899,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         samplelogs = {'main': SampleLogs(processed_data_main),
                       'wing': SampleLogs(processed_data_wing)}
 
-        detectordata = {'combined': {'iq': [iq_output_both]}}
+        if iq_output_both.intensity.size > 0:
+            detectordata = {'combined': {'iq': [iq_output_both]}}
+        else:
+            detectordata = {}
         index = 0
         for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
                                                                   [iq2d_main_out], [iq2d_wing_out]):
@@ -910,6 +919,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          specialparameters=specialparameters,
                          samplelogs=samplelogs,
                          )
+
+    # change permissions to all files to allow overwrite
+    allow_overwrite(reduction_input["configuration"]["outputDir"])
+    allow_overwrite(os.path.join(reduction_input["configuration"]["outputDir"], '1D'))
+    allow_overwrite(os.path.join(reduction_input["configuration"]["outputDir"], '2D'))
 
     return output
 

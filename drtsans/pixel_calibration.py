@@ -374,7 +374,12 @@ class Table:
             subdirectory 'tables', located within the directory of the ```database``` file.
             For instance, '/HFIR/CG3/shared/calibration/tables/barscan_gpsans_detector1_20200311.nxs'
         overwrite: bool
-            Substitute existing entry with same metadata
+            Substitute existing entry with same metadata.
+
+        Raises
+        ------
+        ValueError
+            If we save a calibration already in the database with option ```overwrite=False```.
         """
         if database is None:
             database = database_file[instrument_enum_name(self.instrument)]  # default database file
@@ -593,8 +598,9 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
     components = {InstrumentEnumName.BIOSANS: ['detector1', 'wing_detector'],
                   InstrumentEnumName.EQSANS: ['detector1'],
                   InstrumentEnumName.GPSANS: ['detector1']}
-    for caltype in calibrations:
-        for component in components:
+
+    for component in components[instrument_enum_name(input_workspace)]:
+        for caltype in calibrations:
             try:
                 calibration = load_calibration(input_workspace, caltype, component, database=database)
                 calibration.apply(input_workspace)
@@ -912,7 +918,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
                      TimeSeriesPropertyLogs=[bar_position_log], ExcludeSpecifiedLogs=False)
         temporary_workspaces.append(splitted_workspace_group)
         temporary_workspaces.append('TOFCorrectWS')  # spurious workspace spawned by FilterEvents
-        barscan_workspaces = [splitted_workspace_group + '_' + str(i) for i in len(bar_positions)]
+        barscan_workspaces = [splitted_workspace_group + '_' + str(i) for i in range(len(bar_positions))]
     else:  # of a set of files or workspaces, each contains intensities for a scan with the bar fixed
         # determine if the list contains files or workspaces
         first_scan = barscan_dataset[0]
@@ -1032,6 +1038,8 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
                 pixel_intensities_in_tube = pixel_intensities[pixel_indexes_in_tube]
                 bottom_shadow_pixels_per_scan.append(find_edges(pixel_intensities_in_tube).bottom_shadow_pixel)
             except IndexError:  # tube masked or malfunctioning
+                bottom_shadow_pixels_per_scan.append(INCORRECT_PIXEL_ASSIGNMENT)
+            except RuntimeError: # tube masked or malfunctioning
                 bottom_shadow_pixels_per_scan.append(INCORRECT_PIXEL_ASSIGNMENT)
         bottom_shadow_pixels.append(bottom_shadow_pixels_per_scan)
         # Add iteration info to the addons

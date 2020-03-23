@@ -437,24 +437,23 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
 
         with h5py.File(filename, writing_flag) as handle:
             topEntry = handle.create_group(_slice_name)
-            topEntry.attrs['NX_class'] = 'NXgroup'
+            topEntry.attrs['NX_class'] = 'NXdata'
 
             _current_detectordata = detectordata[_slice_name]
 
             for _frame_name in _current_detectordata.keys():
 
                 _current_frame = _current_detectordata[_frame_name]
-                midEntry = _createnxgroup(topEntry, _frame_name, 'Ndata')
+                midEntry = _createnxgroup(topEntry, _frame_name, 'NXdata')
 
                 if 'iq' in _current_detectordata.keys() and 'iqxqy' in _current_detectordata.keys():
-                    _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=midEntry)
-                    _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=midEntry)
+                    _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
+                    _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
 
                 elif 'iq' in _current_detectordata.keys():
-                    _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=midEntry)
+                    _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
                 else:
-                    _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=midEntry)
-
+                    _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

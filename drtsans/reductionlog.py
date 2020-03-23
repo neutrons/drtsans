@@ -446,11 +446,11 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                 _current_frame = _current_detectordata[_frame_name]
                 midEntry = _createnxgroup(topEntry, _frame_name, 'NXdata')
 
-                if 'iq' in _current_detectordata.keys() and 'iqxqy' in _current_detectordata.keys():
+                if 'iq' in _current_frame.keys() and 'iqxqy' in _current_frame.keys():
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
                     _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
 
-                elif 'iq' in _current_detectordata.keys():
+                elif 'iq' in _current_frame.keys():
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
                 else:
                     _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)

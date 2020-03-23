@@ -683,6 +683,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         sample_trans_ws = None
 
     output = []
+    detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "frame_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
@@ -726,7 +727,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         fr_label = ''
-        detectordata = {}
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
                 fr_label = f'_frame_{wl_frame}'
@@ -761,28 +761,28 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                          I1D_main=iq1d_main_out)
             output.append(current_output)
 
-        # create reduction log
-        filename = os.path.join(reduction_input["configuration"]["outputDir"],
-                                outputFilename + f'_reduction_log{output_suffix}.hdf')
-        starttime = datetime.now().isoformat()
-        pythonfile = __file__
-        reductionparams = {'data': copy.deepcopy(reduction_input),
-                           'filename': 'internal_file'}
-        specialparameters = {'beam_center': {'x': 'not implemented yet',
-                                             'y': 'not implemented yet'},
-                             'sample_transmission': sample_transmission_dict,
-                             'sample_transmission_raw': sample_transmission_raw_dict,
-                             'background_transmission': background_transmission_dict,
-                             'background_transmission_raw': background_transmission_raw_dict}
+    # create reduction log
+    filename = os.path.join(reduction_input["configuration"]["outputDir"],
+                            outputFilename + f'_reduction_log.hdf')
+    starttime = datetime.now().isoformat()
+    pythonfile = __file__
+    reductionparams = {'data': copy.deepcopy(reduction_input),
+                       'filename': 'internal_file'}
+    specialparameters = {'beam_center': {'x': 'not implemented yet',
+                                         'y': 'not implemented yet'},
+                         'sample_transmission': sample_transmission_dict,
+                         'sample_transmission_raw': sample_transmission_raw_dict,
+                         'background_transmission': background_transmission_dict,
+                         'background_transmission_raw': background_transmission_raw_dict}
 
-        samplelogs = {'main': SampleLogs(processed_data_main)}
-        drtsans.savereductionlog(filename=filename,
-                                 detectordata=detectordata,
-                                 reductionparams=reductionparams,
-                                 pythonfile=pythonfile,
-                                 starttime=starttime,
-                                 specialparameters=specialparameters,
-                                 samplelogs=samplelogs)
+    samplelogs = {'main': SampleLogs(processed_data_main)}
+    drtsans.savereductionlog(filename=filename,
+                             detectordata=detectordata,
+                             reductionparams=reductionparams,
+                             pythonfile=pythonfile,
+                             starttime=starttime,
+                             specialparameters=specialparameters,
+                             samplelogs=samplelogs)
 
     # change permissions to all files to allow overwrite
     allow_overwrite(reduction_input["configuration"]["outputDir"])

@@ -1039,6 +1039,8 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
                 bottom_shadow_pixels_per_scan.append(find_edges(pixel_intensities_in_tube).bottom_shadow_pixel)
             except IndexError:  # tube masked or malfunctioning
                 bottom_shadow_pixels_per_scan.append(INCORRECT_PIXEL_ASSIGNMENT)
+            except RuntimeError: # tube masked or malfunctioning
+                bottom_shadow_pixels_per_scan.append(INCORRECT_PIXEL_ASSIGNMENT)
         bottom_shadow_pixels.append(bottom_shadow_pixels_per_scan)
         # Add iteration info to the addons
         addons['bar_positions'].append(bar_position)

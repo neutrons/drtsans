@@ -80,6 +80,10 @@ def write_configfile(input_json_file, basename, tmpdir):
     with open(output_json_file, 'w') as handle:
         json.dump(json_params, handle)
 
+    print("write_configfile")
+    print("outputdir: {}".format(outputdir))
+    print(f"output_json_file: {output_json_file}")
+
     return outputdir, output_json_file
 
 
@@ -163,45 +167,45 @@ def test_eqsans(configfile, basename, required, tmpdir):
         os.remove(json_file)
 
 
-@pytest.mark.parametrize('configfile, basename, required',
-                         [('biosans_reduction.json', 'CG3_4822', ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', )),
-                          ('biosans_autowedge_reduction.json', 'CG3_5532',
-                           ('/HFIR/CG3/IPTS-21089/nexus/CG3_5532.nxs.h5', ))],
-                         ids=['4822', '5532_wedge'])
-def test_biosans(configfile, basename, required, tmpdir):
-    check_for_required_files(required)
+# @pytest.mark.parametrize('configfile, basename, required',
+#                          [('biosans_reduction.json', 'CG3_4822', ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', )),
+#                           ('biosans_autowedge_reduction.json', 'CG3_5532',
+#                            ('/HFIR/CG3/IPTS-21089/nexus/CG3_5532.nxs.h5', ))],
+#                          ids=['4822', '5532_wedge'])
+# def test_biosans(configfile, basename, required, tmpdir):
+#     check_for_required_files(required)
+#
+#     # modify the config file and get the output directory and the full path to the new configuration file
+#     basename_long = unique_basename(basename)
+#     outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
+#
+#     run_reduction('biosans_reduction.py', json_file)
+#
+#     check_and_cleanup(outputdir, basename, basename_long)
+#
+#     # delete the modified configuration file
+#     if os.path.isfile(json_file):
+#         os.remove(json_file)
 
-    # modify the config file and get the output directory and the full path to the new configuration file
-    basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
 
-    run_reduction('biosans_reduction.py', json_file)
-
-    check_and_cleanup(outputdir, basename, basename_long)
-
-    # delete the modified configuration file
-    if os.path.isfile(json_file):
-        os.remove(json_file)
-
-
-@pytest.mark.parametrize('configfile, basename, required',
-                         [('gpsans_reduction.json', 'CG2_8944',
-                           ('/HFIR/CG2/IPTS-20775/nexus/CG2_8944.nxs.h5', ))],
-                         ids=['8944'])
-def test_gpsans(configfile, basename, required, tmpdir):
-    check_for_required_files(required)
-
-    # modify the config file and get the output directory and the full path to the new configuration file
-    basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
-
-    run_reduction('gpsans_reduction.py', json_file)
-
-    check_and_cleanup(outputdir, basename, basename_long)
-
-    # delete the modified configuration file
-    if os.path.isfile(json_file):
-        os.remove(json_file)
+# @pytest.mark.parametrize('configfile, basename, required',
+#                          [('gpsans_reduction.json', 'CG2_8944',
+#                            ('/HFIR/CG2/IPTS-20775/nexus/CG2_8944.nxs.h5', ))],
+#                          ids=['8944'])
+# def test_gpsans(configfile, basename, required, tmpdir):
+#     check_for_required_files(required)
+#
+#     # modify the config file and get the output directory and the full path to the new configuration file
+#     basename_long = unique_basename(basename)
+#     outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
+#
+#     run_reduction('gpsans_reduction.py', json_file)
+#
+#     check_and_cleanup(outputdir, basename, basename_long)
+#
+#     # delete the modified configuration file
+#     if os.path.isfile(json_file):
+#         os.remove(json_file)
 
 
 if __name__ == '__main__':

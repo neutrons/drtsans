@@ -2,9 +2,9 @@ import pytest
 import os
 from collections import namedtuple
 import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace, mtd
-from drtsans.tof.eqsans.api import load_all_files, prepare_data_workspaces
+from drtsans.tof.eqsans.api import load_all_files, prepare_data_workspaces, process_single_configuration
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unique_workspace_dundername as uwd
 
@@ -14,7 +14,7 @@ ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5'),
                     reason="Required data is not available")
-def test_load_all_files_simple():
+def xtest_load_all_files_simple():
     reduction_input = {
         "instrumentName": "EQSANS",
         "iptsNumber": "22747",
@@ -190,6 +190,45 @@ def test_prepare_data_workspaces_sensitivity():
 
     assert_almost_equal(output.extractY(), [[0.5], [1.0]])
     assert_almost_equal(output.extractE(), [[0.6123724], [1.0]])
+
+
+@pytest.mark.parametrize('generic_workspace', [{'intensities': [[1, 2], [3, 4]]}], indirect=True)
+def test_process_single_configuration_thickness_absolute_scale(generic_workspace):
+    ws = generic_workspace
+
+    # This should only run prepare_data_workspaces,
+    # normalize_by_thickness and scale by absolute_scale
+    # The output result should be scaled by y_out = y_in * absolute_scale / thickness
+
+    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                          solid_angle=False)
+
+    # CreateWorkspace, LoadInstrument, CloneWorkspace,
+    # CreateSingleValuedWorkspace, Divide,
+    # CreateSingleValuedWorkspace, Multiply
+    assert output.getHistory().size() == 7
+
+    assert_equal(output.extractY(), [[1], [2], [3], [4]])
+
+    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                          solid_angle=False,
+                                          absolute_scale=1.5)
+    assert_equal(output.extractY(), [[1.5], [3], [4.5], [6]])
+
+    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                          solid_angle=False,
+                                          thickness=0.1)
+    assert_equal(output.extractY(), [[10], [20], [30], [40]])
+
+    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                          solid_angle=False,
+                                          absolute_scale=1.5,
+                                          thickness=0.1)
+    assert_equal(output.extractY(), [[15], [30], [45], [60]])
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ import drtsans.momentum_transfer
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans.geometry import (sample_aperture_diameter, sample_detector_distance, source_aperture_diameter,
-                              source_sample_distance, pixel_size)
+                              source_sample_distance)
 
 __all__ = ['convert_to_q']
 
@@ -117,15 +117,13 @@ def convert_to_q(ws, mode, resolution_function=mono_resolution, **kwargs):
       - wavelength
 
     """
-    # check if one wants to override pixel sizes
-    pixel_sizes = kwargs.get('pixel_sizes', None)
     # get the InstrumentSetupParameters
-    instrument_setup = retrieve_instrument_setup(ws, pixel_sizes)
+    instrument_setup = retrieve_instrument_setup(ws)
     return drtsans.momentum_transfer.convert_to_q(ws, mode, resolution_function,
                                                   instrument_parameters=instrument_setup, **kwargs)
 
 
-def retrieve_instrument_setup(ws, pixel_sizes=None):
+def retrieve_instrument_setup(ws):
     """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
 
     Priority for pixel size x and y
@@ -144,20 +142,9 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     r1 = source_aperture_diameter(ws, unit='m') / 2.0
     r2 = sample_aperture_diameter(ws, unit='m') / 2.0
 
-    if pixel_sizes is None:
-        # Retrieve from workspace but not easy
-        size_x, size_y = pixel_size(ws)
-
-    else:
-        # User specified, overriding values from intrument directly
-        size_x = pixel_sizes['x']
-        size_y = pixel_sizes['y']
-
     # Set up the parameter class
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
-                                                                sample_aperture_radius=r2,
-                                                                pixel_size_x=size_x,
-                                                                pixel_size_y=size_y)
+                                                                sample_aperture_radius=r2)
     return setup_params

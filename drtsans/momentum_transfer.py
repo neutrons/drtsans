@@ -404,9 +404,11 @@ def _masked_or_monitor(spec_info, idx):
 @namedtuplefy
 def pixel_info(input_workspace):
     r"""
-    Helper function to extract two theta angle, azimuthal angle, l2, and a "keep" flag for unmasked pixel detectors.
+    Helper function to extract: two theta angle, azimuthal angle, l2, pixel_size_x, pixel_size_y,
+    and a "keep" flag for unmasked pixel detectors.
 
     devs - Andrei Savici <saviciat@ornl.gov>
+           Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -419,13 +421,35 @@ def pixel_info(input_workspace):
         A namedtuple with fields for two_theta, azimuthal, l2, keep
     """
     ws = mtd[str(input_workspace)]
-    spec_info = ws.spectrumInfo()
+    spectrum_info = ws.spectrumInfo()
+    number_spectra = ws.getNumberHistograms()
 
-    info = [[np.nan, np.nan, np.nan, False] if _masked_or_monitor(spec_info, i) else
-            [spec_info.twoTheta(i), spec_info.azimuthal(i), spec_info.l2(i), True]
-            for i in range(ws.getNumberHistograms())]
+    info = [[np.nan, np.nan, np.nan, False] if _masked_or_monitor(spectrum_info, i) else
+            [spectrum_info.twoTheta(i), spectrum_info.azimuthal(i), spectrum_info.l2(i), True]
+            for i in range(number_spectra)]
     info = np.array(info)
-    return dict(two_theta=info[:, 0], azimuthal=info[:, 1], l2=info[:, 2], keep=info[:, 3])
+    info_map = dict(two_theta=info[:, 0], azimuthal=info[:, 1], l2=info[:, 2], keep=info[:, 3])
+
+    # Find out pixel dimensions
+    component_info = ws.componentInfo()
+    # Find the componentInfo indexes corresponding to the workspace indexes
+    get_spectrum_definition = spectrum_info.getSpectrumDefinition
+    info_indexes = [get_spectrum_definition(idx)[0][0] for idx in range(number_spectra)]
+    # Find the dimensions of each pixel. Due to barscan and tube-width calibrations, each pixel will have its own size
+    last_info_index = info_indexes[-1]  # index of the last valid pixel
+    # The nominal pixel dimensions are the same for all pixels. We find the nominal dimensions of the last pixel.
+    # The `nominal_pixel_dimensions` for EQSANS are (0.00804, 0.00409, 0.00804) along X, Y, and Z, respectively.
+    nominal_pixel_dimensions = np.array(component_info.shape(last_info_index).getBoundingBox().width())
+    # Each pixel has a specific (x, y, z) scale factor. For instance, pixel 42 may have scale factor
+    # (0.79, 1.02, 1.00). Thus, the final dimension of this pixel is
+    # (0.00804 * 0.79, 0.00409 * 1.02, 0.00804 * 1.00) == (0.00635, 0.00417, 0.00804)
+    scale_factors = np.array([unpack_v3d(component_info.scaleFactor, i) for i in info_indexes])
+    # The product of each specific scale factor and the nominal pixel dimension gives us the specific pixel dimensions
+    pixel_dimensions = scale_factors * nominal_pixel_dimensions  # shape = (number_pixels, 3)
+
+    info_map.update({'pixel_size_x': pixel_dimensions[0], 'pixel_size_y': pixel_dimensions[1]})
+
+    return info_map
 
 
 @namedtuplefy

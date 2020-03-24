@@ -238,7 +238,7 @@ def pixel_centers(input_workspace, indexes, shape=None):
 
 
 def pixel_size(workspace):
-    """Find pixel size (X and Y) fro a workspace
+    """Find pixel size (X and Y) from a workspace
 
     Priority
     1. pixel_size_x and pixel_size_y in workspace's logs

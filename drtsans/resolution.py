@@ -209,6 +209,6 @@ def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, ins
     gravity_part = calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_parameters)
 
     if mode == "scalar":
-        return factor * (geometry_part * 2 + gravity_part)
+        return factor * (geometry_part[:, np.newaxis] * 2 + gravity_part)
     if mode == "azimuthal":
-        return [factor * geometry_part[0], factor * (geometry_part[1] + gravity_part)]
+        return [factor * geometry_part[0][:, np.newaxis], factor * (geometry_part[1][:, np.newaxis] + gravity_part)]

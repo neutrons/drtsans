@@ -1,16 +1,16 @@
 import pytest
 import os
 import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace, LoadHFIRSANS
-from drtsans.mono.biosans.api import load_all_files, prepare_data_workspaces
+from drtsans.mono.biosans.api import load_all_files, prepare_data_workspaces, process_single_configuration
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unique_workspace_dundername as uwd
 
 
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/IPTS-23782/nexus/CG3_960.nxs.h5'),
                     reason="Required data is not available")
-def test_load_all_files_simple():
+def xtest_load_all_files_simple():
     reduction_input = {
         "instrumentName": "CG3",
         "iptsNumber": "23782",
@@ -217,6 +217,39 @@ def test_prepare_data_workspaces_sensitivity():
 
     assert_almost_equal(output.extractY(), [[0.5], [1.0]])
     assert_almost_equal(output.extractE(), [[0.6123724], [1.0]])
+
+
+@pytest.mark.parametrize('generic_workspace', [{'intensities': [[1, 2], [3, 4]]}], indirect=True)
+def test_process_single_configuration_thickness_absolute_scale(generic_workspace):
+    ws = generic_workspace
+
+    # This should only run prepare_data_workspaces,
+    # normalize_by_thickness and scale by absolute_scale
+    # The output result should be scaled by y_out = y_in * absolute_scale / thickness
+
+    output, trans = process_single_configuration(ws, solid_angle=False)
+
+    # CreateWorkspace, LoadInstrument, CloneWorkspace,
+    # CreateSingleValuedWorkspace, Divide,
+    # CreateSingleValuedWorkspace, Multiply
+    assert output.getHistory().size() == 7
+
+    assert_equal(output.extractY(), [[1], [2], [3], [4]])
+    assert not trans['sample']
+    assert not trans['background']
+
+    output, _ = process_single_configuration(ws, solid_angle=False,
+                                             absolute_scale=1.5)
+    assert_equal(output.extractY(), [[1.5], [3], [4.5], [6]])
+
+    output, _ = process_single_configuration(ws, solid_angle=False,
+                                             thickness=0.1)
+    assert_equal(output.extractY(), [[10], [20], [30], [40]])
+
+    output, _ = process_single_configuration(ws, solid_angle=False,
+                                             absolute_scale=1.5,
+                                             thickness=0.1)
+    assert_equal(output.extractY(), [[15], [30], [45], [60]])
 
 
 if __name__ == '__main__':

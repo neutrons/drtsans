@@ -140,10 +140,9 @@ def convert_to_q(ws, mode, resolution_function=eqsans_resolution, **kwargs):
                                                   instrument_parameters=instrument_setup, **kwargs)
 
 
-def retrieve_instrument_setup(ws, pixel_sizes=None):
+def retrieve_instrument_setup(ws):
     """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
     :param ws:
-    :param pixel_sizes: dictionary for pixel sizes
     :return: MomentumTransferResolutionParameters instance
     """
     # Retrieve L1 and L2 from instrument geometry
@@ -153,24 +152,11 @@ def retrieve_instrument_setup(ws, pixel_sizes=None):
     r1 = 0.5 * source_aperture_diameter(ws, unit='m')
     r2 = 0.5 * sample_aperture_diameter(ws, unit='m')
 
-    if pixel_sizes is None:
-        # Retrieve from workspace but not easy
-        # det_shape = ws.getDetector(0).shape().getBoundingBox().width()  # 3 values
-        # size_x = det_shape[0]
-        # size_y = det_shape[1]
-        size_x, size_y = pixel_size(ws)
-    else:
-        # User specified, overriding values from intrument directly
-        size_x = pixel_sizes['x']
-        size_y = pixel_sizes['y']
-
     # Set up the parameter class
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
-                                                                sample_aperture_radius=r2,
-                                                                pixel_size_x=size_x,
-                                                                pixel_size_y=size_y)
+                                                                sample_aperture_radius=r2)
     return setup_params
 
 

@@ -10,8 +10,7 @@ class InstrumentSetupParameters(object):
     """
     Class to contain the parameters used to calculate Q resolution
     """
-    def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius,
-                 pixel_size_x, pixel_size_y):
+    def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius):
         """
         Initialization to set all the parameters (6) to calculate momentrum transfer resolution
 
@@ -25,17 +24,11 @@ class InstrumentSetupParameters(object):
             source aperture radius (meter)
         sample_aperture_radius:
             sample aperture radius (meter)
-        pixel_size_x:
-            pixel linear size along X direction (meter)
-        pixel_size_y:
-            pixel linear size along Y direction (meter)
         """
         self._l1 = l1
         self._sample_det_center_dist = sample_det_center_dist
         self._source_aperture = source_aperture_radius
         self._sample_aperture = sample_aperture_radius
-        self._pixel_size_x = pixel_size_x
-        self._pixel_size_y = pixel_size_y
 
     def __str__(self):
         """
@@ -46,7 +39,6 @@ class InstrumentSetupParameters(object):
               ''.format(self.l1, self._sample_det_center_dist)
         out += 'Source aperture radius (R1) = {} (m)\n'.format(self._source_aperture)
         out += 'Sample aperture radius (R2) = {} (m)\n'.format(self._sample_aperture)
-        out += 'Pixel size = {}, {} (m, m)'.format(self._pixel_size_x, self._pixel_size_y)
 
         return out
 
@@ -83,22 +75,6 @@ class InstrumentSetupParameters(object):
         """
         return self._sample_aperture
 
-    @property
-    def pixel_size_x(self):
-        """
-        Detector pixel size along X direction
-        :return: detector size along X direction in meter
-        """
-        return self._pixel_size_x
-
-    @property
-    def pixel_size_y(self):
-        """
-        Detector pixel size along Y direction
-        :return: detector size along Y direction in meter
-        """
-        return self._pixel_size_y
-
 
 def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameters):
     r"""
@@ -129,7 +105,7 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
     return np.square(2 * np.pi * np.cos(0.5 * two_theta) * np.cos(two_theta)**2 / wavelength / L2)
 
 
-def calculate_sigma_theta_geometry(instrument_parameters, mode):
+def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
     r"""
     Calculates
 
@@ -147,11 +123,12 @@ def calculate_sigma_theta_geometry(instrument_parameters, mode):
 
     Parameters
     ----------
-
-    instrument_parameters: InstrumentSetupParameters
-        Information abot instrument
     mode: str
         One of "scalar", "azimuthal", "crystalographic"
+    pixel_info: ~collections.namedtuple
+        A namedtuple with fields for two_theta, azimuthal, l2, keep, pixel_size_x, pixel_size_y
+    instrument_parameters: InstrumentSetupParameters
+        Information abot instrument
 
     Returns
     -------
@@ -162,8 +139,8 @@ def calculate_sigma_theta_geometry(instrument_parameters, mode):
     L2 = instrument_parameters.sample_det_center_distance
     R1 = instrument_parameters.source_aperture_radius
     R2 = instrument_parameters.sample_aperture_radius
-    dx2 = np.square(instrument_parameters.pixel_size_x)
-    dy2 = np.square(instrument_parameters.pixel_size_y)
+    dx2 = np.square(pixel_info.pixel_size_x)
+    dy2 = np.square(pixel_info.pixel_size_y)
 
     if mode == "scalar":
         pixel_size2 = 0.5 * (dx2 + dy2)
@@ -173,7 +150,7 @@ def calculate_sigma_theta_geometry(instrument_parameters, mode):
         + 0.25 * np.square((L1 + L2) / L1 * R2) + pixel_size2 / 12.0
 
 
-def calculate_sigma_theta_gravity(instrument_parameters, wavelength, delta_wavelength):
+def calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_parameters):
     r"""
     Calculates
 
@@ -185,13 +162,12 @@ def calculate_sigma_theta_gravity(instrument_parameters, wavelength, delta_wavel
 
     Parameters
     ----------
-
-    instrument_parameters: InstrumentSetupParameters
-        Information abot instrument
     wavelength: ~np.array
         the array of wavelengths
     delta_wavelength: ~np.array
         the array of wavelength spreads
+    instrument_parameters: InstrumentSetupParameters
+        Information abot instrument
 
     Returns
     -------
@@ -229,8 +205,8 @@ def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, ins
 
     """
     factor = calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameters)
-    geometry_part = calculate_sigma_theta_geometry(instrument_parameters, mode)
-    gravity_part = calculate_sigma_theta_gravity(instrument_parameters, wavelength, delta_wavelength)
+    geometry_part = calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters)
+    gravity_part = calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_parameters)
 
     if mode == "scalar":
         return factor * (geometry_part * 2 + gravity_part)

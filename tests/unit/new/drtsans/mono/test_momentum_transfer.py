@@ -74,7 +74,7 @@ def test_mono_resolution():
     two_theta = 0.00092676    # radian (corner pixel)
     theta = 0.00092676 * 0.5  # radian (corner pixel)
 
-    dqx, dqy = sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2)
+    dqx, dqy = sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3)
 
     # Calculate by drtsans.mono method
     setup = drtsans.resolution.InstrumentSetupParameters(L1, L2, R1, R2, x3, y3)

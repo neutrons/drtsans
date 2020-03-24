@@ -9,7 +9,6 @@ from drtsans.tof.eqsans.geometry import (sample_aperture_diameter, source_apertu
                                          source_aperture_sample_distance)
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
-from drtsans.geometry import pixel_size
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 from mantid.kernel import logger

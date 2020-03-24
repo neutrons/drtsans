@@ -5,7 +5,7 @@ import drtsans.momentum_transfer
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans.geometry import (sample_aperture_diameter, sample_detector_distance, source_aperture_diameter,
-                              source_sample_distance, pixel_size)
+                              source_sample_distance)
 
 __all__ = ['convert_to_q']
 

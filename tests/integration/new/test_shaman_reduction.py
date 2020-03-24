@@ -22,9 +22,9 @@ EXTENSIONS = {'EQSANS_88980': ['_bkgd_88974_trans.txt',
                                '_0_Iq.png',
                                '_1_Iqxqy.png',
                                '_1_Iq.png'],
-              'EQSANS_112300': ['_Iq.dat',
+              'EQSANS_112300': ['_frame_0_Iq.dat',
                                 '_Iq.png',
-                                '_Iqxqy.dat',
+                                '_frame_0_Iqxqy.dat',
                                 '_Iqxqy.png',
                                 '_bkgd_112296_raw_trans.txt',
                                 '_bkgd_112296_trans.txt',
@@ -79,7 +79,6 @@ def write_configfile(input_json_file, basename, tmpdir):
     # write out the new file
     with open(output_json_file, 'w') as handle:
         json.dump(json_params, handle)
-
     return outputdir, output_json_file
 
 
@@ -153,7 +152,6 @@ def test_eqsans(configfile, basename, required, tmpdir):
     # modify the config file and get the output directory and the full path to the new configuration file
     basename_long = unique_basename(basename)
     outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
-
     run_reduction('eqsans_reduction.py', json_file)
 
     check_and_cleanup(outputdir, basename, basename_long)

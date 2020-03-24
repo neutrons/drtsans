@@ -203,7 +203,7 @@ def test_writing_metadata_with_no_reductionparams():
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename,
-                     detectordata={'main_detector': {'iq': test_iq}},
+                     detectordata={'slice_1': {'main_detector': {'iq': test_iq}}},
                      python=pythonscript,
                      starttime=starttime,
                      pythonfile=pythonfile,
@@ -239,7 +239,7 @@ def test_writing_metadata():
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     savereductionlog(tmp_log_filename,
-                     detectordata={'main_detector': {'iq': test_iq}},
+                     detectordata={'slice_1': {'main_detector': {'iq': test_iq}}},
                      python=pythonscript,
                      starttime=starttime,
                      pythonfile=pythonfile,
@@ -267,13 +267,14 @@ def test_writing_iq_wedge_mode():
     test_iq_1 = _create_iq()
     test_iq = list([test_iq_1, test_iq_1])
     tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq}})
+    savereductionlog(tmp_log_filename, detectordata={'slice_1': {'main_detector': {'iq': test_iq}}})
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
-        top_group = _getGroup(handle, 'main_detector', 'NXdata')
-        iq_nxdata = _getGroup(top_group, 'I(Q)_wedge0', 'NXdata')
+        top_group = _getGroup(handle, 'slice_1', 'NXdata')
+        mid_group = _getGroup(top_group, 'main_detector', 'NXdata')
+        iq_nxdata = _getGroup(mid_group, 'I(Q)_wedge0', 'NXdata')
 
         data = iq_nxdata['I'][:]
         _test_data(tested_data=data,
@@ -298,13 +299,14 @@ def test_writing_iq_wedge_mode():
 def test_writing_iq_scalar_mode():
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq}})
+    savereductionlog(tmp_log_filename, detectordata={'slice_1': {'main_detector': {'iq': test_iq}}})
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
-        top_group = _getGroup(handle, 'main_detector', 'NXdata')
-        iq_nxdata = _getGroup(top_group, 'I(Q)', 'NXdata')
+        top_group = _getGroup(handle, 'slice_1', 'NXdata')
+        mid_group = _getGroup(top_group, 'main_detector', 'NXdata')
+        iq_nxdata = _getGroup(mid_group, 'I(Q)', 'NXdata')
 
         data = iq_nxdata['I'][:]
         _test_data(tested_data=data,
@@ -329,13 +331,14 @@ def test_writing_iq_scalar_mode():
 def test_writing_iqxqy():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iqxqy': test_iqxqy}})
+    savereductionlog(tmp_log_filename, detectordata={'slice_1': {'main_detector': {'iqxqy': test_iqxqy}}})
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-
+#
     with h5py.File(tmp_log_filename, 'r') as handle:
-        top_group = _getGroup(handle, 'main_detector', 'NXdata')
-        iqxqy_nxdata = _getGroup(top_group, 'I(QxQy)', 'NXdata')
+        top_group = _getGroup(handle, 'slice_1', 'NXdata')
+        mid_group = _getGroup(top_group, 'main_detector', 'NXdata')
+        iqxqy_nxdata = _getGroup(mid_group, 'I(QxQy)', 'NXdata')
 
         data = iqxqy_nxdata['I'][:]
         _test_data(tested_data=data,
@@ -369,15 +372,15 @@ def test_writing_iq_and_iqxqy_scalar_mode():
     test_iq = [_create_iq()]
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq,
-                                                                       'iqxqy': test_iqxqy}})
+    savereductionlog(tmp_log_filename, detectordata={'slice_1': {'main_detector': {'iq': test_iq,
+                                                                                   'iqxqy': test_iqxqy}}})
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
-        top_group = _getGroup(handle, 'main_detector', 'NXdata')
-
-        iq_nxdata = _getGroup(top_group, 'I(Q)', 'NXdata')
+        top_group = _getGroup(handle, 'slice_1', 'NXdata')
+        mid_group = _getGroup(top_group, 'main_detector', 'NXdata')
+        iq_nxdata = _getGroup(mid_group, 'I(Q)', 'NXdata')
 
         data = iq_nxdata['I'][:]
         _test_data(tested_data=data,
@@ -398,7 +401,7 @@ def test_writing_iq_and_iqxqy_scalar_mode():
                    ref_data=np.array([0.011912, 0.11912]),
                    abs=1e-6)
 
-        iqxqy_nxdata = _getGroup(top_group, 'I(QxQy)', 'NXdata')
+        iqxqy_nxdata = _getGroup(mid_group, 'I(QxQy)', 'NXdata')
 
         data = iqxqy_nxdata['I'][:]
         _test_data(tested_data=data,
@@ -433,15 +436,15 @@ def test_writing_iq_and_iqxqy_wedge_mode():
     test_iq = [test_iq_1, test_iq_1]
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
-    savereductionlog(tmp_log_filename, detectordata={'main_detector': {'iq': test_iq,
-                                                                       'iqxqy': test_iqxqy}})
+    savereductionlog(tmp_log_filename, detectordata={'slice_1': {'main_detector': {'iq': test_iq,
+                                                                                   'iqxqy': test_iqxqy}}})
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, 'r') as handle:
-        top_group = _getGroup(handle, 'main_detector', 'NXdata')
-
-        iq_nxdata = _getGroup(top_group, 'I(Q)_wedge0', 'NXdata')
+        top_group = _getGroup(handle, 'slice_1', 'NXdata')
+        mid_group = _getGroup(top_group, 'main_detector', 'NXdata')
+        iq_nxdata = _getGroup(mid_group, 'I(Q)_wedge0', 'NXdata')
 
         data = iq_nxdata['I'][:]
         _test_data(tested_data=data,
@@ -462,7 +465,7 @@ def test_writing_iq_and_iqxqy_wedge_mode():
                    ref_data=np.array([0.011912, 0.11912]),
                    abs=1e-6)
 
-        iqxqy_nxdata = _getGroup(top_group, 'I(QxQy)', 'NXdata')
+        iqxqy_nxdata = _getGroup(mid_group, 'I(QxQy)', 'NXdata')
 
         data = iqxqy_nxdata['I'][:]
         _test_data(tested_data=data,
@@ -501,7 +504,7 @@ def test_reduction_parameters():
         data = {'data': json.load(file_handle),
                 'filename': json_file}
 
-    detectordata = {'main_detector': {'iqxqy': test_iqxqy}}
+    detectordata = {'slice_1': {'main_detector': {'iqxqy': test_iqxqy}}}
     savereductionlog(tmp_log_filename, detectordata=detectordata, reductionparams=data)
 
     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
@@ -521,14 +524,25 @@ def test_reduction_parameters():
         assert red_val == test_val
 
 
-def test_no_detectordata_passed():
+def test_no_detectordata():
     with pytest.raises(RuntimeError):
         savereductionlog()
 
 
-def test_no_arrays_passed():
+def test_no_arrays():
     with pytest.raises(RuntimeError):
         savereductionlog(detectordata={'nothing_here': None})
+
+
+def test_wrong_detectordata_format():
+    with pytest.raises(RuntimeError):
+        savereductionlog("tmp_file_name", detectordata={'main_detector': {'iq': [1, 2, 3],
+                                                                          'iqxqy': [1, 3, 5]}})
+
+
+def test_wrong_detectordata_name():
+    with pytest.raises(KeyError):
+        savereductionlog("tmp_file_name", detectordata={'main_detector': {'frame': {'iqiq': [1, 2, 3]}}})
 
 
 if __name__ == '__main__':

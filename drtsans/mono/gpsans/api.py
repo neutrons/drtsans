@@ -756,7 +756,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         sample_trans_ws = None
 
     output = []
+    detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
+        name = "_slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
         processed_data_main = process_single_configuration(raw_sample_ws,
@@ -821,29 +823,34 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                      I1D_main=iq1d_main_out)
         output.append(current_output)
 
-        # save reduction log
+        detectordata[name] = {'main': {'iq': iq1d_main_out,
+                                       'iqxqy': iq2d_main_out}}
 
-        filename = os.path.join(reduction_input["configuration"]["outputDir"],
-                                outputFilename + f'_reduction_log{output_suffix}.hdf')
-        starttime = datetime.now().isoformat()
+    # save reduction log
+
+    filename = os.path.join(reduction_input["configuration"]["outputDir"],
+                            outputFilename + f'_reduction_log{output_suffix}.hdf')
+    starttime = datetime.now().isoformat()
+    try:
         pythonfile = __file__
-        reductionparams = {'data': copy.deepcopy(reduction_input),
-                           'filename': 'internal_file'}
-        specialparameters = {'beam_center': {'x': xc,
-                                             'y': yc},
-                             'sample_transmission': sample_transmission_dict,
-                             'background_transmission': background_transmission_dict,
-                             }
-        samplelogs = {'main': SampleLogs(processed_data_main)}
-        detectordata = {'main': {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}}
-        savereductionlog(filename=filename,
-                         detectordata=detectordata,
-                         reductionparams=reductionparams,
-                         pythonfile=pythonfile,
-                         starttime=starttime,
-                         specialparameters=specialparameters,
-                         samplelogs=samplelogs,
-                         )
+    except NameError:
+        pythonfile = "Launched from notebook"
+    reductionparams = {'data': copy.deepcopy(reduction_input),
+                       'filename': 'internal_file'}
+    specialparameters = {'beam_center': {'x': xc,
+                                         'y': yc},
+                         'sample_transmission': sample_transmission_dict,
+                         'background_transmission': background_transmission_dict,
+                         }
+    samplelogs = {'main': SampleLogs(processed_data_main)}
+    savereductionlog(filename=filename,
+                     detectordata=detectordata,
+                     reductionparams=reductionparams,
+                     pythonfile=pythonfile,
+                     starttime=starttime,
+                     specialparameters=specialparameters,
+                     samplelogs=samplelogs,
+                     )
 
     # change permissions to all files to allow overwrite
     allow_overwrite(reduction_input["configuration"]["outputDir"])

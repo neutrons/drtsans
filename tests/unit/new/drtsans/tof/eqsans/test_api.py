@@ -14,7 +14,7 @@ ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5'),
                     reason="Required data is not available")
-def xtest_load_all_files_simple():
+def test_load_all_files_simple():
     reduction_input = {
         "instrumentName": "EQSANS",
         "iptsNumber": "22747",

@@ -10,7 +10,7 @@ from drtsans.settings import unique_workspace_dundername as uwd
 
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/IPTS-23782/nexus/CG3_960.nxs.h5'),
                     reason="Required data is not available")
-def xtest_load_all_files_simple():
+def test_load_all_files_simple():
     reduction_input = {
         "instrumentName": "CG3",
         "iptsNumber": "23782",

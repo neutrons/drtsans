@@ -722,7 +722,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
-        name = "slice_{}".format(i+1)
+        name = "_slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 

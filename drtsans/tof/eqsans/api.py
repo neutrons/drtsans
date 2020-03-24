@@ -729,7 +729,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         fr_label = ''
         _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):
-            fr_label = f'frame_{wl_frame}'
+            fr_label = f'_frame_{wl_frame}'
 
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
@@ -792,7 +792,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                              samplelogs=samplelogs)
 
     # change permissions to all files to allow overwrite
-    allow_overwrite(reduction_input["configuration"]["outputDir"])
+    # allow_overwrite(reduction_input["configuration"]["outputDir"])
 
     return output
 
@@ -839,7 +839,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
                        backend='mpl', errorbar_kwargs={'label': 'main'})
 
     # change permissions to all files to allow overwrite
-    allow_overwrite(output_dir)
+    # allow_overwrite(output_dir)
 
 
 def apply_solid_angle_correction(input_workspace):

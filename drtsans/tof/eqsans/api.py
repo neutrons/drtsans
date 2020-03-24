@@ -440,7 +440,6 @@ def process_single_configuration(sample_ws_raw,
     -------
     ~mantid.dataobjects.Workspace2D
         Reference to the processed workspace
-    Sample workspace
     """
     if not output_workspace:
         output_workspace = output_suffix + '_sample'
@@ -498,7 +497,7 @@ def process_single_configuration(sample_ws_raw,
     else:
         sample_ws *= absolute_scale
 
-    return mtd[output_workspace], sample_ws
+    return mtd[output_workspace]
 
 
 def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
@@ -688,28 +687,28 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
-        processed_data_main, sample_ws = process_single_configuration(raw_sample_ws,
-                                                                      sample_trans_ws=sample_trans_ws,
-                                                                      sample_trans_value=sample_trans_value,
-                                                                      bkg_ws_raw=loaded_ws.background,
-                                                                      bkg_trans_ws=bkgd_trans_ws,
-                                                                      bkg_trans_value=bkg_trans_value,
-                                                                      theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
-                                                                      dark_current=loaded_ws.dark_current,
-                                                                      flux_method=flux_method,
-                                                                      flux=flux,
-                                                                      mask_ws=loaded_ws.mask,
-                                                                      mask_panel=mask_panel,
-                                                                      solid_angle=solid_angle,
-                                                                      sensitivity_workspace=loaded_ws.sensitivity,
-                                                                      output_workspace=f'processed_data_main',
-                                                                      output_suffix=output_suffix,
-                                                                      thickness=thickness,
-                                                                      absolute_scale_method=absolute_scale_method,
-                                                                      empty_beam_ws=empty_trans_ws,
-                                                                      beam_radius=beam_radius,
-                                                                      absolute_scale=absolute_scale,
-                                                                      keep_processed_workspaces=False)
+        processed_data_main = process_single_configuration(raw_sample_ws,
+                                                           sample_trans_ws=sample_trans_ws,
+                                                           sample_trans_value=sample_trans_value,
+                                                           bkg_ws_raw=loaded_ws.background,
+                                                           bkg_trans_ws=bkgd_trans_ws,
+                                                           bkg_trans_value=bkg_trans_value,
+                                                           theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+                                                           dark_current=loaded_ws.dark_current,
+                                                           flux_method=flux_method,
+                                                           flux=flux,
+                                                           mask_ws=loaded_ws.mask,
+                                                           mask_panel=mask_panel,
+                                                           solid_angle=solid_angle,
+                                                           sensitivity_workspace=loaded_ws.sensitivity,
+                                                           output_workspace=f'processed_data_main',
+                                                           output_suffix=output_suffix,
+                                                           thickness=thickness,
+                                                           absolute_scale_method=absolute_scale_method,
+                                                           empty_beam_ws=empty_trans_ws,
+                                                           beam_radius=beam_radius,
+                                                           absolute_scale=absolute_scale,
+                                                           keep_processed_workspaces=False)
         # Save nexus processed
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
         SaveNexus(processed_data_main, Filename=filename)

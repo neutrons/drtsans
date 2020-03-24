@@ -2,7 +2,7 @@ import json
 import os
 import pytest
 import subprocess
-from tempfile import gettempdir, NamedTemporaryFile
+from tempfile import NamedTemporaryFile
 import time
 
 # this should point to the root directory of the code repository
@@ -37,7 +37,7 @@ EXTENSIONS = {'EQSANS_88980': ['_bkgd_88974_trans.txt',
               'CG2_8944': []}
 
 
-def write_configfile(input_json_file, basename):
+def write_configfile(input_json_file, basename, tmpdir):
     '''
     Create a new json configuration file with a better place for the output files
     and a standardized basename
@@ -59,7 +59,7 @@ def write_configfile(input_json_file, basename):
     assert os.path.exists(input_json_file), 'Could not find "{}"'.format(input_json_file)
 
     # temporary directory is always readable
-    outputdir = gettempdir()
+    outputdir = str(tmpdir)
     output_json_file = NamedTemporaryFile(prefix=os.path.basename(input_json_file).replace('.json', '_'),
                                           suffix='.json', delete=False).name
     print('Reconfigured json file set to {}'.format(output_json_file))
@@ -147,12 +147,12 @@ def check_for_required_files(filenames):
                           ('eqsans_reduction.json', 'EQSANS_112300',
                            ('/SNS/EQSANS/IPTS-24769/nexus/EQSANS_112300.nxs.h5', ))],
                          ids=['88980', '112300'])
-def test_eqsans(configfile, basename, required):
+def test_eqsans(configfile, basename, required, tmpdir):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
     basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long)
+    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
 
     run_reduction('eqsans_reduction.py', json_file)
 
@@ -168,12 +168,12 @@ def test_eqsans(configfile, basename, required):
                           ('biosans_autowedge_reduction.json', 'CG3_5532',
                            ('/HFIR/CG3/IPTS-21089/nexus/CG3_5532.nxs.h5', ))],
                          ids=['4822', '5532_wedge'])
-def test_biosans(configfile, basename, required):
+def test_biosans(configfile, basename, required, tmpdir):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
     basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long)
+    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
 
     run_reduction('biosans_reduction.py', json_file)
 
@@ -188,12 +188,12 @@ def test_biosans(configfile, basename, required):
                          [('gpsans_reduction.json', 'CG2_8944',
                            ('/HFIR/CG2/IPTS-20775/nexus/CG2_8944.nxs.h5', ))],
                          ids=['8944'])
-def test_gpsans(configfile, basename, required):
+def test_gpsans(configfile, basename, required, tmpdir):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
     basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long)
+    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
 
     run_reduction('gpsans_reduction.py', json_file)
 

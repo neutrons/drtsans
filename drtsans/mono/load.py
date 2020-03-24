@@ -294,6 +294,7 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                     sample_detector_distance(ws, search_logs=True)))
     print('[META-GEOM      ] SampleToSi = {} mm'
           ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
+    print('[META-GEOM      ] Overwrite Values = {}, {}'.format(sample_si_window_overwrite_value, sample_detector_distance_overwrite_value))
 
     # Calculate sample and detector offsets for moving
     sample_offset, detector_offset = \
@@ -302,7 +303,7 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                                    zero_sample_offset_sample_si_distance=si_window_to_nominal_distance,
                                    overwrite_sample_si_distance=sample_si_window_overwrite_value,
                                    overwrite_sample_detector_distance=sample_detector_distance_overwrite_value)
-    print('[META_GEOM  INFO] Sample offset = {}, Detector offset = {}'
+    print('[META-GEOM  INFO] Sample offset = {}, Detector offset = {}'
           ''.format(sample_offset, detector_offset))
 
     # Move sample and detector
@@ -311,11 +312,11 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)
-    print('[MONO-LOAD Final] Sample to detector distance = {} (calculated) /{} (meta) meter'
+    print('[META-GEOM Final] Sample to detector distance = {} (calculated) /{} (meta) meter'
           ''.format(sample_detector_distance(ws, search_logs=False),
                     sample_detector_distance(ws, search_logs=True)))
-    print('[MONO-LOAD      ] Sample position = {}'.format(ws.getInstrument().getSample().getPos()))
-    print('[MONO-LOAD      ] SampleToSi = {} mm'
+    print('[META-GEOM      ] Sample position = {}'.format(ws.getInstrument().getSample().getPos()))
+    print('[META-GEOM      ] SampleToSi = {} mm (From Log)'
           ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
 
     return ws

@@ -74,15 +74,17 @@ def test_mono_resolution():
     two_theta = 0.00092676    # radian (corner pixel)
     theta = 0.00092676 * 0.5  # radian (corner pixel)
 
-    dqx, dqy = sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3)
+    dqx, dqy = sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2)
 
     # Calculate by drtsans.mono method
     setup = drtsans.resolution.InstrumentSetupParameters(L1, L2, R1, R2, x3, y3)
-    pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep'])
+    pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep', 'pixel_size_x', 'pixel_size_y'])
     pix = pixel_info(np.array([two_theta]),
                      np.array([np.arctan2(Qy, Qx)]),
                      np.array([L2]),
-                     np.array([True]))
+                     np.array([True]),
+                     np.array([x3]),
+                     np.array([y3]))
     dqx3, dqy3 = mono_resolution(np.array([Qx]),
                                  np.array([Qy]),
                                  mode='azimuthal',

@@ -111,9 +111,7 @@ def test_eqsans_resolution():
     instrument_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                      sample_det_center_dist=l2,
                                                                      source_aperture_radius=r1,
-                                                                     sample_aperture_radius=r2,
-                                                                     pixel_size_x=size_x,
-                                                                     pixel_size_y=size_y)
+                                                                     sample_aperture_radius=r2)
     qx = -0.000593411755
     qy = -0.000767944624
     wave_length = 6.0
@@ -127,11 +125,13 @@ def test_eqsans_resolution():
                                            l1, l2, r1, r2, size_x, size_y,
                                            sample_pixel_distance, l1, emission_error)
     # Calculate EQSANS resolution
-    pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep'])
+    pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep', 'pixel_size_x', 'pixel_size_y'])
     pix = pixel_info(np.array([two_theta]),
                      np.array([np.arctan2(qy, qx)]),
                      np.array([sample_pixel_distance]),
-                     np.array([True]))
+                     np.array([True]),
+                     np.array([size_x]),
+                     np.array([size_y]))
     q_x_res, q_y_res = eqsans_resolution(np.array([qx]),
                                          np.array([qy]),
                                          mode='azimuthal',

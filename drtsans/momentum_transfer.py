@@ -447,7 +447,7 @@ def pixel_info(input_workspace):
     # The product of each specific scale factor and the nominal pixel dimension gives us the specific pixel dimensions
     pixel_dimensions = scale_factors * nominal_pixel_dimensions  # shape = (number_pixels, 3)
 
-    info_map.update({'pixel_size_x': pixel_dimensions[0], 'pixel_size_y': pixel_dimensions[1]})
+    info_map.update({'pixel_size_x': pixel_dimensions[:, 0], 'pixel_size_y': pixel_dimensions[:, 1]})
 
     return info_map
 

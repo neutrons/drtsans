@@ -77,7 +77,7 @@ def test_mono_resolution():
     dqx, dqy = sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3)
 
     # Calculate by drtsans.mono method
-    setup = drtsans.resolution.InstrumentSetupParameters(L1, L2, R1, R2, x3, y3)
+    setup = drtsans.resolution.InstrumentSetupParameters(L1, L2, R1, R2)
     pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep', 'pixel_size_x', 'pixel_size_y'])
     pix = pixel_info(np.array([two_theta]),
                      np.array([np.arctan2(Qy, Qx)]),

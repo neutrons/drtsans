@@ -131,10 +131,8 @@ def convert_to_q(ws, mode, resolution_function=eqsans_resolution, **kwargs):
       - wavelength
 
     """
-    # check if one wants to override pixel sizes
-    pixel_sizes = kwargs.get('pixel_sizes', None)
     # get the InstrumentSetupParameters
-    instrument_setup = retrieve_instrument_setup(ws, pixel_sizes)
+    instrument_setup = retrieve_instrument_setup(ws)
     return drtsans.momentum_transfer.convert_to_q(ws, mode, resolution_function,
                                                   instrument_parameters=instrument_setup, **kwargs)
 

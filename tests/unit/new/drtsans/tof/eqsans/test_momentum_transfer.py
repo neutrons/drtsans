@@ -132,8 +132,6 @@ def test_convert_to_q_eqsans(workspace_with_instrument):
     assert instrument_setup.sample_det_center_distance == approx(4, abs=1e-6)
     assert instrument_setup.source_aperture_radius == approx(0.025, abs=1e-6)
     assert instrument_setup.sample_aperture_radius == approx(0.010, abs=1e-6)
-    assert instrument_setup.pixel_size_x == approx(0.0055, abs=1e-6)
-    assert instrument_setup.pixel_size_y == approx(0.00425, abs=1e-6)
 
     # calculate q and resolution, and check the output
     result = convert_to_q(ws, mode='azimuthal')

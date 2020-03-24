@@ -5,6 +5,7 @@ import json
 import numpy as np
 import numexpr
 import os
+import stat
 import sys
 
 
@@ -409,6 +410,7 @@ class Table:
         self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
         # save new table and overwrite existing one if having the same name
         SaveNexus(InputWorkspace=self.table, Filename=tablefile)
+        os.chmod(tablefile, 0o666)  # everybody can read and write
 
         # Save the metadata, and replace an existing duplicate entry if required to do so
         if discard_index is not None:
@@ -418,6 +420,7 @@ class Table:
 
         with open(database, mode='w') as json_file:
             json.dump(entries, json_file)  # save the updated table
+            os.chmod(database, 0o666)  # everybody can read and write
 
     def duplicate_metadata(self, metadata):
         r"""

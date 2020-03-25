@@ -771,8 +771,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         pythonfile = __file__
     except NameError:
         pythonfile = "Launched from notebook"
-    reductionparams = {'data': copy.deepcopy(reduction_input),
-                       'filename': 'internal_file'}
+    reductionparams = {'data': copy.deepcopy(reduction_input)}
     specialparameters = {'beam_center': {'x': 'not implemented yet',
                                          'y': 'not implemented yet'},
                          'sample_transmission': sample_transmission_dict,

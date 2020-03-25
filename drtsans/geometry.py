@@ -248,9 +248,10 @@ def logged_pixel_size(input_workspace):
 
     Returns
     -------
-    float, float
-        pixel size X, pixel size Y
-
+    namedtuple
+        Fields of the named tuple are, in this order
+        - width, float or :py:obj:`None` if no pixel width is found in the logs
+        - height, float or :py:obj:`None` if no pixel height is found in the logs
     """
     # Get workspace
     workspace = mtd[str(input_workspace)]
@@ -262,7 +263,7 @@ def logged_pixel_size(input_workspace):
         pixel_size_x = sample_logs['pixel_size_x'].value
         pixel_size_y = sample_logs['pixel_size_y'].value
     else:
-        pixel_size_x, pixel_size_y = None
+        pixel_size_x, pixel_size_y = None, None
 
     return {'width': pixel_size_x, 'height': pixel_size_y}
 
@@ -278,9 +279,8 @@ def nominal_pixel_size(input_workspace):
 
     Returns
     -------
-    float, float
-        pixel size X, pixel size Y
-
+    namedtuple
+        Fields of the named tuple are 'width' and 'height', in this order.
     """
     workspace = mtd[str(input_workspace)]  # handle to Mantid Workspace object
     det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # (X, Y, Z) values

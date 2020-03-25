@@ -237,12 +237,8 @@ def pixel_centers(input_workspace, indexes, shape=None):
     return positions
 
 
-def pixel_size(workspace):
-    """Find pixel size (X and Y) from a workspace
-
-    Priority
-    1. pixel_size_x and pixel_size_y in workspace's logs
-    2. from instrument's detector info
+def logged_pixel_size(input_workspace):
+    """Find pixel size (X and Y) from the metadata within a workspace
 
     Parameters
     ----------
@@ -256,22 +252,37 @@ def pixel_size(workspace):
 
     """
     # Get workspace
-    workspace = mtd[str(workspace)]
+    workspace = mtd[str(input_workspace)]
 
     # Get sample logs
     sample_logs = SampleLogs(workspace)
 
     if 'pixel_size_x' in sample_logs.keys() and 'pixel_size_y' in sample_logs.keys():
-        # Pixel size is from meta data
         pixel_size_x = sample_logs['pixel_size_x'].value
         pixel_size_y = sample_logs['pixel_size_y'].value
     else:
-        # Pixel size is from detector shape
-        det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # 3 values
-        pixel_size_x = det_shape[0]
-        pixel_size_y = det_shape[1]
-
+        pixel_size_x, pixel_size_y = None
     return pixel_size_x, pixel_size_y
+
+
+def nominal_pixel_size(input_workspace):
+    """Find pixel size (X and Y) from the instrument geometry disregarding pixel calibrations like
+    barscan and tube-width.
+
+    Parameters
+    ----------
+    input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        workspace for detector size
+
+    Returns
+    -------
+    float, float
+        pixel size X, pixel size Y
+
+    """
+    workspace = mtd[str(input_workspace)]  # handle to Mantid Workspace object
+    det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # (X, Y, Z) values
+    return det_shape.X(), det_shape.Y()
 
 
 def get_instrument(source):

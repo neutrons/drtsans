@@ -294,7 +294,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                     sample_detector_distance(ws, search_logs=True)))
     print('[META-GEOM      ] SampleToSi = {} mm'
           ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
-    print('[META-GEOM      ] Overwrite Values = {}, {}'.format(sample_si_window_overwrite_value, sample_detector_distance_overwrite_value))
+    print('[META-GEOM      ] Overwrite Values = {}, {}'
+          ''.format(sample_si_window_overwrite_value, sample_detector_distance_overwrite_value))
 
     # Calculate sample and detector offsets for moving
     sample_offset, detector_offset = \
@@ -308,7 +309,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
 
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
-                         sample_si_name=sample_to_si_window_name)
+                         sample_si_name=sample_to_si_window_name,
+                         si_window_to_nominal_distance=si_window_to_nominal_distance)
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)

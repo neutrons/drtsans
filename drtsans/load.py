@@ -143,7 +143,8 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     return mtd[output_workspace]
 
 
-def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sample_si_name=None):
+def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sample_si_name=None,
+                    si_window_to_nominal_distance=None):
     """Move instrument sample and detector
 
     Parameters
@@ -158,6 +159,8 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
         Flag that it belongs to a mono-SANS
     sample_si_name: str
         Name of Sample to silicon window name
+    si_window_to_nominal_distance : float or None
+        distance between Silicon window and sample
 
     Returns
     -------
@@ -176,9 +179,9 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
         logs = SampleLogs(workspace)
 
         # Update sample-silicon-window distance
-        curr_value = logs.find_log_with_units(sample_si_name, unit='mm')
+        # curr_value = logs.find_log_with_units(sample_si_name, unit='mm')
         # sample offset is at same direction to +Y, while 'SampleToSi' is toward -Y
-        new_value = curr_value + -1 * sample_offset * 1E3   # convert from meter to mm
+        new_value = si_window_to_nominal_distance + -1 * sample_offset * 1E3   # convert from meter to mm
         AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format(sample_si_name),
                              LogValues='{}'.format(new_value),
                              LogUnits='mm')

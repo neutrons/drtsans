@@ -11,7 +11,7 @@ from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
-           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance', 'pixel_size',
+           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance',
            'search_sample_detector_distance_meta_name', 'search_source_sample_distance_meta_name']
 detector_z_log = 'detectorZ'
 

@@ -6,7 +6,7 @@ from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unpack_v3d
+from drtsans.settings import unpack_v3d, namedtuplefy
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
@@ -237,6 +237,7 @@ def pixel_centers(input_workspace, indexes, shape=None):
     return positions
 
 
+@namedtuplefy
 def logged_pixel_size(input_workspace):
     """Find pixel size (X and Y) from the metadata within a workspace
 
@@ -262,7 +263,8 @@ def logged_pixel_size(input_workspace):
         pixel_size_y = sample_logs['pixel_size_y'].value
     else:
         pixel_size_x, pixel_size_y = None
-    return pixel_size_x, pixel_size_y
+
+    return {'width': pixel_size_x, 'height': pixel_size_y}
 
 
 def nominal_pixel_size(input_workspace):
@@ -282,7 +284,7 @@ def nominal_pixel_size(input_workspace):
     """
     workspace = mtd[str(input_workspace)]  # handle to Mantid Workspace object
     det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # (X, Y, Z) values
-    return det_shape.X(), det_shape.Y()
+    return {'width': det_shape.X(), 'height': det_shape.Y()}
 
 
 def get_instrument(source):

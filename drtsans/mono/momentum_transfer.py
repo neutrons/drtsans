@@ -154,6 +154,6 @@ def retrieve_instrument_setup(input_workspace):
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
                                                                 sample_aperture_radius=r2,
-                                                                pixel_size_x=pixel_width,
-                                                                pixel_size_y=pixel_height)
+                                                                pixel_width=pixel_width,
+                                                                pixel_height=pixel_height)
     return setup_params

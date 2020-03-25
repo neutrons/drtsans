@@ -409,6 +409,8 @@ class Table:
             tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + '.nxs'
         self.metadata['tablefile'] = tablefile  # store the location in the metadata, used later when loading.
         # save new table and overwrite existing one if having the same name
+        if os.path.exists(tablefile):
+            os.remove(tablefile)
         SaveNexus(InputWorkspace=self.table, Filename=tablefile)
         os.chmod(tablefile, 0o666)  # everybody can read and write
 
@@ -418,8 +420,10 @@ class Table:
         else:
             entries.append(self.metadata)  # this is a new entry
 
+        if os.path.exists(database):
+            os.remove(database)  # delete the old database
         with open(database, mode='w') as json_file:
-            json.dump(entries, json_file)  # save the updated table
+            json.dump(entries, json_file)  # save the new database
             os.chmod(database, 0o666)  # everybody can read and write
 
     def duplicate_metadata(self, metadata):

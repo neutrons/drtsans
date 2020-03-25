@@ -4,8 +4,8 @@ import drtsans.momentum_transfer
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
-from drtsans.geometry import (sample_aperture_diameter, sample_detector_distance, source_aperture_diameter,
-                              source_sample_distance)
+from drtsans.geometry import (logged_pixel_size, sample_aperture_diameter, sample_detector_distance,
+                              source_aperture_diameter, source_sample_distance)
 
 __all__ = ['convert_to_q']
 
@@ -123,28 +123,37 @@ def convert_to_q(ws, mode, resolution_function=mono_resolution, **kwargs):
                                                   instrument_parameters=instrument_setup, **kwargs)
 
 
-def retrieve_instrument_setup(ws):
-    """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
-
-    Priority for pixel size x and y
-    1. user-specified in script (pixel_sizes)
-    2. meta data over-written in workspace
-    3. from instrument detector
-
-    :param ws:
-    :param pixel_sizes: dictionary for pixel sizes
-    :return: MomentumTransferResolutionParameters instance
+def retrieve_instrument_setup(input_workspace):
     """
-    # TODO: check if this will work with the new nexus files
-    # Retrieve L1 and L2 from instrument geometry
-    l1 = source_sample_distance(ws, unit='m')
-    l2 = sample_detector_distance(ws, unit='m')
-    r1 = source_aperture_diameter(ws, unit='m') / 2.0
-    r2 = sample_aperture_diameter(ws, unit='m') / 2.0
+    Collect instrument parameters to be used in the calculation of Q-resolution.
 
-    # Set up the parameter class
+    Parameters collected are:
+    - L1
+    - L2
+    - distance between the source aperture and the sample
+    - distance between sample and the detector
+    - diameter of the source aperture
+    - diameter of the sample aperture
+    - custom pixel width and height
+
+    Parameters
+    ----------
+    input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+
+    Returns
+    -------
+    ~drtsans.resolution.InstrumentSetupParameters
+    """
+    l1 = source_sample_distance(input_workspace, unit='m')
+    l2 = sample_detector_distance(input_workspace, unit='m')
+    r1 = source_aperture_diameter(input_workspace, unit='m') / 2.0
+    r2 = sample_aperture_diameter(input_workspace, unit='m') / 2.0
+    pixel_width, pixel_height = logged_pixel_size(input_workspace)
+
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
-                                                                sample_aperture_radius=r2)
+                                                                sample_aperture_radius=r2,
+                                                                pixel_size_x=pixel_width,
+                                                                pixel_size_y=pixel_height)
     return setup_params

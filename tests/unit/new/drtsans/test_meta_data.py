@@ -2,8 +2,8 @@ import pytest
 import numpy as np
 from drtsans.mono.meta_data import set_meta_data as mono_set_meta_data
 from drtsans.tof.eqsans.meta_data import set_meta_data as eqsans_set_meta_data
-from drtsans.geometry import sample_aperture_diameter, source_aperture_diameter, sample_detector_distance,\
-    source_sample_distance, logged_pixel_size
+from drtsans.geometry import (logged_pixel_size, sample_aperture_diameter, source_aperture_diameter,
+                              sample_detector_distance, source_sample_distance)
 
 
 @pytest.mark.parametrize('workspace_with_instrument', [{'Nx': 3, 'Ny': 3}], indirect=True)

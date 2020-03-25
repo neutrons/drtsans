@@ -268,6 +268,7 @@ def logged_pixel_size(input_workspace):
     return {'width': pixel_size_x, 'height': pixel_size_y}
 
 
+@namedtuplefy
 def nominal_pixel_size(input_workspace):
     """Find pixel size (X and Y) from the instrument geometry disregarding pixel calibrations like
     barscan and tube-width.

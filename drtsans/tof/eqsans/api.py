@@ -728,7 +728,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         fr_label = ''
         _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):
-            fr_label = f'_frame_{wl_frame}'
+            if n_wl_frames > 1:
+                fr_log_label = f'_frame_{wl_frame}'
+                fr_label = fr_log_label
+            else:
+                fr_log_label = f'frame'
+                fr_label = ""
 
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
@@ -740,8 +745,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
 
-            _inside_detectordata[fr_label] = {'iq': iq1d_main_out,
-                                              'iqxqy': iq2d_main_out}
+            _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out,
+                                                  'iqxqy': iq2d_main_out}
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')

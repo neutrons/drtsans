@@ -10,7 +10,8 @@ class InstrumentSetupParameters(object):
     """
     Class to contain the parameters used to calculate Q resolution
     """
-    def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius):
+    def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius,
+                 pixel_size_x=None, pixel_size_y=None):
         """
         Initialization to set all the parameters (6) to calculate momentrum transfer resolution
 
@@ -24,11 +25,16 @@ class InstrumentSetupParameters(object):
             source aperture radius (meter)
         sample_aperture_radius:
             sample aperture radius (meter)
+        pixel_size_x: float
+            custom pixel width to replace the nominal pixel width of the instrument pixel detectors.
+        pixel_size_y: float
+            custom pixel height to replace the nominal pixel height of the instrument pixel detectors.
         """
         self._l1 = l1
         self._sample_det_center_dist = sample_det_center_dist
         self._source_aperture = source_aperture_radius
         self._sample_aperture = sample_aperture_radius
+        self.custom_pixel_size_x, self.custom_pixel_size_y = pixel_size_x, pixel_size_y
 
     def __str__(self):
         """

@@ -272,6 +272,8 @@ def nominal_pixel_size(input_workspace):
     """Find pixel size (X and Y) from the instrument geometry disregarding pixel calibrations like
     barscan and tube-width.
 
+    We use the pixel dimensions of the first detector that is not a monitor detector.
+
     Parameters
     ----------
     input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
@@ -283,8 +285,13 @@ def nominal_pixel_size(input_workspace):
         Fields of the named tuple are 'width' and 'height', in this order.
     """
     workspace = mtd[str(input_workspace)]  # handle to Mantid Workspace object
-    det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # (X, Y, Z) values
-    return {'width': det_shape.X(), 'height': det_shape.Y()}
+    workspace_index = 0
+    while True:
+        detector = workspace.getDetector(workspace_index)
+        if detector.isMonitor() is False:
+            detector_shape = detector.shape().getBoundingBox().width()  # (X, Y, Z) values
+            return {'width': detector_shape.X(), 'height': detector_shape.Y()}
+        workspace_index += 1
 
 
 def get_instrument(source):

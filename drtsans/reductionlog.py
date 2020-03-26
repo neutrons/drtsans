@@ -483,7 +483,6 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                 else:
                     _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
 
-
             _save_logslicedata(logslicedata=logslicedata,
                                index=_index,
                                topEntry=topEntry)

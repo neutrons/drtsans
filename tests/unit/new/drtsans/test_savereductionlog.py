@@ -340,19 +340,19 @@ def test_slicelogdata_is_a_dict():
                          logslicedata=logslice_data_dict)
 
 
-# def test_writing_slicelogdata_not_bigger_than_detectordata():
-#     test_iq = [_create_iq()]
-#     tmp_log_filename = _create_tmp_log_filename()
-#     logslice_data_dict = {'0': {'data': list([1, 2, 3]),
-#                                 'units': 'm'},
-#                           '1': {'data': list([1, 2, 3]),
-#                                 'units': 'm'}}
-#     detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
-#
-#     with pytest.raises(ValueError):
-#         savereductionlog(tmp_log_filename,
-#                          detectordata=detectordata,
-#                          logslicedata=logslice_data_dict)
+def test_slicelogdata_not_bigger_than_detectordata():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    logslice_data_dict = {'0': {'data': list([1, 2, 3]),
+                                'units': 'm'},
+                          '1': {'data': list([1, 2, 3]),
+                                'units': 'm'}}
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+
+    with pytest.raises(ValueError):
+        savereductionlog(tmp_log_filename,
+                         detectordata=detectordata,
+                         logslicedata=logslice_data_dict)
 
 
 # def test_writing_slicelogdata():

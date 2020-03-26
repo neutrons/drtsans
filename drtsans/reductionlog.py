@@ -414,13 +414,6 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
                            "and not a {}".format(type(detectordata)))
 
-    logslicedata = kwargs.get('logslicedata', None)
-    if logslicedata:
-
-        if not type(logslicedata) is dict:
-            raise RuntimeError("logslicedata has the wrong type. It should a dictionary "
-                               "and not a {}".format(type(logslicedata)))
-
     for _slice_name in detectordata.keys():
 
         if not type(detectordata[_slice_name]) is dict:
@@ -437,6 +430,17 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
             if not ('iq' in detectordata[_slice_name][_detector_name].keys()) and \
                     not ('iqxqy' in detectordata[_slice_name][_detector_name].keys()):
                 raise KeyError("Provide at least a iq and/or iqxqy keys to {}".format(filename))
+
+    logslicedata = kwargs.get('logslicedata', None)
+    if logslicedata:
+
+        if not type(logslicedata) is dict:
+            raise RuntimeError("logslicedata has the wrong type. It should a dictionary "
+                               "and not a {}".format(type(logslicedata)))
+
+        if len(logslicedata.keys()) > len(detectordata.keys()):
+            raise ValueError(f"Can not have more logs slice data ({len(logslicedata.keys())}) than "
+                             f"slices ({len(detectordata.keys())})")
 
     writing_flag = 'w'
     for _index, _slice_name in enumerate(detectordata.keys()):

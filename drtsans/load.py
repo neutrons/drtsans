@@ -160,7 +160,7 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
     sample_si_name: str
         Name of Sample to silicon window name
     si_window_to_nominal_distance : float or None
-        distance between Silicon window and sample
+        distance between Silicon window and sample in unit of meter
 
     Returns
     -------
@@ -181,7 +181,8 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
         # Update sample-silicon-window distance
         # curr_value = logs.find_log_with_units(sample_si_name, unit='mm')
         # sample offset is at same direction to +Y, while 'SampleToSi' is toward -Y
-        new_value = si_window_to_nominal_distance + -1 * sample_offset * 1E3   # convert from meter to mm
+        # convert from meter to mm
+        new_value = (si_window_to_nominal_distance - sample_offset) * 1E3
         AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format(sample_si_name),
                              LogValues='{}'.format(new_value),
                              LogUnits='mm')

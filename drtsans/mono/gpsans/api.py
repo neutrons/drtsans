@@ -41,7 +41,7 @@ __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configurat
            'load_all_files', 'plot_reduction_output', 'reduce_single_configuration']
 
 
-SAMPLE_SI_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)
+SI_WINDOW_NOMINAL_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)
 SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
 
 
@@ -130,17 +130,20 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
             # Retrieve parameters for overwriting geometry related meta data
             try:
-                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi'))
+                # load configuration.SampleToSi (in millimeter) and convert to meter
+                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
             except ValueError:
                 overwrite_swd = None
             try:
+                # load configuration.SampleDetectorDistance (in meter)
                 overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
             except ValueError:
                 overwrite_sdd = None
             print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
             #
             load_events_and_histogram(filename, output_workspace=ws_name,
-                                      sample_to_si_name='CG2:CS:SampleToSi', si_nominal_distance=0.,
+                                      sample_to_si_name=SAMPLE_SI_META_NAME,
+                                      si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                       sample_to_si_value=overwrite_swd,
                                       sample_detector_distance_value=overwrite_sdd,
                                       **load_params)
@@ -155,7 +158,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
                 load_events_and_histogram(filename, output_workspace=ws_name,
-                                          sample_to_si_name='CG2:CS:SampleToSi', si_nominal_distance=0.0,
+                                          sample_to_si_name=SAMPLE_SI_META_NAME,
+                                          si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                           **load_params)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
@@ -316,7 +320,7 @@ def prepare_data(data,
                      detector_offset=0, sample_offset=sample_offset)
 
     # Reset the offset
-    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME, SAMPLE_SI_DISTANCE_METER)
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME, SI_WINDOW_NOMINAL_DISTANCE_METER)
     # Translate instrument with offsets
     move_instrument(ws, sample_offset, detector_offset)
 

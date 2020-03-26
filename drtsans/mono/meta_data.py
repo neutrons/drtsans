@@ -100,7 +100,7 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
     sample_si_meta_name : str
         Sample to Si (window) meta data name
     zero_sample_offset_sample_si_distance: float
-        default sample to Si window distance, i.e., distance without sample offset
+        default sample to Si window distance, i.e., distance without sample offset. unit = meter
     overwrite_sample_si_distance: float or None
         sample to Si window distance to overwrite.  Unit = mm (consistent with the unit of original meta data)
     overwrite_sample_detector_distance : float or None
@@ -115,6 +115,7 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
     # Calculate the sample offset and detector offset without overwriting value
     # This is caused by incorrect IDF which does not use SampleToSi.
     sample_logs = SampleLogs(workspace)
+    # read sample log for SampleToSi and convert to meter from mm
     sample_to_si = sample_logs.find_log_with_units(sample_si_meta_name, 'mm') * 1E-3
     print('[DEBUG] Meta-Data Sample to Si = {} meter'.format(sample_to_si))
     print('[DEBUG] Hardcoded Sample to nominal distance = {} meter'.format(zero_sample_offset_sample_si_distance))
@@ -134,8 +135,8 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
         # 2 cases to handle.  The order must be conserved
         if overwrite_sample_si_distance is not None:
             # Sample-Si distance is overwritten. NeXus-recorded sample-detector-distance is thus inaccurate.
-            # convert unit of (overwrite)-sample-Si-distance to meter
-            overwrite_sample_si_distance *= 1E-3
+            # # convert unit of (overwrite)-sample-Si-distance to meter
+            # overwrite_sample_si_distance *= 1E-3
 
             # Shift the sample position only without moving detector
             overwrite_offset = sample_to_si - overwrite_sample_si_distance

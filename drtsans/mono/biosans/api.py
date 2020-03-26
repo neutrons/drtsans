@@ -42,8 +42,8 @@ __all__ = ['prepare_data', 'load_all_files', 'plot_reduction_output',
            'prepare_data_workspaces', 'process_single_configuration',
            'reduce_single_configuration']
 
-
-SAMPLE_SI_DISTANCE_METER = 0.071  # meter, (i.e., 71 mm)
+# silicon window to nominal position (origin) distance in meter
+SI_WINDOW_NOMINAL_DISTANCE_METER = 0.071
 SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
@@ -132,17 +132,20 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
             # Retrieve parameters for overwriting geometry related meta data
             try:
-                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi'))
+                # load configuration.SampleToSi (in millimeter) and convert to meter
+                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
             except ValueError:
                 overwrite_swd = None
             try:
+                # load configuration.SampleDetectorDistance (in meter)
                 overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
             except ValueError:
                 overwrite_sdd = None
             print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
             #
             biosans.load_events_and_histogram(filename, output_workspace=ws_name,
-                                              sample_to_si_name='CG3:CS:SampleToSi', si_nominal_distance=0.071,
+                                              sample_to_si_name=SAMPLE_SI_META_NAME,
+                                              si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                               sample_to_si_value=overwrite_swd,
                                               sample_detector_distance_value=overwrite_sdd,
                                               **load_params)
@@ -157,7 +160,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
                 biosans.load_events_and_histogram(filename, output_workspace=ws_name,
-                                                  sample_to_si_name='CG3:CS:SampleToSi', si_nominal_distance=0.071,
+                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                                   **load_params)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
@@ -173,11 +177,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_main}")
-                dark_current_main = biosans.load_events_and_histogram(dark_current_file_main,
-                                                                      output_workspace=ws_name,
-                                                                      sample_to_si_name='CG3:CS:SampleToSi',
-                                                                      si_nominal_distance=0.071,
-                                                                      **load_params)
+                dark_current_main =\
+                    biosans.load_events_and_histogram(dark_current_file_main,
+                                                      output_workspace=ws_name,
+                                                      sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                      si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                                      **load_params)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
             else:
@@ -186,11 +191,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_wing}")
-                dark_current_wing = biosans.load_events_and_histogram(dark_current_file_wing,
-                                                                      output_workspace=ws_name,
-                                                                      sample_to_si_name='CG3:CS:SampleToSi',
-                                                                      si_nominal_distance=0.071,
-                                                                      **load_params)
+                dark_current_wing =\
+                    biosans.load_events_and_histogram(dark_current_file_wing,
+                                                      output_workspace=ws_name,
+                                                      sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                      si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                                      **load_params)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
             else:
@@ -1029,7 +1035,7 @@ def prepare_data(data,
                      detector_offset=0., sample_offset=0.)
 
     # Reset the offset
-    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME, SAMPLE_SI_DISTANCE_METER)
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME, SI_WINDOW_NOMINAL_DISTANCE_METER)
     # Translate instrument with offsets
     move_instrument(ws, sample_offset, detector_offset)
 

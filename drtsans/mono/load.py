@@ -123,9 +123,12 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         desired IDF.
     sample_to_si_name: str
         Meta data name for sample to Silicon window distance
-    si_nominal_distance:
-    sample_to_si_value:
-    sample_detector_distance_value:
+    si_nominal_distance: float
+        distance between nominal position to silicon window.  unit = meter
+    sample_to_si_value: float or None
+        Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
+    sample_detector_distance_value: float or None
+        Sample to detector distance to overwrite the EPICS value.  None for no operation. unit = meter
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
@@ -275,9 +278,9 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     sample_to_si_window_name: str
         meta data name for Sample to Silicon window distance
     si_window_to_nominal_distance: float
-        Silicon window to nominal position distance in unit of millimeter
+        Silicon window to nominal position distance in unit of meter
     sample_si_window_overwrite_value: float or None
-        value to overwrite sample to silicon window distance in unit of millimeter
+        value to overwrite sample to silicon window distance in unit of meter
         None for not overwriting
     sample_detector_distance_overwrite_value: float or None
         value to overwrite sample to detector distance in unit of meter
@@ -292,8 +295,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     print('[META-GEOM  Init] Sample to detector distance = {} (calculated) /{} (meta) meter'
           ''.format(sample_detector_distance(ws, search_logs=False),
                     sample_detector_distance(ws, search_logs=True)))
-    print('[META-GEOM      ] SampleToSi = {} mm'
-          ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
+    print('[META-GEOM      ] SampleToSi = {} m'
+          ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm') * 1E-3))
     print('[META-GEOM      ] Overwrite Values = {}, {}'
           ''.format(sample_si_window_overwrite_value, sample_detector_distance_overwrite_value))
 

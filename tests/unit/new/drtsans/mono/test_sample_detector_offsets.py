@@ -124,7 +124,7 @@ def test_overwrite_sample_si_distance(generic_IDF):
     # Test method
     sample_offset, detector_offset = get_sample_detector_offset(ws, 'Generic:CS:SampleToSi',
                                                                 default_sample_si_distance,
-                                                                overwrite_sample_si_distance=75.32)
+                                                                overwrite_sample_si_distance=75.32 * 1E-3)
 
     # Verify
     # 1. SampleToSi is 72.23 mm.  It results in a 1.23 mm shift (to source, i.e., -Y direction) on both
@@ -218,7 +218,7 @@ def test_overwrite_both_distance(generic_IDF):
     # Test method
     sample_offset, detector_offset = get_sample_detector_offset(ws, 'Generic:CS:SampleToSi',
                                                                 default_sample_si_distance,
-                                                                overwrite_sample_si_distance=75.32,
+                                                                overwrite_sample_si_distance=75.32 * 1E-4,
                                                                 overwrite_sample_detector_distance=1.40)
 
     # Verify:

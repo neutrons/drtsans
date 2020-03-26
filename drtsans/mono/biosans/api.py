@@ -95,15 +95,19 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     # sample aperture diameter in mm
     try:
-        sample_aperture_diameter = float(reduction_input['sampleApertureSize'])
+        sample_aperture_diameter = float(reduction_input['configuration']['sampleApertureSize'])
     except ValueError:
         sample_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sampleApertureSize" under "configuration" section in JSON file')
 
     # source aperture diameter in mm
     try:
-        source_aperture_diameter = float(reduction_input['sourceApertureDiameter'])
+        source_aperture_diameter = float(reduction_input['configuration']['sourceApertureDiameter'])
     except ValueError:
         source_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sourceApertureDiameter" under "configuration" section in JSON file')
 
     # special loading case for sample to allow the slicing options
     if timeslice or logslice:

@@ -98,12 +98,17 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         sample_aperture_diameter = float(reduction_input['sampleApertureSize'])
     except ValueError:
         sample_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sampleApertureSize" under "configuration" section in JSON file')
 
     # source aperture diameter in mm
     try:
         source_aperture_diameter = float(reduction_input['sourceApertureDiameter'])
     except ValueError:
         source_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sourceApertureDiameter" under "configuration" section in JSON file')
+
     # special loading case for sample to allow the slicing options
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'

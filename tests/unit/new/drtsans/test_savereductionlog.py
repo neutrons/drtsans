@@ -355,17 +355,20 @@ def test_slicelogdata_not_bigger_than_detectordata():
                          logslicedata=logslice_data_dict)
 
 
-# def test_writing_slicelogdata():
-#     test_iq = [_create_iq()]
-#     tmp_log_filename = _create_tmp_log_filename()
-#     logslice_data_dict = {'0': {'data': list([1, 2, 3]),
-#                                 'units': 'm'}}
-#     detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
-#     savereductionlog(tmp_log_filename,
-#                      detectordata=detectordata,
-#                      logslicedata=logslice_data_dict)
-#
-#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+def test_writing_slicelogdata():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    logslice_data_dict = {'0': {'data': list([1, 2, 3]),
+                                'units': 'm',
+                                'name': 'my_slice_variable',
+                                }
+                          }
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+    savereductionlog(tmp_log_filename,
+                     detectordata=detectordata,
+                     logslicedata=logslice_data_dict)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
 #
 #     with h5py.File(tmp_log_filename, 'r') as handle:
 #         top_group = _getGroup(handle, 'slice_1', 'NXdata')

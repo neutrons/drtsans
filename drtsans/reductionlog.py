@@ -226,6 +226,20 @@ def _create_groupe(entry=None, name='Default', data=[], units=''):
     _entry_group.attrs['units'] = units
 
 
+def _save_logslicedata(logslicedata=None, index=0, topEntry=None):
+    if logslicedata is None:
+        return
+
+    nameGroup = logslicedata[str(index)]['name']
+    entry = topEntry.create_group(nameGroup)
+    entry.attrs['NX_class'] = 'NXdata'
+
+    _create_groupe(entry=entry,
+                   name='data',
+                   data=logslicedata[str(index)]['data'],
+                   units=logslicedata[str(index)]['units'])
+
+
 def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
         entry = topEntry.create_group('I(QxQy)')
         entry.attrs['NX_class'] = 'NXdata'
@@ -442,6 +456,8 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
             raise ValueError(f"Can not have more logs slice data ({len(logslicedata.keys())}) than "
                              f"slices ({len(detectordata.keys())})")
 
+    # end of testing inputs
+
     writing_flag = 'w'
     for _index, _slice_name in enumerate(detectordata.keys()):
 
@@ -454,7 +470,7 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
 
             _current_detectordata = detectordata[_slice_name]
 
-            for _frame_name in _current_detectordata.keys():
+            for _frame_index, _frame_name in enumerate(_current_detectordata.keys()):
 
                 _current_frame = _current_detectordata[_frame_name]
                 midEntry = _createnxgroup(topEntry, _frame_name, 'NXdata')
@@ -462,11 +478,15 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                 if 'iq' in _current_frame.keys() and 'iqxqy' in _current_frame.keys():
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
                     _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
-
                 elif 'iq' in _current_frame.keys():
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
                 else:
                     _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
+
+
+            _save_logslicedata(logslicedata=logslicedata,
+                               index=_index,
+                               topEntry=topEntry)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

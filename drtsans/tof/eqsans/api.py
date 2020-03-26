@@ -159,7 +159,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             for n in range(mtd[ws_name].getNumberOfEntries()):
                 samplelogs = SampleLogs(mtd[ws_name].getItem(n))
                 logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
-                                              'units': samplelogs[logslicename].units}
+                                              'units': samplelogs[logslicename].units,
+                                              'name': logslicename}
 
             reduction_input["logslice_data"] = logslice_data_dict
     else:
@@ -812,7 +813,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                              logslicedata=logslice_data_dict,
                              samplelogs=samplelogs)
 
-    change permissions to all files to allow overwrite
+    # change permissions to all files to allow overwrite
     allow_overwrite(reduction_input["configuration"]["outputDir"])
 
     return output
@@ -860,7 +861,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
                        backend='mpl', errorbar_kwargs={'label': 'main'})
 
     # change permissions to all files to allow overwrite
-    # allow_overwrite(output_dir)
+    allow_overwrite(output_dir)
 
 
 def apply_solid_angle_correction(input_workspace):

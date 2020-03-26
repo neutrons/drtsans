@@ -87,10 +87,15 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         center_x, center_y = find_beam_center(center_ws_name)
         logger.notice(f"calculated center ({center_x}, {center_y})")
         print(f"calculated center ({center_x}, {center_y})")
+        beam_center_type = 'calculated'
     else:
         center_x = 0.025239
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")
+        beam_center_type = 'default'
+    reduction_input['beam_center'] = {'type': beam_center_type,
+                                      'x': center_x,
+                                      'y': center_y}
 
     if load_params is None:
         load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
@@ -259,6 +264,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       source_aperture_diameter=None,
                       pixel_size_x=pixel_size_x,
                       pixel_size_y=pixel_size_y)
+
     ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
     return dict(sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],
                 background=ws_mon_pair(data=background_ws, monitor=background_mon_ws),
@@ -728,7 +734,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         fr_label = ''
         _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):
-            fr_label = f'_frame_{wl_frame}'
+            if n_wl_frames > 1:
+                fr_log_label = f'_frame_{wl_frame}'
+                fr_label = fr_log_label
+            else:
+                fr_log_label = f'frame'
+                fr_label = ""
 
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
@@ -740,8 +751,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
 
-            _inside_detectordata[fr_label] = {'iq': iq1d_main_out,
-                                              'iqxqy': iq2d_main_out}
+            _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out,
+                                                  'iqxqy': iq2d_main_out}
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
@@ -767,13 +778,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     filename = os.path.join(reduction_input["configuration"]["outputDir"],
                             outputFilename + f'_reduction_log.hdf')
     starttime = datetime.now().isoformat()
-    try:
-        pythonfile = __file__
-    except NameError:
-        pythonfile = "Launched from notebook"
+    # try:
+    #     pythonfile = __file__
+    # except NameError:
+    #     pythonfile = "Launched from notebook"
     reductionparams = {'data': copy.deepcopy(reduction_input)}
-    specialparameters = {'beam_center': {'x': 'not implemented yet',
-                                         'y': 'not implemented yet'},
+    beam_center_dict = reduction_input['beam_center']
+    specialparameters = {'beam_center': {'x': beam_center_dict['x'],
+                                         'y': beam_center_dict['y'],
+                                         'type': beam_center_dict['type']},
                          'sample_transmission': sample_transmission_dict,
                          'sample_transmission_raw': sample_transmission_raw_dict,
                          'background_transmission': background_transmission_dict,
@@ -784,7 +797,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
                              reductionparams=reductionparams,
-                             pythonfile=pythonfile,
+                             # pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
                              samplelogs=samplelogs)

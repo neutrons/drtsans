@@ -137,23 +137,39 @@ def convert_to_q(ws, mode, resolution_function=eqsans_resolution, **kwargs):
                                                   instrument_parameters=instrument_setup, **kwargs)
 
 
-def retrieve_instrument_setup(ws):
-    """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
-    :param ws:
-    :return: MomentumTransferResolutionParameters instance
+def retrieve_instrument_setup(input_workspace):
     """
-    # Retrieve L1 and L2 from instrument geometry
-    l1 = source_aperture_sample_distance(ws, unit='m')
-    l2 = sans_geometry.sample_detector_distance(ws, unit='m',
-                                                search_logs=False)
-    r1 = 0.5 * source_aperture_diameter(ws, unit='m')
-    r2 = 0.5 * sample_aperture_diameter(ws, unit='m')
+    Collect instrument parameters to be used in the calculation of Q-resolution.
 
-    # Set up the parameter class
+    Parameters collected are:
+    - L1
+    - L2
+    - distance between the source aperture and the sample
+    - distance between sample and the detector
+    - diameter of the source aperture
+    - diameter of the sample aperture
+    - custom pixel width and height
+
+    Parameters
+    ----------
+    input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+
+    Returns
+    -------
+    ~drtsans.resolution.InstrumentSetupParameters
+    """
+    l1 = source_aperture_sample_distance(input_workspace, unit='m')
+    l2 = sans_geometry.sample_detector_distance(input_workspace, unit='m', search_logs=False)
+    r1 = 0.5 * source_aperture_diameter(input_workspace, unit='m')
+    r2 = 0.5 * sample_aperture_diameter(input_workspace, unit='m')
+    pixel_width, pixel_height = sans_geometry.logged_pixel_size(input_workspace)
+
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
-                                                                sample_aperture_radius=r2)
+                                                                sample_aperture_radius=r2,
+                                                                pixel_width=pixel_width,
+                                                                pixel_height=pixel_height)
     return setup_params
 
 

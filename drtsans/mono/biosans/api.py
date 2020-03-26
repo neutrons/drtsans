@@ -907,10 +907,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     filename = os.path.join(reduction_input["configuration"]["outputDir"],
                             outputFilename + f'_reduction_log{output_suffix}.hdf')
     starttime = datetime.now().isoformat()
-    try:
-        pythonfile = __file__
-    except NameError:
-        pythonfile = "Launched from notebook"
+    # try:
+    #     pythonfile = __file__
+    # except NameError:
+    #     pythonfile = "Launched from notebook"
     reductionparams = {'data': copy.deepcopy(reduction_input)}
     specialparameters = {'beam_center': {'x': xc,
                                          'y': yc,
@@ -927,7 +927,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     savereductionlog(filename=filename,
                      detectordata=detectordata,
                      reductionparams=reductionparams,
-                     pythonfile=pythonfile,
+                     # pythonfile=pythonfile,
                      starttime=starttime,
                      specialparameters=specialparameters,
                      samplelogs=samplelogs,

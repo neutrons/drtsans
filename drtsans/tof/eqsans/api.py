@@ -134,6 +134,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             raise ValueError("Can't do slicing on summed data sets")
 
     # special loading case for sample to allow the slicing options
+    logslice_data_dict = {}
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -154,6 +155,13 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             for _w in mtd[ws_name]:
                 if default_mask:
                     apply_mask(_w, mask=default_mask)
+
+            for n in range(mtd[ws_name].getNumberOfEntries()):
+                samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                              'units': samplelogs[logslicename].units}
+
+            reduction_input["logslice_data"] = logslice_data_dict
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
@@ -793,6 +801,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          'background_transmission_raw': background_transmission_raw_dict}
 
     samplelogs = {'main': SampleLogs(processed_data_main)}
+    logslice_data_dict = reduction_input["logslice_data"]
 
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
@@ -800,10 +809,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                              # pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
+                             logslicedata=logslice_data_dict,
                              samplelogs=samplelogs)
 
-    # change permissions to all files to allow overwrite
-    # allow_overwrite(reduction_input["configuration"]["outputDir"])
+    change permissions to all files to allow overwrite
+    allow_overwrite(reduction_input["configuration"]["outputDir"])
 
     return output
 

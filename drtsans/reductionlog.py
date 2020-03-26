@@ -385,6 +385,8 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
     reductionparams: str, dict
         The parameters supplied to the reduction script as either a nested :py:obj:`dict`
         or a json formatted :py:obj:`str` (optional)
+    logslicedata: dict
+        data corresponding to the various slices
     starttime: str
         When the original script was started (optional, default: now)
     hostname: str
@@ -411,6 +413,13 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
     if not type(detectordata) is dict:
         raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
                            "and not a {}".format(type(detectordata)))
+
+    logslicedata = kwargs.get('logslicedata', None)
+    if logslicedata:
+
+        if not type(logslicedata) is dict:
+            raise RuntimeError("logslicedata has the wrong type. It should a dictionary "
+                               "and not a {}".format(type(logslicedata)))
 
     for _slice_name in detectordata.keys():
 

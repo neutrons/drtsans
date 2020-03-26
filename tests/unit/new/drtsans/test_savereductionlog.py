@@ -328,6 +328,70 @@ def test_writing_iq_scalar_mode():
                    abs=1e-6)
 
 
+def test_slicelogdata_is_a_dict():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    logslice_data_dict = "I'm a string"
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+
+    with pytest.raises(RuntimeError):
+        savereductionlog(tmp_log_filename,
+                         detectordata=detectordata,
+                         logslicedata=logslice_data_dict)
+
+
+# def test_writing_slicelogdata_not_bigger_than_detectordata():
+#     test_iq = [_create_iq()]
+#     tmp_log_filename = _create_tmp_log_filename()
+#     logslice_data_dict = {'0': {'data': list([1, 2, 3]),
+#                                 'units': 'm'},
+#                           '1': {'data': list([1, 2, 3]),
+#                                 'units': 'm'}}
+#     detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+#
+#     with pytest.raises(ValueError):
+#         savereductionlog(tmp_log_filename,
+#                          detectordata=detectordata,
+#                          logslicedata=logslice_data_dict)
+
+
+# def test_writing_slicelogdata():
+#     test_iq = [_create_iq()]
+#     tmp_log_filename = _create_tmp_log_filename()
+#     logslice_data_dict = {'0': {'data': list([1, 2, 3]),
+#                                 'units': 'm'}}
+#     detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+#     savereductionlog(tmp_log_filename,
+#                      detectordata=detectordata,
+#                      logslicedata=logslice_data_dict)
+#
+#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+#
+#     with h5py.File(tmp_log_filename, 'r') as handle:
+#         top_group = _getGroup(handle, 'slice_1', 'NXdata')
+#         mid_group = _getGroup(top_group, 'main_detector', 'NXdata')
+#         iq_nxdata = _getGroup(mid_group, 'I(Q)', 'NXdata')
+
+        # data = iq_nxdata['I'][:]
+        # _test_data(tested_data=data,
+        #            ref_data=np.array([93, 60]))
+        #
+        # data = iq_nxdata['Idev'][:]
+        # _test_data(tested_data=data,
+        #            ref_data=np.array([9.64365076, 7.74596669]),
+        #            abs=1e-7)
+        #
+        # data = iq_nxdata['Q'][:]
+        # _test_data(tested_data=data,
+        #            ref_data=np.array([0.0078897, 0.0059338]),
+        #            abs=1e-7)
+        #
+        # data = iq_nxdata['Qdev'][:]
+        # _test_data(tested_data=data,
+        #            ref_data=np.array([0.011912, 0.11912]),
+        #            abs=1e-6)
+
+
 def test_writing_iqxqy():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()

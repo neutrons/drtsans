@@ -220,26 +220,6 @@ code-pylint:
   tags:
     - scse-mantid-builder
 
-script-host:
-  stage: web-host
-  dependencies:
-    - dockerbuild
-  before_script:
-    - sudo yum install -y httpd
-    - sudo rm -f /etc/httpd/conf.d/welcome.conf
-    - sudo systemctl restart httpd
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
-  script:
-    - sudo mkdir -p /var/www/html/sans-backend/$CI_COMMIT_REF_NAME
-    - sudo ls -la /var/www/html/
-    - sudo cp -f scripts/sans-backend-run.sh /var/www/html/sans-backend/$CI_COMMIT_REF_NAME/
-    - sudo chmod -R 755 /var/www/html/
-    - curl http://localhost/sans-backend/$CI_COMMIT_REF_NAME/sans-backend-run.sh
-    - sudo chown -R gitlab-runner .
-  tags:
-    - scse-mantid-demo
-
 docs-next-host:
   stage: web-host
   dependencies:

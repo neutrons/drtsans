@@ -32,7 +32,6 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     pixel_size_y: float, None
         pixel size in Y direction in unit as meter
 
-
     Returns
     -------
 

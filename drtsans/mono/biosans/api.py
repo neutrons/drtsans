@@ -749,7 +749,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         sample_trans_ws = None
 
     output = []
+    detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
+        name = "_slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
@@ -879,46 +881,51 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                      I1D_combined=iq1d_combined_out)
         output.append(current_output)
 
-        # save reduction log
-
-        filename = os.path.join(reduction_input["configuration"]["outputDir"],
-                                outputFilename + f'_reduction_log{output_suffix}.hdf')
-        starttime = datetime.now().isoformat()
-        pythonfile = __file__
-        reductionparams = {'data': copy.deepcopy(reduction_input),
-                           'filename': 'internal_file'}
-        specialparameters = {'beam_center': {'x': xc,
-                                             'y': yc,
-                                             'y_wing': yw},
-                             'sample_transmission': {'main': trans_main['sample'],
-                                                     'wing': trans_wing['sample']},
-                             'background_transmission': {'main': trans_main['background'],
-                                                         'wing': trans_wing['background']}
-                             }
-
-        samplelogs = {'main': SampleLogs(processed_data_main),
-                      'wing': SampleLogs(processed_data_wing)}
-
+        _inside_detectordata = {}
         if iq_output_both.intensity.size > 0:
-            detectordata = {'combined': {'iq': [iq_output_both]}}
+            _inside_detectordata = {'combined': {'iq': [iq_output_both]}}
         else:
-            detectordata = {}
+            _inside_detectordata = {}
         index = 0
         for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
                                                                   [iq2d_main_out], [iq2d_wing_out]):
-            detectordata["main_{}".format(index)] = {'iq': [_iq1d_main],
-                                                     'iqxqy': _iq2d_main}
-            detectordata["wing_{}".format(index)] = {'iq': [_iq1d_wing],
-                                                     'iqxqy': _iq2d_wing}
+            _inside_detectordata["main_{}".format(index)] = {'iq': [_iq1d_main],
+                                                             'iqxqy': _iq2d_main}
+            _inside_detectordata["wing_{}".format(index)] = {'iq': [_iq1d_wing],
+                                                             'iqxqy': _iq2d_wing}
 
-        savereductionlog(filename=filename,
-                         detectordata=detectordata,
-                         reductionparams=reductionparams,
-                         pythonfile=pythonfile,
-                         starttime=starttime,
-                         specialparameters=specialparameters,
-                         samplelogs=samplelogs,
-                         )
+        detectordata[name] = _inside_detectordata
+
+    # save reduction log
+
+    filename = os.path.join(reduction_input["configuration"]["outputDir"],
+                            outputFilename + f'_reduction_log{output_suffix}.hdf')
+    starttime = datetime.now().isoformat()
+    # try:
+    #     pythonfile = __file__
+    # except NameError:
+    #     pythonfile = "Launched from notebook"
+    reductionparams = {'data': copy.deepcopy(reduction_input)}
+    specialparameters = {'beam_center': {'x': xc,
+                                         'y': yc,
+                                         'y_wing': yw},
+                         'sample_transmission': {'main': trans_main['sample'],
+                                                 'wing': trans_wing['sample']},
+                         'background_transmission': {'main': trans_main['background'],
+                                                     'wing': trans_wing['background']}
+                         }
+
+    samplelogs = {'main': SampleLogs(processed_data_main),
+                  'wing': SampleLogs(processed_data_wing)}
+
+    savereductionlog(filename=filename,
+                     detectordata=detectordata,
+                     reductionparams=reductionparams,
+                     # pythonfile=pythonfile,
+                     starttime=starttime,
+                     specialparameters=specialparameters,
+                     samplelogs=samplelogs,
+                     )
 
     # change permissions to all files to allow overwrite
     allow_overwrite(reduction_input["configuration"]["outputDir"])

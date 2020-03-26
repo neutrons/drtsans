@@ -33,7 +33,7 @@
         "useDarkFileName": false,
         "darkFilename": "",
         "useSensitivityFileName": true,
-        "sensitivityFileName": "/HFIR/CG2/shared/sens_c486_LDS.nxs",
+        "sensitivityFileName": "/HFIR/CG2/shared/drt_sensitivity/sens_c486_LDS.nxs",
         "UseBarScan": true,
         "BarScanFileName": "",
         "absoluteScaleMethod": "standard",

@@ -412,42 +412,48 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
                            "and not a {}".format(type(detectordata)))
 
-    for _detector_name in detectordata.keys():
+    for _slice_name in detectordata.keys():
 
-        if not type(detectordata[_detector_name]) is dict:
+        if not type(detectordata[_slice_name]) is dict:
             raise RuntimeError("detectordata value has the wrong type. It should be a dictionary "
-                               "and not a {}".format(type(detectordata[_detector_name])))
+                               "and not a {}".format(type(detectordata[_slice_name])))
 
-        if not ('iq' in detectordata[_detector_name].keys()) and \
-                not ('iqxqy' in detectordata[_detector_name].keys()):
-            raise RuntimeError("Provide at least one set of data to save into log file {}".format(filename))
+        for _detector_name in detectordata[_slice_name].keys():
+
+            if not type(detectordata[_slice_name][_detector_name]) is dict:
+                raise RuntimeError(f"detectordata[{_slice_name}][{_detector_name}] value has the wrong type. It "
+                                   f"should be a dictionary "
+                                   f"and not a {type(detectordata[_slice_name][_detector_name])}")
+
+            if not ('iq' in detectordata[_slice_name][_detector_name].keys()) and \
+                    not ('iqxqy' in detectordata[_slice_name][_detector_name].keys()):
+                raise KeyError("Provide at least a iq and/or iqxqy keys to {}".format(filename))
 
     writing_flag = 'w'
-    for _name_detector in detectordata.keys():
+    for _index, _slice_name in enumerate(detectordata.keys()):
 
-        _current_detectordata = detectordata[_name_detector]
+        if _index > 0:
+            writing_flag = 'a'
 
-        if 'iq' in _current_detectordata.keys() and 'iqxqy' in _current_detectordata.keys():
-            with h5py.File(filename, writing_flag) as handle:
-                topEntry = handle.create_group(_name_detector)
-                topEntry.attrs['NX_class'] = 'NXdata'
+        with h5py.File(filename, writing_flag) as handle:
+            topEntry = handle.create_group(_slice_name)
+            topEntry.attrs['NX_class'] = 'NXdata'
 
-                _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=topEntry)
-                _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=topEntry)
-        elif 'iq' in _current_detectordata.keys():
-            with h5py.File(filename, writing_flag) as handle:
-                topEntry = handle.create_group(_name_detector)
-                topEntry.attrs['NX_class'] = 'NXdata'
+            _current_detectordata = detectordata[_slice_name]
 
-                _save_iq_to_log(iq=_current_detectordata['iq'], topEntry=topEntry)
-        else:
-            with h5py.File(filename, writing_flag) as handle:
-                topEntry = handle.create_group(_name_detector)
-                topEntry.attrs['NX_class'] = 'NXdata'
+            for _frame_name in _current_detectordata.keys():
 
-                _save_iqxqy_to_log(iqxqy=_current_detectordata['iqxqy'], topEntry=topEntry)
+                _current_frame = _current_detectordata[_frame_name]
+                midEntry = _createnxgroup(topEntry, _frame_name, 'NXdata')
 
-        writing_flag = 'a'
+                if 'iq' in _current_frame.keys() and 'iqxqy' in _current_frame.keys():
+                    _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
+                    _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
+
+                elif 'iq' in _current_frame.keys():
+                    _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
+                else:
+                    _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
 
     # re-open the file to append other information
     with h5py.File(filename, 'a') as handle:

@@ -9,7 +9,6 @@ from drtsans.tof.eqsans.geometry import (sample_aperture_diameter, source_apertu
                                          source_aperture_sample_distance)
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
-from drtsans.geometry import pixel_size
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 from mantid.kernel import logger
@@ -132,45 +131,45 @@ def convert_to_q(ws, mode, resolution_function=eqsans_resolution, **kwargs):
       - wavelength
 
     """
-    # check if one wants to override pixel sizes
-    pixel_sizes = kwargs.get('pixel_sizes', None)
     # get the InstrumentSetupParameters
-    instrument_setup = retrieve_instrument_setup(ws, pixel_sizes)
+    instrument_setup = retrieve_instrument_setup(ws)
     return drtsans.momentum_transfer.convert_to_q(ws, mode, resolution_function,
                                                   instrument_parameters=instrument_setup, **kwargs)
 
 
-def retrieve_instrument_setup(ws, pixel_sizes=None):
-    """ Get instrument parameter including L1, L2, source aperture diameter and sample aperture radius
-    :param ws:
-    :param pixel_sizes: dictionary for pixel sizes
-    :return: MomentumTransferResolutionParameters instance
+def retrieve_instrument_setup(input_workspace):
     """
-    # Retrieve L1 and L2 from instrument geometry
-    l1 = source_aperture_sample_distance(ws, unit='m')
-    l2 = sans_geometry.sample_detector_distance(ws, unit='m',
-                                                search_logs=False)
-    r1 = 0.5 * source_aperture_diameter(ws, unit='m')
-    r2 = 0.5 * sample_aperture_diameter(ws, unit='m')
+    Collect instrument parameters to be used in the calculation of Q-resolution.
 
-    if pixel_sizes is None:
-        # Retrieve from workspace but not easy
-        # det_shape = ws.getDetector(0).shape().getBoundingBox().width()  # 3 values
-        # size_x = det_shape[0]
-        # size_y = det_shape[1]
-        size_x, size_y = pixel_size(ws)
-    else:
-        # User specified, overriding values from intrument directly
-        size_x = pixel_sizes['x']
-        size_y = pixel_sizes['y']
+    Parameters collected are:
+    - L1
+    - L2
+    - distance between the source aperture and the sample
+    - distance between sample and the detector
+    - diameter of the source aperture
+    - diameter of the sample aperture
+    - custom pixel width and height
 
-    # Set up the parameter class
+    Parameters
+    ----------
+    input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+
+    Returns
+    -------
+    ~drtsans.resolution.InstrumentSetupParameters
+    """
+    l1 = source_aperture_sample_distance(input_workspace, unit='m')
+    l2 = sans_geometry.sample_detector_distance(input_workspace, unit='m', search_logs=False)
+    r1 = 0.5 * source_aperture_diameter(input_workspace, unit='m')
+    r2 = 0.5 * sample_aperture_diameter(input_workspace, unit='m')
+    pixel_width, pixel_height = sans_geometry.logged_pixel_size(input_workspace)
+
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
                                                                 sample_aperture_radius=r2,
-                                                                pixel_size_x=size_x,
-                                                                pixel_size_y=size_y)
+                                                                pixel_width=pixel_width,
+                                                                pixel_height=pixel_height)
     return setup_params
 
 

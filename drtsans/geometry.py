@@ -6,12 +6,12 @@ from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
 
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unpack_v3d
+from drtsans.settings import unpack_v3d, namedtuplefy
 from drtsans.instruments import InstrumentEnumName, instrument_enum_name
 from collections import defaultdict
 
 __all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter', 'translate_sample_by_z',
-           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance', 'pixel_size',
+           'translate_detector_by_z', 'source_sample_distance', 'sample_detector_distance',
            'search_sample_detector_distance_meta_name', 'search_source_sample_distance_meta_name']
 detector_z_log = 'detectorZ'
 
@@ -237,12 +237,9 @@ def pixel_centers(input_workspace, indexes, shape=None):
     return positions
 
 
-def pixel_size(workspace):
-    """Find pixel size (X and Y) fro a workspace
-
-    Priority
-    1. pixel_size_x and pixel_size_y in workspace's logs
-    2. from instrument's detector info
+@namedtuplefy
+def logged_pixel_size(input_workspace):
+    """Find pixel size (X and Y) from the metadata within a workspace
 
     Parameters
     ----------
@@ -251,27 +248,51 @@ def pixel_size(workspace):
 
     Returns
     -------
-    float, float
-        pixel size X, pixel size Y
-
+    namedtuple
+        Fields of the named tuple are, in this order
+        - width, float or :py:obj:`None` if no pixel width is found in the logs
+        - height, float or :py:obj:`None` if no pixel height is found in the logs
     """
     # Get workspace
-    workspace = mtd[str(workspace)]
+    workspace = mtd[str(input_workspace)]
 
     # Get sample logs
     sample_logs = SampleLogs(workspace)
 
     if 'pixel_size_x' in sample_logs.keys() and 'pixel_size_y' in sample_logs.keys():
-        # Pixel size is from meta data
         pixel_size_x = sample_logs['pixel_size_x'].value
         pixel_size_y = sample_logs['pixel_size_y'].value
     else:
-        # Pixel size is from detector shape
-        det_shape = workspace.getDetector(0).shape().getBoundingBox().width()  # 3 values
-        pixel_size_x = det_shape[0]
-        pixel_size_y = det_shape[1]
+        pixel_size_x, pixel_size_y = None, None
 
-    return pixel_size_x, pixel_size_y
+    return {'width': pixel_size_x, 'height': pixel_size_y}
+
+
+@namedtuplefy
+def nominal_pixel_size(input_workspace):
+    """Find pixel size (X and Y) from the instrument geometry disregarding pixel calibrations like
+    barscan and tube-width.
+
+    We use the pixel dimensions of the first detector that is not a monitor detector.
+
+    Parameters
+    ----------
+    input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        workspace for detector size
+
+    Returns
+    -------
+    namedtuple
+        Fields of the named tuple are 'width' and 'height', in this order.
+    """
+    workspace = mtd[str(input_workspace)]  # handle to Mantid Workspace object
+    workspace_index = 0
+    while True:
+        detector = workspace.getDetector(workspace_index)
+        if detector.isMonitor() is False:
+            detector_shape = detector.shape().getBoundingBox().width()  # (X, Y, Z) values
+            return {'width': detector_shape.X(), 'height': detector_shape.Y()}
+        workspace_index += 1
 
 
 def get_instrument(source):

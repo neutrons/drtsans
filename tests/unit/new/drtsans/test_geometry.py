@@ -165,5 +165,14 @@ def test_translate_source_by_z(reference_dir):
     assert workspace.getInstrument().getComponentByName('moderator').getPos().Z() == pytest.approx(-7.283, abs=0.1)
 
 
+@pytest.mark.parametrize('instrument, pixel_size', [('BIOSANS', (0.00804, 0.00409)),
+                                                    ('EQSANS', (0.00804, 0.00409)),
+                                                    ('GPSANS', (0.00804, 0.00409))])
+def test_nominal_pixel_size(instrument, pixel_size):
+    workspace = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
+    assert geo.nominal_pixel_size(workspace) == pytest.approx(pixel_size, abs=1.0E-04)
+    workspace.delete()
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

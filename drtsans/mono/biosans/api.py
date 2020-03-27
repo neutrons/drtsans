@@ -70,7 +70,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         # reset user-overwriting wavelength and wavelength spread to None in case only 1 is specified
         wavelength = wavelength_spread_user = None
 
-
     if reduction_input["configuration"]["useDefaultMask"]:
         default_mask = [ast.literal_eval(mask_par) for mask_par in reduction_input["configuration"]["DefaultMask"]]
     else:

@@ -47,7 +47,7 @@ from drtsans.tubecollection import TubeCollection
 
 
 __all__ = ['apply_calibrations', 'as_intensities', 'calculate_apparent_tube_width',
-           'calculate_barscan_calibration', 'load_calibration']
+           'day_stamp', 'calculate_barscan_calibration', 'load_calibration']
 
 r"""Flags a problem when running the barscan algorithm that identifies the pixel corresponding
 to the bottom of the shadow cast by the bar on the detector array."""

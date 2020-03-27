@@ -1178,7 +1178,7 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         # Find residuals of correct pixels
         y_fitted = np.polynomial.polynomial.polyval(x_correct, coefficients)
         residuals = np.abs(y_correct - y_fitted)  # deviations between the linear fit and the actual positions
-        large_residual = np.average(residuals) + np.std(residuals)
+        large_residual = np.average(residuals) + 1.5 * np.std(residuals)
         # Find residuals of correct and incorrect pixels. Residuals for incorrect pixels are nonsense,
         # but we include them because we need array `residuals` and array `y` of same length.
         y_fitted = np.polynomial.polynomial.polyval(bar_positions, coefficients)

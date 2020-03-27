@@ -450,13 +450,13 @@ def test_biosans_tube_calibration(reference_dir):
     LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
 
     calibration_wing = calculate_apparent_tube_width(uncalibrated_workspace, component='wing_detector',
-                                                     load_barscan_calibration=True)
+                                                     load_barscan_calibration=False)
     calibrated_workspace = unique_workspace_dundername()
     calibration_wing.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
 
     def linear_density(workspace, component='detector1'):
         r"""Tube total intensity per unit length of tube width"""
-        collection = TubeCollection(workspace, component).sorted(view='decreasing X')
+        collection = TubeCollection(workspace, component).sorted(view='fbfb')
         intensities = np.array([np.sum(tube.readY) for tube in collection])
         widths = np.array([tube[0].width for tube in collection])
         return list(intensities / widths)

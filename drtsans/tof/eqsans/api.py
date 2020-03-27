@@ -161,8 +161,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
                                               'units': samplelogs[logslicename].units,
                                               'name': logslicename}
-
-            reduction_input["logslice_data"] = logslice_data_dict
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
@@ -171,6 +169,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
+
+    reduction_input["logslice_data"] = logslice_data_dict
+
 
     # load all other files
     for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
@@ -811,7 +812,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                              starttime=starttime,
                              specialparameters=specialparameters,
                              logslicedata=logslice_data_dict,
-                             samplelogs=samplelogs)
+                             samplelogs=samplelogs,
+                             )
 
     # change permissions to all files to allow overwrite
     allow_overwrite(reduction_input["configuration"]["outputDir"])

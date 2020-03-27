@@ -226,8 +226,8 @@ def _create_groupe(entry=None, name='Default', data=[], units=''):
     _entry_group.attrs['units'] = units
 
 
-def _save_logslicedata(logslicedata=None, index=0, topEntry=None):
-    if logslicedata is None:
+def _save_logslicedata(logslicedata={}, index=0, topEntry=None):
+    if logslicedata == {}:
         return
 
     nameGroup = logslicedata[str(index)]['name']
@@ -445,7 +445,7 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                     not ('iqxqy' in detectordata[_slice_name][_detector_name].keys()):
                 raise KeyError("Provide at least a iq and/or iqxqy keys to {}".format(filename))
 
-    logslicedata = kwargs.get('logslicedata', None)
+    logslicedata = kwargs.get('logslicedata', {})
     if logslicedata:
 
         if not type(logslicedata) is dict:

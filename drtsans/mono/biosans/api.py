@@ -86,6 +86,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             raise ValueError("Can't do slicing on summed data sets")
 
     # special loading case for sample to allow the slicing options
+    logslice_data_dict = {}
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -103,6 +104,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                    time_interval=timesliceinterval,
                                    log_name=logslicename, log_value_interval=logsliceinterval,
                                    **load_params)
+
             for _w in mtd[ws_name]:
                 _w = transform_to_wavelength(_w)
                 _w = set_init_uncertainties(_w)
@@ -117,6 +119,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                               pixel_size_y=None)
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
+
+            for n in range(mtd[ws_name].getNumberOfEntries()):
+                samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                              'units': samplelogs[logslicename].units,
+                                              'name': logslicename}
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
@@ -125,6 +133,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
+
+    reduction_input["logslice_data"] = logslice_data_dict
 
     # load all other files
     for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
@@ -888,6 +898,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     samplelogs = {'main': SampleLogs(processed_data_main),
                   'wing': SampleLogs(processed_data_wing)}
+    logslice_data_dict = reduction_input['logslice_data']
 
     savereductionlog(filename=filename,
                      detectordata=detectordata,
@@ -895,6 +906,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                      # pythonfile=pythonfile,
                      starttime=starttime,
                      specialparameters=specialparameters,
+                     logslicedata=logslice_data_dict,
                      samplelogs=samplelogs,
                      )
 

@@ -340,6 +340,17 @@ def test_slicelogdata_is_a_dict():
                          logslicedata=logslice_data_dict)
 
 
+def test_not_using_slicelogdata_if_empty():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+    logslice_data_dict = {}
+
+    savereductionlog(tmp_log_filename,
+                     detectordata=detectordata,
+                     logslicedata=logslice_data_dict)
+
+
 def test_slicelogdata_not_bigger_than_detectordata():
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()

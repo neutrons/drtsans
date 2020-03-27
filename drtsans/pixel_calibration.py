@@ -28,9 +28,9 @@ SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
 from mantid.simpleapi import (ApplyCalibration, ClearMaskFlag, CloneWorkspace, CreateEmptyTableWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
-                              LoadEventNexus, LoadNexus, MaskDetectors, MaskDetectorsIf, Rebin,
-                              ReplaceSpecialValues, SaveNexus)
-from mantid.api import mtd
+                              LoadEventNexus, LoadNexus, LoadNexusProcessed, MaskDetectors, MaskDetectorsIf,
+                              Rebin, ReplaceSpecialValues, SaveNexus)
+from mantid.api import FileLoaderRegistry, mtd
 
 r"""
 Hyperlinks to drtsans functions
@@ -64,6 +64,25 @@ class CalType(enum.Enum):
     r"""Enumerate the possible types of pixel calibrations"""
     BARSCAN = 'BARSCAN'
     TUBEWIDTH = 'TUBEWIDTH'
+
+
+def loader_algorithm(input_file):
+    r"""
+    Determine which Mantid algorithm to use to load a file.
+
+    If a specialized loading algorithm can't be found, then `Load` algorithm is returned.
+
+    Parameters
+    ----------
+    input_file: str
+
+    Returns
+    -------
+    ~mantid.api.Algorithm
+    """
+    loaders = {'LoadNexusProcessed': LoadNexusProcessed, 'LoadEventNexus': LoadEventNexus}
+    loader_name = FileLoaderRegistry.Instance().chooseLoader(input_file).name()
+    return loaders.get(loader_name, Load)
 
 
 def day_stamp(input_workspace):
@@ -930,12 +949,13 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
         # determine if the list contains files or workspaces
         first_scan = barscan_dataset[0]
         if isinstance(first_scan, str) and os.path.exists(first_scan):  # list of files, thus load into workspaces
+            loader = loader_algorithm(barscan_dataset[0])
             barscan_workspaces = list()
             barscan_workspace_basename = unique_workspace_dundername()
             for scan_index, scan_data in enumerate(barscan_dataset):
                 barscan_workspace = f'{barscan_workspace_basename}_{scan_index:03d}'
                 temporary_workspaces.append(barscan_workspace)
-                Load(scan_data, OutputWorkspace=barscan_workspace)
+                loader(scan_data, OutputWorkspace=barscan_workspace)
                 barscan_workspaces.append(barscan_workspace)
         else:  # barscan_dataset is a set of workspaces
             barscan_workspaces = barscan_dataset

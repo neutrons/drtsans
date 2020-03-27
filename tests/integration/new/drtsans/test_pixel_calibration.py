@@ -394,6 +394,15 @@ def test_gpsans_calibration(reference_dir, clean_workspace):
 
 
 @pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
+def test_biosans_main_detector_barscan(reference_dir):
+    formula = '{y} - 565'
+    data_dir = path_join(reference_dir.new.biosans, 'pixel_calibration', 'runs_838_953')
+    first_run, last_run = 838, 953
+    barscan_files = [path_join(data_dir, f'CG3_{run}.nxs') for run in range(first_run, 1 + last_run)]
+    calibration = calculate_barscan_calibration(barscan_files, formula='{y} - 565')
+
+
+@pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
 def test_debug_biosans_wing_detector_barscan(reference_dir):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     data_dir = '/HFIR/CG3/IPTS-23782/nexus/'

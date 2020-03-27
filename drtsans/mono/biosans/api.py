@@ -85,6 +85,30 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if len(sample.split(',')) > 1:
             raise ValueError("Can't do slicing on summed data sets")
 
+    # sample thickness
+    try:
+        # thickness is written to sample log if it is defined...
+        # FIXME - thickness is used in reduce_configuration... - shall these 2 places more unified?
+        thickness = float(reduction_input['thickness'])
+    except ValueError:
+        thickness = None
+
+    # sample aperture diameter in mm
+    try:
+        sample_aperture_diameter = float(reduction_input['configuration']['sampleApertureSize'])
+    except ValueError:
+        sample_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sampleApertureSize" under "configuration" section in JSON file')
+
+    # source aperture diameter in mm
+    try:
+        source_aperture_diameter = float(reduction_input['configuration']['sourceApertureDiameter'])
+    except ValueError:
+        source_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sourceApertureDiameter" under "configuration" section in JSON file')
+
     # special loading case for sample to allow the slicing options
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
@@ -110,9 +134,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 set_meta_data(str(_w),
                               wave_length=wavelength,
                               wavelength_spread=wavelengthSpread,
-                              sample_thickness=None,
-                              sample_aperture_diameter=None,
-                              source_aperture_diameter=None,
+                              sample_thickness=thickness,
+                              sample_aperture_diameter=sample_aperture_diameter,
+                              source_aperture_diameter=source_aperture_diameter,
                               pixel_size_x=None,
                               pixel_size_y=None)
                 for btp_params in default_mask:
@@ -125,6 +149,16 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
+
+        # Overwrite meta data
+        set_meta_data(ws_name,
+                      wave_length=wavelength,
+                      wavelength_spread=wavelengthSpread,
+                      sample_thickness=thickness,
+                      sample_aperture_diameter=sample_aperture_diameter,
+                      source_aperture_diameter=source_aperture_diameter,
+                      pixel_size_x=None,
+                      pixel_size_y=None)
 
     # load all other files
     for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
@@ -585,6 +619,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         mask_panel = 'back'
     output_suffix = ''
     try:
+        # thickness is written to sample log if it is defined...
         thickness = float(reduction_input['thickness'])
     except ValueError:
         thickness = 1.

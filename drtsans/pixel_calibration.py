@@ -1240,14 +1240,14 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     # Update pixel positions and heights with the appropriate calibration, if so requested.
     if load_barscan_calibration is True:
         calibration = load_calibration(input_workspace, 'BARSCAN', component=component)
-        calibration.apply(input_workspace)
+        calibration.apply(integrated_intensities)
 
     # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated
     # intensity is stored as nan.
     #
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
-    collection = TubeCollection(integrated_intensities, component).sorted(view='decreasing X')  # BOTTLENECK
+    collection = TubeCollection(integrated_intensities, component).sorted(view='fbfb')  # BOTTLENECK
     detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
     count_densities = list()
     for tube in collection:

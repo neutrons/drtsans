@@ -565,6 +565,9 @@ class TubeCollection(ElementComponentInfo):
             Reverse the order resulting from application of ``key`` or ``view``
         view: str
             Built-in permutations of the tubes prescribing a particular order. Valid views are:
+            - 'fbfb': order the tubes alternating front tube and back tube. It is assumed that all front tubes
+            are first listed in the instrument definition file for the double panel, followed by the back tubes. It
+            is also assumed the number of front and back tubes is the same.
             - 'decreasing X': order the tubes by decreasing X-coordinate. This view can "flatten" a double
             detector panel when viewed from the sample "from left to right".
             - 'workspace index': order the tubes by increasing workspace index for the first pixel of each tube.
@@ -573,7 +576,13 @@ class TubeCollection(ElementComponentInfo):
             return sorted(self._tubes, key=key, reverse=reverse)
         permutation = self._sorting_permutations.get(view, None)
         if permutation is None:
-            if view == 'decreasing X':  # initialize this view
+            if view == 'fbfb':
+                number_front_tubes = int(len(self.tubes) / 2)  # also the number of back tubes
+                permutation = []
+                for i in range(number_front_tubes):
+                    permutation.extend([i, i + number_front_tubes])
+                self._sorting_permutations['fbfb'] = permutation
+            elif view == 'decreasing X':  # initialize this view
                 x_coords = [tube.position[0] for tube in self.tubes]  # X coords of each tube
                 permutation = np.flip(np.argsort(x_coords), axis=0).tolist()
                 self._sorting_permutations['decreasing X'] = permutation
@@ -581,5 +590,6 @@ class TubeCollection(ElementComponentInfo):
                 # spectrum index of first pixel for each tube
                 permutation = np.argsort([tube.spectrum_info_index[0] for tube in self.tubes])
                 self._sorting_permutations['workspace index'] = permutation
+
         sorted_list = [self._tubes[i] for i in permutation]
         return sorted_list if reverse is False else sorted_list[::-1]

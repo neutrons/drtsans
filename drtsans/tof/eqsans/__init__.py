@@ -17,6 +17,9 @@ from ...geometry import *
 import drtsans.iq
 from ...iq import *
 
+import drtsans.mask_utils
+from ...mask_utils import *
+
 import drtsans.path
 from ...path import *
 
@@ -50,6 +53,7 @@ __all__ = [] + drtsans.absolute_units.__all__ \
           + ['load_iqmod', 'save_iqmod'] \
           + drtsans.geometry.__all__ \
           + drtsans.iq.__all__ \
+          + drtsans.mask_utils.__all__ \
           + drtsans.path.__all__\
           + drtsans.pixel_calibration.__all__ \
           + drtsans.stitch.__all__\

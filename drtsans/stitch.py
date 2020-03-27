@@ -39,10 +39,13 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
     def scaling(target, to_target, starting_q, ending_q):
         r"""Utility function to find the scaling factor bringing the to_target profile to the target profile scaling"""
         # Find the data points of the "target" profile in the overlap region
-        indexes_in_overlap = (target.mod_q > starting_q) & (target.mod_q < ending_q)
+        indexes_in_overlap = (target.mod_q > starting_q) & (target.mod_q < ending_q) & np.isfinite(target.intensity)
         q_values_in_overlap = target.mod_q[indexes_in_overlap]
         # Interpolate the "to_target" profile intensities at the previously found Q values
-        to_target_interpolated = np.interp(q_values_in_overlap, to_target.mod_q, to_target.intensity)
+        good_values = np.isfinite(to_target.intensity)
+        to_target_interpolated = np.interp(q_values_in_overlap,
+                                           to_target.mod_q[good_values],
+                                           to_target.intensity[good_values])
         return sum(target_profile.intensity[indexes_in_overlap]) / sum(to_target_interpolated)
 
     # We begin stitching to the target profile the neighboring profile with lower Q-values, then proceed until we

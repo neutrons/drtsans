@@ -115,8 +115,8 @@ def data_apparent_tube_width():
                 c_ave=23.9550264550265,
                 c_front=23.8095238095238,
                 c_back=24.136902499999998,
-                w_front=5.46659304251795,
-                w_back=5.54175869685257,
+                w_front=5.546405300938707,
+                w_back=5.441993373826614,
                 precision=2.e-02,  # precision to compare reduction framework to test results
                 )
 
@@ -163,9 +163,11 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     modified_flood_workspace = unique_workspace_dundername()  # new workspace
     calibration.apply(flood_workspace, output_workspace=modified_flood_workspace)
 
-    # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
-    # sample and iterating over the tubes "from left to right"
-    collection = TubeCollection(modified_flood_workspace, 'detector1').sorted(view='decreasing X')
+    # Sort the tubes assuming the ordering of the SANS instruments. In these instruments, the first half of the
+    # tubes in the instrument definition file correspond to front tubes, followed by the back tubes. We
+    # apply a permutation such that the order of the tubes in a SANS instrument would alternate front and
+    # back tubes (hence the view='fbfb')
+    collection = TubeCollection(modified_flood_workspace, 'detector1').sorted(view='fbfb')
     last_tube_index = len(collection) - 1  # number of tubes, minus one because indexes begin at zero, not one
     last_pixel_index = len(collection[last_tube_index]) - 1  # number of pixels in each tube, minus one
 
@@ -177,7 +179,7 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     # We do the same but now we overwrite the instrument embedded in the input workspace
     calibration = calculate_apparent_tube_width(flood_workspace, load_barscan_calibration=False)
     calibration.apply(flood_workspace)
-    collection = TubeCollection(flood_workspace, 'detector1').sorted(view='decreasing X')
+    collection = TubeCollection(flood_workspace, 'detector1').sorted(view='fbfb')
     assert collection[0][0].width * 1.e3 == pytest.approx(data.w_front, abs=data.precision)
     last_tube_index = len(collection) - 1  # number of tubes, minus one because indexes begin at zero, not one
     last_pixel_index = len(collection[0]) - 1  # number of pixels in each tube, minus one
@@ -392,6 +394,15 @@ def test_gpsans_calibration(reference_dir, clean_workspace):
 
 
 @pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
+def test_biosans_main_detector_barscan(reference_dir):
+    data_dir = path_join(reference_dir.new.biosans, 'pixel_calibration', 'runs_838_953')
+    first_run, last_run = 838, 953
+    barscan_files = [path_join(data_dir, f'CG3_{run}.nxs') for run in range(first_run, 1 + last_run)]
+    calibration = calculate_barscan_calibration(barscan_files, formula='{y} - 565')
+    print(calibration)
+
+
+@pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
 def test_debug_biosans_wing_detector_barscan(reference_dir):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     data_dir = '/HFIR/CG3/IPTS-23782/nexus/'
@@ -425,11 +436,38 @@ def test_gpsans_tube_calibration(reference_dir):
         return list(intensities / widths)
 
     def amplitude(density):
+        r"""ratio of fluctuations to the mean, a sort of amplitude if ``density`` is wave-like"""
         return np.std(density) / np.mean(density)
 
     uncalibrated_densities = linear_density(uncalibrated_workspace)
     calibrated_densities = linear_density(calibrated_workspace)
     assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.13, abs=0.01)
+
+
+def test_biosans_tube_calibration(reference_dir):
+    flood_file = path_join(reference_dir.new.biosans, 'pixel_calibration', 'flood_files', 'CG3_4829.nxs')
+    uncalibrated_workspace = unique_workspace_dundername()
+    LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
+
+    calibration_wing = calculate_apparent_tube_width(uncalibrated_workspace, component='wing_detector',
+                                                     load_barscan_calibration=False)
+    calibrated_workspace = unique_workspace_dundername()
+    calibration_wing.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
+
+    def linear_density(workspace, component='detector1'):
+        r"""Tube total intensity per unit length of tube width"""
+        collection = TubeCollection(workspace, component).sorted(view='fbfb')
+        intensities = np.array([np.sum(tube.readY) for tube in collection])
+        widths = np.array([tube[0].width for tube in collection])
+        return list(intensities / widths)
+
+    def amplitude(density):
+        r"""ratio of fluctuations to the mean, a sort of amplitude if ``density`` is wave-like"""
+        return np.std(density) / np.mean(density)
+
+    uncalibrated_densities = linear_density(uncalibrated_workspace, component='wing_detector')
+    calibrated_densities = linear_density(calibrated_workspace, component='wing_detector')
+    assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.38, abs=0.01)
 
 
 if __name__ == '__main__':

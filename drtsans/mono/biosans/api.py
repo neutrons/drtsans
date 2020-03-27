@@ -85,6 +85,34 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if len(sample.split(',')) > 1:
             raise ValueError("Can't do slicing on summed data sets")
 
+    # sample thickness
+    try:
+        # thickness is written to sample log if it is defined...
+        # FIXME - thickness is used in reduce_configuration... - shall these 2 places more unified?
+        thickness = float(reduction_input['thickness'])
+    except ValueError:
+        thickness = None
+
+    # sample aperture diameter in mm
+    try:
+        sample_aperture_diameter = float(reduction_input['configuration']['sampleApertureSize'])
+    except ValueError:
+        sample_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sampleApertureSize" under "configuration" section in JSON file')
+
+    # source aperture diameter in mm
+
+    print("---> reduction_input")
+    print(reduction_input)
+
+    try:
+        source_aperture_diameter = float(reduction_input['configuration']['sourceApertureDiameter'])
+    except ValueError:
+        source_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sourceApertureDiameter" under "configuration" section in JSON file')
+
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
@@ -112,9 +140,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 set_meta_data(str(_w),
                               wave_length=wavelength,
                               wavelength_spread=wavelengthSpread,
-                              sample_thickness=None,
-                              sample_aperture_diameter=None,
-                              source_aperture_diameter=None,
+                              sample_thickness=thickness,
+                              sample_aperture_diameter=sample_aperture_diameter,
+                              source_aperture_diameter=source_aperture_diameter,
                               pixel_size_x=None,
                               pixel_size_y=None)
                 for btp_params in default_mask:
@@ -595,6 +623,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         mask_panel = 'back'
     output_suffix = ''
     try:
+        # thickness is written to sample log if it is defined...
         thickness = float(reduction_input['thickness'])
     except ValueError:
         thickness = 1.
@@ -791,8 +820,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
             print('found wedge angles:')
-            for left, right in wedges:
-                print('  {:.1f} to {:.1f}'.format(left, right))
+            peak_wedge, back_wedge = wedges
+            print('    peak:      ', peak_wedge)
+            print('    background:', back_wedge)
+            del peak_wedge, back_wedge
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_input["configuration"]["wedges"] = wedges

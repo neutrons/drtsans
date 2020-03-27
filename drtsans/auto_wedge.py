@@ -82,7 +82,13 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     min_vec[min_vec > 270.] -= 360.
     max_vec[max_vec > 270.] -= 360.
 
-    return list(zip(min_vec, max_vec))
+    # put wedges on opposite sides together
+    raw_wedges = list(zip(min_vec, max_vec))
+    summing_wedges = []
+    for i in range(len(raw_wedges) // 2):  # iterate over half the list
+        summing_wedges.append((raw_wedges[i], raw_wedges[i+2]))
+
+    return summing_wedges
 
 
 def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):

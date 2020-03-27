@@ -13,7 +13,7 @@ from drtsans import getWedgeSelection
 from drtsans.mono import biosans
 from drtsans.plots import plot_IQazimuthal
 # test internal function _toQmodAndAzimuthal as well
-from drtsans.iq import _toQmodAndAzimuthal, BinningMethod, bin_intensity_into_q2d, select_i_of_q_by_wedge
+from drtsans.iq import _toQmodAndAzimuthal, BinningMethod, bin_intensity_into_q2d, select_i_of_q_by_wedge, bin_all
 from matplotlib.colors import LogNorm # noqa E402
 from mantid.simpleapi import LoadNexusProcessed
 from tempfile import NamedTemporaryFile
@@ -412,37 +412,40 @@ def test_integration():
     q_delta = 1.
 
     # run the function
-    mins_and_maxes = getWedgeSelection(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
-                                       azimuthal_delta=azimuthal_delta)
+    wedges = getWedgeSelection(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
+                               azimuthal_delta=azimuthal_delta)
 
     # tests
-    assert len(mins_and_maxes) == 4
-    for min_val, max_val in mins_and_maxes:
-        print(min_val, '<', max_val)
-        assert -90. < min_val < 270.
-        assert -90. < max_val < 270.
+    assert len(wedges) == 2
+    for wedge in wedges:
+        for min_val, max_val in wedge:
+            print(min_val, '<', max_val)
+            assert -90. < min_val < 270.
+            assert -90. < max_val < 270.
+    peak_wedge, back_wedge = wedges
 
+    # verify peaks
     # first peak
-    assert 0.5 * (mins_and_maxes[0][0] + mins_and_maxes[0][1]) == pytest.approx(180., abs=3.), \
-        'First center is at 180.'
-    assert mins_and_maxes[0][0] == pytest.approx(171., abs=.5)
-    assert mins_and_maxes[0][1] == pytest.approx(195., abs=.5)
-
-    # first background - the extra 360 is to get around the circle
-    assert 0.5 * (mins_and_maxes[1][0] + mins_and_maxes[1][1] + 360) == pytest.approx(272., abs=1.2), \
-        'Second center is at 270.'
-    assert mins_and_maxes[1][0] == pytest.approx(255., abs=.5)
-    assert mins_and_maxes[1][1] == pytest.approx(-69., abs=.5)
-
+    assert 0.5 * (peak_wedge[0][0] + peak_wedge[0][1]) == pytest.approx(180., abs=3.), \
+        'First peak center is at 180.'
+    assert peak_wedge[0][0] == pytest.approx(171., abs=.5)
+    assert peak_wedge[0][1] == pytest.approx(195., abs=.5)
     # second peak
-    assert 0.5 * (mins_and_maxes[2][0] + mins_and_maxes[2][1]) == pytest.approx(3., abs=1.), 'Third center is at 0.'
-    assert mins_and_maxes[2][0] == pytest.approx(-9., abs=.5)
-    assert mins_and_maxes[2][1] == pytest.approx(16., abs=.5)
+    assert 0.5 * (peak_wedge[1][0] + peak_wedge[1][1]) == pytest.approx(3., abs=1.), 'Second peak center is at 0.'
+    assert peak_wedge[1][0] == pytest.approx(-9., abs=.5)
+    assert peak_wedge[1][1] == pytest.approx(16., abs=.5)
 
+    # verify background
+    # first background - the extra 360 is to get around the circle
+    assert 0.5 * (back_wedge[0][0] + back_wedge[0][1] + 360) == pytest.approx(272., abs=1.2), \
+        'First background center is at 270.'
+    assert back_wedge[0][0] == pytest.approx(255., abs=.5)
+    assert back_wedge[0][1] == pytest.approx(-69., abs=.5)
     # second background
-    assert 0.5 * (mins_and_maxes[3][0] + mins_and_maxes[3][1]) == pytest.approx(90., abs=5.), 'Forth center is at 90.'
-    assert mins_and_maxes[3][0] == pytest.approx(76., abs=.5)
-    assert mins_and_maxes[3][1] == pytest.approx(111., abs=.5)
+    assert 0.5 * (back_wedge[1][0] + back_wedge[1][1]) == pytest.approx(90., abs=5.), \
+        'Second background center is at 90.'
+    assert back_wedge[1][0] == pytest.approx(76., abs=.5)
+    assert back_wedge[1][1] == pytest.approx(111., abs=.5)
 
 
 def test_real_data_biosans(reference_dir):
@@ -455,22 +458,30 @@ def test_real_data_biosans(reference_dir):
     ws_mb.delete()
 
     # convert to I(qx,qy)
+    q1d_data = biosans.convert_to_q(ws_ms, mode='scalar')
     q2d_data = biosans.convert_to_q(ws_ms, mode='azimuthal')
     ws_ms.delete()
 
     # calculate the wedge angles to use
     wedge_angles = getWedgeSelection(q2d_data, 0.00, 0.001, 0.02, 0.5, peak_width=0.25,
                                      background_width=1.5, signal_to_noise_min=1.2)
-    assert len(wedge_angles) == 4, 'Expect 4 separate wedges'
+    assert len(wedge_angles) == 2, 'Expect 2 separate wedges'
 
     # use these to integrate the wedges
-    for azi_min, azi_max in wedge_angles:
-        print('integrating from {}deg to {} deg'.format(azi_min, azi_max))
-        iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
-        assert iq_wedge
+    for wedges in wedge_angles:
+        for azi_min, azi_max in wedges:
+            print('integrating from {}deg to {} deg'.format(azi_min, azi_max))
+            iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
+            assert iq_wedge
+
+    # test bin_all
+    nbins = 100.
+    iq2d_rebinned, iq1d_rebinned = bin_all(q2d_data, q1d_data, nxbins=nbins, nybins=nbins, n1dbins=nbins,
+                                           bin1d_type='wedge',
+                                           wedges=wedge_angles, symmetric_wedges=False, error_weighted=False)
+    assert len(iq1d_rebinned) == 2, 'Expect exactly 2 output 1d spectra'
 
     # rebin the data onto a regular grid for plotting
-    nbins = 100.
     linear_x_bins = determine_1d_linear_bins(q2d_data.qx.min(), q2d_data.qx.max(), nbins)
     linear_y_bins = determine_1d_linear_bins(q2d_data.qy.min(), q2d_data.qy.max(), nbins)
     q2d_data = bin_intensity_into_q2d(q2d_data, linear_x_bins, linear_y_bins, BinningMethod.NOWEIGHT)

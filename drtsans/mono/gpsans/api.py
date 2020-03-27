@@ -94,8 +94,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         thickness = None
 
     # sample aperture diameter in mm
+    print(">>>>>>> reduction_input")
+    print(reduction_input)
     try:
-        sample_aperture_diameter = float(reduction_input['sampleApertureSize'])
+        sample_aperture_diameter = float(reduction_input['configuration']['sampleApertureSize'])
     except ValueError:
         sample_aperture_diameter = None
     except KeyError:
@@ -103,13 +105,14 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     # source aperture diameter in mm
     try:
-        source_aperture_diameter = float(reduction_input['sourceApertureDiameter'])
+        source_aperture_diameter = float(reduction_input['configuration']['sourceApertureDiameter'])
     except ValueError:
         source_aperture_diameter = None
     except KeyError:
         raise KeyError('Please add "sourceApertureDiameter" under "configuration" section in JSON file')
 
     # special loading case for sample to allow the slicing options
+    logslice_data_dict = {}
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -141,6 +144,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                               pixel_size_y=None)
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
+
+                for n in range(mtd[ws_name].getNumberOfEntries()):
+                    samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                    logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                                  'units': samplelogs[logslicename].units,
+                                                  'name': logslicename}
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
@@ -159,6 +168,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       source_aperture_diameter=source_aperture_diameter,
                       pixel_size_x=None,
                       pixel_size_y=None)
+
+    reduction_input['logslice_data'] = logslice_data_dict
 
     # load all other files
     for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
@@ -876,12 +887,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          'background_transmission': background_transmission_dict,
                          }
     samplelogs = {'main': SampleLogs(processed_data_main)}
+    logslice_data_dict = reduction_input['logslice_data']
+
     savereductionlog(filename=filename,
                      detectordata=detectordata,
                      reductionparams=reductionparams,
                      # pythonfile=pythonfile,
                      starttime=starttime,
                      specialparameters=specialparameters,
+                     logslicedata=logslice_data_dict,
                      samplelogs=samplelogs,
                      )
 

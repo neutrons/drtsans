@@ -328,6 +328,68 @@ def test_writing_iq_scalar_mode():
                    abs=1e-6)
 
 
+def test_slicelogdata_is_a_dict():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    logslice_data_dict = "I'm a string"
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+
+    with pytest.raises(RuntimeError):
+        savereductionlog(tmp_log_filename,
+                         detectordata=detectordata,
+                         logslicedata=logslice_data_dict)
+
+
+def test_not_using_slicelogdata_if_empty():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+    logslice_data_dict = {}
+
+    savereductionlog(tmp_log_filename,
+                     detectordata=detectordata,
+                     logslicedata=logslice_data_dict)
+
+
+def test_slicelogdata_not_bigger_than_detectordata():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    logslice_data_dict = {'0': {'data': list([1, 2, 3]),
+                                'units': 'm'},
+                          '1': {'data': list([1, 2, 3]),
+                                'units': 'm'}}
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+
+    with pytest.raises(ValueError):
+        savereductionlog(tmp_log_filename,
+                         detectordata=detectordata,
+                         logslicedata=logslice_data_dict)
+
+
+def test_writing_slicelogdata():
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    logslice_data_dict = {'0': {'data': list([1, 2, 3]),
+                                'units': 'm',
+                                'name': 'my_slice_variable',
+                                }
+                          }
+    detectordata = {'slice_1': {'main_detector': {'iq': test_iq}}}
+    savereductionlog(tmp_log_filename,
+                     detectordata=detectordata,
+                     logslicedata=logslice_data_dict)
+
+    assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, 'r') as handle:
+        top_group = _getGroup(handle, 'slice_1', 'NXdata')
+        logslice_data = _getGroup(top_group, 'my_slice_variable', 'NXdata')
+
+        data = logslice_data['data'][:]
+        _test_data(tested_data=data,
+                   ref_data=list([1, 2, 3]))
+
+
 def test_writing_iqxqy():
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()

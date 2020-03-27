@@ -73,17 +73,21 @@ def valid_wedge(min_angle, max_angle):
         the function returns two wedges [(min_angle,270.1),(-90.1,max_angle)]
     """
     if min_angle >= 270. or min_angle < -90:
-        raise ValueError("minimum angle not in the [-90,270) range")
+        raise ValueError("minimum angle not in the [-90,270) range: {:.1f}".format(min_angle))
     if max_angle >= 270. or max_angle < -90:
-        raise ValueError("maximum angle not in the [-90,270) range")
+        raise ValueError("maximum angle not in the [-90,270) range: {:.1f}".format(max_angle))
     if max_angle == min_angle:
-        raise ValueError("maximum angle = minimum angle")
+        raise ValueError("maximum angle = minimum angle: {:.1f} == {:.1f}".format(min_angle, max_angle))
     if max_angle > min_angle:
-        if max_angle - min_angle < 180.:
+        diff = max_angle - min_angle
+        if diff < 180.:
             return [(min_angle, max_angle)]
-        raise ValueError("wedge angle is greater than 180 degrees")
-    if (min_angle - max_angle <= 180):
-        raise ValueError("wedge angle is greater than 180 degrees")
+        raise ValueError("wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} < 180"
+                         "".format(max_angle, min_angle, diff))
+    diff = min_angle - max_angle
+    if (diff <= 180):
+        raise ValueError("wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} <= 180"
+                         "".format(min_angle, max_angle, diff))
     return [(min_angle, 270.1), (-90.1, max_angle)]
 
 
@@ -104,8 +108,9 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
     list
         (min_angle, max_angle) tuples.
     """
-    wedges = valid_wedge(min_angle, max_angle)
     if symmetric_wedges:
+        wedges = valid_wedge(min_angle, max_angle)
+        # create the opposite side and add it
         opp_min = min_angle + 180.
         opp_max = max_angle + 180.
         if opp_min >= 270:
@@ -113,6 +118,13 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
         if opp_max >= 270.:
             opp_max -= 360
         wedges.extend(valid_wedge(opp_min, opp_max))
+    else:
+        # in this case min_angle and max_angle are actually two wedges
+        # that should be summed together
+        wedges = []
+        wedges.extend(valid_wedge(*min_angle))
+        wedges.extend(valid_wedge(*max_angle))
+
     return wedges
 
 
@@ -209,6 +221,9 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         elif bin1d_type == 'wedge':
             unbinned_1d = []
             for wedge in wedges:
+                if len(wedge) > 2 and not symmetric_wedges:
+                    raise NotImplementedError('Do not know how to combine more than 2 wedges (found {}) in '
+                                              'non-symmetric mode'.format(len(wedge)))
                 wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
                 wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, wa[0], wa[1]) for wa in wedge_angles]
                 unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))

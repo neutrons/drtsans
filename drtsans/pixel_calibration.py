@@ -1167,18 +1167,25 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
             y[jump_index:] = INCORRECT_PIXEL_ASSIGNMENT
         # Correct corner case 2
         y = bottom_shadow_pixels[:, tube_index]  # bar positions in pixel coordinates
-        x = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
+        # Filter out bad pixels
+        y_correct = y[y != INCORRECT_PIXEL_ASSIGNMENT]
+        x_correct = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
         # Linear fit between bar positions in pixel coordinates and mili-meters
         try:
-            coefficients = np.polynomial.polynomial.polyfit(x, y[y != INCORRECT_PIXEL_ASSIGNMENT], 1)
-        except TypeError:  # empty array `x`, meaning this tube was masked or malfunctioning
+            coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
+        except TypeError:  # empty array `x_correct`, meaning this tube was masked or malfunctioning
             continue
+        # Find residuals of correct pixels
+        y_fitted = np.polynomial.polynomial.polyval(x_correct, coefficients)
+        residuals = np.abs(y_correct - y_fitted)  # deviations between the linear fit and the actual positions
+        large_residual = np.average(residuals) + np.std(residuals)
+        # Find residuals of correct and incorrect pixels. Residuals for incorrect pixels are nonsense,
+        # but we include them because we need array `residuals` and array `y` of same length.
         y_fitted = np.polynomial.polynomial.polyval(bar_positions, coefficients)
-        residuals = np.abs(y - y_fitted)  # deviations between the linear fit and the actual positions
-        # We flag as incorrect assignments those positions largely deviating from the linear fit.
-        # A "large deviation" is defined as bigger than the average deviation plus twice the standard
-        # deviation of the set of deviations from the linear fit
-        y[residuals > np.average(residuals) + 2 * np.std(residuals)] = INCORRECT_PIXEL_ASSIGNMENT
+        residuals = np.abs(y - y_fitted)
+        # We flag as incorrect assignments those correct pixels with bar positions largely deviating from the linear
+        # fit. The incorrect pixels already have nonsense large residuals
+        y[(residuals > large_residual) & (y != INCORRECT_PIXEL_ASSIGNMENT)] = INCORRECT_PIXEL_ASSIGNMENT
 
 
 def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True):

@@ -172,7 +172,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     reduction_input["logslice_data"] = logslice_data_dict
 
-
     # load all other files
     for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
         if run_number:

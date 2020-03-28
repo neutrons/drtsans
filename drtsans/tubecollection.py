@@ -390,6 +390,9 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         SpectrumInfo.__init__(self, workspace, workspace_indexes)
         ElementComponentInfo.__init__(self, workspace.componentInfo(), component_info_index)
 
+    def __len__(self):
+        return len(self.spectrum_info_index)
+
     @property
     def detector_info_index(self):
         r"""Array of detector info indexes for the pixels contained in the tube."""
@@ -571,7 +574,7 @@ class TubeCollection(ElementComponentInfo):
         return self.tubes[item]
 
     def __len__(self):
-        return len(self.spectrum_info_index)
+        return len(self.tubes)
 
     @property
     def tubes(self):

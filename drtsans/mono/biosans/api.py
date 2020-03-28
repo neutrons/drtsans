@@ -61,18 +61,13 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
+
+    # Parse wave length and wave length spread
     try:
         wavelength = float(reduction_input["configuration"]["wavelength"])
         wavelength_spread_user = float(reduction_input["configuration"]["wavelengthSpread"])
     except ValueError:
         wavelength = wavelength_spread_user = None
-    # if wavelength and wavelength_spread_user:
-    #     # load_params["wavelength"] = wavelength
-    #     # load_params["wavelengthSpread"] = wavelength_spread_user
-    #     pass   # wavelength and wavelengthSpread not supported by LoadEventNexus at all
-    # else:
-    #     # reset user-overwriting wavelength and wavelength spread to None in case only 1 is specified
-    #     wavelength = wavelength_spread_user = None
 
     if reduction_input["configuration"]["useDefaultMask"]:
         default_mask = [ast.literal_eval(mask_par) for mask_par in reduction_input["configuration"]["DefaultMask"]]
@@ -177,15 +172,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                           pixel_size_y=None)
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
-                # Check
-                output_ws = mtd[str(ws_name)]
-                ws_run = output_ws.getRun()
-                print('DEBUG wzz: Workspace {}'.format(ws_name))
-                print('Wavelength: {}'.format(ws_run['wavelength']))
-                print('{}'.format(ws_run['wavelength'].getStatistics().mean))
-                print('Wavelength spread: {}'.format(ws_run['wavelength_spread']))
-                print('{}'.format(ws_run['wavelength_spread'].getStatistics().mean))
                 transform_to_wavelength(ws_name)
+            print('[META] Wavelength is set to {} and {}'
+                  ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
+
             # Apply mask
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)

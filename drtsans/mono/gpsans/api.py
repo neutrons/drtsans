@@ -61,14 +61,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
-    wavelength = reduction_input["configuration"]["wavelength"]
-    wavelength_spread_user = reduction_input["configuration"]["wavelengthSpread"]
-    if wavelength and wavelength_spread_user:
-        # load_params["wavelength"] = wavelength
-        # load_params["wavelengthSpread"] = wavelength_spread_user
-        pass  # load_params will be used by LoadEventNexus which does not recognize wavelength/wavelengthSpread
-    else:
-        # reset user-overwriting wavelength and wavelength spread to None in case only 1 is specified
+    try:
+        wavelength = float(reduction_input["configuration"]["wavelength"])
+        wavelength_spread_user = float(reduction_input["configuration"]["wavelengthSpread"])
+    except ValueError:
         wavelength = wavelength_spread_user = None
 
     if reduction_input["configuration"]["useDefaultMask"]:
@@ -174,6 +170,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)
+            print('[META] Wavelength is set to {} and {}'
+                  ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
+
             # Apply mask
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)

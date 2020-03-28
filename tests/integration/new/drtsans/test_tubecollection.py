@@ -32,8 +32,8 @@ class TestTubeCollection(object):
         assert len(collection.wing) == 160
 
     def test_getitem(self, collection):
-        assert collection.main[0][0].position == pytest.approx([0.53, -0.52, 3.05], abs=0.01)  # first pixel
-        assert collection.main[-1][-1].position == pytest.approx([0.53, -0.52, 3.05], abs=0.01)  # last pixel
+        assert collection.main[0][0].position == pytest.approx([0.53, -0.52, 0.00], abs=0.01)  # first pixel
+        assert collection.main[-1][-1].position == pytest.approx([-0.53, 0.52, 0.00], abs=0.01)  # last pixel
 
     def test_sorted(self, collection):
         # Sort by decreasing tube position along the X-axis

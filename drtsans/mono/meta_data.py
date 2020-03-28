@@ -1,5 +1,5 @@
 # Method in this module is to set meta data to SANS Mantid Workspaces
-from mantid.simpleapi import AddSampleLogMultiple
+from mantid.simpleapi import AddSampleLogMultiple, AddSampleLog
 from mantid.simpleapi import mtd
 
 
@@ -45,11 +45,15 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
 
     # Wave length
     if wave_length is not None:
-        meta_data_list.append(('wavelength', np.array([wave_length, wave_length]), 'A'))
+        # meta_data_list.append(('wavelength', np.array([wave_length, wave_length]), 'A'))
+        AddSampleLog(workspace, LogName='wavelength', LogText='{}'.format(wave_length), LogType='Number Series',
+                     LogUnit='A')
 
     # Wave length spread
     if wavelength_spread is not None:
-        meta_data_list.append(('wavelength_spread', np.array([wavelength_spread, wavelength_spread]), 'A'))
+        # meta_data_list.append(('wavelength_spread', np.array([wavelength_spread, wavelength_spread]), 'A'))
+        AddSampleLog(workspace, LogName='wavelength_spread', LogText='{}'.format(wavelength_spread),
+                     LogType='Number Series')
 
     # Add the sample log dictionary to add
     if sample_aperture_diameter is not None:

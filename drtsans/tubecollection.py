@@ -419,12 +419,16 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
 
     # Below are a few properties to hide complexity when coding for the bar-scan calibration
     @property
+    def pixel_scale_factors(self):
+        r"""Convenience property to get the size scale factors for each pixel"""
+        return np.array([unpack_v3d(self._component_info.scaleFactor, i) for i in self.detector_info_index])
+
+    @property
     def pixel_heights(self):
         r"""Convenience property to get/set the pixel heights"""
         first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
         nominal_height = self._component_info.shape(first_index).getBoundingBox().width().Y()
-        scalings = np.array([unpack_v3d(self._component_info.scaleFactor, i) for i in self.detector_info_index])
-        return nominal_height * scalings[:, 1]
+        return nominal_height * self.pixel_scale_factors[:, 1]
 
     @pixel_heights.setter
     def pixel_heights(self, heights):
@@ -444,7 +448,7 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
         nominal_width = self._component_info.shape(first_index).getBoundingBox().width().X()
         scalings = np.array([unpack_v3d(self._component_info.scaleFactor, i) for i in self.detector_info_index])
-        return nominal_width * scalings[:, 0]
+        return nominal_width * self.pixel_scale_factors[:, 0]
 
     @pixel_widths.setter
     def pixel_widths(self, widths):
@@ -479,14 +483,38 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
             pixel.position = ('y', y)
 
     @property
-    def pixel_intensities(self):
-        r"""
-        Array of pixel_intensities for every pixel
-        Returns
-        -------
+    def x_boundaries(self):
+        r"""Coordinates along the X-axis of the tube boundaries."""
+        first_index = self.detector_info_index[0]  # component info index of the lowest pixel in the tube
+        x = self._component_info.position(first_index).X()  # X-coordinate for the center of the first pixel
+        dx = self.width
+        return [x - dx / 2, x + dx / 2]
 
-        """
+    @property
+    def pixel_y_boundaries(self):
+        r"""Coordinates along the Y-axis of the pixel boundaries"""
+        first_index = self.detector_info_index[0]  # component info index of the lowest pixel in the tube
+        first_y = self._component_info.position(first_index).Y()  # Y-coordinate for the center of the first pixel
+        heights = np.cumsum(self.pixel_heights)  # cummulative sum of the pixel heights
+        return np.insert(heights, 0, 0.) + (first_y - heights[0] / 2)  # pixel boundaries
+
+    @property
+    def pixel_intensities(self):
+        r"""Array of pixel_intensities for every pixel"""
         return np.array([pixel.intensity for pixel in self.pixels])
+
+    @property
+    def isMasked(self):
+        r"""Mask flag for each pixel in the tube"""
+        return np.array([self._spectrum_info.isMasked(i) for i in self.spectrum_info_index])
+
+    @property
+    def width(self):
+        r"""Tube width, taken as width of the first pixel"""
+        first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
+        nominal_width = self._component_info.shape(first_index).getBoundingBox().width().X()
+        scaling = self._component_info.scaleFactor(first_index).X()
+        return nominal_width * scaling
 
 
 class TubeCollection(ElementComponentInfo):

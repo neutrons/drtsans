@@ -382,16 +382,18 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         component_info_index: int
             Index corresponding to the tube
         """
-        input_workspace = mtd[str(input_workspace)]
-        if self.is_valid_tube(input_workspace.componentInfo(), component_info_index) is False:
+        workspace = mtd[str(input_workspace)]
+        if self.is_valid_tube(workspace.componentInfo(), component_info_index) is False:
             raise ValueError('The component index is not associated to a valid tube')
         self._pixels = list()
-        SpectrumInfo.__init__(self, input_workspace, workspace_indexes)
-        ElementComponentInfo.__init__(self, input_workspace.componentInfo(), component_info_index)
+        self._detector_info = workspace.detectorInfo()
+        SpectrumInfo.__init__(self, workspace, workspace_indexes)
+        ElementComponentInfo.__init__(self, workspace.componentInfo(), component_info_index)
 
     @property
     def detector_ids(self):
-        return [pixel.detector_id for pixel in self.pixels]
+        all_detector_ids = self._detector_info.detectorIDs()
+        return all_detector_ids[self.children]
 
     @property
     def pixels(self):

@@ -571,7 +571,7 @@ class TubeCollection(ElementComponentInfo):
         return self.tubes[item]
 
     def __len__(self):
-        return len(self.tubes)
+        return len(self.spectrum_info_index)
 
     @property
     def tubes(self):

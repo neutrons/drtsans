@@ -67,6 +67,5 @@ class TestTubeCollection(object):
         assert widths[0][0] == pytest.approx(0.00804, abs=1e-5)
 
 
-
 if __name__ == '__main__':
     pytest.main([__file__])

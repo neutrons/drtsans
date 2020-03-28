@@ -447,7 +447,6 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         r"""Convenience property to get/set the pixel widths"""
         first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
         nominal_width = self._component_info.shape(first_index).getBoundingBox().width().X()
-        scalings = np.array([unpack_v3d(self._component_info.scaleFactor, i) for i in self.detector_info_index])
         return nominal_width * self.pixel_scale_factors[:, 0]
 
     @pixel_widths.setter

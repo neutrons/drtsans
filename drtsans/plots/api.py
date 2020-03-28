@@ -4,11 +4,12 @@ import numpy as np
 import matplotlib
 import warnings
 warnings.simplefilter('ignore', UserWarning)
+
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt # noqa E402
-from matplotlib.colors import LogNorm # noqa E402
-import mpld3 # noqa E402
-from mpld3 import plugins # noqa E402
+import matplotlib.pyplot as plt  # noqa E402
+from matplotlib.colors import LogNorm  # noqa E402
+import mpld3  # noqa E402
+from mpld3 import plugins  # noqa E402
 
 from mantid.api import mtd # noqa E402
 from drtsans.tubecollection import TubeCollection # noqa E402
@@ -293,7 +294,8 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
     detector_names = [panel_name, ] if panel_name is not None else panel_names(input_workspace)
     fig = plt.figure()
     for i_detector, detector_name in enumerate(detector_names):
-        collection = TubeCollection(workspace, detector_name).sorted(view='decreasing X')
+        collection = TubeCollection(workspace, detector_name)
+        collection = collection.sorted(view='fbfb')
         data = np.sum(np.array([tube.readY for tube in collection]), axis=-1)  # sum intensities for each pixel
         if isinstance(imshow_kwargs.get('norm', None), LogNorm) is True:
             data[data < 1e-10] = 1e-10  # no negative values when doing a logarithm plot
@@ -305,25 +307,16 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
             image = axis.imshow(np.transpose(data), aspect='auto', origin='lower', **imshow_kwargs)
             axis_properties = {'set_xlabel': 'tube', 'set_ylabel': 'pixel', 'set_title': f'{detector_name}'}
         elif axes_mode == 'xy':
-            # array x and y denote the corners of the pixels when projected on the XY plane
+            # array x and y denote the boundaries of the pixels when projected on the XY plane
             n_pixels = len(collection[0])  # number of pixels in the first tube
             # Find the "left" sides of the tubes
-            x = [(tube.position[0] - tube[0].width / 2) * np.ones(n_pixels + 1) for tube in collection]
+            x = [tube.x_boundaries[0] * np.ones(n_pixels + 1) for tube in collection]
             # Append the "right" side of the last tube
-            last_tube = collection[-1]
-            x.append((last_tube.position[0] + last_tube[0].width / 2) * np.ones(n_pixels + 1))
+            x.append(collection[-1].x_boundaries[1] * np.ones(n_pixels + 1))
             x = np.array(x)
             axis.set_xlim(max(x.ravel()), min(x.ravel()))  # X-axis should plot from larger to smaller values
-            # BOTTLENECK-1
-            y = list()
-            for tube in collection:
-                # Lower positions of the pixels along the Y-axis
-                pixel_y_boundaries = list(tube.pixel_y - tube.pixel_heights / 2)
-                # Append the top position on the last pixel
-                last_pixel = tube[-1]
-                pixel_y_boundaries.append(last_pixel.position[1] + last_pixel.height / 2)
-                y.append(pixel_y_boundaries)
-            y.append(y[-1])
+            y = [tube.pixel_y_boundaries for tube in collection]
+            y.append(collection[-1].pixel_y_boundaries)
             y = np.array(y)
             # BOTTLENECK-2 (but 6 times faster than BOTTLENECK-1)
             image = axis.pcolormesh(x, y, data)

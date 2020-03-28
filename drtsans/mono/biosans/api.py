@@ -64,8 +64,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     wavelength = reduction_input["configuration"]["wavelength"]
     wavelength_spread_user = reduction_input["configuration"]["wavelengthSpread"]
     if wavelength and wavelength_spread_user:
-        load_params["wavelength"] = wavelength
-        load_params["wavelengthSpread"] = wavelength_spread_user
+        # load_params["wavelength"] = wavelength
+        # load_params["wavelengthSpread"] = wavelength_spread_user
+        pass   # wavelength and wavelengthSpread not supported by LoadEventNexus at all
     else:
         # reset user-overwriting wavelength and wavelength spread to None in case only 1 is specified
         wavelength = wavelength_spread_user = None

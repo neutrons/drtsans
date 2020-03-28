@@ -73,6 +73,12 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
 
     HFIRSANS2Wavelength(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
 
+    # Debug output result from set wavelength
+    output_workspace_obj = mtd[output_workspace]
+    print('[META-WAVELENGTH] Set wavelength:  workspace {}, X[0] = {}, X[1] = {}'
+          ''.format(output_workspace, output_workspace_obj.readX(0)[0],
+                    output_workspace_obj.readX(0)[1]))
+
     return mtd[output_workspace]
 
 

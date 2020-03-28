@@ -1,6 +1,6 @@
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans.dataobjects import IQmod, IQazimuthal
-from mantid.simpleapi import CropWorkspace, LoadEmptyInstrument, LoadNexus
+from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
 import numpy as np
 import os
 import pytest
@@ -105,8 +105,6 @@ def test_IQazimuthal_2d_selections(backend, filename):
 def test_detector(backend, filename):
     '''Test plotting in detector space from a mantid workspace'''
     workspace = LoadEmptyInstrument(InstrumentName='CG3')  # this will load monitors as well
-    workspace = CropWorkspace(workspace, StartWorkspaceIndex=2)  # get rid of the monitors
-
     plot_detector(workspace, filename, backend)
     fileCheckAndRemove(filename, False)
 

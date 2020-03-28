@@ -38,16 +38,18 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     -------
 
     """
+    import numpy as np
+
     # Init list for sample log name, value and unit
     meta_data_list = list()
 
     # Wave length
     if wave_length is not None:
-        meta_data_list.append(('wavelength', wave_length, 'A'))
+        meta_data_list.append(('wavelength', np.array([wave_length, wave_length]), 'A'))
 
-    # Wave length spead
+    # Wave length spread
     if wavelength_spread is not None:
-        meta_data_list.append(('wavelength_spread', wavelength_spread, 'A'))
+        meta_data_list.append(('wavelength_spread', np.array([wavelength_spread, wavelength_spread]), 'A'))
 
     # Add the sample log dictionary to add
     if sample_aperture_diameter is not None:

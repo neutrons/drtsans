@@ -1,5 +1,6 @@
 # Method in this module is to set meta data to SANS Mantid Workspaces
 from mantid.simpleapi import AddSampleLogMultiple
+from mantid.simpleapi import mtd
 
 
 __all__ = ['set_meta_data']
@@ -77,7 +78,19 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     if len(meta_data_list) > 0:
         # only work on non-empty meta data list
         log_names, log_values, log_units = zip(*meta_data_list)
+
+        #  wavelength = runObj['wavelength'].getStatistics().mean
+        #  wavelength_spread = runObj['wavelength_spread'].getStatistics().mean
+
+        print('DEBUG wzz: Overwriting {} with value {}'
+              ''.format(log_names, log_values))
+
         # add meta data (as sample logs) to workspace
         AddSampleLogMultiple(Workspace=workspace, LogNames=log_names,
                              LogValues=log_values,
                              LogUnits=log_units)
+
+        # Check
+        output_ws = mtd[str(workspace)]
+        ws_run = output_ws.getRun()
+        print(ws_run['wavelength'])

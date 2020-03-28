@@ -5,7 +5,7 @@ import shutil
 
 from mantid.api import AnalysisDataService
 
-from drtsans.pixel_calibration import loader_algorithm, Table
+from drtsans.pixel_calibration import loader_algorithm, BarPositionFormula, Table
 from drtsans.settings import namedtuplefy
 
 
@@ -37,7 +37,35 @@ def test_loader_algorithm(input_file, loader_name, reference_dir):
     assert loader_algorithm(input_file).__name__ == loader_name
 
 
-class TestTable(object):
+class TestBarPositionFormula:
+
+    def test_elucidate_formula(self):
+        formula = BarPositionFormula._elucidate_formula(('BIOSANS', 'detector1'))
+        assert formula == '565 - {y} + 0.0083115 * (191 - {tube})'
+        formula = BarPositionFormula._elucidate_formula('Mary Poppings')
+        assert formula == '565 - {y} + 0.0 * {tube})'
+
+    def test_validate_sybols(self):
+        BarPositionFormula._validate_symbols('{y} {tube}')
+        for invalid_formula in ('{y}', '{dcal}', 'y', '{y} {tub}'):
+            with pytest.raises(ValueError):
+                BarPositionFormula._validate_symbols(invalid_formula)
+
+    def test_str(self):
+        assert str(BarPositionFormula(instrument_component='unknown')) == BarPositionFormula._default_formula
+
+    def test_evaluate(self):
+        formula = BarPositionFormula(instrument_component=('GPSANS', 'detector1'))  # use default formula
+        assert formula.evaluate(565, 191) == pytest.approx(0.0)
+
+    def test_validate_top_position(self):
+        for formula in BarPositionFormula._default_formulae.values():
+            BarPositionFormula(formula=formula).validate_top_position(0.0)
+        with pytest.raises(RuntimeError):
+            BarPositionFormula(('BIOSANS', 'wing_detector')).validate_top_position(1150.0)
+        BarPositionFormula(('BIOSANS', 'wing_detector')).validate_top_position(1150.0)
+
+class TestTable:
 
     def test_load(self, helper):
         r"""test method 'load'"""

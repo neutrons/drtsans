@@ -7,6 +7,7 @@ import numexpr
 import os
 import stat
 import sys
+import warnings
 
 
 r""" Hyperlinks to mantid algorithms
@@ -48,6 +49,11 @@ from drtsans.tubecollection import TubeCollection
 
 __all__ = ['apply_calibrations', 'as_intensities', 'calculate_apparent_tube_width',
            'day_stamp', 'calculate_barscan_calibration', 'load_calibration']
+
+
+class CalibrationNotFound(Exception):
+    """Custom exception to be raised when no appropriate calibration is found in the database"""
+    pass
 
 r"""Flags a problem when running the barscan algorithm that identifies the pixel corresponding
 to the bottom of the shadow cast by the bar on the detector array."""
@@ -104,9 +110,136 @@ def day_stamp(input_workspace):
     return int(SampleLogs(input_workspace).start_time.value[0:10].replace('-', ''))
 
 
-class CalibrationNotFound(Exception):
-    """Custom exception to be raised when no appropriate calibration is found in the database"""
-    pass
+class BarPositionFormula:
+
+    # Default formulae for each instrument and detector component
+    _default_formula = '565 - {y} + 0.0 * {tube}'  # no dependency on the tube index
+    _default_formulae = {('BIOSANS', 'detector1'): '565 - {y} + 0.0083115 * (191 - {tube})',
+                         ('BIOSANS', 'wing_detector'): _default_formula,
+                         ('EQSANS', 'detector1'): _default_formula,
+                         ('GPSANS', 'detector1'): '565 - {y} - 0.0914267 * (191 - {tube})'}
+
+    @staticmethod
+    def _elucidate_formula(instrument_component):
+        r"""
+        Find the default formula for an instrument and detector array.
+
+        Parameters
+        ----------
+        instrument_component: tuple
+            A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
+            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector')
+
+        Returns
+        -------
+        str
+
+        Warnings
+        --------
+        UserWarning
+            When ```instrument_component``` is not found in the default instrument formulae
+        """
+        default_formula = BarPositionFormula._default_formula
+        default_formulae = BarPositionFormula._default_formulae
+        if instrument_component not in default_formulae:
+            warnings.warn(f'Unable to find a bar position formula for argument {instrument_component}.\n'
+                          f'Using default formula: {default_formula}.\n'
+                          f'Valid values are {default_formulae.keys()}\n')
+        return default_formulae.get(instrument_component, default_formula)
+
+    @staticmethod
+    def _validate_symbols(formula):
+        r"""
+        Assess if a formula provider by the user contain the required symbols.
+
+        The critical assumption is that the value of ```bar_top_position```  corresponds to the value
+        stored in the log when the bar is located at the top of the detector array.
+
+        Parameters
+        ----------
+        formula: str
+            Formula to obtain the Y-coordinate of the bar in the frame of reference of the sample.
+
+        bar_top_position: float
+            Value when the bar is place at the top of the detector.
+
+        Raises
+        ------
+        ValueError
+            When the formula fails to contain symbols '{y}' and '{tube}'
+        """
+        for symbol in ('y', 'tube'):
+            if f'{{{symbol}}}' not in formula:
+                raise ValueError(f'Formula does not contain "{{{symbol}}}",'
+                                 f' e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
+
+    def __init__(self, instrument_component=None, formula=None):
+        r"""
+        Formula to obtain the bar position in the frame of reference of the sample, in milimeters.
+
+        There are default formulae for each instrument and detector array.
+
+        Parameters
+        ----------
+        instrument_component: tuple
+            A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
+            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector')
+        formula: str
+            Formula
+
+        Raises
+        ------
+        RuntimeError
+            When neither ```instrument_component``` nor ```formula``` is supplied.
+        """
+        if instrument_component is not None:
+            self._formula = self._elucidate_formula(instrument_component)
+        elif formula is not None:
+            self._validate_symbols(formula)
+            self._formula = formula
+        else:
+            raise RuntimeError('Insufficient input to create a bar position formula')
+
+    def __str__(self):
+        return self._formula
+
+    def evaluate(self, bar_position, tube_index):
+        r"""
+        Y-coordinate of the bar in the frame of reference of the sample.
+
+        Parameters
+        ----------
+        bar_position: float
+            Log value for the bar, in milimeters
+        tub_index: int
+            Tube index. The first index (zero) corresponds to the leftmost tube when standing at the sample
+            position.
+
+        Returns
+        -------
+        float
+        """
+        values_inserted = self._formula.format(y=bar_position, tube=tube_index)
+        return float(numexpr.evaluate(values_inserted))
+
+    def validate_top_position(self, bar_top_position):
+        r"""
+        Assert that the formula evaluates to a positive Y-coordinate when the bar is at the top position.
+
+        Parameters
+        ----------
+        bar_top_position: float
+            Log value when the bar is located at the top position.
+
+        Raises
+        ------
+        RuntimeError
+            When the formula evaluates to a non-positive Y-coordinate
+        """
+        if self.evaluate(bar_top_position, 0) <= 0:  # evaluate for the leftmost tube
+            raise RuntimeError(f'The Y-coordinate of the bar in the frame of reference of the sample when\n'
+                               f'              the bar is placed at the top position has evaluated as non-negative.\n'
+                               f'              The formula used is "{self._formula}"')
 
 
 class Table:
@@ -975,7 +1108,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
 
 # flake8: noqa: C901
 def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_position_log='dcal_Readback',
-                                  formula='565 - {y}', order=5, mask=None, inspect_data=False):
+                                  formula=None, order=5, mask=None, inspect_data=False):
     r"""
     Calculate pixel positions (only Y-coordinae) as well as pixel heights from a barscan calibration session.
 
@@ -1028,6 +1161,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     # bottom_shadow_pixels.shape = (number of scans, number of tubes)
     bottom_shadow_pixels = []
     delete_workspaces = True if inspect_data is False else False  # retain workspace per scan if we want to inspect
+
     for bar_position, barscan_workspace in barscan_workspace_generator(barscan_dataset,
                                                                        bar_position_log=bar_position_log,
                                                                        mask=mask,
@@ -1035,10 +1169,14 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
             daystamp = day_stamp(barscan_workspace)
+            if formula is None:
+                bar_formula = BarPositionFormula(instrument_component=(instrument_name, component))
+            else:
+                bar_formula = formula
+            bar_formula.validate_top_position(formula, bar_position)
         run_numbers.add(int(SampleLogs(barscan_workspace).run_number.value))
         # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
-        formula_bar_position_inserted = formula.format(y=bar_position)
-        bar_positions.append(float(numexpr.evaluate(formula_bar_position_inserted)))
+        bar_positions.append(bar_formula.evaluate(bar_position, 0))  # ignore tube index
         bottom_shadow_pixels_per_scan = []  # For the current scan, we have one bottom shadow pixel for each tube
         if number_pixels_in_tube is None:
             # We create a tube collection to figure out the pixel indexes for each tube.

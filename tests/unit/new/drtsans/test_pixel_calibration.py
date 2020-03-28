@@ -65,6 +65,7 @@ class TestBarPositionFormula:
             BarPositionFormula(('BIOSANS', 'wing_detector')).validate_top_position(1150.0)
         BarPositionFormula(('BIOSANS', 'wing_detector')).validate_top_position(1150.0)
 
+
 class TestTable:
 
     def test_load(self, helper):

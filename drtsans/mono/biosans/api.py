@@ -177,6 +177,14 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                           pixel_size_y=None)
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
+                # Check
+                output_ws = mtd[str(ws_name)]
+                ws_run = output_ws.getRun()
+                print('DEBUG wzz: Workspace {}'.format(ws_name))
+                print('Wavelength: {}'.format(ws_run['wavelength']))
+                print('{}'.format(ws_run['wavelength'].getStatistics().mean))
+                print('Wavelength spread: {}'.format(ws_run['wavelength_spread']))
+                print('{}'.format(ws_run['wavelength_spread'].getStatistics().mean))
                 transform_to_wavelength(ws_name)
             # Apply mask
             for btp_params in default_mask:

@@ -459,9 +459,13 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
             pixel.width = width
 
     @property
+    def pixel_positions(self):
+        return np.array([unpack_v3d(self._component_info.position, i) for i in self.detector_info_index])
+
+    @property
     def pixel_y(self):
         r"""Convenience property to get/set the pixel Y-coordinate"""
-        return np.array([pixel.position[1] for pixel in self.pixels])
+        return self.pixel_positions[:, 1]
 
     @pixel_y.setter
     def pixel_y(self, y_coordinates):

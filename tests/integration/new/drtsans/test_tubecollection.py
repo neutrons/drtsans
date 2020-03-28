@@ -49,22 +49,29 @@ class TestTubeCollection(object):
         tubes = collection.main.tubes
         start_time = time.time()
         detector_ids = [tube.detector_ids for tube in tubes]
-        assert time.time() - start_time < 0.1  # below one tenth of a second
+        assert time.time() - start_time < 0.2  # below one tenth of a second
         assert (detector_ids[0][0], detector_ids[-1][-1]) == (0, 49151)
 
     def test_pixel_heights(self, collection):
         tubes = collection.main.tubes
         start_time = time.time()
         heights = [tube.pixel_heights for tube in tubes]
-        assert time.time() - start_time < 1.0  # below one second
+        assert time.time() - start_time < 2.0  # below one second
         assert heights[0][0] == pytest.approx(0.00409, abs=1e-5)
 
     def test_pixel_widths(self, collection):
         tubes = collection.main.tubes
         start_time = time.time()
         widths = [tube.pixel_widths for tube in tubes]
-        assert time.time() - start_time < 1.0  # below one second
+        assert time.time() - start_time < 2.0  # below one second
         assert widths[0][0] == pytest.approx(0.00804, abs=1e-5)
+
+    def test_pixel_y(self, collection):
+        tubes = collection.main.tubes
+        start_time = time.time()
+        positions = [tube.pixel_y for tube in tubes]
+        assert time.time() - start_time < 2.0  # below one second
+        assert (positions[0][0], positions[-1][-1]) == pytest.approx((-0.52096, 0.52096), abs=1e-5)
 
 
 if __name__ == '__main__':

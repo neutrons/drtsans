@@ -111,6 +111,15 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     except KeyError:
         raise KeyError('Please add "sourceApertureDiameter" under top-level section in JSON file')
 
+    # Pixel size: both X (width) and Y (height) shall be specified
+    # Input is supposed to be millimeter (as instrument scientists)
+    # Convert to meter as drt-sans standard
+    try:
+        pixel_size_x = float(reduction_input["configuration"]["pixel_size_x"]) * 1E-3
+        pixel_size_y = float(reduction_input["configuration"]["pixel_size_y"]) * 1E-3
+    except (KeyError, ValueError):
+        pixel_size_x = pixel_size_y = None
+
     print(">>>>>>> reduction_input")
     print(reduction_input)
 
@@ -142,8 +151,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                               sample_thickness=thickness,
                               sample_aperture_diameter=sample_aperture_diameter,
                               source_aperture_diameter=source_aperture_diameter,
-                              pixel_size_x=None,
-                              pixel_size_y=None)
+                              pixel_size_x=pixel_size_x,
+                              pixel_size_y=pixel_size_y)
                 # Transform X-axis to wave length with spread
                 _w = transform_to_wavelength(_w)
                 _w = set_init_uncertainties(_w)
@@ -168,8 +177,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                           sample_thickness=thickness,
                           sample_aperture_diameter=sample_aperture_diameter,
                           source_aperture_diameter=source_aperture_diameter,
-                          pixel_size_x=None,
-                          pixel_size_y=None)
+                          pixel_size_x=pixel_size_x,
+                          pixel_size_y=pixel_size_y)
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)

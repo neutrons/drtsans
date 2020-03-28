@@ -385,15 +385,20 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         workspace = mtd[str(input_workspace)]
         if self.is_valid_tube(workspace.componentInfo(), component_info_index) is False:
             raise ValueError('The component index is not associated to a valid tube')
-        self._pixels = list()
         self._detector_info = workspace.detectorInfo()
+        self._pixels = list()
         SpectrumInfo.__init__(self, workspace, workspace_indexes)
         ElementComponentInfo.__init__(self, workspace.componentInfo(), component_info_index)
 
     @property
+    def detector_info_index(self):
+        r"""Array of detector info indexes for the pixels contained in the tube."""
+        return self.children
+
+    @property
     def detector_ids(self):
         all_detector_ids = self._detector_info.detectorIDs()
-        return all_detector_ids[self.children]
+        return all_detector_ids[self.detector_info_index]
 
     @property
     def pixels(self):
@@ -416,7 +421,10 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     @property
     def pixel_heights(self):
         r"""Convenience property to get/set the pixel heights"""
-        return np.array([pixel.height for pixel in self.pixels])
+        first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
+        nominal_height = self._component_info.shape(first_index).getBoundingBox().width().Y()
+        scalings = np.array([unpack_v3d(self._component_info.scaleFactor, i) for i in self.detector_info_index])
+        return nominal_height * scalings[:, 1]
 
     @pixel_heights.setter
     def pixel_heights(self, heights):
@@ -433,7 +441,10 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     @property
     def pixel_widths(self):
         r"""Convenience property to get/set the pixel widths"""
-        return np.array([pixel.width for pixel in self.pixels])
+        first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
+        nominal_width = self._component_info.shape(first_index).getBoundingBox().width().X()
+        scalings = np.array([unpack_v3d(self._component_info.scaleFactor, i) for i in self.detector_info_index])
+        return nominal_width * scalings[:, 0]
 
     @pixel_widths.setter
     def pixel_widths(self, widths):

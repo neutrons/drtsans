@@ -1,4 +1,3 @@
-import numexpr
 import numpy as np
 from os.path import join as path_join
 import pytest

@@ -78,6 +78,8 @@ def loader_algorithm(input_file):
 
     If a specialized loading algorithm can't be found, then `Load` algorithm is returned.
 
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
+
     Parameters
     ----------
     input_file: str
@@ -128,7 +130,7 @@ class BarPositionFormula:
         ----------
         instrument_component: tuple
             A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
-            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector')
+            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector').
 
         Returns
         -------
@@ -137,7 +139,7 @@ class BarPositionFormula:
         Warnings
         --------
         UserWarning
-            When ```instrument_component``` is not found in the default instrument formulae
+            When ```instrument_component``` is not found in the default instrument formulae.
         """
         default_formula = BarPositionFormula._default_formula
         default_formulae = BarPositionFormula._default_formulae
@@ -150,23 +152,17 @@ class BarPositionFormula:
     @staticmethod
     def _validate_symbols(formula):
         r"""
-        Assess if a formula provider by the user contain the required symbols.
-
-        The critical assumption is that the value of ```bar_top_position```  corresponds to the value
-        stored in the log when the bar is located at the top of the detector array.
+        Assess if a formula provider by the user contain the required symbols. Symbols '{y}' and '{tube}' are required.
 
         Parameters
         ----------
         formula: str
             Formula to obtain the Y-coordinate of the bar in the frame of reference of the sample.
 
-        bar_top_position: float
-            Value when the bar is place at the top of the detector.
-
         Raises
         ------
         ValueError
-            When the formula fails to contain symbols '{y}' and '{tube}'
+            When the formula fails to contain symbols '{y}' and '{tube}'.
         """
         for symbol in ('y', 'tube'):
             if f'{{{symbol}}}' not in formula:
@@ -183,7 +179,7 @@ class BarPositionFormula:
         ----------
         instrument_component: tuple
             A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
-            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector')
+            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector').
         formula: str
             Formula
 
@@ -210,9 +206,9 @@ class BarPositionFormula:
         Parameters
         ----------
         bar_position: float
-            Log value for the bar, in milimeters
-        tub_index: int
-            Tube index. The first index (zero) corresponds to the leftmost tube when standing at the sample
+            Log value for the bar, in mili meters.
+        tube_index: int
+            Tube index. The first index (zero) corresponds to the leftmost tube when standing at the sample.
             position.
 
         Returns
@@ -423,7 +419,7 @@ class Table:
 
     def __getattr__(self, item):
         r"""
-        Access metadata's keys asattributes of the ```Table``` object. For instance,
+        Access metadata's keys as attributes of the ```Table``` object. For instance,
         self.metadata['instrument'] can be accessed as self.instrument
         """
         if item not in self.__dict__:
@@ -1154,7 +1150,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     addons = dict(bar_positions=[], bar_workspaces=[])  # for inspecting the result of the calibration
     instrument_name, number_pixels_in_tube, number_tubes = None, None, None  # initialize some variables
     run_numbers, daystamp = set(), None  # initialize some variables
-    bar_positions = []  # Y-coordinates of the bar for each scan
+    bar_positions = []  # Y-coordinates of the bar for each tube and scan
     # `bottom_shadow_pixels` is a 2D array defining the position of the bar on the detector, in pixel coordinates
     # The first index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes)
     # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tube
@@ -1169,14 +1165,14 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
             daystamp = day_stamp(barscan_workspace)
+            # instantiate a bar formula using either the instrument default or a user's formula
             if formula is None:
                 bar_formula = BarPositionFormula(instrument_component=(instrument_name, component))
             else:
-                bar_formula = formula
-            bar_formula.validate_top_position(formula, bar_position)
+                bar_formula = BarPositionFormula(formula=formula)
+            bar_formula.validate_top_position(bar_position)
         run_numbers.add(int(SampleLogs(barscan_workspace).run_number.value))
         # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
-        bar_positions.append(bar_formula.evaluate(bar_position, 0))  # ignore tube index
         bottom_shadow_pixels_per_scan = []  # For the current scan, we have one bottom shadow pixel for each tube
         if number_pixels_in_tube is None:
             # We create a tube collection to figure out the pixel indexes for each tube.
@@ -1194,6 +1190,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
             # Find the detector ID's for the tube collection, that is, the selected component
             # BOTTLENECK, but it's run one time
             detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
+        bar_positions.append([bar_formula.evaluate(bar_position, i) for i in range(number_tubes)])
         # pixel_intensities is a list, whose items are the integrated intensities for each pixel. The index of this
         # list coincides with the spectrumInfo index.
         pixel_intensities = np.sum(mtd[barscan_workspace].extractY(), axis=1)
@@ -1225,8 +1222,8 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     positions, heights = [], []
     for tube_index in range(number_tubes):  # iterate over the tubes in the collection
         # Fit the pixel numbers and Y-coordinates of the bar for the current tube with a polynomial
-        fit_results = fit_positions(bottom_shadow_pixels[:, tube_index], bar_positions, order=order,
-                                    tube_pixels=number_pixels_in_tube)
+        fit_results = fit_positions(bottom_shadow_pixels[:, tube_index], bar_positions[:, tube_index],
+                                    order=order, tube_pixels=number_pixels_in_tube)
         # Store the fitted Y-coordinates and heights of each pixel in the current tube
         # Store as lists so that they can be easily serializable
         positions.append(list(1.e-03 * fit_results.calculated_positions))  # store with units of meters
@@ -1307,7 +1304,11 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     bottom_shadow_pixels: numpy.ndarray
         2D array defining the position of the bar on the detector, in pixel coordinates.
         The first array index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes).
-        Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tubes
+        Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tube
+    bar_positions: numpy.ndarray
+        2D array defining the position of the bar on the detector, in mili meters.
+        The first array index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes).
+        Thus, bar_positions[:, 0] indicates bottom shadow Y-coordinates along the very first tube
     """
     number_bar_positions, number_tubes = bottom_shadow_pixels.shape
     # Iterate over each tube
@@ -1325,9 +1326,10 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
             y[jump_index:] = INCORRECT_PIXEL_ASSIGNMENT
         # Correct corner case 2
         y = bottom_shadow_pixels[:, tube_index]  # bar positions in pixel coordinates
+        x = bar_positions[:, tube_index]  # bar positions in mili meters
         # Filter out bad pixels
         y_correct = y[y != INCORRECT_PIXEL_ASSIGNMENT]
-        x_correct = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
+        x_correct = x[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
         # Linear fit between bar positions in pixel coordinates and mili-meters
         try:
             coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
@@ -1339,7 +1341,7 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         large_residual = np.average(residuals) + 1.5 * np.std(residuals)
         # Find residuals of correct and incorrect pixels. Residuals for incorrect pixels are nonsense,
         # but we include them because we need array `residuals` and array `y` of same length.
-        y_fitted = np.polynomial.polynomial.polyval(bar_positions, coefficients)
+        y_fitted = np.polynomial.polynomial.polyval(x, coefficients)
         residuals = np.abs(y - y_fitted)
         # We flag as incorrect assignments those correct pixels with bar positions largely deviating from the linear
         # fit. The incorrect pixels already have nonsense large residuals

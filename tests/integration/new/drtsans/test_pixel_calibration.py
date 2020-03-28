@@ -405,12 +405,12 @@ def test_biosans_main_detector_barscan(reference_dir):
 @pytest.mark.skip(reason='takes too long for integration. Should be marked as nightly system test')
 def test_debug_biosans_wing_detector_barscan(reference_dir):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
-    data_dir = '/HFIR/CG3/IPTS-23782/nexus/'
+    data_dir = path_join(reference_dir.new.biosans, 'pixel_calibration', 'runs_838_953')
     first_run, last_run = 838, 953
     detector_array = 'wing_detector'  # calibration for the wing detector
     formula = '{y} - 640'  # translate from scan log value to Y-coordinate in the sample's reference frame.
-    barscan_files = [path_join(data_dir, f'CG3_{run}.nxs.h5') for run in range(first_run, 1 + last_run)]
-    mask_file = '/home/jbq/repositories/sans-backend/sans-backend2/notebooks/barscan/biosans_mask_bank88_tube4.xml'
+    barscan_files = [path_join(data_dir, f'CG3_{run}.nxs') for run in range(first_run, 1 + last_run)]
+    mask_file = path_join(data_dir, 'biosans_mask_bank88_tube4.xml')
     calibration, addons = calculate_barscan_calibration(barscan_files[0::3], component=detector_array,
                                                         formula=formula, mask=mask_file)
     calibration.save(database='/tmp/junk.json', tablefile='junk.nxs')

@@ -5,7 +5,7 @@ import shutil
 
 from mantid.api import AnalysisDataService
 
-from drtsans.pixel_calibration import Table
+from drtsans.pixel_calibration import loader_algorithm, Table
 from drtsans.settings import namedtuplefy
 
 
@@ -27,6 +27,14 @@ def clone_database(helper):
     yield cloned_database_file
     # Tear down the temporary database
     shutil.rmtree(cloned_database_directory)
+
+
+@pytest.mark.parametrize('input_file, loader_name', [('CG3_960.nxs.h5', 'LoadEventNexus'),
+                                                     ('CG3_838.nxs', 'LoadNexusProcessed'),
+                                                     ('BioSANS_exp327_scan0066_0001_mask.xml', 'Load')])
+def test_loader_algorithm(input_file, loader_name, reference_dir):
+    input_file = os.path.join(reference_dir.new.biosans, 'pixel_calibration', 'test_loader_algorithm', input_file)
+    assert loader_algorithm(input_file).__name__ == loader_name
 
 
 class TestTable(object):

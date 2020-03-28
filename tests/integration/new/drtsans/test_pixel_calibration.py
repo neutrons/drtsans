@@ -25,7 +25,7 @@ namedtuplefy, unique_workspace_dundername
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
-from drtsans.pixel_calibration import (as_intensities, calculate_apparent_tube_width,
+from drtsans.pixel_calibration import (BarPositionFormula, as_intensities, calculate_apparent_tube_width,
                                        calculate_barscan_calibration, find_edges, fit_positions, load_calibration)
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
@@ -224,7 +224,7 @@ def data_generate_barscan_calibration():
                 wavelength_bin_boundaries=[6.0, 7.0],
                 bottom_pixels=[(5, 5, 5, 5), (8, 8, 8, 8), (13, 13, 13, 13)],  # expected bottom pixels
                 coefficients=(498.333, 27.500, -0.833, 0.000, 0.000, 0.000),
-                formula='565 + {y}',  # position of the bar in the frame of reference of the sample
+                formula='565 + {y} + 0 * {tube}',  # position of the bar in the frame of reference of the sample
                 unit='mm',  # units for the pixel positions and heights
                 # fitted y-coordinates for each pixel
                 positions=np.array([[498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
@@ -323,7 +323,8 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
     # Let's fit the positions of the extended bottom-edge pixels with the extended positions of the bar given in the
     # test data (data.extended_dcals), and then verify the coefficients of the fit.
-    dcals = [float(numexpr.evaluate(data.formula.format(y=dcal))) for dcal in data.extended_dcals]
+    bar_formula = BarPositionFormula(formula=data.formula)
+    dcals = [bar_formula.evaluate(dcal, 0) for dcal in data.extended_dcals]
     fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 

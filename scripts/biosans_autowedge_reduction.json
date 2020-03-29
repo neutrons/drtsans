@@ -24,6 +24,7 @@
     "configuration": {
         "outputDir": "/tmp",
         "sampleApertureSize":"12",
+        "sourceApertureDiameter": "",
         "maskFileName": "",
         "useMaskFileName": false,
         "useDefaultMask": true,

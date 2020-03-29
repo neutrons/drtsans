@@ -24,6 +24,7 @@
     "configuration": {
         "outputDir": "/HFIR/CG3/shared/UserAcceptance/SVP_s6v",
         "sampleApertureSize":"12",
+        "sourceApertureDiameter": "",
         "maskFileName": "",
         "useMaskFileName": false,
         "useDefaultMask": true,

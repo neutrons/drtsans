@@ -24,6 +24,7 @@
     "configuration": {
         "outputDir": "/HFIR/CG2/shared/UserAcceptance/3y9",
         "sampleApertureSize": "",
+        "sourceApertureDiameter": "",
         "maskFileName": "/HFIR/CG2/shared/Lilin/Masks/Mask_LowQ.nxs",
         "useMaskFileName": true,
         "useDefaultMask": true,
@@ -59,7 +60,7 @@
         "useMaskBackTubes": false,
         "wavelength": "",
         "wavelengthSpread": "",
-         "timeslice": false,
+        "timeslice": false,
         "timesliceinterval": "",
         "logslicename": "",
         "logslice": false,

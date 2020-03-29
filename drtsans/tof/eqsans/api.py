@@ -134,6 +134,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             raise ValueError("Can't do slicing on summed data sets")
 
     # special loading case for sample to allow the slicing options
+    logslice_data_dict = {}
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -154,6 +155,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             for _w in mtd[ws_name]:
                 if default_mask:
                     apply_mask(_w, mask=default_mask)
+
+            for n in range(mtd[ws_name].getNumberOfEntries()):
+                samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                              'units': samplelogs[logslicename].units,
+                                              'name': logslicename}
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
@@ -162,6 +169,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
+
+    reduction_input["logslice_data"] = logslice_data_dict
 
     # load all other files
     for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
@@ -793,6 +802,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          'background_transmission_raw': background_transmission_raw_dict}
 
     samplelogs = {'main': SampleLogs(processed_data_main)}
+    logslice_data_dict = reduction_input["logslice_data"]
 
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
@@ -800,10 +810,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                              # pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
-                             samplelogs=samplelogs)
+                             logslicedata=logslice_data_dict,
+                             samplelogs=samplelogs,
+                             )
 
     # change permissions to all files to allow overwrite
-    # allow_overwrite(reduction_input["configuration"]["outputDir"])
+    allow_overwrite(reduction_input["configuration"]["outputDir"])
 
     return output
 
@@ -850,7 +862,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
                        backend='mpl', errorbar_kwargs={'label': 'main'})
 
     # change permissions to all files to allow overwrite
-    # allow_overwrite(output_dir)
+    allow_overwrite(output_dir)
 
 
 def apply_solid_angle_correction(input_workspace):

@@ -28,9 +28,9 @@ SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
 from mantid.simpleapi import (ApplyCalibration, ClearMaskFlag, CloneWorkspace, CreateEmptyTableWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
-                              LoadEventNexus, LoadNexus, MaskDetectors, MaskDetectorsIf, Rebin,
-                              ReplaceSpecialValues, SaveNexus)
-from mantid.api import mtd
+                              LoadEventNexus, LoadNexus, LoadNexusProcessed, MaskDetectors, MaskDetectorsIf,
+                              Rebin, ReplaceSpecialValues, SaveNexus)
+from mantid.api import FileLoaderRegistry, mtd
 
 r"""
 Hyperlinks to drtsans functions
@@ -47,7 +47,7 @@ from drtsans.tubecollection import TubeCollection
 
 
 __all__ = ['apply_calibrations', 'as_intensities', 'calculate_apparent_tube_width',
-           'calculate_barscan_calibration', 'load_calibration']
+           'day_stamp', 'calculate_barscan_calibration', 'load_calibration']
 
 r"""Flags a problem when running the barscan algorithm that identifies the pixel corresponding
 to the bottom of the shadow cast by the bar on the detector array."""
@@ -64,6 +64,25 @@ class CalType(enum.Enum):
     r"""Enumerate the possible types of pixel calibrations"""
     BARSCAN = 'BARSCAN'
     TUBEWIDTH = 'TUBEWIDTH'
+
+
+def loader_algorithm(input_file):
+    r"""
+    Determine which Mantid algorithm to use to load a file.
+
+    If a specialized loading algorithm can't be found, then `Load` algorithm is returned.
+
+    Parameters
+    ----------
+    input_file: str
+
+    Returns
+    -------
+    ~mantid.api.Algorithm
+    """
+    loaders = {'LoadNexusProcessed': LoadNexusProcessed, 'LoadEventNexus': LoadEventNexus}
+    loader_name = FileLoaderRegistry.Instance().chooseLoader(input_file).name()
+    return loaders.get(loader_name, Load)
 
 
 def day_stamp(input_workspace):
@@ -930,12 +949,13 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
         # determine if the list contains files or workspaces
         first_scan = barscan_dataset[0]
         if isinstance(first_scan, str) and os.path.exists(first_scan):  # list of files, thus load into workspaces
+            loader = loader_algorithm(barscan_dataset[0])
             barscan_workspaces = list()
             barscan_workspace_basename = unique_workspace_dundername()
             for scan_index, scan_data in enumerate(barscan_dataset):
                 barscan_workspace = f'{barscan_workspace_basename}_{scan_index:03d}'
                 temporary_workspaces.append(barscan_workspace)
-                Load(scan_data, OutputWorkspace=barscan_workspace)
+                loader(scan_data, OutputWorkspace=barscan_workspace)
                 barscan_workspaces.append(barscan_workspace)
         else:  # barscan_dataset is a set of workspaces
             barscan_workspaces = barscan_dataset
@@ -1167,18 +1187,25 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
             y[jump_index:] = INCORRECT_PIXEL_ASSIGNMENT
         # Correct corner case 2
         y = bottom_shadow_pixels[:, tube_index]  # bar positions in pixel coordinates
-        x = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
+        # Filter out bad pixels
+        y_correct = y[y != INCORRECT_PIXEL_ASSIGNMENT]
+        x_correct = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
         # Linear fit between bar positions in pixel coordinates and mili-meters
         try:
-            coefficients = np.polynomial.polynomial.polyfit(x, y[y != INCORRECT_PIXEL_ASSIGNMENT], 1)
-        except TypeError:  # empty array `x`, meaning this tube was masked or malfunctioning
+            coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
+        except TypeError:  # empty array `x_correct`, meaning this tube was masked or malfunctioning
             continue
+        # Find residuals of correct pixels
+        y_fitted = np.polynomial.polynomial.polyval(x_correct, coefficients)
+        residuals = np.abs(y_correct - y_fitted)  # deviations between the linear fit and the actual positions
+        large_residual = np.average(residuals) + 1.5 * np.std(residuals)
+        # Find residuals of correct and incorrect pixels. Residuals for incorrect pixels are nonsense,
+        # but we include them because we need array `residuals` and array `y` of same length.
         y_fitted = np.polynomial.polynomial.polyval(bar_positions, coefficients)
-        residuals = np.abs(y - y_fitted)  # deviations between the linear fit and the actual positions
-        # We flag as incorrect assignments those positions largely deviating from the linear fit.
-        # A "large deviation" is defined as bigger than the average deviation plus twice the standard
-        # deviation of the set of deviations from the linear fit
-        y[residuals > np.average(residuals) + 2 * np.std(residuals)] = INCORRECT_PIXEL_ASSIGNMENT
+        residuals = np.abs(y - y_fitted)
+        # We flag as incorrect assignments those correct pixels with bar positions largely deviating from the linear
+        # fit. The incorrect pixels already have nonsense large residuals
+        y[(residuals > large_residual) & (y != INCORRECT_PIXEL_ASSIGNMENT)] = INCORRECT_PIXEL_ASSIGNMENT
 
 
 def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True):
@@ -1240,14 +1267,14 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     # Update pixel positions and heights with the appropriate calibration, if so requested.
     if load_barscan_calibration is True:
         calibration = load_calibration(input_workspace, 'BARSCAN', component=component)
-        calibration.apply(input_workspace)
+        calibration.apply(integrated_intensities)
 
     # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated
     # intensity is stored as nan.
     #
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
-    collection = TubeCollection(integrated_intensities, component).sorted(view='decreasing X')  # BOTTLENECK
+    collection = TubeCollection(integrated_intensities, component).sorted(view='fbfb')  # BOTTLENECK
     detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
     count_densities = list()
     for tube in collection:

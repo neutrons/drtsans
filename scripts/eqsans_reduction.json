@@ -24,6 +24,7 @@
   "configuration": {
     "outputDir": "/tmp/shared/shaman/",
     "sampleApertureSize": "10",
+    "sourceApertureDiameter": "",
     "useMaskFileName": true,
     "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2019B_mp/mask_beamstop60_4m.nxs",
     "useDefaultMask": true,

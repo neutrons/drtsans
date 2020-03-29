@@ -68,11 +68,13 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
-    wavelength = reduction_input["configuration"]["wavelength"]
-    wavelengthSpread = reduction_input["configuration"]["wavelengthSpread"]
-    if wavelength and wavelengthSpread:
-        load_params["wavelengthinstrumentName"] = wavelength
-        load_params["wavelengthSpread"] = wavelengthSpread
+
+    # Parse wave length and wave length spread
+    try:
+        wavelength = float(reduction_input["configuration"]["wavelength"])
+        wavelength_spread_user = float(reduction_input["configuration"]["wavelengthSpread"])
+    except ValueError:
+        wavelength = wavelength_spread_user = None
 
     if reduction_input["configuration"]["useDefaultMask"]:
         default_mask = [ast.literal_eval(mask_par) for mask_par in reduction_input["configuration"]["DefaultMask"]]
@@ -92,7 +94,44 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if len(sample.split(',')) > 1:
             raise ValueError("Can't do slicing on summed data sets")
 
+    # sample thickness
+    try:
+        # thickness is written to sample log if it is defined...
+        # FIXME - thickness is used in reduce_configuration... - shall these 2 places more unified?
+        thickness = float(reduction_input['thickness'])
+    except ValueError:
+        thickness = None
+
+    # sample aperture diameter in mm
+    try:
+        sample_aperture_diameter = float(reduction_input['configuration']['sampleApertureSize'])
+    except ValueError:
+        sample_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sampleApertureSize" under top-level section in JSON file')
+
+    # source aperture diameter in mm
+    try:
+        source_aperture_diameter = float(reduction_input['configuration']['sourceApertureDiameter'])
+    except ValueError:
+        source_aperture_diameter = None
+    except KeyError:
+        raise KeyError('Please add "sourceApertureDiameter" under top-level section in JSON file')
+
+    # Pixel size: both X (width) and Y (height) shall be specified
+    # Input is supposed to be millimeter (as instrument scientists)
+    # Convert to meter as drt-sans standard
+    try:
+        pixel_size_x = float(reduction_input["configuration"]["pixel_size_x"]) * 1E-3
+        pixel_size_y = float(reduction_input["configuration"]["pixel_size_y"]) * 1E-3
+    except (KeyError, ValueError):
+        pixel_size_x = pixel_size_y = None
+
+    print(">>>>>>> reduction_input")
+    print(reduction_input)
+
     # special loading case for sample to allow the slicing options
+    logslice_data_dict = {}
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -110,26 +149,33 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                    time_interval=timesliceinterval,
                                    log_name=logslicename, log_value_interval=logsliceinterval,
                                    **load_params)
+
             for _w in mtd[ws_name]:
-                _w = transform_to_wavelength(_w)
-                _w = set_init_uncertainties(_w)
                 # Overwrite meta data
                 set_meta_data(str(_w),
                               wave_length=wavelength,
-                              wavelength_spread=wavelengthSpread,
-                              sample_thickness=None,
-                              sample_aperture_diameter=None,
-                              source_aperture_diameter=None,
-                              pixel_size_x=None,
-                              pixel_size_y=None)
+                              wavelength_spread=wavelength_spread_user,
+                              sample_thickness=thickness,
+                              sample_aperture_diameter=sample_aperture_diameter,
+                              source_aperture_diameter=source_aperture_diameter,
+                              pixel_size_x=pixel_size_x,
+                              pixel_size_y=pixel_size_y)
+                # Transform X-axis to wave length with spread
+                _w = transform_to_wavelength(_w)
+                _w = set_init_uncertainties(_w)
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
+
+            for n in range(mtd[ws_name].getNumberOfEntries()):
+                samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                              'units': samplelogs[logslicename].units,
+                                              'name': logslicename}
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
-
             # Retrieve parameters for overwriting geometry related meta data
             try:
                 # load configuration.SampleToSi (in millimeter) and convert to meter
@@ -149,8 +195,25 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                               sample_to_si_value=overwrite_swd,
                                               sample_detector_distance_value=overwrite_sdd,
                                               **load_params)
+            # Overwrite meta data
+            set_meta_data(ws_name,
+                          wave_length=wavelength,
+                          wavelength_spread=wavelength_spread_user,
+                          sample_thickness=thickness,
+                          sample_aperture_diameter=sample_aperture_diameter,
+                          source_aperture_diameter=source_aperture_diameter,
+                          pixel_size_x=pixel_size_x,
+                          pixel_size_y=pixel_size_y)
+            # Re-transform to wave length if overwriting values are specified
+            if wavelength and wavelength_spread_user:
+                transform_to_wavelength(ws_name)
+            print('[META] Wavelength is set to {} and {}'
+                  ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
+            # Apply mask
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
+
+    reduction_input["logslice_data"] = logslice_data_dict
 
     # load all other files
     for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
@@ -620,6 +683,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         mask_panel = 'back'
     output_suffix = ''
     try:
+        # thickness is written to sample log if it is defined...
         thickness = float(reduction_input['thickness'])
     except ValueError:
         thickness = 1.
@@ -816,8 +880,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
             print('found wedge angles:')
-            for left, right in wedges:
-                print('  {:.1f} to {:.1f}'.format(left, right))
+            peak_wedge, back_wedge = wedges
+            print('    peak:      ', peak_wedge)
+            print('    background:', back_wedge)
+            del peak_wedge, back_wedge
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_input["configuration"]["wedges"] = wedges
@@ -923,6 +989,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     samplelogs = {'main': SampleLogs(processed_data_main),
                   'wing': SampleLogs(processed_data_wing)}
+    logslice_data_dict = reduction_input['logslice_data']
 
     savereductionlog(filename=filename,
                      detectordata=detectordata,
@@ -930,6 +997,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                      # pythonfile=pythonfile,
                      starttime=starttime,
                      specialparameters=specialparameters,
+                     logslicedata=logslice_data_dict,
                      samplelogs=samplelogs,
                      )
 

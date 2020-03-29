@@ -1,6 +1,6 @@
 # flake8: noqa
 #######
-# Ordered alphabetically within each tree-level (drtsans/, drtsans.mono/, drtsans.mono.gpsans/)
+# Ordered ALPHABETICALLY within each tree-level (drtsans/, drtsans.mono/, drtsans.mono.gpsans/)
 #######
 import drtsans.absolute_units
 from ...absolute_units import *
@@ -16,6 +16,9 @@ from ...geometry import *
 
 import drtsans.iq
 from ...iq import *
+
+import drtsans.mask_utils
+from ...mask_utils import *
 
 import drtsans.path
 from ...path import *
@@ -53,6 +56,9 @@ from ..momentum_transfer import *
 import drtsans.mono.normalization
 from ..normalization import *
 
+import drtsans.plots.api
+from ...plots.api import *
+
 from .api import *
 from .load import *
 from .attenuation import *
@@ -63,6 +69,7 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + ['load_iqmod', 'save_iqmod'] \
           + drtsans.geometry.__all__ \
           + drtsans.iq.__all__\
+          + drtsans.mask_utils.__all__ \
           + drtsans.path.__all__\
           + drtsans.pixel_calibration.__all__ \
           + drtsans.stitch.__all__\
@@ -74,6 +81,7 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.mono.load.__all__\
           + drtsans.mono.momentum_transfer.__all__\
           + drtsans.mono.normalization.__all__\
+           + drtsans.plots.api.__all__\
           + attenuation.__all__\
           + api.__all__\
           + load.__all__\

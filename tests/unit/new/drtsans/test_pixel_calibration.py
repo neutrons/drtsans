@@ -43,7 +43,7 @@ class TestBarPositionFormula:
         formula = BarPositionFormula._elucidate_formula(('BIOSANS', 'detector1'))
         assert formula == '565 - {y} + 0.0083115 * (191 - {tube})'
         formula = BarPositionFormula._elucidate_formula('Mary Poppings')
-        assert formula == '565 - {y} + 0.0 * {tube})'
+        assert formula == '565 - {y} + 0.0 * {tube}'
 
     def test_validate_symbols(self):
         BarPositionFormula._validate_symbols('{y} {tube}')
@@ -64,7 +64,7 @@ class TestBarPositionFormula:
             BarPositionFormula(formula=formula).validate_top_position(0.0)
         with pytest.raises(RuntimeError):
             BarPositionFormula(('BIOSANS', 'wing_detector')).validate_top_position(1150.0)
-        BarPositionFormula(('BIOSANS', 'wing_detector')).validate_top_position(1150.0)
+        BarPositionFormula(formula='{y} - 565').validate_top_position(1150.0)
 
 
 class TestTable:

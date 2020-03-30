@@ -45,11 +45,12 @@ class TestBarPositionFormula:
         formula = BarPositionFormula._elucidate_formula('Mary Poppings')
         assert formula == '565 - {y} + 0.0 * {tube})'
 
-    def test_validate_sybols(self):
+    def test_validate_symbols(self):
         BarPositionFormula._validate_symbols('{y} {tube}')
-        for invalid_formula in ('{y}', '{dcal}', 'y', '{y} {tub}'):
+        for invalid_formula in ('{tube}', '{dcal}', 'y'):
             with pytest.raises(ValueError):
                 BarPositionFormula._validate_symbols(invalid_formula)
+        assert BarPositionFormula._validate_symbols('565 - {y}') == '565 - {y} + 0.0 * {tube}'
 
     def test_str(self):
         assert str(BarPositionFormula(instrument_component='unknown')) == BarPositionFormula._default_formula

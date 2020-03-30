@@ -1,7 +1,8 @@
 # Integration test for overwriting instrument geometry related meta data for GP-SANS
 # Tests are
 import pytest
-import os, json
+import os
+import json
 from drtsans.mono.gpsans import load_all_files, reduce_single_configuration, plot_reduction_output
 import time
 
@@ -22,7 +23,9 @@ def reduce_gpsans_data(json_file, output_dir):
     with open(json_file) as f:
         reduction_input = json.load(f)
 
-    # output_dir = reduction_input["configuration"]["outputDir"]
+    # set output directory
+    reduction_input["configuration"]["outputDir"] = output_dir
+    # create output directory
     for subfolder in ['1D', '2D']:
         output_folder = os.path.join(output_dir, subfolder)
         if not os.path.exists(output_folder):
@@ -38,7 +41,8 @@ def reduce_gpsans_data(json_file, output_dir):
         reduction_input["thickness"] = sample_thick[i]
         loaded = load_all_files(reduction_input)
         out = reduce_single_configuration(loaded, reduction_input)
-        plot_reduction_output(out, reduction_input, loglog=False)
+        assert out
+        # plot_reduction_output(out, reduction_input, loglog=False)
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))

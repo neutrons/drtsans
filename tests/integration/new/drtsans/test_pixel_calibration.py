@@ -478,5 +478,6 @@ def test_as_intensities(reference_dir):
     views = calibration.as_intensities('scan_55')
     print(views)
 
+
 if __name__ == '__main__':
     pytest.main([__file__])

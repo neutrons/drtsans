@@ -22,6 +22,9 @@ def reduce_gpsans_data(json_file, output_dir):
     -------
 
     """
+    # Clear the existing workspaces to force reloading data for various geometry setup
+    clean_workspaces()
+
     # USER Input here with scan numbers etc.
     samples = ['9166', '9167', '9176']
     samples_trans = ['9178', '9179', '9188']
@@ -29,9 +32,8 @@ def reduce_gpsans_data(json_file, output_dir):
     bkgd = ['9165', '9165', '9165']
     bkgd_trans = ['9177', '9177', '9177']
 
+    # Sample names for output
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    # Test JSON
-    # json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test2.json'
 
     # Import JSON
     with open(json_file) as f:
@@ -60,8 +62,6 @@ def reduce_gpsans_data(json_file, output_dir):
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))
-
-    clean_workspaces()
 
 
 def clean_workspaces():
@@ -109,7 +109,7 @@ def get_iq1d(log_file_name):
     return vec_q, vec_i
 
 
-def verify_result(test_log_file, gold_log_file):
+def compare_reduced_iq(test_log_file, gold_log_file):
     """Compare I(Q) from reduced file and gold file
 
     Parameters
@@ -130,6 +130,18 @@ def verify_result(test_log_file, gold_log_file):
     np.testing.assert_allclose(test_intensity_vec, gold_intensity_vec, atol=1E-7)
 
 
+def verify_reduction_results(sample_names, output_dir, gold_path):
+    for sample_name in sample_names:
+        # output log file name
+        output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
+        assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
+        # gold file
+        gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
+        assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
+        # compare
+        compare_reduced_iq(output_log_file, gold_log_file)
+
+
 def test_no_overwrite():
     """Test reduce 3 sets of data without overwriting
 
@@ -146,15 +158,18 @@ def test_no_overwrite():
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
     gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test1/'
 
-    for sample_name in sample_names:
-        # output log file name
-        output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
-        assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
-        # gold file
-        gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
-        assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
-        # compare
-        verify_result(output_log_file, gold_log_file)
+    # Verify results
+    verify_reduction_results(sample_names, output_dir, gold_path)
+
+    # for sample_name in sample_names:
+    # # output log file name
+    # output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
+    # assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
+    # # gold file
+    # gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
+    # assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
+    # # compare
+    # compare_reduced_iq(output_log_file, gold_log_file)
 
 
 def test_overwrite_sample2si():
@@ -171,17 +186,19 @@ def test_overwrite_sample2si():
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test2/'
 
-    for sample_name in sample_names:
-        # output log file name
-        output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
-        assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
-        # gold file
-        gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
-        assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
-        # compare
-        verify_result(output_log_file, gold_log_file)
+    # Verify results
+    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test2/'
+    verify_reduction_results(sample_names, output_dir, gold_path)
+    # for sample_name in sample_names:
+    #     # output log file name
+    #     output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
+    #     assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
+    #     # gold file
+    #     gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
+    #     assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
+    #     # compare
+    #     compare_reduced_iq(output_log_file, gold_log_file)
 
 
 def test_overwrite_sdd():
@@ -202,6 +219,10 @@ def test_overwrite_sdd():
     for output_file_path in output_log_files:
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
+    # Verify results
+    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test3/'
+    verify_reduction_results(sample_names, output_dir, gold_path)
+
 
 def test_overwrite_both():
     """Test reduce 3 sets of data without overwriting
@@ -220,6 +241,10 @@ def test_overwrite_both():
     output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
     for output_file_path in output_log_files:
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+
+    # Verify results
+    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test4/'
+    verify_reduction_results(sample_names, output_dir, gold_path)
 
 
 if __name__ == '__main__':

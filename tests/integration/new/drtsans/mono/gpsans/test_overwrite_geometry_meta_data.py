@@ -22,7 +22,7 @@ def reduce_gpsans_data(json_file, output_dir):
     with open(json_file) as f:
         reduction_input = json.load(f)
 
-    output_dir = reduction_input["configuration"]["outputDir"]
+    # output_dir = reduction_input["configuration"]["outputDir"]
     for subfolder in ['1D', '2D']:
         output_folder = os.path.join(output_dir, subfolder)
         if not os.path.exists(output_folder):
@@ -41,7 +41,7 @@ def reduce_gpsans_data(json_file, output_dir):
         plot_reduction_output(out, reduction_input, loglog=False)
 
     end_time = time.time()
-    print(end_time - start_time)
+    print('Execution Time: {}'.format(end_time - start_time))
 
 
 def test_no_overwrite():
@@ -51,10 +51,74 @@ def test_no_overwrite():
     -------
 
     """
+    # Set test and run
+    json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test1.json'
+    output_dir = '/tmp/meta_overwrite_test1'
+    reduce_gpsans_data(json_file, output_dir)
+
+    # Get result files
+    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
+    for output_file_path in output_log_files:
+        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+
+
+def test_overwrite_sample2si():
+    """Test reduce 3 sets of data without overwriting
+
+    Returns
+    -------
+
+    """
+    # Set test and run: sample to silicon window is changed 94 mm
     json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test2.json'
-    reduce_gpsans_data(json_file, '/tmp/meta_overwrite/test1')
+    output_dir = '/tmp/meta_overwrite_test2'
+    reduce_gpsans_data(json_file, output_dir)
+
+    # Get result files
+    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
+    for output_file_path in output_log_files:
+        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+
+
+def test_overwrite_sdd():
+    """Test reduce 3 sets of data without overwriting
+
+    Returns
+    -------
+
+    """
+    # Set test and run: sample to detector distance is changed to 40 meter
+    json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test3.json'
+    output_dir = '/tmp/meta_overwrite_test3'
+    reduce_gpsans_data(json_file, output_dir)
+
+    # Get result files
+    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
+    for output_file_path in output_log_files:
+        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+
+
+def test_overwrite_both():
+    """Test reduce 3 sets of data without overwriting
+
+    Returns
+    -------
+
+    """
+    # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
+    json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test4.json'
+    output_dir = '/tmp/meta_overwrite_test4'
+    reduce_gpsans_data(json_file, output_dir)
+
+    # Get result files
+    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
+    for output_file_path in output_log_files:
+        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
 
 if __name__ == '__main__':
     pytest.main([__file__])
-

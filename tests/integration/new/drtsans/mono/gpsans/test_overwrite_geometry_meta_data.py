@@ -7,6 +7,7 @@ import h5py
 import numpy as np
 from drtsans.mono.gpsans import load_all_files, reduce_single_configuration
 import time
+from mantid.simpleapi import mtd
 
 
 def reduce_gpsans_data(json_file, output_dir):
@@ -59,6 +60,21 @@ def reduce_gpsans_data(json_file, output_dir):
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))
+
+    clean_workspaces()
+
+
+def clean_workspaces():
+    """Clean all the workspaces in AnalysisDataService
+
+    Returns
+    -------
+
+    """
+    # workspace_names = mtd.getObjectNames()
+    # for ws_name in workspace_names:
+    #     mtd.remove(ws_name)
+    mtd.clear()
 
 
 def get_iq1d(log_file_name):

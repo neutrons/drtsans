@@ -3,11 +3,24 @@
 import pytest
 import os
 import json
-from drtsans.mono.gpsans import load_all_files, reduce_single_configuration, plot_reduction_output
+import h5py
+import numpy as np
+from drtsans.mono.gpsans import load_all_files, reduce_single_configuration
 import time
 
 
 def reduce_gpsans_data(json_file, output_dir):
+    """Standard reduction workflow
+
+    Parameters
+    ----------
+    json_file
+    output_dir
+
+    Returns
+    -------
+
+    """
     # USER Input here with scan numbers etc.
     samples = ['9166', '9167', '9176']
     samples_trans = ['9178', '9179', '9188']
@@ -48,6 +61,59 @@ def reduce_gpsans_data(json_file, output_dir):
     print('Execution Time: {}'.format(end_time - start_time))
 
 
+def get_iq1d(log_file_name):
+    """
+
+    Parameters
+    ----------
+    log_file_name
+
+    Returns
+    -------
+
+    """
+    # Open file and entry
+    log_h5 = h5py.File(log_file_name, 'r')
+
+    if '_slice_1' in log_h5:
+        data_entry = log_h5['_slice_1']['main']
+    else:
+        data_entry = log_h5['main']
+
+    # Get data
+    iq1d_entry = data_entry['I(Q)']
+
+    # Get data with a copy
+    vec_q = np.copy(iq1d_entry['Q'].value)
+    vec_i = np.copy(iq1d_entry['I'].value)
+
+    # close file
+    log_h5.close()
+
+    return vec_q, vec_i
+
+
+def verify_result(test_log_file, gold_log_file):
+    """Compare I(Q) from reduced file and gold file
+
+    Parameters
+    ----------
+    test_log_file
+    gold_log_file
+
+    Returns
+    -------
+
+    """
+    # Plot main
+    test_q_vec, test_intensity_vec = get_iq1d(test_log_file)
+    gold_q_vec, gold_intensity_vec = get_iq1d(gold_log_file)
+
+    # Verify result
+    np.testing.assert_allclose(test_q_vec, test_q_vec, atol=1E-4)
+    np.testing.assert_allclose(test_intensity_vec, gold_intensity_vec, atol=1E-7)
+
+
 def test_no_overwrite():
     """Test reduce 3 sets of data without overwriting
 
@@ -62,9 +128,17 @@ def test_no_overwrite():
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
-    for output_file_path in output_log_files:
-        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test1/'
+
+    for sample_name in sample_names:
+        # output log file name
+        output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
+        assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
+        # gold file
+        gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
+        assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
+        # compare
+        verify_result(output_log_file, gold_log_file)
 
 
 def test_overwrite_sample2si():
@@ -81,9 +155,17 @@ def test_overwrite_sample2si():
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
-    for output_file_path in output_log_files:
-        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test2/'
+
+    for sample_name in sample_names:
+        # output log file name
+        output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
+        assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
+        # gold file
+        gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
+        assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
+        # compare
+        verify_result(output_log_file, gold_log_file)
 
 
 def test_overwrite_sdd():

@@ -324,11 +324,13 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     # test data (data.extended_dcals), and then verify the coefficients of the fit.
     bar_formula = BarPositionFormula(formula=data.formula)
     dcals = [bar_formula.evaluate(dcal, 0) for dcal in data.extended_dcals]
-    fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
+    # `permissive=True` allows for unphysical fitted positions and heights, such as in this test data
+    fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20, permissive=True)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 
     # Let's do the whole calibration. The result is a `Table` object
-    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula=data.formula)
+    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula=data.formula,
+                                                permissive_fit=True)
     # Compare the pixel positions and heights resulting from the calibration with the test data. A factor of 1000
     # is required because the calibration procedure assumes the input positions of the bar are mili-meters, but
     # stores the calibrated positions and heights in meters.

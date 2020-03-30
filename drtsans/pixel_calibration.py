@@ -898,7 +898,8 @@ def find_edges(intensities, tube_threshold=0.2, shadow_threshold=0.3,
 
 
 @namedtuplefy
-def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_value=INCORRECT_PIXEL_ASSIGNMENT):
+def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_value=INCORRECT_PIXEL_ASSIGNMENT,
+                  permissive=False):
     r"""
     Fit the position and heights of the pixels in a tube. The bar_positions as a function of
     edge pixels are fitted to a nth order polynomial (by default n=5). The positions of the pixels along the
@@ -928,6 +929,8 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
         edge pixel. In those cases it is expected that the edge pixel has a particular value that flags incorrect
         assignment. The default value is INCORRECT_PIXEL_ASSIGNMENT. These edge pixels will be
         ignored when carrying out the fit.
+    permissive: bool
+        If :py:obj:`True`, then fitted positions and heights are allowed to be non-physical. Only for debugging.
 
     Returns
     -------
@@ -953,12 +956,12 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
         # evaluate the positions. Should be monotonically increasing
         calculated_positions = np.polynomial.polynomial.polyval(np.arange(tube_pixels), coefficients)
         position_jumps = np.diff(calculated_positions)
-        if position_jumps[position_jumps <= 0.0].size > 0:
+        if permissive is False and position_jumps[position_jumps <= 0.0].size > 0:
             raise ValueError(f'Pixel positions do not increase monotonically starting from the bottom of the tube\n'
                              f'Positions = : {calculated_positions}')
         # evaluate the heights. All should be positive
         calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
-        if calculated_heights[calculated_heights <= 0.0].size > 0:
+        if permissive is False and calculated_heights[calculated_heights <= 0.0].size > 0:
             raise ValueError(f'Some of the calculated heights are negative.\n'
                              f'Heights = {calculated_heights}')
     except Exception:
@@ -1116,7 +1119,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
 
 # flake8: noqa: C901
 def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_position_log='dcal_Readback',
-                                  formula=None, order=5, mask=None, inspect_data=False):
+                                  formula=None, order=5, mask=None, inspect_data=False, permissive_fit=False):
     r"""
     Calculate pixel positions (only Y-coordinae) as well as pixel heights from a barscan calibration session.
 
@@ -1152,6 +1155,8 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         position.
         - bottom_shadow_pixels: ~numpy.ndarray of shape (number of scans, number of tubes) listing the indexes for
         the pixels shadowed by the lower portion of the bar.
+    permissive_fit: bool
+        If :py:obj:`True`, then fitted positions and heights are allowed to be non-physical. Only for debugging.
 
     Returns
     -------
@@ -1236,7 +1241,8 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         # Fit the pixel numbers and Y-coordinates of the bar for the current tube with a polynomial
         try:
             fit_results = fit_positions(bottom_shadow_pixels[:, tube_index], bar_positions[:, tube_index],
-                                        order=order, tube_pixels=number_pixels_in_tube)
+                                        order=order, tube_pixels=number_pixels_in_tube,
+                                        permissive=permissive_fit)
         except ValueError as e:
             raise ValueError(f'In tube index {tube_index}: {e}')
         # Store the fitted Y-coordinates and heights of each pixel in the current tube

@@ -470,5 +470,13 @@ def test_biosans_tube_calibration(reference_dir):
     assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.38, abs=0.01)
 
 
+def test_as_intensities(reference_dir):
+    LoadNexus(
+        '/HFIR/CG2/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/pixel_calibration/runs_7465/CG2_7465_55.nxs',
+        OutputWorkspace='scan_55')
+    calibration = load_calibration('scan_55', 'BARSCAN')
+    views = calibration.as_intensities('scan_55')
+    print(views)
+
 if __name__ == '__main__':
     pytest.main([__file__])

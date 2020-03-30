@@ -1,4 +1,3 @@
-import numexpr
 import numpy as np
 from os.path import join as path_join
 import pytest
@@ -25,7 +24,7 @@ namedtuplefy, unique_workspace_dundername
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
-from drtsans.pixel_calibration import (as_intensities, calculate_apparent_tube_width,
+from drtsans.pixel_calibration import (BarPositionFormula, as_intensities, calculate_apparent_tube_width,
                                        calculate_barscan_calibration, find_edges, fit_positions, load_calibration)
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
@@ -224,7 +223,7 @@ def data_generate_barscan_calibration():
                 wavelength_bin_boundaries=[6.0, 7.0],
                 bottom_pixels=[(5, 5, 5, 5), (8, 8, 8, 8), (13, 13, 13, 13)],  # expected bottom pixels
                 coefficients=(498.333, 27.500, -0.833, 0.000, 0.000, 0.000),
-                formula='565 + {y}',  # position of the bar in the frame of reference of the sample
+                formula='565 + {y} + 0 * {tube}',  # position of the bar in the frame of reference of the sample
                 unit='mm',  # units for the pixel positions and heights
                 # fitted y-coordinates for each pixel
                 positions=np.array([[498.333, 525., 550., 573.333, 595., 615., 633.333, 650., 665., 678.333, 690.,
@@ -323,12 +322,15 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
     # Let's fit the positions of the extended bottom-edge pixels with the extended positions of the bar given in the
     # test data (data.extended_dcals), and then verify the coefficients of the fit.
-    dcals = [float(numexpr.evaluate(data.formula.format(y=dcal))) for dcal in data.extended_dcals]
-    fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20)
+    bar_formula = BarPositionFormula(formula=data.formula)
+    dcals = [bar_formula.evaluate(dcal, 0) for dcal in data.extended_dcals]
+    # `permissive=True` allows for unphysical fitted positions and heights, such as in this test data
+    fit = fit_positions(data.extended_bottom_edges, dcals, tube_pixels=20, permissive=True)
     assert fit.coefficients == pytest.approx(data.coefficients, abs=data.precision)
 
     # Let's do the whole calibration. The result is a `Table` object
-    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula=data.formula)
+    calibration = calculate_barscan_calibration(file_names, component='detector1', order=2, formula=data.formula,
+                                                permissive_fit=True)
     # Compare the pixel positions and heights resulting from the calibration with the test data. A factor of 1000
     # is required because the calibration procedure assumes the input positions of the bar are mili-meters, but
     # stores the calibrated positions and heights in meters.
@@ -468,6 +470,15 @@ def test_biosans_tube_calibration(reference_dir):
     uncalibrated_densities = linear_density(uncalibrated_workspace, component='wing_detector')
     calibrated_densities = linear_density(calibrated_workspace, component='wing_detector')
     assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.38, abs=0.01)
+
+
+def test_as_intensities(reference_dir):
+    LoadNexus(
+        '/HFIR/CG2/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/pixel_calibration/runs_7465/CG2_7465_55.nxs',
+        OutputWorkspace='scan_55')
+    calibration = load_calibration('scan_55', 'BARSCAN')
+    views = calibration.as_intensities('scan_55')
+    print(views)
 
 
 if __name__ == '__main__':

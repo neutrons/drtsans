@@ -7,6 +7,7 @@ import numexpr
 import os
 import stat
 import sys
+import warnings
 
 
 r""" Hyperlinks to mantid algorithms
@@ -26,7 +27,7 @@ MaskDetectorsIf <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors
 ReplaceSpecialValues <https://docs.mantidproject.org/nightly/algorithms/ReplaceSpecialValues-v1.html>
 SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 """
-from mantid.simpleapi import (ApplyCalibration, ClearMaskFlag, CloneWorkspace, CreateEmptyTableWorkspace,
+from mantid.simpleapi import (AddSampleLog, ApplyCalibration, ClearMaskFlag, CloneWorkspace, CreateEmptyTableWorkspace,
                               DeleteWorkspaces, FilterEvents, GenerateEventsFilter, Integration, Load,
                               LoadEventNexus, LoadNexus, LoadNexusProcessed, MaskDetectors, MaskDetectorsIf,
                               Rebin, ReplaceSpecialValues, SaveNexus)
@@ -47,7 +48,12 @@ from drtsans.tubecollection import TubeCollection
 
 
 __all__ = ['apply_calibrations', 'as_intensities', 'calculate_apparent_tube_width',
-           'day_stamp', 'calculate_barscan_calibration', 'load_calibration']
+           'day_stamp', 'calculate_barscan_calibration', 'load_calibration', 'split_barscan_run']
+
+
+class CalibrationNotFound(Exception):
+    """Custom exception to be raised when no appropriate calibration is found in the database"""
+    pass
 
 r"""Flags a problem when running the barscan algorithm that identifies the pixel corresponding
 to the bottom of the shadow cast by the bar on the detector array."""
@@ -71,6 +77,8 @@ def loader_algorithm(input_file):
     Determine which Mantid algorithm to use to load a file.
 
     If a specialized loading algorithm can't be found, then `Load` algorithm is returned.
+
+    devs - Jose Borreguero <borreguerojm@ornl.gov>
 
     Parameters
     ----------
@@ -104,9 +112,134 @@ def day_stamp(input_workspace):
     return int(SampleLogs(input_workspace).start_time.value[0:10].replace('-', ''))
 
 
-class CalibrationNotFound(Exception):
-    """Custom exception to be raised when no appropriate calibration is found in the database"""
-    pass
+class BarPositionFormula:
+
+    # Default formulae for each instrument and detector component
+    _default_formula = '565 - {y} + 0.0 * {tube}'  # no dependency on the tube index
+    _default_formulae = {('BIOSANS', 'detector1'): '565 - {y} + 0.0083115 * (191 - {tube})',
+                         ('BIOSANS', 'wing_detector'): _default_formula,
+                         ('EQSANS', 'detector1'): _default_formula,
+                         ('GPSANS', 'detector1'): '565 - {y} - 0.0914267 * (191 - {tube})'}
+
+    @staticmethod
+    def _elucidate_formula(instrument_component):
+        r"""
+        Find the default formula for an instrument and detector array.
+
+        Parameters
+        ----------
+        instrument_component: tuple
+            A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
+            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector').
+
+        Returns
+        -------
+        str
+
+        Warnings
+        --------
+        UserWarning
+            When ```instrument_component``` is not found in the default instrument formulae.
+        """
+        default_formula = BarPositionFormula._default_formula
+        default_formulae = BarPositionFormula._default_formulae
+        if instrument_component not in default_formulae:
+            warnings.warn(f'Unable to find a bar position formula for argument {instrument_component}.\n'
+                          f'Using default formula: {default_formula}.\n'
+                          f'Valid values are {default_formulae.keys()}\n')
+        return default_formulae.get(instrument_component, default_formula)
+
+    @staticmethod
+    def _validate_symbols(formula):
+        r"""
+        Assess if a formula provider by the user contain the required symbols. Symbols '{y}' is required and
+        symbol '{tube}' is optional.
+
+        If '{tube}' is not present in the formulat, a null term '0.0 * {tube}' is appended to the formula.
+
+        Parameters
+        ----------
+        formula: str
+            Formula to obtain the Y-coordinate of the bar in the frame of reference of the sample.
+
+        Raises
+        ------
+        ValueError
+            When the formula fails to contain symbols '{y}' and '{tube}'.
+        """
+        if '{y}' not in formula:
+            raise ValueError(f'Formula does not contain "{{y}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
+        if '{tube}' not in formula:
+            warnings.warn(f'Formula does not contain "{{tube}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
+            formula += ' + 0.0 * {tube}'
+        return formula
+
+    def __init__(self, instrument_component=None, formula=None):
+        r"""
+        Formula to obtain the bar position in the frame of reference of the sample, in milimeters.
+
+        There are default formulae for each instrument and detector array.
+
+        Parameters
+        ----------
+        instrument_component: tuple
+            A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
+            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector').
+        formula: str
+            Formula
+
+        Raises
+        ------
+        RuntimeError
+            When neither ```instrument_component``` nor ```formula``` is supplied.
+        """
+        if instrument_component is not None:
+            self._formula = self._elucidate_formula(instrument_component)
+        elif formula is not None:
+            self._formula = self._validate_symbols(formula)
+        else:
+            raise RuntimeError('Insufficient input to create a bar position formula')
+
+    def __str__(self):
+        return self._formula
+
+    def evaluate(self, bar_position, tube_index):
+        r"""
+        Y-coordinate of the bar in the frame of reference of the sample.
+
+        Parameters
+        ----------
+        bar_position: float
+            Log value for the bar, in mili meters.
+        tube_index: int
+            Tube index. The first index (zero) corresponds to the leftmost tube when standing at the sample.
+            position.
+
+        Returns
+        -------
+        float
+        """
+        values_inserted = self._formula.format(y=bar_position, tube=tube_index)
+        return float(numexpr.evaluate(values_inserted))
+
+    def validate_top_position(self, bar_top_position):
+        r"""
+        Assert that the formula evaluates to a positive Y-coordinate when the bar is at the top position.
+
+        Parameters
+        ----------
+        bar_top_position: float
+            Log value when the bar is located at the top position.
+
+        Raises
+        ------
+        RuntimeError
+            When the formula evaluates to a non-positive Y-coordinate
+        """
+        if self.evaluate(bar_top_position, 0) <= 0:  # evaluate for the leftmost tube
+            raise RuntimeError(f'The Y-coordinate of the bar in the frame of reference of the sample when\n'
+                               f'              the bar is placed at the top position has evaluated as non-negative.\n'
+                               f'              The formula used is "{self._formula}"')
 
 
 class Table:
@@ -290,7 +423,7 @@ class Table:
 
     def __getattr__(self, item):
         r"""
-        Access metadata's keys asattributes of the ```Table``` object. For instance,
+        Access metadata's keys as attributes of the ```Table``` object. For instance,
         self.metadata['instrument'] can be accessed as self.instrument
         """
         if item not in self.__dict__:
@@ -507,7 +640,8 @@ class Table:
         # Create the template workspace for the views. It will contain a single intensity value per histogram
         reference = unique_workspace_dundername()
         # We only need one intensity value per histogram
-        Rebin(InputWorkspace=reference_workspace, OutputWorkspace=reference, Params=1, PreserveEvents=False)
+        Rebin(InputWorkspace=reference_workspace, OutputWorkspace=reference,
+              Params=[0, 1000000, 1000000], PreserveEvents=False)
         # In the event that the reference workspace has any of the calibrated detector pixels masked, we have to
         # preemptively clear the mask of all pixels
         ClearMaskFlag(Workspace=reference)
@@ -764,7 +898,8 @@ def find_edges(intensities, tube_threshold=0.2, shadow_threshold=0.3,
 
 
 @namedtuplefy
-def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_value=INCORRECT_PIXEL_ASSIGNMENT):
+def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_value=INCORRECT_PIXEL_ASSIGNMENT,
+                  permissive=False):
     r"""
     Fit the position and heights of the pixels in a tube. The bar_positions as a function of
     edge pixels are fitted to a nth order polynomial (by default n=5). The positions of the pixels along the
@@ -794,6 +929,8 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
         edge pixel. In those cases it is expected that the edge pixel has a particular value that flags incorrect
         assignment. The default value is INCORRECT_PIXEL_ASSIGNMENT. These edge pixels will be
         ignored when carrying out the fit.
+    permissive: bool
+        If :py:obj:`True`, then fitted positions and heights are allowed to be non-physical. Only for debugging.
 
     Returns
     -------
@@ -816,10 +953,17 @@ def fit_positions(edge_pixels, bar_positions, tube_pixels=256, order=5, ignore_v
         coefficients = np.polynomial.polynomial.polyfit(valid_edge_pixels, valid_bar_positions, int(order))
         # calculate the coefficients of the derivative
         deriv_coefficients = np.polynomial.polynomial.polyder(coefficients)
-        # evalutae the positions
+        # evaluate the positions. Should be monotonically increasing
         calculated_positions = np.polynomial.polynomial.polyval(np.arange(tube_pixels), coefficients)
-        # evaluate the heights
+        position_jumps = np.diff(calculated_positions)
+        if permissive is False and position_jumps[position_jumps <= 0.0].size > 0:
+            raise ValueError(f'Pixel positions do not increase monotonically starting from the bottom of the tube\n'
+                             f'Positions = : {calculated_positions}')
+        # evaluate the heights. All should be positive
         calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
+        if permissive is False and calculated_heights[calculated_heights <= 0.0].size > 0:
+            raise ValueError(f'Some of the calculated heights are negative.\n'
+                             f'Heights = {calculated_heights}')
     except Exception:
         coefficients = np.ones(int(order)) * np.nan
         calculated_positions = np.ones(tube_pixels) * np.nan
@@ -975,7 +1119,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
 
 # flake8: noqa: C901
 def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_position_log='dcal_Readback',
-                                  formula='565 - {y}', order=5, mask=None, inspect_data=False):
+                                  formula=None, order=5, mask=None, inspect_data=False, permissive_fit=False):
     r"""
     Calculate pixel positions (only Y-coordinae) as well as pixel heights from a barscan calibration session.
 
@@ -1011,6 +1155,8 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         position.
         - bottom_shadow_pixels: ~numpy.ndarray of shape (number of scans, number of tubes) listing the indexes for
         the pixels shadowed by the lower portion of the bar.
+    permissive_fit: bool
+        If :py:obj:`True`, then fitted positions and heights are allowed to be non-physical. Only for debugging.
 
     Returns
     -------
@@ -1021,13 +1167,14 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     addons = dict(bar_positions=[], bar_workspaces=[])  # for inspecting the result of the calibration
     instrument_name, number_pixels_in_tube, number_tubes = None, None, None  # initialize some variables
     run_numbers, daystamp = set(), None  # initialize some variables
-    bar_positions = []  # Y-coordinates of the bar for each scan
+    bar_positions = []  # Y-coordinates of the bar for each tube and scan
     # `bottom_shadow_pixels` is a 2D array defining the position of the bar on the detector, in pixel coordinates
     # The first index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes)
     # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tube
     # bottom_shadow_pixels.shape = (number of scans, number of tubes)
     bottom_shadow_pixels = []
     delete_workspaces = True if inspect_data is False else False  # retain workspace per scan if we want to inspect
+
     for bar_position, barscan_workspace in barscan_workspace_generator(barscan_dataset,
                                                                        bar_position_log=bar_position_log,
                                                                        mask=mask,
@@ -1035,10 +1182,14 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
         if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
             daystamp = day_stamp(barscan_workspace)
+            # instantiate a bar formula using either the instrument default or a user's formula
+            if formula is None:
+                bar_formula = BarPositionFormula(instrument_component=(instrument_name, component))
+            else:
+                bar_formula = BarPositionFormula(formula=formula)
+            bar_formula.validate_top_position(bar_position)
         run_numbers.add(int(SampleLogs(barscan_workspace).run_number.value))
         # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
-        formula_bar_position_inserted = formula.format(y=bar_position)
-        bar_positions.append(float(numexpr.evaluate(formula_bar_position_inserted)))
         bottom_shadow_pixels_per_scan = []  # For the current scan, we have one bottom shadow pixel for each tube
         if number_pixels_in_tube is None:
             # We create a tube collection to figure out the pixel indexes for each tube.
@@ -1056,6 +1207,7 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
             # Find the detector ID's for the tube collection, that is, the selected component
             # BOTTLENECK, but it's run one time
             detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
+        bar_positions.append([bar_formula.evaluate(bar_position, i) for i in range(number_tubes)])
         # pixel_intensities is a list, whose items are the integrated intensities for each pixel. The index of this
         # list coincides with the spectrumInfo index.
         pixel_intensities = np.sum(mtd[barscan_workspace].extractY(), axis=1)
@@ -1087,8 +1239,12 @@ def calculate_barscan_calibration(barscan_dataset, component='detector1', bar_po
     positions, heights = [], []
     for tube_index in range(number_tubes):  # iterate over the tubes in the collection
         # Fit the pixel numbers and Y-coordinates of the bar for the current tube with a polynomial
-        fit_results = fit_positions(bottom_shadow_pixels[:, tube_index], bar_positions, order=order,
-                                    tube_pixels=number_pixels_in_tube)
+        try:
+            fit_results = fit_positions(bottom_shadow_pixels[:, tube_index], bar_positions[:, tube_index],
+                                        order=order, tube_pixels=number_pixels_in_tube,
+                                        permissive=permissive_fit)
+        except ValueError as e:
+            raise ValueError(f'In tube index {tube_index}: {e}')
         # Store the fitted Y-coordinates and heights of each pixel in the current tube
         # Store as lists so that they can be easily serializable
         positions.append(list(1.e-03 * fit_results.calculated_positions))  # store with units of meters
@@ -1169,7 +1325,11 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     bottom_shadow_pixels: numpy.ndarray
         2D array defining the position of the bar on the detector, in pixel coordinates.
         The first array index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes).
-        Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tubes
+        Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tube
+    bar_positions: numpy.ndarray
+        2D array defining the position of the bar on the detector, in mili meters.
+        The first array index corresponds to the Y-axis (along each tube), the second to the X-axis (across tubes).
+        Thus, bar_positions[:, 0] indicates bottom shadow Y-coordinates along the very first tube
     """
     number_bar_positions, number_tubes = bottom_shadow_pixels.shape
     # Iterate over each tube
@@ -1187,9 +1347,10 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
             y[jump_index:] = INCORRECT_PIXEL_ASSIGNMENT
         # Correct corner case 2
         y = bottom_shadow_pixels[:, tube_index]  # bar positions in pixel coordinates
+        x = bar_positions[:, tube_index]  # bar positions in mili meters
         # Filter out bad pixels
         y_correct = y[y != INCORRECT_PIXEL_ASSIGNMENT]
-        x_correct = bar_positions[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
+        x_correct = x[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
         # Linear fit between bar positions in pixel coordinates and mili-meters
         try:
             coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
@@ -1201,7 +1362,7 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         large_residual = np.average(residuals) + 1.5 * np.std(residuals)
         # Find residuals of correct and incorrect pixels. Residuals for incorrect pixels are nonsense,
         # but we include them because we need array `residuals` and array `y` of same length.
-        y_fitted = np.polynomial.polynomial.polyval(bar_positions, coefficients)
+        y_fitted = np.polynomial.polynomial.polyval(x, coefficients)
         residuals = np.abs(y - y_fitted)
         # We flag as incorrect assignments those correct pixels with bar positions largely deviating from the linear
         # fit. The incorrect pixels already have nonsense large residuals
@@ -1377,3 +1538,49 @@ def as_intensities(input_workspace, component='detector1', views=['positions', '
         returned_views[cal_prop] = mtd[output_workspace]
 
     return returned_views
+
+
+def split_barscan_run(input_file, output_directory, bar_position_log='dcal_Readback'):
+    r"""
+    Split a barscan file containing many positions of the bar into a set of files each holding the bar at a
+    unique position.
+
+    The input file must be an events file. The output files contain only the total intensity per pixel.
+    If input file is of the name 'INST_1234.nxs.h5', the output files' names are 'INST_1234_0.nxs',
+    'INST_1234_1.nxs', and so on.
+
+    Parameters
+    ----------
+    input_file: str
+        Events Nexus file containing a full barscan (many positions of the bar)
+
+    ouput_directory: str
+        Path where the individual scans are saved
+    """
+    barscan_workspace = unique_workspace_dundername()
+    spliter_workspace = unique_workspace_dundername()
+    info_workspace = unique_workspace_dundername()
+    splitted_workspace_group = unique_workspace_dundername()
+
+    LoadEventNexus(input_file, OutputWorkspace=barscan_workspace)
+    bar_positions = event_splitter(barscan_workspace,
+                                   split_workspace=spliter_workspace,
+                                   info_workspace=info_workspace,
+                                   bar_position_log=bar_position_log)
+    FilterEvents(InputWorkspace=barscan_workspace,
+                 SplitterWorkspace=spliter_workspace, InformationWorkspace=info_workspace,
+                 OutputWorkspaceBaseName=splitted_workspace_group, GroupWorkspaces=True,
+                 TimeSeriesPropertyLogs=[bar_position_log], ExcludeSpecifiedLogs=False)
+    os.makedirs(output_directory, exist_ok=True)  # Create directory, and don't complain if already exists
+    basename = os.path.basename(input_file).split('.nxs')[0]
+    for i in range(len(bar_positions)):
+        workspace = splitted_workspace_group + '_' + str(i)
+        AddSampleLog(Workspace=workspace, LogName=bar_position_log, LogText=str(bar_positions[i]),
+                     LogType='Number Series', LogUnit='mm')
+        Rebin(workspace, Params=[0, 1000000, 1000000], PreserveEvents=False, OutputWorkspace=workspace)
+        out_file = os.path.join(output_directory, f'{basename}_{i}.nxs')
+        SaveNexus(InputWorkspace=workspace, Filename=out_file)
+
+    # Clean up all workspaces
+    DeleteWorkspaces([splitted_workspace_group + '_' + str(i) for i in range(len(bar_positions))])
+    DeleteWorkspaces([splitted_workspace_group, info_workspace, spliter_workspace, barscan_workspace])

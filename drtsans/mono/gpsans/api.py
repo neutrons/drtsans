@@ -155,11 +155,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
 
-                for n in range(mtd[ws_name].getNumberOfEntries()):
-                    samplelogs = SampleLogs(mtd[ws_name].getItem(n))
-                    logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
-                                                  'units': samplelogs[logslicename].units,
-                                                  'name': logslicename}
+                if not (logslicename is None):
+                    for n in range(mtd[ws_name].getNumberOfEntries()):
+                        samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                        logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                                      'units': samplelogs[logslicename].units,
+                                                      'name': logslicename}
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):

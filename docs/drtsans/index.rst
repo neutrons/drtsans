@@ -7,8 +7,10 @@
 
    /drtsans/dataobjects
    /drtsans/mono/index
-   /drtsans/tof/index
    /drtsans/plots
+   /drtsans/tof/index
+   /drtsans/wavelength
+
 
 API Documentation
 =================

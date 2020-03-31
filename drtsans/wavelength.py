@@ -5,7 +5,7 @@ sigma = 3.9560346e-03  # plank constant divided by neutron mass
 
 def tof(wavelength, distance, pulse_width=0.0):
     r"""
-    Convert wavelength of arriving neutron to time of flight
+    Convert neutron wavelength to time of flight
 
     Parameters
     ----------
@@ -29,17 +29,17 @@ def tof(wavelength, distance, pulse_width=0.0):
 
 def from_tof(tof, distance, pulse_width=0.0):
     r"""
-    Convert time of flight of arriving neutron to wavelength
+    Convert time of flight of arriving neutron to wavelength.
 
     Parameters
     ----------
     tof: float
-        time of flight of the travelling neutron, in Angstroms
+        time of flight of the traveling neutron, in Angstroms.
     distance: float
-        Distance travelled by the neutron, in meters
+        Distance traveled by the neutron, in meters.
     pulse_width: float
         Neutrons emitted from the moderator with a certain wavelength
-        :math:`\lambda` have a distribution of delayed emission times
+        :math:`\lambda` have a distribution of delayed emission times that depends on the wavelength,
         with :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
         Units are microseconds/Angstroms.
 
@@ -52,21 +52,22 @@ def from_tof(tof, distance, pulse_width=0.0):
 
 
 class Wband(object):
-    r"""A wavelength band, useful for defining the transmission band
-    of a disk chopper
+    r"""
+    A wavelength band, useful for defining one of the possible bands transmitted by a disk chopper.
 
     Parameters
     ----------
     w_min: float
-        Lower boundary wavelength
+        Lower boundary wavelength.
     w_max: float
-        Upper boundary wavelength
+        Upper boundary wavelength.
 
     Raises
     -------
     ValueError
-        Negative input values or lower boundary bigger than upper one
+        Negative input values or lower boundary is bigger than the upper one.
     """
+
     def __init__(self, w_min, w_max):
         if w_min < 0 or w_max < 0 or w_min > w_max:
             raise ValueError('Invalid wavelength band')
@@ -75,29 +76,38 @@ class Wband(object):
 
     @property
     def min(self):
+        r"""Lower wavelength boundary."""
         return self._min
 
     @property
     def max(self):
+        r"""Upper wavelength boundary."""
         return self._max
 
     @property
     def width(self):
+        r"""Difference between the upper and lower wavelength boundaries."""
         return self._max - self._min
 
     def __mul__(self, other):
         """
-        Find the intersection band between two bands
+        Find the intersection band between two bands.
+        The intersection operation is applied to find out the wavelength bands transmitted by a set of
+        two choppers. The bands transmitted by the first chopper will be clipped by the second chopper.
+
+        For example, the intersection between `Wband(1, 6)` and `Wband(3, 4)` is `Wband(3, 4)`. The intersection
+        between `Wband(1, 6)` and `Wband(3, 8)` is `Wband(3, 6)`.
 
         Parameters
         ----------
-        band: Wband
-            Intersecting band
+        other: ~drtsans.wavelength.Wband
+            Intersecting band.
+
         Returns
         -------
-        Wband or None
-            None if no common band or if common band is only a point
-            as in the common band between Wband(0, 1) and Wband(1, 2)
+        ~drtsans.wavelength.Wband or :py:obj:`None`
+            :py:obj:`None` if no intersection, or if the intersection is not a band but just a point,
+            as in the intersection between `Wband(0, 1)` and `Wband(1, 2)`.
         """
         # Corner case when we multiply by the null band
         if self is None or other is None:
@@ -120,17 +130,17 @@ class Wband(object):
 
     def __imul__(self, other):
         r"""
-        In-place multiplication
+        In-place multiplication. The band is clipped by the intersection with another band.
 
         Parameters
         ----------
-        band: Wband
-            Intersecting band
+        band: ~drtsans.wavelength.Wband
+            Intersecting band.
         Returns
         -------
-        Wband or None
-            None if no common band or if common band is only a point
-            as in the common band between Wband(0, 1) and Wband(1, 2)
+        ~drtsans.wavelength.Wband or :py:obj:`None`
+            :py:obj:`None` if no intersection, or if the intersection is not a band but just a point,
+            as in the intersection between Wband(0, 1) and Wband(1, 2).
         """
         b = self * other
         self = b
@@ -148,13 +158,13 @@ class Wband(object):
 
 class Wbands(object):
     r"""
-    A list of non-overlapping wavelength bands. Useful for defining
-    the bands transmitted by a set of disk choppers
+    A list of *non overlapping* wavelength bands. Useful for defining a set of bands transmitted by one or
+    a set of disk choppers.
 
     Parameters
     ----------
-    args: Wband, or Wbands, or a list of Wband or Wbands
-        A wavelength band or another Wbands object
+    args: ~drtsans.wavelength.Wband, ~drtsans.wavelength.Wbands, list of ~drtsans.wavelength.Wband objects,
+    list of ~drtsans.wavelength.Wbands objects.
     """
 
     def __init__(self, *args):
@@ -172,19 +182,19 @@ class Wbands(object):
 
     def _valid_add(self, band, index):
         r"""
-        Check if new band intersect with existing bands.
+        Check if ```band`` intersect with any of the bands.
 
         Parameters
         ----------
-        band: Wband
-            Candidate band to be inserted
+        band: ~drtsans.wavelength.Wband
+            Candidate band to be inserted.
         index: int
-            index of _bands containing the immediate lower band
+            index of list attribute ```_bands``` containing the band immediaty below ```band```.
 
         Returns
         -------
         bool
-            Tue if band does not intersect and can thus be added
+            Tue if ```band``` does not intersect. The band can be inserted in this case.
         """
         if len(self) == 0:
             return True  # fist element goes in always
@@ -200,13 +210,13 @@ class Wbands(object):
 
     def __iadd__(self, other):
         r"""
-        Insert one or more wavelength bands
+        Insert one or more wavelength bands in place
 
         Parameters
         ----------
-        other: Wband or iterable
-            wavelength band to be inserted, or iterable containing
-            Wband objects (e.g. another Wbands object)
+        other: ~drtsans.wavelength.Wband, iterable.
+            Wavelength band to be inserted, or iterable serving ~drtsans.wavelength.Wband objects
+            (e.g. another ~drtsans.wavelength.Wbands object).
         """
         if isinstance(other, Wband):
             index = self._bands.bisect_right(other)
@@ -222,18 +232,18 @@ class Wbands(object):
 
     def __mul__(self, other):
         r"""
-        Find the intersection with one or more bands
+        Find the intersection with one or more bands.
 
         Parameters
         ----------
-        other: Wband or Wbands
-            Intersecting band
+        other: ~drtsans.wavelength.Wband, ~drtsans.wavelength.Wbands
+            Intersecting band(s).
 
         Returns
         -------
-        Wbands or None
-            None if no common bands or if common band is only a point
-            as in the common band between Wband(0, 1) and Wband(1, 2)
+        ~drtsans.wavelength.Wbands, :py:obj:`None`
+            :py:obj:`None` if no intersection, or if the intersection is not a band but just a point,
+            as in the intersection between Wband(0, 1) and Wband(1, 2).
         """
         # Corner case when we multiply by the null bands object
         if self is None or other is None:
@@ -264,17 +274,18 @@ class Wbands(object):
 
     def __imul__(self, other):
         r"""
+        In-place intersection with one or more bands.
 
         Parameters
         ----------
-        other: Wband or Wbands
-            Intersecting band
+        other: ~drtsans.wavelength.Wbands or ~drtsans.wavelength.Wbandss
+            Intersecting band(s).
 
         Returns
         -------
-        Wbands or None
-            None if no common bands or if common band is only a point
-            as in the common band between Wband(0, 1) and Wband(1, 2)
+        ~drtsans.wavelength.Wbands, :py:obj:`None`
+            :py:obj:`None` if no intersection, or if the intersection is not a band but just a point,
+            as in the intersection between Wband(0, 1) and Wband(1, 2).
         """
         wb = self * other
         self = wb

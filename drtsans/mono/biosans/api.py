@@ -120,8 +120,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     except (KeyError, ValueError):
         pixel_size_x = pixel_size_y = None
 
-    print(">>>>>>> reduction_input")
-    print(reduction_input)
+    # print(">>>>>>> reduction_input")
+    # print(reduction_input)
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}

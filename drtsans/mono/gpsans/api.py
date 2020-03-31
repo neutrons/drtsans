@@ -505,6 +505,8 @@ def prepare_data_workspaces(data,
     ~mantid.dataobjects.Workspace2D
         Reference to the processed workspace
     """
+    assert data, 'Input workspace is None!'
+
     if not output_workspace:
         output_workspace = str(data)
         output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'

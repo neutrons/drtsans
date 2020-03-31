@@ -151,9 +151,9 @@ def retrieve_instrument_setup(input_workspace):
     pixel_width, pixel_height = logged_pixel_size(input_workspace)
 
     # Information output
-    print('[META] Sample detector distance = {} m, Source aperture radius = {} m, Sample aperture radius = {} m '
-          '       Pixel width = {} m, Pixel height = {} m   (None, None: calculate from IDF for each pixel)'
-          ''.format(l2, r1, r2, pixel_width, pixel_height))
+    # print('[META] Sample detector distance = {} m, Source aperture radius = {} m, Sample aperture radius = {} m '
+    #       '       Pixel width = {} m, Pixel height = {} m   (None, None: calculate from IDF for each pixel)'
+    #       ''.format(l2, r1, r2, pixel_width, pixel_height))
 
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,

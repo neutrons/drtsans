@@ -55,7 +55,8 @@ def reduce_gpsans_data(json_file, output_dir):
         reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[i]
         reduction_input["outputFilename"] = sample_names[i]
         reduction_input["thickness"] = sample_thick[i]
-        loaded = load_all_files(reduction_input)
+        loaded = load_all_files(reduction_input,
+                                path='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data')
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
         # plot_reduction_output(out, reduction_input, loglog=False)

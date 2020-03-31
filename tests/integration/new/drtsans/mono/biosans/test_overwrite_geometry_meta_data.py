@@ -36,7 +36,7 @@ def reduce_biosans_data(json_str, output_dir):
 
     # chekcing if output directory exists, if it doesn't, creates the folder
     reduction_input["configuration"]["outputDir"] = output_dir
-    for subfolder in ['1D','2D']:
+    for subfolder in ['1D', '2D']:
         output_folder = os.path.join(output_dir, subfolder)
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
@@ -46,16 +46,17 @@ def reduce_biosans_data(json_str, output_dir):
         reduction_input["transmission"]["runNumber"] = samples_trans[i]
         reduction_input["background"]["runNumber"] = backgrounds[i]
         reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
-        reduction_input["outputFilename"] =  sample_names[i]
+        reduction_input["outputFilename"] = sample_names[i]
         reduction_input["thickness"] = sample_thick[i]  # thickness is in unit cm
         loaded = load_all_files(reduction_input)
         out = reduce_single_configuration(loaded, reduction_input)
+        assert out
 
     end_time = time.time()
     print(end_time - start_time)
 
 
-def test_no_overwrite():
+def skip_test_no_overwrite():
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -63,15 +64,13 @@ def test_no_overwrite():
 
     """
     # Set test and run
-    json_file = '/HFIR/CG3/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test1.json'
+    json_file = generate_testing_json()
     output_dir = '/tmp/meta_overwrite_test1'
-
-
 
     reduce_biosans_data(json_file, output_dir)
 
 
-def test_over_write_both():
+def skip_test_over_write_both():
     """
 
     Returns
@@ -82,7 +81,7 @@ def test_over_write_both():
     output_dir = '/tmp/bio_meta_overwrite_test1'
 
     # Json string
-    input_json = test_json_input()
+    input_json = generate_testing_json()
     # replace
     input_json = input_json.replace('"SampleToSi": ""', '"SampleToSi": "???.???"')
     input_json = input_json.replace('"SampleDetectorDistance": ""', '"SampleDetectorDistance": "??.??"')
@@ -90,7 +89,15 @@ def test_over_write_both():
     reduce_biosans_data(input_json, output_dir)
 
 
-def test_json_input():
+def generate_testing_json():
+    """Generating testing JSON
+
+    Returns
+    -------
+    str
+        JSON string
+
+    """
     json_str = """ {
     "instrumentName": "CG3",
     "iptsNumber": "24740",
@@ -175,4 +182,3 @@ def test_json_input():
 
 if __name__ == '__main__':
     pytest.main(__file__)
-

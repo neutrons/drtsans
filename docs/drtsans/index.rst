@@ -6,6 +6,7 @@
    :maxdepth: 2
 
    /drtsans/dataobjects
+   /drtsans/chopper
    /drtsans/mono/index
    /drtsans/plots
    /drtsans/tof/index

@@ -117,8 +117,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         pixel_size_y = float(reduction_input["configuration"]["pixel_size_y"]) * 1E-3
     except (KeyError, ValueError):
         pixel_size_x = pixel_size_y = None
-    print(">>>>>>> reduction_input")
-    print(reduction_input)
+    # print(">>>>>>> reduction_input")
+    # print(reduction_input)
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}

@@ -28,7 +28,6 @@ def test_no_overwrite():
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
     gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1/'
-    # gold_path = '/HFIR/CG3/shared/UserAcceptance/override_round3'
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
@@ -270,7 +269,13 @@ def generate_testing_json(sample_to_si_window_distance, sample_to_detector_dista
         }
     }"""
 
-    # replace
+    # replace values
+    main_sens = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
+    json_str = json_str.replace('/HFIR/CG3/shared/Cycle486/sens_f4829m7p0_TDC_SAC.h5', main_sens)
+
+    wing_sens = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
+    json_str = json_str.replace('/HFIR/CG3/shared/Cycle486/sens_f4835w3p2_TDC_SAC.h5', wing_sens)
+
     if sample_to_si_window_distance is not None:
         json_str = json_str.replace('"SampleToSi": ""',
                                     '"SampleToSi": "{}"'.format(sample_to_si_window_distance))

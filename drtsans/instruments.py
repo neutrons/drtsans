@@ -46,7 +46,7 @@ def instrument_enum_name(input_query):
         name = mtd[str(name)].getInstrument().getName()
     else:  # see if `name` contains any of the instrument labels
         name = name.upper()
-        for instrument_string_label in string_to_enum:
+        for instrument_string_label in sorted(string_to_enum.keys()):
             if instrument_string_label in name:
                 name = instrument_string_label
                 break

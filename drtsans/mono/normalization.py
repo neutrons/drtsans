@@ -83,6 +83,9 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
 
     reference_total_counts = 1.e08  # actual number selected by the instrument team
     input_workspace = str(input_workspace)
+
+    print('DEBUG: Normalize workspace {}'.format(input_workspace))
+
     if output_workspace is None:
         output_workspace = input_workspace
     for entry_name in metadata_entry_names:

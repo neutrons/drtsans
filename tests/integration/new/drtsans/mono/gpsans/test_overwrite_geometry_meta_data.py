@@ -55,8 +55,7 @@ def reduce_gpsans_data(json_file, output_dir):
         reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[i]
         reduction_input["outputFilename"] = sample_names[i]
         reduction_input["thickness"] = sample_thick[i]
-        loaded = load_all_files(reduction_input,
-                                path='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data')
+        loaded = load_all_files(reduction_input)  #  path='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data')
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
         # plot_reduction_output(out, reduction_input, loglog=False)
@@ -162,6 +161,8 @@ def test_no_overwrite():
     # Verify results
     verify_reduction_results(sample_names, output_dir, gold_path)
 
+    assert 1 == 5
+
     # for sample_name in sample_names:
     # # output log file name
     # output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
@@ -173,7 +174,7 @@ def test_no_overwrite():
     # compare_reduced_iq(output_log_file, gold_log_file)
 
 
-def test_overwrite_sample2si():
+def skip_test_overwrite_sample2si():
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -202,7 +203,7 @@ def test_overwrite_sample2si():
     #     compare_reduced_iq(output_log_file, gold_log_file)
 
 
-def test_overwrite_sdd():
+def skip_test_overwrite_sdd():
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -225,7 +226,7 @@ def test_overwrite_sdd():
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
-def test_overwrite_both():
+def skip_test_overwrite_both():
     """Test reduce 3 sets of data without overwriting
 
     Returns

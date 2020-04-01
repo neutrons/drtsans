@@ -2,10 +2,11 @@
 :mod:`drtsans.tof.eqsans`
 =========================
 
-An example of processing 1d data using the API modified from the script used from `shaman <http://shaman.ornl.gov/>`_.
+.. toctree::
+   :maxdepth: 1
 
-.. literalinclude:: example_1d.py
-   :linenos:
+   /drtsans/tof/eqsans/chopper
+
 
 API Documentation
 =================
@@ -14,3 +15,10 @@ API Documentation
    :members:
    :private-members:
    :special-members:
+
+Example 1D Data
+===============
+An example of processing 1d data using the API modified from the script used from `shaman <http://shaman.ornl.gov/>`_.
+
+.. literalinclude:: example_1d.py
+   :linenos:

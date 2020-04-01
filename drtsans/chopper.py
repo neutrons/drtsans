@@ -3,6 +3,7 @@ This module provides class `DiskChopper` representing a rotating chopper with an
 main goal is to find the set of neutron wavelength bands transmitted by the chopper, given definite chopper
 settings such as aperture and starting phase.
 """
+
 from drtsans.wavelength import Wband, Wbands
 
 

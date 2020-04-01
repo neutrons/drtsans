@@ -1,4 +1,5 @@
 # Integration test for overwriting instrument geometry related meta data for BIO-SANS
+# From round 3 4822
 # Tests are
 import pytest
 import json
@@ -26,7 +27,6 @@ def reduce_biosans_data(json_str, output_dir):
     # Set up (testing) runs
     sample_names = ['csmb_ecoli1h_org', 'insect1hTime_org']
     samples = ['5709', '5712']
-    sample_thick = ['0.1', '0.1']  # both thickness are 0.1 cm
     samples_trans = samples
     backgrounds = ['5715', '5715']
     backgrounds_trans = backgrounds
@@ -47,7 +47,6 @@ def reduce_biosans_data(json_str, output_dir):
         reduction_input["background"]["runNumber"] = backgrounds[i]
         reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
         reduction_input["outputFilename"] = sample_names[i]
-        reduction_input["thickness"] = sample_thick[i]  # thickness is in unit cm
         loaded = load_all_files(reduction_input)
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
@@ -127,7 +126,8 @@ def generate_testing_json(sample_to_si_window_distance, sample_to_detector_dista
     },
     "configuration": {
         "outputDir": "/HFIR/CG3/shared/UserAcceptance/override/test1",
-        "sampleApertureSize":"14",
+        "sampleApertureSize": "14",
+        "sourceApertureDiameter": "",
         "maskFileName": "",
         "useMaskFileName": false,
         "useDefaultMask": true,
@@ -135,8 +135,8 @@ def generate_testing_json(sample_to_si_window_distance, sample_to_detector_dista
         "useBlockedBeam": false,
         "BlockBeamFileName":"",
         "useDarkFileName": true,
-        "darkMainFileName": "CG3_1383.nxs",
-        "darkWingFileName": "CG3_1383.nxs",
+        "darkMainFileName": "CG3_1383.nxs",  
+        "darkWingFileName": "CG3_1383.nxs",   
         "useSensitivityFileName": true,
         "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle486/sens_f4829m7p0_TDC_SAC.h5",
         "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle486/sens_f4835w3p2_TDC_SAC.h5",
@@ -157,14 +157,16 @@ def generate_testing_json(sample_to_si_window_distance, sample_to_detector_dista
         "numWingQxQyBins": "100",
         "1DQbinType": "scalar",
         "QbinType": "log",
-        "EvenDecades": false,
+        "LogQBinsEvenDecade": false,
+        "LogQBinsPerDecadeMain":20,
+        "LogQBinsPerDecadeWing": 25,
         "WedgeMinAngles": "-30, 60",
         "WedgeMaxAngles": "30, 120",
-        "numMainQBins": "50",
-        "numWingQBins": "50",
+        "numMainQBins": "",
+        "numWingQBins": "",
         "AnnularAngleBin": "1",
-        "Qmin": "0.007",
-        "Qmax": "0.85",
+        "Qmin": "0.003",
+        "Qmax": "",
         "useErrorWeighting": false,
         "useMaskBackTubes": false,
         "wavelength": "",

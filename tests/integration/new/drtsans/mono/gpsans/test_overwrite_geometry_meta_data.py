@@ -72,9 +72,6 @@ def clean_workspaces():
     -------
 
     """
-    # workspace_names = mtd.getObjectNames()
-    # for ws_name in workspace_names:
-    #     mtd.remove(ws_name)
     mtd.clear()
 
 
@@ -163,16 +160,6 @@ def test_no_overwrite():
     # Verify results
     verify_reduction_results(sample_names, output_dir, gold_path)
 
-    # for sample_name in sample_names:
-    # # output log file name
-    # output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
-    # assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
-    # # gold file
-    # gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
-    # assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
-    # # compare
-    # compare_reduced_iq(output_log_file, gold_log_file)
-
 
 def test_overwrite_sample2si():
     """Test reduce 3 sets of data without overwriting
@@ -193,18 +180,9 @@ def test_overwrite_sample2si():
     # Verify results
     gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test2/'
     verify_reduction_results(sample_names, output_dir, gold_path)
-    # for sample_name in sample_names:
-    #     # output log file name
-    #     output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
-    #     assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
-    #     # gold file
-    #     gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
-    #     assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
-    #     # compare
-    #     compare_reduced_iq(output_log_file, gold_log_file)
 
 
-def skip_test_overwrite_sdd():
+def test_overwrite_sdd():
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -228,7 +206,7 @@ def skip_test_overwrite_sdd():
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
-def skip_test_overwrite_both():
+def test_overwrite_both():
     """Test reduce 3 sets of data without overwriting
 
     Returns

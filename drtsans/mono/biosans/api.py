@@ -48,9 +48,20 @@ SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None):
-    """
-    load all required files at the beginning, and transform them to histograms
+def load_all_files(reduction_input, prefix='', load_params=None, path=None):
+    """load all required files at the beginning, and transform them to histograms
+
+    Parameters
+    ----------
+    reduction_input
+    prefix
+    load_params
+    path: str or None
+        Path to search the NeXus file
+
+    Returns
+    -------
+
     """
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
@@ -81,7 +92,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     else:
         default_mask = []
 
-    path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
+    if path is None:
+        path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
+    else:
+        assert os.path.exists(path), 'NeXus file path {} does not exist'.format(path)
 
     # check for time/log slicing
     timeslice = reduction_input["configuration"].get("timeslice")

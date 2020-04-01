@@ -144,6 +144,9 @@ def reduce_biosans_data(json_str, output_dir):
     backgrounds = ['5715', '5715']
     backgrounds_trans = backgrounds
 
+    # Test data path
+    nexus_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/data'
+
     # Load JSON for configuration
     reduction_input = json.loads(json_str)
 
@@ -160,7 +163,8 @@ def reduce_biosans_data(json_str, output_dir):
         reduction_input["background"]["runNumber"] = backgrounds[i]
         reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
         reduction_input["outputFilename"] = sample_names[i]
-        loaded = load_all_files(reduction_input)
+        loaded = load_all_files(reduction_input,
+                                path=nexus_path)
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
 

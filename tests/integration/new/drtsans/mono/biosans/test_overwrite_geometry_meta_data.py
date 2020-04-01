@@ -56,17 +56,18 @@ def reduce_biosans_data(json_str, output_dir):
     print(end_time - start_time)
 
 
-def skip_test_no_overwrite():
+def test_no_overwrite():
     """Test reduce 3 sets of data without overwriting
 
     Returns
     -------
 
     """
-    # Set test and run
-    json_file = generate_testing_json()
-    output_dir = '/tmp/meta_overwrite_test1'
+    # Set up test
+    json_file = generate_testing_json(None, None)
+    output_dir = '/tmp/meta_overwrite_bio_test1/'
 
+    # Run
     reduce_biosans_data(json_file, output_dir)
 
 
@@ -78,19 +79,22 @@ def skip_test_over_write_both():
 
     """
     # Set test and output directory
-    output_dir = '/tmp/bio_meta_overwrite_test1'
+    json_file = generate_testing_json(None, None)
+    output_dir = '/tmp/bio_meta_overwrite_test4'
 
-    # Json string
-    input_json = generate_testing_json()
-    # replace
-    input_json = input_json.replace('"SampleToSi": ""', '"SampleToSi": "???.???"')
-    input_json = input_json.replace('"SampleDetectorDistance": ""', '"SampleDetectorDistance": "??.??"')
-
-    reduce_biosans_data(input_json, output_dir)
+    # run
+    reduce_biosans_data(json_file, output_dir)
 
 
-def generate_testing_json():
+def generate_testing_json(sample_to_si_window_distance, sample_to_detector_distance):
     """Generating testing JSON
+
+    Parameters
+    ----------
+    sample_to_si_window_distance: float or None
+        sample to silicon window distance to overwrite the EPICS value with unit millimeter
+    sample_to_detector_distance: float or None
+        sample to silicon window distance to overwrite the EPICS value with unit meter
 
     Returns
     -------
@@ -176,6 +180,15 @@ def generate_testing_json():
         "SampleDetectorDistance": ""
         }
     }"""
+
+    # replace
+    if sample_to_si_window_distance is not None:
+        json_str = json_str.replace('"SampleToSi": ""',
+                                    '"SampleToSi": "{}"'.format(sample_to_si_window_distance))
+
+    if sample_to_detector_distance is not None:
+        json_str = json_str.replace('"SampleDetectorDistance": ""',
+                                    '"SampleDetectorDistance": "{}"'.format(sample_to_detector_distance))
 
     return json_str
 

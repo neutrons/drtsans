@@ -26,9 +26,9 @@ def test_no_overwrite():
     reduce_biosans_data(json_file, output_dir)
 
     # Get result files
-    sample_names = ['csmb_ecoli1h_org', 'insect1hTime_org']
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test1/'
-    gold_path = '/HFIR/CG3/shared/UserAcceptance/override_round3'
+    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1/'
+    # gold_path = '/HFIR/CG3/shared/UserAcceptance/override_round3'
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
@@ -50,7 +50,7 @@ def reduce_biosans_data(json_str, output_dir):
     mtd.clear()
 
     # Set up (testing) runs
-    sample_names = ['csmb_ecoli1h_org', 'insect1hTime_org']
+    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
     samples = ['5709', '5712']
     samples_trans = samples
     backgrounds = ['5715', '5715']

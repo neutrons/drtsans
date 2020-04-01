@@ -1,3 +1,9 @@
+r"""
+This module provides class `EQSANSDiskChopperSet` representing the set of four disk choppers
+(two of them paired as a double chopper).  The main goal is to find the set of neutron wavelength
+bands transmitted by the chopper set, given definite choppers settings such as aperture and starting phase.
+"""
+
 from drtsans.chopper import DiskChopper
 from drtsans.samplelogs import SampleLogs
 from drtsans.frame_mode import FrameMode
@@ -7,37 +13,47 @@ from mantid.simpleapi import LoadNexusProcessed, mtd
 
 
 class EQSANSDiskChopperSet(object):
+    r"""
+    Set of disks choppers installed in EQSANS.
 
-    _pulse_width = 20  # micro-sec/Angstrom
-    # Discard neutrons with wavelengths above this cutoff, in Angstroms
+    Parameters
+    ----------
+    other: file name, workspace, Run object, run number
+        Load the chopper settings from this object.
+    """
+
+    #: Neutrons of a given wavelength :math:`\lambda` emitted from the moderator follow a distribution of delayed
+    #: emission times that depends on the wavelength, and is characterized by function
+    #: :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
+    #: This is the default :math:`pulsewidth` in micro-sec/Angstrom.
+    _pulse_width = 20
+
+    #: The number of wavelength bands transmitted by a disk chopper is determined by the slowest emitted neutron,
+    #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
+
+    #: number of single-disk choppers in the set.
     _n_choppers = 4
-    # Opening angles
+
+    #: Transmission aperture of the choppers, in degrees.
     _aperture = [129.605, 179.989, 230.010, 230.007]
-    # Distance to neutron source (moderator), in meters
+
+    #: Distance to neutron source (moderator), in meters.
     _to_source = [5.700, 7.800, 9.497, 9.507]
-    # Phase offsets, in micro-seconds.
+
+    #: Phase offsets, in micro-seconds. These values are required to calibrate the value reported in the
+    #: metadata. The combination on the reported phase and this offset is the time (starting from the
+    #: current pulse) at which the middle of the choppers apertures will intersect with the neutron beam axis.
     _offsets = {FrameMode.not_skip: [9507., 9471., 9829.7, 9584.3],
                 FrameMode.skip: [19024., 18820., 19714., 19360.]}
 
     def __init__(self, other):
-        r"""
-        Customized disk chopper object for EQSANS
-
-        Parameters
-        ----------
-        chopper_index: int
-            From zero to three, since we have four choppers
-        other: file name, workspace, Run object, run number
-            Load the sample logs from this object to determine chopper settings
-        """
-
         # Load choppers settings from the logs
         if isinstance(other, Run) or str(other) in mtd:
-            sl = SampleLogs(other)
+            sample_logs = SampleLogs(other)
         elif exists(other):
             ws = LoadNexusProcessed(other)
-            sl = SampleLogs(ws)
+            sample_logs = SampleLogs(ws)
         else:
             raise RuntimeError('{} is not a valid file name, workspace, Run object or run number'.format(other))
 
@@ -45,8 +61,8 @@ class EQSANSDiskChopperSet(object):
         for chopper_index in range(self._n_choppers):
             aperture = self._aperture[chopper_index]
             to_source = self._to_source[chopper_index]
-            speed = sl['Speed{}'.format(1 + chopper_index)].value.mean()
-            sensor_phase = sl['Phase{}'.format(1 + chopper_index)].value.mean()
+            speed = sample_logs['Speed{}'.format(1 + chopper_index)].value.mean()
+            sensor_phase = sample_logs['Phase{}'.format(1 + chopper_index)].value.mean()
             ch = DiskChopper(to_source, aperture, speed, sensor_phase)
             ch.pulse_width = self._pulse_width
             ch.cutoff_wl = self._cutoff_wl
@@ -54,32 +70,37 @@ class EQSANSDiskChopperSet(object):
 
         # Determine period and if frame skipping mode from the first chopper
         ch = self._choppers[0]
-        condition = abs(ch.speed - sl.frequency.value.mean()) / 2 > 1
-
+        condition = abs(ch.speed - sample_logs.frequency.value.mean()) / 2 > 1
         self.frame_mode = FrameMode.skip if condition else FrameMode.not_skip
 
-        # Select appropriate offsets
+        # Select appropriate offsets, based on the frame-skip mode.
         for chopper_index in range(self._n_choppers):
             ch = self._choppers[chopper_index]
             ch.offset = self._offsets[self.frame_mode][chopper_index]
 
     def transmission_bands(self, cutoff_wl=None, delay=0, pulsed=False):
         r"""
-        Wavelength bands transmitted by the chopper set
+        Wavelength bands transmitted by the chopper apertures. The number of bands is determined by the
+        slowest neutrons emitted from the moderator.
 
         Parameters
         ----------
         cutoff_wl: float
-            maximum wavelength of incoming neutrons
+            maximum wavelength of incoming neutrons. Discard slower neutrons when finding the transmission bands.
         delay: float
-            additional time-of-flight to include in the calculations
+            Additional time-of-flight to include in the calculations. For instance, this could be a multiple
+            of the the pulse period.
         pulsed: bool
-            correction due to delayed emission of neutrons from the moderator
+            Include a correction due to delayed emission of neutrons from the moderator. See
+            :const:`~drtsans.chopper.EQSANSDiskChopperSet._pulse_width` for a more detailed explanation.
 
         Returns
         -------
-        Wbands
+        ~drtsans.wavelength.Wbands
+            Set of wavelength bands transmitted by the chopper.
         """
+        if cutoff_wl is None:
+            cutoff_wl = self._cutoff_wl
         # Transmission bands of the first chopper
         ch = self._choppers[0]
         wb = ch.transmission_bands(cutoff_wl, delay, pulsed)

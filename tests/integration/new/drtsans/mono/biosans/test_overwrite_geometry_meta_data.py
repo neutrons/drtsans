@@ -2,11 +2,36 @@
 # From round 3 4822
 # Tests are
 import pytest
+import numpy as np
 import json
 import os
+import h5py
 from drtsans.mono.biosans import load_all_files, reduce_single_configuration
 import time
 from mantid.simpleapi import mtd
+
+
+def test_no_overwrite():
+    """Test reduce 3 sets of data without overwriting
+
+    Returns
+    -------
+
+    """
+    # Set up test
+    json_file = generate_testing_json(None, None)
+    output_dir = '/tmp/meta_overwrite_bio_test1/'
+
+    # Run
+    reduce_biosans_data(json_file, output_dir)
+
+    # Get result files
+    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test1/'
+    gold_path = '/HFIR/CG3/shared/UserAcceptance/override_round3'
+
+    # Verify
+    verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
 
 
 def reduce_biosans_data(json_str, output_dir):
@@ -53,21 +78,6 @@ def reduce_biosans_data(json_str, output_dir):
 
     end_time = time.time()
     print(end_time - start_time)
-
-
-def test_no_overwrite():
-    """Test reduce 3 sets of data without overwriting
-
-    Returns
-    -------
-
-    """
-    # Set up test
-    json_file = generate_testing_json(None, None)
-    output_dir = '/tmp/meta_overwrite_bio_test1/'
-
-    # Run
-    reduce_biosans_data(json_file, output_dir)
 
 
 def skip_test_over_write_both():
@@ -193,6 +203,87 @@ def generate_testing_json(sample_to_si_window_distance, sample_to_detector_dista
                                     '"SampleDetectorDistance": "{}"'.format(sample_to_detector_distance))
 
     return json_str
+
+
+def verify_reduction_results(sample_names, output_dir, gold_path, prefix):
+    for sample_name in sample_names:
+        # output log file name
+        output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
+        assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
+        # gold file
+        gold_log_file = os.path.join(gold_path, '{}_{}_reduction_log.hdf'.format(sample_name, prefix))
+        assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
+        # compare
+        compare_reduced_iq(output_log_file, gold_log_file)
+
+
+def compare_reduced_iq(test_log_file, gold_log_file):
+    """
+
+    Parameters
+    ----------
+    test_log_file
+    gold_log_file
+
+    Returns
+    -------
+
+    """
+    log_errors = list()
+
+    for is_main_detector in [True, False]:
+        vec_q_a, vec_i_a = get_iq1d(test_log_file, is_main=is_main_detector)
+        vec_q_b, vec_i_b = get_iq1d(gold_log_file, is_main=is_main_detector)
+
+        try:
+            np.testing.assert_allclose(vec_q_a, vec_q_b)
+            np.testing.assert_allclose(vec_i_a, vec_i_b)
+            log_errors.append(None)
+        except AssertionError as assert_err:
+            log_errors.append(assert_err)
+    # END-FOR
+
+    # Report
+    if not (log_errors[0] is None and log_errors[1] is None):
+        error_message = 'Main: {}; Wing: {}'.format(log_errors[0], log_errors[1])
+        raise AssertionError(error_message)
+
+
+def get_iq1d(log_file_name, is_main=True):
+    """
+
+    Parameters
+    ----------
+    log_file_name: str
+        output log file's name
+    is_main: bool
+        for main or wing
+
+    Returns
+    -------
+
+    """
+    # Open file and entry
+    log_h5 = h5py.File(log_file_name, 'r')
+    try:
+        if is_main:
+            iq1d_entry = log_h5['main_0']['I(Q)']
+        else:
+            iq1d_entry = log_h5['wing_0']['I(Q)']
+    except KeyError:
+        if is_main:
+            iq1d_entry = log_h5['_slice_1']['main_0']['I(Q)']
+        else:
+            iq1d_entry = log_h5['_slice_1']['wing_0']['I(Q)']
+
+    # Get data with a copy
+    vec_q = np.copy(iq1d_entry['Q'].value)
+    vec_i = np.copy(iq1d_entry['I'].value)
+
+    # close file
+    log_h5.close()
+
+    return vec_q, vec_i
 
 
 if __name__ == '__main__':

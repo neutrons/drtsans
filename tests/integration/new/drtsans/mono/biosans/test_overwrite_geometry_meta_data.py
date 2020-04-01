@@ -26,7 +26,7 @@ def test_no_overwrite():
     reduce_biosans_data(json_file, output_dir)
 
     # Get result files
-    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    sample_names = ['csmb_ecoli1h_org', 'insect1hTime_org']
     # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test1/'
     gold_path = '/HFIR/CG3/shared/UserAcceptance/override_round3'
 

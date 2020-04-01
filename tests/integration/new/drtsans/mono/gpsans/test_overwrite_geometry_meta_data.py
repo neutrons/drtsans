@@ -174,7 +174,7 @@ def test_no_overwrite():
     # compare_reduced_iq(output_log_file, gold_log_file)
 
 
-def skip_test_overwrite_sample2si():
+def test_overwrite_sample2si():
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -182,7 +182,8 @@ def skip_test_overwrite_sample2si():
 
     """
     # Set test and run: sample to silicon window is changed 94 mm
-    json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test2.json'
+    json_file = \
+        '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test2.json'
     output_dir = '/tmp/meta_overwrite_test2'
     reduce_gpsans_data(json_file, output_dir)
 
@@ -190,7 +191,7 @@ def skip_test_overwrite_sample2si():
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
     # Verify results
-    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test2/'
+    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test2/'
     verify_reduction_results(sample_names, output_dir, gold_path)
     # for sample_name in sample_names:
     #     # output log file name
@@ -211,7 +212,8 @@ def skip_test_overwrite_sdd():
 
     """
     # Set test and run: sample to detector distance is changed to 40 meter
-    json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test3.json'
+    json_file = \
+        '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test3.json'
     output_dir = '/tmp/meta_overwrite_test3'
     reduce_gpsans_data(json_file, output_dir)
 
@@ -222,7 +224,7 @@ def skip_test_overwrite_sdd():
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test3/'
+    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test3/'
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
@@ -234,7 +236,8 @@ def skip_test_overwrite_both():
 
     """
     # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
-    json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test4.json'
+    json_file = \
+        '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test4.json'
     output_dir = '/tmp/meta_overwrite_test4'
     reduce_gpsans_data(json_file, output_dir)
 
@@ -245,7 +248,7 @@ def skip_test_overwrite_both():
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test4/'
+    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test4/'
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 

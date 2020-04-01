@@ -55,7 +55,8 @@ def reduce_gpsans_data(json_file, output_dir):
         reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[i]
         reduction_input["outputFilename"] = sample_names[i]
         reduction_input["thickness"] = sample_thick[i]
-        loaded = load_all_files(reduction_input)  #  path='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data')
+        loaded = load_all_files(reduction_input,
+                                path='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data')
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
         # plot_reduction_output(out, reduction_input, loglog=False)
@@ -150,18 +151,17 @@ def test_no_overwrite():
 
     """
     # Set test and run
-    json_file = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test1.json'
+    json_file =\
+        '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test1.json'
     output_dir = '/tmp/meta_overwrite_test1'
     reduce_gpsans_data(json_file, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    gold_path = '/HFIR/CG2/shared/UserAcceptance/overwrite_meta_verified/test1/'
+    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test1/'
 
     # Verify results
     verify_reduction_results(sample_names, output_dir, gold_path)
-
-    assert 1 == 5
 
     # for sample_name in sample_names:
     # # output log file name

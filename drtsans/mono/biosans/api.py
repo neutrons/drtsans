@@ -229,6 +229,18 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 dark_current_main = biosans.load_events_and_histogram(dark_current_file_main,
                                                                       output_workspace=ws_name,
                                                                       **load_params)
+                # Set the wave length and wave length spread
+                if wavelength and wavelength_spread_user:
+                    set_meta_data(ws_name,
+                                  wave_length=wavelength,
+                                  wavelength_spread=wavelength_spread_user,
+                                  sample_thickness=None,
+                                  sample_aperture_diameter=None,
+                                  source_aperture_diameter=None,
+                                  pixel_size_x=None,
+                                  pixel_size_y=None)
+                    # Transform X-axis to wave length with spread
+                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
             else:
@@ -240,6 +252,18 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 dark_current_wing = biosans.load_events_and_histogram(dark_current_file_wing,
                                                                       output_workspace=ws_name,
                                                                       **load_params)
+                # Set the wave length and wave length spread
+                if wavelength and wavelength_spread_user:
+                    set_meta_data(ws_name,
+                                  wave_length=wavelength,
+                                  wavelength_spread=wavelength_spread_user,
+                                  sample_thickness=None,
+                                  sample_aperture_diameter=None,
+                                  source_aperture_diameter=None,
+                                  pixel_size_x=None,
+                                  pixel_size_y=None)
+                    # Transform X-axis to wave length with spread
+                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
             else:

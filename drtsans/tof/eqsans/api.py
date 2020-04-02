@@ -294,7 +294,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 name = drtsans.path.abspath(hint)
                 file_size = os.path.getsize(name)
             total_size += file_size
-            print(name+',', '{:.2f} MB'.format(file_size/1024**2))
+            print(name+',', '{:.2f} MiB'.format(file_size/1024**2))
     print('TOTAL: ', '{:.2f} MB'.format(total_size/1024**2))
 
     ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])

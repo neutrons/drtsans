@@ -70,6 +70,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     empty = reduction_input["empty"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
 
+    filenames = set()
+
     default_mask = None
     if reduction_input["configuration"]["useDefaultMask"]:
         configuration_file_parameters = _get_configuration_file_parameters(sample.split(',')[0].strip())
@@ -81,6 +83,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
         if not registered_workspace(center_ws_name):
             center_filename = f'{path}/{instrument_name}_{center}.nxs.h5'
+            filenames.add(center_filename)
             load_events(center_filename, output_workspace=center_ws_name)
             if reduction_input["configuration"]["useDefaultMask"]:
                 apply_mask(center_ws_name, mask=default_mask)
@@ -148,6 +151,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 timesliceinterval = None
                 logslicename = reduction_input["configuration"]["logslicename"]
                 logsliceinterval = float(reduction_input["configuration"]["logsliceinterval"])
+            filenames.add(filename)
             load_and_split(filename, output_workspace=ws_name,
                            time_interval=timesliceinterval,
                            log_name=logslicename, log_value_interval=logsliceinterval,
@@ -167,6 +171,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
+            filenames.add(filename)
             load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
@@ -180,6 +185,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             if not registered_workspace(ws_name):
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
+                filenames.add(filename)
                 load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
@@ -193,6 +199,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file}")
+                filenames.add(dark_current_file)
                 dark_current_ws, _ = load_events_and_histogram(dark_current_file,
                                                                output_workspace=ws_name,
                                                                **load_params)
@@ -233,6 +240,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             sensitivity_ws_name = f'{prefix}_sensitivity'
             if not registered_workspace(sensitivity_ws_name):
                 print(f"Loading filename {flood_file}")
+                filenames.add(flood_file)
                 load_sensitivity_workspace(flood_file, output_workspace=sensitivity_ws_name)
             sensitivity_ws = mtd[sensitivity_ws_name]
 
@@ -243,6 +251,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             mask_ws_name = f'{prefix}_mask'
             if not registered_workspace(mask_ws_name):
                 print(f"Loading filename {custom_mask_file}")
+                filenames.add(custom_mask_file)
                 mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
             else:
                 mask_ws = mtd[mask_ws_name]
@@ -274,6 +283,20 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       source_aperture_diameter=None,
                       pixel_size_x=pixel_size_x,
                       pixel_size_y=pixel_size_y)
+
+    print('FILE PATH, FILE SIZE:')
+    total_size = 0
+    for comma_separated_names in filenames:
+        for name in comma_separated_names.split(','):
+            try:
+                file_size = os.path.getsize(name)
+            except FileNotFoundError:
+                hint = 'EQSANS_{}'.format(drtsans.instruments.extract_run_number(name))
+                name = drtsans.path.abspath(hint)
+                file_size = os.path.getsize(name)
+            total_size += file_size
+            print(name+',', '{:.2f} MiB'.format(file_size/1024**2))
+    print('TOTAL: ', '{:.2f} MB'.format(total_size/1024**2))
 
     ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
     return dict(sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],

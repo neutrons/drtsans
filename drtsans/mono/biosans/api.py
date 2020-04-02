@@ -146,6 +146,20 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
+
+    # Retrieve parameters for overwriting geometry related meta data
+    try:
+        # load configuration.SampleToSi (in millimeter) and convert to meter
+        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
+    except ValueError:
+        overwrite_swd = None
+    try:
+        # load configuration.SampleDetectorDistance (in meter)
+        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
+    except ValueError:
+        overwrite_sdd = None
+
+    print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -188,21 +202,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
+            # Load event NeXus file
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
-            # Retrieve parameters for overwriting geometry related meta data
-            try:
-                # load configuration.SampleToSi (in millimeter) and convert to meter
-                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
-            except ValueError:
-                overwrite_swd = None
-            try:
-                # load configuration.SampleDetectorDistance (in meter)
-                overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
-            except ValueError:
-                overwrite_sdd = None
-            print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
-            #
             biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                               sample_to_si_name=SAMPLE_SI_META_NAME,
                                               si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,

@@ -142,6 +142,25 @@ class DiskChopper(object):
         Convert time-of-flight to neutron wavelength, for a neutron that has traveled the distance from the
         moderator to the chopper.
 
+        The measured time of flight :math:`t_m` plus the additional delay :math:`d` is equal to the
+        real time of flight :math:`tof` plus the delayed emission time from the moderator :math:`p \lambda`,
+        where :math:`p` is constant :const:`~drtsans.chopper.DiskChopperSet._pulse_width`.
+
+        .. math::
+
+           t_m + d = tof + p \lambda
+
+           D = tof / v
+
+           v = \frac{h}{m\lambda}
+
+        where :math:`D` is the distance from moderator to chopper and :math:`v` is the neutron velocity.
+        Solving this system of equations for :math:`\lambda`, one obtains
+
+        .. math::
+
+            \lambda = \frac{h}{m} \frac{t_m + d}{D + hp/m}
+
         Parameters
         ----------
         tof: float
@@ -169,8 +188,27 @@ class DiskChopper(object):
 
     def tof(self, wavelength, delay=0, pulsed=False):
         r"""
-        Convert wavelength to time-of-fligh, for a neutron that has traveled the distance from the
+        Convert wavelength to *measured* time-of-flight, for a neutron that has traveled the distance from the
         moderator to the chopper.
+
+        The measured time of flight :math:`t_m` plus the additional delay :math:`d` is equal to the
+        real time of flight :math:`t_r` plus the delayed emission time from the moderator :math:`p \lambda`,
+        where :math:`p` is constant :const:`~drtsans.chopper.DiskChopperSet._pulse_width`.
+
+        .. math::
+
+           t_m + d = t_r + p \lambda
+
+           D = t_r / v
+
+           v = \frac{h}{m\lambda}
+
+        where :math:`D` is the distance from moderator to chopper and :math:`v` is the neutron velocity.
+        Solving this system of equations for :math:`t_m`, one obtains
+
+        .. math::
+
+            t_m = \lambda \frac{D + hp/m}{h/m} - d
 
         Parameters
         ----------

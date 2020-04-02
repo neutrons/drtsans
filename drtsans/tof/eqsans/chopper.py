@@ -92,7 +92,8 @@ class EQSANSDiskChopperSet(object):
             of the the pulse period.
         pulsed: bool
             Include a correction due to delayed emission of neutrons from the moderator. See
-            :const:`~drtsans.chopper.EQSANSDiskChopperSet._pulse_width` for a more detailed explanation.
+            :const:`~drtsans.tof.eqsans.chopper.EQSANSDiskChopperSet._pulse_width` for a
+            more detailed explanation.
 
         Returns
         -------

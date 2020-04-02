@@ -5,6 +5,7 @@
 .. toctree::
    :maxdepth: 1
 
+   /drtsans/tof/eqsans/correct_frame
    /drtsans/tof/eqsans/chopper
 
 

@@ -254,6 +254,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_main}")
+                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+                if os.path.exists(temp_name):
+                    dark_current_file_main = temp_name
+                    print('Dark current (main): {}'.format(dark_current_file_main))
                 dark_current_main =\
                     biosans.load_events_and_histogram(dark_current_file_main,
                                                       output_workspace=ws_name,
@@ -268,6 +272,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_wing}")
+                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+                if os.path.exists(temp_name):
+                    dark_current_file_wing = temp_name
+                    print('Dark current (wing): {}'.format(dark_current_file_wing))
                 dark_current_wing =\
                     biosans.load_events_and_histogram(dark_current_file_wing,
                                                       output_workspace=ws_name,

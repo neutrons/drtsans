@@ -381,15 +381,17 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         Reference to the workspace groups containing all the split workspaces
 
     """
-    drt_load_and_split(run=run,
-                       data_dir=data_dir,
-                       output_workspace=output_workspace,
-                       overwrite_instrument=overwrite_instrument,
-                       output_suffix=output_suffix,
-                       detector_offset=0., sample_offset=0.,
-                       time_interval=time_interval,
-                       log_name=log_name,
-                       log_value_interval=log_value_interval,
-                       reuse_workspace=reuse_workspace,
-                       monitors=monitors,
-                       **kwargs)
+    split_ws_group = drt_load_and_split(run=run,
+                                        data_dir=data_dir,
+                                        output_workspace=output_workspace,
+                                        overwrite_instrument=overwrite_instrument,
+                                        output_suffix=output_suffix,
+                                        detector_offset=0., sample_offset=0.,
+                                        time_interval=time_interval,
+                                        log_name=log_name,
+                                        log_value_interval=log_value_interval,
+                                        reuse_workspace=reuse_workspace,
+                                        monitors=monitors,
+                                        **kwargs)
+
+    return split_ws_group

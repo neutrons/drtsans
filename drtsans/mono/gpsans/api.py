@@ -220,9 +220,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file}")
-                dark_current = load_events_and_histogram(dark_current_file,
-                                                         output_workspace=ws_name,
-                                                         **load_params)
+                load_events_and_histogram(dark_current_file, output_workspace=ws_name,
+                                          **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
                     set_meta_data(ws_name,
@@ -237,6 +236,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
+                dark_current = mtd[ws_name]
             else:
                 dark_current = mtd[ws_name]
 

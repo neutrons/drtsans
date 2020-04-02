@@ -5,7 +5,8 @@ from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd
 
 # the generic version is feature complete for monochromatic data
 
-from drtsans.load import load_events, sum_data, load_and_split
+from drtsans.load import load_events, sum_data
+from drtsans.load import load_and_split as drt_load_and_split
 from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.instruments import extract_run_number, instrument_enum_name
 from drtsans.mono.meta_data import get_sample_detector_offset
@@ -325,3 +326,70 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
           ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
 
     return ws
+
+
+def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                   time_interval=None, log_name=None, log_value_interval=None,
+                   reuse_workspace=False, monitors=False, **kwargs):
+    r"""Load an event NeXus file and filter into a WorkspaceGroup depending
+    on the provided filter options. Either a time_interval must be
+    provided or a log_name and log_value_interval.
+
+    Metadata added to output workspace includes the ``slice`` number,
+    ``number_of_slices``, ``slice_parameter``, ``slice_interval``,
+    ``slice_start`` and ``slice_end``.
+
+    For EQSANS two WorkspaceGroup's are return, one for the filtered data and one for filtered monitors
+
+    Parameters
+    ----------
+    run: str, ~mantid.api.IEventWorkspace
+        Examples: ``CG3_55555``, ``CG355555`` or file path.
+    output_workspace: str
+        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
+    data_dir: str, list
+        Additional data search directories
+    overwrite_instrument: bool, str
+        If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
+        latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
+        desired IDF.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
+    detector_offset: float
+        Additional translation of the detector along the Z-axis, in mm. Positive
+        moves the detector downstream.
+    sample_offset: float
+        Additional translation of the sample, in mm. The sample flange remains
+        at the origin of coordinates. Positive moves the sample downstream.
+    time_interval: float or list of floats
+        Array for lengths of time intervals for splitters.  If the array has one value,
+        then all splitters will have same time intervals. If the size of the array is larger
+        than one, then the splitters can have various time interval values.
+    log_name: string
+        Name of the sample log to use to filter. For example, the pulse charge is recorded in 'ProtonCharge'.
+    log_value_interval: float
+        Delta of log value to be sliced into from min log value and max log value.
+    reuse_workspace: bool
+        When true, return the ``output_workspace`` if it already exists
+    kwargs: dict
+        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
+
+    Returns
+    -------
+    WorkspaceGroup
+        Reference to the workspace groups containing all the split workspaces
+
+    """
+    drt_load_and_split(run=run,
+                       data_dir=data_dir,
+                       output_workspace=output_workspace,
+                       overwrite_instrument=overwrite_instrument,
+                       output_suffix=output_suffix,
+                       detector_offset=0., sample_offset=0.,
+                       time_interval=time_interval,
+                       log_name=log_name,
+                       log_value_interval=log_value_interval,
+                       reuse_workspace=reuse_workspace,
+                       monitors=monitors,
+                       **kwargs)

@@ -264,6 +264,7 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
     if registered_workspace(run):
         # Input is a workspace or name of a workspace in ADS
         ws = mtd[run]
+        monitors = monitors or is_mono
         assert instrument_unique_name is not None, 'Instrument name must be given!'
     else:
         # determine if this is a monochromatic measurement

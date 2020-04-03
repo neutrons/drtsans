@@ -33,7 +33,7 @@ def test_no_overwrite():
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
 
 
-def test_overwrite_both_minor():
+def skip_test_overwrite_both_minor():
     """Test reduce 3 sets of data with minor overwriting
 
     Returns
@@ -55,7 +55,7 @@ def test_overwrite_both_minor():
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1a')
 
 
-def test_overwrite_both_major():
+def skip_test_overwrite_both_major():
     """Test reduce 3 sets of data with minor overwriting
 
     Returns

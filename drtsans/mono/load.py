@@ -396,13 +396,19 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                      reuse_workspace=reuse_workspace,
                      **dict(kwargs, LoadMonitors=True))
 
-    instrument_name = instrument_enum_name(run)  # determine which SANS instrument
+    # Calculate offset with overwriting to sample-detector-distance
+    ws = set_sample_detector_position(ws, sample_to_si_name, si_nominal_distance,
+                                      sample_to_si_value, sample_detector_distance_value)
+
+    # determine which SANS instrument from the data file
+    instrument_name = instrument_enum_name(run)
 
     # create default name for output workspace
     if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
         run_number = extract_run_number(run) if isinstance(run, str) else ''
         output_workspace = '{}_{}{}'.format(instrument_name, run_number, output_suffix)
 
+    # Split the workspace
     split_ws_group = drt_load_and_split(run=ws,
                                         data_dir=data_dir,
                                         output_workspace=output_workspace,

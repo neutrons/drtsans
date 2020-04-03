@@ -189,6 +189,21 @@ def test_load_and_split(reference_dir):
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == 'seconds'
     assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == 'seconds'
 
+    # Verify the others
+    # SampleToSi = 60. mm
+    # SDD = 3.060004084948254
+    # Sample position is expected to be at 60 - 71 = -11 mm
+    # Verify geometry related values
+    # workspace 0
+    ws0 = filtered_ws.getItem(0)
+    # workspace 1
+    ws1 = filtered_ws.getItem(1)
+    # Verify
+    very_geometry_meta([ws0, ws1],
+                       expected_sample_detector_distance=3.06,
+                       expected_sample_si_distance=60 * 1E-3,
+                       expected_sample_position_z=-11. * 1E-3)
+
 
 def test_load_and_split_overwrite_geometry(reference_dir):
     # Check that is fails with missing required paramters
@@ -232,24 +247,52 @@ def test_load_and_split_overwrite_geometry(reference_dir):
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.units == 'seconds'
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == 'seconds'
     assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == 'seconds'
-
-    # workspace 0
-    ws0 = filtered_ws.getItem(0)
-    # workspace 1
-    ws1 = filtered_ws.getItem(1)
-
-    sdd0 = sample_detector_distance(ws0, unit='m', search_logs=False)
-    sdd1 = sample_detector_distance(ws1, unit='m', search_logs=False)
-    print(sdd0)
-    print(sdd1)
-
-    swd = SampleLogs(ws0)['CG3:CS:SampleToSi'].value
-    print(swd)
-
-    assert sdd0 == 20, 'SDD = {}'.format(sdd0)
-    assert sdd1 == 20, 'SDD = {}'.format(sdd1)
+    #
+    # # Verify geometry related values
+    # # workspace 0
+    # ws0 = filtered_ws.getItem(0)
+    # # workspace 1
+    # ws1 = filtered_ws.getItem(1)
+    #
+    # very_geometry_meta([ws0, ws1])
 
     return
+
+
+def very_geometry_meta(workspace_list, expected_sample_detector_distance,
+                       expected_sample_si_distance,
+                       expected_sample_position_z):
+    """Assuming there are 2 workspaces in the group
+
+    Parameters
+    ----------
+    workspace_list: ~list
+        list of workspaces
+    expected_sample_detector_distance: float
+        .. ...
+    expected_sample_si_distance: float
+        ... ...
+    expected_sample_position_z: float
+        ... ...
+
+    Returns
+    -------
+
+    """
+    for index, workspace in enumerate(workspace_list):
+        print('[TEST] workspace {}: {}'.format(index, str(workspace)))
+
+        # check SDD
+        sdd = sample_detector_distance(workspace, unit='m', search_logs=False)
+        assert sdd == pytest.approx(expected_sample_detector_distance, 1E-6)
+
+        # check sample silicon window distance
+        swd = SampleLogs(workspace)['CG3:CS:SampleToSi'].value
+        assert swd == pytest.approx(expected_sample_si_distance, 1E-6)
+
+        # sample position
+        sample_pos_z = workspace.getInstrument().getSample().getPos()[2]
+        assert sample_pos_z == pytest.approx(expected_sample_position_z, 1E-6)
 
 
 if __name__ == '__main__':

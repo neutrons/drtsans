@@ -330,6 +330,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
 
 def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
                    time_interval=None, log_name=None, log_value_interval=None,
+                   sample_to_si_name=None, si_nominal_distance=None,
+                   sample_to_si_value=None, sample_detector_distance_value=None,
                    reuse_workspace=False, monitors=False, **kwargs):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
     on the provided filter options. Either a time_interval must be
@@ -356,16 +358,18 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
-    detector_offset: float
-        Additional translation of the detector along the Z-axis, in mm. Positive
-        moves the detector downstream.
-    sample_offset: float
-        Additional translation of the sample, in mm. The sample flange remains
-        at the origin of coordinates. Positive moves the sample downstream.
     time_interval: float or list of floats
         Array for lengths of time intervals for splitters.  If the array has one value,
         then all splitters will have same time intervals. If the size of the array is larger
         than one, then the splitters can have various time interval values.
+    sample_to_si_name: str
+        Meta data name for sample to Silicon window distance
+    si_nominal_distance: float
+        distance between nominal position to silicon window.  unit = meter
+    sample_to_si_value: float or None
+        Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
+    sample_detector_distance_value: float or None
+        Sample to detector distance to overwrite the EPICS value.  None for no operation. unit = meter
     log_name: string
         Name of the sample log to use to filter. For example, the pulse charge is recorded in 'ProtonCharge'.
     log_value_interval: float

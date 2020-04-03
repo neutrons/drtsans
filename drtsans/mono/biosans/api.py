@@ -176,6 +176,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             biosans.load_and_split(filename, output_workspace=ws_name,
                                    time_interval=timesliceinterval,
                                    log_name=logslicename, log_value_interval=logsliceinterval,
+                                   sample_to_si_name=SAMPLE_SI_META_NAME,
+                                   si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                   sample_to_si_value=overwrite_swd,
+                                   sample_detector_distance_value=overwrite_sdd
                                    **load_params)
 
             for _w in mtd[ws_name]:

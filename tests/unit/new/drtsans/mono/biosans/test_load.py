@@ -239,9 +239,14 @@ def test_load_and_split_overwrite_geometry(reference_dir):
     ws1 = filtered_ws.getItem(1)
 
     sdd0 = sample_detector_distance(ws0, unit='m', search_logs=False)
-    assert sdd0 == 20, 'SDD = {}'.format(sdd0)
-
     sdd1 = sample_detector_distance(ws1, unit='m', search_logs=False)
+    print(sdd0)
+    print(sdd1)
+
+    swd = SampleLogs(ws0)['CG3:CS:SampleToSi'].value
+    print(swd)
+
+    assert sdd0 == 20, 'SDD = {}'.format(sdd0)
     assert sdd1 == 20, 'SDD = {}'.format(sdd1)
 
     return

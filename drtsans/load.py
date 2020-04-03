@@ -12,6 +12,7 @@ from mantid.simpleapi import mtd
 from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
 from mantid.simpleapi import AddSampleLogMultiple
 import mantid
+from drtsans.path import registered_workspace
 
 
 __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
@@ -203,7 +204,8 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
 def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
                    detector_offset=0., sample_offset=0.,
                    time_interval=None, log_name=None, log_value_interval=None,
-                   reuse_workspace=False, monitors=False, **kwargs):
+                   reuse_workspace=False, monitors=False, instrument_unique_name=None, is_mono=None,
+                   **kwargs):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
     on the provided filter options. Either a time_interval must be
     provided or a log_name and log_value_interval.
@@ -240,7 +242,7 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         then all splitters will have same time intervals. If the size of the array is larger
         than one, then the splitters can have various time interval values.
     log_name: string
-        Name of the sample log to use to filter. For example, the pulse charge is recorded in ‘ProtonCharge’.
+        Name of the sample log to use to filter. For example, the pulse charge is recorded in 'ProtonCharge'.
     log_value_interval: float
         Delta of log value to be sliced into from min log value and max log value.
     reuse_workspace: bool
@@ -254,27 +256,33 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         Reference to the workspace groups containing all the split workspaces
 
     """
-
     if not (time_interval or (log_name and log_value_interval)):
         raise ValueError("Must provide with time_interval or log_name and log_value_interval")
 
-    # determine if this is a monochromatic measurement
-    instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
-    is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
-              (instrument_unique_name == InstrumentEnumName.GPSANS)
+    # Check whether need to load or not
+    run = str(run)
+    if registered_workspace(run):
+        # Input is a workspace or name of a workspace in ADS
+        ws = mtd[run]
+        assert instrument_unique_name is not None, 'Instrument name must be given!'
+    else:
+        # determine if this is a monochromatic measurement
+        instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
+        is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
+                  (instrument_unique_name == InstrumentEnumName.GPSANS)
 
-    # monitors are required for gpsans and biosans
-    monitors = monitors or is_mono
+        # monitors are required for gpsans and biosans
+        monitors = monitors or is_mono
 
-    ws = load_events(run=run,
-                     data_dir=data_dir,
-                     output_workspace='_load_tmp',
-                     overwrite_instrument=overwrite_instrument,
-                     output_suffix=output_suffix,
-                     detector_offset=detector_offset,
-                     sample_offset=sample_offset,
-                     reuse_workspace=reuse_workspace,
-                     **dict(kwargs, LoadMonitors=monitors or is_mono))
+        ws = load_events(run=run,
+                         data_dir=data_dir,
+                         output_workspace='_load_tmp',
+                         overwrite_instrument=overwrite_instrument,
+                         output_suffix=output_suffix,
+                         detector_offset=detector_offset,
+                         sample_offset=sample_offset,
+                         reuse_workspace=reuse_workspace,
+                         **dict(kwargs, LoadMonitors=monitors or is_mono))
 
     # create default name for output workspace
     if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
@@ -309,6 +317,8 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                      SpectrumWithoutDetector='Skip only if TOF correction',
                      OutputWorkspaceIndexedFrom1=True)
 
+    # Check is_mono
+    assert is_mono is not None, 'is_mono shall be either set or specified'
     if is_mono:
         # Set monitor log to be correct for each workspace
         for n in range(mtd[output_workspace].getNumberOfEntries()):

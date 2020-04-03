@@ -385,7 +385,20 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         Reference to the workspace groups containing all the split workspaces
 
     """
-    split_ws_group = drt_load_and_split(run=run,
+    # Load workspace
+    ws = load_events(run=run,
+                     data_dir=data_dir,
+                     output_workspace='_load_tmp',
+                     overwrite_instrument=overwrite_instrument,
+                     output_suffix=output_suffix,
+                     detector_offset=0.,
+                     sample_offset=0.,
+                     reuse_workspace=reuse_workspace,
+                     **dict(kwargs, LoadMonitors=True))
+
+    instrument_name = instrument_enum_name(run)  # determine which SANS instrument
+
+    split_ws_group = drt_load_and_split(run=ws,
                                         data_dir=data_dir,
                                         output_workspace=output_workspace,
                                         overwrite_instrument=overwrite_instrument,
@@ -396,6 +409,8 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                                         log_value_interval=log_value_interval,
                                         reuse_workspace=reuse_workspace,
                                         monitors=monitors,
+                                        instrument_unique_name=instrument_name,
+                                        is_mono=True,
                                         **kwargs)
 
     return split_ws_group

@@ -215,9 +215,9 @@ def test_load_and_split_overwrite_geometry(reference_dir):
 
     filtered_ws = load_and_split('CG3_961', data_dir=reference_dir.new.biosans, time_interval=1000,
                                  sample_to_si_name='CG3:CS:SampleToSi',
-                                 si_nominal_distance=0.071)
-    # sample_detector_distance_value=34.,
-    # sample_to_si_value=0.123)
+                                 si_nominal_distance=0.071,
+                                 sample_detector_distance_value=10.,
+                                 sample_to_si_value=0.041)
 
     assert filtered_ws.size() == 2
 
@@ -247,14 +247,21 @@ def test_load_and_split_overwrite_geometry(reference_dir):
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.units == 'seconds'
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == 'seconds'
     assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == 'seconds'
-    #
-    # # Verify geometry related values
-    # # workspace 0
-    # ws0 = filtered_ws.getItem(0)
-    # # workspace 1
-    # ws1 = filtered_ws.getItem(1)
-    #
-    # very_geometry_meta([ws0, ws1])
+
+    # Verify the others
+    # SampleToSi = 0.041 mm
+    # SDD = 10.
+    # Sample position is expected to be at -(41 - 71) = 30 mm
+    # Verify geometry related values
+    # workspace 0
+    ws0 = filtered_ws.getItem(0)
+    # workspace 1
+    ws1 = filtered_ws.getItem(1)
+    # Verify
+    very_geometry_meta([ws0, ws1],
+                       expected_sample_detector_distance=10.,
+                       expected_sample_si_distance=41.,
+                       expected_sample_position_z=30. * 1E-3)
 
     return
 

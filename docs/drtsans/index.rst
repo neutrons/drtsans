@@ -6,9 +6,12 @@
    :maxdepth: 2
 
    /drtsans/dataobjects
+   /drtsans/chopper
    /drtsans/mono/index
-   /drtsans/tof/index
    /drtsans/plots
+   /drtsans/tof/index
+   /drtsans/wavelength
+
 
 API Documentation
 =================

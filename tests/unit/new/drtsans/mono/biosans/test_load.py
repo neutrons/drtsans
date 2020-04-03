@@ -157,7 +157,9 @@ def test_load_and_split(reference_dir):
                        si_nominal_distance=0.071)
     assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
-    filtered_ws = load_and_split('CG3_961', data_dir=reference_dir.new.biosans, time_interval=1000)
+    filtered_ws = load_and_split('CG3_961', data_dir=reference_dir.new.biosans, time_interval=1000,
+                                 sample_to_si_name='CG3:CS:SampleToSi',
+                                 si_nominal_distance=0.071)
 
     assert filtered_ws.size() == 2
 

@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CropWorkspace-v1.html
@@ -17,7 +16,8 @@ from drtsans.geometry import source_detector_distance
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.process_uncertainties import set_init_uncertainties
 
-__all__ = ['transform_to_wavelength','set_init_uncertainties']
+
+__all__ = ['transform_to_wavelength', 'set_init_uncertainties']
 
 
 def _is_frame_skipping(input_workspace):
@@ -42,8 +42,7 @@ def _is_frame_skipping(input_workspace):
 @namedtuplefy
 def transmitted_bands(input_workspace):
     r"""
-    Wavelength bands of the lead and skipped pulses transmitted by
-    the choppers of the workspace.
+    Wavelength bands of the lead and skipped pulses transmitted by the choppers of the workspace.
 
     Parameters
     ----------
@@ -55,13 +54,12 @@ def transmitted_bands(input_workspace):
     namedtuple
         Fields of the namedtuple:
         - lead, WBand object for the wavelength band of the lead pulse
-        - skipped, Wband for the skipped pulse. None if not operating in
-            the skipped frame mode
+        - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
-    sl = SampleLogs(input_workspace)
+    sample_logs = SampleLogs(input_workspace)
     try:
         # 10^6/60 micro-seconds
-        pulse_period = 1.e6 / sl.single_value('frequency')
+        pulse_period = 1.e6 / sample_logs.single_value('frequency')
     except RuntimeError:
         pulse_period = 1.e6 / 60.  # reasonable default
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
@@ -92,8 +90,7 @@ def limiting_tofs(input_workspace, sdd):
     namedtuple
         Fields of the namedtuple
         lead: tuple, tof_min and tof_max for the neutrons of the lead pulse
-        skip: tuple, tof_min and tof_max for the neutrons of the skip
-            pulse. `None` if the frame mode is 'non-skipping'
+        skip: tuple, tof_min and tof_max for the neutrons of the skip pulse. `None` if the frame mode is 'non-skipping'
     """
     ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
@@ -122,8 +119,7 @@ def clipped_bands_from_logs(input_workspace):
     namedtuple
         Fields of the namedtuple:
         - lead, WBand object for the wavelength band of the lead pulse
-        - skipped, Wband for the skipped pulse. None if not operating in
-            the skipped frame mode
+        - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
     sl = SampleLogs(input_workspace)
     lead = wlg.Wband(sl.wavelength_lead_min.value,
@@ -157,9 +153,8 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
         trim neutrons of the leading pulse with TOF bigger than the maximal TOF minus this value. Units in
         micro-seconds. If py:obj:`None`, the value is retrieved from log entry `'low_tof_clip``.
     interior_clip: False
-        If True, trim slow neutrons from the lead pulse (using
-        `high_tof_clip`) and fast neutrons from the skip pulse (using
-         `low_tof_clip`)
+        If True, trim slow neutrons from the lead pulse (using `high_tof_clip`) and fast neutrons from the skip
+        pulse (using `low_tof_clip`)
     search_in_logs: True
         If :py:obj:`True`, function clipped_bands_from_logs is tried first in order to retrieve the clipped bands
         from the logs.
@@ -169,8 +164,7 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
     namedtuple
         Fields of the namedtuple:
         - lead, WBand object for the wavelength band of the lead pulse
-        - skipped, Wband for the skipped pulse. None if not operating in
-            the skipped frame mode
+        - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
     # First see if the clipped bands are already present in the logs
     if search_in_logs is True:
@@ -273,8 +267,7 @@ def log_band_structure(input_workspace, bands):
 @namedtuplefy
 def metadata_bands(input_workspace):
     r"""
-    Scan the logs for the wavelength bands of the lead and skipped pulses transmitted by
-    the choppers
+    Scan the logs for the wavelength bands of the lead and skipped pulses transmitted by the choppers
 
     Parameters
     ----------
@@ -284,8 +277,7 @@ def metadata_bands(input_workspace):
     namedtuple
         Fields of the namedtuple:
         - lead, WBand object for the wavelength band of the lead pulse
-        - skipped, Wband for the skipped pulse. None if not operating in
-            the skipped frame mode
+        - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
     sample_logs = SampleLogs(input_workspace)
     try:
@@ -315,21 +307,18 @@ def correct_tof_frame(input_workspace, source_to_component_distance,
     input_workspace: str, ~mantid.api.IEventsWorkspace
         Data workspace
     source_to_component_distance: float
-        Distance from source to detecting component (detector or monitor), in
-        meters
+        Distance from source to detecting component (detector or monitor), in meters
     path_to_pixel: bool
-        When correcting the recorded time of flight of each neutron, use the
-        path from the moderator to the detector pixel (`True`) or to the center
-        of the detector panel (`False`). The latter for comparison to the
-        old data reduction.
+        When correcting the recorded time of flight of each neutron, use the path from the moderator
+        to the detector pixel (`True`) or to the center of the detector panel (`False`). The latter
+        for comparison to the old data reduction.
     Returns
     -------
     namedtuple
         Fields of the namedtuple:
         - ws: ~mantid.api.IEventsWorkspace, the input workspace
         - lead_band: WBand wavelength band for the lead pulse
-        - skip_band: WBand wavelength band for the skip pulse. `None` if not
-            working in frame-skipping mode
+        - skip_band: WBand wavelength band for the skip pulse. `None` if not working in frame-skipping mode
     """
     ws = mtd[str(input_workspace)]
     sl = SampleLogs(ws)

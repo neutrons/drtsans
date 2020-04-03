@@ -136,8 +136,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         pixel_size_y = float(reduction_input["configuration"]["pixel_size_y"]) * 1E-3
     except (KeyError, ValueError):
         pixel_size_x = pixel_size_y = None
-    print(">>>>>>> reduction_input")
-    print(reduction_input)
+    # print(">>>>>>> reduction_input")
+    # print(reduction_input)
 
     # Retrieve parameters for overwriting geometry related meta data
     try:
@@ -190,18 +190,17 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
 
-                for n in range(mtd[ws_name].getNumberOfEntries()):
-                    samplelogs = SampleLogs(mtd[ws_name].getItem(n))
-                    logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
-                                                  'units': samplelogs[logslicename].units,
-                                                  'name': logslicename}
+                if not (logslicename is None):
+                    for n in range(mtd[ws_name].getNumberOfEntries()):
+                        samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                        logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                                      'units': samplelogs[logslicename].units,
+                                                      'name': logslicename}
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
-
-            #
             print('DEBUG wzz: Load {} existing? = {}'.format(filename, os.path.exists(filename)))
             load_events_and_histogram(filename, output_workspace=ws_name,
                                       sample_to_si_name=SAMPLE_SI_META_NAME,
@@ -242,6 +241,18 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                           **load_params)
+                # Set the wave length and wave length spread
+                if wavelength and wavelength_spread_user:
+                    set_meta_data(ws_name,
+                                  wave_length=wavelength,
+                                  wavelength_spread=wavelength_spread_user,
+                                  sample_thickness=None,
+                                  sample_aperture_diameter=None,
+                                  source_aperture_diameter=None,
+                                  pixel_size_x=None,
+                                  pixel_size_y=None)
+                    # Transform X-axis to wave length with spread
+                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
             else:
@@ -256,11 +267,30 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file}")
-                dark_current = load_events_and_histogram(dark_current_file,
-                                                         output_workspace=ws_name,
-                                                         **load_params)
+                # identify to use exact given path to NeXus or use OnCat instead
+                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+                if os.path.exists(temp_name):
+                    dark_current_file_wing = temp_name
+                    print('Dark current (wing): {}'.format(dark_current_file_wing))
+                load_events_and_histogram(dark_current_file, output_workspace=ws_name,
+                                          sample_to_si_name=SAMPLE_SI_META_NAME,
+                                          si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                          **load_params)
+                # Set the wave length and wave length spread
+                if wavelength and wavelength_spread_user:
+                    set_meta_data(ws_name,
+                                  wave_length=wavelength,
+                                  wavelength_spread=wavelength_spread_user,
+                                  sample_thickness=None,
+                                  sample_aperture_diameter=None,
+                                  source_aperture_diameter=None,
+                                  pixel_size_x=None,
+                                  pixel_size_y=None)
+                    # Transform X-axis to wave length with spread
+                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
+                dark_current = mtd[ws_name]
             else:
                 dark_current = mtd[ws_name]
 

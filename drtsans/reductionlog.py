@@ -280,11 +280,12 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                            data=iqxqy.delta_qy,
                            units='1/A')
         # wavelength
-        wavelength = "{}".format(iqxqy.wavelength) if iqxqy.wavelength else "N/A"
-        _create_groupe(entry=entry,
-                       name='Wavelength',
-                       data=wavelength,
-                       units='A')
+        if iqxqy.wavelength:
+            wavelength = "{}".format(iqxqy.wavelength)
+            _create_groupe(entry=entry,
+                           name='Wavelength',
+                           data=wavelength,
+                           units='A')
 
 
 def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
@@ -322,11 +323,12 @@ def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
                        units='1/A')
 
     # wavelength
-    wavelength = "{}".format(iq.wavelength) if iq.wavelength else "N/A"
-    _create_groupe(entry=entry,
-                   name='Wavelength',
-                   data=wavelength,
-                   units='A')
+    if iq.wavelength:
+        wavelength = "{}".format(iq.wavelength)
+        _create_groupe(entry=entry,
+                       name='Wavelength',
+                       data=wavelength,
+                       units='A')
 
 
 def _save_iq_to_log(iq=None, topEntry=None):

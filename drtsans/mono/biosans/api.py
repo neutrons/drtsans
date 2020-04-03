@@ -141,8 +141,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     except (KeyError, ValueError):
         pixel_size_x = pixel_size_y = None
 
-    print(">>>>>>> reduction_input")
-    print(reduction_input)
+    # print(">>>>>>> reduction_input")
+    # print(reduction_input)
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
@@ -198,11 +198,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
 
-            for n in range(mtd[ws_name].getNumberOfEntries()):
-                samplelogs = SampleLogs(mtd[ws_name].getItem(n))
-                logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
-                                              'units': samplelogs[logslicename].units,
-                                              'name': logslicename}
+            if not (logslicename is None):
+                for n in range(mtd[ws_name].getNumberOfEntries()):
+                    samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                    logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
+                                                  'units': samplelogs[logslicename].units,
+                                                  'name': logslicename}
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
@@ -246,6 +247,18 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                   sample_to_si_name=SAMPLE_SI_META_NAME,
                                                   si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                                   **load_params)
+                # Set the wave length and wave length spread
+                if wavelength and wavelength_spread_user:
+                    set_meta_data(ws_name,
+                                  wave_length=wavelength,
+                                  wavelength_spread=wavelength_spread_user,
+                                  sample_thickness=None,
+                                  sample_aperture_diameter=None,
+                                  source_aperture_diameter=None,
+                                  pixel_size_x=None,
+                                  pixel_size_y=None)
+                    # Transform X-axis to wave length with spread
+                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
@@ -260,36 +273,64 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_main}")
+                # identify to use exact given path to NeXus or use OnCat instead
                 temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
                 if os.path.exists(temp_name):
                     dark_current_file_main = temp_name
                     print('Dark current (main): {}'.format(dark_current_file_main))
-                dark_current_main =\
-                    biosans.load_events_and_histogram(dark_current_file_main,
-                                                      output_workspace=ws_name,
-                                                      sample_to_si_name=SAMPLE_SI_META_NAME,
-                                                      si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                                      **load_params)
+                biosans.load_events_and_histogram(dark_current_file_main,
+                                                  output_workspace=ws_name,
+                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                                  **load_params)
+                # Set the wave length and wave length spread
+                if wavelength and wavelength_spread_user:
+                    set_meta_data(ws_name,
+                                  wave_length=wavelength,
+                                  wavelength_spread=wavelength_spread_user,
+                                  sample_thickness=None,
+                                  sample_aperture_diameter=None,
+                                  source_aperture_diameter=None,
+                                  pixel_size_x=None,
+                                  pixel_size_y=None)
+                    # Transform X-axis to wave length with spread
+                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
+                dark_current_main = mtd[ws_name]
             else:
                 dark_current_main = mtd[ws_name]
+
+            # dark current for wing detector
             run_number = extract_run_number(dark_current_file_wing)
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_wing}")
+                # identify to use exact given path to NeXus or use OnCat instead
                 temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
                 if os.path.exists(temp_name):
                     dark_current_file_wing = temp_name
                     print('Dark current (wing): {}'.format(dark_current_file_wing))
-                dark_current_wing =\
-                    biosans.load_events_and_histogram(dark_current_file_wing,
-                                                      output_workspace=ws_name,
-                                                      sample_to_si_name=SAMPLE_SI_META_NAME,
-                                                      si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                                      **load_params)
+                biosans.load_events_and_histogram(dark_current_file_wing,
+                                                  output_workspace=ws_name,
+                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                                  **load_params)
+                # Set the wave length and wave length spread
+                if wavelength and wavelength_spread_user:
+                    set_meta_data(ws_name,
+                                  wave_length=wavelength,
+                                  wavelength_spread=wavelength_spread_user,
+                                  sample_thickness=None,
+                                  sample_aperture_diameter=None,
+                                  source_aperture_diameter=None,
+                                  pixel_size_x=None,
+                                  pixel_size_y=None)
+                    # Transform X-axis to wave length with spread
+                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
+                dark_current_wing = mtd[ws_name]
             else:
                 dark_current_wing = mtd[ws_name]
 

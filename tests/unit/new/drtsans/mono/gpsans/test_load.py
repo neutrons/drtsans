@@ -5,6 +5,7 @@ from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.gpsans.load import load_histogram
 from drtsans.mono.load import load_and_split
+from drtsans.geometry import sample_detector_distance
 
 
 def test_load_histogram(reference_dir):
@@ -33,17 +34,59 @@ def test_load_histogram(reference_dir):
 def test_load_and_split(reference_dir):
     # Check that is fails with missing required parameters
     with pytest.raises(ValueError) as excinfo:
-        load_and_split('CG2_9177 ', data_dir=reference_dir.new.biosans,
+        load_and_split('CG2_9177 ', data_dir=reference_dir.new.gpsans,
                        sample_to_si_name='CG2:CS:SampleToSi',
                        si_nominal_distance=0.)
     assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
-    filtered_ws = load_and_split('CG2_9177.', data_dir=reference_dir.new.biosans, time_interval=1000,
+    filtered_ws = load_and_split('CG2_9177.', data_dir=reference_dir.new.biosans, time_interval=50,
                                  sample_to_si_name='CG2:CS:SampleToSi',
                                  si_nominal_distance=0.)
 
-    print(filtered_ws.size())
-    assert filtered_ws.size() == 2
+    # suppose to get 3 output workspaces
+    assert filtered_ws.size() == 3
+
+    # Get workspaces
+    sliced_ws_list = [filtered_ws.getItem(i) for i in range(3)]
+
+    # Verify
+    verify_geometry_meta(sliced_ws_list, 20, 0, 0)
+
+
+def verify_geometry_meta(workspace_list, expected_sample_detector_distance,
+                         expected_sample_si_distance,
+                         expected_sample_position_z):
+    """Assuming there are 2 workspaces in the group
+
+    Parameters
+    ----------
+    workspace_list: ~list
+        list of workspaces
+    expected_sample_detector_distance: float
+        .. ...  unit = meter
+    expected_sample_si_distance: float
+        ... ... unit = millimeter
+    expected_sample_position_z: float
+        ... ...
+
+    Returns
+    -------
+
+    """
+    for index, workspace in enumerate(workspace_list):
+        print('[TEST] workspace {}: {}'.format(index, str(workspace)))
+
+        # check SDD: unit meter
+        sdd = sample_detector_distance(workspace, unit='m', search_logs=False)
+        assert sdd == pytest.approx(expected_sample_detector_distance, 1E-4)
+
+        # check sample silicon window distance: unit millimeter
+        swd = SampleLogs(workspace)['CG3:CS:SampleToSi'].value
+        assert swd == pytest.approx(expected_sample_si_distance, 1E-4)
+
+        # sample position: unit meter
+        sample_pos_z = workspace.getInstrument().getSample().getPos()[2]
+        assert sample_pos_z == pytest.approx(expected_sample_position_z, 1E-4)
 
 
 if __name__ == '__main__':

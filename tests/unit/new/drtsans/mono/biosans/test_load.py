@@ -152,7 +152,9 @@ def test_load_events_and_histogram(reference_dir):
 def test_load_and_split(reference_dir):
     # Check that is fails with missing required paramters
     with pytest.raises(ValueError) as excinfo:
-        load_and_split('CG3_961', data_dir=reference_dir.new.biosans)
+        load_and_split('CG3_961', data_dir=reference_dir.new.biosans,
+                       sample_to_si_name='CG3:CS:SampleToSi',
+                       si_nominal_distance=0.071)
     assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
     filtered_ws = load_and_split('CG3_961', data_dir=reference_dir.new.biosans, time_interval=1000)

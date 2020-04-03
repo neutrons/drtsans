@@ -328,9 +328,10 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     return ws
 
 
-def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+def load_and_split(run,
+                   sample_to_si_name, si_nominal_distance,
+                   data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
                    time_interval=None, log_name=None, log_value_interval=None,
-                   sample_to_si_name=None, si_nominal_distance=None,
                    sample_to_si_value=None, sample_detector_distance_value=None,
                    reuse_workspace=False, monitors=False, **kwargs):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending

@@ -33,15 +33,15 @@ def test_load_histogram(reference_dir):
 
 def test_load_and_split(reference_dir):
     # Check that is fails with missing required parameters
-    # filename = str(Path(reference_dir.new.gpsans) / 'CG2_9177.nxs.h5')
-
+    filename = str(Path(reference_dir.new.gpsans) / 'CG2_9177.nxs.h5')
+    print('Try to load {}'.format(filename))
     with pytest.raises(ValueError) as excinfo:
-        load_and_split('CG2_9177.nxs.h5', data_dir=reference_dir.new.gpsans,
+        load_and_split(filename, data_dir=reference_dir.new.gpsans,
                        sample_to_si_name='CG2:CS:SampleToSi',
                        si_nominal_distance=0.)
     assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
-    filtered_ws = load_and_split('CG2_9177.nxs.h5', data_dir=reference_dir.new.biosans, time_interval=50,
+    filtered_ws = load_and_split(filename, data_dir=reference_dir.new.biosans, time_interval=50,
                                  sample_to_si_name='CG2:CS:SampleToSi',
                                  si_nominal_distance=0.)
 
@@ -67,15 +67,16 @@ def test_load_and_split_overwrite_ssd(reference_dir):
 
     """
     # Check that is fails with missing required parameters
-    # filename = str(Path(reference_dir.new.gpsans) / 'CG2_9177.nxs.h5')
+    filename = str(Path(reference_dir.new.gpsans) / 'CG2_9177.nxs.h5')
+    print('Try to load {}'.format(filename))
 
     with pytest.raises(ValueError) as excinfo:
-        load_and_split('CG2_9177.nxs.h5', data_dir=reference_dir.new.gpsans,
+        load_and_split(filename, data_dir=reference_dir.new.gpsans,
                        sample_to_si_name='CG2:CS:SampleToSi',
                        si_nominal_distance=0.)
     assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
-    filtered_ws = load_and_split('CG2_9177.nxs.h5', data_dir=reference_dir.new.biosans, time_interval=50,
+    filtered_ws = load_and_split(filename, data_dir=reference_dir.new.biosans, time_interval=50,
                                  sample_to_si_name='CG2:CS:SampleToSi',
                                  si_nominal_distance=0.,
                                  sample_to_si_value=103.)

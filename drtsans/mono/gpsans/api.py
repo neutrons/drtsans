@@ -139,6 +139,18 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     print(">>>>>>> reduction_input")
     print(reduction_input)
 
+    # Retrieve parameters for overwriting geometry related meta data
+    try:
+        # load configuration.SampleToSi (in millimeter) and convert to meter
+        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
+    except ValueError:
+        overwrite_swd = None
+    try:
+        # load configuration.SampleDetectorDistance (in meter)
+        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
+    except ValueError:
+        overwrite_sdd = None
+    print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
@@ -157,6 +169,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             load_and_split(filename, output_workspace=ws_name,
                            time_interval=timesliceinterval,
                            log_name=logslicename, log_value_interval=logsliceinterval,
+                           sample_to_si_name=SAMPLE_SI_META_NAME,
+                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                           sample_to_si_value=overwrite_swd,
+                           sample_detector_distance_value=overwrite_sdd,
                            **load_params)
             for _w in mtd[ws_name]:
                 # Overwrite meta data
@@ -185,18 +201,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
 
-            # Retrieve parameters for overwriting geometry related meta data
-            try:
-                # load configuration.SampleToSi (in millimeter) and convert to meter
-                overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
-            except ValueError:
-                overwrite_swd = None
-            try:
-                # load configuration.SampleDetectorDistance (in meter)
-                overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
-            except ValueError:
-                overwrite_sdd = None
-            print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
             #
             print('DEBUG wzz: Load {} existing? = {}'.format(filename, os.path.exists(filename)))
             load_events_and_histogram(filename, output_workspace=ws_name,

@@ -52,7 +52,7 @@ def test_load_and_split(reference_dir):
     sliced_ws_list = [filtered_ws.getItem(i) for i in range(3)]
 
     # Verify
-    verify_geometry_meta(sliced_ws_list, 20, 0, 0)
+    verify_geometry_meta(sliced_ws_list, 19., 83., -83. * 1E-3)
 
 
 def verify_geometry_meta(workspace_list, expected_sample_detector_distance,
@@ -83,7 +83,7 @@ def verify_geometry_meta(workspace_list, expected_sample_detector_distance,
         assert sdd == pytest.approx(expected_sample_detector_distance, 1E-4)
 
         # check sample silicon window distance: unit millimeter
-        swd = SampleLogs(workspace)['CG3:CS:SampleToSi'].value
+        swd = SampleLogs(workspace)['CG2:CS:SampleToSi'].value
         assert swd == pytest.approx(expected_sample_si_distance, 1E-4)
 
         # sample position: unit meter

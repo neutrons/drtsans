@@ -179,7 +179,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                    sample_to_si_name=SAMPLE_SI_META_NAME,
                                    si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                    sample_to_si_value=overwrite_swd,
-                                   sample_detector_distance_value=overwrite_sdd
+                                   sample_detector_distance_value=overwrite_sdd,
                                    **load_params)
 
             for _w in mtd[ws_name]:

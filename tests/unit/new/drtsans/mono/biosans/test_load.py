@@ -192,7 +192,7 @@ def test_load_and_split(reference_dir):
     # Verify the others
     # SampleToSi = 60. mm
     # SDD = 3.060004084948254
-    # Sample position is expected to be at 60 - 71 = -11 mm
+    # Sample position is expected to be at -(60 - 71) = 11 mm
     # Verify geometry related values
     # workspace 0
     ws0 = filtered_ws.getItem(0)
@@ -201,8 +201,8 @@ def test_load_and_split(reference_dir):
     # Verify
     very_geometry_meta([ws0, ws1],
                        expected_sample_detector_distance=3.06,
-                       expected_sample_si_distance=60 * 1E-3,
-                       expected_sample_position_z=-11. * 1E-3)
+                       expected_sample_si_distance=60,
+                       expected_sample_position_z=11. * 1E-3)
 
 
 def test_load_and_split_overwrite_geometry(reference_dir):
@@ -269,9 +269,9 @@ def very_geometry_meta(workspace_list, expected_sample_detector_distance,
     workspace_list: ~list
         list of workspaces
     expected_sample_detector_distance: float
-        .. ...
+        .. ...  unit = meter
     expected_sample_si_distance: float
-        ... ...
+        ... ... unit = millimeter
     expected_sample_position_z: float
         ... ...
 
@@ -282,17 +282,17 @@ def very_geometry_meta(workspace_list, expected_sample_detector_distance,
     for index, workspace in enumerate(workspace_list):
         print('[TEST] workspace {}: {}'.format(index, str(workspace)))
 
-        # check SDD
+        # check SDD: unit meter
         sdd = sample_detector_distance(workspace, unit='m', search_logs=False)
-        assert sdd == pytest.approx(expected_sample_detector_distance, 1E-6)
+        assert sdd == pytest.approx(expected_sample_detector_distance, 1E-4)
 
-        # check sample silicon window distance
+        # check sample silicon window distance: unit millimeter
         swd = SampleLogs(workspace)['CG3:CS:SampleToSi'].value
-        assert swd == pytest.approx(expected_sample_si_distance, 1E-6)
+        assert swd == pytest.approx(expected_sample_si_distance, 1E-4)
 
-        # sample position
+        # sample position: unit meter
         sample_pos_z = workspace.getInstrument().getSample().getPos()[2]
-        assert sample_pos_z == pytest.approx(expected_sample_position_z, 1E-6)
+        assert sample_pos_z == pytest.approx(expected_sample_position_z, 1E-4)
 
 
 if __name__ == '__main__':

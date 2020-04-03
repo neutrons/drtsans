@@ -398,6 +398,11 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
 
     instrument_name = instrument_enum_name(run)  # determine which SANS instrument
 
+    # create default name for output workspace
+    if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
+        run_number = extract_run_number(run) if isinstance(run, str) else ''
+        output_workspace = '{}_{}{}'.format(instrument_name, run_number, output_suffix)
+
     split_ws_group = drt_load_and_split(run=ws,
                                         data_dir=data_dir,
                                         output_workspace=output_workspace,

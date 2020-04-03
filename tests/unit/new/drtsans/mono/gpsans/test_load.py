@@ -55,6 +55,47 @@ def test_load_and_split(reference_dir):
     verify_geometry_meta(sliced_ws_list, 19., 83., -83. * 1E-3)
 
 
+def test_load_and_split_overwrite_ssd(reference_dir):
+    """Overwrite sample-silicon-window distance
+
+    Parameters
+    ----------
+    reference_dir
+
+    Returns
+    -------
+
+    """
+    # Check that is fails with missing required parameters
+    # filename = str(Path(reference_dir.new.gpsans) / 'CG2_9177.nxs.h5')
+
+    with pytest.raises(ValueError) as excinfo:
+        load_and_split('CG2_9177.nxs.h5', data_dir=reference_dir.new.gpsans,
+                       sample_to_si_name='CG2:CS:SampleToSi',
+                       si_nominal_distance=0.)
+    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
+
+    filtered_ws = load_and_split('CG2_9177.nxs.h5', data_dir=reference_dir.new.biosans, time_interval=50,
+                                 sample_to_si_name='CG2:CS:SampleToSi',
+                                 si_nominal_distance=0.,
+                                 sample_to_si_value=103.)
+
+    # suppose to get 3 output workspaces
+    assert filtered_ws.size() == 3
+
+    # Get workspaces
+    sliced_ws_list = [filtered_ws.getItem(i) for i in range(3)]
+
+    # Verify
+    # SDD = 19. m
+    # Sample to Silicon window is changed from 83 to 103 by 20 mm
+    # SDD is changed to 19.020 meter
+    verify_geometry_meta(sliced_ws_list,
+                         expected_sample_detector_distance=19.020,
+                         expected_sample_si_distance=103.,
+                         expected_sample_position_z=-103 * 1E-3)
+
+
 def verify_geometry_meta(workspace_list, expected_sample_detector_distance,
                          expected_sample_si_distance,
                          expected_sample_position_z):

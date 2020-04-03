@@ -79,7 +79,7 @@ def test_load_and_split_overwrite_ssd(reference_dir):
     filtered_ws = load_and_split(filename, data_dir=reference_dir.new.biosans, time_interval=50,
                                  sample_to_si_name='CG2:CS:SampleToSi',
                                  si_nominal_distance=0.,
-                                 sample_to_si_value=103.)
+                                 sample_to_si_value=103. * 1E-3)
 
     # suppose to get 3 output workspaces
     assert filtered_ws.size() == 3

@@ -17,7 +17,7 @@ from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.process_uncertainties import set_init_uncertainties
 
 
-__all__ = ['transform_to_wavelength', 'set_init_uncertainties']
+__all__ = ['transform_to_wavelength']
 
 
 def _is_frame_skipping(input_workspace):

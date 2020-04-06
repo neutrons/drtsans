@@ -165,7 +165,8 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
 
     Returns
     -------
-    workspace
+    ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Workspace with instrument moved
 
     """
     # Get workspace name

@@ -166,31 +166,6 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         ws = set_sample_detector_position(ws, sample_to_si_name, si_nominal_distance,
                                           sample_to_si_value, sample_detector_distance_value)
 
-        # print('[MONO-LOAD INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
-        #       ''.format(sample_detector_distance(ws, search_logs=False),
-        #                 sample_detector_distance(ws, search_logs=True)))
-        # sample_offset, detector_offset = \
-        #     get_sample_detector_offset(ws,
-        #                                sample_si_meta_name=sample_to_si_name,
-        #                                zero_sample_offset_sample_si_distance=si_nominal_distance,
-        #                                overwrite_sample_si_distance=sample_to_si_value,
-        #                                overwrite_sample_detector_distance=sample_detector_distance_value)
-        # print('[MONO-LOAD INFO] Sample offset = {}, Detector offset = {}'
-        #       ''.format(sample_offset, detector_offset))
-
-        # # Move sample and detector
-        # ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
-        #                      sample_si_name=sample_to_si_name)
-
-        # # Check
-        # # Check current instrument setup and meta data (sample logs)
-        # logs = SampleLogs(ws)
-        # print('[MONO-LOAD INFO] SampleToSi = {} mm'.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
-        # print('[MONO-LOAD INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
-        #       ''.format(sample_detector_distance(ws, search_logs=False),
-        #                 sample_detector_distance(ws, search_logs=True)))
-        # print('[MONO-LOAD INFO] Sample @ {}'.format(ws.getInstrument().getSample().getPos()))
-
         # Transform to wavelength and set unit uncertainties
         ws = transform_to_wavelength(ws)
         ws = set_init_uncertainties(ws)
@@ -227,28 +202,6 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
                                          sample_si_window_overwrite_value=sample_to_si_value,
                                          sample_detector_distance_overwrite_value=sample_detector_distance_value)
 
-            #     sample_offset, detector_offset = \
-            #         get_sample_detector_offset(temp_ws,
-            #                                    sample_si_meta_name=sample_to_si_name,
-            #                                    zero_sample_offset_sample_si_distance=si_nominal_distance,
-            #                                    overwrite_sample_si_distance=None,
-            #                                    overwrite_sample_detector_distance=None)
-            #     print('[TEST INFO] Sample offset = {}, Detector offset = {}'
-            #           ''.format(sample_offset, detector_offset))
-            #
-            #     # Move sample and detector
-            #     temp_ws = move_instrument(temp_ws, sample_offset, detector_offset, is_mono=True,
-            #                               sample_si_name=sample_to_si_name)
-            #
-            #     # Check
-            #     # Check current instrument setup and meta data (sample logs)
-            #     logs = SampleLogs(temp_ws)
-            #     print('[TEST INFO] SampleToSi = {} mm
-            #     '.format(logs.find_log_with_units(sample_to_si_name, unit='mm')))
-            #     print('[TEST INFO] Sample to detector distance = {} (calculated) /{} (meta) meter'
-            #           ''.format(sample_detector_distance(temp_ws, search_logs=False),
-            #                     sample_detector_distance(temp_ws, search_logs=True)))
-            # # END-IF
             transform_to_wavelength(temp_workspace_name)
             temp_workspaces.append(temp_workspace_name)
 
@@ -259,7 +212,7 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         # After summing data re-calculate initial uncertainties
         ws = set_init_uncertainties(ws)
 
-        # Remove temporary wokspace
+        # Remove temporary workspace
         for ws_name in temp_workspaces:
             if mtd.doesExist(ws_name):
                 mtd.remove(ws_name)

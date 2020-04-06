@@ -31,7 +31,7 @@ def load_histogram(filename, wavelength=None, wavelength_spread=None, sample_to_
 
     Returns
     -------
-    MatrixWorkspace
+    ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
         A reference to the workspace created.
     """
     unit_to_mm = dict(m=1.e3, mm=1.)

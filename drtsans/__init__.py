@@ -12,8 +12,8 @@ from .instruments import *
 from .momentum_transfer import *
 from .reductionlog import *
 from .resolution import *
-from .sensitivity_correction_patch import *
-from .sensitivity_correction_moving_detectors import *
+from drtsans.sensitivity_correction_patch import *
+from drtsans.sensitivity_correction_moving_detectors import *
 from .sensitivity import *
 from .solid_angle import *
 from .thickness_normalization import *

@@ -35,8 +35,6 @@ from ...thickness_normalization import *
 import drtsans.transmission
 from ...transmission import *
 
-import drtsans.mask_utils
-from ...mask_utils import *
 
 from .api import *
 from .cfg import *
@@ -59,7 +57,6 @@ __all__ = [] + drtsans.absolute_units.__all__ \
           + drtsans.stitch.__all__\
           + drtsans.thickness_normalization.__all__ \
           + drtsans.transmission.__all__ \
-          + drtsans.mask_utils.__all__ \
           + api.__all__ \
           + cfg.__all__ \
           + correct_frame.__all__ \

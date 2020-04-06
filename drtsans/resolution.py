@@ -134,14 +134,14 @@ def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
     mode: str
         One of "scalar", "azimuthal", "crystalographic"
     pixel_info: ~collections.namedtuple
-        A namedtuple with fields for two_theta, azimuthal, l2, keep, pixel_size_x, pixel_size_y
+        A namedtuple with fields for two_theta, azimuthal, l2, keep, smearing_pixel_size_x, smearing_pixel_size_y
     instrument_parameters: InstrumentSetupParameters
         Information about the geometry of the instrument. In particular:
         - distance from source aperture to sample
-        - distanceb from sample to detector
+        - distance from sample to detector
         - source aperture radius
         - sample aperture radius
-        - custom pixel width and height to replace nominal pixel width and height.
+        - custom pixel width and height to replace nominal pixel width and height, only for Q-resolution calculation.
 
     Returns
     -------
@@ -152,8 +152,8 @@ def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
     L2 = instrument_parameters.sample_det_center_distance
     R1 = instrument_parameters.source_aperture_radius
     R2 = instrument_parameters.sample_aperture_radius
-    dx = pixel_info.pixel_size_x
-    dy = pixel_info.pixel_size_y
+    dx = pixel_info.smearing_pixel_size_x
+    dy = pixel_info.smearing_pixel_size_y
 
     # Rescale pixel dimensions if custom pixel dimensions are present in the instrument parameters
     if instrument_parameters.custom_pixel_width is not None:

@@ -20,6 +20,11 @@ from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
 from drtsans.process_uncertainties import set_init_uncertainties
 
+from drtsans.sensitivity_correction_moving_detectors import calculate_sensitivity_correction as \
+    calculate_sensitivity_correction_moving
+from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction as \
+    calculate_sensitivity_correction_patch
+
 # Constants
 CG2 = 'CG2'
 CG3 = 'CG3'
@@ -81,9 +86,8 @@ SOLID_ANGLE_CORRECTION = {
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsensitivity_correction_moving_detectors.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsensitivity_correction_patch.py
 CALCULATE_SENSITIVITY_CORRECTION = {
-    MOVING_DETECTORS: drtsans.sensitivity_correction_moving_detectors.calculate_sensitivity_correction,
-    PATCHING_DETECTORS: drtsans.sensitivity_correction_patch.calculate_sensitivity_correction
-
+    MOVING_DETECTORS: calculate_sensitivity_correction_moving,
+    PATCHING_DETECTORS: calculate_sensitivity_correction_patch
 }
 
 

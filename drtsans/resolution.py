@@ -28,15 +28,17 @@ class InstrumentSetupParameters(object):
         sample_aperture_radius:
             sample aperture radius (meter)
         pixel_width: float
-            custom pixel width to replace the nominal pixel width of the instrument pixel detectors.
+            custom pixel width to replace the nominal pixel width of the instrument pixel detectors. Only
+            for the purpose of Q-resolution calculation.
         pixel_height: float
-            custom pixel height to replace the nominal pixel height of the instrument pixel detectors.
+            custom pixel height to replace the nominal pixel height of the instrument pixel detectors. Only
+            for the purpose of Q-resolution calculation.
         """
         self._l1 = l1
         self._sample_det_center_dist = sample_det_center_dist
         self._source_aperture = source_aperture_radius
         self._sample_aperture = sample_aperture_radius
-        self.custom_pixel_width, self.custom_pixel_height = pixel_width, pixel_height
+        self.smearing_pixel_width, self.smearing_pixel_height = pixel_width, pixel_height
 
     def __str__(self):
         """
@@ -156,11 +158,11 @@ def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
     dy = pixel_info.smearing_pixel_size_y
 
     # Rescale pixel dimensions if custom pixel dimensions are present in the instrument parameters
-    if instrument_parameters.custom_pixel_width is not None:
-        scaling = instrument_parameters.custom_pixel_width / nominal_pixel_size().width
+    if instrument_parameters.smearing_pixel_width is not None:
+        scaling = instrument_parameters.smearing_pixel_width / nominal_pixel_size().width
         dx *= scaling
-    if instrument_parameters.custom_pixel_height is not None:
-        scaling = instrument_parameters.custom_pixel_height / nominal_pixel_size().height
+    if instrument_parameters.smearing_pixel_height is not None:
+        scaling = instrument_parameters.smearing_pixel_height / nominal_pixel_size().height
         dy *= scaling
 
     dx2, dy2 = np.square(dx), np.square(dy)

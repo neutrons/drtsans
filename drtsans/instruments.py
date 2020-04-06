@@ -34,8 +34,6 @@ def instrument_enum_name(input_query):
     InstrumentEnumName
         The name of the instrument as one of the InstrumentName enumerations
     """
-    print('DEBUG wzz:  input_query for instrument name = {}'.format(input_query))
-
     string_to_enum = {'CG3': InstrumentEnumName.BIOSANS, 'BIOSANS': InstrumentEnumName.BIOSANS,
                       'EQ-SANS': InstrumentEnumName.EQSANS, 'EQSANS': InstrumentEnumName.EQSANS,
                       'CG2': InstrumentEnumName.GPSANS, 'GPSANS': InstrumentEnumName.GPSANS}
@@ -50,7 +48,6 @@ def instrument_enum_name(input_query):
             if instrument_string_label in name:
                 name = instrument_string_label
                 break
-    print('DEBUG wzz:  Instrument result = {}'.format(string_to_enum.get(name.upper(), InstrumentEnumName.UNDEFINED)))
     return string_to_enum.get(name.upper(), InstrumentEnumName.UNDEFINED)
 
 

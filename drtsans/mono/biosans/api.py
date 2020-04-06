@@ -159,7 +159,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     except ValueError:
         overwrite_sdd = None
 
-    print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -228,8 +227,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)
-            print('[META] Wavelength is set to {} and {}'
-                  ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
             # Apply mask
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)

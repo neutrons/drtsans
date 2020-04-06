@@ -201,7 +201,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         if not registered_workspace(ws_name):
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
-            print('DEBUG wzz: Load {} existing? = {}'.format(filename, os.path.exists(filename)))
             load_events_and_histogram(filename, output_workspace=ws_name,
                                       sample_to_si_name=SAMPLE_SI_META_NAME,
                                       si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
@@ -232,11 +231,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
-            print('DEBUG wzz: Try to load to workspace {}'.format(ws_name))
             if not registered_workspace(ws_name):
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
-                print('DEBUG wzz: Load {} existing? = {}'.format(filename, os.path.exists(filename)))
                 load_events_and_histogram(filename, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
@@ -255,8 +252,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
-            else:
-                print('DEBUG wzz: workspace {} does exist'.format(ws_name))
 
     # do the same for dark current if exists
     dark_current = None
@@ -545,14 +540,10 @@ def prepare_data_workspaces(data,
         Reference to the processed workspace
     """
     assert data, 'Input workspace is None!'
-    print('DEBUG wzz: data = {}, type = {}'.format(data, type(data)))
 
     if not output_workspace:
         output_workspace = str(data)
         output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
-        print('DEBUG wzz: output workspace = {} from {}'.format(output_workspace, str(data)))
-    else:
-        print('DEBUG wzz: output workspace = {}'.format(output_workspace))
 
     mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 

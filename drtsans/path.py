@@ -5,7 +5,7 @@ import os
 import stat
 import pathlib
 
-__all__ = ['abspath', 'exists', 'registered_workspace', 'allow_overwrite']
+__all__ = ['abspath', 'abspaths', 'exists', 'registered_workspace', 'allow_overwrite']
 
 
 def allow_overwrite(folder):
@@ -40,7 +40,8 @@ def abspath(path, instrument='', ipts=''):
     ``EQSANS106026``. It will search your data search path and the
     data archive using ONCat.
 
-    This uses mantid.api.FileFinder.
+    This looks in ``/instrument/proposal/nexus/instrument_runnumber.nxs.h5`` then
+    falls back to use :py:obj:`mantid.api.FileFinder`.
     """
     # don't use network for first check
     if os.path.exists(path):
@@ -73,7 +74,7 @@ def abspath(path, instrument='', ipts=''):
 
             # prepend the instrument name if it isn't already there
             if not path.upper().startswith(instrument.upper()):
-                path = '{}{}'.format(instrument.upper(), path)
+                path = '{}_{}'.format(instrument.upper(), path)
 
     # get a full path from `datasearch.directories`
     option = FileFinder.getFullPath(path)
@@ -95,6 +96,30 @@ def abspath(path, instrument='', ipts=''):
 
     raise RuntimeError('None of the locations suggested by ONCat contain '
                        'existing files for "{}"'.format(path))
+
+
+def abspaths(runnumbers, instrument='', ipts=''):
+    '''
+    Parameters
+    ----------
+    runnumbers: str
+        Comma separated list of run numbers
+    instrument: str
+        Name of the instrument
+    ipts: str
+        Proposal number the run is expected to be in
+
+    Returns
+    -------
+    str
+        Comma separated list of all of the full paths
+    '''
+    # this could be written differentely to call ONCAT directly with all of the missing runnumbers
+    # once guessing the path didn't work
+    filenames = []
+    for runnumber in runnumbers.split(','):
+        filenames.append(abspath(str(runnumber).strip(), instrument=instrument, ipts=ipts))
+    return ','.join(filenames)
 
 
 def exists(path):

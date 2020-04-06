@@ -238,7 +238,7 @@ def pixel_centers(input_workspace, indexes, shape=None):
 
 
 @namedtuplefy
-def logged_pixel_size(input_workspace):
+def logged_smearing_pixel_size(input_workspace):
     """Find pixel size (X and Y) from the metadata within a workspace
 
     Parameters

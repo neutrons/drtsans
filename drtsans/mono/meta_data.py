@@ -1,5 +1,6 @@
 # Method in this module is to set meta data to SANS Mantid Workspaces
 from mantid.simpleapi import AddSampleLogMultiple, AddSampleLog
+from mantid.kernel import logger
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import sample_detector_distance
 
@@ -123,8 +124,9 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
     sample_logs = SampleLogs(workspace)
     # read sample log for SampleToSi and convert to meter from mm
     sample_to_si = sample_logs.find_log_with_units(sample_si_meta_name, 'mm') * 1E-3
-    print('[DEBUG] Meta-Data Sample to Si = {} meter'.format(sample_to_si))
-    print('[DEBUG] Hardcoded Sample to nominal distance = {} meter'.format(zero_sample_offset_sample_si_distance))
+    logger.information('Meta-Data Sample to Si = {} meter'.format(sample_to_si))
+    logger.information('Hardcoded Sample to nominal distance = {} meter'
+                       ''.format(zero_sample_offset_sample_si_distance))
 
     # Offsets: shift both sample and detector to conserve sample-detector distance
     # Move instrument_component sample (relative) to [0, 0, 0.071 - SampleToSi/1000]
@@ -134,7 +136,7 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
 
     # Get sample detector distance by calculation from instrument geometry directly
     sample_det_distance = sample_detector_distance(workspace, unit='m')
-    print('[DEBUG] Calculated sample detector distance = {}'.format(sample_det_distance))
+    logger.information('Calculated sample detector distance = {}'.format(sample_det_distance))
 
     # With overwriting distance(s)
     if overwrite_sample_si_distance is not None or overwrite_sample_detector_distance is not None:
@@ -146,8 +148,8 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
 
             # Shift the sample position only without moving detector
             overwrite_offset = sample_to_si - overwrite_sample_si_distance
-            print('[DEBUG]: SampleToSi = {}, SampleToSiOverwrite = {}, Original SampleOffset = {}'
-                  ''.format(sample_to_si, overwrite_sample_si_distance, sample_offset))
+            logger.information('SampleToSi = {}, SampleToSiOverwrite = {}, Original SampleOffset = {}'
+                               ''.format(sample_to_si, overwrite_sample_si_distance, sample_offset))
             sample_offset += overwrite_offset
             sample_det_distance -= overwrite_offset
             sample_to_si = overwrite_offset
@@ -162,8 +164,8 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
             sample_det_distance += overwrite_offset
     # END-IF
 
-    print('[INFO] Sample offset = {}, Detector offset = {}, Sample-detector-distance = {}, '
-          'Sample-Si-window-distance = {}'
-          ''.format(sample_offset, detector_offset, sample_det_distance, sample_to_si))
+    logger.information('Sample offset = {}, Detector offset = {}, Sample-detector-distance = {},'
+                       'Sample-Si-window-distance = {}'
+                       ''.format(sample_offset, detector_offset, sample_det_distance, sample_to_si))
 
     return sample_offset, detector_offset

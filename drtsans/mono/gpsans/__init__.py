@@ -60,7 +60,6 @@ import drtsans.plots.api
 from ...plots.api import *
 
 from .api import *
-from .load import *
 from .attenuation import *
 
 
@@ -81,9 +80,8 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.mono.load.__all__\
           + drtsans.mono.momentum_transfer.__all__\
           + drtsans.mono.normalization.__all__\
-           + drtsans.plots.api.__all__\
+          + drtsans.plots.api.__all__\
           + attenuation.__all__\
           + api.__all__\
-          + load.__all__\
           + attenuation.__all__
 

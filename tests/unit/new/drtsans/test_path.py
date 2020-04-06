@@ -14,6 +14,7 @@ SEARCH_ON = {}
 SEARCH_OFF = {'datasearch.searcharchive': 'off'}
 
 IPTS_23732 = '/SNS/EQSANS/IPTS-23732/nexus/'
+IPTS_19800 = '/SNS/EQSANS/IPTS-19800/nexus/'
 
 
 @pytest.mark.skipif(not HAVE_EQSANS_MOUNT,
@@ -44,6 +45,23 @@ def test_abspath_without_archivesearch(hint):
         with pytest.raises(RuntimeError):
             found = abspath(hint)
             assert False, 'found "{}" at "{}"'.format(hint, found)
+
+
+@pytest.mark.skipif(not HAVE_EQSANS_MOUNT,
+                    reason='Do not have /SNS/EQSANS properly '
+                    'mounted on this system')
+@pytest.mark.parametrize('hint, ipts, fullpath',
+                         [('EQSANS_106026', 23732,
+                           IPTS_23732 + 'EQSANS_106026.nxs.h5'),
+                          ('EQSANS106027', 23732,
+                           IPTS_23732 + 'EQSANS_106027.nxs.h5'),
+                          ('EQSANS_88974.nxs.h5', 19800,
+                           IPTS_19800 + 'EQSANS_88974.nxs.h5')],
+                         ids=('EQSANS_106026', 'EQSANS_106026',
+                              'EQSANS_88974'))
+def test_abspath_with_ipts(hint, ipts, fullpath):
+    # do not turn on archive search
+    assert abspath(hint, ipts=ipts) == fullpath
 
 
 @pytest.mark.skipif(not HAVE_EQSANS_MOUNT,

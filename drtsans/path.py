@@ -1,5 +1,6 @@
 from mantid.api import AnalysisDataService, FileFinder
-
+from mantid.kernel import ConfigService
+from drtsans.instruments import instrument_label, extract_run_number
 import os
 import stat
 import pathlib
@@ -30,7 +31,7 @@ def allow_overwrite(folder):
             pass
 
 
-def abspath(path):
+def abspath(path, instrument='', ipts=''):
     r"""
     Returns an absolute path
 
@@ -44,6 +45,35 @@ def abspath(path):
     # don't use network for first check
     if os.path.exists(path):
         return os.path.abspath(path)
+
+    # guess the path from existing information
+    if ipts:
+        runnumber = path.lower()
+        if not instrument:
+            try:
+                instrument = instrument_label(path)
+                runnumber = extract_run_number(path)
+            except RuntimeError:
+                pass  # failed to extract instrument/runnumber
+
+        if instrument:  # only try if instrument is known
+            try:
+                runnumber = int(runnumber)  # make sure it doesn't have extra characters
+                instrument = ConfigService.getInstrument(instrument)  # to object
+                facility = str(instrument.facility())
+                instrument = str(instrument)  # convert back to short name
+                option = f'/{facility}/{instrument}/IPTS-{ipts}/nexus/{instrument}_{runnumber}.nxs.h5'
+                print('Seeing if "{}" exists'.format(option))
+                if os.path.exists(option):
+                    return option
+            except RuntimeError:
+                pass  # facility not found
+            except ValueError:
+                pass  # could not convert run number to an integer
+
+            # prepend the instrument name if it isn't already there
+            if not path.upper().startswith(instrument.upper()):
+                path = '{}{}'.format(instrument.upper(), path)
 
     # get a full path from `datasearch.directories`
     option = FileFinder.getFullPath(path)

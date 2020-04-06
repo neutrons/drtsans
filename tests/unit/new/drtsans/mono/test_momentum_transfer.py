@@ -78,7 +78,7 @@ def test_mono_resolution():
 
     # Calculate by drtsans.mono method
     setup = drtsans.resolution.InstrumentSetupParameters(L1, L2, R1, R2)
-    pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep', 'pixel_size_x', 'pixel_size_y'])
+    pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep', 'smearing_pixel_size_x', 'smearing_pixel_size_y'])
     pix = pixel_info(np.array([two_theta]),
                      np.array([np.arctan2(Qy, Qx)]),
                      np.array([L2]),

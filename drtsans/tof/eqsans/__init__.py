@@ -53,7 +53,6 @@ __all__ = [] + drtsans.absolute_units.__all__ \
           + ['load_iqmod', 'save_iqmod'] \
           + ['source_sample_distance', 'sample_detector_distance', 'search_sample_detector_distance_meta_name',
              'search_source_sample_distance_meta_name'] \
-          + drtsans.geometry.__all__ \
           + drtsans.iq.__all__ \
           + drtsans.mask_utils.__all__ \
           + drtsans.path.__all__\

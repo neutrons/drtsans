@@ -156,7 +156,8 @@ def test_no_overwrite(reference_dir):
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test1/'
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test1/')
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test1/'
 
     # Verify results
     verify_reduction_results(sample_names, output_dir, gold_path)
@@ -180,7 +181,8 @@ def test_overwrite_sample2si(reference_dir):
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
     # Verify results
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test2/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test2/'
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test2/')
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
@@ -205,7 +207,8 @@ def test_overwrite_sdd(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test3/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test3/'
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test3/')
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
@@ -230,7 +233,9 @@ def test_overwrite_both(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test4/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test4/'
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test4/')
+
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 

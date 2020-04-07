@@ -35,7 +35,7 @@ import drtsans.thickness_normalization
 from ...thickness_normalization import *
 
 import drtsans.transmission
-from ...transmission import *
+from ...transmission import apply_transmission_correction
 
 
 from .api import *
@@ -59,7 +59,7 @@ __all__ = [] + drtsans.absolute_units.__all__ \
           + drtsans.pixel_calibration.__all__ \
           + drtsans.stitch.__all__\
           + drtsans.thickness_normalization.__all__ \
-          + drtsans.transmission.__all__ \
+          + ['apply_transmission_correction'] \
           + api.__all__ \
           + cfg.__all__ \
           + correct_frame.__all__ \

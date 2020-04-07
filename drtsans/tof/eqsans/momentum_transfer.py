@@ -162,7 +162,7 @@ def retrieve_instrument_setup(input_workspace):
     l2 = sans_geometry.sample_detector_distance(input_workspace, unit='m', search_logs=False)
     r1 = 0.5 * source_aperture_diameter(input_workspace, unit='m')
     r2 = 0.5 * sample_aperture_diameter(input_workspace, unit='m')
-    pixel_width, pixel_height = sans_geometry.logged_pixel_size(input_workspace)
+    pixel_width, pixel_height = sans_geometry.logged_smearing_pixel_size(input_workspace)
 
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,

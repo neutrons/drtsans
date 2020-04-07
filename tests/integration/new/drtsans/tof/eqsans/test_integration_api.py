@@ -155,7 +155,7 @@ def test_prepared_data(eqsans_f):
         and subtracting dark current.
     """
     ws = eqsans.prepare_data(eqsans_f['data'],
-                             pixel_size_x=0.0012, pixel_size_y=0.0013,
+                             smearing_pixel_size_x=0.0012, smearing_pixel_size_y=0.0013,
                              sample_thickness=0.1)
     assert isinstance(ws, EventWorkspace)
 

@@ -125,7 +125,8 @@ def test_eqsans_resolution():
                                            l1, l2, r1, r2, size_x, size_y,
                                            sample_pixel_distance, l1, emission_error)
     # Calculate EQSANS resolution
-    pixel_info = namedtuple('pixel_info', ['two_theta', 'azimuthal', 'l2', 'keep', 'pixel_size_x', 'pixel_size_y'])
+    pixel_info = namedtuple('pixel_info',
+                            ['two_theta', 'azimuthal', 'l2', 'keep', 'smearing_pixel_size_x', 'smearing_pixel_size_y'])
     pix = pixel_info(np.array([two_theta]),
                      np.array([np.arctan2(qy, qx)]),
                      np.array([sample_pixel_distance]),

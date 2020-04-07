@@ -136,10 +136,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # Input is supposed to be millimeter (as instrument scientists)
     # Convert to meter as drt-sans standard
     try:
-        pixel_size_x = float(reduction_input["configuration"]["pixel_size_x"]) * 1E-3
-        pixel_size_y = float(reduction_input["configuration"]["pixel_size_y"]) * 1E-3
+        smearing_pixel_size_x = float(reduction_input["configuration"]["smearingPixelSizeX"]) * 1E-3
+        smearing_pixel_size_y = float(reduction_input["configuration"]["smearingPixelSizeY"]) * 1E-3
     except (KeyError, ValueError):
-        pixel_size_x = pixel_size_y = None
+        smearing_pixel_size_x = smearing_pixel_size_y = None
 
     # print(">>>>>>> reduction_input")
     # print(reduction_input)
@@ -189,8 +189,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                               sample_thickness=thickness,
                               sample_aperture_diameter=sample_aperture_diameter,
                               source_aperture_diameter=source_aperture_diameter,
-                              pixel_size_x=pixel_size_x,
-                              pixel_size_y=pixel_size_y)
+                              smearing_pixel_size_x=smearing_pixel_size_x,
+                              smearing_pixel_size_y=smearing_pixel_size_y)
                 # Transform X-axis to wave length with spread
                 _w = transform_to_wavelength(_w)
                 _w = set_init_uncertainties(_w)
@@ -222,8 +222,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                           sample_thickness=thickness,
                           sample_aperture_diameter=sample_aperture_diameter,
                           source_aperture_diameter=source_aperture_diameter,
-                          pixel_size_x=pixel_size_x,
-                          pixel_size_y=pixel_size_y)
+                          smearing_pixel_size_x=smearing_pixel_size_x,
+                          smearing_pixel_size_y=smearing_pixel_size_y)
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)
@@ -252,8 +252,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                   sample_thickness=None,
                                   sample_aperture_diameter=None,
                                   source_aperture_diameter=None,
-                                  pixel_size_x=None,
-                                  pixel_size_y=None)
+                                  smearing_pixel_size_x=None,
+                                  smearing_pixel_size_y=None)
                     # Transform X-axis to wave length with spread
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
@@ -288,8 +288,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                   sample_thickness=None,
                                   sample_aperture_diameter=None,
                                   source_aperture_diameter=None,
-                                  pixel_size_x=None,
-                                  pixel_size_y=None)
+                                  smearing_pixel_size_x=None,
+                                  smearing_pixel_size_y=None)
                     # Transform X-axis to wave length with spread
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
@@ -321,8 +321,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                   sample_thickness=None,
                                   sample_aperture_diameter=None,
                                   source_aperture_diameter=None,
-                                  pixel_size_x=None,
-                                  pixel_size_y=None)
+                                  smearing_pixel_size_x=None,
+                                  smearing_pixel_size_y=None)
                     # Transform X-axis to wave length with spread
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
@@ -1087,7 +1087,7 @@ def prepare_data(data,
                  wave_length=None, wavelength_spread=None,
                  sample_aperture_diameter=None, sample_thickness=None,
                  source_aperture_diameter=None,
-                 pixel_size_x=None, pixel_size_y=None,
+                 smearing_pixel_size_x=None, smearing_pixel_size_y=None,
                  output_workspace=None, output_suffix='', **kwargs):
     r"""
     Load a BIOSANS data file and bring the data to a point where it can be used. This includes applying basic
@@ -1145,10 +1145,10 @@ def prepare_data(data,
         sample thickness in unit cm
     source_aperture_diameter: float, None
         source aperture size radius in unit mm
-    pixel_size_x: float, None
-        pixel size in x direction in unit as meter
-    pixel_size_y: float, None
-        pixel size in Y direction in unit as meter
+    smearing_pixel_size_x: float, None
+        pixel size in x direction in unit as meter, only for Q-resolution calculation
+    smearing_pixel_size_y: float, None
+        pixel size in Y direction in unit as meter, only for Q-resolution calculation
     output_workspace: str
         Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
     output_suffix: str
@@ -1222,6 +1222,6 @@ def prepare_data(data,
                   sample_offset,
                   sample_aperture_diameter, sample_thickness,
                   source_aperture_diameter,
-                  pixel_size_x, pixel_size_y)
+                  smearing_pixel_size_x, smearing_pixel_size_y)
 
     return mtd[ws_name]

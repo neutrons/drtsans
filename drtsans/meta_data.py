@@ -108,7 +108,7 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                   sample_to_detector_distance=None, source_to_sample_distance=None,
                   sample_aperture_size=None, sample_thickness=None,
                   source_aperture_size=None,
-                  pixel_size_x=None, pixel_size_y=None):
+                  smearing_pixel_size_x=None, smearing_pixel_size_y=None):
     """Set meta data to SANS Mantid Workspace as run properties
 
     Parameters
@@ -129,9 +129,9 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
         sample thickness in unit ???
     source_aperture_size: float, None
         source aperture size radius in unit mm
-    pixel_size_x: float, None
+    smearing_pixel_size_x: float, None
         pixel size in x direction in unit as meter
-    pixel_size_y: float, None
+    smearing_pixel_size_y: float, None
         pixel size in Y direction in unit as meter
 
     Returns

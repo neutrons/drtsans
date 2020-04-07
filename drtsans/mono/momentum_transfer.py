@@ -4,7 +4,7 @@ import drtsans.momentum_transfer
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
-from drtsans.geometry import (logged_pixel_size, sample_aperture_diameter, sample_detector_distance,
+from drtsans.geometry import (logged_smearing_pixel_size, sample_aperture_diameter, sample_detector_distance,
                               source_aperture_diameter, source_sample_distance)
 
 __all__ = ['convert_to_q']
@@ -148,7 +148,7 @@ def retrieve_instrument_setup(input_workspace):
     l2 = sample_detector_distance(input_workspace, unit='m')
     r1 = source_aperture_diameter(input_workspace, unit='m') / 2.0
     r2 = sample_aperture_diameter(input_workspace, unit='m') / 2.0
-    pixel_width, pixel_height = logged_pixel_size(input_workspace)
+    pixel_width, pixel_height = logged_smearing_pixel_size(input_workspace)
 
     # Information output
     # print('[META] Sample detector distance = {} m, Source aperture radius = {} m, Sample aperture radius = {} m '

@@ -404,7 +404,7 @@ def _masked_or_monitor(spec_info, idx):
 @namedtuplefy
 def pixel_info(input_workspace):
     r"""
-    Helper function to extract: two theta angle, azimuthal angle, l2, pixel_size_x, pixel_size_y,
+    Helper function to extract: two theta angle, azimuthal angle, l2, smearing_pixel_size_x, smearing_pixel_size_y,
     and a "keep" flag for unmasked pixel detectors.
 
     devs - Andrei Savici <saviciat@ornl.gov>
@@ -447,7 +447,7 @@ def pixel_info(input_workspace):
     # The product of each specific scale factor and the nominal pixel dimension gives us the specific pixel dimensions
     pixel_dimensions = scale_factors * nominal_pixel_dimensions  # shape = (number_pixels, 3)
 
-    info_map.update({'pixel_size_x': pixel_dimensions[:, 0], 'pixel_size_y': pixel_dimensions[:, 1]})
+    info_map.update({'smearing_pixel_size_x': pixel_dimensions[:, 0], 'smearing_pixel_size_y': pixel_dimensions[:, 1]})
 
     return info_map
 

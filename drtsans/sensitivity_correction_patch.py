@@ -14,8 +14,6 @@ from drtsans.settings import unique_workspace_dundername as uwd
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fdetector.py
 from drtsans.detector import Component
 
-__all__ = ['calculate_sensitivity_correction']
-
 
 def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_threshold=2.0,
                                      poly_order=2, min_detectors_per_tube=50, filename=None,

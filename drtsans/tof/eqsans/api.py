@@ -267,13 +267,13 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         sample_aperture_diameter = None
     sample_thickness = float(reduction_input["thickness"])
     try:
-        pixel_size_x = float(reduction_input["configuration"]["pixel_size_x"])
+        smearing_pixel_size_x = float(reduction_input["configuration"]["smearingPixelSizeX"])
     except (KeyError, ValueError):
-        pixel_size_x = None
+        smearing_pixel_size_x = None
     try:
-        pixel_size_y = float(reduction_input["configuration"]["pixel_size_y"])
+        smearing_pixel_size_y = float(reduction_input["configuration"]["smearingPixelSizeY"])
     except (KeyError, ValueError):
-        pixel_size_y = None
+        smearing_pixel_size_y = None
 
     for ws in sample_ws_list:
         set_meta_data(ws, wave_length=None, wavelength_spread=None,
@@ -281,8 +281,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       sample_aperture_diameter=sample_aperture_diameter,
                       sample_thickness=sample_thickness,
                       source_aperture_diameter=None,
-                      pixel_size_x=pixel_size_x,
-                      pixel_size_y=pixel_size_y)
+                      smearing_pixel_size_x=smearing_pixel_size_x,
+                      smearing_pixel_size_y=smearing_pixel_size_y)
 
     print('FILE PATH, FILE SIZE:')
     total_size = 0
@@ -906,7 +906,7 @@ def prepare_data(data,
                  sensitivity_file_path=None, sensitivity_workspace=None,
                  sample_aperture_diameter=None, sample_thickness=None,
                  source_aperture_diameter=None,
-                 pixel_size_x=None, pixel_size_y=None,
+                 smearing_pixel_size_x=None, smearing_pixel_size_y=None,
                  output_workspace=None, output_suffix=''):
     r"""
     Load an EQSANS data file and bring the data to a point where it can be used. This includes applying basic
@@ -969,10 +969,10 @@ def prepare_data(data,
         sample thickness in unit cm
     source_aperture_diameter: float, None
         source aperture diameter in unit meter
-    pixel_size_x: float, None
-        pixel size in x direction in unit as meter
-    pixel_size_y: float, None
-        pixel size in Y direction in unit as meter
+    smearing_pixel_size_x: float, None
+        pixel size in x direction in unit as meter, only for Q-resolution calculation
+    smearing_pixel_size_y: float, None
+        pixel size in Y direction in unit as meter, only for Q-resolutio calculation
 
     output_workspace: str
         Name of the output workspace. If not supplied, will be determined from the supplied value of ``data``.
@@ -1032,7 +1032,7 @@ def prepare_data(data,
                   sample_offset,
                   sample_aperture_diameter, sample_thickness,
                   source_aperture_diameter,
-                  pixel_size_x, pixel_size_y)
+                  smearing_pixel_size_x, smearing_pixel_size_y)
 
     if isinstance(output_workspace, str):
         return mtd[output_workspace]  # shouldn't happen

@@ -8,7 +8,6 @@ from drtsans.geometry import sample_detector_distance
 def test_load_and_split(reference_dir):
     # Check that is fails with missing required parameters
     filename = str(Path(reference_dir.new.gpsans) / 'CG2_9177.nxs.h5')
-    print('Try to load {}'.format(filename))
     with pytest.raises(ValueError) as excinfo:
         load_and_split(filename, data_dir=reference_dir.new.gpsans,
                        sample_to_si_name='CG2:CS:SampleToSi',
@@ -42,8 +41,6 @@ def test_load_and_split_overwrite_ssd(reference_dir):
     """
     # Check that is fails with missing required parameters
     filename = str(Path(reference_dir.new.gpsans) / 'CG2_9177.nxs.h5')
-    print('Try to load {}'.format(filename))
-
     with pytest.raises(ValueError) as excinfo:
         load_and_split(filename, data_dir=reference_dir.new.gpsans,
                        sample_to_si_name='CG2:CS:SampleToSi',
@@ -92,8 +89,6 @@ def verify_geometry_meta(workspace_list, expected_sample_detector_distance,
 
     """
     for index, workspace in enumerate(workspace_list):
-        print('[TEST] workspace {}: {}'.format(index, str(workspace)))
-
         # check SDD: unit meter
         sdd = sample_detector_distance(workspace, unit='m', search_logs=False)
         assert sdd == pytest.approx(expected_sample_detector_distance, 1E-4)

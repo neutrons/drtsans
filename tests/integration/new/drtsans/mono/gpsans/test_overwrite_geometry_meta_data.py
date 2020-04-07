@@ -148,7 +148,7 @@ def test_no_overwrite(reference_dir):
 
     """
     # Set test and run
-    json_file = os.path.join(reference_dir, 'gpsans_reduction_test1.json')
+    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test1.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
     # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test1.json'
     output_dir = '/tmp/meta_overwrite_test1'
@@ -170,7 +170,7 @@ def test_overwrite_sample2si(reference_dir):
 
     """
     # Set test and run: sample to silicon window is changed 94 mm
-    json_file = os.path.join(reference_dir, 'gpsans_reduction_test2.json')
+    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test2.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
     # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test2.json'
     output_dir = '/tmp/meta_overwrite_test2'
@@ -192,7 +192,7 @@ def test_overwrite_sdd(reference_dir):
 
     """
     # Set test and run: sample to detector distance is changed to 40 meter
-    json_file = os.path.join(reference_dir, 'gpsans_reduction_test3.json')
+    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test3.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
     # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test3.json'
     output_dir = '/tmp/meta_overwrite_test3'
@@ -217,7 +217,7 @@ def test_overwrite_both(reference_dir):
 
     """
     # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
-    json_file = os.path.join(reference_dir, 'gpsans_reduction_test4.json')
+    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test4.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
     # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test4.json'
     output_dir = '/tmp/meta_overwrite_test4'

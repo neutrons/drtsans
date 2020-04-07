@@ -9,11 +9,6 @@ from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.geometry import sample_detector_distance
 
 
-# @pytest.mark.parametrize('generic_IDF',
-#                          [{'Nx': 4, 'Ny': 4,
-#                            'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
-#                            'l1': -15.}],
-#                          indirect=True)
 @pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
 def test_zero_offsets(generic_workspace):
     """Test instrument without offset
@@ -22,15 +17,6 @@ def test_zero_offsets(generic_workspace):
     -------
 
     """
-    # # Generate a generic SANS instrument with detector dimension stated in
-    # # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
-    # idf_name = r'/tmp/GenericHFIRSANS_Definition.xml'
-    # with open(idf_name, 'w') as tmp:
-    #     tmp.write(generic_IDF)
-    #     tmp.close()
-    # ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
-    #                          OutputWorkspace='test_integration_roi')
-
     ws = generic_workspace
 
     # # clean
@@ -49,40 +35,25 @@ def test_zero_offsets(generic_workspace):
     assert detector_offset == pytest.approx(0, 1E-12)
 
 
-@pytest.mark.parametrize('generic_IDF',
-                         [{'Nx': 4, 'Ny': 4,
-                           'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
-                           'l1': -15.}],
-                         indirect=True)
-def test_non_zero_offsets(generic_IDF):
+@pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
+def test_non_zero_offsets(generic_workspace):
     """Test instrument with offset between SampleToSi and its default value
 
     Returns
     -------
 
     """
-    # Generate a generic SANS instrument with detector dimension stated in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
-    idf_name = r'/tmp/GenericHFIRSANS_Definition.xml'
-    with open(idf_name, 'w') as tmp:
-        tmp.write(generic_IDF)
-        tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
-                             OutputWorkspace='test_integration_roi')
-    # clean
-    os.remove(idf_name)
-
     # Set up logs
-    sdd = sample_detector_distance(ws)
+    sdd = sample_detector_distance(generic_workspace)
     print('TestNonZeroOffsets: sample detector distance [1] = {}'.format(sdd))
 
     # Add sample log
-    sample_logs = SampleLogs(ws)
+    sample_logs = SampleLogs(generic_workspace)
     sample_logs.insert('sample-detector-distance', sdd * 1E3, unit='mm')
     sample_logs.insert('Generic:CS:SampleToSi', 75.32, unit='mm')
 
     # Test method
-    sample_offset, detector_offset = get_sample_detector_offset(ws, 'Generic:CS:SampleToSi', 0.071)
+    sample_offset, detector_offset = get_sample_detector_offset(generic_workspace, 'Generic:CS:SampleToSi', 0.071)
 
     # Verify
     assert sample_offset == pytest.approx(-4.32 * 1E-3, 1E-12)

@@ -8,7 +8,7 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                   sample_offset=0.,
                   sample_aperture_diameter=None, sample_thickness=None,
                   source_aperture_diameter=None,
-                  pixel_size_x=None, pixel_size_y=None):
+                  smearing_pixel_size_x=None, smearing_pixel_size_y=None):
     """Set meta data to SANS Mantid Workspace as run properties
 
     Parameters
@@ -27,9 +27,9 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
         sample thickness in unit cm
     source_aperture_diameter: float, None
         source aperture diameter in unit meter
-    pixel_size_x: float, None
+    smearing_pixel_size_x: float, None
         pixel size in x direction in unit as meter
-    pixel_size_y: float, None
+    smearing_pixel_size_y: float, None
         pixel size in Y direction in unit as meter
 
     Returns
@@ -59,14 +59,14 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
         meta_data_list.append(('sample_thickness', sample_thickness, 'cm'))
 
     # Pixel size
-    if pixel_size_x is not None and pixel_size_y is not None:
-        meta_data_list.append(('pixel_size_x', pixel_size_x, 'm'))
-        meta_data_list.append(('pixel_size_y', pixel_size_y, 'm'))
-    elif pixel_size_x is None and pixel_size_y is None:
+    if smearing_pixel_size_x is not None and smearing_pixel_size_y is not None:
+        meta_data_list.append(('smearingPixelSizeX', smearing_pixel_size_x, 'm'))
+        meta_data_list.append(('smearingPixelSizeY', smearing_pixel_size_y, 'm'))
+    elif smearing_pixel_size_x is None and smearing_pixel_size_y is None:
         pass
     else:
         raise RuntimeError('Pixel size X ({}) and Y ({}) must be set together'
-                           ''.format(pixel_size_x, pixel_size_y))
+                           ''.format(smearing_pixel_size_x, smearing_pixel_size_y))
 
     # Add log value
     if len(meta_data_list) > 0:

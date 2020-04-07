@@ -7,10 +7,6 @@ import drtsans.mono.gpsans as gp
 from mantid.simpleapi import CreateWorkspace
 
 
-# Functions exposed to the general user (public) API
-__all__ = ['calculate_sensitivity_correction']
-
-
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
 def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, threshold_max):
     """Prepare sensitivity for moving detector

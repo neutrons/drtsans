@@ -238,7 +238,7 @@ def pixel_centers(input_workspace, indexes, shape=None):
 
 
 @namedtuplefy
-def logged_pixel_size(input_workspace):
+def logged_smearing_pixel_size(input_workspace):
     """Find pixel size (X and Y) from the metadata within a workspace
 
     Parameters
@@ -259,13 +259,13 @@ def logged_pixel_size(input_workspace):
     # Get sample logs
     sample_logs = SampleLogs(workspace)
 
-    if 'pixel_size_x' in sample_logs.keys() and 'pixel_size_y' in sample_logs.keys():
-        pixel_size_x = sample_logs['pixel_size_x'].value
-        pixel_size_y = sample_logs['pixel_size_y'].value
+    if 'smearingPixelSizeX' in sample_logs.keys() and 'smearingPixelSizeY' in sample_logs.keys():
+        smearing_pixel_size_x = sample_logs['smearingPixelSizeX'].value
+        smearing_pixel_size_y = sample_logs['smearingPixelSizeY'].value
     else:
-        pixel_size_x, pixel_size_y = None, None
+        smearing_pixel_size_x, smearing_pixel_size_y = None, None
 
-    return {'width': pixel_size_x, 'height': pixel_size_y}
+    return {'width': smearing_pixel_size_x, 'height': smearing_pixel_size_y}
 
 
 @namedtuplefy

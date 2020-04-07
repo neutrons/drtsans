@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from drtsans.mono.meta_data import set_meta_data as mono_set_meta_data
 from drtsans.tof.eqsans.meta_data import set_meta_data as eqsans_set_meta_data
-from drtsans.geometry import (logged_pixel_size, sample_aperture_diameter, source_aperture_diameter,
+from drtsans.geometry import (logged_smearing_pixel_size, sample_aperture_diameter, source_aperture_diameter,
                               sample_detector_distance, source_sample_distance)
 
 
@@ -26,7 +26,7 @@ def test_set_mono_meta_data(workspace_with_instrument):
     mono_set_meta_data(data_ws, wave_length=10., wavelength_spread=1.5,
                        source_aperture_diameter=2.29, sample_aperture_diameter=13, sample_thickness=1.23,
                        sample_offset=4.5,
-                       pixel_size_x=0.0021, pixel_size_y=0.0022)
+                       smearing_pixel_size_x=0.0021, smearing_pixel_size_y=0.0022)
 
     # verify
     test_sample_aperture_diameter = sample_aperture_diameter(data_ws, unit='m')
@@ -36,7 +36,7 @@ def test_set_mono_meta_data(workspace_with_instrument):
     assert test_sdd > 0
 
     # verify pixel size
-    test_ps_x, test_ps_y = logged_pixel_size(data_ws)
+    test_ps_x, test_ps_y = logged_smearing_pixel_size(data_ws)
     assert test_ps_x == 0.0021, 'Expected: {}, Got: {}'.format(0.0021, test_ps_x)
     assert test_ps_y == 0.0022, 'Expected: {}, Got: {}'.format(0.0022, test_ps_y)
 
@@ -63,7 +63,7 @@ def test_set_eqsans_meta_data(workspace_with_instrument):
     eqsans_set_meta_data(data_ws,
                          source_aperture_diameter=2.29, sample_aperture_diameter=13, sample_thickness=1.23,
                          sample_offset=4.5,
-                         pixel_size_x=0.0021, pixel_size_y=0.0022)
+                         smearing_pixel_size_x=0.0021, smearing_pixel_size_y=0.0022)
 
     # verify
     test_source_aperture_diameter = source_aperture_diameter(data_ws, unit='m')
@@ -71,4 +71,4 @@ def test_set_eqsans_meta_data(workspace_with_instrument):
 
     test_l1 = source_sample_distance(data_ws, 'm')
     assert test_l1 > 0
-    assert logged_pixel_size(data_ws) == pytest.approx((0.0021, 0.0022))
+    assert logged_smearing_pixel_size(data_ws) == pytest.approx((0.0021, 0.0022))

@@ -9,30 +9,32 @@ from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.geometry import sample_detector_distance
 
 
-@pytest.mark.parametrize('generic_IDF',
-                         [{'Nx': 4, 'Ny': 4,
-                           'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
-                           'l1': -15.}],
-                         indirect=True)
-def test_zero_offsets(generic_IDF):
+# @pytest.mark.parametrize('generic_IDF',
+#                          [{'Nx': 4, 'Ny': 4,
+#                            'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
+#                            'l1': -15.}],
+#                          indirect=True)
+@pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
+def test_zero_offsets(generic_workspace):
     """Test instrument without offset
 
     Returns
     -------
 
     """
-    # Generate a generic SANS instrument with detector dimension stated in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
-    idf_name = r'/tmp/GenericHFIRSANS_Definition.xml'
-    with open(idf_name, 'w') as tmp:
-        tmp.write(generic_IDF)
-        tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
-                             OutputWorkspace='test_integration_roi')
-    # clean
-    os.remove(idf_name)
+    # # Generate a generic SANS instrument with detector dimension stated in
+    # # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
+    # idf_name = r'/tmp/GenericHFIRSANS_Definition.xml'
+    # with open(idf_name, 'w') as tmp:
+    #     tmp.write(generic_IDF)
+    #     tmp.close()
+    # ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
+    #                          OutputWorkspace='test_integration_roi')
 
-    print('TestZeroOffsets: sample detector distance [0] = {}'.format(sample_detector_distance(ws, unit='m')))
+    ws = generic_workspace
+
+    # # clean
+    # os.remove(idf_name)
 
     # Add sample log
     sample_logs = SampleLogs(ws)

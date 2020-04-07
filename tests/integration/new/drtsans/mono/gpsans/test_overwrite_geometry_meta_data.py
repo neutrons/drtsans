@@ -10,11 +10,12 @@ import time
 from mantid.simpleapi import mtd
 
 
-def reduce_gpsans_data(json_file, output_dir):
+def reduce_gpsans_data(data_dir, json_file, output_dir):
     """Standard reduction workflow
 
     Parameters
-    ----------
+    ----------'
+    data_dir
     json_file
     output_dir
 
@@ -56,10 +57,10 @@ def reduce_gpsans_data(json_file, output_dir):
         reduction_input["outputFilename"] = sample_names[i]
         reduction_input["thickness"] = sample_thick[i]
         loaded = load_all_files(reduction_input,
-                                path='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data')
+                                # path='/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data')
+                                path=data_dir)
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
-        # plot_reduction_output(out, reduction_input, loglog=False)
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))
@@ -140,7 +141,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path):
         compare_reduced_iq(output_log_file, gold_log_file)
 
 
-def test_no_overwrite():
+def test_no_overwrite(reference_dir):
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -151,7 +152,7 @@ def test_no_overwrite():
     json_file =\
         '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test1.json'
     output_dir = '/tmp/meta_overwrite_test1'
-    reduce_gpsans_data(json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -161,7 +162,7 @@ def test_no_overwrite():
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
-def test_overwrite_sample2si():
+def test_overwrite_sample2si(reference_dir):
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -172,7 +173,7 @@ def test_overwrite_sample2si():
     json_file = \
         '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test2.json'
     output_dir = '/tmp/meta_overwrite_test2'
-    reduce_gpsans_data(json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -182,7 +183,7 @@ def test_overwrite_sample2si():
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
-def test_overwrite_sdd():
+def test_overwrite_sdd(reference_dir):
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -193,7 +194,7 @@ def test_overwrite_sdd():
     json_file = \
         '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test3.json'
     output_dir = '/tmp/meta_overwrite_test3'
-    reduce_gpsans_data(json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -206,7 +207,7 @@ def test_overwrite_sdd():
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
-def test_overwrite_both():
+def test_overwrite_both(reference_dir):
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -217,7 +218,7 @@ def test_overwrite_both():
     json_file = \
         '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test4.json'
     output_dir = '/tmp/meta_overwrite_test4'
-    reduce_gpsans_data(json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]

@@ -11,7 +11,7 @@ import time
 from mantid.simpleapi import mtd
 
 
-def test_no_overwrite():
+def test_no_overwrite(reference_dir):
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -19,21 +19,22 @@ def test_no_overwrite():
 
     """
     # Set up test
-    json_file = generate_testing_json(None, None)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), None, None)
     output_dir = '/tmp/meta_overwrite_bio_test1/'
 
     # Run
-    reduce_biosans_data(json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1/'
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
 
 
-def skip_test_overwrite_both_minor():
+def skip_test_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data with minor overwriting
 
     Returns
@@ -41,21 +42,22 @@ def skip_test_overwrite_both_minor():
 
     """
     # Set up test
-    json_file = generate_testing_json(61, 6.9)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 61, 6.9)
     output_dir = '/tmp/meta_overwrite_bio_test1a/'
 
     # Run
-    reduce_biosans_data(json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1a/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1a/'
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1a/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1a')
 
 
-def skip_test_overwrite_both_major():
+def skip_test_overwrite_both_major(reference_dir):
     """Test reduce 3 sets of data with minor overwriting
 
     Returns
@@ -63,21 +65,22 @@ def skip_test_overwrite_both_major():
 
     """
     # Set up test
-    json_file = generate_testing_json(200, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 200, 14)
     output_dir = '/tmp/meta_overwrite_bio_test4/'
 
     # Run
-    reduce_biosans_data(json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test4/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test4/'
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test4/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test4')
 
 
-def test_overwrite_sample_to_si():
+def test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -85,21 +88,22 @@ def test_overwrite_sample_to_si():
 
     """
     # Set up test
-    json_file = generate_testing_json(7000, None)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 7000, None)
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run
-    reduce_biosans_data(json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test2/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test2/'
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test2/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test2')
 
 
-def test_overwrite_sample_to_detector():
+def test_overwrite_sample_to_detector(reference_dir):
     """Test reduce 3 sets of data without overwriting
 
     Returns
@@ -107,25 +111,28 @@ def test_overwrite_sample_to_detector():
 
     """
     # Set up test
-    json_file = generate_testing_json(None, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), None, 14)
     output_dir = '/tmp/meta_overwrite_bio_test3/'
 
     # Run
-    reduce_biosans_data(json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test3/'
+    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test3/'
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test3/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test3')
 
 
-def reduce_biosans_data(json_str, output_dir):
+def reduce_biosans_data(nexus_dir, json_str, output_dir):
     """
 
     Parameters
     ----------
+    nexus_dir: str
+        path to find data
     json_str
     output_dir
 
@@ -144,7 +151,7 @@ def reduce_biosans_data(json_str, output_dir):
     backgrounds_trans = backgrounds
 
     # Test data path
-    nexus_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/data'
+    # nexus_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/data'
 
     # Load JSON for configuration
     reduction_input = json.loads(json_str)
@@ -163,7 +170,7 @@ def reduce_biosans_data(json_str, output_dir):
         reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
         reduction_input["outputFilename"] = sample_names[i]
         loaded = load_all_files(reduction_input,
-                                path=nexus_path)
+                                path=nexus_dir)
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
 
@@ -171,11 +178,13 @@ def reduce_biosans_data(json_str, output_dir):
     print(end_time - start_time)
 
 
-def generate_testing_json(sample_to_si_window_distance, sample_to_detector_distance):
+def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance):
     """Generating testing JSON
 
     Parameters
     ----------
+    sens_nxs_dir: str
+        directory path to sensitivity files
     sample_to_si_window_distance: float or None
         sample to silicon window distance to overwrite the EPICS value with unit millimeter
     sample_to_detector_distance: float or None
@@ -270,10 +279,12 @@ def generate_testing_json(sample_to_si_window_distance, sample_to_detector_dista
     }"""
 
     # replace values
-    main_sens = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
+    #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
+    main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
     json_str = json_str.replace('/HFIR/CG3/shared/Cycle486/sens_f4829m7p0_TDC_SAC.h5', main_sens)
 
-    wing_sens = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
+    # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
+    wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
     json_str = json_str.replace('/HFIR/CG3/shared/Cycle486/sens_f4835w3p2_TDC_SAC.h5', wing_sens)
 
     if sample_to_si_window_distance is not None:

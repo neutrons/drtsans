@@ -1,9 +1,7 @@
 """
 Test methods to determine the correct sample and detector positions from meta data and overwriting
 """
-import os
 import pytest
-from mantid.simpleapi import LoadEmptyInstrument
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.geometry import sample_detector_distance
@@ -130,7 +128,7 @@ def test_overwrite_both_distance(generic_workspace):
     sdd = sample_detector_distance(generic_workspace, unit='m')
 
     # Add sample log
-    sample_logs = SampleLogs(ge)
+    sample_logs = SampleLogs(generic_workspace)
     sample_logs.insert('sample-detector-distance', sdd, unit='m')
     default_sample_si_distance = 0.071  # meter, i.e., 71 mm
     # shift sample 1.23 mm to source from silicon window

@@ -17,18 +17,13 @@ def test_zero_offsets(generic_workspace):
     -------
 
     """
-    ws = generic_workspace
-
-    # # clean
-    # os.remove(idf_name)
-
     # Add sample log
-    sample_logs = SampleLogs(ws)
+    sample_logs = SampleLogs(generic_workspace)
     sample_logs.insert('sample-detector-distance', 1.25 * 1E3, unit='mm')
     sample_logs.insert('Generic:CS:SampleToSi', 71, unit='mm')
 
     # Test method
-    sample_offset, detector_offset = get_sample_detector_offset(ws, 'Generic:CS:SampleToSi', 0.071)
+    sample_offset, detector_offset = get_sample_detector_offset(generic_workspace, 'Generic:CS:SampleToSi', 0.071)
 
     # Verify: sample_offset = detector_offset = 0. as expecgted
     assert sample_offset == pytest.approx(0, 1E-12)
@@ -60,42 +55,26 @@ def test_non_zero_offsets(generic_workspace):
     assert detector_offset == pytest.approx(-4.32 * 1E-3, 1E-12)
 
 
-@pytest.mark.parametrize('generic_IDF',
-                         [{'Nx': 4, 'Ny': 4,
-                           'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
-                           'l1': -5.}],
-                         indirect=True)
-def test_overwrite_sample_si_distance(generic_IDF):
+@pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
+def test_overwrite_sample_si_distance(generic_workspace):
     """Test instrument with a user-overwriting SampleToSi distance
 
     Returns
     -------
 
     """
-    # Generate a generic SANS instrument with detector dimension stated in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
-    idf_name = r'/tmp/GenericHFIRSANS_Definition.xml'
-    with open(idf_name, 'w') as tmp:
-        tmp.write(generic_IDF)
-        tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
-                             OutputWorkspace='test_integration_roi')
-    # clean
-    os.remove(idf_name)
-
     # Set up sample logs
-    sdd = sample_detector_distance(ws, unit='m')
-    print('TestOverwriteSampleSiDistance: sample detector distance [1] = {} meter'.format(sdd))
+    sdd = sample_detector_distance(generic_workspace, unit='m')
 
     # Add sample log
-    sample_logs = SampleLogs(ws)
+    sample_logs = SampleLogs(generic_workspace)
     sample_logs.insert('sample-detector-distance', sdd * 1E3, unit='mm')
     # shift 1.23 mm from default
     default_sample_si_distance = 0.071  # meter, i.e., 71 mm
     sample_logs.insert('Generic:CS:SampleToSi', 72.23, unit='mm')
 
     # Test method
-    sample_offset, detector_offset = get_sample_detector_offset(ws, 'Generic:CS:SampleToSi',
+    sample_offset, detector_offset = get_sample_detector_offset(generic_workspace, 'Generic:CS:SampleToSi',
                                                                 default_sample_si_distance,
                                                                 overwrite_sample_si_distance=75.32 * 1E-3)
 
@@ -108,88 +87,57 @@ def test_overwrite_sample_si_distance(generic_IDF):
     assert detector_offset == pytest.approx(-1.23 * 1E-3, 1E-12)
 
 
-@pytest.mark.parametrize('generic_IDF',
-                         [{'Nx': 4, 'Ny': 4,
-                           'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
-                           'l1': -5.}],
-                         indirect=True)
-def test_overwrite_sample_detector_distance(generic_IDF):
+@pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
+def test_overwrite_sample_detector_distance(generic_workspace):
     """Test instrument with a user-overwriting sample to detector distance
 
     Returns
     -------
 
     """
-    # Generate a generic SANS instrument with detector dimension stated in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
-    idf_name = r'/tmp/GenericHFIRSANS_Definition.xml'
-    with open(idf_name, 'w') as tmp:
-        tmp.write(generic_IDF)
-        tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
-                             OutputWorkspace='test_integration_roi')
-    # clean
-    os.remove(idf_name)
-
     # Set up sample logs
-    sdd = sample_detector_distance(ws, unit='m')
-    print('TestOverwriteSampleDetectorDistance: sample detector distance [1] = {} meter'.format(sdd))
+    sdd = sample_detector_distance(generic_workspace, unit='m')
 
     # Add sample log
-    sample_logs = SampleLogs(ws)
+    sample_logs = SampleLogs(generic_workspace)
     sample_logs.insert('sample-detector-distance', sdd, unit='m')
     default_sample_si_distance = 0.071  # meter, i.e., 71 mm
     # shift sample 1.23 mm to source from silicon window
     sample_logs.insert('Generic:CS:SampleToSi', 72.23, unit='mm')
 
     # Test method
-    sample_offset, detector_offset = get_sample_detector_offset(ws, 'Generic:CS:SampleToSi',
+    sample_offset, detector_offset = get_sample_detector_offset(generic_workspace, 'Generic:CS:SampleToSi',
                                                                 default_sample_si_distance,
                                                                 overwrite_sample_detector_distance=1.40)
 
     # Verify:
     # 1. shift both sample and detector to -Y direction by 1.23 mm with SampleToSi value
-    # 2. shift the detector position by overwrite-sample-detector distance, i.e., (-1.23 + (1400 - 1250) = 148.77 mm
+    # 2. shift the detector position by overwrite-sample-detector distance,
+    #    i.e., (-1.23 + (1400 - 1250) = 148.77 mm
     assert sample_offset == pytest.approx(-1.23 * 1E-3, 1E-12)
     assert detector_offset == pytest.approx(0.14877, 1E-12)
 
 
-@pytest.mark.parametrize('generic_IDF',
-                         [{'Nx': 4, 'Ny': 4,
-                           'dx': 0.006, 'dy': 0.004, 'zc': 1.25,
-                           'l1': -5.}],
-                         indirect=True)
-def test_overwrite_both_distance(generic_IDF):
+@pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
+def test_overwrite_both_distance(generic_workspace):
     """Test instrument with a user-overwriting both SampleToSi distance and sample to detector distance
 
     Returns
     -------
 
     """
-    # Generate a generic SANS instrument with detector dimension stated in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
-    idf_name = r'/tmp/GenericHFIRSANS_Definition.xml'
-    with open(idf_name, 'w') as tmp:
-        tmp.write(generic_IDF)
-        tmp.close()
-    ws = LoadEmptyInstrument(Filename=tmp.name, InstrumentName='GenericSANS',
-                             OutputWorkspace='test_integration_roi')
-    # clean
-    os.remove(idf_name)
-
     # Set up sample logs
-    sdd = sample_detector_distance(ws, unit='m')
-    print('TestOverwriteSampleDetectorDistance: sample detector distance [1] = {} meter'.format(sdd))
+    sdd = sample_detector_distance(generic_workspace, unit='m')
 
     # Add sample log
-    sample_logs = SampleLogs(ws)
+    sample_logs = SampleLogs(ge)
     sample_logs.insert('sample-detector-distance', sdd, unit='m')
     default_sample_si_distance = 0.071  # meter, i.e., 71 mm
     # shift sample 1.23 mm to source from silicon window
     sample_logs.insert('Generic:CS:SampleToSi', 72.23, unit='mm')
 
     # Test method
-    sample_offset, detector_offset = get_sample_detector_offset(ws, 'Generic:CS:SampleToSi',
+    sample_offset, detector_offset = get_sample_detector_offset(generic_workspace, 'Generic:CS:SampleToSi',
                                                                 default_sample_si_distance,
                                                                 overwrite_sample_si_distance=75.32 * 1E-3,
                                                                 overwrite_sample_detector_distance=1.40)

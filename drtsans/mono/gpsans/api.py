@@ -150,7 +150,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
     except ValueError:
         overwrite_sdd = None
-    print('[META-OVERWRITE] JSON Input = {}, {}'.format(overwrite_swd, overwrite_sdd))
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
@@ -266,7 +265,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
                 if os.path.exists(temp_name):
                     dark_current_file_wing = temp_name
-                    print('Dark current (wing): {}'.format(dark_current_file_wing))
                 load_events_and_histogram(dark_current_file, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
@@ -309,7 +307,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
             else:
                 mask_ws = mtd[mask_ws_name]
-    print('Done loading')
 
     if registered_workspace(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'):
         raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group']
@@ -418,9 +415,6 @@ def prepare_data(data,
     # Detector offset and sample offset are disabled
     if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
         raise RuntimeError('gpsans.api.prepare_data does not work with detector_offset or sample_offset')
-    else:
-        # detector_offset and sample_offset shall be calculated from sample logs or overwritten sample logs
-        pass
 
     # GPSANS: detector offset is fixed to 0. Only detector sample distance is essential.
     #         So one offset is sufficient

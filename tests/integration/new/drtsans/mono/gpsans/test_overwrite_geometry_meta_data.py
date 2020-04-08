@@ -72,18 +72,22 @@ def clean_workspaces():
     -------
 
     """
+    # FIXME - There is a potential issue if multiple integration tests run simultaneously
     mtd.clear()
 
 
 def get_iq1d(log_file_name):
-    """
+    """Get I(Q) from output SANS log file
 
     Parameters
     ----------
-    log_file_name
+    log_file_name: str
+        log file name
 
     Returns
     -------
+    tuple
+        numpy 1D array for Q, numpy 1D array for intensity
 
     """
     # Open file and entry
@@ -140,8 +144,15 @@ def verify_reduction_results(sample_names, output_dir, gold_path):
         compare_reduced_iq(output_log_file, gold_log_file)
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
 def test_no_overwrite(reference_dir):
-    """Test reduce 3 sets of data without overwriting
+    """Test reduce 3 sets of data without overwriting SampleToSi (distance) SampleDetectorDistance
+
+    This test case is provided by Lisa and verified by Lilin
+    Location of original test: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/
+    Test json:  /HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test1.json
+    Verified result: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/test1/
 
     Returns
     -------
@@ -150,21 +161,25 @@ def test_no_overwrite(reference_dir):
     # Set test and run
     json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test1.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
-    # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test1.json'
     output_dir = '/tmp/meta_overwrite_test1'
     reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test1/')
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test1/'
 
     # Verify results
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
 def test_overwrite_sample2si(reference_dir):
-    """Test reduce 3 sets of data without overwriting
+    """Test reduce 3 sets of data without overwriting SampleToSi (distance) SampleDetectorDistance
+
+    This test case is provided by Lisa and verified by Lilin
+    Location of original test: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/
+    Test json:  /HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test1.json
 
     Returns
     -------

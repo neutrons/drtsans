@@ -42,6 +42,7 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
+@pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
 def test_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data without overwriting both SampleToSi and SampleDetectorDistance
     with minor change.
@@ -57,9 +58,6 @@ def test_overwrite_both_minor(reference_dir):
     -------
 
     """
-    if not os.path.exists('/HFIR/CG3/'):
-        pytest.skip('Skip on build server due to execution time')
-
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 61, 6.9)
     output_dir = '/tmp/meta_overwrite_bio_test1a/'
@@ -77,6 +75,7 @@ def test_overwrite_both_minor(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
+@pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
 def skip_test_overwrite_both_major(reference_dir):
     """Test reduce 3 sets of data without overwriting both SampleToSi and SampleDetectorDistance
     with significant changes.
@@ -92,9 +91,6 @@ def skip_test_overwrite_both_major(reference_dir):
     -------
 
     """
-    if not os.path.exists('/HFIR/CG3/'):
-        pytest.skip('Skip on build server due to execution time')
-
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 200, 14)
     output_dir = '/tmp/meta_overwrite_bio_test4/'

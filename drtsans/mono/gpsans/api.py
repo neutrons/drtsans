@@ -264,7 +264,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 # identify to use exact given path to NeXus or use OnCat instead
                 temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
                 if os.path.exists(temp_name):
-                    dark_current_file_wing = temp_name
+                    dark_current_file = temp_name
                 load_events_and_histogram(dark_current_file, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,

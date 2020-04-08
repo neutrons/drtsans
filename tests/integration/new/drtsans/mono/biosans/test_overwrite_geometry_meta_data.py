@@ -43,7 +43,7 @@ def test_no_overwrite(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def test_overwrite_both_minor(reference_dir):
+def skip_est_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with minor change.
     - Overwrite SampleToSi (distance) to 61 mm.
@@ -76,7 +76,7 @@ def test_overwrite_both_minor(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def test_overwrite_both_major(reference_dir):
+def skip_test_overwrite_both_major(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with significant changes.
     - Overwrite SampleToSi (distance) to 200 mm.
@@ -108,7 +108,7 @@ def test_overwrite_both_major(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_si(reference_dir):
+def skip_test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
@@ -140,7 +140,7 @@ def test_overwrite_sample_to_si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_detector(reference_dir):
+def skip_test_overwrite_sample_to_detector(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter

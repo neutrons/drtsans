@@ -5,6 +5,7 @@ import pytest
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.geometry import sample_detector_distance
+from mantid.simpleapi import mtd
 
 
 @pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
@@ -26,6 +27,9 @@ def test_zero_offsets(generic_workspace):
     # Verify: sample_offset = detector_offset = 0. as expecgted
     assert sample_offset == pytest.approx(0, 1E-12)
     assert detector_offset == pytest.approx(0, 1E-12)
+
+    # clear generic testing workspace
+    mtd.clear()
 
 
 @pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
@@ -51,6 +55,9 @@ def test_non_zero_offsets(generic_workspace):
     # Verify
     assert sample_offset == pytest.approx(-4.32 * 1E-3, 1E-12)
     assert detector_offset == pytest.approx(-4.32 * 1E-3, 1E-12)
+
+    # clear generic testing workspace
+    mtd.clear()
 
 
 @pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
@@ -84,6 +91,9 @@ def test_overwrite_sample_si_distance(generic_workspace):
     assert sample_offset == pytest.approx(-4.32 * 1E-3, 1E-12)
     assert detector_offset == pytest.approx(-1.23 * 1E-3, 1E-12)
 
+    # clear generic testing workspace
+    mtd.clear()
+
 
 @pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
 def test_overwrite_sample_detector_distance(generic_workspace):
@@ -114,6 +124,9 @@ def test_overwrite_sample_detector_distance(generic_workspace):
     #    i.e., (-1.23 + (1400 - 1250) = 148.77 mm
     assert sample_offset == pytest.approx(-1.23 * 1E-3, 1E-12)
     assert detector_offset == pytest.approx(0.14877, 1E-12)
+
+    # clear generic testing workspace
+    mtd.clear()
 
 
 @pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS', 'l1': -15.}], indirect=True)
@@ -147,3 +160,6 @@ def test_overwrite_both_distance(generic_workspace):
     # 3. shift the detector position by overwrite-sample-detector distance, i.e., (-4.32 + (1400 - 1250) = 145.68 mm
     assert sample_offset == pytest.approx(-4.32 * 1E-3, 1E-12)
     assert detector_offset == pytest.approx(0.14568, 1E-12)
+
+    # clear generic testing workspace
+    mtd.clear()

@@ -147,7 +147,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
 def test_no_overwrite(reference_dir):
-    """Test reduce 3 sets of data without overwriting SampleToSi (distance) SampleDetectorDistance
+    """Test reduce 3 sets of data overwriting neither SampleToSi (distance) nor SampleDetectorDistance.
 
     This test case is provided by Lisa and verified by Lilin
     Location of original test: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/
@@ -175,11 +175,15 @@ def test_no_overwrite(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
 def test_overwrite_sample2si(reference_dir):
-    """Test reduce 3 sets of data without overwriting SampleToSi (distance) SampleDetectorDistance
+    """Test reduce 3 sets of data overwriting SampleToSi (distance) but not SampleDetectorDistance.
+    Sample to detector distance will be changed accordingly.
+
+    - Overwrite SampleToSi (distance) to 94 mm.
 
     This test case is provided by Lisa and verified by Lilin
     Location of original test: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/
-    Test json:  /HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test1.json
+    Test json:  /HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test2.json
+    Verified result: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/test2/
 
     Returns
     -------
@@ -188,7 +192,6 @@ def test_overwrite_sample2si(reference_dir):
     # Set test and run: sample to silicon window is changed 94 mm
     json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test2.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
-    # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test2.json'
     output_dir = '/tmp/meta_overwrite_test2'
     reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
@@ -196,13 +199,21 @@ def test_overwrite_sample2si(reference_dir):
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
     # Verify results
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test2/'
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test2/')
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
 def test_overwrite_sdd(reference_dir):
-    """Test reduce 3 sets of data without overwriting
+    """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
+
+    - Overwrite DetectorToSample (distance) to 40 meter
+
+    This test case is provided by Lisa and verified by Lilin
+    Location of original test: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/
+    Test json:  /HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test3.json
+    Verified result: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/test3/
 
     Returns
     -------
@@ -211,7 +222,6 @@ def test_overwrite_sdd(reference_dir):
     # Set test and run: sample to detector distance is changed to 40 meter
     json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test3.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
-    # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test3.json'
     output_dir = '/tmp/meta_overwrite_test3'
     reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
@@ -222,13 +232,22 @@ def test_overwrite_sdd(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test3/'
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test3/')
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
 def test_overwrite_both(reference_dir):
-    """Test reduce 3 sets of data without overwriting
+    """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
+
+    - Overwrite SampleToSi (distance) to 200 mm.
+    - Overwrite DetectorToSample (distance) to 30 meter
+
+    This test case is provided by Lisa and verified by Lilin
+    Location of original test: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/
+    Test json:  /HFIR/CG2/shared/UserAcceptance/overwrite_meta/gpsans_reduction_test4.json
+    Verified result: /HFIR/CG2/shared/UserAcceptance/overwrite_meta/test4/
 
     Returns
     -------
@@ -237,7 +256,6 @@ def test_overwrite_both(reference_dir):
     # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
     json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test4.json')
     assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
-    # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/gpsans_reduction_test4.json'
     output_dir = '/tmp/meta_overwrite_test4'
     reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
 
@@ -248,9 +266,7 @@ def test_overwrite_both(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/test4/'
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test4/')
-
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 

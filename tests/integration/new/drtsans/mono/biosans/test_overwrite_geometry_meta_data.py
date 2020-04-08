@@ -14,7 +14,7 @@ from mantid.simpleapi import mtd
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 def test_no_overwrite(reference_dir):
-    """Test reduce 3 sets of data without overwriting neither SampleToSi nor SampleDetectorDistance
+    """Test reduce 3 sets of data without overwriting either SampleToSi or SampleDetectorDistance
 
     This integration test is from a test from and verified by Shuo Qian.
     Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
@@ -44,7 +44,7 @@ def test_no_overwrite(reference_dir):
 # SME - Shuo Qian <qians@ornl.gov>
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
 def test_overwrite_both_minor(reference_dir):
-    """Test reduce 3 sets of data without overwriting both SampleToSi and SampleDetectorDistance
+    """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with minor change.
     - Overwrite SampleToSi (distance) to 61 mm.
     - Overwrite DetectorToSample (distance) to 6.9 meter
@@ -76,8 +76,8 @@ def test_overwrite_both_minor(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def skip_test_overwrite_both_major(reference_dir):
-    """Test reduce 3 sets of data without overwriting both SampleToSi and SampleDetectorDistance
+def test_overwrite_both_major(reference_dir):
+    """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with significant changes.
     - Overwrite SampleToSi (distance) to 200 mm.
     - Overwrite DetectorToSample (distance) to 14 meter
@@ -109,8 +109,8 @@ def skip_test_overwrite_both_major(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 def test_overwrite_sample_to_si(reference_dir):
-    """Test reduce 3 sets of data without overwriting SampleToSi
-    SampleDetectorDistance will be modified accordingly with the move of sample relative to nominal point.
+    """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance
+    Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
     - Overwrite SampleToSi (distance) to 7000 mm.
 
@@ -141,7 +141,7 @@ def test_overwrite_sample_to_si(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 def test_overwrite_sample_to_detector(reference_dir):
-    """Test reduce 3 sets of data without overwriting SampleToSi but not SampleDetectorDistance.
+    """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter
 

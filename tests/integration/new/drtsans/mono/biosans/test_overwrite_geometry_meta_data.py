@@ -11,8 +11,15 @@ import time
 from mantid.simpleapi import mtd
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Shuo Qian <qians@ornl.gov>
 def test_no_overwrite(reference_dir):
-    """Test reduce 3 sets of data without overwriting
+    """Test reduce 3 sets of data without overwriting neither SampleToSi nor SampleDetectorDistance
+
+    This integration test is from a test from and verified by Shuo Qian.
+    Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
+    Test script: /HFIR/CG3/shared/UserAcceptance/override_round3/test_reduce_cg3_4822_test1.py
+    Verified result: /HFIR/CG3/shared/UserAcceptance/override_round3/test1/
 
     Returns
     -------
@@ -33,13 +40,26 @@ def test_no_overwrite(reference_dir):
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
 
 
-def skip_test_overwrite_both_minor(reference_dir):
-    """Test reduce 3 sets of data with minor overwriting
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Shuo Qian <qians@ornl.gov>
+def test_overwrite_both_minor(reference_dir):
+    """Test reduce 3 sets of data without overwriting both SampleToSi and SampleDetectorDistance
+    with minor change.
+    - Overwrite SampleToSi (distance) to 61 mm.
+    - Overwrite DetectorToSample (distance) to 6.9 meter
 
+    This integration test is from a test from and verified by Shuo Qian.
+    Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
+    Test script: /HFIR/CG3/shared/UserAcceptance/override_round3/test_reduce_cg3_4822_test1a.py
+    Verified result: /HFIR/CG3/shared/UserAcceptance/override_round3/test1a/
+`
     Returns
     -------
 
     """
+    if not os.path.exists('/HFIR/CG3/'):
+        pytest.skip('Skip on build server due to execution time')
+
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 61, 6.9)
     output_dir = '/tmp/meta_overwrite_bio_test1a/'
@@ -49,20 +69,32 @@ def skip_test_overwrite_both_minor(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1a/'
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1a/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1a')
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Shuo Qian <qians@ornl.gov>
 def skip_test_overwrite_both_major(reference_dir):
-    """Test reduce 3 sets of data with minor overwriting
+    """Test reduce 3 sets of data without overwriting both SampleToSi and SampleDetectorDistance
+    with significant changes.
+    - Overwrite SampleToSi (distance) to 200 mm.
+    - Overwrite DetectorToSample (distance) to 14 meter
+
+    This integration test is from a test from and verified by Shuo Qian.
+    Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
+    Test script: /HFIR/CG3/shared/UserAcceptance/override_round3/test_reduce_cg3_4822_test4.py
+    Verified result: /HFIR/CG3/shared/UserAcceptance/override_round3/test4/
 
     Returns
     -------
 
     """
+    if not os.path.exists('/HFIR/CG3/'):
+        pytest.skip('Skip on build server due to execution time')
+
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 200, 14)
     output_dir = '/tmp/meta_overwrite_bio_test4/'
@@ -72,15 +104,24 @@ def skip_test_overwrite_both_major(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test4/'
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test4/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test4')
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Shuo Qian <qians@ornl.gov>
 def test_overwrite_sample_to_si(reference_dir):
-    """Test reduce 3 sets of data without overwriting
+    """Test reduce 3 sets of data without overwriting SampleToSi
+    SampleDetectorDistance will be modified accordingly with the move of sample relative to nominal point.
+
+    - Overwrite SampleToSi (distance) to 7000 mm.
+
+    This integration test is from a test from and verified by Shuo Qian.
+    Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
+    Test script: /HFIR/CG3/shared/UserAcceptance/override_round3/test_reduce_cg3_4822_test2.py
+    Verified result: /HFIR/CG3/shared/UserAcceptance/override_round3/test2/
 
     Returns
     -------
@@ -95,15 +136,23 @@ def test_overwrite_sample_to_si(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test2/'
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test2/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test2')
 
 
+# dev - Wenduo Zhou <wzz@ornl.gov>
+# SME - Shuo Qian <qians@ornl.gov>
 def test_overwrite_sample_to_detector(reference_dir):
-    """Test reduce 3 sets of data without overwriting
+    """Test reduce 3 sets of data without overwriting SampleToSi but not SampleDetectorDistance.
+
+    - Overwrite DetectorToSample (distance) to 14 meter
+
+    This integration test is from a test from and verified by Shuo Qian.
+    Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
+    Test script: /HFIR/CG3/shared/UserAcceptance/override_round3/test_reduce_cg3_4822_test3.py
+    Verified result: /HFIR/CG3/shared/UserAcceptance/override_round3/test3/
 
     Returns
     -------
@@ -118,7 +167,6 @@ def test_overwrite_sample_to_detector(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test3/'
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test3/')
 
     # Verify
@@ -126,20 +174,23 @@ def test_overwrite_sample_to_detector(reference_dir):
 
 
 def reduce_biosans_data(nexus_dir, json_str, output_dir):
-    """
+    """Reduce BIOSANS runs
 
     Parameters
     ----------
     nexus_dir: str
-        path to find data
-    json_str
-    output_dir
+        path to NeXus files
+    json_str: str
+        configuration json
+    output_dir: str
+        output directory
 
     Returns
     -------
 
     """
     # Clear workspaces in memory
+    # FIXME - this could be an issue if integration tests are run in parallel
     mtd.clear()
 
     # Set up (testing) runs
@@ -148,9 +199,6 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir):
     samples_trans = samples
     backgrounds = ['5715', '5715']
     backgrounds_trans = backgrounds
-
-    # Test data path
-    # nexus_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/data'
 
     # Load JSON for configuration
     reduction_input = json.loads(json_str)

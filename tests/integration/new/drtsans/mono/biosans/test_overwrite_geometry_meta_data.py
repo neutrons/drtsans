@@ -27,7 +27,6 @@ def test_no_overwrite(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    # gold_path = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/test1/'
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1/')
 
     # Verify

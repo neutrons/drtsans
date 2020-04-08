@@ -108,7 +108,7 @@ def skip_test_overwrite_both_major(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def skip_test_overwrite_sample_to_si(reference_dir):
+def test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 

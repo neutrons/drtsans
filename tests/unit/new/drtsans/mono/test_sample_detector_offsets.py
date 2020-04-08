@@ -5,7 +5,6 @@ import pytest
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.geometry import sample_detector_distance
-from mantid.simpleapi import mtd
 
 
 @pytest.mark.parametrize('generic_workspace', [{'name': 'GPSANS1', 'l1': -15.}], indirect=True)

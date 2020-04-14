@@ -30,7 +30,7 @@ def mask_as_numpy_array(input_workspace, invert=False):
 
     Parameters
     ----------
-    input_workspace: str, , ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+    input_workspace: str, , ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
     invert: bool
         Invert mask values.
 
@@ -55,7 +55,7 @@ def masked_indexes(input_workspace, invert=False):
 
     Parameters
     ----------
-    input_workspace: str, , ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+    input_workspace: str, , ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
     invert: bool
         return indexes for unmasked pixel detectors.
 
@@ -139,7 +139,7 @@ def load_mask(mask_file='', output_workspace=None):
         output_workspace = unique_workspace_dundername()
     mask_workspace = LoadNexusProcessed(Filename=mask_file, OutputWorkspace=output_workspace)
     if isinstance(mask_workspace, IEventWorkspace):
-        logger.warning('Storing the mask on an EventsWorkspace is inefficient. Consider saving as a histogram with one bin.')
+        logger.warning('Storing the mask on an EventWorkspace is inefficient. Consider saving as a histogram with one bin.')
     return mask_workspace
 
 

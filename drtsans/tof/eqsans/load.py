@@ -326,7 +326,8 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                 output_suffix=output_suffix,
                                 detector_offset=detector_offset, sample_offset=sample_offset,
                                 time_interval=time_interval, log_name=log_name, log_value_interval=log_value_interval,
-                                reuse_workspace=reuse_workspace, monitors=False, **kwargs)
+                                reuse_workspace=reuse_workspace, monitors=False,
+                                instrument_unique_name='EQSANS', **kwargs)
 
     for _w in ws:
         correct_detector_frame(_w, path_to_pixel=path_to_pixel)

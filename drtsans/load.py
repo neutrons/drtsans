@@ -10,10 +10,12 @@ import re
 from mantid.simpleapi import mtd
 # https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
 from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
+from mantid.simpleapi import AddSampleLogMultiple
 import mantid
+from drtsans.path import registered_workspace
 
 
-__all__ = ['load_events', 'sum_data', 'load_and_split']
+__all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
 
 
 def __monitor_counts(filename, monitor_name='monitor1'):
@@ -115,18 +117,96 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
     # move instrument components - sample position must happen first
 
+    # Translate source along Z-axis
     translate_source_by_z(output_workspace, z=None, relative=False)
-    translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
-    translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
-    translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
+
+    # FIXME (485) - This shall be modified accordingly
+    if is_mono:
+        # HFIR-SANS: use new method
+        # --- Debug Exception Section
+        out_ws = mtd[str(output_workspace)]
+        print('Before translate source and sample')
+        print('Sample position = {}'.format(out_ws.getInstrument().getSample().getPos()))
+        from drtsans.geometry import sample_detector_distance
+        print('SDD = {} (meta) and {} (calculated)'
+              ''.format(sample_detector_distance(output_workspace, search_logs=True),
+                        sample_detector_distance(output_workspace, search_logs=False)))
+        # --- END
+
+        # Determine detector and sample offset from meta data afterwards
+
+    else:
+        # For TOF (i.e., EQSANS), still translate sample and detector as usual
+        translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
+        translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
+        translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
     return mtd[output_workspace]
+
+
+def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sample_si_name=None,
+                    si_window_to_nominal_distance=None):
+    """Move instrument sample and detector
+
+    Parameters
+    ----------
+    workspace:
+        Workspace with instrument's sample or detector translated along z-axis
+    sample_offset: float
+        sample offset in unit meter
+    detector_offset: float
+        detector offset in unit meter
+    is_mono: bool
+        Flag that it belongs to a mono-SANS
+    sample_si_name: str
+        Name of Sample to silicon window name
+    si_window_to_nominal_distance : float or None
+        distance between Silicon window and sample in unit of meter
+
+    Returns
+    -------
+    ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+        Workspace with instrument moved
+
+    """
+    # Get workspace name
+    workspace_name = str(workspace)
+
+    # Move sample and detector
+    translate_sample_by_z(workspace, sample_offset)
+    translate_detector_by_z(workspace, detector_offset)
+
+    # Reset the SampleToSi log and sample_detector_distance log for mono-SANS
+    if is_mono:
+        logs = SampleLogs(workspace)
+
+        # Update sample-silicon-window distance
+        # curr_value = logs.find_log_with_units(sample_si_name, unit='mm')
+        # sample offset is at same direction to +Y, while 'SampleToSi' is toward -Y
+        # convert from meter to mm
+        new_value = (si_window_to_nominal_distance - sample_offset) * 1E3
+        AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format(sample_si_name),
+                             LogValues='{}'.format(new_value),
+                             LogUnits='mm')
+
+        # Adjust sample_to_detector_distance
+        curr_sdd = logs.find_log_with_units('sample_detector_distance', unit='m')
+        # shift shall be (-sample_offset + detector_offset)
+        curr_sdd += -sample_offset + detector_offset
+        # Set
+        AddSampleLogMultiple(Workspace=workspace, LogNames='{}'.format('sample_detector_distance'),
+                             LogValues='{}'.format(curr_sdd),
+                             LogUnits='m')
+    # END-IF
+
+    return mtd[workspace_name]
 
 
 def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
                    detector_offset=0., sample_offset=0.,
                    time_interval=None, log_name=None, log_value_interval=None,
-                   reuse_workspace=False, monitors=False, **kwargs):
+                   reuse_workspace=False, monitors=False, instrument_unique_name=None, is_mono=None,
+                   **kwargs):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
     on the provided filter options. Either a time_interval must be
     provided or a log_name and log_value_interval.
@@ -163,7 +243,7 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         then all splitters will have same time intervals. If the size of the array is larger
         than one, then the splitters can have various time interval values.
     log_name: string
-        Name of the sample log to use to filter. For example, the pulse charge is recorded in ‘ProtonCharge’.
+        Name of the sample log to use to filter. For example, the pulse charge is recorded in 'ProtonCharge'.
     log_value_interval: float
         Delta of log value to be sliced into from min log value and max log value.
     reuse_workspace: bool
@@ -177,27 +257,34 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
         Reference to the workspace groups containing all the split workspaces
 
     """
-
     if not (time_interval or (log_name and log_value_interval)):
         raise ValueError("Must provide with time_interval or log_name and log_value_interval")
 
-    # determine if this is a monochromatic measurement
-    instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
-    is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
-              (instrument_unique_name == InstrumentEnumName.GPSANS)
+    # Check whether need to load or not
+    run = str(run)
+    if registered_workspace(run):
+        # Input is a workspace or name of a workspace in ADS
+        ws = mtd[run]
+        monitors = monitors or is_mono
+        assert instrument_unique_name is not None, 'Instrument name must be given!'
+    else:
+        # determine if this is a monochromatic measurement
+        instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
+        is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
+                  (instrument_unique_name == InstrumentEnumName.GPSANS)
 
-    # monitors are required for gpsans and biosans
-    monitors = monitors or is_mono
+        # monitors are required for gpsans and biosans
+        monitors = monitors or is_mono
 
-    ws = load_events(run=run,
-                     data_dir=data_dir,
-                     output_workspace='_load_tmp',
-                     overwrite_instrument=overwrite_instrument,
-                     output_suffix=output_suffix,
-                     detector_offset=detector_offset,
-                     sample_offset=sample_offset,
-                     reuse_workspace=reuse_workspace,
-                     **dict(kwargs, LoadMonitors=monitors or is_mono))
+        ws = load_events(run=run,
+                         data_dir=data_dir,
+                         output_workspace='_load_tmp',
+                         overwrite_instrument=overwrite_instrument,
+                         output_suffix=output_suffix,
+                         detector_offset=detector_offset,
+                         sample_offset=sample_offset,
+                         reuse_workspace=reuse_workspace,
+                         **dict(kwargs, LoadMonitors=monitors or is_mono))
 
     # create default name for output workspace
     if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
@@ -232,6 +319,8 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                      SpectrumWithoutDetector='Skip only if TOF correction',
                      OutputWorkspaceIndexedFrom1=True)
 
+    # Check is_mono
+    assert is_mono is not None, 'is_mono shall be either set or specified'
     if is_mono:
         # Set monitor log to be correct for each workspace
         for n in range(mtd[output_workspace].getNumberOfEntries()):

@@ -1,13 +1,16 @@
 import os
-
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd
-
+from mantid.kernel import logger
 # the generic version is feature complete for monochromatic data
-
-from drtsans.load import load_events, sum_data, load_and_split
+from drtsans.load import load_events, sum_data
+from drtsans.load import load_and_split as drt_load_and_split
 from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.instruments import extract_run_number, instrument_enum_name
+from drtsans.mono.meta_data import get_sample_detector_offset
+from drtsans.load import move_instrument
+from drtsans.geometry import sample_detector_distance
+from drtsans.samplelogs import SampleLogs
 
 
 __all__ = ['load_events', 'sum_data', 'load_histogram',
@@ -98,8 +101,10 @@ def load_mono(filename, **kwargs):
 
 
 def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
-                              detector_offset=0., sample_offset=0.,
-                              reuse_workspace=False, **kwargs):
+                              reuse_workspace=False,
+                              sample_to_si_name=None, si_nominal_distance=None,
+                              sample_to_si_value=None, sample_detector_distance_value=None,
+                              **kwargs):
     r"""Load one or more event Nexus file produced by the instruments at
     HFIR. Convert to wavelength and sums the data.
 
@@ -115,15 +120,17 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
+    sample_to_si_name: str
+        Meta data name for sample to Silicon window distance
+    si_nominal_distance: float
+        distance between nominal position to silicon window.  unit = meter
+    sample_to_si_value: float or None
+        Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
+    sample_detector_distance_value: float or None
+        Sample to detector distance to overwrite the EPICS value.  None for no operation. unit = meter
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
-    detector_offset: float
-        Additional translation of the detector along the Z-axis, in mm. Positive
-        moves the detector downstream.
-    sample_offset: float
-        Additional translation of the sample, in mm. The sample flange remains
-        at the origin of coordinates. Positive moves the sample downstream.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
     kwargs: dict
@@ -133,22 +140,31 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
     -------
     ~mantid.api.MatrixWorkspace
     """
+    # Check inputs
+    if sample_to_si_name is None:
+        raise NotImplementedError('Sample to Si window name must be specified thus cannot be None')
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):
         run = [r.strip() for r in run.split(',')]
-
-    # if only one run just load and transform to wavelength and return workspace
+    # Load NeXus file(s)
     if len(run) == 1:
+        # if only one run just load and transform to wavelength and return workspace
         ws = load_events(run=run[0],
                          data_dir=data_dir,
                          output_workspace=output_workspace,
                          overwrite_instrument=overwrite_instrument,
                          output_suffix=output_suffix,
-                         detector_offset=detector_offset,
-                         sample_offset=sample_offset,
+                         detector_offset=0.,
+                         sample_offset=0.,
                          reuse_workspace=reuse_workspace,
                          **kwargs)
+
+        # Calculate offset with overwriting to sample-detector-distance
+        ws = set_sample_detector_position(ws, sample_to_si_name, si_nominal_distance,
+                                          sample_to_si_value, sample_detector_distance_value)
+
+        # Transform to wavelength and set unit uncertainties
         ws = transform_to_wavelength(ws)
         ws = set_init_uncertainties(ws)
         return ws
@@ -167,14 +183,23 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         # load and transform each workspace in turn
         for n, r in enumerate(run):
             temp_workspace_name = '__tmp_ws_{}'.format(n)
-            load_events(run=r,
-                        data_dir=data_dir,
-                        output_workspace=temp_workspace_name,
-                        overwrite_instrument=overwrite_instrument,
-                        detector_offset=detector_offset,
-                        sample_offset=sample_offset,
-                        reuse_workspace=reuse_workspace,
-                        **kwargs)
+            # Load event but not move sample or detector position by meta data
+            temp_ws = load_events(run=r,
+                                  data_dir=data_dir,
+                                  output_workspace=temp_workspace_name,
+                                  overwrite_instrument=overwrite_instrument,
+                                  detector_offset=0.,
+                                  sample_offset=0.,
+                                  reuse_workspace=reuse_workspace,
+                                  **kwargs)
+
+            # Calculate offset with overwriting to sample-detector-distance
+            set_sample_detector_position(temp_ws,
+                                         sample_to_si_window_name=sample_to_si_name,
+                                         si_window_to_nominal_distance=si_nominal_distance,
+                                         sample_si_window_overwrite_value=sample_to_si_value,
+                                         sample_detector_distance_overwrite_value=sample_detector_distance_value)
+
             transform_to_wavelength(temp_workspace_name)
             temp_workspaces.append(temp_workspace_name)
 
@@ -185,9 +210,172 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         # After summing data re-calculate initial uncertainties
         ws = set_init_uncertainties(ws)
 
-        # Remove temporary wokspace
+        # Remove temporary workspace
         for ws_name in temp_workspaces:
             if mtd.doesExist(ws_name):
                 mtd.remove(ws_name)
 
         return ws
+
+
+def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nominal_distance,
+                                 sample_si_window_overwrite_value,
+                                 sample_detector_distance_overwrite_value):
+    """Calculate sample and detector offset from default position from geometry-related meta data
+    and move the main detector and/or sample to correct position
+
+    Parameters
+    ----------
+    ws: ~mantid.api.MatrixWorkspace
+        Workspace where the instrument is for sample detector position to set correctly
+    sample_to_si_window_name: str
+        meta data name for Sample to Silicon window distance
+    si_window_to_nominal_distance: float
+        Silicon window to nominal position distance in unit of meter
+    sample_si_window_overwrite_value: float or None
+        value to overwrite sample to silicon window distance in unit of meter
+        None for not overwriting
+    sample_detector_distance_overwrite_value: float or None
+        value to overwrite sample to detector distance in unit of meter
+        None for not overwriting
+
+    Returns
+    -------
+
+    """
+    # Information output before
+    logs = SampleLogs(ws)
+    logger.information('[META-GEOM  Init] Sample to detector distance = {} (calculated) /{} (meta) meter'
+                       ''.format(sample_detector_distance(ws, search_logs=False),
+                                 sample_detector_distance(ws, search_logs=True)))
+    logger.information('[META-GEOM      ] SampleToSi = {} m'
+                       ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm') * 1E-3))
+    logger.information('[META-GEOM      ] Overwrite Values = {}, {}'
+                       ''.format(sample_si_window_overwrite_value, sample_detector_distance_overwrite_value))
+
+    # Calculate sample and detector offsets for moving
+    sample_offset, detector_offset = \
+        get_sample_detector_offset(ws,
+                                   sample_si_meta_name=sample_to_si_window_name,
+                                   zero_sample_offset_sample_si_distance=si_window_to_nominal_distance,
+                                   overwrite_sample_si_distance=sample_si_window_overwrite_value,
+                                   overwrite_sample_detector_distance=sample_detector_distance_overwrite_value)
+    logger.information('[META-GEOM  INFO] Sample offset = {}, Detector offset = {}'
+                       ''.format(sample_offset, detector_offset))
+
+    # Move sample and detector
+    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+                         sample_si_name=sample_to_si_window_name,
+                         si_window_to_nominal_distance=si_window_to_nominal_distance)
+
+    # Check current instrument setup and meta data (sample logs)
+    logs = SampleLogs(ws)
+    logger.information('[META-GEOM Final] Sample to detector distance = {} (calculated) /{} (meta) meter'
+                       ''.format(sample_detector_distance(ws, search_logs=False),
+                                 sample_detector_distance(ws, search_logs=True)))
+    logger.information('[META-GEOM      ] Sample position = {}'
+                       ''.format(ws.getInstrument().getSample().getPos()))
+    logger.information('[META-GEOM      ] SampleToSi = {} mm (From Log)'
+                       ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
+
+    return ws
+
+
+def load_and_split(run,
+                   sample_to_si_name, si_nominal_distance,
+                   data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                   time_interval=None, log_name=None, log_value_interval=None,
+                   sample_to_si_value=None, sample_detector_distance_value=None,
+                   reuse_workspace=False, monitors=False, **kwargs):
+    r"""Load an event NeXus file and filter into a WorkspaceGroup depending
+    on the provided filter options. Either a time_interval must be
+    provided or a log_name and log_value_interval.
+
+    Metadata added to output workspace includes the ``slice`` number,
+    ``number_of_slices``, ``slice_parameter``, ``slice_interval``,
+    ``slice_start`` and ``slice_end``.
+
+    For EQSANS two WorkspaceGroup's are return, one for the filtered data and one for filtered monitors
+
+    Parameters
+    ----------
+    run: str, ~mantid.api.IEventWorkspace
+        Examples: ``CG3_55555``, ``CG355555`` or file path.
+    output_workspace: str
+        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
+    data_dir: str, list
+        Additional data search directories
+    overwrite_instrument: bool, str
+        If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
+        latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
+        desired IDF.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
+    time_interval: float or list of floats
+        Array for lengths of time intervals for splitters.  If the array has one value,
+        then all splitters will have same time intervals. If the size of the array is larger
+        than one, then the splitters can have various time interval values.
+    sample_to_si_name: str
+        Meta data name for sample to Silicon window distance
+    si_nominal_distance: float
+        distance between nominal position to silicon window.  unit = meter
+    sample_to_si_value: float or None
+        Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
+    sample_detector_distance_value: float or None
+        Sample to detector distance to overwrite the EPICS value.  None for no operation. unit = meter
+    log_name: string
+        Name of the sample log to use to filter. For example, the pulse charge is recorded in 'ProtonCharge'.
+    log_value_interval: float
+        Delta of log value to be sliced into from min log value and max log value.
+    reuse_workspace: bool
+        When true, return the ``output_workspace`` if it already exists
+    kwargs: dict
+        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
+
+    Returns
+    -------
+    WorkspaceGroup
+        Reference to the workspace groups containing all the split workspaces
+
+    """
+    # Load workspace
+    ws = load_events(run=run,
+                     data_dir=data_dir,
+                     output_workspace='_load_tmp',
+                     overwrite_instrument=overwrite_instrument,
+                     output_suffix=output_suffix,
+                     detector_offset=0.,
+                     sample_offset=0.,
+                     reuse_workspace=reuse_workspace,
+                     **dict(kwargs, LoadMonitors=True))
+
+    # Calculate offset with overwriting to sample-detector-distance
+    ws = set_sample_detector_position(ws, sample_to_si_name, si_nominal_distance,
+                                      sample_to_si_value, sample_detector_distance_value)
+
+    # determine which SANS instrument from the data file
+    instrument_name = instrument_enum_name(run)
+
+    # create default name for output workspace
+    if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
+        run_number = extract_run_number(run) if isinstance(run, str) else ''
+        output_workspace = '{}_{}{}'.format(instrument_name, run_number, output_suffix)
+
+    # Split the workspace
+    split_ws_group = drt_load_and_split(run=ws,
+                                        data_dir=data_dir,
+                                        output_workspace=output_workspace,
+                                        overwrite_instrument=overwrite_instrument,
+                                        output_suffix=output_suffix,
+                                        detector_offset=0., sample_offset=0.,
+                                        time_interval=time_interval,
+                                        log_name=log_name,
+                                        log_value_interval=log_value_interval,
+                                        reuse_workspace=reuse_workspace,
+                                        monitors=monitors,
+                                        instrument_unique_name=instrument_name,
+                                        is_mono=True,
+                                        **kwargs)
+
+    return split_ws_group

@@ -24,7 +24,6 @@ from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.mono.load import load_events, transform_to_wavelength, set_init_uncertainties
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
-from drtsans.mono.meta_data import set_meta_data
 from drtsans.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.iq import bin_all
@@ -34,16 +33,35 @@ from drtsans.dataobjects import IQmod
 # from drtsans.mono.absolute_units import empty_beam_scaling
 # from drtsans.mono.gpsans.attenuation import attenuation_factor
 
+from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
+from drtsans.load import move_instrument
+
+
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'load_all_files', 'plot_reduction_output',
            'prepare_data_workspaces', 'process_single_configuration',
            'reduce_single_configuration']
 
+# silicon window to nominal position (origin) distance in meter
+SI_WINDOW_NOMINAL_DISTANCE_METER = 0.071
+SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
+
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None):
-    """
-    load all required files at the beginning, and transform them to histograms
+def load_all_files(reduction_input, prefix='', load_params=None, path=None):
+    """load all required files at the beginning, and transform them to histograms
+
+    Parameters
+    ----------
+    reduction_input
+    prefix
+    load_params
+    path: str or None
+        Path to search the NeXus file
+
+    Returns
+    -------
+
     """
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
@@ -74,7 +92,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     else:
         default_mask = []
 
-    path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
+    if path is None:
+        path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
+    else:
+        assert os.path.exists(path), 'NeXus file path {} does not exist'.format(path)
 
     # check for time/log slicing
     timeslice = reduction_input["configuration"].get("timeslice")
@@ -125,6 +146,19 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
+
+    # Retrieve parameters for overwriting geometry related meta data
+    try:
+        # load configuration.SampleToSi (in millimeter) and convert to meter
+        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
+    except ValueError:
+        overwrite_swd = None
+    try:
+        # load configuration.SampleDetectorDistance (in meter)
+        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
+    except ValueError:
+        overwrite_sdd = None
+
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
@@ -141,6 +175,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             biosans.load_and_split(filename, output_workspace=ws_name,
                                    time_interval=timesliceinterval,
                                    log_name=logslicename, log_value_interval=logsliceinterval,
+                                   sample_to_si_name=SAMPLE_SI_META_NAME,
+                                   si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                   sample_to_si_value=overwrite_swd,
+                                   sample_detector_distance_value=overwrite_sdd,
                                    **load_params)
 
             for _w in mtd[ws_name]:
@@ -168,9 +206,15 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
+            # Load event NeXus file
             filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
             print(f"Loading filename {filename}")
-            biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            biosans.load_events_and_histogram(filename, output_workspace=ws_name,
+                                              sample_to_si_name=SAMPLE_SI_META_NAME,
+                                              si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                              sample_to_si_value=overwrite_swd,
+                                              sample_detector_distance_value=overwrite_sdd,
+                                              **load_params)
             # Overwrite meta data
             set_meta_data(ws_name,
                           wave_length=wavelength,
@@ -183,9 +227,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)
-            print('[META] Wavelength is set to {} and {}'
-                  ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
-
             # Apply mask
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
@@ -199,7 +240,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             if not registered_workspace(ws_name):
                 filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
                 print(f"Loading filename {filename}")
-                biosans.load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+                biosans.load_events_and_histogram(filename, output_workspace=ws_name,
+                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                                  **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
                     set_meta_data(ws_name,
@@ -226,7 +270,14 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_main}")
-                biosans.load_events_and_histogram(dark_current_file_main, output_workspace=ws_name,
+                # identify to use exact given path to NeXus or use OnCat instead
+                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+                if os.path.exists(temp_name):
+                    dark_current_file_main = temp_name
+                biosans.load_events_and_histogram(dark_current_file_main,
+                                                  output_workspace=ws_name,
+                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                                   **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
@@ -245,13 +296,22 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 dark_current_main = mtd[ws_name]
             else:
                 dark_current_main = mtd[ws_name]
+
+            # dark current for wing detector
             run_number = extract_run_number(dark_current_file_wing)
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_wing}")
-                dark_current_wing = biosans.load_events_and_histogram(dark_current_file_wing,
-                                                                      output_workspace=ws_name,
-                                                                      **load_params)
+                # identify to use exact given path to NeXus or use OnCat instead
+                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+                if os.path.exists(temp_name):
+                    dark_current_file_wing = temp_name
+                    print('Dark current (wing): {}'.format(dark_current_file_wing))
+                biosans.load_events_and_histogram(dark_current_file_wing,
+                                                  output_workspace=ws_name,
+                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
+                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                                  **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
                     set_meta_data(ws_name,
@@ -266,7 +326,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
-                dark_current_main = mtd[ws_name]
+                dark_current_wing = mtd[ws_name]
             else:
                 dark_current_wing = mtd[ws_name]
 
@@ -1099,9 +1159,20 @@ def prepare_data(data,
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
-    # TODO: missing detector_offset for wing detector
+    # Detector offset and sample offset are disabled
+    if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
+        raise RuntimeError('biosans.api.prepare_data does not work with detector_offset or sample_offset')
+
+    # Load event without moving detector and sample after loading NeXus and instrument
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     detector_offset=detector_offset, sample_offset=sample_offset)
+                     detector_offset=0., sample_offset=0.)
+
+    # Reset the offset
+    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,
+                                                                SI_WINDOW_NOMINAL_DISTANCE_METER)
+    # Translate instrument with offsets
+    move_instrument(ws, sample_offset, detector_offset)
+
     ws_name = str(ws)
     transform_to_wavelength(ws_name)
     set_init_uncertainties(ws_name)

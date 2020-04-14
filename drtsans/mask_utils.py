@@ -10,9 +10,9 @@ MaskBTP              <https://docs.mantidproject.org/nightly/algorithms/MaskBTP-
 MaskDetectors        <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html>
 MaskSpectra          <https://docs.mantidproject.org/nightly/algorithms/MaskSpectra-v1.html>
 """
-from mantid.simpleapi import (ExtractMask, FindDetectorsInShape, LoadMask,
+from mantid.simpleapi import (ExtractMask, FindDetectorsInShape, LoadMask, logger,
                               MaskBTP, MaskDetectors, MaskSpectra, LoadNexusProcessed, MaskAngle)
-from mantid.api import mtd, MatrixWorkspace
+from mantid.api import mtd, MatrixWorkspace, IEventWorkspace
 import os
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
@@ -138,6 +138,8 @@ def load_mask(mask_file='', output_workspace=None):
     if not output_workspace:
         output_workspace = unique_workspace_dundername()
     mask_workspace = LoadNexusProcessed(Filename=mask_file, OutputWorkspace=output_workspace)
+    if isinstance(mask_workspace, IEventWorkspace):
+        logger.warning('Storing the mask on an EventsWorkspace is inefficient. Consider saving as a histogram with one bin.')
     return mask_workspace
 
 

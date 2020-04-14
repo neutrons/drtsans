@@ -26,7 +26,7 @@
     "sampleApertureSize": "10",
     "sourceApertureDiameter": "",
     "useMaskFileName": true,
-    "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2019B_mp/mask_beamstop60_4m.nxs",
+    "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2019B_mp/mask_beamstop60_4m_histo.nxs",
     "useDefaultMask": true,
     "normalization": "Total charge",
     "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",

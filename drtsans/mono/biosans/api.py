@@ -145,12 +145,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # Retrieve parameters for overwriting geometry related meta data
     try:
         # load configuration.SampleToSi (in millimeter) and convert to meter
-        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
+        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
     except ValueError:
         overwrite_swd = None
     try:
         # load configuration.SampleDetectorDistance (in meter)
-        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
+        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
     except ValueError:
         overwrite_sdd = None
 
@@ -265,7 +265,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_main}")
                 # identify to use exact given path to NeXus or use OnCat instead
-                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+                temp_name = abspath(run_number, instrument=instrument_name, ipts=ipts)
                 if os.path.exists(temp_name):
                     dark_current_file_main = temp_name
                 biosans.load_events_and_histogram(dark_current_file_main,

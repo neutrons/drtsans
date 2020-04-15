@@ -142,12 +142,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # Retrieve parameters for overwriting geometry related meta data
     try:
         # load configuration.SampleToSi (in millimeter) and convert to meter
-        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
+        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
     except ValueError:
         overwrite_swd = None
     try:
         # load configuration.SampleDetectorDistance (in meter)
-        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
+        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
     except ValueError:
         overwrite_sdd = None
     # special loading case for sample to allow the slicing options

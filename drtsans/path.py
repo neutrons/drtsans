@@ -79,7 +79,7 @@ def abspath(path, instrument='', ipts='', searchArchive=True):
                 pass  # could not convert run number to an integer
 
     # get a full path from `datasearch.directories`
-    option = FileFinder.getFullPath(path)
+    option = FileFinder.getFullPath(str(path))
     if option and os.path.exists(option):
         return option
 

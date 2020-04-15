@@ -26,7 +26,7 @@ def test_is_time_of_flight(serve_events_workspace):
 
 
 def test_extract_run_number():
-    for query in ('/HFIR/CG3/CG3_961.nxs.h5', 'CG3_961.nxs.h5', 'CG3961', 'CG3_961'):
+    for query in ('/HFIR/CG3/CG3_961.nxs.h5', 'CG3_961.nxs.h5', 'CG3961', 'CG3_961', '961', 961):
         assert extract_run_number(query) == 961
 
 

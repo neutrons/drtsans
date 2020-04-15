@@ -67,6 +67,12 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
     except ValueError as e:
         raise RuntimeError('Could not extract runnumber') from e
 
+    # try again using the supplied directory
+    if directory is not None:
+        option = os.path.join(directory, '{}_{}'.format(instrument, runnumber))
+        if os.path.exists(option):
+            return option
+
     # guess the path from existing information
     if ipts:
         if instrument:  # only try if instrument is known

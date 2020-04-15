@@ -50,7 +50,7 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
 
     # try using the supplied directory
     if directory is not None:
-        option = os.path.join(directory, path)
+        option = os.path.join(directory, str(path))
         if os.path.exists(option):
             return option
 

@@ -70,6 +70,12 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
     assert abspath(hint, instrument=instr, ipts=ipts) == fullpath
 
 
+def test_abspath_with_directory(reference_dir):
+    filename = os.path.join(reference_dir.new.biosans, 'CG3_5709.nxs.h5')
+    abspath('CG3_5709', directory=reference_dir.new.biosans, searchArchive=False) == filename
+    abspath('5709', instrument='CG3', directory=reference_dir.new.biosans, searchArchive=False) == filename
+
+
 @pytest.mark.skipif(not HAVE_EQSANS_MOUNT,
                     reason='Do not have /SNS/EQSANS properly '
                     'mounted on this system')

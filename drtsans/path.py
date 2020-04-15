@@ -32,7 +32,7 @@ def allow_overwrite(folder):
             pass
 
 
-def abspath(path, instrument='', ipts='', searchArchive=True):
+def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
     r"""
     Returns an absolute path
 
@@ -47,6 +47,12 @@ def abspath(path, instrument='', ipts='', searchArchive=True):
     # don't use network for first check
     if os.path.exists(path):
         return os.path.abspath(path)
+
+    # try using the supplied directory
+    if directory is not None:
+        option = os.path.join(directory, path)
+        if os.path.exists(option):
+            return option
 
     # instrument will be used later
     if not instrument:
@@ -94,7 +100,7 @@ def abspath(path, instrument='', ipts='', searchArchive=True):
         config = {'default.instrument': instrument}
         if not searchArchive:
             config['datasearch.searcharchive'] = 'Off'
-        with amend_config(config):
+        with amend_config(config, data_dir=directory):
             options = [os.path.abspath(item) for item in FileFinder.findRuns(str(runnumber))]
     except RuntimeError:
         options = []  # marks things as broken

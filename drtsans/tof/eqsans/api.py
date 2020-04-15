@@ -22,7 +22,7 @@ from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
 from drtsans.beam_finder import find_beam_center  # noqa E402
 from drtsans.instruments import extract_run_number  # noqa E402
-from drtsans.path import registered_workspace  # noqa E402
+from drtsans.path import abspath, abspaths, registered_workspace  # noqa E402
 from drtsans.tof.eqsans.load import load_events, load_events_and_histogram, load_and_split  # noqa E402
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.tof.eqsans.cfg import load_config  # noqa E402
@@ -62,7 +62,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     """
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
-    path = f'/SNS/{instrument_name}/IPTS-{ipts}/nexus'
     sample = reduction_input["runNumber"]
     sample_trans = reduction_input["transmission"]["runNumber"]
     bkgd = reduction_input["background"]["runNumber"]
@@ -82,7 +81,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if center != "":
         center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
         if not registered_workspace(center_ws_name):
-            center_filename = f'{path}/{instrument_name}_{center}.nxs.h5'
+            center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
             filenames.add(center_filename)
             load_events(center_filename, output_workspace=center_ws_name)
             if reduction_input["configuration"]["useDefaultMask"]:
@@ -123,8 +122,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if load_params['monitors']:
         raise RuntimeError('Normalization by monitor option will be enabled in a later drt-sans release')
 
-    path = f"/SNS/{instrument_name}/IPTS-{ipts}/nexus"
-
     # check for time/log slicing
     timeslice = reduction_input["configuration"].get("timeslice")
     logslice = reduction_input["configuration"].get("logslice")
@@ -141,7 +138,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
-            filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
+            filename = abspath(sample.strip(), instrument_name=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_input["configuration"]["timesliceinterval"])
@@ -169,7 +166,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
-            filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
+            filename = abspaths(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             filenames.add(filename)
             load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
@@ -183,7 +180,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
-                filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
+                filename = abspaths(run_number.strip(), instrument=instrument_name, ipts=ipts)
                 print(f"Loading filename {filename}")
                 filenames.add(filename)
                 load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
@@ -198,6 +195,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             run_number = extract_run_number(dark_current_file)
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
+                dark_current_file = abspath(dark_current_file)
                 print(f"Loading filename {dark_current_file}")
                 filenames.add(dark_current_file)
                 dark_current_ws, _ = load_events_and_histogram(dark_current_file,
@@ -239,6 +237,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if flood_file:
             sensitivity_ws_name = f'{prefix}_sensitivity'
             if not registered_workspace(sensitivity_ws_name):
+                flood_file = abspath(flood_file)
                 print(f"Loading filename {flood_file}")
                 filenames.add(flood_file)
                 load_sensitivity_workspace(flood_file, output_workspace=sensitivity_ws_name)
@@ -250,6 +249,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if custom_mask_file:
             mask_ws_name = f'{prefix}_mask'
             if not registered_workspace(mask_ws_name):
+                custom_mask_file = abspath(custom_mask_file)
                 print(f"Loading filename {custom_mask_file}")
                 filenames.add(custom_mask_file)
                 mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
@@ -292,7 +292,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 file_size = os.path.getsize(name)
             except FileNotFoundError:
                 hint = 'EQSANS_{}'.format(drtsans.instruments.extract_run_number(name))
-                name = drtsans.path.abspath(hint)
+                name = drtsans.path.abspath(hint, instrument='EQSANS')
                 file_size = os.path.getsize(name)
             total_size += file_size
             print(name+',', '{:.2f} MiB'.format(file_size/1024**2))

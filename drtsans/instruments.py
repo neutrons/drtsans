@@ -110,18 +110,22 @@ def extract_run_number(input_query):
     -------
     int
     """
-    # name of the file without path
-    run_number = os.path.basename(input_query)
-    # everything up to the extension
-    run_number = run_number.split('.')[0]
-    # remove the instrument name
-    for label in INSTRUMENT_LABELS:
-        run_number = run_number.replace(label, '')
-    # remove any remaining '_'
-    if '_' in run_number:
-        run_number = run_number.split('_')[1]
-    # convert to an integer
-    return int(run_number)
+    try:
+        # see if `input_query` is an integer
+        return int(input_query)
+    except ValueError:
+        # name of the file without path
+        run_number = os.path.basename(input_query)
+        # everything up to the extension
+        run_number = run_number.split('.')[0]
+        # remove the instrument name
+        for label in INSTRUMENT_LABELS:
+            run_number = run_number.replace(label, '')
+        # remove any remaining '_'
+        if '_' in run_number:
+            run_number = run_number.split('_')[1]
+        # convert to an integer
+        return int(run_number)
 
 
 def is_time_of_flight(input_query):

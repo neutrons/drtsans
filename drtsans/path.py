@@ -1,10 +1,12 @@
 from mantid.api import AnalysisDataService, FileFinder
-
+from mantid.kernel import ConfigService
+from drtsans.instruments import instrument_label, extract_run_number
+from drtsans.settings import amend_config
 import os
 import stat
 import pathlib
 
-__all__ = ['abspath', 'exists', 'registered_workspace', 'allow_overwrite']
+__all__ = ['abspath', 'abspaths', 'exists', 'registered_workspace', 'allow_overwrite']
 
 
 def allow_overwrite(folder):
@@ -30,7 +32,7 @@ def allow_overwrite(folder):
             pass
 
 
-def abspath(path):
+def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
     r"""
     Returns an absolute path
 
@@ -39,21 +41,74 @@ def abspath(path):
     ``EQSANS106026``. It will search your data search path and the
     data archive using ONCat.
 
-    This uses mantid.api.FileFinder.
+    This looks in ``/instrument/proposal/nexus/instrument_runnumber.nxs.h5`` then
+    falls back to use :py:obj:`mantid.api.FileFinder`.
     """
     # don't use network for first check
     if os.path.exists(path):
         return os.path.abspath(path)
 
+    # try using the supplied directory
+    if directory is not None:
+        option = os.path.join(directory, str(path))
+        if os.path.exists(option):
+            return option
+
+    # instrument will be used later
+    if not instrument:
+        try:
+            instrument = instrument_label(path)
+        except RuntimeError:
+            pass  # failed to extract instrument/runnumber
+
+    # runnumber may be used later
+    try:
+        runnumber = extract_run_number(path)
+    except ValueError as e:
+        raise RuntimeError('Could not extract runnumber') from e
+
+    # try again using the supplied directory
+    if directory is not None:
+        option = os.path.join(directory, '{}_{}'.format(instrument, runnumber))
+        if os.path.exists(option):
+            return option
+
+    # guess the path from existing information
+    if ipts:
+        if instrument:  # only try if instrument is known
+            try:
+                runnumber = int(runnumber)  # make sure it doesn't have extra characters
+                instrument = ConfigService.getInstrument(instrument)  # to object
+                facility = str(instrument.facility())
+                instrument = str(instrument)  # convert back to short name
+                option = f'/{facility}/{instrument}/IPTS-{ipts}/nexus/{instrument}_{runnumber}.nxs.h5'
+                print('Seeing if "{}" exists'.format(option))
+                if os.path.exists(option):
+                    return option
+            except RuntimeError:
+                pass  # facility not found
+            except ValueError:
+                pass  # could not convert run number to an integer
+
     # get a full path from `datasearch.directories`
-    option = FileFinder.getFullPath(path)
+    option = FileFinder.getFullPath(str(path))
+    if option and os.path.exists(option):
+        return option
+
+    # try again putting things together
+    with amend_config(data_dir=directory):
+        option = FileFinder.getFullPath('{}_{}'.format(instrument, runnumber))
     if option and os.path.exists(option):
         return option
 
     # get all of the options from FileFinder and convert them to an absolute
     # path in case any weren't already
     try:
-        options = [os.path.abspath(item) for item in FileFinder.findRuns(path)]
+        config = {'default.instrument': instrument}
+        if not searchArchive:
+            config['datasearch.searcharchive'] = 'Off'
+        with amend_config(config, data_dir=directory):
+            options = [os.path.abspath(item) for item in FileFinder.findRuns(str(runnumber))]
     except RuntimeError:
         options = []  # marks things as broken
     if not options:  # empty result
@@ -65,6 +120,31 @@ def abspath(path):
 
     raise RuntimeError('None of the locations suggested by ONCat contain '
                        'existing files for "{}"'.format(path))
+
+
+def abspaths(runnumbers, instrument='', ipts='', directory=None, searchArchive=True):
+    '''
+    Parameters
+    ----------
+    runnumbers: str
+        Comma separated list of run numbers
+    instrument: str
+        Name of the instrument
+    ipts: str
+        Proposal number the run is expected to be in
+
+    Returns
+    -------
+    str
+        Comma separated list of all of the full paths
+    '''
+    # this could be written differentely to call ONCAT directly with all of the missing runnumbers
+    # once guessing the path didn't work
+    filenames = []
+    for runnumber in runnumbers.split(','):
+        filenames.append(abspath(str(runnumber).strip(), instrument=instrument, ipts=ipts,
+                                 directory=directory, searchArchive=searchArchive))
+    return ','.join(filenames)
 
 
 def exists(path):

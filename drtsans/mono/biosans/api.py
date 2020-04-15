@@ -10,7 +10,7 @@ from mantid.simpleapi import mtd, MaskDetectors
 
 import drtsans
 from drtsans import getWedgeSelection
-from drtsans.path import registered_workspace
+from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
 from drtsans.instruments import extract_run_number
 from drtsans.samplelogs import SampleLogs
@@ -92,11 +92,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     else:
         default_mask = []
 
-    if path is None:
-        path = f"/HFIR/{instrument_name}/IPTS-{ipts}/nexus"
-    else:
-        assert os.path.exists(path), 'NeXus file path {} does not exist'.format(path)
-
     # check for time/log slicing
     timeslice = reduction_input["configuration"].get("timeslice")
     logslice = reduction_input["configuration"].get("logslice")
@@ -150,19 +145,19 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # Retrieve parameters for overwriting geometry related meta data
     try:
         # load configuration.SampleToSi (in millimeter) and convert to meter
-        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi')) * 1E-3
+        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
     except ValueError:
         overwrite_swd = None
     try:
         # load configuration.SampleDetectorDistance (in meter)
-        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance'))
+        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
     except ValueError:
         overwrite_sdd = None
 
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
-            filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
+            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_input["configuration"]["timesliceinterval"])
@@ -206,8 +201,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
-            # Load event NeXus file
-            filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
+            filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
             print(f"Loading filename {filename}")
             biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                               sample_to_si_name=SAMPLE_SI_META_NAME,
@@ -238,7 +232,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
-                filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
+                filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
                 print(f"Loading filename {filename}")
                 biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                                   sample_to_si_name=SAMPLE_SI_META_NAME,
@@ -271,7 +265,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             if not registered_workspace(ws_name):
                 print(f"Loading filename {dark_current_file_main}")
                 # identify to use exact given path to NeXus or use OnCat instead
-                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+                temp_name = abspath(run_number, instrument=instrument_name, ipts=ipts, directory=path)
                 if os.path.exists(temp_name):
                     dark_current_file_main = temp_name
                 biosans.load_events_and_histogram(dark_current_file_main,

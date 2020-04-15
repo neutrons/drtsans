@@ -90,7 +90,8 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
         return option
 
     # try again putting things together
-    option = FileFinder.getFullPath('{}_{}'.format(instrument, runnumber))
+    with amend_config(data_dir=directory):
+        option = FileFinder.getFullPath('{}_{}'.format(instrument, runnumber))
     if option and os.path.exists(option):
         return option
 
@@ -115,7 +116,7 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
                        'existing files for "{}"'.format(path))
 
 
-def abspaths(runnumbers, instrument='', ipts='', searchArchive=True):
+def abspaths(runnumbers, instrument='', ipts='', directory=None, searchArchive=True):
     '''
     Parameters
     ----------
@@ -136,7 +137,7 @@ def abspaths(runnumbers, instrument='', ipts='', searchArchive=True):
     filenames = []
     for runnumber in runnumbers.split(','):
         filenames.append(abspath(str(runnumber).strip(), instrument=instrument, ipts=ipts,
-                                 searchArchive=searchArchive))
+                                 directory=directory, searchArchive=searchArchive))
     return ','.join(filenames)
 
 

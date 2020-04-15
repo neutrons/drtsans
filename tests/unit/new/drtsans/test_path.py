@@ -1,3 +1,4 @@
+import os
 import pytest
 import pathlib
 import stat
@@ -15,6 +16,7 @@ SEARCH_OFF = {'datasearch.searcharchive': 'off'}
 
 IPTS_23732 = '/SNS/EQSANS/IPTS-23732/nexus/'
 IPTS_19800 = '/SNS/EQSANS/IPTS-19800/nexus/'
+IPTS_22699 = '/HFIR/CG3/IPTS-22699/nexus/'
 
 
 @pytest.mark.skipif(not HAVE_EQSANS_MOUNT,
@@ -43,25 +45,29 @@ def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
 def test_abspath_without_archivesearch(hint):
     with amend_config(SEARCH_OFF):
         with pytest.raises(RuntimeError):
-            found = abspath(hint)
+            found = abspath(hint, searchArchive=False)
             assert False, 'found "{}" at "{}"'.format(hint, found)
 
 
-@pytest.mark.skipif(not HAVE_EQSANS_MOUNT,
-                    reason='Do not have /SNS/EQSANS properly '
-                    'mounted on this system')
-@pytest.mark.parametrize('hint, ipts, fullpath',
-                         [('EQSANS_106026', 23732,
+@pytest.mark.parametrize('hint, instr, ipts, fullpath',
+                         [('EQSANS_106026', '', 23732,
                            IPTS_23732 + 'EQSANS_106026.nxs.h5'),
-                          ('EQSANS106027', 23732,
+                          ('EQSANS106027', '', 23732,
                            IPTS_23732 + 'EQSANS_106027.nxs.h5'),
-                          ('EQSANS_88974.nxs.h5', 19800,
-                           IPTS_19800 + 'EQSANS_88974.nxs.h5')],
+                          ('EQSANS_88974.nxs.h5', '', 19800,
+                           IPTS_19800 + 'EQSANS_88974.nxs.h5'),
+                          ('5709', 'CG3', 22699,
+                           IPTS_22699 + 'CG3_5709.nxs.h5'),
+                          ('5709', 'CG3', 24740,   # wrong proposal
+                           IPTS_22699 + 'CG3_5709.nxs.h5')],
                          ids=('EQSANS_106026', 'EQSANS_106026',
-                              'EQSANS_88974'))
-def test_abspath_with_ipts(hint, ipts, fullpath):
+                              'EQSANS_88974', 'CG3_5709', 'CG3_5709_bad_proposal'))
+def test_abspath_with_ipts(hint, instr, ipts, fullpath):
+    if not os.path.exists(fullpath):
+        pytest.skip('{} does not exist'.format(fullpath))
+
     # do not turn on archive search
-    assert abspath(hint, ipts=ipts) == fullpath
+    assert abspath(hint, instrument=instr, ipts=ipts) == fullpath
 
 
 @pytest.mark.skipif(not HAVE_EQSANS_MOUNT,

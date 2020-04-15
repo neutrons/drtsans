@@ -1,6 +1,7 @@
 from mantid.api import AnalysisDataService, FileFinder
 from mantid.kernel import ConfigService
 from drtsans.instruments import instrument_label, extract_run_number
+from drtsans.settings import amend_config
 import os
 import stat
 import pathlib
@@ -31,7 +32,7 @@ def allow_overwrite(folder):
             pass
 
 
-def abspath(path, instrument='', ipts=''):
+def abspath(path, instrument='', ipts='', searchArchive=True):
     r"""
     Returns an absolute path
 
@@ -47,16 +48,21 @@ def abspath(path, instrument='', ipts=''):
     if os.path.exists(path):
         return os.path.abspath(path)
 
+    # instrument will be used later
+    if not instrument:
+        try:
+            instrument = instrument_label(path)
+        except RuntimeError:
+            pass  # failed to extract instrument/runnumber
+
+    # runnumber may be used later
+    try:
+        runnumber = extract_run_number(path)
+    except ValueError as e:
+        raise RuntimeError('Could not extract runnumber') from e
+
     # guess the path from existing information
     if ipts:
-        runnumber = path.lower()
-        if not instrument:
-            try:
-                instrument = instrument_label(path)
-                runnumber = extract_run_number(path)
-            except RuntimeError:
-                pass  # failed to extract instrument/runnumber
-
         if instrument:  # only try if instrument is known
             try:
                 runnumber = int(runnumber)  # make sure it doesn't have extra characters
@@ -72,19 +78,24 @@ def abspath(path, instrument='', ipts=''):
             except ValueError:
                 pass  # could not convert run number to an integer
 
-            # prepend the instrument name if it isn't already there
-            if not path.upper().startswith(instrument.upper()):
-                path = '{}_{}'.format(instrument.upper(), path)
-
     # get a full path from `datasearch.directories`
     option = FileFinder.getFullPath(path)
+    if option and os.path.exists(option):
+        return option
+
+    # try again putting things together
+    option = FileFinder.getFullPath('{}_{}'.format(instrument, runnumber))
     if option and os.path.exists(option):
         return option
 
     # get all of the options from FileFinder and convert them to an absolute
     # path in case any weren't already
     try:
-        options = [os.path.abspath(item) for item in FileFinder.findRuns(path)]
+        config = {'default.instrument': instrument}
+        if not searchArchive:
+            config['datasearch.searcharchive'] = 'Off'
+        with amend_config(config):
+            options = [os.path.abspath(item) for item in FileFinder.findRuns(str(runnumber))]
     except RuntimeError:
         options = []  # marks things as broken
     if not options:  # empty result
@@ -98,7 +109,7 @@ def abspath(path, instrument='', ipts=''):
                        'existing files for "{}"'.format(path))
 
 
-def abspaths(runnumbers, instrument='', ipts=''):
+def abspaths(runnumbers, instrument='', ipts='', searchArchive=True):
     '''
     Parameters
     ----------
@@ -118,7 +129,8 @@ def abspaths(runnumbers, instrument='', ipts=''):
     # once guessing the path didn't work
     filenames = []
     for runnumber in runnumbers.split(','):
-        filenames.append(abspath(str(runnumber).strip(), instrument=instrument, ipts=ipts))
+        filenames.append(abspath(str(runnumber).strip(), instrument=instrument, ipts=ipts,
+                                 searchArchive=searchArchive))
     return ','.join(filenames)
 
 

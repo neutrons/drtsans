@@ -9,7 +9,7 @@ from collections import namedtuple
 from mantid.simpleapi import mtd, MaskDetectors
 
 from drtsans import getWedgeSelection
-from drtsans.path import registered_workspace
+from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.instruments import extract_run_number
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
@@ -155,7 +155,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
-            filename = f"{path}/{instrument_name}_{sample.strip()}.nxs.h5"
+            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_input["configuration"]["timesliceinterval"])
@@ -198,7 +198,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     else:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
-            filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in sample.split(','))
+            filename = abspaths(sample, instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             load_events_and_histogram(filename, output_workspace=ws_name,
                                       sample_to_si_name=SAMPLE_SI_META_NAME,
@@ -231,7 +231,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
-                filename = ','.join(f"{path}/{instrument_name}_{run.strip()}.nxs.h5" for run in run_number.split(','))
+                filename = abspaths(run_number, instrument=instrument_name, ipts=ipts)
                 print(f"Loading filename {filename}")
                 load_events_and_histogram(filename, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,

@@ -6,7 +6,8 @@ import numpy as np
 # https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
 from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace, EQSANSCorrectFrame,
-                              MaskBins, Rebin, RebinToWorkspace, logger)
+                              MaskBins, Rebin, RebinToWorkspace, logger,
+                              SetInstrumentParameter, ModeratorTzero)
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 from drtsans.frame_mode import FrameMode
@@ -365,6 +366,33 @@ def correct_monitor_frame(input_workspace):
     # correct TOF's
     correct_tof_frame(ws, source_monitor_distance(ws, unit='m'),
                       path_to_pixel=False)
+
+
+def correct_emission_time(input_workspace):
+    r"""
+    This correct the TOF values on a workspace for the moderator
+    emission time as a function of wavelength.
+
+    Parameters
+    ----------
+    input_workspace: ~mantid.api.IEventsWorkspace
+        Monitor events workspace
+    """
+
+    # set the t0 formula, this equation first converts the
+    # incidentEnergy value in wavelength the calculates one of two
+    # equations depending if the wavelength is greater than or less
+    # than 2.
+    #
+    # if λ>=2 then 0.5*(231.99+6.4787λ-0.5233λ^2+0.0148λ^3)
+    # else 0.5*(1280.5-7448.4*λ+16509*λ^2-17872*λ^3+10445*λ^4-3169.3*λ^5+392.31*λ^6)
+    SetInstrumentParameter(Workspace=input_workspace,
+                           ParameterName="t0_formula",
+                           Value="incidentEnergy=sqrt(81.80420249996277/incidentEnergy), (incidentEnergy < 2.0) ? 0.5*(1280.5-7448.4*incidentEnergy+16509*incidentEnergy^2-17872*incidentEnergy^3+10445*incidentEnergy^4-3169.3*incidentEnergy^5+392.31*incidentEnergy^6) : 0.5*(231.99+6.4797*incidentEnergy-0.5233*incidentEnergy^2+0.0148*incidentEnergy^3)")
+    ModeratorTzero(InputWorkspace=input_workspace,
+                   OutputWorkspace=input_workspace,
+                   EMode="Elastic",
+                   Niter=10)
 
 
 def smash_monitor_spikes(input_workspace, output_workspace=None):

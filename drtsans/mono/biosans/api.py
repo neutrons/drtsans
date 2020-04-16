@@ -260,69 +260,61 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         dark_current_file_main = reduction_input["configuration"]["darkMainFileName"]
         dark_current_file_wing = reduction_input["configuration"]["darkWingFileName"]
         if dark_current_file_main and dark_current_file_wing:
-            run_number = extract_run_number(dark_current_file_main)
-            ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
-            if not registered_workspace(ws_name):
-                print(f"Loading filename {dark_current_file_main}")
-                # identify to use exact given path to NeXus or use OnCat instead
-                temp_name = abspath(run_number, instrument=instrument_name, ipts=ipts, directory=path)
-                if os.path.exists(temp_name):
-                    dark_current_file_main = temp_name
-                biosans.load_events_and_histogram(dark_current_file_main,
-                                                  output_workspace=ws_name,
-                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
-                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                                  **load_params)
-                # Set the wave length and wave length spread
-                if wavelength and wavelength_spread_user:
-                    set_meta_data(ws_name,
-                                  wave_length=wavelength,
-                                  wavelength_spread=wavelength_spread_user,
-                                  sample_thickness=None,
-                                  sample_aperture_diameter=None,
-                                  source_aperture_diameter=None,
-                                  smearing_pixel_size_x=None,
-                                  smearing_pixel_size_y=None)
-                    # Transform X-axis to wave length with spread
-                    transform_to_wavelength(ws_name)
-                for btp_params in default_mask:
-                    apply_mask(ws_name, **btp_params)
-                dark_current_main = mtd[ws_name]
-            else:
-                dark_current_main = mtd[ws_name]
+
+            # dark current for main detector
+            dark_current_main = dark_current_correction(dark_current_file_main,
+                                                        default_mask,
+                                                        instrument_name,
+                                                        ipts,
+                                                        load_params,
+                                                        path,
+                                                        prefix,
+                                                        wavelength,
+                                                        wavelength_spread_user)
 
             # dark current for wing detector
-            run_number = extract_run_number(dark_current_file_wing)
-            ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
-            if not registered_workspace(ws_name):
-                print(f"Loading filename {dark_current_file_wing}")
-                # identify to use exact given path to NeXus or use OnCat instead
-                temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
-                if os.path.exists(temp_name):
-                    dark_current_file_wing = temp_name
-                    print('Dark current (wing): {}'.format(dark_current_file_wing))
-                biosans.load_events_and_histogram(dark_current_file_wing,
-                                                  output_workspace=ws_name,
-                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
-                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                                  **load_params)
-                # Set the wave length and wave length spread
-                if wavelength and wavelength_spread_user:
-                    set_meta_data(ws_name,
-                                  wave_length=wavelength,
-                                  wavelength_spread=wavelength_spread_user,
-                                  sample_thickness=None,
-                                  sample_aperture_diameter=None,
-                                  source_aperture_diameter=None,
-                                  smearing_pixel_size_x=None,
-                                  smearing_pixel_size_y=None)
-                    # Transform X-axis to wave length with spread
-                    transform_to_wavelength(ws_name)
-                for btp_params in default_mask:
-                    apply_mask(ws_name, **btp_params)
-                dark_current_wing = mtd[ws_name]
-            else:
-                dark_current_wing = mtd[ws_name]
+            dark_current_wing = dark_current_correction(dark_current_file_wing,
+                                                        default_mask,
+                                                        instrument_name,
+                                                        ipts,
+                                                        load_params,
+                                                        path,
+                                                        prefix,
+                                                        wavelength,
+                                                        wavelength_spread_user)
+
+            #
+            # run_number = extract_run_number(dark_current_file_wing)
+            # ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+            # if not registered_workspace(ws_name):
+            #     print(f"Loading filename {dark_current_file_wing}")
+            #     # identify to use exact given path to NeXus or use OnCat instead
+            #     temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
+            #     if os.path.exists(temp_name):
+            #         dark_current_file_wing = temp_name
+            #         print('Dark current (wing): {}'.format(dark_current_file_wing))
+            #     biosans.load_events_and_histogram(dark_current_file_wing,
+            #                                       output_workspace=ws_name,
+            #                                       sample_to_si_name=SAMPLE_SI_META_NAME,
+            #                                       si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+            #                                       **load_params)
+            #     # Set the wave length and wave length spread
+            #     if wavelength and wavelength_spread_user:
+            #         set_meta_data(ws_name,
+            #                       wave_length=wavelength,
+            #                       wavelength_spread=wavelength_spread_user,
+            #                       sample_thickness=None,
+            #                       sample_aperture_diameter=None,
+            #                       source_aperture_diameter=None,
+            #                       smearing_pixel_size_x=None,
+            #                       smearing_pixel_size_y=None)
+            #         # Transform X-axis to wave length with spread
+            #         transform_to_wavelength(ws_name)
+            #     for btp_params in default_mask:
+            #         apply_mask(ws_name, **btp_params)
+            #     dark_current_wing = mtd[ws_name]
+            # else:
+            #     dark_current_wing = mtd[ws_name]
 
     # load required processed_files
     sensitivity_main_ws_name = None
@@ -378,6 +370,56 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 sensitivity_main=sensitivity_main_ws,
                 sensitivity_wing=sensitivity_wing_ws,
                 mask=mask_ws)
+
+
+def dark_current_correction(dark_current_file, default_mask, instrument_name, ipts, load_params,
+                            path, prefix, wavelength, wavelength_spread_user):
+    """
+    Calculate the dark current correction
+
+    :param dark_current_file:
+    :param default_mask:
+    :param instrument_name:
+    :param ipts:
+    :param load_params:
+    :param path:
+    :param prefix:
+    :param wavelength:
+    :param wavelength_spread_user:
+    :return:
+       dark current correction workspace
+    """
+    run_number = extract_run_number(dark_current_file)
+    ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+    if not registered_workspace(ws_name):
+        print(f"Loading filename {dark_current_file}")
+        # identify to use exact given path to NeXus or use OnCat instead
+        temp_name = abspath(run_number, instrument=instrument_name, ipts=ipts, directory=path)
+        if os.path.exists(temp_name):
+            dark_current_file = temp_name
+        biosans.load_events_and_histogram(dark_current_file,
+                                          output_workspace=ws_name,
+                                          sample_to_si_name=SAMPLE_SI_META_NAME,
+                                          si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                          **load_params)
+        # Set the wave length and wave length spread
+        if wavelength and wavelength_spread_user:
+            set_meta_data(ws_name,
+                          wave_length=wavelength,
+                          wavelength_spread=wavelength_spread_user,
+                          sample_thickness=None,
+                          sample_aperture_diameter=None,
+                          source_aperture_diameter=None,
+                          smearing_pixel_size_x=None,
+                          smearing_pixel_size_y=None)
+            # Transform X-axis to wave length with spread
+            transform_to_wavelength(ws_name)
+        for btp_params in default_mask:
+            apply_mask(ws_name, **btp_params)
+        dark_current = mtd[ws_name]
+    else:
+        dark_current = mtd[ws_name]
+    return dark_current
 
 
 def prepare_data_workspaces(data,

@@ -256,5 +256,29 @@ def test_correct_emission_time_30Hz():
     assert_allclose(w.getSpectrum(0).getTofs()*10000*h/(z*m), expected_wl, rtol=1e-4)
 
 
+def test_correct_tof_offset():
+    # Make a simple workspace with correct distances and add tofs to it
+    w = CreateSampleWorkspace("Event",
+                              NumBanks=1,
+                              BankPixelWidth=1,
+                              NumEvents=10)
+
+    starting_tofs = w.getSpectrum(0).getTofs()
+
+    # set the workspace to frame_skipping, the tofs should be unchanged
+    SampleLogs(w).insert('is_frame_skipping', 1)
+    # run correct_tof_offset on workspace
+    correct_frame.correct_tof_offset(w)
+    # compare starting and final tofs
+    assert_allclose(w.getSpectrum(0).getTofs(), starting_tofs)
+
+    # set the workspace to not frame_skipping, the tofs should be changed by 664.7
+    SampleLogs(w).insert('is_frame_skipping', 0)
+    # run correct_tof_offset on workspace
+    correct_frame.correct_tof_offset(w)
+    # compare starting and final tofs with expected difference
+    assert_allclose(w.getSpectrum(0).getTofs(), starting_tofs-664.7)
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

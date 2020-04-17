@@ -236,11 +236,20 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                             n_bins=n1dbins,
                                             decade_on_center=decade_on_center,
                                             even_decade=even_decade)
+            for ub1d in unbinned_1d:
+                # The filter is needed for logarithmic binning so that
+                # the qmin and qmax are correctly taken into account
+                q_filter = np.where(np.logical_and(ub1d.mod_q >= qmin, ub1d.mod_q <= qmax))
+                ub1d_filtered = IQmod(ub1d.intensity[q_filter],
+                                      ub1d.error[q_filter],
+                                      ub1d.mod_q[q_filter],
+                                      ub1d.delta_mod_q[q_filter] if ub1d.delta_mod_q is not None else None,
+                                      ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
+                binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method))
         else:
             bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
-
-        for ub1d in unbinned_1d:
-            binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
+            for ub1d in unbinned_1d:
+                binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
     return binned_q2d, binned_q1d_list
 
 

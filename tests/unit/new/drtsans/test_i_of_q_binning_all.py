@@ -101,6 +101,21 @@ def test_bin_modq():
     binned1d = binned1d[0]
     expected_q = determine_1d_log_bins(1., 4., 4, even_decade=True).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
+    expected_intensity = np.array([(1.+16)/2, np.nan, (32+17.)/2, np.nan])
+    assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
+
+    # test log scale even decade and q_min, q_max
+    binned2d, binned1d = bin_all(iq2d, iq1d,
+                                 nxbins=4, nybins=4, n1dbins=4,
+                                 bin1d_type='scalar', log_scale=True,
+                                 even_decade=True, qmin=2, qmax=10,
+                                 annular_angle_bin=1., wedges=None,
+                                 error_weighted=False)
+    binned1d = binned1d[0]
+    expected_q = determine_1d_log_bins(1., 4., 4, even_decade=True).centers
+    assert binned1d.mod_q == pytest.approx(expected_q)
+    expected_intensity = np.array([np.nan, np.nan, (32+17.)/2, np.nan])
+    assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
 
 
 def test_annular():

@@ -2,7 +2,6 @@ from collections import namedtuple
 from collections.abc import Iterable
 from enum import Enum
 import numpy as np
-import pandas as pd
 
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
@@ -218,7 +217,8 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         -------
         ~drtsans.dataobjects.IQmod
         """
-        frame = pd.read_csv(file, sep=sep, dtype=np.float64, na_values='NAN')
+        from pandas import read_csv as pd_read_csv
+        frame = pd_read_csv(file, sep=sep, dtype=np.float64, na_values='NAN')
         args = [frame[label].values for label in ['intensity', 'error', 'mod_q']]
         kwargs = {label: frame[label].values for label in ['delta_mod_q', 'wavelength']
                   if label in list(frame.columns)}
@@ -339,7 +339,8 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
             Format string for floating point numbers.
         """
         # Convert to dictionary to construct a pandas DataFrame instance
-        frame = pd.DataFrame({label: value for label, value in self._asdict().items() if value is not None})
+        from pandas import DataFrame
+        frame = DataFrame({label: value for label, value in self._asdict().items() if value is not None})
 
         #  Create the order of the columns
         i_q_mod_cols = ['mod_q', 'intensity', 'error']  # 3 mandatory columns

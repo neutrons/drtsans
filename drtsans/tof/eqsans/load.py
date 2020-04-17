@@ -6,7 +6,7 @@ from drtsans.beam_finder import center_detector, find_beam_center
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
                                               correct_monitor_frame, transform_to_wavelength, smash_monitor_spikes,
-                                              set_init_uncertainties)
+                                              set_init_uncertainties, correct_tof_offset, correct_emission_time)
 from drtsans.instruments import extract_run_number, instrument_enum_name
 import os
 
@@ -49,10 +49,16 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
     SampleLogs(output_workspace).insert('source-monitor-distance', smd,
                                         unit='mm')
 
+    # Correct TOF offset
+    correct_tof_offset(output_workspace)
+
     # DAS automatically corrects the frame for the monitor only on or after June 1 2019,
     day_stamp = int(SampleLogs(output_workspace).start_time.value[0:10].replace('-', ''))
     if day_stamp < 20190601:
         correct_monitor_frame(output_workspace)
+
+    # Correct TOF for emission time
+    correct_emission_time(output_workspace)
 
     return mtd[output_workspace]
 
@@ -132,8 +138,12 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     # EQSANS specific part benefits from converting workspace to a string
     output_workspace = str(output_workspace)
 
+    # Correct TOF offset
+    correct_tof_offset(output_workspace)
     # Correct TOF of detector
     correct_detector_frame(output_workspace, path_to_pixel=path_to_pixel)
+    # Correct TOF for emission time
+    correct_emission_time(output_workspace)
 
     return mtd[output_workspace]
 
@@ -330,7 +340,12 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                 instrument_unique_name='EQSANS', **kwargs)
 
     for _w in ws:
+        # Correct TOF offset
+        correct_tof_offset(_w)
+        # Correct TOF of detector
         correct_detector_frame(_w, path_to_pixel=path_to_pixel)
+        # Correct TOF for emission time
+        correct_emission_time(_w)
         if center_x is None or center_y is None:
             center_x, center_y = find_beam_center(_w, mask=mask)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place

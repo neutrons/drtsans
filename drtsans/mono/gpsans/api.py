@@ -236,6 +236,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 load_events_and_histogram(filename, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                          sample_to_si_value=overwrite_swd,
+                                          sample_detector_distance_value=overwrite_sdd,
                                           **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
@@ -265,9 +267,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
                 if os.path.exists(temp_name):
                     dark_current_file = temp_name
+                # FIXME - whether its sample/detector related meta data shall be overwritten???
                 load_events_and_histogram(dark_current_file, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                          # sample_to_si_value=overwrite_swd,
+                                          # sample_detector_distance_value=overwrite_sdd,
                                           **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:

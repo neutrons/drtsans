@@ -237,6 +237,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                                   sample_to_si_name=SAMPLE_SI_META_NAME,
                                                   si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                                  sample_to_si_value=overwrite_swd,
+                                                  sample_detector_distance_value=overwrite_sdd,
                                                   **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
@@ -282,39 +284,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                         prefix,
                                                         wavelength,
                                                         wavelength_spread_user)
-
-            #
-            # run_number = extract_run_number(dark_current_file_wing)
-            # ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
-            # if not registered_workspace(ws_name):
-            #     print(f"Loading filename {dark_current_file_wing}")
-            #     # identify to use exact given path to NeXus or use OnCat instead
-            #     temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
-            #     if os.path.exists(temp_name):
-            #         dark_current_file_wing = temp_name
-            #         print('Dark current (wing): {}'.format(dark_current_file_wing))
-            #     biosans.load_events_and_histogram(dark_current_file_wing,
-            #                                       output_workspace=ws_name,
-            #                                       sample_to_si_name=SAMPLE_SI_META_NAME,
-            #                                       si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-            #                                       **load_params)
-            #     # Set the wave length and wave length spread
-            #     if wavelength and wavelength_spread_user:
-            #         set_meta_data(ws_name,
-            #                       wave_length=wavelength,
-            #                       wavelength_spread=wavelength_spread_user,
-            #                       sample_thickness=None,
-            #                       sample_aperture_diameter=None,
-            #                       source_aperture_diameter=None,
-            #                       smearing_pixel_size_x=None,
-            #                       smearing_pixel_size_y=None)
-            #         # Transform X-axis to wave length with spread
-            #         transform_to_wavelength(ws_name)
-            #     for btp_params in default_mask:
-            #         apply_mask(ws_name, **btp_params)
-            #     dark_current_wing = mtd[ws_name]
-            # else:
-            #     dark_current_wing = mtd[ws_name]
 
     # load required processed_files
     sensitivity_main_ws_name = None
@@ -397,10 +366,13 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
         temp_name = abspath(run_number, instrument=instrument_name, ipts=ipts, directory=path)
         if os.path.exists(temp_name):
             dark_current_file = temp_name
+        # FIXME - whether dark current will be have sample/detector position related meta data overwritten???
         biosans.load_events_and_histogram(dark_current_file,
                                           output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                                          # sample_to_si_value=overwrite_swd,
+                                          # sample_detector_distance_value=overwrite_sdd,
                                           **load_params)
         # Set the wave length and wave length spread
         if wavelength and wavelength_spread_user:

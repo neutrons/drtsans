@@ -172,7 +172,7 @@ def test_normalize_by_time(data_ws):
     data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
     # Second we integrate over all wavelength bins and check the value will not change as the code in the repository
     # evolves
-    assert sum(data_workspace_normalized.dataY(0)) == approx(2576, abs=1.0)
+    assert sum(data_workspace_normalized.dataY(0)) == approx(2560.5, abs=1.0)
 
     data_workspace_normalized.delete()  # clean-up from memory of temporary workspaces
 

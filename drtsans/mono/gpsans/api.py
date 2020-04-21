@@ -34,7 +34,8 @@ from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 from drtsans.load import move_instrument
 from drtsans.path import allow_overwrite
-
+from drtsans.mono.meta_data import parse_json_meta_data
+import drtsans.mono.meta_data as meta_data
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration',
@@ -140,11 +141,18 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # print(reduction_input)
 
     # Retrieve parameters for overwriting geometry related meta data
-    from drtsans.mono.meta_data import parse_json_meta_data
-    import drtsans.mono.meta_data as meta_data
-
-    swd_value_dict = parse_json_meta_data(reduction_input, 'SampleToSi', 1E-3)
-    sdd_value_dict = parse_json_meta_data(reduction_input, 'SampleDetectorDistance', 1.)
+    # Sample to Si-window distance
+    swd_value_dict = parse_json_meta_data(reduction_input, 'SampleToSi', 1E-3,
+                                          beam_center_run = True, background_run = True,
+                                          empty_transmission_run = True,
+                                          transmission_run = True, background_transmission = True,
+                                          block_beam_run = True, dark_current_run = False)
+    # Sample to detector distance
+    sdd_value_dict = parse_json_meta_data(reduction_input, 'SampleDetectorDistance', 1.,
+                                          beam_center_run=True, background_run=True,
+                                          empty_transmission_run=False, transmission_run=False,
+                                          background_transmission=False,
+                                          block_beam_run=True, dark_current_run=False)
 
     # try:
     #     # load configuration.SampleToSi (in millimeter) and convert to meter

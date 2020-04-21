@@ -140,11 +140,11 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # print(reduction_input)
 
     # Retrieve parameters for overwriting geometry related meta data
-    from drtsans.mono.meta_data import parse_overwrite_meta_data
+    from drtsans.mono.meta_data import parse_json_meta_data
     import drtsans.mono.meta_data as meta_data
 
-    swd_value_dict = parse_overwrite_meta_data(reduction_input, 'SampleToSi', 1E-3)
-    sdd_value_dict = parse_overwrite_meta_data(reduction_input, 'SampleDetectorDistance', 1.)
+    swd_value_dict = parse_json_meta_data(reduction_input, 'SampleToSi', 1E-3)
+    sdd_value_dict = parse_json_meta_data(reduction_input, 'SampleDetectorDistance', 1.)
 
     # try:
     #     # load configuration.SampleToSi (in millimeter) and convert to meter

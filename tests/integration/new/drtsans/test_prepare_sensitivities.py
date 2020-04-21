@@ -99,7 +99,7 @@ def test_eqsans_prepare_sensitivities(reference_dir):
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_eq_file = os.path.join(reference_dir.new.sans, 'sensitivities', 'EQSANS_sens_patched.nxs')
+    gold_eq_file = os.path.join(reference_dir.new.sans, 'sensitivities', 'EQSANS_sens_patched_v2.nxs')
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 

@@ -143,10 +143,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # Retrieve parameters for overwriting geometry related meta data
     # Sample to Si-window distance
     swd_value_dict = parse_json_meta_data(reduction_input, 'SampleToSi', 1E-3,
-                                          beam_center_run = True, background_run = True,
-                                          empty_transmission_run = True,
-                                          transmission_run = True, background_transmission = True,
-                                          block_beam_run = True, dark_current_run = False)
+                                          beam_center_run=True, background_run=True,
+                                          empty_transmission_run=True,
+                                          transmission_run=True, background_transmission=True,
+                                          block_beam_run=True, dark_current_run=False)
     # Sample to detector distance
     sdd_value_dict = parse_json_meta_data(reduction_input, 'SampleDetectorDistance', 1.,
                                           beam_center_run=True, background_run=True,

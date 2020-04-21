@@ -38,8 +38,8 @@ def test_load_events_monitor(reference_dir):
 
     w = load_events_monitor('EQSANS_88901', data_dir=reference_dir.new.eqsans)
     assert w.name() == 'EQSANS_88901_monitors'
-    assert w.getSpectrum(0).getTofMin() == approx(30550, abs=1)
-    assert w.getSpectrum(0).getTofMax() == approx(47213, abs=1)
+    assert w.getSpectrum(0).getTofMin() == approx(30680, abs=1)
+    assert w.getSpectrum(0).getTofMax() == approx(47347, abs=1)
 
 
 def test_merge_Data(reference_dir):

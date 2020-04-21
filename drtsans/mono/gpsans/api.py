@@ -140,16 +140,22 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # print(reduction_input)
 
     # Retrieve parameters for overwriting geometry related meta data
-    try:
-        # load configuration.SampleToSi (in millimeter) and convert to meter
-        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
-    except ValueError:
-        overwrite_swd = None
-    try:
-        # load configuration.SampleDetectorDistance (in meter)
-        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
-    except ValueError:
-        overwrite_sdd = None
+    from drtsans.mono.meta_data import parse_overwrite_meta_data
+    import drtsans.mono.meta_data as meta_data
+
+    swd_value_dict = parse_overwrite_meta_data(reduction_input, 'SampleToSi', 1E-3)
+    sdd_value_dict = parse_overwrite_meta_data(reduction_input, 'SampleDetectorDistance', 1.)
+
+    # try:
+    #     # load configuration.SampleToSi (in millimeter) and convert to meter
+    #     overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
+    # except ValueError:
+    #     overwrite_swd = None
+    # try:
+    #     # load configuration.SampleDetectorDistance (in meter)
+    #     overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
+    # except ValueError:
+    #     overwrite_sdd = None
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
@@ -170,8 +176,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                            log_name=logslicename, log_value_interval=logsliceinterval,
                            sample_to_si_name=SAMPLE_SI_META_NAME,
                            si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                           sample_to_si_value=overwrite_swd,
-                           sample_detector_distance_value=overwrite_sdd,
+                           sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
+                           sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
                            **load_params)
             for _w in mtd[ws_name]:
                 # Overwrite meta data
@@ -203,8 +209,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             load_events_and_histogram(filename, output_workspace=ws_name,
                                       sample_to_si_name=SAMPLE_SI_META_NAME,
                                       si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                      sample_to_si_value=overwrite_swd,
-                                      sample_detector_distance_value=overwrite_sdd,
+                                      sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
+                                      sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
                                       **load_params)
             # Overwrite meta data
             set_meta_data(ws_name,
@@ -227,7 +233,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     reduction_input['logslice_data'] = logslice_data_dict
 
     # load all other files
-    for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
+    for run_number, run_type in [(center, meta_data.BEAM_CENTER), (bkgd, meta_data.BACKGROUND),
+                                 (empty, meta_data.EMPTY_TRANSMISSION), (sample_trans, meta_data.TRANSMISSION),
+                                 (bkgd_trans, meta_data.TRANSMISSION_BACKGROUND),
+                                 (blocked_beam, meta_data.BLOCK_BEAM)]:
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
@@ -236,8 +245,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 load_events_and_histogram(filename, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                          sample_to_si_value=overwrite_swd,
-                                          sample_detector_distance_value=overwrite_sdd,
+                                          sample_to_si_value=swd_value_dict[run_type],
+                                          sample_detector_distance_value=sdd_value_dict[run_type]
                                           **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
@@ -271,8 +280,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 load_events_and_histogram(dark_current_file, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                          # sample_to_si_value=overwrite_swd,
-                                          # sample_detector_distance_value=overwrite_sdd,
+                                          sample_to_si_value=swd_value_dict[meta_data.DARK_CURRENT],
+                                          sample_detector_distance_value=sdd_value_dict[meta_data.DARK_CURRENT],
                                           **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:

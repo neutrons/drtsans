@@ -7,6 +7,65 @@ from drtsans.geometry import sample_detector_distance
 __all__ = ['set_meta_data', 'get_sample_detector_offset']
 
 
+# Constants for JSON
+SAMPLE = "Sample"
+BEAM_CENTER = "BeamCenter"
+BACKGROUND = "Background"
+EMPTY_TRANSMISSION = "EmptyTrans"
+TRANSMISSION = "Transmission"
+TRANSMISSION_BACKGROUND = "Background_transmission"
+BLOCK_BEAM = "BlockBeam"
+DARK_CURRENT = "DarkCurrent"
+
+
+def parse_overwrite_meta_data(reduction_input, meta_name, unit_conversion_factor):
+    # parse JSON for meta data overwriting
+    #
+    # Retrieve parameters for overwriting geometry related meta data
+
+    # Init return dictionary
+    overwrite_dict = dict()
+    for run_type in [SAMPLE, BEAM_CENTER, BACKGROUND, EMPTY_TRANSMISSION, TRANSMISSION,
+                     TRANSMISSION_BACKGROUND, BLOCK_BEAM, DARK_CURRENT]:
+        overwrite_dict[run_type] = None
+
+    # Parse for sample run
+    try:
+        # Get sample run's overwrite value
+        run_type = SAMPLE
+        overwrite_value = float(reduction_input['configuration'][meta_name][run_type]) * unit_conversion_factor
+    except ValueError:
+        # Overwritten value error
+        overwrite_value = None
+    except KeyError as key_error:
+        # Required value cannot be found
+        raise KeyError('JSON file shall have key as configuration:{}:{}. Error message: {}'
+                       ''.format(meta_name, run_type, key_error))
+
+    # Parse for other runs
+    try:
+        for run_type in [BEAM_CENTER, BACKGROUND, EMPTY_TRANSMISSION, TRANSMISSION,
+                         TRANSMISSION_BACKGROUND, BLOCK_BEAM, DARK_CURRENT]:
+            over_write_value_temp = reduction_input['configuration'][meta_name][run_type]
+            if over_write_value_temp is True:
+                overwrite_dict[run_type] = overwrite_value
+            elif over_write_value_temp is False:
+                pass
+            else:
+                overwrite_dict[run_type] = float(over_write_value_temp) * unit_conversion_factor
+        # END-FOR
+    except ValueError as value_error:
+        # Overwritten value error
+        raise RuntimeError('JSON value of key configuration:{}:{} has a value error.  Error message: {}'
+                           ''.format(meta_name, run_type, value_error))
+    except KeyError as key_error:
+        # Required value cannot be found
+        raise KeyError('JSON file shall have key as configuration:{}:{}. Error message: {}'
+                       ''.format(meta_name, run_type, key_error))
+
+    return overwrite_dict
+
+
 def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                   sample_offset=0.,
                   sample_aperture_diameter=None, sample_thickness=None,

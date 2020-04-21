@@ -246,7 +246,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                                           sample_to_si_value=swd_value_dict[run_type],
-                                          sample_detector_distance_value=sdd_value_dict[run_type]
+                                          sample_detector_distance_value=sdd_value_dict[run_type],
                                           **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:

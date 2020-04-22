@@ -1,11 +1,12 @@
 import pytest
+import os
 import json
 from mantid.simpleapi import mtd
 from drtsans.mono.gpsans import load_all_files
 # from drtsans.mono.gpsans import load_and_split
 
 
-def gpsans_load_all_files(data_dir, json_file, output_dir):
+def gpsans_load_all_files(reference_dir):
     """Standard reduction workflow
 
     Parameters
@@ -18,6 +19,12 @@ def gpsans_load_all_files(data_dir, json_file, output_dir):
     -------
 
     """
+    # Set output
+    output_dir = '/tmp/test_load/'
+
+    # Create JSON file
+    json_file = generate_test_json()
+
     # USER Input here with scan numbers etc.
     samples = ['9166']
     samples_trans = ['9178']
@@ -44,11 +51,104 @@ def gpsans_load_all_files(data_dir, json_file, output_dir):
     loaded = load_all_files(reduction_input,
                             prefix='GP_TEST_LOAD',
                             load_params=None,
-                            path=data_dir)
+                            path=reference_dir.new.gpsans)
     print('Type of loaded = {}'.format(loaded))
 
     for ws_name in mtd.getObjectNames():
         print(ws_name)
+
+    assert 1 == 4
+
+
+def generate_test_json():
+    """Generate testing JSON
+
+    Returns
+    -------
+    str
+        JSON string
+
+    """
+    json_str = """
+    {    "instrumentName": "CG2",
+    "iptsNumber": "24727",
+    "runNumber": "",
+    "thickness": "0.1",
+    "outputFilename": "",
+    "transmission": {
+        "runNumber": "",
+        "value": ""
+    },
+    "background": {
+        "runNumber": "",
+        "transmission": {
+            "runNumber": "",
+            "value": ""
+        }
+    },
+    "beamCenter": {
+        "runNumber": "9177"
+    },
+    "emptyTrans": {
+        "runNumber": "9177"
+    },
+    "configuration": {
+        "outputDir": "/HFIR/CG2/shared/UserAcceptance/overwrite_meta/test1/",
+        "sampleApertureSize": "",
+        "sourceApertureDiameter": "",
+        "maskFileName": "",
+        "useMaskFileName": false,
+        "useDefaultMask": true,
+        "DefaultMask":["{'Pixel':'1-10,247-256'}"],
+        "useBlockedBeam": false,
+        "BlockBeamFileName":"",
+        "useDarkFileName": false,
+        "darkFileName": "",
+        "useSensitivityFileName": true,
+        "sensitivityFileName": "SensFileToReplace",
+        "UseBarScan": false,
+        "BarScanFileName": "",
+        "absoluteScaleMethod": "direct_beam",
+        "DBScalingBeamRadius": "40",
+        "StandardAbsoluteScale": "1",
+        "normalization": "Monitor",
+        "sampleOffset": "",
+        "useSampleOffset": false,
+        "useSolidAngleCorrection": true,
+        "useThetaDepTransCorrection": true,
+        "mmRadiusForTransmission": "40",
+        "numQxQyBins": "150",
+        "1DQbinType": "scalar",
+        "QbinType": "log",
+        "LogQBinsPerDecade": "33",
+        "LogQBinsDecadeCenter": false,
+        "LogQBinsEvenDecade": true,
+        "WedgeMinAngles": "-30, 60",
+        "WedgeMaxAngles": "30, 120",
+        "numQBins": "",
+        "AnnularAngleBin": "",
+        "Qmin": "",
+        "Qmax": "",
+        "useErrorWeighting": false,
+        "useMaskBackTubes": false,
+        "wavelength": "",
+        "wavelengthSpread": "",
+        "timeslice": false,
+        "timesliceinterval": "",
+        "logslicename": "",
+        "logslice": false,
+        "logsliceinterval": "",
+        "SampleToSi": "",
+        "SampleDetectorDistance": ""
+    }}
+    """
+
+    # replace for the correct sensitivity file
+    sens_nxs_dir = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/'
+    sens_path = os.path.join(sens_nxs_dir, 'sens_c486_noBar.nxs')
+    json_str = json_str.replace('SensFileToReplace', sens_path)
+
+    return json_str
 
 
 if __name__ == '__main__':

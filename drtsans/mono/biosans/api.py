@@ -842,6 +842,16 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
     if len(wedges_min) != len(wedges_max):
         raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
+
+    OLT_Qmin = np.fromstring(reduction_input["configuration"]["overlapStitchQmin"], sep=',')
+    if len(OLT_Qmin) > 1 and len(OLT_Qmin) != len(wedges_min):
+        raise ValueError("The length of overlapStitchQmin must be 1 or the same length as "
+                         "WedgeMinAngles and WedgeMaxAngles")
+    OLT_Qmax = np.fromstring(reduction_input["configuration"]["overlapStitchQmax"], sep=',')
+    if len(OLT_Qmax) > 1 and len(OLT_Qmax) != len(wedges_min):
+        raise ValueError("The length of overlapStitchQmax must be 1 or the same length as "
+                         "WedgeMinAngles and WedgeMaxAngles")
+
     wedges = list(zip(wedges_min, wedges_max))
 
     # automatically determine wedge binning if it wasn't explicitly set

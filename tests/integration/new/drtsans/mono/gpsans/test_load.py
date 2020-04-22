@@ -59,7 +59,7 @@ def test_load_all_files(reference_dir):
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
     for ws in [sample_run, sample_trans_run, bkgd_run, bkgd_trans_run]:
         sample_pos_z = ws.getInstrument().getSample().getPos()[2]
-        assert sample_pos_z == pytest.approx(0.23456, 0.000004), '{} has a wrong sample Si-window distance {}' \
+        assert sample_pos_z == pytest.approx(-0.23456, 0.000004), '{} has a wrong sample Si-window distance {}' \
                                                                  ''.format(str(ws), sample_pos_z)
 
     # Verify sample to detector distance with default setup:

@@ -30,11 +30,10 @@ from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
 from drtsans.path import allow_overwrite
 from drtsans.dataobjects import IQmod
-# from drtsans.mono.absolute_units import empty_beam_scaling
-# from drtsans.mono.gpsans.attenuation import attenuation_factor
-
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 from drtsans.load import move_instrument
+from drtsans.mono.meta_data import parse_json_meta_data
+import drtsans.mono.meta_data as meta_data
 
 
 # Functions exposed to the general user (public) API
@@ -143,16 +142,28 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     logslice_data_dict = {}
 
     # Retrieve parameters for overwriting geometry related meta data
-    try:
-        # load configuration.SampleToSi (in millimeter) and convert to meter
-        overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
-    except ValueError:
-        overwrite_swd = None
-    try:
-        # load configuration.SampleDetectorDistance (in meter)
-        overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
-    except ValueError:
-        overwrite_sdd = None
+    # try:
+    #     # load configuration.SampleToSi (in millimeter) and convert to meter
+    #     overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
+    # except ValueError:
+    #     overwrite_swd = None
+    # try:
+    #     # load configuration.SampleDetectorDistance (in meter)
+    #     overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
+    # except ValueError:
+    #     overwrite_sdd = None
+    # Sample to Si-window distance
+    swd_value_dict = parse_json_meta_data(reduction_input, 'SampleToSi', 1E-3,
+                                          beam_center_run=True, background_run=True,
+                                          empty_transmission_run=True,
+                                          transmission_run=True, background_transmission=True,
+                                          block_beam_run=True, dark_current_run=False)
+    # Sample to detector distance
+    sdd_value_dict = parse_json_meta_data(reduction_input, 'SampleDetectorDistance', 1.,
+                                          beam_center_run=True, background_run=True,
+                                          empty_transmission_run=False, transmission_run=False,
+                                          background_transmission=False,
+                                          block_beam_run=True, dark_current_run=False)
 
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
@@ -172,8 +183,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                    log_name=logslicename, log_value_interval=logsliceinterval,
                                    sample_to_si_name=SAMPLE_SI_META_NAME,
                                    si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                   sample_to_si_value=overwrite_swd,
-                                   sample_detector_distance_value=overwrite_sdd,
+                                   sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
+                                   sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
                                    **load_params)
 
             for _w in mtd[ws_name]:
@@ -206,8 +217,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                               sample_to_si_name=SAMPLE_SI_META_NAME,
                                               si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                              sample_to_si_value=overwrite_swd,
-                                              sample_detector_distance_value=overwrite_sdd,
+                                              sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
+                                              sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
                                               **load_params)
             # Overwrite meta data
             set_meta_data(ws_name,
@@ -228,7 +239,11 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     reduction_input["logslice_data"] = logslice_data_dict
 
     # load all other files
-    for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
+    # for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
+    for run_number, run_type in [(center, meta_data.BEAM_CENTER), (bkgd, meta_data.BACKGROUND),
+                                 (empty, meta_data.EMPTY_TRANSMISSION), (sample_trans, meta_data.TRANSMISSION),
+                                 (bkgd_trans, meta_data.TRANSMISSION_BACKGROUND),
+                                 (blocked_beam, meta_data.BLOCK_BEAM)]:
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
@@ -237,8 +252,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                                   sample_to_si_name=SAMPLE_SI_META_NAME,
                                                   si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                                  sample_to_si_value=overwrite_swd,
-                                                  sample_detector_distance_value=overwrite_sdd,
+                                                  sample_to_si_value=swd_value_dict[run_type],
+                                                  sample_detector_distance_value=sdd_value_dict[run_type],
                                                   **load_params)
                 # Set the wave length and wave length spread
                 if wavelength and wavelength_spread_user:
@@ -272,7 +287,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                         path,
                                                         prefix,
                                                         wavelength,
-                                                        wavelength_spread_user)
+                                                        wavelength_spread_user,
+                                                        swd_value_dict[meta_data.DARK_CURRENT],
+                                                        sdd_value_dict[meta_data.DARK_CURRENT])
 
             # dark current for wing detector
             dark_current_wing = dark_current_correction(dark_current_file_wing,
@@ -283,7 +300,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                         path,
                                                         prefix,
                                                         wavelength,
-                                                        wavelength_spread_user)
+                                                        wavelength_spread_user,
+                                                        swd_value_dict[meta_data.DARK_CURRENT],
+                                                        sdd_value_dict[meta_data.DARK_CURRENT])
 
     # load required processed_files
     sensitivity_main_ws_name = None
@@ -342,21 +361,31 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
 
 
 def dark_current_correction(dark_current_file, default_mask, instrument_name, ipts, load_params,
-                            path, prefix, wavelength, wavelength_spread_user):
-    """
-    Calculate the dark current correction
+                            path, prefix, wavelength, wavelength_spread_user,
+                            user_sample_si_distance, user_sample_detector_distance):
+    """Calculate the dark current correction
 
-    :param dark_current_file:
-    :param default_mask:
-    :param instrument_name:
-    :param ipts:
-    :param load_params:
-    :param path:
-    :param prefix:
-    :param wavelength:
-    :param wavelength_spread_user:
-    :return:
+    Parameters
+    ----------
+    dark_current_file
+    default_mask
+    instrument_name
+    ipts
+    load_params
+    path
+    prefix
+    wavelength
+    wavelength_spread_user
+    user_sample_si_distance: float, None
+        user specified (overwriting) sample to Si-window distance in unit of meter
+    user_sample_detector_distance: float, None
+        user specified (overwriting) sample to detector distance in unit of meter
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
        dark current correction workspace
+
     """
     run_number = extract_run_number(dark_current_file)
     ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
@@ -371,8 +400,8 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
                                           output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                          # sample_to_si_value=overwrite_swd,
-                                          # sample_detector_distance_value=overwrite_sdd,
+                                          sample_to_si_value=user_sample_si_distance,
+                                          sample_detector_distance_value=user_sample_detector_distance,
                                           **load_params)
         # Set the wave length and wave length spread
         if wavelength and wavelength_spread_user:

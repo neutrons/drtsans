@@ -61,7 +61,7 @@ def parse_json_meta_data(reduction_input, meta_name, unit_conversion_factor,
                      TRANSMISSION_BACKGROUND, BLOCK_BEAM, DARK_CURRENT]:
         overwrite_dict[run_type] = None
 
-    if isinstance(reduction_input['configuration'], dict):
+    if isinstance(reduction_input['configuration'][meta_name], dict):
         # new JSON code: parse each key
         _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor, overwrite_dict)
 

@@ -3,7 +3,7 @@ import os
 import json
 from mantid.simpleapi import mtd
 from drtsans.mono.biosans import load_all_files
-# from drtsans.geometry import sample_detector_distance
+from drtsans.geometry import sample_detector_distance
 
 
 def test_load_all_files(reference_dir):
@@ -45,12 +45,35 @@ def test_load_all_files(reference_dir):
     reduction_input["outputFilename"] = sample_names[0]
     load_all_files(reduction_input, path=nexus_dir, prefix='BioTestLoadAll')
 
-    # Outputs
-    output_ws_names = mtd.getObjectNames()
-    for ws_name in output_ws_names:
-        print('DDD  {}'.format(ws_name))
+    beam_center_run = mtd['BioTestLoadAll_CG3_1322_raw_histo']
+    dark_main_run = mtd['BioTestLoadAll_CG3_1383_raw_histo']
+    dark_wing_run = mtd['BioTestLoadAll_CG3_5705_raw_histo']
+    sample_run = mtd['BioTestLoadAll_CG3_5709_raw_histo']
+    bkgd_run = mtd['BioTestLoadAll_CG3_5715_raw_histo']
 
-    assert 1 == 5
+    # Verify sample to si-window distance by checking the sample position with default setup
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
+    for ws in [sample_run, beam_center_run, bkgd_run]:
+        sample_pos_z = ws.getInstrument().getSample().getPos()[2]
+        assert sample_pos_z == pytest.approx(-0.12952, 0.000004), '{} has a wrong sample Si-window distance {}' \
+                                                                  ''.format(str(ws), sample_pos_z)
+
+    for ws in [dark_main_run, dark_wing_run]:
+        sample_pos_z = ws.getInstrument().getSample().getPos()[2]
+        assert sample_pos_z == pytest.approx(-0.071, 0.000004), '{} has a wrong sample Si-window distance {}' \
+                                                                ''.format(str(ws), sample_pos_z)
+
+    # Verify sample to detector distance with default setup:
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
+    for ws in [sample_run, beam_center_run, bkgd_run]:
+        # reset SDD with sample run
+        sdd_value = sample_detector_distance(ws, unit='m', search_logs=False)
+        assert sdd_value == pytest.approx(14.31, 0.004), '{} has a wrong SDD {}'.format(str(ws), sdd_value)
+
+    for ws in [dark_wing_run, dark_main_run]:
+        # EPICS recorded SDD with sample run
+        sdd_value = sample_detector_distance(ws, unit='m', search_logs=False)
+        assert sdd_value == pytest.approx(10.00, 0.004), '{} has a wrong SDD {}'.format(str(ws), sdd_value)
 
 
 def generate_test_json(sens_nxs_dir):
@@ -144,8 +167,8 @@ def generate_test_json(sens_nxs_dir):
          "logslicename": "",
          "logslice": false,
          "logsliceinterval": "",
-         "SampleToSi": "",
-         "SampleDetectorDistance": ""
+         "SampleToSi": "200.52",
+         "SampleDetectorDistance": "14.31"
          }
      }"""
 

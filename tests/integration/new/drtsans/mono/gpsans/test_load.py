@@ -6,7 +6,7 @@ from drtsans.mono.gpsans import load_all_files
 # from drtsans.mono.gpsans import load_and_split
 
 
-def gpsans_load_all_files(reference_dir):
+def test_load_all_files(reference_dir):
     """Standard reduction workflow
 
     Parameters
@@ -36,8 +36,7 @@ def gpsans_load_all_files(reference_dir):
     sample_names = ["Al4"]
 
     # Import JSON
-    with open(json_file) as f:
-        reduction_input = json.load(f)
+    reduction_input = json.loads(json_file)
 
     # set output directory
     reduction_input["configuration"]["outputDir"] = output_dir
@@ -52,12 +51,6 @@ def gpsans_load_all_files(reference_dir):
                             prefix='GP_TEST_LOAD',
                             load_params=None,
                             path=reference_dir.new.gpsans)
-    print('Type of loaded = {}'.format(loaded))
-
-    for ws_name in mtd.getObjectNames():
-        print(ws_name)
-
-    assert 1 == 4
 
 
 def generate_test_json():

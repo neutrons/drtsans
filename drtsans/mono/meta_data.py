@@ -70,7 +70,6 @@ def parse_json_meta_data(reduction_input, meta_name, unit_conversion_factor,
         # Parse for sample run
         try:
             # Get sample run's overwrite value
-            print('Overwriting {} to {}'.format(meta_name, reduction_input['configuration'][meta_name]))
             overwrite_value = float(reduction_input['configuration'][meta_name]) * unit_conversion_factor
             overwrite_dict[SAMPLE] = overwrite_value
 

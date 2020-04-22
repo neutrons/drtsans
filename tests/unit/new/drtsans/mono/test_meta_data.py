@@ -93,16 +93,17 @@ def test_parse_json_geometry_current():
                                                    block_beam_run=True, dark_current_run=False)
 
     # verify SampleToSi
-    for run_type in [mono_meta_data.SAMPLE, mono_meta_data.BACKGROUND, mono_meta_data.EMPTY_TRANSMISSION,
+    for run_type in [mono_meta_data.SAMPLE, mono_meta_data.BACKGROUND, mono_meta_data.BEAM_CENTER,
+                     mono_meta_data.EMPTY_TRANSMISSION,
                      mono_meta_data.TRANSMISSION, mono_meta_data.TRANSMISSION_BACKGROUND,
                      mono_meta_data.BLOCK_BEAM]:
         assert sample_to_si_dict[run_type] == pytest.approx(0.23456, 0.000004)
     assert sample_to_si_dict[mono_meta_data.DARK_CURRENT] is None
 
     # verify SampleDetectorDistance
-    for run_type in [mono_meta_data.SAMPLE, mono_meta_data.BACKGROUND, mono_meta_data.EMPTY_TRANSMISSION,
+    for run_type in [mono_meta_data.SAMPLE, mono_meta_data.BACKGROUND, mono_meta_data.BEAM_CENTER,
                      mono_meta_data.BLOCK_BEAM]:
         assert sample_to_detector_dict[run_type] == pytest.approx(32.11, 0.004)
     for run_type in [mono_meta_data.TRANSMISSION, mono_meta_data.TRANSMISSION_BACKGROUND,
-                     mono_meta_data.DARK_CURRENT]:
+                     mono_meta_data.EMPTY_TRANSMISSION, mono_meta_data.DARK_CURRENT]:
         assert sample_to_detector_dict[run_type] is None

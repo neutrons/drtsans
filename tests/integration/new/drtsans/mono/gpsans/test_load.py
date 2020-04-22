@@ -3,6 +3,7 @@ import os
 import json
 from mantid.simpleapi import mtd
 from drtsans.mono.gpsans import load_all_files
+from drtsans.geometry import sample_detector_distance
 # from drtsans.mono.gpsans import load_and_split
 
 
@@ -54,10 +55,22 @@ def test_load_all_files(reference_dir):
     bkgd_run = mtd['GP_TEST_LOAD_CG2_9165_raw_histo']
     bkgd_trans_run = mtd['GP_TEST_LOAD_CG2_9177_raw_histo']
 
-    assert sample_run
-    assert sample_trans_run
-    assert bkgd_run
-    assert bkgd_trans_run
+    # Verify sample to detector distance with default setup:
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
+    for ws in [sample_run, sample_trans_run, bkgd_run, bkgd_trans_run]:
+        sdd_value = sample_detector_distance(ws, unit='m', search_logs=False)
+        assert sdd_value == pytest.approx(32.11, 0.004), '{} has a wrong SDD {}'.format(str(ws), sdd_value)
+
+    # Verify sample to si-window distance by checking the sample position with default setup
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
+    for ws in [sample_run, bkgd_run]:
+        sample_pos_z = ws.getInstrument().getSample().getPos()[2]
+        assert sample_pos_z == pytest.approx(0.23456, 0.000004), '{} has a wrong SDD {}' \
+                                                                 ''.format(str(ws), sample_pos_z)
+    for ws in [bkgd_trans_run, sample_trans_run]:
+        sample_pos_z = ws.getInstrument().getSample().getPos()[2]
+        assert sample_pos_z == pytest.approx(0.07300, 0.000004), '{} has a wrong SDD {}' \
+                                                                 ''.format(str(ws), sample_pos_z)
 
 
 def generate_test_json():
@@ -138,8 +151,8 @@ def generate_test_json():
         "logslicename": "",
         "logslice": false,
         "logsliceinterval": "",
-        "SampleToSi": "",
-        "SampleDetectorDistance": ""
+        "SampleToSi": "234.56",
+        "SampleDetectorDistance": "32.11"
     }}
     """
 

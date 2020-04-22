@@ -30,7 +30,7 @@ def test_no_overwrite(reference_dir):
     output_dir = '/tmp/meta_overwrite_bio_test1/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaRaw')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
@@ -42,8 +42,8 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-@pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def skip_est_overwrite_both_minor(reference_dir):
+# @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
+def test_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with minor change.
     - Overwrite SampleToSi (distance) to 61 mm.
@@ -63,7 +63,7 @@ def skip_est_overwrite_both_minor(reference_dir):
     output_dir = '/tmp/meta_overwrite_bio_test1a/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaMinor')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
@@ -128,7 +128,7 @@ def test_overwrite_sample_to_si(reference_dir):
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaSWD')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
@@ -169,7 +169,7 @@ def skip_test_overwrite_sample_to_detector(reference_dir):
     verify_reduction_results(sample_names, output_dir, gold_path, 'test3')
 
 
-def reduce_biosans_data(nexus_dir, json_str, output_dir):
+def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix=''):
     """Reduce BIOSANS runs
 
     Parameters
@@ -180,15 +180,13 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir):
         configuration json
     output_dir: str
         output directory
+    prefix: str
+        prefix for output workspaces' names
 
     Returns
     -------
 
     """
-    # Clear workspaces in memory
-    # FIXME - this could be an issue if integration tests are run in parallel
-    mtd.clear()
-
     # Set up (testing) runs
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
     samples = ['5709', '5712']
@@ -213,7 +211,8 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir):
         reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
         reduction_input["outputFilename"] = sample_names[i]
         loaded = load_all_files(reduction_input,
-                                path=nexus_dir)
+                                path=nexus_dir,
+                                prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
         assert out
 

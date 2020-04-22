@@ -1015,6 +1015,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.dat')
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
 
+        try:
+            OLT_Qmin = [float(v) for v in str(reduction_input["configuration"]["overlapStitchQmin"]).split(',')]
+        except ValueError:
+            OLT_Qmin = np.repeat(iq1d_wing_in.mod_q.min(), len(iq1d_main_out))
+        try:
+            OLT_Qmax = [float(v) for v in str(reduction_input["configuration"]["overlapStitchQmax"]).split(',')]
+        except ValueError:
+            OLT_Qmax = np.repeat(iq1d_main_in.mod_q.max(), len(iq1d_main_out))
+
         iq1d_combined_out = []
         for j in range(len(iq1d_main_out)):
             add_suffix = ""
@@ -1026,18 +1035,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
             ascii_1D_filename = os.path.join(output_dir, '1D',
                                              f'{outputFilename}{output_suffix}_1D_wing{add_suffix}.txt')
             save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq1d_wing_out[j])
-            try:
-                OLT_Qmin = float(reduction_input["configuration"]["overlapStitchQmin"])
-            except ValueError:
-                OLT_Qmin = iq1d_wing_in.mod_q.min()
-            try:
-                OLT_Qmax = float(reduction_input["configuration"]["overlapStitchQmax"])
-            except ValueError:
-                OLT_Qmax = iq1d_main_in.mod_q.max()
 
             try:
                 iq_output_both = biosans.stitch_profiles(profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
-                                                         overlaps=[OLT_Qmin, OLT_Qmax],
+                                                         overlaps=[OLT_Qmin[j], OLT_Qmax[j]],
                                                          target_profile_index=0)
 
                 ascii_1D_filename = os.path.join(output_dir, '1D',

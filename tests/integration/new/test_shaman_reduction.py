@@ -7,34 +7,46 @@ import time
 
 # this should point to the root directory of the code repository
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../../'))
-# specific extensions for given basenames
-EXTENSIONS = {'EQSANS_88980': ['_bkgd_88974_trans.txt',
-                               '_bkgd_88974_raw_trans.txt',
-                               '_trans.txt',
-                               '_raw_trans.txt',
-                               '.nxs',
-                               '_frame_0_Iqxqy.dat',
-                               '_frame_0_Iq.dat',
-                               '_frame_1_Iqxqy.dat',
-                               '_frame_1_Iq.dat',
-                               '_reduction_log.hdf',
-                               '_0_Iqxqy.png',
-                               '_0_Iq.png',
-                               '_1_Iqxqy.png',
-                               '_1_Iq.png'],
-              'EQSANS_112300': ['_Iq.dat',
-                                '_Iq.png',
-                                '_Iqxqy.dat',
-                                '_Iqxqy.png',
-                                '_bkgd_112296_raw_trans.txt',
-                                '_bkgd_112296_trans.txt',
-                                '.nxs',
-                                '_raw_trans.txt',
-                                '_reduction_log.hdf',
-                                '_trans.txt'],
-              'CG3_4822': [],
-              'CG3_5532': [],  # auto-wedge
-              'CG2_8944': []}
+# specific output files for given basenames
+FILES = {'EQSANS_88980': ['EQSANS_88980_bkgd_88974_trans.txt',
+                          'EQSANS_88980_bkgd_88974_raw_trans.txt',
+                          'EQSANS_88980_trans.txt',
+                          'EQSANS_88980_raw_trans.txt',
+                          'EQSANS_88980.nxs',
+                          'EQSANS_88980_frame_0_Iqxqy.dat',
+                          'EQSANS_88980_frame_0_Iq.dat',
+                          'EQSANS_88980_frame_1_Iqxqy.dat',
+                          'EQSANS_88980_frame_1_Iq.dat',
+                          'EQSANS_88980_reduction_log.hdf',
+                          'EQSANS_88980_0_Iqxqy.png',
+                          'EQSANS_88980_0_Iq.png',
+                          'EQSANS_88980_1_Iqxqy.png',
+                          'EQSANS_88980_1_Iq.png'],
+         'EQSANS_112300': ['EQSANS_112300_Iq.dat',
+                           'EQSANS_112300_Iq.png',
+                           'EQSANS_112300_Iqxqy.dat',
+                           'EQSANS_112300_Iqxqy.png',
+                           'EQSANS_112300_bkgd_112296_raw_trans.txt',
+                           'EQSANS_112300_bkgd_112296_trans.txt',
+                           'EQSANS_112300.nxs',
+                           'EQSANS_112300_raw_trans.txt',
+                           'EQSANS_112300_reduction_log.hdf',
+                           'EQSANS_112300_trans.txt'],
+         'CG3_4822': [],
+         'CG3_4822_wedge': ['1D/CG3_4822_wedge_1D_main_wedge_0.txt',
+                            '1D/CG3_4822_wedge_1D_main_wedge_1.txt',
+                            '1D/CG3_4822_wedge_1D_wing_wedge_0.txt',
+                            '1D/CG3_4822_wedge_1D_wing_wedge_1.txt',
+                            '1D/CG3_4822_wedge_1D_both_wedge_0.txt',
+                            '1D/CG3_4822_wedge_1D_both_wedge_1.txt',
+                            '1D/CG3_4822_wedge_1D_wedge_0.png',
+                            '1D/CG3_4822_wedge_1D_wedge_1.png',
+                            '2D/CG3_4822_wedge_2D_main.dat',
+                            '2D/CG3_4822_wedge_2D_wing.dat',
+                            '2D/CG3_4822_wedge_2D_main.png',
+                            '2D/CG3_4822_wedge_2D_wing.png'],
+         'CG3_5532': [],  # auto-wedge
+         'CG2_8944': []}
 
 
 def write_configfile(input_json_file, basename, tmpdir):
@@ -82,10 +94,6 @@ def write_configfile(input_json_file, basename, tmpdir):
     return outputdir, output_json_file
 
 
-def unique_basename(basename):
-    return os.path.basename(NamedTemporaryFile(prefix=basename+'_', delete=False).name)
-
-
 def run_reduction(pythonscript, json_file):
     # determine python script with full path
     scriptdir = os.path.join(os.path.abspath(os.path.curdir), 'scripts')
@@ -109,10 +117,10 @@ def run_reduction(pythonscript, json_file):
     print(pythonscript, 'took', time.clock() - start, 'seconds')
 
 
-def check_and_cleanup(outputdir, basename_short, basename):
+def check_and_cleanup(outputdir, basename):
     # verify that the output files were created and cleanup
-    for extension in EXTENSIONS[basename_short]:
-        filename = os.path.join(outputdir, basename + extension)
+    for f in FILES[basename]:
+        filename = os.path.join(outputdir, f)
         assert os.path.isfile(filename), '"{}" does not exist'.format(filename)
         os.remove(filename)
 
@@ -150,11 +158,10 @@ def test_eqsans(configfile, basename, required, tmpdir):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
-    basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
+    outputdir, json_file = write_configfile(configfile, basename, tmpdir)
     run_reduction('eqsans_reduction.py', json_file)
 
-    check_and_cleanup(outputdir, basename, basename_long)
+    check_and_cleanup(outputdir, basename)
 
     # delete the modified configuration file
     if os.path.isfile(json_file):
@@ -163,19 +170,20 @@ def test_eqsans(configfile, basename, required, tmpdir):
 
 @pytest.mark.parametrize('configfile, basename, required',
                          [('biosans_reduction.json', 'CG3_4822', ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', )),
+                          ('biosans_wedge_reduction.json', 'CG3_4822_wedge',
+                           ('/HFIR/CG3/IPTS-23782/nexus/CG3_4822.nxs.h5', )),
                           ('biosans_autowedge_reduction.json', 'CG3_5532',
                            ('/HFIR/CG3/IPTS-21089/nexus/CG3_5532.nxs.h5', ))],
-                         ids=['4822', '5532_wedge'])
+                         ids=['4822', '4822_wedge', '5532_autowedge'])
 def test_biosans(configfile, basename, required, tmpdir):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
-    basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
+    outputdir, json_file = write_configfile(configfile, basename, tmpdir)
 
     run_reduction('biosans_reduction.py', json_file)
 
-    check_and_cleanup(outputdir, basename, basename_long)
+    check_and_cleanup(outputdir, basename)
 
     # delete the modified configuration file
     if os.path.isfile(json_file):
@@ -190,12 +198,11 @@ def test_gpsans(configfile, basename, required, tmpdir):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
-    basename_long = unique_basename(basename)
-    outputdir, json_file = write_configfile(configfile, basename_long, tmpdir)
+    outputdir, json_file = write_configfile(configfile, basename, tmpdir)
 
     run_reduction('gpsans_reduction.py', json_file)
 
-    check_and_cleanup(outputdir, basename, basename_long)
+    check_and_cleanup(outputdir, basename)
 
     # delete the modified configuration file
     if os.path.isfile(json_file):

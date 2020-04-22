@@ -1027,10 +1027,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
         try:
             OLT_Qmin = [float(v) for v in str(reduction_input["configuration"]["overlapStitchQmin"]).split(',')]
+            if len(OLT_Qmin) == 1:
+                OLT_Qmin = np.repeat(OLT_Qmin, len(iq1d_main_out))
         except ValueError:
             OLT_Qmin = np.repeat(iq1d_wing_in.mod_q.min(), len(iq1d_main_out))
         try:
             OLT_Qmax = [float(v) for v in str(reduction_input["configuration"]["overlapStitchQmax"]).split(',')]
+            if len(OLT_Qmax) == 1:
+                OLT_Qmax = np.repeat(OLT_Qmax, len(iq1d_main_out))
         except ValueError:
             OLT_Qmax = np.repeat(iq1d_main_in.mod_q.max(), len(iq1d_main_out))
 

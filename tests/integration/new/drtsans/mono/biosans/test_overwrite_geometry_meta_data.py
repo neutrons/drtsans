@@ -8,7 +8,6 @@ import os
 import h5py
 from drtsans.mono.biosans import load_all_files, reduce_single_configuration
 import time
-from mantid.simpleapi import mtd
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>

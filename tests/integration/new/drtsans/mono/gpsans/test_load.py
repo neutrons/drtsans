@@ -47,10 +47,17 @@ def test_load_all_files(reference_dir):
     reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[0]
     reduction_input["outputFilename"] = sample_names[0]
     reduction_input["thickness"] = sample_thick[0]
-    loaded = load_all_files(reduction_input,
-                            prefix='GP_TEST_LOAD',
-                            load_params=None,
-                            path=reference_dir.new.gpsans)
+    load_all_files(reduction_input, prefix='GP_TEST_LOAD', load_params=None, path=reference_dir.new.gpsans)
+
+    sample_run = mtd['GP_TEST_LOAD_CG2_9166_raw_histo']
+    sample_trans_run = mtd['GP_TEST_LOAD_CG2_9178_raw_histo']
+    bkgd_run = mtd['GP_TEST_LOAD_CG2_9165_raw_histo']
+    bkgd_trans_run = mtd['GP_TEST_LOAD_CG2_9177_raw_histo']
+
+    assert sample_run
+    assert sample_trans_run
+    assert bkgd_run
+    assert bkgd_trans_run
 
 
 def generate_test_json():

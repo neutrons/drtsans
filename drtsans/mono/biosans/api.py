@@ -161,8 +161,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # Sample to detector distance
     sdd_value_dict = parse_json_meta_data(reduction_input, 'SampleDetectorDistance', 1.,
                                           beam_center_run=True, background_run=True,
-                                          empty_transmission_run=False, transmission_run=False,
-                                          background_transmission=False,
+                                          empty_transmission_run=True, transmission_run=True,
+                                          background_transmission=True,
                                           block_beam_run=True, dark_current_run=False)
 
     if timeslice or logslice:

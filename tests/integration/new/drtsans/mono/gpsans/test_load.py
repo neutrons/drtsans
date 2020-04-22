@@ -64,16 +64,10 @@ def test_load_all_files(reference_dir):
 
     # Verify sample to detector distance with default setup:
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
-    for ws in [sample_run, bkgd_run]:
+    for ws in [sample_run, sample_trans_run, bkgd_run, bkgd_trans_run]:
         # reset SDD with sample run
         sdd_value = sample_detector_distance(ws, unit='m', search_logs=False)
         assert sdd_value == pytest.approx(32.11, 0.004), '{} has a wrong SDD {}'.format(str(ws), sdd_value)
-
-    for ws in [bkgd_trans_run, sample_trans_run]:
-        # SDd not changed regardless of sample run
-        sdd_value = sample_detector_distance(ws, unit='m', search_logs=False)
-        assert sample_pos_z == pytest.approx(19.151560, 0.000004), '{} has a wrong SDD {}' \
-                                                                   ''.format(str(ws), sdd_value)
 
 
 def generate_test_json():

@@ -134,6 +134,9 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
 
 
 def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
+
+    unmatched_errors = ''
+
     for sample_name in sample_names:
         # output log file name
         output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
@@ -143,7 +146,15 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
         # compare
         title_i = '{}: {}'.format(sample_name, title)
-        compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
+        try:
+            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
+        except AssertionError as unmatched_error:
+            unmatched_errors += '{}\n'.format(unmatched_error)
+    # END-FOR
+
+    # raise error for all
+    if unmatched_errors != '':
+        raise AssertionError(unmatched_errors)
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>

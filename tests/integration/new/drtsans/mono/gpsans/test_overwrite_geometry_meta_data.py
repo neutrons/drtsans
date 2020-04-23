@@ -6,6 +6,7 @@ import json
 import h5py
 import numpy as np
 from drtsans.mono.gpsans import load_all_files, reduce_single_configuration
+from drtsans.mono.gpsans import plot_reduction_output
 import time
 
 
@@ -62,6 +63,7 @@ def reduce_gpsans_data(data_dir, json_file, output_dir, prefix):
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))
+    plot_reduction_output(output_dir, reduction_input, loglog=False)
 
 
 def get_iq1d(log_file_name):

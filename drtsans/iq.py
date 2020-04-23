@@ -253,7 +253,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
     return binned_q2d, binned_q1d_list
 
 
-def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.WEIGHTED):
+def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT):
     """Binning I(Q) from scalar Q (1D) with linear binning on Q
 
     Replace intensity, intensity_error, scalar_q, scalar_dq by IQmod

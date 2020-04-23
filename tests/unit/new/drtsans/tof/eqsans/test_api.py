@@ -45,15 +45,18 @@ def test_load_all_files_simple():
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
     history = loaded.sample[0].data.getHistory()
-    assert history.size() == 7
+    assert history.size() == 10
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
     assert history.getAlgorithm(0).getProperty("Filename").value == '/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5'
     assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(3).name() == "ConvertUnits"
-    assert history.getAlgorithm(4).name() == "Rebin"
-    assert history.getAlgorithm(5).name() == "SetUncertainties"
-    assert history.getAlgorithm(6).name() == "AddSampleLogMultiple"
+    assert history.getAlgorithm(2).name() == "ChangeBinOffset"
+    assert history.getAlgorithm(3).name() == "SetInstrumentParameter"
+    # assert history.getAlgorithm(4).name() == "ModeratorTZero"
+    assert history.getAlgorithm(5).name() == "MoveInstrumentComponent"
+    assert history.getAlgorithm(6).name() == "ConvertUnits"
+    assert history.getAlgorithm(7).name() == "Rebin"
+    assert history.getAlgorithm(8).name() == "SetUncertainties"
+    assert history.getAlgorithm(9).name() == "AddSampleLogMultiple"
 
     assert loaded.background.data is None
     assert loaded.background_transmission.data is None

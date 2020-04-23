@@ -23,12 +23,12 @@ def test_load_events(reference_dir):
         ws = load_events('EQSANS_92353', output_workspace=ws_name)
     assert ws.name() == ws_name
 
-    assert ws.getTofMin() == pytest.approx(11410, abs=1)
-    assert ws.getTofMax() == pytest.approx(61439, abs=1)
+    assert ws.getTofMin() == pytest.approx(11288, abs=1)
+    assert ws.getTofMax() == pytest.approx(61309, abs=1)
 
     ws = Rebin(ws, Params=[10000, 1000, 62000], PreserveEvents=False)
     ws = SumSpectra(ws)
-    assert len(np.nonzero(ws.dataY(0))[0]) == 36
+    assert len(np.nonzero(ws.dataY(0))[0]) == 35
 
 
 def test_load_events_monitor(reference_dir):
@@ -39,7 +39,7 @@ def test_load_events_monitor(reference_dir):
     w = load_events_monitor('EQSANS_88901', data_dir=reference_dir.new.eqsans)
     assert w.name() == 'EQSANS_88901_monitors'
     assert w.getSpectrum(0).getTofMin() == approx(30680, abs=1)
-    assert w.getSpectrum(0).getTofMax() == approx(47346, abs=1)
+    assert w.getSpectrum(0).getTofMax() == approx(47347, abs=1)
 
 
 def test_merge_Data(reference_dir):
@@ -81,10 +81,10 @@ def test_merge_Data(reference_dir):
     assert merged_sample_logs.proton_charge.size() == 12933 + 17343 + 4341
 
     # Check integrated intensity increases as the total sum
-    assert mtd[str(ws0)].extractY().sum() == 289051
-    assert mtd[str(ws1)].extractY().sum() == 1318463
+    assert mtd[str(ws0)].extractY().sum() == 284923
+    assert mtd[str(ws1)].extractY().sum() == 1368485
     assert mtd[str(ws2)].extractY().sum() == 65694
-    assert mtd[str(merged_workspaces)].extractY().sum() == 289051 + 1318463 + 65694
+    assert mtd[str(merged_workspaces)].extractY().sum() == 284923 + 1368485 + 65694
 
 
 def test_load_events_and_histogram(reference_dir):
@@ -186,11 +186,11 @@ def test_load_and_split(reference_dir):
     assert filtered_ws.getItem(2).getAxis(0).getUnit().caption() == 'Wavelength'
 
     # check values for Y and E don't change unexpectedly
-    assert filtered_ws.getItem(0).extractY().max() == 3
-    assert filtered_ws.getItem(1).extractY().max() == 27
+    assert filtered_ws.getItem(0).extractY().max() == 4
+    assert filtered_ws.getItem(1).extractY().max() == 25
     assert filtered_ws.getItem(2).extractY().max() == 3
-    assert filtered_ws.getItem(0).extractE().max() == pytest.approx(1.7320508, abs=1e-7)
-    assert filtered_ws.getItem(1).extractE().max() == pytest.approx(5.1961524, abs=1e-7)
+    assert filtered_ws.getItem(0).extractE().max() == pytest.approx(2, abs=1e-7)
+    assert filtered_ws.getItem(1).extractE().max() == pytest.approx(5, abs=1e-7)
     assert filtered_ws.getItem(2).extractE().max() == pytest.approx(1.7320508, abs=1e-7)
 
     # check metadata is set correctly

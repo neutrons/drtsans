@@ -122,8 +122,8 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
     except AssertionError as assert_err:
         from matplotlib import pyplot as plt
         plt.cla()
-        plt.plot(test_q_vec, test_intensity_vec, color='red', label='{} Corrected')
-        plt.plot(gold_q_vec, gold_intensity_vec, color='black', label='{} Before being corrected')
+        plt.plot(test_q_vec, test_intensity_vec, color='red', label='Corrected')
+        plt.plot(gold_q_vec, gold_intensity_vec, color='black', label='Before being corrected')
         plt.legend()
         plt.title(title)
         plt.yscale('log')
@@ -255,7 +255,7 @@ def test_overwrite_sdd(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_both(reference_dir):
+def test_overwrite_both(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
 
     - Overwrite SampleToSi (distance) to 200 mm.

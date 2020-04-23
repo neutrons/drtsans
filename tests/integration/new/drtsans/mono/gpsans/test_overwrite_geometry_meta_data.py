@@ -99,7 +99,7 @@ def get_iq1d(log_file_name):
     return vec_q, vec_i
 
 
-def compare_reduced_iq(test_log_file, gold_log_file):
+def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
     """Compare I(Q) from reduced file and gold file
 
     Parameters
@@ -125,14 +125,15 @@ def compare_reduced_iq(test_log_file, gold_log_file):
         plt.plot(test_q_vec, test_intensity_vec, color='red', label='{} Corrected')
         plt.plot(gold_q_vec, gold_intensity_vec, color='black', label='{} Before being corrected')
         plt.legend()
+        plt.title(title)
         plt.yscale('log')
-        out_name = os.path.basename(test_log_file).split('.')[0] + '.png'
+        out_name = prefix + '_' + os.path.basename(test_log_file).split('.')[0] + '.png'
         plt.savefig(out_name)
 
         raise assert_err
 
 
-def verify_reduction_results(sample_names, output_dir, gold_path):
+def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
     for sample_name in sample_names:
         # output log file name
         output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
@@ -141,7 +142,8 @@ def verify_reduction_results(sample_names, output_dir, gold_path):
         gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
         assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
         # compare
-        compare_reduced_iq(output_log_file, gold_log_file)
+        title_i = '{}: {}'.format(sample_name, title)
+        compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -169,7 +171,8 @@ def test_no_overwrite(reference_dir):
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test1/')
 
     # Verify results
-    verify_reduction_results(sample_names, output_dir, gold_path)
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Raw (No Overwriting)',  prefix='CG2MetaRaw')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -200,12 +203,13 @@ def test_overwrite_sample2si(reference_dir):
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test2/')
-    verify_reduction_results(sample_names, output_dir, gold_path)
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_sdd(reference_dir):
+def skip_test_overwrite_sdd(reference_dir):
     """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
 
     - Overwrite DetectorToSample (distance) to 40 meter
@@ -233,12 +237,14 @@ def test_overwrite_sdd(reference_dir):
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test3/')
-    verify_reduction_results(sample_names, output_dir, gold_path)
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Overwrite DetectorSampleDistance to 40 meter',
+                             prefix='CG2MetaSDD')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_both(reference_dir):
+def skip_test_overwrite_both(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
 
     - Overwrite SampleToSi (distance) to 200 mm.
@@ -267,7 +273,9 @@ def test_overwrite_both(reference_dir):
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test4/')
-    verify_reduction_results(sample_names, output_dir, gold_path)
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
+                             prefix='CG2MetaBoth')
 
 
 if __name__ == '__main__':

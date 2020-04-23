@@ -42,7 +42,7 @@ def test_no_overwrite(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 # @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def test_overwrite_both_minor(reference_dir):
+def skip_test_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with minor change.
     - Overwrite SampleToSi (distance) to 61 mm.
@@ -95,7 +95,7 @@ def skip_test_overwrite_both_major(reference_dir):
     output_dir = '/tmp/meta_overwrite_bio_test4/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaMajor2')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
@@ -107,7 +107,7 @@ def skip_test_overwrite_both_major(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_si(reference_dir):
+def skip_test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
@@ -158,7 +158,7 @@ def skip_test_overwrite_sample_to_detector(reference_dir):
     output_dir = '/tmp/meta_overwrite_bio_test3/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaSDD')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
@@ -168,7 +168,7 @@ def skip_test_overwrite_sample_to_detector(reference_dir):
     verify_reduction_results(sample_names, output_dir, gold_path, 'test3')
 
 
-def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix=''):
+def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     """Reduce BIOSANS runs
 
     Parameters
@@ -375,6 +375,16 @@ def compare_reduced_iq(test_log_file, gold_log_file):
             log_errors.append(None)
         except AssertionError as assert_err:
             log_errors.append(assert_err)
+            from matplotlib import pyplot as plt
+            if is_main_detector:
+                flag = 'Main detector'
+            else:
+                flag = 'Wing detector'
+            plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
+            plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))
+            plt.legend()
+            out_name = os.path.basename(test_log_file).split('.')[0] + '_{}.png'.format(flag)
+            plt.savefig(out_name)
     # END-FOR
 
     # Report

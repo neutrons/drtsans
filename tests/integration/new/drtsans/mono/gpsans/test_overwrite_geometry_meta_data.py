@@ -209,7 +209,7 @@ def test_overwrite_sample2si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_sdd(reference_dir):
+def test_overwrite_sdd(reference_dir):
     """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
 
     - Overwrite DetectorToSample (distance) to 40 meter

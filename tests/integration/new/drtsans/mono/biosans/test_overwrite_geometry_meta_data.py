@@ -36,7 +36,7 @@ def test_no_overwrite(reference_dir):
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1/')
 
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
+    verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -69,7 +69,9 @@ def test_overwrite_both_minor(reference_dir):
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1a/')
 
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test1a')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
+                             prefix='test1a')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -102,7 +104,9 @@ def test_overwrite_both_major(reference_dir):
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test4/')
 
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test4')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 200 mm, SampleDetectorDistance -> 14 meter',
+                             prefix='test4')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -134,7 +138,9 @@ def test_overwrite_sample_to_si(reference_dir):
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test2/')
 
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test2')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 7000 mm',
+                             prefix='test2')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -165,7 +171,9 @@ def test_overwrite_sample_to_detector(reference_dir):
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test3/')
 
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test3')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleDetectorDistance -> 14 meter',
+                             prefix='test3')
 
 
 def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
@@ -339,7 +347,11 @@ def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_
     return json_str
 
 
-def verify_reduction_results(sample_names, output_dir, gold_path, prefix):
+def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
+
+    # Over all message
+    unmatched_errors = ''
+
     for sample_name in sample_names:
         # output log file name
         output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
@@ -348,16 +360,31 @@ def verify_reduction_results(sample_names, output_dir, gold_path, prefix):
         gold_log_file = os.path.join(gold_path, '{}_{}_reduction_log.hdf'.format(sample_name, prefix))
         assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
         # compare
-        compare_reduced_iq(output_log_file, gold_log_file)
+        title_i = '{}: {}'.format(sample_name, title)
+
+        # compare
+        try:
+            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
+        except AssertionError as unmatched_error:
+            unmatched_errors += '{}\n'.format(unmatched_error)
+    # END-FOR
+
+    # raise error for all
+    if unmatched_errors != '':
+        raise AssertionError(unmatched_errors)
 
 
-def compare_reduced_iq(test_log_file, gold_log_file):
+def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
     """
 
     Parameters
     ----------
     test_log_file
     gold_log_file
+    title: str
+        plot title
+    prefix: str
+        file name prefix
 
     Returns
     -------
@@ -384,9 +411,9 @@ def compare_reduced_iq(test_log_file, gold_log_file):
             plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
             plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))
             plt.yscale('log')
+            plt.title(title)
             plt.legend()
-
-            out_name = os.path.basename(test_log_file).split('.')[0] + '_{}.png'.format(flag)
+            out_name = prefix + '_' + os.path.basename(test_log_file).split('.')[0] + '_{}.png'.format(flag)
             plt.savefig(out_name)
     # END-FOR
 

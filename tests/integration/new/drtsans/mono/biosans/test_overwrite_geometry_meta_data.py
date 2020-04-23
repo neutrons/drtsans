@@ -42,7 +42,7 @@ def test_no_overwrite(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 # @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def skip_test_overwrite_both_minor(reference_dir):
+def test_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with minor change.
     - Overwrite SampleToSi (distance) to 61 mm.
@@ -75,7 +75,7 @@ def skip_test_overwrite_both_minor(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def skip_test_overwrite_both_major(reference_dir):
+def test_overwrite_both_major(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
     with significant changes.
     - Overwrite SampleToSi (distance) to 200 mm.
@@ -107,7 +107,7 @@ def skip_test_overwrite_both_major(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def skip_test_overwrite_sample_to_si(reference_dir):
+def test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
@@ -139,7 +139,7 @@ def skip_test_overwrite_sample_to_si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def skip_test_overwrite_sample_to_detector(reference_dir):
+def test_overwrite_sample_to_detector(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter
@@ -377,12 +377,15 @@ def compare_reduced_iq(test_log_file, gold_log_file):
             log_errors.append(assert_err)
             from matplotlib import pyplot as plt
             if is_main_detector:
-                flag = 'Main detector'
+                flag = 'Main_detector'
             else:
-                flag = 'Wing detector'
+                flag = 'Wing_detector'
+            plt.cla()
             plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
             plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))
+            plt.yscale('log')
             plt.legend()
+
             out_name = os.path.basename(test_log_file).split('.')[0] + '_{}.png'.format(flag)
             plt.savefig(out_name)
     # END-FOR

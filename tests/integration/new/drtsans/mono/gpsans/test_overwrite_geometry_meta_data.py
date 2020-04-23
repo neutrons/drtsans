@@ -121,9 +121,11 @@ def compare_reduced_iq(test_log_file, gold_log_file):
         np.testing.assert_allclose(test_intensity_vec, gold_intensity_vec, atol=1E-7)
     except AssertionError as assert_err:
         from matplotlib import pyplot as plt
+        plt.cla()
         plt.plot(test_q_vec, test_intensity_vec, color='red', label='{} Corrected')
         plt.plot(gold_q_vec, gold_intensity_vec, color='black', label='{} Before being corrected')
         plt.legend()
+        plt.yscale('log')
         out_name = os.path.basename(test_log_file).split('.')[0] + '.png'
         plt.savefig(out_name)
 
@@ -172,7 +174,7 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_sample2si(reference_dir):
+def test_overwrite_sample2si(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi (distance) but not SampleDetectorDistance.
     Sample to detector distance will be changed accordingly.
 
@@ -203,7 +205,7 @@ def skip_test_overwrite_sample2si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_sdd(reference_dir):
+def test_overwrite_sdd(reference_dir):
     """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
 
     - Overwrite DetectorToSample (distance) to 40 meter
@@ -236,7 +238,7 @@ def skip_test_overwrite_sdd(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_both(reference_dir):
+def test_overwrite_both(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
 
     - Overwrite SampleToSi (distance) to 200 mm.

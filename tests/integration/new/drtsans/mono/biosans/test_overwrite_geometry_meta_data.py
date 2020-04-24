@@ -8,6 +8,7 @@ import os
 import h5py
 from drtsans.mono.biosans import load_all_files, reduce_single_configuration
 import time
+from drtsans.mono.gpsans import plot_reduction_output
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -221,7 +222,7 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
                                 path=nexus_dir,
                                 prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
-        assert out
+        plot_reduction_output(out, reduction_input, loglog=False)
 
     end_time = time.time()
     print(end_time - start_time)

@@ -59,11 +59,10 @@ def reduce_gpsans_data(data_dir, json_file, output_dir, prefix):
                                 path=data_dir,
                                 prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
-        assert out
+        plot_reduction_output(out, reduction_input, loglog=False)
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))
-    plot_reduction_output(output_dir, reduction_input, loglog=False)
 
 
 def get_iq1d(log_file_name):

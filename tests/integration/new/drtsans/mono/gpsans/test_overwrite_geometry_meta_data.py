@@ -1,22 +1,24 @@
 # Integration test for overwriting instrument geometry related meta data for GP-SANS
-# Tests are
-import pytest
-import os
-import json
 import h5py
 import numpy as np
-from drtsans.mono.gpsans import load_all_files, reduce_single_configuration
+import pytest
 import time
+import os
+
 from mantid.simpleapi import mtd
 
+from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
+                                 reduction_parameters, update_reduction_parameters)
 
-def reduce_gpsans_data(data_dir, json_file, output_dir):
+
+def reduce_gpsans_data(data_dir, reduction_input_common, output_dir):
     """Standard reduction workflow
 
     Parameters
     ----------'
     data_dir
-    json_file
+    reduction_input_common: dict
+        reduction parameters common to all samples
     output_dir
 
     Returns
@@ -36,12 +38,8 @@ def reduce_gpsans_data(data_dir, json_file, output_dir):
     # Sample names for output
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
-    # Import JSON
-    with open(json_file) as f:
-        reduction_input = json.load(f)
-
     # set output directory
-    reduction_input["configuration"]["outputDir"] = output_dir
+    reduction_input_common["configuration"]["outputDir"] = output_dir
     # create output directory
     for subfolder in ['1D', '2D']:
         output_folder = os.path.join(output_dir, subfolder)
@@ -50,15 +48,21 @@ def reduce_gpsans_data(data_dir, json_file, output_dir):
 
     start_time = time.time()
     for i in range(len(samples)):
-        reduction_input["runNumber"] = samples[i]
-        reduction_input["transmission"]["runNumber"] = samples_trans[i]
-        reduction_input["background"]["runNumber"] = bkgd[i]
-        reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[i]
-        reduction_input["outputFilename"] = sample_names[i]
-        reduction_input["thickness"] = sample_thick[i]
-        loaded = load_all_files(reduction_input,
-                                path=data_dir)
+        specs = {
+            "dataDirectories": data_dir,
+            "sample": {"runNumber": samples[i],
+                       "thickness": sample_thick[i],
+                       "transmission": {"runNumber": samples_trans[i]}
+                       },
+            "background": {"runNumber": bkgd[i],
+                           "transmission": {"runNumber": bkgd_trans[i]}
+                           },
+            "outputFileName": sample_names[i]
+        }
+        reduction_input = update_reduction_parameters(reduction_input_common, specs, validate=True)
+        loaded = load_all_files(reduction_input, path=data_dir)
         out = reduce_single_configuration(loaded, reduction_input)
+        plot_reduction_output(out, reduction_input, loglog=False)
         assert out
 
     end_time = time.time()
@@ -158,15 +162,36 @@ def test_no_overwrite(reference_dir):
     -------
 
     """
-    # Set test and run
-    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test1.json')
-    assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
+    sensitivity_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/sens_c486_noBar.nxs"
+    specs = {
+        "iptsNumber": 21981,
+        "beamCenter": {"runNumber": 9177},
+        "emptyTransmission": {"runNumber": 9177},
+        "configuration": {
+            "outputDir": "/tmp",
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
+            "sensitivityFileName": sensitivity_file,
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": 40,
+            "mmRadiusForTransmission": 40,
+            "numQxQyBins": 180,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 180,
+            "LogQBinsPerDecade": None,
+            "useLogQBinsEvenDecade": False,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+        }
+    }
+    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
     output_dir = '/tmp/meta_overwrite_test1'
-    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test1/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test1/')
 
     # Verify results
     verify_reduction_results(sample_names, output_dir, gold_path)
@@ -189,17 +214,39 @@ def test_overwrite_sample2si(reference_dir):
     -------
 
     """
-    # Set test and run: sample to silicon window is changed 94 mm
-    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test2.json')
-    assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
+    sensitivity_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/sens_c486_noBar.nxs"
+    specs = {
+        "iptsNumber": 21981,
+        "beamCenter": {"runNumber": 9177},
+        "emptyTransmission": {"runNumber": 9177},
+        "configuration": {
+            "outputDir": "/tmp",
+            "sampleToSi": 94,
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
+            "sensitivityFileName": sensitivity_file,
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": 40,
+            "mmRadiusForTransmission": 40,
+            "numQxQyBins": 150,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 150,
+            "LogQBinsPerDecade": None,
+            "useLogQBinsEvenDecade": False,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+        }
+    }
+    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
     output_dir = '/tmp/meta_overwrite_test2'
-    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test2/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test2/')
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
@@ -220,10 +267,33 @@ def test_overwrite_sdd(reference_dir):
 
     """
     # Set test and run: sample to detector distance is changed to 40 meter
-    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test3.json')
-    assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
+    sensitivity_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/sens_c486_noBar.nxs"
+    specs = {
+        "iptsNumber": 21981,
+        "beamCenter": {"runNumber": 9177},
+        "emptyTransmission": {"runNumber": 9177},
+        "configuration": {
+            "outputDir": "/tmp",
+            "sampleDetectorDistance": 40,
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
+            "sensitivityFileName": sensitivity_file,
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": 40,
+            "mmRadiusForTransmission": 40,
+            "numQxQyBins": 150,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 150,
+            "LogQBinsPerDecade": None,
+            "useLogQBinsEvenDecade": False,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+        }
+    }
+    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
     output_dir = '/tmp/meta_overwrite_test3'
-    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -232,7 +302,7 @@ def test_overwrite_sdd(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test3/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test3/')
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 
@@ -254,10 +324,34 @@ def test_overwrite_both(reference_dir):
 
     """
     # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
-    json_file = os.path.join(reference_dir.new.gpsans, 'gpsans_reduction_test4.json')
-    assert os.path.exists(json_file), 'Test JSON {} cannot be accessed'.format(json_file)
+    sensitivity_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/sens_c486_noBar.nxs"
+    specs = {
+        "iptsNumber": 21981,
+        "beamCenter": {"runNumber": 9177},
+        "emptyTransmission": {"runNumber": 9177},
+        "configuration": {
+            "outputDir": "/tmp",
+            "sampleToSi": 200,
+            "sampleDetectorDistance": 30,
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
+            "sensitivityFileName": sensitivity_file,
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": 40,
+            "mmRadiusForTransmission": 40,
+            "numQxQyBins": 150,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 150,
+            "LogQBinsPerDecade": None,
+            "useLogQBinsEvenDecade": False,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+        }
+    }
+    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
     output_dir = '/tmp/meta_overwrite_test4'
-    reduce_gpsans_data(reference_dir.new.gpsans, json_file, output_dir)
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir)
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -266,7 +360,7 @@ def test_overwrite_both(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test4/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test4/')
     verify_reduction_results(sample_names, output_dir, gold_path)
 
 

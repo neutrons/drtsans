@@ -641,7 +641,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
             params['radius'] = [params['radius']] * number_pixels
         if (depth(params['height'])) == 0:
             params['height'] = [params['height']] * number_pixels
-        assert (len(params['radius']) > 1 and len(params['radius']) < 300)
+        assert len(params['radius']) > 1
         assert (len({len(params['radius']), len(params['height']),
                      len(params['pixel_centers'])}) == 1)
         assert params['radius'] > [0] * number_pixels

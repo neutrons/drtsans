@@ -28,25 +28,21 @@ IPTS_22699 = '/HFIR/CG3/IPTS-22699/nexus/'
                           ('EQSANS106027',
                            IPTS_23732 + 'EQSANS_106027.nxs.h5'),
                           ('EQSANS_88974.nxs.h5',
-                           'DATADIR/EQSANS_88974.nxs.h5')],
+                           IPTS_19800 + 'EQSANS_88974.nxs.h5')],
                          ids=('EQSANS_106026', 'EQSANS_106026',
                               'EQSANS_88974'))
 def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
     # set the data directory in the result using the test fixture
-    fullpath = fullpath.replace('DATADIR', reference_dir.new.eqsans)
-
-    with amend_config(SEARCH_ON, data_dir=reference_dir.new.eqsans):
-        assert abspath(hint) == fullpath
+    assert abspath(hint, search_archive=True) == fullpath
 
 
 @pytest.mark.parametrize('hint',
                          ['randomname', 'EQSANS_106026', 'EQSANS_106026'],
                          ids=('randomname', 'EQSANS_106026', 'EQSANS_106026'))
 def test_abspath_without_archivesearch(hint):
-    with amend_config(SEARCH_OFF):
-        with pytest.raises(RuntimeError):
-            found = abspath(hint, searchArchive=False)
-            assert False, 'found "{}" at "{}"'.format(hint, found)
+    with pytest.raises(RuntimeError):
+        found = abspath(hint, search_archive=False)
+        assert False, 'found "{}" at "{}"'.format(hint, found)
 
 
 @pytest.mark.parametrize('hint, instr, ipts, fullpath',
@@ -72,8 +68,8 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
 
 def test_abspath_with_directory(reference_dir):
     filename = os.path.join(reference_dir.new.biosans, 'CG3_5709.nxs.h5')
-    abspath('CG3_5709', directory=reference_dir.new.biosans, searchArchive=False) == filename
-    abspath('5709', instrument='CG3', directory=reference_dir.new.biosans, searchArchive=False) == filename
+    abspath('CG3_5709', directory=reference_dir.new.biosans, search_archive=False) == filename
+    abspath('5709', instrument='CG3', directory=reference_dir.new.biosans, search_archive=False) == filename
 
 
 @pytest.mark.skipif(not HAVE_EQSANS_MOUNT,

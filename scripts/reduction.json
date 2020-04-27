@@ -3,7 +3,7 @@
   "iptsNumber": "19800",
   "runNumber": "88980",
   "thickness": ".1",
-  "outputFilename": "EQSANS_88980",
+  "outputFileName": "EQSANS_88980",
   "transmission": {
     "runNumber": "88980",
     "value": ""
@@ -24,6 +24,7 @@
   "configuration": {
     "outputDir": "/tmp/shared/shaman/",
     "sampleApertureSize": "30",
+    "sourceApertureDiameter": "",
     "useMaskFileName": true,
     "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
     "useDefaultMask": false,
@@ -52,6 +53,13 @@
     "LogQBinsEvenDecade": false,
     "WedgeMinAngles": "-30, 60",
     "WedgeMaxAngles": "30, 120",
+    "autoWedgeQmin": "",
+    "autoWedgeQmax": "",
+    "autoWedgeQdelta": "",
+    "autoWedgeAzimuthal_delta": "",
+    "autoWedgePeakWidth": "",
+    "autoWedgeBackgroundWidth": "",
+    "autoWedgeSignalToNoiseMin": "",
     "AnnularAngleBin": "5",
     "Qmin": "",
     "Qmax": "",
@@ -65,13 +73,9 @@
     "smearingPixelSizeX": "",
     "smearingPixelSizeY": "",
     "timeslice": false,
-    "timesliceinterval": 300.0,
-    "usesliceidxassuffix": true,
+    "timesliceinterval": "300.0",
     "logslice": false,
     "logslicename": "",
-    "logsliceinterval": 10.0,
-    "fluxmonitorratiofile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
-    "usedarkFileName": true,
-    "wavelenStep": 0.1
+    "logsliceinterval": "10.0"
   }
 }

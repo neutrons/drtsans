@@ -3,7 +3,7 @@
     "iptsNumber": "21089",
     "runNumber": "5532",
     "thickness": "0.1",
-    "outputFilename": "CG3_5532",
+    "outputFileName": "CG3_5532",
     "transmission": {
         "runNumber": "5532",
         "value": ""
@@ -29,8 +29,7 @@
         "useMaskFileName": false,
         "useDefaultMask": true,
         "DefaultMask":["{'Pixel':'1-18,239-256'}", "{'Bank':'18-24,42-48'}"],
-        "useBlockedBeam": false,
-        "BlockBeamFileName":"",
+        "blockedBeamRunNumber":"",
         "useDarkFileName": true,
         "darkMainFileName": "/HFIR/CG3/shared/Cycle486/CG3_5187.nxs.h5",
         "darkWingFileName": "/HFIR/CG3/shared/Cycle486/CG3_5187.nxs.h5",

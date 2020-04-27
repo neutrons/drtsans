@@ -6,7 +6,8 @@ import numpy as np
 import json
 import os
 import h5py
-from drtsans.mono.biosans import load_all_files, reduce_single_configuration
+from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_single_configuration,
+                                  reduction_parameters, validate_reduction_parameters)
 import time
 from mantid.simpleapi import mtd
 
@@ -14,7 +15,7 @@ from mantid.simpleapi import mtd
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 def test_no_overwrite(reference_dir):
-    """Test reduce 3 sets of data without overwriting either SampleToSi or SampleDetectorDistance
+    """Test reduce 3 sets of data without overwriting either sampleToSi or sampleDetectorDistance
 
     This integration test is from a test from and verified by Shuo Qian.
     Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
@@ -26,15 +27,15 @@ def test_no_overwrite(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), None, None)
+    json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), None, None)
     output_dir = '/tmp/meta_overwrite_bio_test1/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir)
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test1/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
@@ -42,11 +43,11 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-@pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def skip_est_overwrite_both_minor(reference_dir):
-    """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
+# @pytest.mark.skip(reason='Skip on build server due to execution time')
+def test_overwrite_both_minor(reference_dir):
+    """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with minor change.
-    - Overwrite SampleToSi (distance) to 61 mm.
+    - Overwrite sampleToSi (distance) to 61 mm.
     - Overwrite DetectorToSample (distance) to 6.9 meter
 
     This integration test is from a test from and verified by Shuo Qian.
@@ -59,7 +60,7 @@ def skip_est_overwrite_both_minor(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 61, 6.9)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 61, 6.9)
     output_dir = '/tmp/meta_overwrite_bio_test1a/'
 
     # Run
@@ -67,7 +68,7 @@ def skip_est_overwrite_both_minor(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test1a/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test1a/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test1a')
@@ -75,11 +76,11 @@ def skip_est_overwrite_both_minor(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-@pytest.mark.skipif(not os.path.exists('/HFIR/CG3/'), reason='Skip on build server due to execution time')
-def skip_test_overwrite_both_major(reference_dir):
-    """Test reduce 3 sets of data overwriting both SampleToSi and SampleDetectorDistance
+# @pytest.mark.skip(reason='Skip on build server due to execution time')
+def test_overwrite_both_major(reference_dir):
+    """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with significant changes.
-    - Overwrite SampleToSi (distance) to 200 mm.
+    - Overwrite sampleToSi (distance) to 200 mm.
     - Overwrite DetectorToSample (distance) to 14 meter
 
     This integration test is from a test from and verified by Shuo Qian.
@@ -92,7 +93,7 @@ def skip_test_overwrite_both_major(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 200, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 200, 14)
     output_dir = '/tmp/meta_overwrite_bio_test4/'
 
     # Run
@@ -100,7 +101,7 @@ def skip_test_overwrite_both_major(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test4/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test4/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test4')
@@ -109,10 +110,10 @@ def skip_test_overwrite_both_major(reference_dir):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 def test_overwrite_sample_to_si(reference_dir):
-    """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance
+    """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
-    - Overwrite SampleToSi (distance) to 7000 mm.
+    - Overwrite sampleToSi (distance) to 7000 mm.
 
     This integration test is from a test from and verified by Shuo Qian.
     Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
@@ -124,7 +125,7 @@ def test_overwrite_sample_to_si(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), 7000, None)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 7000, None)
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run
@@ -132,7 +133,7 @@ def test_overwrite_sample_to_si(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test2/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test2/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test2')
@@ -140,8 +141,9 @@ def test_overwrite_sample_to_si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def skip_test_overwrite_sample_to_detector(reference_dir):
-    """Test reduce 3 sets of data overwriting SampleToSi but not SampleDetectorDistance.
+# @pytest.mark.skip(reason='Skip on build server due to execution time')
+def test_overwrite_sample_to_detector(reference_dir):
+    """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter
 
@@ -155,7 +157,7 @@ def skip_test_overwrite_sample_to_detector(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'), None, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), None, 14)
     output_dir = '/tmp/meta_overwrite_bio_test3/'
 
     # Run
@@ -163,7 +165,7 @@ def skip_test_overwrite_sample_to_detector(reference_dir):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold/test3/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test3/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, 'test3')
@@ -196,25 +198,29 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir):
     backgrounds = ['5715', '5715']
     backgrounds_trans = backgrounds
 
-    # Load JSON for configuration
-    reduction_input = json.loads(json_str)
-
-    # chekcing if output directory exists, if it doesn't, creates the folder
-    reduction_input["configuration"]["outputDir"] = output_dir
+    # checking if output directory exists, if it doesn't, creates the folder
     for subfolder in ['1D', '2D']:
         output_folder = os.path.join(output_dir, subfolder)
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
+
     start_time = time.time()
     for i in range(len(samples)):
-        reduction_input["runNumber"] = samples[i]
-        reduction_input["transmission"]["runNumber"] = samples_trans[i]
+        # Load JSON for configuration
+        # start with a fresh set of reduction parameters for every sample, because the reduction "pollutes"
+        # the reduction parameters dictionary with additions not allowed by the schema
+        reduction_input = json.loads(json_str)
+        reduction_input["dataDirectories"] = nexus_dir
+        reduction_input["configuration"]["outputDir"] = output_dir
+        reduction_input["sample"]["runNumber"] = samples[i]
+        reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[i]
         reduction_input["background"]["runNumber"] = backgrounds[i]
         reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
-        reduction_input["outputFilename"] = sample_names[i]
-        loaded = load_all_files(reduction_input,
-                                path=nexus_dir)
+        reduction_input["outputFileName"] = sample_names[i]
+        reduction_input = validate_reduction_parameters(reduction_input)  # always check after updating the parameters
+        loaded = load_all_files(reduction_input, path=nexus_dir)
         out = reduce_single_configuration(loaded, reduction_input)
+        plot_reduction_output(out, reduction_input)
         assert out
 
     end_time = time.time()
@@ -237,108 +243,61 @@ def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_
     -------
     str
         JSON string
-
     """
-    json_str = """ {
-    "instrumentName": "CG3",
-    "iptsNumber": "24740",
-    "runNumber": "4822",
-    "thickness": "0.1",
-    "outputFilename": "CG3_4822",
-    "transmission": {
-        "runNumber": "4822",
-        "value": ""
-    },
-    "background": {
-        "runNumber": "4821",
-        "transmission": {
-            "runNumber": "4821",
-            "value": ""
+    specs = {
+        "iptsNumber": "23782",
+        "sample": {"runNumber": "4822", "thickness": "0.1", "transmission": {"runNumber": "4822"}},
+        "outputFileName": "CG3_4822",
+        "background": {"runNumber": "4821", "transmission": {"runNumber": "4821"}},
+        "beamCenter": {"runNumber": "1322"},
+        "emptyTransmission": {"runNumber": "5705"},
+        "configuration": {
+            "outputDir": "/HFIR/CG3/shared/UserAcceptance/override/test1",
+            "sampleApertureSize": "14",
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-12,244-256'}", "{'Bank':'21-24,45-48'}"],
+            "darkMainFileName": "CG3_1383.nxs.h5",
+            "darkWingFileName": "CG3_1383.nxs.h5",
+            "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle486/sens_f4829m7p0_TDC_SAC.h5",
+            "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle486/sens_f4835w3p2_TDC_SAC.h5",
+            "absoluteScaleMethod": "standard",
+            "StandardAbsoluteScale": "0.0055e-8",
+            "numMainQxQyBins": "100",
+            "numWingQxQyBins": "100",
+            "1DQbinType": "scalar",
+            "QbinType": "log",
+            "useLogQBinsEvenDecade": False,
+            "LogQBinsPerDecadeMain": 20,
+            "LogQBinsPerDecadeWing": 25,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+            "AnnularAngleBin": "1",
+            "QminMain": "0.003",
+            "QminWing": "0.003",
+            "overlapStitchQmin": "0.075",
+            "overlapStitchQmax": "0.095",
+            "useTimeSlice": False,
+            "timeSliceInterval": "200",
         }
-    },
-    "beamCenter": {
-        "runNumber": "1322"
-    },
-    "emptyTrans": {
-        "runNumber": "5705"
-    },
-    "configuration": {
-        "outputDir": "/HFIR/CG3/shared/UserAcceptance/override/test1",
-        "sampleApertureSize": "14",
-        "sourceApertureDiameter": "",
-        "maskFileName": "",
-        "useMaskFileName": false,
-        "useDefaultMask": true,
-        "DefaultMask":["{'Pixel':'1-12,244-256'}", "{'Bank':'21-24,45-48'}"],
-        "useBlockedBeam": false,
-        "BlockBeamFileName":"",
-        "useDarkFileName": true,
-        "darkMainFileName": "CG3_1383.nxs",
-        "darkWingFileName": "CG3_1383.nxs",
-        "useSensitivityFileName": true,
-        "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle486/sens_f4829m7p0_TDC_SAC.h5",
-        "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle486/sens_f4835w3p2_TDC_SAC.h5",
-        "UseBarScan": false,
-        "BarScanMainFileName":"",
-        "BarScanWingFileName":"",
-        "absoluteScaleMethod":"standard",
-        "DBScalingBeamRadius": "",
-        "StandardAbsoluteScale": "0.0055e-8",
-        "normalization": "Monitor",
-        "sampleOffset": "",
-        "useSampleOffset": false,
-        "useDetectorTubeType": true,
-        "useSolidAngleCorrection": true,
-        "useThetaDepTransCorrection": true,
-        "mmRadiusForTransmission": "",
-        "numMainQxQyBins": "100",
-        "numWingQxQyBins": "100",
-        "1DQbinType": "scalar",
-        "QbinType": "log",
-        "LogQBinsEvenDecade": false,
-        "LogQBinsPerDecadeMain":20,
-        "LogQBinsPerDecadeWing": 25,
-        "WedgeMinAngles": "-30, 60",
-        "WedgeMaxAngles": "30, 120",
-        "numMainQBins": "",
-        "numWingQBins": "",
-        "AnnularAngleBin": "1",
-        "Qmin": "0.003",
-        "Qmax": "",
-        "useErrorWeighting": false,
-        "useMaskBackTubes": false,
-        "wavelength": "",
-        "wavelengthSpread": "",
-        "overlapStitchQmin": "0.075",
-        "overlapStitchQmax": "0.095",
-        "timeslice": false,
-        "timesliceinterval": "200",
-        "logslicename": "",
-        "logslice": false,
-        "logsliceinterval": "",
-        "SampleToSi": "",
-        "SampleDetectorDistance": ""
-        }
-    }"""
+    }
+    reduction_input = reduction_parameters(specs, 'BIOSANS', validate=False)  # add defaults and defer validation
+    reduction_config = reduction_input['configuration']  # a handy shortcut
 
-    # replace values
     #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
     main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
-    json_str = json_str.replace('/HFIR/CG3/shared/Cycle486/sens_f4829m7p0_TDC_SAC.h5', main_sens)
+    reduction_config['sensitivityMainFileName'] = main_sens
 
     # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
     wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
-    json_str = json_str.replace('/HFIR/CG3/shared/Cycle486/sens_f4835w3p2_TDC_SAC.h5', wing_sens)
+    reduction_config['sensitivityWingFileName'] = wing_sens
 
     if sample_to_si_window_distance is not None:
-        json_str = json_str.replace('"SampleToSi": ""',
-                                    '"SampleToSi": "{}"'.format(sample_to_si_window_distance))
+        reduction_config['sampleToSi'] = sample_to_si_window_distance
 
     if sample_to_detector_distance is not None:
-        json_str = json_str.replace('"SampleDetectorDistance": ""',
-                                    '"SampleDetectorDistance": "{}"'.format(sample_to_detector_distance))
+        reduction_config['sampleDetectorDistance'] = sample_to_detector_distance
 
-    return json_str
+    return json.dumps(reduction_input)  # return a string representation
 
 
 def verify_reduction_results(sample_names, output_dir, gold_path, prefix):
@@ -358,8 +317,9 @@ def compare_reduced_iq(test_log_file, gold_log_file):
 
     Parameters
     ----------
-    test_log_file
-    gold_log_file
+    test_log_file: str
+        Absolute
+    gold_log_file: str
 
     Returns
     -------

@@ -4,6 +4,8 @@ from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace, mtd
+
+from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import load_all_files, prepare_data_workspaces, process_single_configuration
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unique_workspace_dundername as uwd
@@ -15,31 +17,20 @@ ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5'),
                     reason="Required data is not available")
 def test_load_all_files_simple():
-    reduction_input = {
-        "instrumentName": "EQSANS",
-        "iptsNumber": "22747",
-        "runNumber": "105428",
-        "thickness": "1",
-        "transmission": {"runNumber": ""},
-        "background": {"runNumber": "",
-                       "transmission": {"runNumber": ""}},
-        "empty": {"runNumber": ""},
-        "beamCenter": {"runNumber": "105428"},
-        "configuration": {
-            "useMaskFileName": False,
-            "useDefaultMask": False,
-            "useDarkFileName": False,
-            "useSensitivityFileName": False,
-            "wavelengthStep": "",
-            "useDetectorOffset": False,
-            "useSampleOffset": True,
-            "sampleOffset": "0",
-            "useTOFcuts": False,
-            "normalization": "Total charge",
-            "absoluteScaleMethod": "standard",
-            "StandardAbsoluteScale": "5.18325",
-        }
-    }
+    specs = {'iptsNumber': 22747,
+             'sample': {'runNumber': 105428, 'thickness': 1.0},
+             'beamCenter': {'runNumber': 105428},
+             'outputFileName': 'test',
+             'configuration': {'outputDir': '/tmp',
+                               "useDefaultMask": False,
+                               "sampleOffset": "0",
+                               "useTOFcuts": False,
+                               "LogQBinsPerDecade": 10,
+                               "normalization": "Total charge",
+                               "absoluteScaleMethod": "standard",
+                               "StandardAbsoluteScale": "5.18325"}
+             }
+    reduction_input = reduction_parameters(specs, instrument_name='EQSANS')
     loaded = load_all_files(reduction_input)
 
     assert loaded.sample is not None

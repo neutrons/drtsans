@@ -1,1 +1,1 @@
-{"run_number": 88980, "instrumentName": "TEST", "configuration":{"outputDir": "/tmp/SANS_output"}, "outputFilename":"TestOutputFileName","fail": false}
+{"run_number": 88980, "instrumentName": "TEST", "configuration":{"outputDir": "/tmp/SANS_output"}, "outputFileName":"TestOutputFileName","fail": false}

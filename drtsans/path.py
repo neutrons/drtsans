@@ -1,6 +1,6 @@
 from mantid.api import AnalysisDataService, FileFinder
 from mantid.kernel import ConfigService
-from drtsans.instruments import instrument_label, extract_run_number
+from drtsans.instruments import instrument_label, extract_run_number, instrument_filesystem_name, InstrumentEnumName
 from drtsans.settings import amend_config
 import os
 import stat
@@ -32,7 +32,7 @@ def allow_overwrite(folder):
             pass
 
 
-def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
+def abspath(path, instrument='', ipts='', directory=None, search_archive=True):
     r"""
     Returns an absolute path
 
@@ -43,23 +43,36 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
 
     This looks in ``/instrument/proposal/nexus/instrument_runnumber.nxs.h5`` then
     falls back to use :py:obj:`mantid.api.FileFinder`.
+
+    Parameters
+    ----------
+    directory: str, list
+        One or more directory paths where to look for the data file
     """
     # don't use network for first check
     if os.path.exists(path):
         return os.path.abspath(path)
 
-    # try using the supplied directory
-    if directory is not None:
-        option = os.path.join(directory, str(path))
-        if os.path.exists(option):
-            return option
+    # directories is None or a list
+    directories = [directory] if isinstance(directory, str) else directory
 
-    # instrument will be used later
+    # try using the supplied directory
+    if directories is not None:
+        for directory in directories:
+                option = os.path.join(directory, str(path))
+                if os.path.exists(option):
+                    return option
+
+    # Elucidate the string identifying the instrument in the filesystem
     if not instrument:
         try:
             instrument = instrument_label(path)
         except RuntimeError:
             pass  # failed to extract instrument/runnumber
+    if instrument:
+        instrument = instrument_filesystem_name(instrument)  # from GPSANS to CG2, since we need /HFIR/CG2/IPTS-....
+        if instrument == InstrumentEnumName.UNDEFINED:
+            raise RuntimeError('Failed to extract instrument name')
 
     # runnumber may be used later
     try:
@@ -67,20 +80,24 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
     except ValueError as e:
         raise RuntimeError('Could not extract runnumber') from e
 
-    # try again using the supplied directory
-    if directory is not None:
-        option = os.path.join(directory, '{}_{}'.format(instrument, runnumber))
-        if os.path.exists(option):
-            return option
+    # try again using the supplied directories
+    if directories is not None:
+        for directory in directories:
+            option_base = os.path.join(directory, '{}_{}'.format(instrument, runnumber))
+            for suffix in ('.nxs.h5', '.nxs', ''):
+                option = option_base + suffix
+                if os.path.exists(option):
+                    return option
 
     # guess the path from existing information
     if ipts:
         if instrument:  # only try if instrument is known
             try:
                 runnumber = int(runnumber)  # make sure it doesn't have extra characters
-                instrument = ConfigService.getInstrument(instrument)  # to object
-                facility = str(instrument.facility())
-                instrument = str(instrument)  # convert back to short name
+                instrument_config = ConfigService.getInstrument(instrument)  # to object
+                facility = str(instrument_config.facility())
+                if not instrument:
+                    instrument = str(instrument_config)
                 option = f'/{facility}/{instrument}/IPTS-{ipts}/nexus/{instrument}_{runnumber}.nxs.h5'
                 print('Seeing if "{}" exists'.format(option))
                 if os.path.exists(option):
@@ -96,24 +113,29 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
         return option
 
     # try again putting things together
-    with amend_config(data_dir=directory):
+    with amend_config(data_dir=directories):
         option = FileFinder.getFullPath('{}_{}'.format(instrument, runnumber))
     if option and os.path.exists(option):
         return option
 
     # get all of the options from FileFinder and convert them to an absolute
     # path in case any weren't already
+    message_archive = ''
     try:
-        config = {'default.instrument': instrument}
-        if not searchArchive:
+        config = {'default.instrument': instrument, 'datasearch.searcharchive': 'hfir, sns'}
+        if bool(search_archive) is False:
             config['datasearch.searcharchive'] = 'Off'
-        with amend_config(config, data_dir=directory):
+        with amend_config(config, data_dir=directories):
             options = [os.path.abspath(item) for item in FileFinder.findRuns(str(runnumber))]
-    except RuntimeError:
+            found = 'nothing' if len(options) == 0 else f'{options}'
+            message_archive = f'FileFinder.findRuns({runnumber}) found {found}  with {config}'
+    except RuntimeError as e:
         options = []  # marks things as broken
+        message_archive = f'{e} with {config}'
+
     if not options:  # empty result
-        raise RuntimeError('Failed to find location of file from hint '
-                           '"{}"'.format(path))
+        raise RuntimeError(f'{message_archive}\nFailed to find location of file from hint "{path}"')
+
     for option in options:
         if os.path.exists(option):
             return option
@@ -122,7 +144,7 @@ def abspath(path, instrument='', ipts='', directory=None, searchArchive=True):
                        'existing files for "{}"'.format(path))
 
 
-def abspaths(runnumbers, instrument='', ipts='', directory=None, searchArchive=True):
+def abspaths(runnumbers, instrument='', ipts='', directory=None, search_archive=True):
     '''
     Parameters
     ----------
@@ -132,6 +154,8 @@ def abspaths(runnumbers, instrument='', ipts='', directory=None, searchArchive=T
         Name of the instrument
     ipts: str
         Proposal number the run is expected to be in
+    directory: str, list
+        One or more directory paths where to look for the data file
 
     Returns
     -------
@@ -143,7 +167,7 @@ def abspaths(runnumbers, instrument='', ipts='', directory=None, searchArchive=T
     filenames = []
     for runnumber in runnumbers.split(','):
         filenames.append(abspath(str(runnumber).strip(), instrument=instrument, ipts=ipts,
-                                 directory=directory, searchArchive=searchArchive))
+                                 directory=directory, search_archive=search_archive))
     return ','.join(filenames)
 
 

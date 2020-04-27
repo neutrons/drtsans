@@ -1,4 +1,6 @@
 # flake8: noqa
+import os
+
 #######
 # Ordered alphabetically within each tree-level (drtsans/, drtsans.mono/, drtsans.mono.gpsans/)
 #######
@@ -27,6 +29,9 @@ from ...path import *
 
 import drtsans.pixel_calibration
 from ...pixel_calibration import *
+
+import drtsans.redparms
+from ...redparms import *
 
 import drtsans.stitch
 from ...stitch import *
@@ -57,6 +62,7 @@ __all__ = [] + drtsans.absolute_units.__all__ \
           + drtsans.mask_utils.__all__ \
           + drtsans.path.__all__\
           + drtsans.pixel_calibration.__all__ \
+          + drtsans.redparms.__all__\
           + drtsans.stitch.__all__\
           + drtsans.thickness_normalization.__all__ \
           + ['apply_transmission_correction'] \
@@ -70,3 +76,5 @@ __all__ = [] + drtsans.absolute_units.__all__ \
           + normalization.__all__ \
           + transmission.__all__
 
+from drtsans import configdir
+default_json = os.path.join(configdir, 'json', 'EQSANS.json')

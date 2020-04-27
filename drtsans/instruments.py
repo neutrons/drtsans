@@ -10,6 +10,14 @@ INSTRUMENT_LABELS = ['CG3', 'BIOSANS', 'EQ-SANS', 'EQSANS', 'CG2', 'GPSANS']
 
 @enum.unique
 class InstrumentEnumName(enum.Enum):
+
+    @staticmethod
+    def names():
+        r"""Standard names for all instruments, in alphabetical order"""
+        names_all = list(map(str, InstrumentEnumName))
+        names_all.remove('UNDEFINED')
+        return sorted(names_all)
+
     r"""Unique names labelling each instrument"""
     UNDEFINED = None  # usually the dummy instrument used for testing
     BIOSANS = ConfigService.getFacility('HFIR').instrument('BIOSANS')
@@ -66,6 +74,28 @@ def instrument_standard_name(input_query):
         The name of the instrument as the string representation of one of the InstrumentName enumerations
     """
     return str(instrument_enum_name(input_query))
+
+
+def instrument_standard_names():
+    r"""Standard names for all instruments, in alphabetical order"""
+    return InstrumentEnumName.names()
+
+
+def instrument_filesystem_name(input_query):
+    r"""
+    Resolve the name of the instrument that is the subdirectory name under /SNS or /HFIR
+
+    Parameters
+    ----------
+    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
+
+    Returns
+    -------
+    str
+    """
+    filesystem_name = {'BIOSANS': 'CG3', 'EQSANS': 'EQSANS', 'GPSANS': 'CG2'}
+    return filesystem_name[instrument_standard_name(input_query)]
 
 
 def instrument_label(input_query):

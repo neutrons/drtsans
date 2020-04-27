@@ -1,9 +1,11 @@
-import sys
+# import sys
 import os
 import json
+import sys
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
-from drtsans.mono.biosans import load_all_files, reduce_single_configuration, plot_reduction_output   # noqa E402
+from drtsans.mono.biosans import (load_all_files, reduce_single_configuration, plot_reduction_output,
+                                  validate_reduction_parameters)   # noqa E402
 import drtsans  # noqa E402
 import mantid.simpleapi as msapi  # noqa E402
 
@@ -18,10 +20,13 @@ if __name__ == "__main__":
         json_string = " ".join(sys.argv[1:])
         reduction_input = json.loads(json_string)
 
-    msapi.logger.notice(json.dumps(reduction_input, indent=2))
+    reduction_input = validate_reduction_parameters(reduction_input)
+    msapi.logger.notice(json.dumps(reduction_input))
+    # json.dump(reduction_input., '/tmp/biosans_reduction.json')
+    # sys.exit(1)
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
-    # chekcing if output directory exists, if it doesn't, creates the folder
+    # checking if output directory exists, if it doesn't, creates the folder
     output_dir = reduction_input["configuration"]["outputDir"]
     for subfolder in ['1D', '2D']:
         output_folder = os.path.join(output_dir, subfolder)

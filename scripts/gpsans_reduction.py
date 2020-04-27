@@ -3,7 +3,8 @@ import os
 import json
 import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
-from drtsans.mono.gpsans import load_all_files, reduce_single_configuration, plot_reduction_output  # noqa E402
+from drtsans.mono.gpsans import (load_all_files, reduce_single_configuration, plot_reduction_output,
+                                 validate_reduction_parameters)  # noqa E402
 import drtsans  # noqa E402
 import mantid.simpleapi as msapi  # noqa E402
 
@@ -18,7 +19,11 @@ if __name__ == "__main__":
         json_string = " ".join(sys.argv[1:])
         reduction_input = json.loads(json_string)
 
-    msapi.logger.notice(json.dumps(reduction_input, indent=2))
+    reduction_input = validate_reduction_parameters(reduction_input)
+    # print the parameters to a file for inspection
+    # json.dump(reduction_input, open('/tmp/gpsans_reduction/gpsans_reduction.json', 'w'), indent=2)
+    # sys.exit(1)
+    msapi.logger.notice(json.dumps(reduction_input))
     msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
 
     # chekcing if output directory exists, if it doesn't, creates the folder

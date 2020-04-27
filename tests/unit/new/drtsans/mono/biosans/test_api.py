@@ -21,11 +21,8 @@ def test_load_all_files_simple():
         "emptyTrans": {"runNumber": ""},
         "beamCenter": {"runNumber": "960"},
         "configuration": {
-            "useMaskFileName": False,
             "useDefaultMask": False,
-            "useBlockedBeam": False,
             "useDarkFileName": False,
-            "useSensitivityFileName": False,
             "wavelength": "",
             "wavelengthSpread": ""}
     }

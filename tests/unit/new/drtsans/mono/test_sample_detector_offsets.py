@@ -53,7 +53,7 @@ def test_zero_offsets(generic_IDF):
                            'l1': -15.}],
                          indirect=True)
 def test_non_zero_offsets(generic_IDF):
-    """Test instrument with offset between SampleToSi and its default value
+    """Test instrument with offset between sampleToSi and its default value
 
     Returns
     -------
@@ -93,7 +93,7 @@ def test_non_zero_offsets(generic_IDF):
                            'l1': -5.}],
                          indirect=True)
 def test_overwrite_sample_si_distance(generic_IDF):
-    """Test instrument with a user-overwriting SampleToSi distance
+    """Test instrument with a user-overwriting sampleToSi distance
 
     Returns
     -------

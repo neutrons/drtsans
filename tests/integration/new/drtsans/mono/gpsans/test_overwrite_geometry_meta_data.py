@@ -45,16 +45,6 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
 
     start_time = time.time()
     for i in range(len(samples)):
-        # reduction_input["runNumber"] = samples[i]
-        # reduction_input["transmission"]["runNumber"] = samples_trans[i]
-        # reduction_input["background"]["runNumber"] = bkgd[i]
-        # reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[i]
-        # reduction_input["outputFilename"] = sample_names[i]
-        # reduction_input["thickness"] = sample_thick[i]
-        # loaded = load_all_files(reduction_input,
-        #                         path=data_dir,
-        #                         prefix=prefix)
-        # out = reduce_single_configuration(loaded, reduction_input)
         specs = {
             "dataDirectories": data_dir,
             "sample": {"runNumber": samples[i],
@@ -164,7 +154,8 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
         except AssertionError as unmatched_error:
-            unmatched_errors += '{}\n'.format(unmatched_error)
+            unmatched_errors = 'Testing output {} is different from gold result {}:\n{}' \
+                               ''.format(output_log_file, gold_log_file, unmatched_error)
     # END-FOR
 
     # raise error for all
@@ -225,7 +216,7 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_sample2si(reference_dir):
+def skip_test_overwrite_sample2si(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi (distance) but not SampleDetectorDistance.
     Sample to detector distance will be changed accordingly.
 
@@ -270,20 +261,20 @@ def test_overwrite_sample2si(reference_dir):
     # reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir)
 
     # Get result files
-    # sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
     # Verify results
     # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test2/')
     # verify_reduction_results(sample_names, output_dir, gold_path,
     #                          title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
-    # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test2/')
-    # verify_reduction_results(sample_names, output_dir, gold_path,
-    #                          title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test2/')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_sdd(reference_dir):
+def skip_test_overwrite_sdd(reference_dir):
     """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
 
     - Overwrite DetectorToSample (distance) to 40 meter
@@ -345,7 +336,7 @@ def test_overwrite_sdd(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_both(reference_dir):
+def skip_test_overwrite_both(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
 
     - Overwrite SampleToSi (distance) to 200 mm.
@@ -399,10 +390,10 @@ def test_overwrite_both(reference_dir):
 
     # Verify results
     # gold_path --> 'overwrite_gold/test4/')
-    # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test4/')
-    # verify_reduction_results(sample_names, output_dir, gold_path,
-    #                         title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
-    #                         prefix='CG2MetaBoth')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test4/')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
+                             prefix='CG2MetaBoth')
 
 
 if __name__ == '__main__':

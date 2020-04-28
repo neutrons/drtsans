@@ -7,7 +7,6 @@ import h5py
 from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
 import time
-from drtsans.mono.gpsans import plot_reduction_output
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -234,7 +233,8 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
 #         plot_reduction_output(out, reduction_input, loglog=False)
 # =======
 #         reduction_input["outputFileName"] = sample_names[i]
-#         reduction_input = validate_reduction_parameters(reduction_input)  # always check after updating the parameters
+#         always check after updating the parameters
+#         reduction_input = validate_reduction_parameters(reduction_input)
 #         loaded = load_all_files(reduction_input, path=nexus_dir)
 #         out = reduce_single_configuration(loaded, reduction_input)
 #         plot_reduction_output(out, reduction_input)

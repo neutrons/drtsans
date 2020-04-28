@@ -93,18 +93,18 @@ def generate_test_json(sens_nxs_dir):
     json_str = """ {
      "instrumentName": "CG3",
      "iptsNumber": "24740",
-     "runNumber": "4822",
-     "thickness": "0.1",
-     "outputFilename": "CG3_4822",
-     "transmission": {
-         "runNumber": "4822",
-         "value": ""
+     "sample": {
+        "runNumber": "4822",
+        "thickness": "0.1"
+        "transmission": {
+            "runNumber": "4822",
+        }
      },
+     "outputFilename": "CG3_4822",
      "background": {
          "runNumber": "4821",
          "transmission": {
              "runNumber": "4821",
-             "value": ""
          }
      },
      "beamCenter": {

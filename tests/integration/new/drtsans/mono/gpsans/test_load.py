@@ -43,11 +43,11 @@ def test_load_all_files(reference_dir):
     reduction_input["configuration"]["outputDir"] = output_dir
 
     reduction_input["runNumber"] = samples[0]
-    reduction_input["transmission"]["runNumber"] = samples_trans[0]
+    reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
     reduction_input["background"]["runNumber"] = bkgd[0]
     reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[0]
-    reduction_input["outputFilename"] = sample_names[0]
-    reduction_input["thickness"] = sample_thick[0]
+    reduction_input["outputFileName"] = sample_names[0]
+    reduction_input["sample"]["thickness"] = sample_thick[0]
     load_all_files(reduction_input, prefix='GP_TEST_LOAD', load_params=None, path=reference_dir.new.gpsans)
 
     sample_run = mtd['GP_TEST_LOAD_CG2_9166_raw_histo']
@@ -79,78 +79,75 @@ def generate_test_json():
         JSON string
 
     """
-    json_str = """
-    {    "instrumentName": "CG2",
-    "iptsNumber": "24727",
-    "runNumber": "",
-    "thickness": "0.1",
-    "outputFilename": "",
-    "transmission": {
-        "runNumber": "",
-        "value": ""
-    },
-    "background": {
-        "runNumber": "",
-        "transmission": {
+    json_str = """{
+        "instrumentName": "GPSANS",
+        "iptsNumber": "24727",
+        "sample": {
             "runNumber": "",
-            "value": ""
+            "thickness": "0.1",
+            "transmission": {
+                "runNumber": ""
+            }
+        },
+        "outputFileName": "",
+        "background": {
+            "runNumber": "",
+            "transmission": {
+                "runNumber": ""
+            }
+        },
+        "beamCenter": {
+            "runNumber": "9177"
+        },
+        "emptyTransmission": {
+            "runNumber": "9177"
+        },
+        "configuration": {
+            "outputDir": "/HFIR/CG2/shared/UserAcceptance/overwrite_meta/test1/",
+            "sampleApertureSize": "",
+            "sourceApertureDiameter": "",
+            "maskFileName": "",
+            "useDefaultMask": true,
+            "defaultMask":["{'Pixel':'1-10,247-256'}"],
+            "blockedBeamRunNumber":"",
+            "darkFileName": "",
+            "sensitivityFileName": "SensFileToReplace",
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": "40",
+            "StandardAbsoluteScale": "1",
+            "normalization": "Monitor",
+            "sampleOffset": "",
+            "useSolidAngleCorrection": true,
+            "useThetaDepTransCorrection": true,
+            "mmRadiusForTransmission": "40",
+            "numQxQyBins": "180",
+            "1DQbinType": "scalar",
+            "QbinType": "log",
+            "LogQBinsPerDecade": "33",
+            "useLogQBinsEvenDecade": true,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+            "numQBins": "",
+            "AnnularAngleBin": "",
+            "Qmin": "",
+            "Qmax": "",
+            "useErrorWeighting": false,
+            "useMaskBackTubes": false,
+            "wavelength": "",
+            "wavelengthSpread": "",
+            "useTimeSlice": false,
+            "timeSliceInterval": 200,
+            "logSliceName": "",
+            "useLogSlice": false,
+            "logSliceInterval": "",
+            "smearingPixelSizeX": "",
+            "smearingPixelSizeY": "",
+            "SampleToSi": "234.56",
+            "SampleDetectorDistance": "32.11",
+            "UseBarScan": false,
+            "BarScanFileName": ""
         }
-    },
-    "beamCenter": {
-        "runNumber": "9177"
-    },
-    "emptyTrans": {
-        "runNumber": "9177"
-    },
-    "configuration": {
-        "outputDir": "/HFIR/CG2/shared/UserAcceptance/overwrite_meta/test1/",
-        "sampleApertureSize": "",
-        "sourceApertureDiameter": "",
-        "maskFileName": "",
-        "useMaskFileName": false,
-        "useDefaultMask": true,
-        "DefaultMask":["{'Pixel':'1-10,247-256'}"],
-        "useBlockedBeam": false,
-        "BlockBeamFileName":"",
-        "useDarkFileName": false,
-        "darkFileName": "",
-        "useSensitivityFileName": true,
-        "sensitivityFileName": "SensFileToReplace",
-        "UseBarScan": false,
-        "BarScanFileName": "",
-        "absoluteScaleMethod": "direct_beam",
-        "DBScalingBeamRadius": "40",
-        "StandardAbsoluteScale": "1",
-        "normalization": "Monitor",
-        "sampleOffset": "",
-        "useSampleOffset": false,
-        "useSolidAngleCorrection": true,
-        "useThetaDepTransCorrection": true,
-        "mmRadiusForTransmission": "40",
-        "numQxQyBins": "150",
-        "1DQbinType": "scalar",
-        "QbinType": "log",
-        "LogQBinsPerDecade": "33",
-        "LogQBinsDecadeCenter": false,
-        "LogQBinsEvenDecade": true,
-        "WedgeMinAngles": "-30, 60",
-        "WedgeMaxAngles": "30, 120",
-        "numQBins": "",
-        "AnnularAngleBin": "",
-        "Qmin": "",
-        "Qmax": "",
-        "useErrorWeighting": false,
-        "useMaskBackTubes": false,
-        "wavelength": "",
-        "wavelengthSpread": "",
-        "timeslice": false,
-        "timesliceinterval": "",
-        "logslicename": "",
-        "logslice": false,
-        "logsliceinterval": "",
-        "SampleToSi": "234.56",
-        "SampleDetectorDistance": "32.11"
-    }}
+    }
     """
 
     # replace for the correct sensitivity file

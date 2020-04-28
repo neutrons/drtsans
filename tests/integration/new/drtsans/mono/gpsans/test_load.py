@@ -3,6 +3,7 @@ import os
 import json
 from mantid.simpleapi import mtd
 from drtsans.mono.gpsans import load_all_files
+from drtsans.mono.biosans import reduction_parameters
 from drtsans.geometry import sample_detector_distance
 # from drtsans.mono.gpsans import load_and_split
 
@@ -25,6 +26,8 @@ def test_load_all_files(reference_dir):
 
     # Create JSON file
     json_file = generate_test_json()
+    # Import JSON
+    reduction_input = json.loads(json_file)
 
     # USER Input here with scan numbers etc.
     samples = ['9166']
@@ -36,9 +39,6 @@ def test_load_all_files(reference_dir):
     # Sample names for output
     sample_names = ["Al4"]
 
-    # Import JSON
-    reduction_input = json.loads(json_file)
-
     # set output directory
     reduction_input["configuration"]["outputDir"] = output_dir
 
@@ -48,6 +48,10 @@ def test_load_all_files(reference_dir):
     reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[0]
     reduction_input["outputFileName"] = sample_names[0]
     reduction_input["sample"]["thickness"] = sample_thick[0]
+
+    # check inputs
+    reduction_input = reduction_parameters(reduction_input, validate=True)
+    # load files
     load_all_files(reduction_input, prefix='GP_TEST_LOAD', load_params=None, path=reference_dir.new.gpsans)
 
     sample_run = mtd['GP_TEST_LOAD_CG2_9166_raw_histo']

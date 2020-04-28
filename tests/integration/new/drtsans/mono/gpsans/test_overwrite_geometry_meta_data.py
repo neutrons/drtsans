@@ -270,15 +270,15 @@ def test_overwrite_sample2si(reference_dir):
     # reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir)
 
     # Get result files
-    sample_names = ["Al4", "PorasilC3", "PTMA-15"]
+    # sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
     # Verify results
     # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test2/')
     # verify_reduction_results(sample_names, output_dir, gold_path,
     #                          title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test2/')
+    # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test2/')
     # verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
+    #                          title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -334,11 +334,11 @@ def test_overwrite_sdd(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test3/')
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test3/')
+    # gold_path --> 'overwrite_gold/test3/'
+    # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test3/')
     # verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Overwrite DetectorSampleDistance to 40 meter',
-                             prefix='CG2MetaSDD')
+    #                         title='Overwrite DetectorSampleDistance to 40 meter',
+    #                          prefix='CG2MetaSDD')
     # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test3/')
     # verify_reduction_results(sample_names, output_dir, gold_path)
 
@@ -398,13 +398,11 @@ def test_overwrite_both(reference_dir):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test4/')
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test4/')
-    # verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
-                             prefix='CG2MetaBoth')
+    # gold_path --> 'overwrite_gold/test4/')
     # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test4/')
-    # verify_reduction_results(sample_names, output_dir, gold_path)
+    # verify_reduction_results(sample_names, output_dir, gold_path,
+    #                         title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
+    #                         prefix='CG2MetaBoth')
 
 
 if __name__ == '__main__':

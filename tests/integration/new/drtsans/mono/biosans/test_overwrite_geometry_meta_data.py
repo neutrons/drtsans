@@ -63,13 +63,12 @@ def test_overwrite_both_minor(reference_dir):
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaMinor')
 
     # Get result files
-    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test1a/')
-
+    # sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    # gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test1a/')
     # Verify
     # verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
-                             prefix='test1a')
+    #                         title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
+    #                         prefix='test1a')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -97,13 +96,12 @@ def test_overwrite_both_major(reference_dir):
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaMajor2')
 
     # Get result files
-    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test4/')
-
+    # sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    # gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test4/')
     # Verify
     # verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='SampleToSi -> 200 mm, SampleDetectorDistance -> 14 meter',
-                             prefix='test4')
+    #                          title='SampleToSi -> 200 mm, SampleDetectorDistance -> 14 meter',
+    #                          prefix='test4')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -131,13 +129,12 @@ def test_overwrite_sample_to_si(reference_dir):
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaSWD')
 
     # Get result files
-    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test2/')
-
+    # sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    # gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test2/')
     # Verify
     # verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='SampleToSi -> 7000 mm',
-                             prefix='test2')
+    #                          title='SampleToSi -> 7000 mm',
+    #                          prefix='test2')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -164,13 +161,12 @@ def test_overwrite_sample_to_detector(reference_dir):
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaSDD')
 
     # Get result files
-    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test3/')
-
+    # sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    # gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test3/')
     # Verify
     # verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='SampleDetectorDistance -> 14 meter',
-                             prefix='test3')
+    #                          title='SampleDetectorDistance -> 14 meter',
+    #                          prefix='test3')
 
 
 def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):

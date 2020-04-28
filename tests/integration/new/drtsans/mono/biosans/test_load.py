@@ -3,6 +3,7 @@ import os
 import json
 from mantid.simpleapi import mtd
 from drtsans.mono.biosans import load_all_files
+from drtsans.mono.biosans import validate_reduction_parameters
 from drtsans.geometry import sample_detector_distance
 
 
@@ -37,11 +38,16 @@ def test_load_all_files(reference_dir):
     # chekcing if output directory exists, if it doesn't, creates the folder
     reduction_input["configuration"]["outputDir"] = output_dir
 
-    reduction_input["runNumber"] = samples[0]
+    reduction_input["sample"]["runNumber"] = samples[0]
     reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
     reduction_input["background"]["runNumber"] = backgrounds[0]
     reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[0]
-    reduction_input["outputFilename"] = sample_names[0]
+    reduction_input["outputFileName"] = sample_names[0]
+    reduction_input["dataDirectories"] = nexus_dir
+
+
+    # convert
+    reduction_input = validate_reduction_parameters(reduction_input)
     load_all_files(reduction_input, path=nexus_dir, prefix='BioTestLoadAll')
 
     beam_center_run = mtd['BioTestLoadAll_CG3_1322_raw_histo']
@@ -103,7 +109,7 @@ def generate_test_json(sens_nxs_dir):
             "runNumber": "4822"
         }
      },
-     "outputFilename": "CG3_4822",
+     "outputFileName": "CG3_4822",
      "background": {
          "runNumber": "4821",
          "transmission": {
@@ -121,26 +127,18 @@ def generate_test_json(sens_nxs_dir):
          "sampleApertureSize": "14",
          "sourceApertureDiameter": "",
          "maskFileName": "",
-         "useMaskFileName": "False",
          "useDefaultMask": "True",
          "defaultMask": ["{'Pixel':'1-12,244-256'}", "{'Bank':'21-24,45-48'}"],
          "blockedBeamRunNumber": "",
-         "useDarkFileName": "True",
          "darkMainFileName": "CG3_1383.nxs",
          "darkWingFileName": "CG3_1383.nxs",
-         "useSensitivityFileName": "True",
          "sensitivityMainFileName": "AAA",
          "sensitivityWingFileName": "BBB",
-         "UseBarScan": "False",
-         "BarScanMainFileName": "",
-         "BarScanWingFileName": "",
          "absoluteScaleMethod": "standard",
          "DBScalingBeamRadius": "",
          "StandardAbsoluteScale": "0.0055e-8",
          "normalization": "Monitor",
          "sampleOffset": "",
-         "useSampleOffset": "False",
-         "useDetectorTubeType": "True",
          "useSolidAngleCorrection": "True",
          "useThetaDepTransCorrection": "True",
          "mmRadiusForTransmission": "",
@@ -148,7 +146,7 @@ def generate_test_json(sens_nxs_dir):
          "numWingQxQyBins": "100",
          "1DQbinType": "scalar",
          "QbinType": "log",
-         "LogQBinsEvenDecade": "False",
+         "useLogQBinsEvenDecade": "False",
          "LogQBinsPerDecadeMain": 20,
          "LogQBinsPerDecadeWing": 25,
          "WedgeMinAngles": "-30, 60",
@@ -156,8 +154,10 @@ def generate_test_json(sens_nxs_dir):
          "numMainQBins": "",
          "numWingQBins": "",
          "AnnularAngleBin": "1",
-         "Qmin": 0.003,
-         "Qmax": "",
+         "QminMain": 0.003,
+         "QminWing": 0.003,
+         "QmaxMain": "",
+         "QmaxWing": "",
          "useErrorWeighting": "False",
          "useMaskBackTubes": "False",
          "wavelength": "",
@@ -165,10 +165,10 @@ def generate_test_json(sens_nxs_dir):
          "overlapStitchQmin": "0.075",
          "overlapStitchQmax": "0.095",
          "useTimeSlice": "False",
-         "timesliceinterval": 200,
-         "logslicename": "",
+         "timeSliceInterval": 200,
+         "logSliceName": "",
          "useLogSlice": "False",
-         "logsliceinterval": "",
+         "logSliceInterval": "",
          "sampleToSi": "200.52",
          "sampleDetectorDistance": "14.31",
          "smearingPixelSizeX": "",

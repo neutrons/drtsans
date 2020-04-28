@@ -37,7 +37,7 @@ def test_load_all_files(reference_dir):
     reduction_input["configuration"]["outputDir"] = output_dir
 
     reduction_input["runNumber"] = samples[0]
-    reduction_input["transmission"]["runNumber"] = samples_trans[0]
+    reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
     reduction_input["background"]["runNumber"] = backgrounds[0]
     reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[0]
     reduction_input["outputFilename"] = sample_names[0]
@@ -112,7 +112,7 @@ def generate_test_json(sens_nxs_dir):
      "beamCenter": {
          "runNumber": "1322"
      },
-     "emptyTrans": {
+     "emptyTransmission": {
          "runNumber": "5705"
      },
      "configuration": {
@@ -122,9 +122,8 @@ def generate_test_json(sens_nxs_dir):
          "maskFileName": "",
          "useMaskFileName": False,
          "useDefaultMask": True,
-         "DefaultMask": ["{'Pixel':'1-12,244-256'}", "{'Bank':'21-24,45-48'}"],
-         "useBlockedBeam": False,
-         "BlockBeamFileName": "",
+         "defaultMask": [{'Pixel':'1-12,244-256'}, {'Bank':'21-24,45-48'}],
+         "blockedBeamRunNumber": "",
          "useDarkFileName": True,
          "darkMainFileName": "CG3_1383.nxs",
          "darkWingFileName": "CG3_1383.nxs",
@@ -156,21 +155,23 @@ def generate_test_json(sens_nxs_dir):
          "numMainQBins": "",
          "numWingQBins": "",
          "AnnularAngleBin": "1",
-         "Qmin": "0.003",
-         "Qmax": "",
+         "Qmin": 0.003,
+         "Qmax": None,
          "useErrorWeighting": False,
          "useMaskBackTubes": False,
-         "wavelength": "",
-         "wavelengthSpread": "",
+         "wavelength": None,
+         "wavelengthSpread": None,
          "overlapStitchQmin": "0.075",
          "overlapStitchQmax": "0.095",
-         "timeslice": False,
-         "timesliceinterval": "200",
+         "useTimeSlice": False,
+         "timesliceinterval": 200,
          "logslicename": "",
-         "logslice": False,
+         "useLogSlice": False,
          "logsliceinterval": "",
-         "SampleToSi": "200.52",
-         "SampleDetectorDistance": "14.31"
+         "sampleToSi": 200.52,
+         "sampleDetectorDistance": 14.31,
+         "smearingPixelSizeX": None,
+         "smearingPixelSizeY": None,
          }
      }
 

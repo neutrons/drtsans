@@ -22,7 +22,7 @@ if __name__ == '__main__':
             reduction_script = 'gpsans_reduction.py'
         elif instrument == 'CG3':
             reduction_script = 'biosans_reduction.py'
-        filename_string = json_parameters['outputFilename']
+        filename_string = json_parameters['outputFileName']
         output_folder = json_parameters['configuration']['outputDir']
         # Create target directory & all intermediate directories if don't exists
         if not os.path.exists(output_folder):

@@ -5,6 +5,9 @@ import subprocess
 from tempfile import NamedTemporaryFile
 import time
 
+from drtsans import scriptsdir
+from drtsans.tof.eqsans import reduction_parameters, update_reduction_parameters
+
 # this should point to the root directory of the code repository
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../../'))
 # specific output files for given basenames
@@ -53,13 +56,13 @@ def write_configfile(input_json_file, basename, tmpdir):
     '''
     Create a new json configuration file with a better place for the output files
     and a standardized basename
-
+def test_eqsans
     Parameters
     ----------
     input_json_file: str
         json file to modify. Expected to be in ``ROOT_DIR/scripts``
     basename: str
-        The value of ``outputFilename``. This makes it significantly easier to find the output files.
+        The value of ``outputFileName``. This makes it significantly easier to find the output files.
 
     Returns
     -------
@@ -81,8 +84,8 @@ def write_configfile(input_json_file, basename, tmpdir):
         json_params = json.load(handle)
 
     # get the cannonical runnumber name to standardize it
-    json_params['outputFilename'] = basename
-    print('Output basename set to "{}"'.format(json_params['outputFilename']))
+    json_params['outputFileName'] = basename
+    print('Output basename set to "{}"'.format(json_params['outputFileName']))
 
     # update the output directory
     json_params["configuration"]["outputDir"] = outputdir
@@ -94,14 +97,12 @@ def write_configfile(input_json_file, basename, tmpdir):
     return outputdir, output_json_file
 
 
-def run_reduction(pythonscript, json_file):
-    # determine python script with full path
-    scriptdir = os.path.join(os.path.abspath(os.path.curdir), 'scripts')
-    pythonscript = os.path.join(scriptdir, pythonscript)
-    assert os.path.exists(pythonscript), 'Could not find "{}"'.format(pythonscript)
+def run_reduction(python_script, json_file):
+    python_script = os.path.join(scriptsdir, python_script)
+    assert os.path.exists(python_script), 'Could not find "{}"'.format(python_script)
 
     # run the script
-    cmd = 'python3 {} {}'.format(pythonscript, json_file)
+    cmd = 'python3 {} {}'.format(python_script, json_file)
     print('Running "{}"'.format(cmd))
     start = time.clock()
     proc = subprocess.Popen(cmd,
@@ -114,7 +115,7 @@ def run_reduction(pythonscript, json_file):
     # the console without a special configuration of their logging
     returncode = proc.returncode
     assert returncode in [0, 42]
-    print(pythonscript, 'took', time.clock() - start, 'seconds')
+    print(python_script, 'took', time.clock() - start, 'seconds')
 
 
 def check_and_cleanup(outputdir, basename):
@@ -148,24 +149,75 @@ def check_for_required_files(filenames):
             pytest.skip('"{}" is not available'.format(filename))
 
 
-@pytest.mark.parametrize('configfile, basename, required',
-                         [('reduction.json', 'EQSANS_88980',
-                           ('/SNS/EQSANS/IPTS-19800/nexus/EQSANS_88980.nxs.h5', )),
-                          ('eqsans_reduction.json', 'EQSANS_112300',
-                           ('/SNS/EQSANS/IPTS-24769/nexus/EQSANS_112300.nxs.h5', ))],
+specs_eqsans = {
+    'EQSANS_88980': {
+        "iptsNumber": 19800,
+        "sample": {"runNumber": 88980, "thickness": 0.1, "transmission": {"runNumber": 88980}},
+        "background": {"runNumber": 88978, "transmission": {"runNumber": 88974}},
+        "beamCenter": {"runNumber": 88973},
+        "emptyTransmission": {"runNumber": 88973},
+        "configuration": {
+            "sampleApertureSize": 30,
+            "darkFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5",
+            "StandardAbsoluteScale": 0.0208641883,
+            "sampleOffset": 0,
+        }
+    },
+    'EQSANS_112300': {
+        "iptsNumber": 24769,
+        "sample": {"runNumber": 112300, "thickness": 1.0, "transmission": {"runNumber": 112297}},
+        "background": {"runNumber": 112299, "transmission": {"runNumber": 112296}},
+        "beamCenter": {"runNumber": 112295},
+        "emptyTransmission": {"runNumber": 112295},
+        "configuration": {
+            "sampleApertureSize": 10,
+            "darkFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2019B_mp/EQSANS_108764.nxs.h5",
+            "StandardAbsoluteScale": 1,
+            "sampleOffset": 314.5,
+        }
+    }
+}
+
+
+@pytest.mark.parametrize('run_config, basename',
+                         [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980'),
+                          (specs_eqsans['EQSANS_112300'], 'EQSANS_112300')],
                          ids=['88980', '112300'])
-def test_eqsans(configfile, basename, required, tmpdir):
-    check_for_required_files(required)
+def test_eqsans(run_config, basename, tmpdir):
+    common_config = {
+        "configuration": {
+            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
+            "useDefaultMask": True,
+            "normalization": "Total charge",
+            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+            "absoluteScaleMethod": "standard",
+            "detectorOffset": 0,
+            "mmRadiusForTransmission": 25,
+            "numQxQyBins": 80,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 120,
+            "AnnularAngleBin": 5,
+            "useTOFcuts": False,
+            "wavelengthStepType": "constant Delta lambda",
+            "wavelengthStep": 0.1,
+        }
+    }
+    input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
+    input_config = update_reduction_parameters(input_config, run_config, validate=False)
+    output_dir = str(tmpdir)
+    amendments = {
+        'outputFileName': basename,
+        'configuration': {'outputDir': output_dir}
+    }
+    input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
 
-    # modify the config file and get the output directory and the full path to the new configuration file
-    outputdir, json_file = write_configfile(configfile, basename, tmpdir)
+    json_file = NamedTemporaryFile(suffix='.json', delete=False).name
+    with open(json_file, 'w') as handle:
+        json.dump(input_config, handle)
     run_reduction('eqsans_reduction.py', json_file)
-
-    check_and_cleanup(outputdir, basename)
-
-    # delete the modified configuration file
-    if os.path.isfile(json_file):
-        os.remove(json_file)
+    check_and_cleanup(output_dir, basename)
 
 
 @pytest.mark.parametrize('configfile, basename, required',

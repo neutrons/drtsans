@@ -42,24 +42,16 @@ def setup_configuration(json_params, instrument):
         config['dark_current'] = json_params['configuration']['darkFileName']
 
     # Sensitivity
-    if json_params['configuration']['useSensitivityFileName']:
+    if json_params['configuration']['sensitivityFileName'] is not None:
         config['sensitivity_file_path'] = json_params['configuration']['sensitivityFileName']
 
     # Normalization
     config['flux_method'] = json_params['configuration']['normalization'].lower()
+    offset = json_params['configuration']['sampleOffset']
+    config['sample_offset'] = 0.0 if offset is None else offset
 
-    # Offsets
-    if json_params['configuration']['useSampleOffset']:
-        try:
-            config['sample_offset'] = float(json_params['configuration']['sampleOffset'])
-        except ValueError:
-            config['sample_offset'] = 0.
-
-    if json_params['configuration']['useDetectorOffset']:
-        try:
-            config['detector_offset'] = float(json_params['configuration']['detectorOffset'])
-        except ValueError:
-            config['detector_offset'] = 0.
+    if json_params['configuration']['detectorOffset'] is None:
+        config['detector_offset'] = 0.
 
     # Solid angle
     config['solid_angle'] = json_params['configuration']['useSolidAngleCorrection']
@@ -74,7 +66,7 @@ def setup_configuration(json_params, instrument):
         for d in default_mask:
             msapi.MaskBTP(Workspace=w, **d)
         config["mask"] = msapi.ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
-    elif json_params['configuration']['useMaskFileName']:
+    elif json_params['configuration']['maskFileName'] is not None:
         config["mask"] = json_params['configuration']["maskFileName"]
 
     if json_params['configuration']["useMaskBackTubes"]:

@@ -1,4 +1,5 @@
 # flake8: noqa
+from pathlib import Path
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
@@ -26,3 +27,8 @@ __all__ = ['convert_to_q', 'solid_angle_correction'] \
           + thickness_normalization.__all__ \
           + resolution.__all__ \
           + sensitivity.__all__
+
+# directory where to put non-source
+configdir = str(Path(__file__).parent / 'configuration')
+scriptsdir = str(Path(__file__).parent.parent / 'scripts')
+

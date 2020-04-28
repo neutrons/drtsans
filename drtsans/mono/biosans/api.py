@@ -1,10 +1,9 @@
 """ BIOSANS API """
+from collections import namedtuple
 import copy
 from datetime import datetime
-import os
 import numpy as np
-import ast
-from collections import namedtuple
+import os
 
 from mantid.simpleapi import mtd, MaskDetectors
 
@@ -62,104 +61,59 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     -------
 
     """
-    instrument_name = reduction_input["instrumentName"]
-    ipts = reduction_input["iptsNumber"]
-    sample = reduction_input["runNumber"]
-    sample_trans = reduction_input["transmission"]["runNumber"]
-    bkgd = reduction_input["background"]["runNumber"]
-    bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
-    empty = reduction_input["emptyTrans"]["runNumber"]
-    center = reduction_input["beamCenter"]["runNumber"]
-    if reduction_input["configuration"]["useBlockedBeam"]:
-        blocked_beam = reduction_input["configuration"]["BlockBeamRunNumber"]
-    else:
-        blocked_beam = None
+    reduction_config = reduction_input['configuration']  # a handy shorcut to the configuration parameters dictionary
+
+    instrument_name = reduction_input['instrumentName']
+    ipts = reduction_input['iptsNumber']
+    sample = reduction_input['sample']['runNumber']
+    sample_trans = reduction_input['sample']['transmission']['runNumber']
+    bkgd = reduction_input['background']['runNumber']
+    bkgd_trans = reduction_input['background']['transmission']['runNumber']
+    empty = reduction_input['emptyTransmission']['runNumber']
+    center = reduction_input['beamCenter']['runNumber']
+    blocked_beam = reduction_config['blockedBeamRunNumber']
 
     # sample offsets, etc
     if load_params is None:
         load_params = {}
 
-    # Parse wave length and wave length spread
-    try:
-        wavelength = float(reduction_input["configuration"]["wavelength"])
-        wavelength_spread_user = float(reduction_input["configuration"]["wavelengthSpread"])
-    except ValueError:
-        wavelength = wavelength_spread_user = None
+    wavelength = reduction_config["wavelength"]
+    wavelength_spread_user = reduction_config["wavelengthSpread"]
 
-    if reduction_input["configuration"]["useDefaultMask"]:
-        default_mask = [ast.literal_eval(mask_par) for mask_par in reduction_input["configuration"]["DefaultMask"]]
-    else:
-        default_mask = []
+    if reduction_config["useDefaultMask"]:
+        # reduction_config["defaultMask"] is a list of python dictionaries
+        default_mask = reduction_config["defaultMask"] if reduction_config["defaultMask"] is not None else []
 
     # check for time/log slicing
-    timeslice = reduction_input["configuration"].get("timeslice")
-    logslice = reduction_input["configuration"].get("logslice")
-
-    if timeslice and logslice:
-        raise ValueError("Can't do both time slicing and log slicing")
-
+    timeslice = reduction_config["useTimeSlice"]
+    logslice = reduction_config["useLogSlice"]
     if timeslice or logslice:
         if len(sample.split(',')) > 1:
             raise ValueError("Can't do slicing on summed data sets")
 
-    # sample thickness
-    try:
-        # thickness is written to sample log if it is defined...
-        # FIXME - thickness is used in reduce_configuration... - shall these 2 places more unified?
-        thickness = float(reduction_input['thickness'])
-    except ValueError:
-        thickness = None
+    # thickness is written to sample log if it is defined...
+    # FIXME - thickness is used in reduce_configuration... - shall these 2 places more unified?
+    thickness = reduction_input['sample']['thickness']
+    sample_aperture_diameter = reduction_config['sampleApertureSize']  # in milimiters
+    source_aperture_diameter = reduction_config['sourceApertureDiameter']  # in milimiters
 
-    # sample aperture diameter in mm
-    try:
-        sample_aperture_diameter = float(reduction_input['configuration']['sampleApertureSize'])
-    except ValueError:
-        sample_aperture_diameter = None
-    except KeyError:
-        raise KeyError('Please add "sampleApertureSize" under top-level section in JSON file')
-
-    # source aperture diameter in mm
-    try:
-        source_aperture_diameter = float(reduction_input['configuration']['sourceApertureDiameter'])
-    except ValueError:
-        source_aperture_diameter = None
-    except KeyError:
-        raise KeyError('Please add "sourceApertureDiameter" under top-level section in JSON file')
-
-    # Pixel size: both X (width) and Y (height) shall be specified
-    # Input is supposed to be millimeter (as instrument scientists)
-    # Convert to meter as drt-sans standard
-    try:
-        smearing_pixel_size_x = float(reduction_input["configuration"]["smearingPixelSizeX"]) * 1E-3
-        smearing_pixel_size_y = float(reduction_input["configuration"]["smearingPixelSizeY"]) * 1E-3
-    except (KeyError, ValueError):
-        smearing_pixel_size_x = smearing_pixel_size_y = None
-
-    # print(">>>>>>> reduction_input")
-    # print(reduction_input)
+    smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
+    smearing_pixel_size_y = reduction_config["smearingPixelSizeY"]
+    if smearing_pixel_size_x is not None:
+        smearing_pixel_size_x *= 1E-3  # from milimeters to meters
+        smearing_pixel_size_y *= 1E-3
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
 
     # Retrieve parameters for overwriting geometry related meta data
-    # try:
-    #     # load configuration.SampleToSi (in millimeter) and convert to meter
-    #     overwrite_swd = float(reduction_input['configuration'].get('SampleToSi', 0.)) * 1E-3
-    # except ValueError:
-    #     overwrite_swd = None
-    # try:
-    #     # load configuration.SampleDetectorDistance (in meter)
-    #     overwrite_sdd = float(reduction_input['configuration'].get('SampleDetectorDistance', 0.))
-    # except ValueError:
-    #     overwrite_sdd = None
-    # Sample to Si-window distance
-    swd_value_dict = parse_json_meta_data(reduction_input, 'SampleToSi', 1E-3,
+    swd_value_dict = parse_json_meta_data(reduction_input, 'sampleToSi', 1E-3,
                                           beam_center_run=True, background_run=True,
                                           empty_transmission_run=True,
                                           transmission_run=True, background_transmission=True,
                                           block_beam_run=True, dark_current_run=False)
     # Sample to detector distance
-    sdd_value_dict = parse_json_meta_data(reduction_input, 'SampleDetectorDistance', 1.,
+    sdd_value_dict = parse_json_meta_data(reduction_input, 'sampleDetectorDistance', 1.,
                                           beam_center_run=True, background_run=True,
                                           empty_transmission_run=True, transmission_run=True,
                                           background_transmission=True,
@@ -171,13 +125,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             print(f"Loading filename {filename}")
             if timeslice:
-                timesliceinterval = float(reduction_input["configuration"]["timesliceinterval"])
-                logslicename = None
-                logsliceinterval = None
+                timesliceinterval = float(reduction_config["timesliceinterval"])
+                logslicename = logsliceinterval = None
             elif logslice:
                 timesliceinterval = None
-                logslicename = reduction_input["configuration"]["logslicename"]
-                logsliceinterval = float(reduction_input["configuration"]["logsliceinterval"])
+                logslicename = reduction_config["logslicename"]
+                logsliceinterval = reduction_config["logsliceinterval"]
             biosans.load_and_split(filename, output_workspace=ws_name,
                                    time_interval=timesliceinterval,
                                    log_name=logslicename, log_value_interval=logsliceinterval,
@@ -203,7 +156,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
 
-            if not (logslicename is None):
+            if logslicename is not None:
                 for n in range(mtd[ws_name].getNumberOfEntries()):
                     samplelogs = SampleLogs(mtd[ws_name].getItem(n))
                     logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
@@ -270,14 +223,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
-    # do the same for dark current if exists
-    dark_current_main = None
-    dark_current_wing = None
-    if reduction_input["configuration"]["useDarkFileName"]:
-        dark_current_file_main = reduction_input["configuration"]["darkMainFileName"]
-        dark_current_file_wing = reduction_input["configuration"]["darkWingFileName"]
+        dark_current_file_main = reduction_config["darkMainFileName"]
+        dark_current_file_wing = reduction_config["darkWingFileName"]
         if dark_current_file_main and dark_current_file_wing:
-
             # dark current for main detector
             dark_current_main = dark_current_correction(dark_current_file_main,
                                                         default_mask,
@@ -307,29 +255,27 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # load required processed_files
     sensitivity_main_ws_name = None
     sensitivity_wing_ws_name = None
-    if reduction_input["configuration"]["useSensitivityFileName"]:
-        flood_file_main = reduction_input["configuration"]["sensitivityMainFileName"]
-        flood_file_wing = reduction_input["configuration"]["sensitivityWingFileName"]
-        if flood_file_main and flood_file_wing:
-            sensitivity_main_ws_name = f'{prefix}_main_sensitivity'
-            sensitivity_wing_ws_name = f'{prefix}_wing_sensitivity'
-            if not registered_workspace(sensitivity_main_ws_name):
-                print(f"Loading filename {flood_file_main}")
-                load_sensitivity_workspace(flood_file_main, output_workspace=sensitivity_main_ws_name)
-            if not registered_workspace(sensitivity_wing_ws_name):
-                print(f"Loading filename {flood_file_wing}")
-                load_sensitivity_workspace(flood_file_wing, output_workspace=sensitivity_wing_ws_name)
+    flood_file_main = reduction_config["sensitivityMainFileName"]
+    flood_file_wing = reduction_config["sensitivityWingFileName"]
+    if flood_file_main and flood_file_wing:
+        sensitivity_main_ws_name = f'{prefix}_main_sensitivity'
+        sensitivity_wing_ws_name = f'{prefix}_wing_sensitivity'
+        if not registered_workspace(sensitivity_main_ws_name):
+            print(f"Loading filename {flood_file_main}")
+            load_sensitivity_workspace(flood_file_main, output_workspace=sensitivity_main_ws_name)
+        if not registered_workspace(sensitivity_wing_ws_name):
+            print(f"Loading filename {flood_file_wing}")
+            load_sensitivity_workspace(flood_file_wing, output_workspace=sensitivity_wing_ws_name)
 
     mask_ws = None
-    if reduction_input["configuration"]["useMaskFileName"]:
-        custom_mask_file = reduction_input["configuration"]["maskFileName"]
-        if custom_mask_file:
-            mask_ws_name = f'{prefix}_mask'
-            if not registered_workspace(mask_ws_name):
-                print(f"Loading filename {custom_mask_file}")
-                mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
-            else:
-                mask_ws = mtd[mask_ws_name]
+    custom_mask_file = reduction_input["configuration"]["maskFileName"]
+    if custom_mask_file is not None:
+        mask_ws_name = f'{prefix}_mask'
+        if not registered_workspace(mask_ws_name):
+            print(f"Loading filename {custom_mask_file}")
+            mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
+        else:
+            mask_ws = mtd[mask_ws_name]
     print('Done loading')
 
     if registered_workspace(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'):
@@ -395,7 +341,6 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
         temp_name = abspath(run_number, instrument=instrument_name, ipts=ipts, directory=path)
         if os.path.exists(temp_name):
             dark_current_file = temp_name
-        # FIXME - whether dark current will be have sample/detector position related meta data overwritten???
         biosans.load_events_and_histogram(dark_current_file,
                                           output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
@@ -721,11 +666,12 @@ def process_single_configuration(sample_ws_raw,
 
 
 def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):
-    output_dir = reduction_input["configuration"]["outputDir"]
-    outputFilename = reduction_input["outputFilename"]
+    reduction_config = reduction_input['configuration']
+    output_dir = reduction_config["outputDir"]
+    outputFilename = reduction_input["outputFileName"]
     output_suffix = ''
 
-    bin1d_type = reduction_input["configuration"]["1DQbinType"]
+    bin1d_type = reduction_config["1DQbinType"]
 
     if imshow_kwargs is None:
         imshow_kwargs = {}
@@ -733,30 +679,24 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
         if len(reduction_output) > 1:
             output_suffix = f'_{i}'
 
-        wedges = reduction_input["configuration"]["wedges"] if bin1d_type == 'wedge' else None
-        symmetric_wedges = reduction_input["configuration"].get("symmetric_wedges", True)
+        wedges = reduction_config["wedges"] if bin1d_type == 'wedge' else None
+        symmetric_wedges = reduction_config.get("symmetric_wedges", True)
 
-        qmin = qmax = None
-        if bin1d_type == 'wedge' or bin1d_type == 'annular':
-            try:
-                qmin = float(reduction_input["configuration"]["Qmin"])
-            except ValueError:
-                pass
-            try:
-                qmax = float(reduction_input["configuration"]["Qmax"])
-            except ValueError:
-                pass
+        qmin_main = reduction_config["QminMain"]
+        qmax_main = reduction_config["QmaxMain"]
+        qmin_wing = reduction_config["QminWing"]
+        qmax_wing = reduction_config["QmaxWing"]
 
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.png')
         plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Main',
                          wedges=wedges, symmetric_wedges=symmetric_wedges,
-                         qmin=qmin, qmax=qmax)
+                         qmin=qmin_main, qmax=qmax_main)
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.png')
         plot_IQazimuthal(out.I2D_wing, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Wing',
                          wedges=wedges, symmetric_wedges=symmetric_wedges,
-                         qmin=qmin, qmax=qmax)
+                         qmin=qmin_wing, qmax=qmax_wing)
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -771,110 +711,65 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
 
 
 def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
-    flux_method = reduction_input["configuration"]["normalization"]
-    try:
-        transmission_radius = float(reduction_input["configuration"]["mmRadiusForTransmission"])
-    except ValueError:
-        transmission_radius = None
-    solid_angle = reduction_input["configuration"]["useSolidAngleCorrection"]
-    sample_trans_value = reduction_input["transmission"]["value"]
+    reduction_config = reduction_input["configuration"]
+
+    flux_method = reduction_config["normalization"]
+    transmission_radius = reduction_config["mmRadiusForTransmission"]
+    solid_angle = reduction_config["useSolidAngleCorrection"]
+    sample_trans_value = reduction_input["sample"]["transmission"]["value"]
     bkg_trans_value = reduction_input["background"]["transmission"]["value"]
-    theta_deppendent_transmission = reduction_input["configuration"]["useThetaDepTransCorrection"]
+    theta_deppendent_transmission = reduction_config["useThetaDepTransCorrection"]
     mask_panel = None
-    if reduction_input["configuration"]["useMaskBackTubes"]:
+    if reduction_config["useMaskBackTubes"] is True:
         mask_panel = 'back'
     output_suffix = ''
-    try:
-        # thickness is written to sample log if it is defined...
-        thickness = float(reduction_input['thickness'])
-    except ValueError:
-        thickness = 1.
-    absolute_scale_method = reduction_input["configuration"]["absoluteScaleMethod"]
-    try:
-        beam_radius = float(reduction_input["configuration"]["DBScalingBeamRadius"])
-    except ValueError:
-        beam_radius = None
-    try:
-        absolute_scale = float(reduction_input["configuration"]["StandardAbsoluteScale"])
-    except ValueError:
-        absolute_scale = 1.
+    thickness = reduction_input['sample']['thickness']  # default thickness set in BIOSANS.json schema
+    absolute_scale_method = reduction_config["absoluteScaleMethod"]  # FIXME default value in the schemay may be wrong
+    beam_radius = reduction_config["DBScalingBeamRadius"]  # FIXME missing keyword in the schema
+    absolute_scale = reduction_config["StandardAbsoluteScale"]
+    output_dir = reduction_config["outputDir"]
 
-    output_dir = reduction_input["configuration"]["outputDir"]
+    nxbins_main = reduction_config["numMainQxQyBins"]
+    nybins_main = nxbins_main
+    nxbins_wing = reduction_config["numWingQxQyBins"]
+    nybins_wing = nxbins_wing
 
-    nxbins_main = int(reduction_input["configuration"]["numMainQxQyBins"])
-    nybins_main = int(nxbins_main)
-    nxbins_wing = int(reduction_input["configuration"]["numWingQxQyBins"])
-    nybins_wing = int(nxbins_wing)
-    bin1d_type = reduction_input["configuration"]["1DQbinType"]
-    log_binning = reduction_input["configuration"]["QbinType"] == 'log'
-    even_decades = reduction_input["configuration"].get("LogQBinsEvenDecade", False)
-    decade_on_center = reduction_input["configuration"].get("LogQBinsDecadeCenter", False)
-    try:
-        nbins_main = int(reduction_input["configuration"].get("numMainQBins"))
-    except (ValueError, KeyError, TypeError):
-        nbins_main = None
-    try:
-        nbins_main_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecadeMain"))
-    except (ValueError, KeyError, TypeError):
-        nbins_main_per_decade = None
-    try:
-        nbins_wing = int(reduction_input["configuration"].get("numWingQBins"))
-    except (ValueError, KeyError, TypeError):
-        nbins_wing = None
-    try:
-        nbins_wing_per_decade = int(reduction_input["configuration"].get("LogQBinsPerDecadeWing"))
-    except (ValueError, KeyError, TypeError):
-        nbins_wing_per_decade = None
-    outputFilename = reduction_input["outputFilename"]
-    weighted_errors = reduction_input["configuration"]["useErrorWeighting"]
-    try:
-        qmin = float(reduction_input["configuration"]["Qmin"])
-    except ValueError:
-        qmin = None
-    try:
-        qmax = float(reduction_input["configuration"]["Qmax"])
-    except ValueError:
-        qmax = None
-    try:
-        annular_bin = float(reduction_input["configuration"]["AnnularAngleBin"])
-    except ValueError:
-        annular_bin = 1.
-    wedges_min = np.fromstring(reduction_input["configuration"]["WedgeMinAngles"], sep=',')
-    wedges_max = np.fromstring(reduction_input["configuration"]["WedgeMaxAngles"], sep=',')
-    if len(wedges_min) != len(wedges_max):
-        raise ValueError("The lengths of WedgeMinAngles and WedgeMaxAngles must be the same")
+    bin1d_type = reduction_config["1DQbinType"]
+    log_binning = (reduction_config["QbinType"] == 'log')
+    even_decades = reduction_config["useLogQBinsEvenDecade"]  # default set in the schema
+    decade_on_center = reduction_config["useLogQBinsDecadeCenter"]  # default set in the schema
 
-    OLT_Qmin = np.fromstring(reduction_input["configuration"]["overlapStitchQmin"], sep=',')
-    if len(OLT_Qmin) > 1 and len(OLT_Qmin) != len(wedges_min):
-        raise ValueError("The length of overlapStitchQmin must be 1 or the same length as "
-                         "WedgeMinAngles and WedgeMaxAngles")
-    OLT_Qmax = np.fromstring(reduction_input["configuration"]["overlapStitchQmax"], sep=',')
-    if len(OLT_Qmax) > 1 and len(OLT_Qmax) != len(wedges_min):
-        raise ValueError("The length of overlapStitchQmax must be 1 or the same length as "
-                         "WedgeMinAngles and WedgeMaxAngles")
+    nbins_main = reduction_config["numMainQBins"]
+    nbins_main_per_decade = reduction_config["LogQBinsPerDecadeMain"]
+    nbins_wing = reduction_config["numWingQBins"]
+    nbins_wing_per_decade = reduction_config["LogQBinsPerDecadeWing"]
 
-    wedges = list(zip(wedges_min, wedges_max))
+    outputFilename = reduction_input["outputFileName"]
+    weighted_errors = reduction_config["useErrorWeighting"]
+    qmin_main = reduction_config["QminMain"]
+    qmax_main = reduction_config["QmaxMain"]
+    qmin_wing = reduction_config["QminWing"]
+    qmax_wing = reduction_config["QmaxWing"]
+    annular_bin = reduction_config["AnnularAngleBin"]
+
+    wedges_min = reduction_config["WedgeMinAngles"]
+    wedges_max = reduction_config["WedgeMaxAngles"]
+    wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
 
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
     symmetric_wedges = True
-    if bin1d_type == 'wedge':
-        if wedges_min.size == 0:
-            try:
-                autoWedgeOpts = {'q_min': float(reduction_input['configuration']['autoWedgeQmin']),
-                                 'q_delta': float(reduction_input['configuration']['autoWedgeQdelta']),
-                                 'q_max': float(reduction_input['configuration']['autoWedgeQmax']),
-                                 'azimuthal_delta': float(reduction_input['configuration']['autoWedgeAzimuthalDelta']),
-                                 'peak_width': float(reduction_input['configuration'].get('autoWedgePeakWidth', 0.25)),
-                                 'background_width': float(reduction_input['configuration']
-                                                           .get('autoWedgeBackgroundWidth', 1.5)),
-                                 'signal_to_noise_min': float(reduction_input['configuration']
-                                                              .get('autoSignalToNoiseMin', 2.))}
-                # auto-aniso returns all of the wedges
-                symmetric_wedges = False
-            except (KeyError, ValueError) as e:
-                raise RuntimeError('Selected 1DQbinType="wedge", must either specify wedge angles or parameters '
-                                   'for automatically determining them') from e
+    if bin1d_type == 'wedge' and wedges_min is None:
+        # the JSON validator "wedgesources" guarantees that the parameters to be collected are all non-empty
+        autoWedgeOpts = {'q_min': reduction_config['autoWedgeQmin'],
+                         'q_delta': reduction_config['autoWedgeQdelta'],
+                         'q_max': reduction_config['autoWedgeQmax'],
+                         'azimuthal_delta': reduction_config['autoWedgeAzimuthalDelta'],
+                         'peak_width': reduction_config['autoWedgePeakWidth'],
+                         'background_width': reduction_config['autoWedgeBackgroundWidth'],
+                         'signal_to_noise_min': reduction_config['autoSignalToNoiseMin']}
+        # auto-aniso returns all of the wedges
+        symmetric_wedges = False
 
     xc, yc, yw = biosans.find_beam_center(loaded_ws.center)
     print("Center  =", xc, yc, yw)
@@ -998,14 +893,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
             del peak_wedge, back_wedge
 
         # set the found wedge values to the reduction input, this will allow correct plotting
-        reduction_input["configuration"]["wedges"] = wedges
-        reduction_input["configuration"]["symmetric_wedges"] = symmetric_wedges
+        reduction_config["wedges"] = wedges
+        reduction_config["symmetric_wedges"] = symmetric_wedges
 
         iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main,
                                                n1dbins=nbins_main, n1dbins_per_decade=nbins_main_per_decade,
                                                decade_on_center=decade_on_center,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
-                                               even_decade=even_decades, qmin=qmin, qmax=qmax,
+                                               even_decade=even_decades, qmin=qmin_main, qmax=qmax_main,
                                                annular_angle_bin=annular_bin, wedges=wedges,
                                                symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
@@ -1015,7 +910,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                n1dbins=nbins_wing, n1dbins_per_decade=nbins_wing_per_decade,
                                                decade_on_center=decade_on_center,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
-                                               even_decade=even_decades, qmin=qmin, qmax=qmax,
+                                               even_decade=even_decades, qmin=qmin_wing, qmax=qmax_wing,
                                                annular_angle_bin=annular_bin, wedges=wedges,
                                                symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
@@ -1026,18 +921,24 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.dat')
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
 
-        try:
-            OLT_Qmin = [float(v) for v in str(reduction_input["configuration"]["overlapStitchQmin"]).split(',')]
-            if len(OLT_Qmin) == 1:
-                OLT_Qmin = np.repeat(OLT_Qmin, len(iq1d_main_out))
-        except ValueError:
-            OLT_Qmin = np.repeat(iq1d_wing_in.mod_q.min(), len(iq1d_main_out))
-        try:
-            OLT_Qmax = [float(v) for v in str(reduction_input["configuration"]["overlapStitchQmax"]).split(',')]
-            if len(OLT_Qmax) == 1:
-                OLT_Qmax = np.repeat(OLT_Qmax, len(iq1d_main_out))
-        except ValueError:
-            OLT_Qmax = np.repeat(iq1d_main_in.mod_q.max(), len(iq1d_main_out))
+        def olt_q_boundary(boundary):
+            r"""Initialize the stitching boundaries when a list of boundaries has not been specified
+            boundary: str; Either 'min' or 'max'
+            Returns: list
+            """
+            if boundary not in ('min', 'max'):
+                raise ValueError('Only "min" or "max" are valid arguments')
+            olt_q = reduction_config[f'overlapStitchQ{boundary}']  # guaranteed `None` or `list`
+            if olt_q is None:
+                extremum_function = getattr(iq1d_wing_in.mod_q, boundary)  # either min() or max() method
+                return np.repeat(extremum_function(), len(iq1d_main_out))
+            elif len(olt_q) == 1:
+                return np.repeat(olt_q[0], len(iq1d_main_out))
+            else:
+                return np.array(olt_q)
+
+        OLT_Qmin = olt_q_boundary('min')
+        OLT_Qmax = olt_q_boundary('max')
 
         iq1d_combined_out = []
         for j in range(len(iq1d_main_out)):
@@ -1061,6 +962,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                 save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq_output_both)
             except ZeroDivisionError:
                 iq_output_both = IQmod(intensity=[], error=[], mod_q=[])
+
             iq1d_combined_out.append(iq_output_both)
         IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I2D_wing', 'I1D_main', 'I1D_wing', 'I1D_combined'])
         current_output = IofQ_output(I2D_main=iq2d_main_out,
@@ -1087,25 +989,21 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     # save reduction log
 
-    filename = os.path.join(reduction_input["configuration"]["outputDir"],
-                            outputFilename + f'_reduction_log{output_suffix}.hdf')
+    filename = os.path.join(reduction_config["outputDir"], outputFilename + f'_reduction_log{output_suffix}.hdf')
     starttime = datetime.now().isoformat()
     # try:
     #     pythonfile = __file__
     # except NameError:
     #     pythonfile = "Launched from notebook"
     reductionparams = {'data': copy.deepcopy(reduction_input)}
-    specialparameters = {'beam_center': {'x': xc,
-                                         'y': yc,
-                                         'y_wing': yw},
+    specialparameters = {'beam_center': {'x': xc, 'y': yc, 'y_wing': yw},
                          'sample_transmission': {'main': trans_main['sample'],
                                                  'wing': trans_wing['sample']},
                          'background_transmission': {'main': trans_main['background'],
                                                      'wing': trans_wing['background']}
                          }
 
-    samplelogs = {'main': SampleLogs(processed_data_main),
-                  'wing': SampleLogs(processed_data_wing)}
+    samplelogs = {'main': SampleLogs(processed_data_main), 'wing': SampleLogs(processed_data_wing)}
     logslice_data_dict = reduction_input['logslice_data']
 
     savereductionlog(filename=filename,
@@ -1119,9 +1017,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                      )
 
     # change permissions to all files to allow overwrite
-    allow_overwrite(reduction_input["configuration"]["outputDir"])
-    allow_overwrite(os.path.join(reduction_input["configuration"]["outputDir"], '1D'))
-    allow_overwrite(os.path.join(reduction_input["configuration"]["outputDir"], '2D'))
+    allow_overwrite(reduction_config["outputDir"])
+    allow_overwrite(os.path.join(reduction_config["outputDir"], '1D'))
+    allow_overwrite(os.path.join(reduction_config["outputDir"], '2D'))
 
     return output
 

@@ -1,82 +1,71 @@
 {
   "schemaStamp": "2020-04-15T21:09:52.745905",
   "instrumentName": "EQSANS",
-  "iptsNumber": 24769,
+  "iptsNumber": null,
   "sample": {
-    "runNumber": 112300,
+    "runNumber": null,
     "thickness": 1.0,
     "transmission": {
-      "runNumber": 112297,
+      "runNumber": null,
       "value": null
     }
   },
   "background": {
-    "runNumber": 112299,
+    "runNumber": null,
     "transmission": {
-      "runNumber": 112296,
+      "runNumber": null,
       "value": null
     }
   },
   "emptyTransmission": {
-    "runNumber": 112295,
+    "runNumber": null,
     "value": null
   },
   "beamCenter": {
-    "runNumber": 112295
+    "runNumber": null
   },
-  "outputFileName": "EQSANS_112300",
+  "outputFileName": null,
   "configuration": {
-    "outputDir": "/tmp/shared/shaman/",
-
+    "outputDir": null,
     "useTimeSlice": false,
-    "timeSliceInterval": 300,
+    "timeSliceInterval": null,
     "useLogSlice": false,
     "logSliceName": null,
-    "logSliceInterval": 10,
-
-
-    "useTOFcuts": false,
+    "logSliceInterval": null,
+    "useTOFcuts": true,
     "cutTOFmin": 500.0,
     "cutTOFmax": 1500.0,
-
     "wavelengthStep": 0.1,
     "wavelengthStepType": "constant Delta lambda",
-
-    "sampleOffset": "314.5",
-    "useDetectorOffset": true,
-    "detectorOffset": "0",
-    "sampleApertureSize": 10,
+    "sampleOffset": null,
+    "useDetectorOffset": null,
+    "detectorOffset": null,
+    "sampleApertureSize": null,
     "sourceApertureDiameter": null,
-
     "usePixelCalibration": null,
-
     "maskFileName": null,
     "useDefaultMask": null,
     "defaultMask": null,
     "useMaskBackTubes": null,
-
     "darkFileName": null,
     "normalization": null,
     "fluxMonitorRatioFile": null,
     "beamFluxFileName": null,
     "sensitivityFileName": null,
-    "useSolidAngleCorrection": true,
+    "useSolidAngleCorrection": null,
     "useThetaDepTransCorrection": true,
     "mmRadiusForTransmission": 25,
-
     "absoluteScaleMethod": null,
     "StandardAbsoluteScale": 1.0,
-
-    "numQxQyBins": 80,
-    "1DQbinType": "scalar",
-    "QbinType": "linear",
-    "numQBins": 120,
+    "numQxQyBins": null,
+    "1DQbinType": null,
+    "QbinType": null,
+    "numQBins": null,
     "LogQBinsPerDecade": null,
     "useLogQBinsDecadeCenter": false,
     "useLogQBinsEvenDecade": false,
-
-    "WedgeMinAngles": "-30, 60",
-    "WedgeMaxAngles": "30, 120",
+    "WedgeMinAngles": null,
+    "WedgeMaxAngles": null,
     "autoWedgeQmin": null,
     "autoWedgeQmax": null,
     "autoWedgeQdelta": null,
@@ -84,18 +73,15 @@
     "autoWedgePeakWidth": null,
     "autoWedgeBackgroundWidth": null,
     "autoWedgeSignalToNoiseMin": null,
-    "AnnularAngleBin": 5.0,
-
+    "AnnularAngleBin": 1.0,
     "Qmin": null,
     "Qmax": null,
     "useErrorWeighting": null,
     "smearingPixelSizeX": null,
     "smearingPixelSizeY": null,
-
     "useSubpixels": null,
     "subpixelsX": null,
     "subpixelsY": null,
-
     "useSliceIDxAsSuffix": null
   }
 }

@@ -573,7 +573,11 @@ class ReductionParameters:
             parameters = self._parameters
         # We need list() in order to capture the initial state of parameter values
         for name, parameter_value in list(parameters.items()):
-            schema_value = schema['properties'][name]  # schema dictionary associated to parameter_value
+            try:
+                schema_value = schema['properties'][name]  # schema dictionary associated to parameter_value
+            except KeyError as key_err:
+                errmsg = 'Available properties: {}'.format(schema['properties'].keys())
+                raise KeyError(errmsg + '.  ' + str(key_err))
             if isinstance(parameter_value, dict) is True:
                 # recursive call for nested dictionaries. We pass references to the child dictionaries
                 # for the schema and the reduction parameters

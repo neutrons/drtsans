@@ -1,5 +1,6 @@
 import pytest
 import os
+import json
 from mantid.simpleapi import mtd
 from drtsans.mono.biosans import load_all_files
 from drtsans.geometry import sample_detector_distance
@@ -17,14 +18,14 @@ def test_load_all_files(reference_dir):
     -------
 
     """
+    # Create JSON
+    json_str = generate_test_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'))
+    # Load JSON for configuration
+    reduction_input = json.loads(json_str)
+
     # Set output and inputs
     output_dir = '/tmp/test_bio_load/'
     nexus_dir = reference_dir.new.biosans
-
-    # Create JSON
-    reduction_input = generate_test_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold'))
-    # Load JSON for configuration
-    # reduction_input = json.loads(json_str)
 
     # Set up (testing) runs
     sample_names = ['csmb_ecoli1h_n2']
@@ -89,24 +90,24 @@ def generate_test_json(sens_nxs_dir):
 
     """
     # Sensitivity files
-    main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
-    wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
+    # main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
+    # wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
 
-    specs = {
+    specs = """{
      "instrumentName": "CG3",
      "iptsNumber": "24740",
      "sample": {
         "runNumber": "4822",
         "thickness": "0.1",
         "transmission": {
-            "runNumber": "4822",
+            "runNumber": "4822"
         }
      },
      "outputFilename": "CG3_4822",
      "background": {
          "runNumber": "4821",
          "transmission": {
-             "runNumber": "4821",
+             "runNumber": "4821"
          }
      },
      "beamCenter": {
@@ -120,17 +121,17 @@ def generate_test_json(sens_nxs_dir):
          "sampleApertureSize": "14",
          "sourceApertureDiameter": "",
          "maskFileName": "",
-         "useMaskFileName": False,
-         "useDefaultMask": True,
-         "defaultMask": [{'Pixel':'1-12,244-256'}, {'Bank':'21-24,45-48'}],
+         "useMaskFileName": "False",
+         "useDefaultMask": "True",
+         "defaultMask": ["{'Pixel':'1-12,244-256'}", "{'Bank':'21-24,45-48'}"],
          "blockedBeamRunNumber": "",
-         "useDarkFileName": True,
+         "useDarkFileName": "True",
          "darkMainFileName": "CG3_1383.nxs",
          "darkWingFileName": "CG3_1383.nxs",
-         "useSensitivityFileName": True,
-         "sensitivityMainFileName": "{}".format(main_sens),
-         "sensitivityWingFileName": "{}".format(wing_sens),
-         "UseBarScan": False,
+         "useSensitivityFileName": "True",
+         "sensitivityMainFileName": "AAA",
+         "sensitivityWingFileName": "BBB",
+         "UseBarScan": "False",
          "BarScanMainFileName": "",
          "BarScanWingFileName": "",
          "absoluteScaleMethod": "standard",
@@ -138,16 +139,16 @@ def generate_test_json(sens_nxs_dir):
          "StandardAbsoluteScale": "0.0055e-8",
          "normalization": "Monitor",
          "sampleOffset": "",
-         "useSampleOffset": False,
-         "useDetectorTubeType": True,
-         "useSolidAngleCorrection": True,
-         "useThetaDepTransCorrection": True,
+         "useSampleOffset": "False",
+         "useDetectorTubeType": "True",
+         "useSolidAngleCorrection": "True",
+         "useThetaDepTransCorrection": "True",
          "mmRadiusForTransmission": "",
          "numMainQxQyBins": "100",
          "numWingQxQyBins": "100",
          "1DQbinType": "scalar",
          "QbinType": "log",
-         "LogQBinsEvenDecade": False,
+         "LogQBinsEvenDecade": "False",
          "LogQBinsPerDecadeMain": 20,
          "LogQBinsPerDecadeWing": 25,
          "WedgeMinAngles": "-30, 60",
@@ -156,33 +157,33 @@ def generate_test_json(sens_nxs_dir):
          "numWingQBins": "",
          "AnnularAngleBin": "1",
          "Qmin": 0.003,
-         "Qmax": None,
-         "useErrorWeighting": False,
-         "useMaskBackTubes": False,
-         "wavelength": None,
-         "wavelengthSpread": None,
+         "Qmax": "",
+         "useErrorWeighting": "False",
+         "useMaskBackTubes": "False",
+         "wavelength": "",
+         "wavelengthSpread": "",
          "overlapStitchQmin": "0.075",
          "overlapStitchQmax": "0.095",
-         "useTimeSlice": False,
+         "useTimeSlice": "False",
          "timesliceinterval": 200,
          "logslicename": "",
-         "useLogSlice": False,
+         "useLogSlice": "False",
          "logsliceinterval": "",
-         "sampleToSi": 200.52,
-         "sampleDetectorDistance": 14.31,
-         "smearingPixelSizeX": None,
-         "smearingPixelSizeY": None,
+         "sampleToSi": "200.52",
+         "sampleDetectorDistance": "14.31",
+         "smearingPixelSizeX": "",
+         "smearingPixelSizeY": ""
          }
-     }
+     }"""
 
     # replace values
     #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
-    # main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
-    # specs[] = specs.replace('/HFIR/CG3/shared/Cycle486/sens_f4829m7p0_TDC_SAC.h5', main_sens)
+    main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
+    specs = specs.replace('AAA', main_sens)
     #
     # # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
-    # wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
-    # specs = specs.replace('/HFIR/CG3/shared/Cycle486/sens_f4835w3p2_TDC_SAC.h5', wing_sens)
+    wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
+    specs = specs.replace('BBB', wing_sens)
 
     return specs
 

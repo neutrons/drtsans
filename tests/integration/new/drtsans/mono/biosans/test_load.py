@@ -3,7 +3,7 @@ import os
 import json
 from mantid.simpleapi import mtd
 from drtsans.mono.biosans import load_all_files
-from drtsans.mono.biosans import reduction_parameters, validate_reduction_parameters
+from drtsans.mono.biosans import reduction_parameters
 from drtsans.geometry import sample_detector_distance
 
 
@@ -45,16 +45,17 @@ def test_load_all_files(reference_dir):
     reduction_input["outputFileName"] = sample_names[0]
     reduction_input["dataDirectories"] = nexus_dir
 
-
     # convert
     reduction_input = reduction_parameters(reduction_input, validate=True)
     load_all_files(reduction_input, path=nexus_dir, prefix='BioTestLoadAll')
 
-    beam_center_run = mtd['BioTestLoadAll_CG3_1322_raw_histo']
-    dark_run = mtd['BioTestLoadAll_CG3_1383_raw_histo']
-    empty_trans_run = mtd['BioTestLoadAll_CG3_5705_raw_histo']
-    sample_run = mtd['BioTestLoadAll_CG3_5709_raw_histo']
-    bkgd_run = mtd['BioTestLoadAll_CG3_5715_raw_histo']
+    from mantid.simpleapi import mtd
+    print(mtd.getObjectNames())
+    beam_center_run = mtd['BioTestLoadAll_BIOSANS_1322_raw_histo']
+    dark_run = mtd['BioTestLoadAll_BIOSANS_1383_raw_histo']
+    empty_trans_run = mtd['BioTestLoadAll_BIOSANS_5705_raw_histo']
+    sample_run = mtd['BioTestLoadAll_BIOSANS_5709_raw_histo']
+    bkgd_run = mtd['BioTestLoadAll_BIOSANS_5715_raw_histo']
 
     # Verify sample to si-window distance by checking the sample position with default setup
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296

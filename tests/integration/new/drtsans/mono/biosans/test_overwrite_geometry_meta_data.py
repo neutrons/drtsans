@@ -280,6 +280,7 @@ def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_
             "useTimeSlice": False,
             "timeSliceInterval": "200",
             "usePixelCalibration": False
+            "useSubpixels": False
         }
     }
     reduction_input = reduction_parameters(specs, 'BIOSANS', validate=False)  # add defaults and defer validation

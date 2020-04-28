@@ -160,6 +160,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
 
     # raise error for all
     if unmatched_errors != '':
+        print(unmatched_errors)
         raise AssertionError(unmatched_errors)
 
 
@@ -207,7 +208,7 @@ def test_no_overwrite(reference_dir):
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test1/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test1/')
 
     # Verify results
     verify_reduction_results(sample_names, output_dir, gold_path,
@@ -216,7 +217,7 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_sample2si(reference_dir):
+def test_overwrite_sample2si(reference_dir):
     """Test reduce 3 sets of data overwriting SampleToSi (distance) but not SampleDetectorDistance.
     Sample to detector distance will be changed accordingly.
 
@@ -267,7 +268,7 @@ def skip_test_overwrite_sample2si(reference_dir):
     # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold/test2/')
     # verify_reduction_results(sample_names, output_dir, gold_path,
     #                          title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test2/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test2/')
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
 
@@ -390,7 +391,7 @@ def skip_test_overwrite_both(reference_dir):
 
     # Verify results
     # gold_path --> 'overwrite_gold/test4/')
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test4/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test4/')
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
                              prefix='CG2MetaBoth')

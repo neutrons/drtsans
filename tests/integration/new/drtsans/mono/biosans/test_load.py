@@ -3,7 +3,7 @@ import os
 import json
 from mantid.simpleapi import mtd
 from drtsans.mono.biosans import load_all_files
-from drtsans.mono.biosans import validate_reduction_parameters
+from drtsans.mono.biosans import reduction_parameters, validate_reduction_parameters
 from drtsans.geometry import sample_detector_distance
 
 
@@ -47,7 +47,7 @@ def test_load_all_files(reference_dir):
 
 
     # convert
-    reduction_input = validate_reduction_parameters(reduction_input)
+    reduction_input = reduction_parameters(reduction_input, validate=True)
     load_all_files(reduction_input, path=nexus_dir, prefix='BioTestLoadAll')
 
     beam_center_run = mtd['BioTestLoadAll_CG3_1322_raw_histo']
@@ -100,7 +100,7 @@ def generate_test_json(sens_nxs_dir):
     # wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
 
     specs = """{
-     "instrumentName": "CG3",
+     "instrumentName": "BIOSANS",
      "iptsNumber": "24740",
      "sample": {
         "runNumber": "4822",
@@ -127,7 +127,7 @@ def generate_test_json(sens_nxs_dir):
          "sampleApertureSize": "14",
          "sourceApertureDiameter": "",
          "maskFileName": "",
-         "useDefaultMask": "True",
+         "useDefaultMask": true,
          "defaultMask": ["{'Pixel':'1-12,244-256'}", "{'Bank':'21-24,45-48'}"],
          "blockedBeamRunNumber": "",
          "darkMainFileName": "CG3_1383.nxs",
@@ -139,14 +139,14 @@ def generate_test_json(sens_nxs_dir):
          "StandardAbsoluteScale": "0.0055e-8",
          "normalization": "Monitor",
          "sampleOffset": "",
-         "useSolidAngleCorrection": "True",
-         "useThetaDepTransCorrection": "True",
+         "useSolidAngleCorrection": true,
+         "useThetaDepTransCorrection": true,
          "mmRadiusForTransmission": "",
          "numMainQxQyBins": "100",
          "numWingQxQyBins": "100",
          "1DQbinType": "scalar",
          "QbinType": "log",
-         "useLogQBinsEvenDecade": "False",
+         "useLogQBinsEvenDecade": false,
          "LogQBinsPerDecadeMain": 20,
          "LogQBinsPerDecadeWing": 25,
          "WedgeMinAngles": "-30, 60",
@@ -158,16 +158,16 @@ def generate_test_json(sens_nxs_dir):
          "QminWing": 0.003,
          "QmaxMain": "",
          "QmaxWing": "",
-         "useErrorWeighting": "False",
-         "useMaskBackTubes": "False",
+         "useErrorWeighting": false,
+         "useMaskBackTubes": false,
          "wavelength": "",
          "wavelengthSpread": "",
          "overlapStitchQmin": "0.075",
          "overlapStitchQmax": "0.095",
-         "useTimeSlice": "False",
+         "useTimeSlice": false,
          "timeSliceInterval": 200,
          "logSliceName": "",
-         "useLogSlice": "False",
+         "useLogSlice": false,
          "logSliceInterval": "",
          "sampleToSi": "200.52",
          "sampleDetectorDistance": "14.31",

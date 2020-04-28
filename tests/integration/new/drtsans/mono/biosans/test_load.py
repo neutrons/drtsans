@@ -49,8 +49,6 @@ def test_load_all_files(reference_dir):
     reduction_input = reduction_parameters(reduction_input, validate=True)
     load_all_files(reduction_input, path=nexus_dir, prefix='BioTestLoadAll')
 
-    from mantid.simpleapi import mtd
-    print(mtd.getObjectNames())
     beam_center_run = mtd['BioTestLoadAll_BIOSANS_1322_raw_histo']
     dark_run = mtd['BioTestLoadAll_BIOSANS_1383_raw_histo']
     empty_trans_run = mtd['BioTestLoadAll_BIOSANS_5705_raw_histo']

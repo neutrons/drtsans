@@ -121,7 +121,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
-            filename = abspath(sample.strip(), instrument_name=instrument_name, ipts=ipts)
+            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]

@@ -121,7 +121,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if timeslice or logslice:
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
-            filename = abspath(sample.strip(), instrument_name=instrument_name, ipts=ipts)
+            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]
@@ -529,7 +529,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     thickness = reduction_input["sample"]["thickness"]
     absolute_scale_method = reduction_config["absoluteScaleMethod"]
-    beam_radius = reduction_config["DBScalingBeamRadius"]
+    beam_radius = None  # EQSANS doesn't use keyword DBScalingBeamRadius
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     output_dir = reduction_config["outputDir"]
     nybins_main = nxbins_main = reduction_config["numQxQyBins"]

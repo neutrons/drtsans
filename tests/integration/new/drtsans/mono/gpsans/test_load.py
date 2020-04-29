@@ -5,7 +5,6 @@ from mantid.simpleapi import mtd
 from drtsans.mono.gpsans import load_all_files
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.geometry import sample_detector_distance
-# from drtsans.mono.gpsans import load_and_split
 
 
 def test_load_all_files(reference_dir):

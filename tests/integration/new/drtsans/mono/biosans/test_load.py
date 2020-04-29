@@ -94,10 +94,6 @@ def generate_test_json(sens_nxs_dir):
         configuration JSON
 
     """
-    # Sensitivity files
-    # main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
-    # wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
-
     specs = """{
      "instrumentName": "BIOSANS",
      "iptsNumber": "24740",
@@ -176,11 +172,8 @@ def generate_test_json(sens_nxs_dir):
      }"""
 
     # replace values
-    #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
     main_sens = os.path.join(sens_nxs_dir, 'sens_f4829m7p0_TDC_SAC.h5')
     specs = specs.replace('AAA', main_sens)
-    #
-    # # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
     wing_sens = os.path.join(sens_nxs_dir, 'sens_f4835w3p2_TDC_SAC.h5')
     specs = specs.replace('BBB', wing_sens)
 

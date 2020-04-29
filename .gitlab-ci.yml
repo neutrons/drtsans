@@ -220,28 +220,6 @@ code-pylint:
   tags:
     - scse-mantid-builder
 
-docs-next-host:
-  stage: web-host
-  dependencies:
-    - docs-next
-  before_script:
-    - sudo yum install -y httpd
-    - sudo rm -f /etc/httpd/conf.d/welcome.conf
-    - sudo systemctl restart httpd
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
-  script:
-    - sudo mkdir -p /var/www/html/
-    - sudo ls -la /var/www/html/
-    - sudo cp -rf html/* /var/www/html/
-    - sudo chmod -R 755 /var/www/html/
-    - curl http://localhost/index.html
-    - sudo chown -R gitlab-runner .
-  tags:
-    - docs
-  only:
-    - next
-
 scse-web-next-dev1:
   stage: web-host
   dependencies:

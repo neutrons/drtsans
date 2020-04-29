@@ -330,7 +330,7 @@ def test_overwrite_sdd(reference_dir):
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test3/')
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='Overwrite DetectorSampleDistance to 40 meter',
-                              prefix='CG2MetaSDD')
+                             prefix='CG2MetaSDD')
     # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test3/')
     # verify_reduction_results(sample_names, output_dir, gold_path)
 

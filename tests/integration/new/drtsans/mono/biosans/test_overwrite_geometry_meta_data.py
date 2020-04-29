@@ -40,7 +40,7 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_both_minor(reference_dir):
+def skip_test_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with minor change.
     - Overwrite sampleToSi (distance) to 61 mm.
@@ -56,24 +56,24 @@ def test_overwrite_both_minor(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 61, 6.9)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 61, 6.9)
     output_dir = '/tmp/meta_overwrite_bio_test1a/'
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaMinor')
 
     # Get result files
-    # sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    # gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test1a/')
+    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1a/')
     # Verify
-    # verify_reduction_results(sample_names, output_dir, gold_path,
-    #                         title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
-    #                         prefix='test1a')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
+                             prefix='test1a')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_both_major(reference_dir):
+def skip_test_overwrite_both_major(reference_dir):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with significant changes.
     - Overwrite sampleToSi (distance) to 200 mm.
@@ -89,24 +89,24 @@ def test_overwrite_both_major(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 200, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 200, 14)
     output_dir = '/tmp/meta_overwrite_bio_test4/'
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaMajor2')
 
     # Get result files
-    # sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    # gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test4/')
+    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test4/')
     # Verify
-    # verify_reduction_results(sample_names, output_dir, gold_path,
-    #                          title='SampleToSi -> 200 mm, SampleDetectorDistance -> 14 meter',
-    #                          prefix='test4')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 200 mm, SampleDetectorDistance -> 14 meter',
+                             prefix='test4')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_si(reference_dir):
+def skip_test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
@@ -122,7 +122,7 @@ def test_overwrite_sample_to_si(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 7000, None)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 7000, None)
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run
@@ -139,7 +139,7 @@ def test_overwrite_sample_to_si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_detector(reference_dir):
+def skip_test_overwrite_sample_to_detector(reference_dir):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter
@@ -154,7 +154,7 @@ def test_overwrite_sample_to_detector(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), None, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, 14)
     output_dir = '/tmp/meta_overwrite_bio_test3/'
 
     # Run
@@ -220,21 +220,6 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
                                 prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
         plot_reduction_output(out, reduction_input, loglog=False)
-
-#         reduction_input["outputFilename"] = sample_names[i]
-#         loaded = load_all_files(reduction_input,
-#                                 path=nexus_dir,
-#                                 prefix=prefix)
-#         out = reduce_single_configuration(loaded, reduction_input)
-#         plot_reduction_output(out, reduction_input, loglog=False)
-# =======
-#         reduction_input["outputFileName"] = sample_names[i]
-#         always check after updating the parameters
-#         reduction_input = validate_reduction_parameters(reduction_input)
-#         loaded = load_all_files(reduction_input, path=nexus_dir)
-#         out = reduce_single_configuration(loaded, reduction_input)
-#         plot_reduction_output(out, reduction_input)
-#         assert out
 
     end_time = time.time()
     print(end_time - start_time)
@@ -332,11 +317,13 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
         except AssertionError as unmatched_error:
-            unmatched_errors += '{}\n'.format(unmatched_error)
+            unmatched_errors += 'Testing output {} does not match gold result {}:\n{}\n' \
+                                ''.format(output_log_file, gold_log_file, unmatched_error)
     # END-FOR
 
     # raise error for all
     if unmatched_errors != '':
+        print(unmatched_errors)
         raise AssertionError(unmatched_errors)
 
 

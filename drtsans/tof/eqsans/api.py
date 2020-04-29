@@ -529,7 +529,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
     thickness = reduction_input["sample"]["thickness"]
     absolute_scale_method = reduction_config["absoluteScaleMethod"]
-    beam_radius = reduction_config["DBScalingBeamRadius"]
+    beam_radius = None  # EQSANS doesn't use keyword DBScalingBeamRadius
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     output_dir = reduction_config["outputDir"]
     nybins_main = nxbins_main = reduction_config["numQxQyBins"]

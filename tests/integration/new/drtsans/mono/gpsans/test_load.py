@@ -41,7 +41,7 @@ def test_load_all_files(reference_dir):
 
     # set output directory
     reduction_input["configuration"]["outputDir"] = output_dir
-
+    reduction_input['dataDirectories'] = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data'
     reduction_input["sample"]["runNumber"] = samples[0]
     reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
     reduction_input["background"]["runNumber"] = bkgd[0]

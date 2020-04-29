@@ -275,7 +275,7 @@ def test_overwrite_sample2si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_sdd(reference_dir):
+def test_overwrite_sdd(reference_dir):
     """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
 
     - Overwrite DetectorToSample (distance) to 40 meter
@@ -327,17 +327,17 @@ def skip_test_overwrite_sdd(reference_dir):
 
     # Verify results
     # gold_path --> 'overwrite_gold/test3/'
-    # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test3/')
-    # verify_reduction_results(sample_names, output_dir, gold_path,
-    #                         title='Overwrite DetectorSampleDistance to 40 meter',
-    #                          prefix='CG2MetaSDD')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test3/')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Overwrite DetectorSampleDistance to 40 meter',
+                              prefix='CG2MetaSDD')
     # gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04242020/test3/')
     # verify_reduction_results(sample_names, output_dir, gold_path)
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def skip_test_overwrite_both(reference_dir):
+def test_overwrite_both(reference_dir):
     """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
 
     - Overwrite SampleToSi (distance) to 200 mm.

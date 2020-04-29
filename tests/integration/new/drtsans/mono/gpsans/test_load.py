@@ -42,7 +42,7 @@ def test_load_all_files(reference_dir):
     # set output directory
     reduction_input["configuration"]["outputDir"] = output_dir
 
-    reduction_input["runNumber"] = samples[0]
+    reduction_input["sample"]["runNumber"] = samples[0]
     reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
     reduction_input["background"]["runNumber"] = bkgd[0]
     reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[0]
@@ -54,10 +54,10 @@ def test_load_all_files(reference_dir):
     # load files
     load_all_files(reduction_input, prefix='GP_TEST_LOAD', load_params=None, path=reference_dir.new.gpsans)
 
-    sample_run = mtd['GP_TEST_LOAD_CG2_9166_raw_histo']
-    sample_trans_run = mtd['GP_TEST_LOAD_CG2_9178_raw_histo']
-    bkgd_run = mtd['GP_TEST_LOAD_CG2_9165_raw_histo']
-    bkgd_trans_run = mtd['GP_TEST_LOAD_CG2_9177_raw_histo']
+    sample_run = mtd['GP_TEST_LOAD_GPSANS_9166_raw_histo']
+    sample_trans_run = mtd['GP_TEST_LOAD_GPSANS_9178_raw_histo']
+    bkgd_run = mtd['GP_TEST_LOAD_GPSANS_9165_raw_histo']
+    bkgd_trans_run = mtd['GP_TEST_LOAD_GPSANS_9177_raw_histo']
 
     # Verify sample to si-window distance by checking the sample position with default setup
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
@@ -146,10 +146,8 @@ def generate_test_json():
             "logSliceInterval": "",
             "smearingPixelSizeX": "",
             "smearingPixelSizeY": "",
-            "SampleToSi": "234.56",
-            "SampleDetectorDistance": "32.11",
-            "UseBarScan": false,
-            "BarScanFileName": ""
+            "sampleToSi": "234.56",
+            "sampleDetectorDistance": "32.11"
         }
     }
     """

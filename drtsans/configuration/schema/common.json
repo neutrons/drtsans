@@ -7,7 +7,7 @@
                 {"type": "integer", "minimum": 1},
                 {"type": "array", "items": {"type": ["integer", "string"]}}],
       "dataSource": "events",
-      "preferredType": "[str]"
+      "preferredType": "str"
     },
     "runNumberOptionalTypes": {
       "anyOf": [{"type": "string", "pattern": "^[1-9][0-9]*$"},
@@ -15,7 +15,7 @@
                 {"type": "integer", "minimum": 1},
                 {"type": "array", "minItems": 1, "items": {"type": ["integer", "string"]}}],
       "dataSource": "events",
-      "preferredType": "[str]"
+      "preferredType": "str"
     },
     "transmissionValueTypes": {
       "anyOf": [{"type": "string", "pattern": "^$|^0?.[0-9]*$"},

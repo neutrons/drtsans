@@ -14,6 +14,128 @@ from drtsans.path import abspath, abspaths
 __all__ = ['reduction_parameters', 'update_reduction_parameters', 'validate_reduction_parameters']
 
 
+def type_selector(preferred_type):  # noqa: C901
+    r"""
+    Callable the will cast an object to a preferred type.
+
+    Example: type_enforcer('str')(42) returns '42'
+
+    Parameters
+    ----------
+    preferred_type: str
+        One of 'str', 'int', 'float', '[str]', '[float]', '[dict]'
+
+    Returns
+    -------
+    :py:obj:`function`
+    """
+    def list_comprehension_exec(item_type):
+        r"""
+        Select the list below comprehension executor based on the type of the list item
+
+        Parameters
+        ----------
+        item_type: type
+            The preferred type of the list items
+
+        Returns
+        -------
+        function
+            a list comprehension executor in charge of casting the items in a list to a particular type.
+        """
+
+        def comprehension_executor(a_list):
+            r"""
+            Conversion of the items in a list to a selected type. The list can be in a string representation,
+            or a number
+
+            Examples:
+            - [1, 2], ['1', '2'], '1, 2', '1 2' are all cast into [item_type('1'), item_type('2')
+            - 1 is cast into [item_type(1)]
+            - 1.0 is cast into [item_type(1.0)]
+
+            Parameters
+            ----------
+            a_list: int, float, str, list
+                If list, then list items must be either of int, float, str.
+
+            Returns
+            -------
+            list
+                items in this list are of type `item_type`
+            """
+            if isinstance(a_list, (int, float)):
+                a_list = [a_list]
+            elif isinstance(a_list, str) is True:  # a_list is the string representation of a list
+                for brace in ('[', ']', '(', ')'):
+                    a_list = a_list.replace(brace, '')
+                if ',' in a_list:
+                    a_list = a_list.split(',')
+                else:
+                    a_list = a_list.split(None)
+            return [item_type(x) for x in a_list]
+
+        return comprehension_executor
+
+    def list_comprehension_str2dict(instance):
+        r"""
+        Convert the items of a list into dictionaries. It is understood that each list items is the
+        string representation of a dictionary.
+
+        Example: ["{'Pixel':'1-18,239-256'}", "{'Bank':'18-24,42-48'}"]
+
+        Parameters
+        ----------
+        instance: list
+
+        Returns
+        -------
+        dict
+        """
+        list_of_dictionaries = list()
+        for item in instance:
+            if isinstance(item, str):
+                try:
+                    list_of_dictionaries.append(ast.literal_eval(item))
+                except ValueError:
+                    raise ValueError(f'Could not translate "{item}" into a python dictionary')
+            elif isinstance(item, dict):
+                list_of_dictionaries.append(item)
+            else:
+                raise ValueError(f'{instance} must be a list of strings or a list of dictionaries')
+        return list_of_dictionaries
+
+    def str_extended(instance):
+        r"""
+        Cast to string, iterating over items when the object to cast is a list
+
+        Parameters
+        ----------
+        instance:str, list
+
+        Returns
+        -------
+        str
+        """
+        if isinstance(instance, (list, tuple)):
+            return ', '.join([str_extended(item) for item in instance])
+        # expand any run range, such as 12345-12349
+        instance = str(instance)
+        for run_range in re.findall(r'(\d+\s*-\s*\d+)', instance):
+            first_run, last_run = [int(run) for run in run_range.split('-')]
+            all_runs = ', '.join([str(run) for run in range(first_run, last_run + 1)])
+            instance = instance.replace(run_range, all_runs)
+        return instance
+
+    # the type_selector cast the input instance to desired data-type
+    dispatcher = {'int': int, 'float': float,
+                  'str': str_extended,
+                  '[float]': list_comprehension_exec(float),
+                  '[str]': list_comprehension_exec(str),
+                  '[dict]': list_comprehension_str2dict}
+    return dispatcher(preferred_type)
+
+
 class ReferenceResolver:
     r"""
     Uncompress all {'$ref': URI} items with the value of the keyword pointed to by the URI.
@@ -484,90 +606,7 @@ class ReductionParameters:
         1. If value is empty string, set to None
         2. If value is None and has a default, set to the default value
         2. If value is a non-empty string but can be a number, set to integer or float
-
-        Returns
-        -------
-
         """
-        def list_comprehension_exec(item_type):
-            r"""
-            Select the list below comprehension executor based on the type of the list item
-
-            Parameters
-            ----------
-            item_type: type
-                The preferred type of the list items
-
-            Returns
-            -------
-            function
-                a list comprehension executor in charge of casting the items in a list to a particular type.
-            """
-            def comprehension_executor(a_list):
-                r"""
-                Conversion of the items in a list to a selected type. The list can be in a string representation,
-                or a number
-
-                Examples:
-                - [1, 2], ['1', '2'], '1, 2', '1 2' are all cast into [item_type('1'), item_type('2')
-                - 1 is cast into [item_type(1)]
-                - 1.0 is cast into [item_type(1.0)]
-
-                Parameters
-                ----------
-                a_list: int, float, str, list
-                    If list, then list items must be either of int, float, str.
-
-                Returns
-                -------
-                list
-                    items in this list are of type `item_type`
-                """
-                if isinstance(a_list, (int, float)):
-                    a_list = [a_list]
-                elif isinstance(a_list, str) is True:  # a_list is the string representation of a list
-                    for brace in ('[', ']',  '(', ')'):
-                        a_list = a_list.replace(brace, '')
-                    if ',' in a_list:
-                        a_list = a_list.split(',')
-                    else:
-                        a_list = a_list.split(None)
-                return [item_type(x) for x in a_list]
-            return comprehension_executor
-
-        def list_comprehension_str2dict(instance):
-            r"""
-            Convert the items of a list into dictionaries. It is understood that each list items is the
-            string representation of a dictionary.
-
-            Example: ["{'Pixel':'1-18,239-256'}", "{'Bank':'18-24,42-48'}"]
-
-            Parameters
-            ----------
-            instance: list
-
-            Returns
-            -------
-            dict
-            """
-            list_of_dictionaries = list()
-            for item in instance:
-                if isinstance(item, str):
-                    try:
-                        list_of_dictionaries.append(ast.literal_eval(item))
-                    except ValueError:
-                        raise ValueError(f'Could not translate "{item}" into a python dictionary')
-                elif isinstance(item, dict):
-                    list_of_dictionaries.append(item)
-                else:
-                    raise ValueError(f'{instance} must be a list of strings or a list of dictionaries')
-            return list_of_dictionaries
-
-        # the type_selector cast the input instance to desired data-type
-        type_selector = {'int': int, 'float': float, 'str': str,
-                         '[float]': list_comprehension_exec(float),
-                         '[str]': list_comprehension_exec(str),
-                         '[dict]': list_comprehension_str2dict}
 
         if schema is None:
             schema = self._schema
@@ -584,7 +623,7 @@ class ReductionParameters:
                 if parameter_value in ('', None):
                     parameters[name] = schema_value.get('default', None)  # is there a default value?
                 elif 'preferredType' in schema_value:  # parameter_value is not empty
-                    cast = type_selector[schema_value['preferredType']]
+                    cast = type_selector(schema_value['preferredType'])
                     parameters[name] = cast(parameter_value)
 
     def _validate_data_source(self, validator, value, instance, schema):

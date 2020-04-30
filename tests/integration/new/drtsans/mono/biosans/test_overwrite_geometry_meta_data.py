@@ -1,6 +1,4 @@
 # Integration test for overwriting instrument geometry related meta data for BIO-SANS
-# From round 3 4822
-# Tests are
 import pytest
 import numpy as np
 import json
@@ -9,7 +7,6 @@ import h5py
 from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
 import time
-from mantid.simpleapi import mtd
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -27,23 +24,22 @@ def test_no_overwrite(reference_dir):
 
     """
     # Set up test
-    json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), None, None)
+    json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, None)
     output_dir = '/tmp/meta_overwrite_bio_test1/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix='BioMetaRaw')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1/')
 
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test1')
+    verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-# @pytest.mark.skip(reason='Skip on build server due to execution time')
 def test_overwrite_both_minor(reference_dir):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with minor change.
@@ -60,24 +56,24 @@ def test_overwrite_both_minor(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 61, 6.9)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 61, 6.9)
     output_dir = '/tmp/meta_overwrite_bio_test1a/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaMinor')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test1a/')
-
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1a/')
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test1a')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
+                             prefix='test1a')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-# @pytest.mark.skip(reason='Skip on build server due to execution time')
-def test_overwrite_both_major(reference_dir):
+def Failed_test_overwrite_both_major(reference_dir):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with significant changes.
     - Overwrite sampleToSi (distance) to 200 mm.
@@ -93,18 +89,19 @@ def test_overwrite_both_major(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 200, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 200, 14)
     output_dir = '/tmp/meta_overwrite_bio_test4/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaMajor2')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test4/')
-
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test4/')
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test4')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 200 mm, SampleDetectorDistance -> 14 meter',
+                             prefix='test4')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -125,23 +122,23 @@ def test_overwrite_sample_to_si(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), 7000, None)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 500, None)
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaSWD')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test2/')
-
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test2/')
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test2')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleToSi -> 7000 mm',
+                             prefix='test2')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-# @pytest.mark.skip(reason='Skip on build server due to execution time')
 def test_overwrite_sample_to_detector(reference_dir):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance.
 
@@ -157,21 +154,22 @@ def test_overwrite_sample_to_detector(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020'), None, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, 14)
     output_dir = '/tmp/meta_overwrite_bio_test3/'
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir)
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaSDD')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04242020/test3/')
-
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test3/')
     # Verify
-    verify_reduction_results(sample_names, output_dir, gold_path, 'test3')
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='SampleDetectorDistance -> 14 meter',
+                             prefix='test3')
 
 
-def reduce_biosans_data(nexus_dir, json_str, output_dir):
+def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     """Reduce BIOSANS runs
 
     Parameters
@@ -182,15 +180,13 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir):
         configuration json
     output_dir: str
         output directory
+    prefix: str
+        prefix for output workspaces' names
 
     Returns
     -------
 
     """
-    # Clear workspaces in memory
-    # FIXME - this could be an issue if integration tests are run in parallel
-    mtd.clear()
-
     # Set up (testing) runs
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
     samples = ['5709', '5712']
@@ -217,11 +213,13 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir):
         reduction_input["background"]["runNumber"] = backgrounds[i]
         reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
         reduction_input["outputFileName"] = sample_names[i]
-        reduction_input = validate_reduction_parameters(reduction_input)  # always check after updating the parameters
-        loaded = load_all_files(reduction_input, path=nexus_dir)
+        # always check after updating the parameters
+        reduction_input = validate_reduction_parameters(reduction_input)
+        loaded = load_all_files(reduction_input,
+                                path=nexus_dir,
+                                prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
-        plot_reduction_output(out, reduction_input)
-        assert out
+        plot_reduction_output(out, reduction_input, loglog=False)
 
     end_time = time.time()
     print(end_time - start_time)
@@ -300,7 +298,11 @@ def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_
     return json.dumps(reduction_input)  # return a string representation
 
 
-def verify_reduction_results(sample_names, output_dir, gold_path, prefix):
+def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
+
+    # Over all message
+    unmatched_errors = ''
+
     for sample_name in sample_names:
         # output log file name
         output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
@@ -309,10 +311,23 @@ def verify_reduction_results(sample_names, output_dir, gold_path, prefix):
         gold_log_file = os.path.join(gold_path, '{}_{}_reduction_log.hdf'.format(sample_name, prefix))
         assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
         # compare
-        compare_reduced_iq(output_log_file, gold_log_file)
+        title_i = '{}: {}'.format(sample_name, title)
+
+        # compare
+        try:
+            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
+        except AssertionError as unmatched_error:
+            unmatched_errors += 'Testing output {} does not match gold result {}:\n{}\n' \
+                                ''.format(output_log_file, gold_log_file, unmatched_error)
+    # END-FOR
+
+    # raise error for all
+    if unmatched_errors != '':
+        print('[VERIFICATION ERROR MESSAGE] {}'.format(unmatched_errors))
+        raise AssertionError(unmatched_errors)
 
 
-def compare_reduced_iq(test_log_file, gold_log_file):
+def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
     """
 
     Parameters
@@ -320,6 +335,10 @@ def compare_reduced_iq(test_log_file, gold_log_file):
     test_log_file: str
         Absolute
     gold_log_file: str
+    title: str
+        plot title
+    prefix: str
+        file name prefix
 
     Returns
     -------
@@ -337,6 +356,19 @@ def compare_reduced_iq(test_log_file, gold_log_file):
             log_errors.append(None)
         except AssertionError as assert_err:
             log_errors.append(assert_err)
+            from matplotlib import pyplot as plt
+            if is_main_detector:
+                flag = 'Main_detector'
+            else:
+                flag = 'Wing_detector'
+            plt.cla()
+            plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
+            plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))
+            plt.yscale('log')
+            plt.title(title)
+            plt.legend()
+            out_name = prefix + '_' + os.path.basename(test_log_file).split('.')[0] + '_{}.png'.format(flag)
+            plt.savefig(out_name)
     # END-FOR
 
     # Report

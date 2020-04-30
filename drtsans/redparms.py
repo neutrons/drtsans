@@ -8,7 +8,8 @@ import warnings
 
 from drtsans import configdir  # non-source files
 from drtsans.instruments import instrument_filesystem_name, instrument_standard_name, instrument_standard_names
-from drtsans.path import abspath
+from drtsans.path import abspath, abspaths
+
 
 __all__ = ['reduction_parameters', 'update_reduction_parameters', 'validate_reduction_parameters']
 
@@ -619,10 +620,11 @@ class ReductionParameters:
                     abspath(instance, directory=data_directories)
                 except RuntimeError:
                     yield jsonschema.ValidationError(f'Cannot find file {instance}')
-            elif value == 'events':
+            elif value == 'events':  # run number(s)
                 instrument_name = instrument_filesystem_name(self['instrumentName'])
                 try:
-                    abspath(instance, instrument=instrument_name, ipts=self['iptsNumber'],
+                    # the runNumber preferredType is a list of strings
+                    abspaths(instance, instrument=instrument_name, ipts=self['iptsNumber'],
                             directory=data_directories, search_archive=True)
                 except RuntimeError:
                     yield jsonschema.ValidationError(f'Cannot find events file associated to {instance}')

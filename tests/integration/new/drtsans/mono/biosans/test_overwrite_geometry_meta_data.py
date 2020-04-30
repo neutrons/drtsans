@@ -106,7 +106,7 @@ def Failed_test_overwrite_both_major(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def Failed_test_overwrite_sample_to_si(reference_dir):
+def test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
@@ -122,7 +122,7 @@ def Failed_test_overwrite_sample_to_si(reference_dir):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 7000, None)
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 500, None)
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run

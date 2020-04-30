@@ -334,7 +334,7 @@
         ["#configuration/WedgeMinAngles", "#configuration/WedgeMaxAngles"],
         ["#configuration/autoWedgeQmin", "#configuration/autoWedgeQdelta", "#configuration/autoWedgeQmax",
          "#configuration/autoWedgeAzimuthalDelta","#configuration/autoWedgePeakWidth",
-         "#configuration/autoWedgeBackgroundWidth", "#configuration/autoSignalToNoiseMin"]
+         "#configuration/autoWedgeBackgroundWidth", "#configuration/autoWedgeSignalToNoiseMin"]
       ],
       "examples": ["scalar", "annular", "wedge"]
    },

@@ -767,7 +767,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                          'azimuthal_delta': reduction_config['autoWedgeAzimuthalDelta'],
                          'peak_width': reduction_config['autoWedgePeakWidth'],
                          'background_width': reduction_config['autoWedgeBackgroundWidth'],
-                         'signal_to_noise_min': reduction_config['autoSignalToNoiseMin']}
+                         'signal_to_noise_min': reduction_config['autoWedgeSignalToNoiseMin']}
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
 

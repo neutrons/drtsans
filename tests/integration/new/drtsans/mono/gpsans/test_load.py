@@ -5,6 +5,7 @@ from mantid.simpleapi import mtd
 from drtsans.mono.gpsans import load_all_files
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.geometry import sample_detector_distance
+from drtsans.samplelogs import SampleLogs
 
 
 def test_load_all_files(reference_dir):
@@ -71,6 +72,16 @@ def test_load_all_files(reference_dir):
         # reset SDD with sample run
         sdd_value = sample_detector_distance(ws, unit='m', search_logs=False)
         assert sdd_value == pytest.approx(32.11, 0.004), '{} has a wrong SDD {}'.format(str(ws), sdd_value)
+
+    # Verify smearing pixel size x and smearing pixel size y
+    for ws in [sample_run, sample_trans_run, bkgd_run, bkgd_trans_run]:
+        sample_log_i = SampleLogs(ws)
+        pixel_size_x = sample_log_i['smearingPixelSizeX']
+        pixel_size_y = sample_log_i['smearingPixelSizeY']
+        assert pixel_size_x == pytest.approx(1.2345 * 1.E-3, 1.E-7), \
+            'Pixel size X {} (m) shall be equal to 1.2345 mm'.format(pixel_size_x)
+        assert pixel_size_y == pytest.approx(2.3456 * 1.E-3, 1.E-7),\
+            'Pixel size X {} (m) shall be equal to 2.3456 mm'.format(pixel_size_y)
 
 
 def generate_test_json():
@@ -143,8 +154,8 @@ def generate_test_json():
             "logSliceName": "",
             "useLogSlice": false,
             "logSliceInterval": "",
-            "smearingPixelSizeX": "",
-            "smearingPixelSizeY": "",
+            "smearingPixelSizeX": "1.2345",
+            "smearingPixelSizeY": "2.3456",
             "sampleToSi": "234.56",
             "sampleDetectorDistance": "32.11"
         }

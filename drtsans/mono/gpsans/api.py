@@ -77,6 +77,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         load_params = {}
     wavelength = reduction_config['wavelength']
     wavelength_spread_user = reduction_config['wavelengthSpread']
+    if wavelength_spread_user is None or wavelength is None:
+        # wave length spread cannot be overwritten by itself without wave length or vice verse
+        # this is left for discussion on wave length
+        wavelength = wavelength_spread_user = None
 
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
@@ -103,11 +107,24 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # source aperture diameter in mm
     source_aperture_diameter = reduction_config['sourceApertureDiameter']
 
-    smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
-    smearing_pixel_size_y = reduction_config["smearingPixelSizeY"]
-    if smearing_pixel_size_x is not None:
-        smearing_pixel_size_x *= 1E-3  # from mm to m
-        smearing_pixel_size_y *= 1E-3
+    # smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
+    # smearing_pixel_size_y = reduction_config["smearingPixelSizeY"]
+    # if smearing_pixel_size_x is not None:
+    #     smearing_pixel_size_x *= 1E-3  # from mm to m
+    #     smearing_pixel_size_y *= 1E-3
+
+    # Overwriting pixel size X and pixel size Y
+    smearing_pixel_size_x_dict = parse_json_meta_data(reduction_input, 'smearingPixelSizeX', 1E-3,
+                                                      beam_center_run=True, background_run=True,
+                                                      empty_transmission_run=True,
+                                                      transmission_run=True, background_transmission=True,
+                                                      block_beam_run=True, dark_current_run=True)
+
+    smearing_pixel_size_y_dict = parse_json_meta_data(reduction_input, 'smearingPixelSizeY', 1E-3,
+                                                      beam_center_run=True, background_run=True,
+                                                      empty_transmission_run=True,
+                                                      transmission_run=True, background_transmission=True,
+                                                      block_beam_run=True, dark_current_run=True)
 
     # Retrieve parameters for overwriting geometry related meta data
     # Sample to Si-window distance
@@ -126,6 +143,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
+        # Load data and split
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
@@ -153,8 +171,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                               sample_thickness=thickness,
                               sample_aperture_diameter=sample_aperture_diameter,
                               source_aperture_diameter=source_aperture_diameter,
-                              smearing_pixel_size_x=smearing_pixel_size_x,
-                              smearing_pixel_size_y=smearing_pixel_size_y)
+                              smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
+                              smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
                 # Transform X-axis to wave length with spread
                 _w = transform_to_wavelength(_w)
                 _w = set_init_uncertainties(_w)
@@ -168,6 +186,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                       'units': samplelogs[logslicename].units,
                                                       'name': logslicename}
     else:
+        # Load single data
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
             filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
@@ -185,8 +204,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                           sample_thickness=thickness,
                           sample_aperture_diameter=sample_aperture_diameter,
                           source_aperture_diameter=source_aperture_diameter,
-                          smearing_pixel_size_x=smearing_pixel_size_x,
-                          smearing_pixel_size_y=smearing_pixel_size_y)
+                          smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
+                          smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)
@@ -215,15 +234,15 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                           sample_detector_distance_value=sdd_value_dict[run_type],
                                           **load_params)
                 # Set the wave length and wave length spread
+                set_meta_data(ws_name,
+                              wave_length=wavelength,
+                              wavelength_spread=wavelength_spread_user,
+                              sample_thickness=None,
+                              sample_aperture_diameter=None,
+                              source_aperture_diameter=None,
+                              smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
+                              smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type])
                 if wavelength and wavelength_spread_user:
-                    set_meta_data(ws_name,
-                                  wave_length=wavelength,
-                                  wavelength_spread=wavelength_spread_user,
-                                  sample_thickness=None,
-                                  sample_aperture_diameter=None,
-                                  source_aperture_diameter=None,
-                                  smearing_pixel_size_x=None,
-                                  smearing_pixel_size_y=None)
                     # Transform X-axis to wave length with spread
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
@@ -249,16 +268,16 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                       sample_detector_distance_value=sdd_value_dict[meta_data.DARK_CURRENT],
                                       **load_params)
             # Set the wave length and wave length spread
+            set_meta_data(ws_name,
+                          wave_length=wavelength,
+                          wavelength_spread=wavelength_spread_user,
+                          sample_thickness=None,
+                          sample_aperture_diameter=None,
+                          source_aperture_diameter=None,
+                          smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                          smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
+            # Re-transform X-axis to wave length with spread
             if wavelength and wavelength_spread_user:
-                set_meta_data(ws_name,
-                              wave_length=wavelength,
-                              wavelength_spread=wavelength_spread_user,
-                              sample_thickness=None,
-                              sample_aperture_diameter=None,
-                              source_aperture_diameter=None,
-                              smearing_pixel_size_x=None,
-                              smearing_pixel_size_y=None)
-                # Transform X-axis to wave length with spread
                 transform_to_wavelength(ws_name)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)

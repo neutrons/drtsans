@@ -625,7 +625,7 @@ class ReductionParameters:
                 try:
                     # the runNumber preferredType is a list of strings
                     abspaths(instance, instrument=instrument_name, ipts=self['iptsNumber'],
-                            directory=data_directories, search_archive=True)
+                             directory=data_directories, search_archive=True)
                 except RuntimeError:
                     yield jsonschema.ValidationError(f'Cannot find events file associated to {instance}')
             else:

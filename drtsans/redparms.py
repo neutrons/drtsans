@@ -5,11 +5,14 @@ import jsonschema
 import os
 import re
 import warnings
-from mantid.kernel import IntArrayProperty
+warnings.filterwarnings('ignore')
 
-from drtsans import configdir  # non-source files
-from drtsans.instruments import instrument_filesystem_name, instrument_standard_name, instrument_standard_names
-from drtsans.path import abspath, abspaths
+from mantid.kernel import IntArrayProperty  # noqa: E404
+
+from drtsans import configdir    # noqa: E404, non-source files
+from drtsans.instruments import (instrument_filesystem_name, instrument_standard_name,
+                                 instrument_standard_names)  # noqa: E404
+from drtsans.path import abspath, abspaths  # noqa: E404
 
 
 __all__ = ['reduction_parameters', 'update_reduction_parameters', 'validate_reduction_parameters']

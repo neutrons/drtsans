@@ -133,7 +133,7 @@ def type_selector(preferred_type):  # noqa: C901
                   '[float]': list_comprehension_exec(float),
                   '[str]': list_comprehension_exec(str),
                   '[dict]': list_comprehension_str2dict}
-    return dispatcher(preferred_type)
+    return dispatcher[preferred_type]
 
 
 class ReferenceResolver:

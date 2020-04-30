@@ -5,6 +5,7 @@ import jsonschema
 import os
 import re
 import warnings
+from mantid.kernel import IntArrayProperty
 
 from drtsans import configdir  # non-source files
 from drtsans.instruments import instrument_filesystem_name, instrument_standard_name, instrument_standard_names
@@ -105,9 +106,11 @@ def type_selector(preferred_type):  # noqa: C901
                 raise ValueError(f'{instance} must be a list of strings or a list of dictionaries')
         return list_of_dictionaries
 
-    def str_extended(instance):
+    def run_str(instance):
         r"""
-        Cast to string, iterating over items when the object to cast is a list
+        Cast to a list of run numbers into a string, iterating over items when the object to cast is a list
+
+        Examples: [1, '2', '3 - 5', '6:8'] and '1, 2, 3-5, 6 : 8' both  become '1, 2, 3, 4, 5, 6, 7, 8'
 
         Parameters
         ----------
@@ -118,18 +121,19 @@ def type_selector(preferred_type):  # noqa: C901
         str
         """
         if isinstance(instance, (list, tuple)):
-            return ', '.join([str_extended(item) for item in instance])
+            return ', '.join([run_str(item) for item in instance])
         # expand any run range, such as 12345-12349
         instance = str(instance)
-        for run_range in re.findall(r'(\d+\s*-\s*\d+)', instance):
-            first_run, last_run = [int(run) for run in run_range.split('-')]
-            all_runs = ', '.join([str(run) for run in range(first_run, last_run + 1)])
+        # Expand
+        for run_range in re.findall(r'(\d+\s*[-:]\s*\d+)', instance):
+            run_range_no_whitespaces = run_range.replace(' ', '')
+            all_runs = IntArrayProperty('_', run_range_no_whitespaces).valueAsStr
             instance = instance.replace(run_range, all_runs)
         return instance
 
     # the type_selector cast the input instance to desired data-type
-    dispatcher = {'int': int, 'float': float,
-                  'str': str_extended,
+    dispatcher = {'int': int, 'float': float, 'str': str,
+                  'runstr': run_str,
                   '[float]': list_comprehension_exec(float),
                   '[str]': list_comprehension_exec(str),
                   '[dict]': list_comprehension_str2dict}

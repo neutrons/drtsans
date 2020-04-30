@@ -4,7 +4,7 @@ import copy
 from datetime import datetime
 import os
 
-from mantid.simpleapi import mtd, logger, SaveAscii, SaveNexus  # noqa E402
+from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
 import drtsans  # noqa E402
 from drtsans import (apply_sensitivity_correction, getWedgeSelection, load_sensitivity_workspace, solid_angle_correction)  # noqa E402
@@ -468,6 +468,10 @@ def process_single_configuration(sample_ws_raw,
                                         **prepare_data_conf)
     # apply transmission to the sample
     if sample_trans_ws or sample_trans_value:
+        if sample_trans_ws:
+            RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
+                             WorkspaceToMatch=sample_ws,
+                             OutputWorkspace=sample_trans_ws)
         sample_ws = apply_transmission_correction(sample_ws,
                                                   trans_workspace=sample_trans_ws,
                                                   trans_value=sample_trans_value,
@@ -483,6 +487,10 @@ def process_single_configuration(sample_ws_raw,
                                               **prepare_data_conf)
             # apply transmission to bkgd
             if bkg_trans_ws or bkg_trans_value:
+                if bkg_trans_ws:
+                    RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
+                                     WorkspaceToMatch=bkgd_ws,
+                                     OutputWorkspace=bkg_trans_ws)
                 bkgd_ws = apply_transmission_correction(bkgd_ws,
                                                         trans_workspace=bkg_trans_ws,
                                                         trans_value=bkg_trans_value,
@@ -623,6 +631,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                                                             output_workspace=sample_trans_ws_name)
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
+
         print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
 
         tr_fn = os.path.join(output_dir, f'{outputFilename}_trans.txt')

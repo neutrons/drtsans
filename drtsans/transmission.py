@@ -159,9 +159,6 @@ def apply_transmission_correction(input_workspace, trans_workspace=None, trans_v
                                                      SmallNumberThreshold=1.0e-6,
                                                      SmallNumberValue=1.0,
                                                      OutputWorkspace=unique_workspace_dundername())
-        RebinToWorkspace(WorkspaceToRebin=clean_trans_workspace,
-                         WorkspaceToMatch=input_workspace,
-                         OutputWorkspace=clean_trans_workspace)
         kwargs['TransmissionWorkspace'] = clean_trans_workspace
     elif trans_value is not None:  # we are passing a single value for the transmission
         kwargs.update(dict(TransmissionValue=trans_value, TransmissionError=trans_error))

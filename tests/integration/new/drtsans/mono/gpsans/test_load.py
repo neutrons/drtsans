@@ -76,8 +76,8 @@ def test_load_all_files(reference_dir):
     # Verify smearing pixel size x and smearing pixel size y
     for ws_index, ws in enumerate([sample_run, sample_trans_run, bkgd_run, bkgd_trans_run]):
         sample_log_i = SampleLogs(ws)
-        pixel_size_x = sample_log_i['smearingPixelSizeX'].value()
-        pixel_size_y = sample_log_i['smearingPixelSizeY'].value()
+        pixel_size_x = sample_log_i['smearingPixelSizeX'].value
+        pixel_size_y = sample_log_i['smearingPixelSizeY'].value
         assert pixel_size_x == pytest.approx(1.2345 * 1.E-3, 1.E-7), \
             '{}-th workspace: Pixel size X {} (m) shall be equal to 1.2345 mm'.format(ws_index, pixel_size_x)
         assert pixel_size_y == pytest.approx(2.3456 * 1.E-3, 1.E-7),\

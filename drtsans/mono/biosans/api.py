@@ -369,16 +369,16 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
                                           sample_detector_distance_value=user_sample_detector_distance,
                                           **load_params)
         # Set the wave length and wave length spread
+        set_meta_data(ws_name,
+                      wave_length=wavelength,
+                      wavelength_spread=wavelength_spread_user,
+                      sample_thickness=None,
+                      sample_aperture_diameter=None,
+                      source_aperture_diameter=None,
+                      smearing_pixel_size_x=smearing_pixel_size_x,
+                      smearing_pixel_size_y=smearing_pixel_size_y)
+        # Re-Transform X-axis to wave length with spread
         if wavelength and wavelength_spread_user:
-            set_meta_data(ws_name,
-                          wave_length=wavelength,
-                          wavelength_spread=wavelength_spread_user,
-                          sample_thickness=None,
-                          sample_aperture_diameter=None,
-                          source_aperture_diameter=None,
-                          smearing_pixel_size_x=smearing_pixel_size_x,
-                          smearing_pixel_size_y=smearing_pixel_size_y)
-            # Transform X-axis to wave length with spread
             transform_to_wavelength(ws_name)
         for btp_params in default_mask:
             apply_mask(ws_name, **btp_params)

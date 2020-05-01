@@ -107,12 +107,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # source aperture diameter in mm
     source_aperture_diameter = reduction_config['sourceApertureDiameter']
 
-    # smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
-    # smearing_pixel_size_y = reduction_config["smearingPixelSizeY"]
-    # if smearing_pixel_size_x is not None:
-    #     smearing_pixel_size_x *= 1E-3  # from mm to m
-    #     smearing_pixel_size_y *= 1E-3
-
     # Overwriting pixel size X and pixel size Y
     smearing_pixel_size_x_dict = parse_json_meta_data(reduction_input, 'smearingPixelSizeX', 1E-3,
                                                       beam_center_run=True, background_run=True,

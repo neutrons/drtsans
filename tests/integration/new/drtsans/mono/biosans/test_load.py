@@ -81,6 +81,7 @@ def test_load_all_files(reference_dir):
         assert sdd_value == pytest.approx(7.00, 1E-6), '{} has a wrong SDD {}'.format(str(ws), sdd_value)
 
     # Verify smearing pixel size x and smearing pixel size y
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/541: default
     for ws_index, ws in enumerate([sample_run, beam_center_run, bkgd_run, empty_trans_run, dark_run]):
         sample_log_i = SampleLogs(ws)
         pixel_size_x = sample_log_i['smearingPixelSizeX'].value

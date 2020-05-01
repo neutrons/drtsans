@@ -97,11 +97,18 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     sample_aperture_diameter = reduction_config['sampleApertureSize']  # in milimiters
     source_aperture_diameter = reduction_config['sourceApertureDiameter']  # in milimiters
 
-    smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
-    smearing_pixel_size_y = reduction_config["smearingPixelSizeY"]
-    if smearing_pixel_size_x is not None:
-        smearing_pixel_size_x *= 1E-3  # from milimeters to meters
-        smearing_pixel_size_y *= 1E-3
+    # Parse smearing pixel size x and y for all runs
+    smearing_pixel_size_x_dict = parse_json_meta_data(reduction_input, 'smearingPixelSizeX', 1E-3,
+                                                      beam_center_run=True, background_run=True,
+                                                      empty_transmission_run=True,
+                                                      transmission_run=True, background_transmission=True,
+                                                      block_beam_run=True, dark_current_run=True)
+
+    smearing_pixel_size_y_dict = parse_json_meta_data(reduction_input, 'smearingPixelSizeY', 1E-3,
+                                                      beam_center_run=True, background_run=True,
+                                                      empty_transmission_run=True,
+                                                      transmission_run=True, background_transmission=True,
+                                                      block_beam_run=True, dark_current_run=True)
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
@@ -148,8 +155,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                               sample_thickness=thickness,
                               sample_aperture_diameter=sample_aperture_diameter,
                               source_aperture_diameter=source_aperture_diameter,
-                              smearing_pixel_size_x=smearing_pixel_size_x,
-                              smearing_pixel_size_y=smearing_pixel_size_y)
+                              smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
+                              smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
                 # Transform X-axis to wave length with spread
                 _w = transform_to_wavelength(_w)
                 _w = set_init_uncertainties(_w)
@@ -180,8 +187,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                           sample_thickness=thickness,
                           sample_aperture_diameter=sample_aperture_diameter,
                           source_aperture_diameter=source_aperture_diameter,
-                          smearing_pixel_size_x=smearing_pixel_size_x,
-                          smearing_pixel_size_y=smearing_pixel_size_y)
+                          smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
+                          smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)
@@ -209,16 +216,16 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                   sample_detector_distance_value=sdd_value_dict[run_type],
                                                   **load_params)
                 # Set the wave length and wave length spread
+                set_meta_data(ws_name,
+                              wave_length=wavelength,
+                              wavelength_spread=wavelength_spread_user,
+                              sample_thickness=None,
+                              sample_aperture_diameter=None,
+                              source_aperture_diameter=None,
+                              smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
+                              smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type])
+                # Re-transform X-axis to wave length with spread due to overwriting wave length
                 if wavelength and wavelength_spread_user:
-                    set_meta_data(ws_name,
-                                  wave_length=wavelength,
-                                  wavelength_spread=wavelength_spread_user,
-                                  sample_thickness=None,
-                                  sample_aperture_diameter=None,
-                                  source_aperture_diameter=None,
-                                  smearing_pixel_size_x=None,
-                                  smearing_pixel_size_y=None)
-                    # Transform X-axis to wave length with spread
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
@@ -237,8 +244,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                         wavelength,
                                                         wavelength_spread_user,
                                                         swd_value_dict[meta_data.DARK_CURRENT],
-                                                        sdd_value_dict[meta_data.DARK_CURRENT])
-
+                                                        sdd_value_dict[meta_data.DARK_CURRENT],
+                                                        smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                                                        smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
             # dark current for wing detector
             dark_current_wing = dark_current_correction(dark_current_file_wing,
                                                         default_mask,
@@ -250,7 +258,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                         wavelength,
                                                         wavelength_spread_user,
                                                         swd_value_dict[meta_data.DARK_CURRENT],
-                                                        sdd_value_dict[meta_data.DARK_CURRENT])
+                                                        sdd_value_dict[meta_data.DARK_CURRENT],
+                                                        smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                                                        smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
 
     # load required processed_files
     sensitivity_main_ws_name = None
@@ -308,7 +318,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
 
 def dark_current_correction(dark_current_file, default_mask, instrument_name, ipts, load_params,
                             path, prefix, wavelength, wavelength_spread_user,
-                            user_sample_si_distance, user_sample_detector_distance):
+                            user_sample_si_distance, user_sample_detector_distance,
+                            smearing_pixel_size_x, smearing_pixel_size_y):
     """Calculate the dark current correction
 
     Parameters
@@ -326,6 +337,10 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
         user specified (overwriting) sample to Si-window distance in unit of meter
     user_sample_detector_distance: float, None
         user specified (overwriting) sample to detector distance in unit of meter
+    smearing_pixel_size_x: float, None
+        user specified smearing pixel size along X-direction
+    smearing_pixel_size_y: float, None
+        user specified smearing pixel size along Y-direction
 
     Returns
     -------
@@ -349,16 +364,16 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
                                           sample_detector_distance_value=user_sample_detector_distance,
                                           **load_params)
         # Set the wave length and wave length spread
+        set_meta_data(ws_name,
+                      wave_length=wavelength,
+                      wavelength_spread=wavelength_spread_user,
+                      sample_thickness=None,
+                      sample_aperture_diameter=None,
+                      source_aperture_diameter=None,
+                      smearing_pixel_size_x=smearing_pixel_size_x,
+                      smearing_pixel_size_y=smearing_pixel_size_y)
+        # Re-Transform X-axis to wave length with spread
         if wavelength and wavelength_spread_user:
-            set_meta_data(ws_name,
-                          wave_length=wavelength,
-                          wavelength_spread=wavelength_spread_user,
-                          sample_thickness=None,
-                          sample_aperture_diameter=None,
-                          source_aperture_diameter=None,
-                          smearing_pixel_size_x=None,
-                          smearing_pixel_size_y=None)
-            # Transform X-axis to wave length with spread
             transform_to_wavelength(ws_name)
         for btp_params in default_mask:
             apply_mask(ws_name, **btp_params)
@@ -402,6 +417,10 @@ def prepare_data_workspaces(data,
         point between the neutron beam and the detector array will have ``x=0``.
     center_y: float
         Move the center of the detector to this Y-coordinate. If :py:obj:`None`, the
+        detector will be moved such that the Y-coordinate of the intersection
+        point between the neutron beam and the detector array will have ``y=0``.
+    center_y_wing: float
+        Move the center r of the detector to this Y-coordinate. If :py:obj:`None`, the
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
     dark_current: ~mantid.dataobjects.Workspace2D

@@ -5,6 +5,7 @@ from mantid.simpleapi import mtd
 from drtsans.mono.biosans import load_all_files
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.geometry import sample_detector_distance
+from drtsans.samplelogs import SampleLogs
 
 
 def test_load_all_files(reference_dir):
@@ -78,6 +79,17 @@ def test_load_all_files(reference_dir):
         # EPICS recorded SDD with sample run
         sdd_value = sample_detector_distance(ws, unit='m', search_logs=False)
         assert sdd_value == pytest.approx(7.00, 1E-6), '{} has a wrong SDD {}'.format(str(ws), sdd_value)
+
+    # Verify smearing pixel size x and smearing pixel size y
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/541: default
+    for ws_index, ws in enumerate([sample_run, beam_center_run, bkgd_run, empty_trans_run, dark_run]):
+        sample_log_i = SampleLogs(ws)
+        pixel_size_x = sample_log_i['smearingPixelSizeX'].value
+        pixel_size_y = sample_log_i['smearingPixelSizeY'].value
+        assert pixel_size_x == pytest.approx(1.23456 * 1.E-3, 1.E-7), \
+            '{}-th workspace: Pixel size X {} (m) shall be equal to 1.23456 mm'.format(ws_index, pixel_size_x)
+        assert pixel_size_y == pytest.approx(2.34567 * 1.E-3, 1.E-7), \
+            '{}-th workspace: Pixel size X {} (m) shall be equal to 2.34567 mm'.format(ws_index, pixel_size_y)
 
 
 def generate_test_json(sens_nxs_dir):
@@ -166,8 +178,8 @@ def generate_test_json(sens_nxs_dir):
          "logSliceInterval": "",
          "sampleToSi": "200.52",
          "sampleDetectorDistance": "14.31",
-         "smearingPixelSizeX": "",
-         "smearingPixelSizeY": ""
+         "smearingPixelSizeX": "1.23456",
+         "smearingPixelSizeY": "2.34567"
          }
      }"""
 

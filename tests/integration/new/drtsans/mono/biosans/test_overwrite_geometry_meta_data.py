@@ -123,6 +123,7 @@ def test_overwrite_sample_to_si(reference_dir):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 500, None)
+    print(json_file)
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run

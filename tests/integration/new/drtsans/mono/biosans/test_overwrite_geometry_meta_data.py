@@ -110,7 +110,7 @@ def test_overwrite_sample_to_si(reference_dir):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
-    - Overwrite sampleToSi (distance) to 7000 mm.
+    - Overwrite sampleToSi (distance) to 500 mm.
 
     This integration test is from a test from and verified by Shuo Qian.
     Location of testing scirpts and results verified: /HFIR/CG3/shared/UserAcceptance/override_round3/
@@ -133,7 +133,7 @@ def test_overwrite_sample_to_si(reference_dir):
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test2/')
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='SampleToSi -> 7000 mm',
+                             title='SampleToSi -> 500 mm',
                              prefix='test2')
 
 

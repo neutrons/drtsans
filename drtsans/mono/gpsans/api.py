@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 from collections import namedtuple
 
-from mantid.simpleapi import mtd, MaskDetectors
+from mantid.simpleapi import mtd, MaskDetectors, logger
 
 from drtsans import getWedgeSelection
 from drtsans.path import abspath, abspaths, registered_workspace
@@ -203,8 +203,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             # Re-transform to wave length if overwriting values are specified
             if wavelength and wavelength_spread_user:
                 transform_to_wavelength(ws_name)
-            print('[META] Wavelength is set to {} and {}'
-                  ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
+            logger.information('[META] Wavelength range is from {} to {}'
+                               ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
             # Apply mask
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)

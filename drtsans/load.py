@@ -125,12 +125,12 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         # HFIR-SANS: use new method
         # --- Debug Exception Section
         out_ws = mtd[str(output_workspace)]
-        print('Before translate source and sample')
-        print('Sample position = {}'.format(out_ws.getInstrument().getSample().getPos()))
+        mantid.logger.debug('Before translate source and sample')
+        mantid.logger.debug('Sample position = {}'.format(out_ws.getInstrument().getSample().getPos()))
         from drtsans.geometry import sample_detector_distance
-        print('SDD = {} (meta) and {} (calculated)'
-              ''.format(sample_detector_distance(output_workspace, search_logs=True),
-                        sample_detector_distance(output_workspace, search_logs=False)))
+        mantid.logger.debug('SDD = {} (meta) and {} (calculated)'
+                            ''.format(sample_detector_distance(output_workspace, search_logs=True),
+                                      sample_detector_distance(output_workspace, search_logs=False)))
         # --- END
 
         # Determine detector and sample offset from meta data afterwards

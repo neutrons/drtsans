@@ -123,7 +123,6 @@ def test_overwrite_sample_to_si(reference_dir):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 500, None)
-    print(json_file)
     output_dir = '/tmp/meta_overwrite_bio_test2/'
 
     # Run
@@ -216,8 +215,6 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
         reduction_input["outputFileName"] = sample_names[i]
         # always check after updating the parameters
         reduction_input = validate_reduction_parameters(reduction_input)
-        print('***** Validated json *****')
-        print(reduction_input)
         loaded = load_all_files(reduction_input,
                                 path=nexus_dir,
                                 prefix=prefix)

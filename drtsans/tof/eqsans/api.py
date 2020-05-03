@@ -562,7 +562,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
     symmetric_wedges = True
-    if bin1d_type == 'wedge' and wedges_min.size == 0:
+    if bin1d_type == 'wedge' and len(wedges_min) == 0:
         # the JSON validator "wedgesources" guarantees that the parameters to be collected are all non-empty
         autoWedgeOpts = {'q_min': reduction_config['autoWedgeQmin'],
                          'q_delta': reduction_config['autoWedgeQdelta'],

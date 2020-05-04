@@ -13,6 +13,7 @@ from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, Fi
 from mantid.simpleapi import AddSampleLogMultiple
 import mantid
 from drtsans.path import registered_workspace
+from drtsans.instruments import is_mono as is_mono_sans
 
 
 __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
@@ -91,6 +92,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     # determine if this is a monochromatic measurement
     is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
               (instrument_unique_name == InstrumentEnumName.GPSANS)
+    # is_mono = is_mono_sans(input_query=None, instrument_unique_name=instrument_unique_name)
 
     if reuse_workspace and mtd.doesExist(output_workspace):
         # if it exists skip loading

@@ -75,13 +75,16 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
-    wavelength = reduction_config['wavelength']
-    wavelength_spread_user = reduction_config['wavelengthSpread']
-    if wavelength_spread_user is None or wavelength is None:
-        # wave length spread cannot be overwritten by itself without wave length or vice verse
-        # this is left for discussion on wave length
-        wavelength = wavelength_spread_user = None
-
+    # wave length and wave length spread
+    # wavelength = reduction_config['wavelength']
+    # wavelength_spread_user = reduction_config['wavelengthSpread']
+    # if wavelength_spread_user is None or wavelength is None:
+    #     # wave length spread cannot be overwritten by itself without wave length or vice verse
+    #     # this is left for discussion on wave length
+    #     wavelength = wavelength_spread_user = None
+    
+    wave_length_dict, wave_length_spread_dict = meta_data.parse_json_wave_length_and_spread(reduction_config)
+    
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
         default_mask = reduction_config["defaultMask"] if reduction_config["defaultMask"] is not None else []
@@ -160,8 +163,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             for _w in mtd[ws_name]:
                 # Overwrite meta data
                 set_meta_data(str(_w),
-                              wave_length=wavelength,
-                              wavelength_spread=wavelength_spread_user,
+                              wave_length=wave_length_dict[meta_data.SAMPLE],
+                              wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
                               sample_thickness=thickness,
                               sample_aperture_diameter=sample_aperture_diameter,
                               source_aperture_diameter=source_aperture_diameter,
@@ -193,15 +196,15 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                       **load_params)
             # Overwrite meta data
             set_meta_data(ws_name,
-                          wave_length=wavelength,
-                          wavelength_spread=wavelength_spread_user,
+                          wave_length=wave_length_dict[meta_data.SAMPLE],
+                          wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
                           sample_thickness=thickness,
                           sample_aperture_diameter=sample_aperture_diameter,
                           source_aperture_diameter=source_aperture_diameter,
                           smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
                           smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
             # Re-transform to wave length if overwriting values are specified
-            if wavelength and wavelength_spread_user:
+            if wave_length_dict[meta_data.SAMPLE]:
                 transform_to_wavelength(ws_name)
             logger.information('[META] Wavelength range is from {} to {}'
                                ''.format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]))
@@ -229,14 +232,14 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                           **load_params)
                 # Set the wave length and wave length spread
                 set_meta_data(ws_name,
-                              wave_length=wavelength,
-                              wavelength_spread=wavelength_spread_user,
+                              wave_length=wave_length_dict[run_type],
+                              wavelength_spread=wave_length_spread_dict[run_type],
                               sample_thickness=None,
                               sample_aperture_diameter=None,
                               source_aperture_diameter=None,
                               smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
                               smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type])
-                if wavelength and wavelength_spread_user:
+                if wave_length_dict[run_type]:
                     # Transform X-axis to wave length with spread
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
@@ -263,15 +266,15 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                       **load_params)
             # Set the wave length and wave length spread
             set_meta_data(ws_name,
-                          wave_length=wavelength,
-                          wavelength_spread=wavelength_spread_user,
+                          wave_length=wave_length_dict[meta_data.DARK_CURRENT],
+                          wavelength_spread=wave_length_spread_dict[meta_data.DARK_CURRENT],
                           sample_thickness=None,
                           sample_aperture_diameter=None,
                           source_aperture_diameter=None,
                           smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
                           smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
             # Re-transform X-axis to wave length with spread
-            if wavelength and wavelength_spread_user:
+            if wave_length_dict[meta_data.DARK_CURRENT]:
                 transform_to_wavelength(ws_name)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)

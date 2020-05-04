@@ -77,8 +77,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     if load_params is None:
         load_params = {}
 
-    wavelength = reduction_config["wavelength"]
-    wavelength_spread_user = reduction_config["wavelengthSpread"]
+    # wave length and wave length spread
+    wave_length_dict, wave_length_spread_dict = meta_data.parse_json_wave_length_and_spread(reduction_input)
 
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
@@ -150,8 +150,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             for _w in mtd[ws_name]:
                 # Overwrite meta data
                 set_meta_data(str(_w),
-                              wave_length=wavelength,
-                              wavelength_spread=wavelength_spread_user,
+                              wave_length=wave_length_dict[meta_data.SAMPLE],
+                              wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
                               sample_thickness=thickness,
                               sample_aperture_diameter=sample_aperture_diameter,
                               source_aperture_diameter=source_aperture_diameter,
@@ -182,15 +182,15 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                               **load_params)
             # Overwrite meta data
             set_meta_data(ws_name,
-                          wave_length=wavelength,
-                          wavelength_spread=wavelength_spread_user,
+                          wave_length=wave_length_dict[meta_data.SAMPLE],
+                          wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
                           sample_thickness=thickness,
                           sample_aperture_diameter=sample_aperture_diameter,
                           source_aperture_diameter=source_aperture_diameter,
                           smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
                           smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
             # Re-transform to wave length if overwriting values are specified
-            if wavelength and wavelength_spread_user:
+            if wave_length_dict[meta_data.SAMPLE]:
                 transform_to_wavelength(ws_name)
             # Apply mask
             for btp_params in default_mask:
@@ -217,15 +217,15 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                   **load_params)
                 # Set the wave length and wave length spread
                 set_meta_data(ws_name,
-                              wave_length=wavelength,
-                              wavelength_spread=wavelength_spread_user,
+                              wave_length=wave_length_dict[run_type],
+                              wavelength_spread=wave_length_spread_dict[run_type],
                               sample_thickness=None,
                               sample_aperture_diameter=None,
                               source_aperture_diameter=None,
                               smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
                               smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type])
                 # Re-transform X-axis to wave length with spread due to overwriting wave length
-                if wavelength and wavelength_spread_user:
+                if wave_length_dict[run_type]:
                     transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
@@ -241,8 +241,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                         load_params,
                                                         path,
                                                         prefix,
-                                                        wavelength,
-                                                        wavelength_spread_user,
+                                                        wave_length_dict[meta_data.DARK_CURRENT],
+                                                        wave_length_spread_dict[meta_data.DARK_CURRENT],
                                                         swd_value_dict[meta_data.DARK_CURRENT],
                                                         sdd_value_dict[meta_data.DARK_CURRENT],
                                                         smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
@@ -255,8 +255,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                         load_params,
                                                         path,
                                                         prefix,
-                                                        wavelength,
-                                                        wavelength_spread_user,
+                                                        wave_length_dict[meta_data.DARK_CURRENT],
+                                                        wave_length_spread_dict[meta_data.DARK_CURRENT],
                                                         swd_value_dict[meta_data.DARK_CURRENT],
                                                         sdd_value_dict[meta_data.DARK_CURRENT],
                                                         smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
@@ -373,7 +373,7 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
                       smearing_pixel_size_x=smearing_pixel_size_x,
                       smearing_pixel_size_y=smearing_pixel_size_y)
         # Re-Transform X-axis to wave length with spread
-        if wavelength and wavelength_spread_user:
+        if wavelength:
             transform_to_wavelength(ws_name)
         for btp_params in default_mask:
             apply_mask(ws_name, **btp_params)

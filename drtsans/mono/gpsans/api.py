@@ -75,13 +75,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
+
     # wave length and wave length spread
-    # wavelength = reduction_config['wavelength']
-    # wavelength_spread_user = reduction_config['wavelengthSpread']
-    # if wavelength_spread_user is None or wavelength is None:
-    #     # wave length spread cannot be overwritten by itself without wave length or vice verse
-    #     # this is left for discussion on wave length
-    #     wavelength = wavelength_spread_user = None
     wave_length_dict, wave_length_spread_dict = meta_data.parse_json_wave_length_and_spread(reduction_input)
 
     if reduction_config["useDefaultMask"]:

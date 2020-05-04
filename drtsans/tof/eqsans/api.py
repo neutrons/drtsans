@@ -820,6 +820,7 @@ def apply_solid_angle_correction(input_workspace):
 
 
 def prepare_data(data,
+                 pixel_calibration=False,
                  detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  center_x=None, center_y=None,
@@ -840,6 +841,8 @@ def prepare_data(data,
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to barscan and tube-width calibrations.
     detector_offset: float
         Additional translation of the detector along Z-axis, in mili-meters.
     sample_offset: float
@@ -912,6 +915,7 @@ def prepare_data(data,
     # First, load the event stream data into a workspace
     # The output_workspace name is for the Mantid workspace
     workspaces = load_events_and_histogram(data,
+                                           pixel_calibration=pixel_calibration,
                                            detector_offset=detector_offset,
                                            sample_offset=sample_offset,
                                            output_workspace=output_workspace, output_suffix=output_suffix,

@@ -1044,6 +1044,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
 
 def prepare_data(data,
+                 pixel_calibration=False,
                  mask_detector=None,
                  detector_offset=0, sample_offset=0,
                  center_x=None, center_y=None, center_y_wing=None,
@@ -1065,6 +1066,8 @@ def prepare_data(data,
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to barscan and tube-width calibrations.
     mask_detector: str
         Name of an instrument component to mask
     detector_offset: float
@@ -1134,7 +1137,7 @@ def prepare_data(data,
 
     # Load event without moving detector and sample after loading NeXus and instrument
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     detector_offset=0., sample_offset=0.)
+                     pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.)
 
     # Reset the offset
     sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,

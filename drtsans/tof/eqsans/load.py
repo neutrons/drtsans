@@ -82,7 +82,7 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
     return w
 
 
-def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
+def load_events(run, pixel_calibration=False, detector_offset=0., sample_offset=0., path_to_pixel=True,
                 data_dir=None, output_workspace=None, output_suffix='', **kwargs):
     r"""
     Load events with initial corrections for geometry and time-of-flight
@@ -97,6 +97,8 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     ----------
     run: int, str
         Examples: ``55555`` or ``EQSANS_55555`` or file path.
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to barscan and tube-width calibrations.
     detector_offset: float
         Additional translation of the detector along the Z-axis, in mm. Positive
         moves the detector downstream.
@@ -126,8 +128,8 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
     """
     # use the generic functionality to do most of the work
     output_workspace = generic_load_events(run=run, data_dir=data_dir, output_workspace=output_workspace,
-                                           output_suffix=output_suffix, detector_offset=detector_offset,
-                                           sample_offset=sample_offset)
+                                           output_suffix=output_suffix, pixel_calibration=pixel_calibration,
+                                           detector_offset=detector_offset, sample_offset=sample_offset)
 
     # EQSANS specific part benefits from converting workspace to a string
     output_workspace = str(output_workspace)
@@ -143,7 +145,7 @@ def load_events(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
 
 
 @namedtuplefy
-def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
+def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., sample_offset=0., path_to_pixel=True,
                               data_dir=None, output_workspace=None, output_suffix='',
                               bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                               center_x=None, center_y=None, mask=None, monitors=False,
@@ -162,6 +164,8 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
     ----------
     run: list of runs to load
         Examples: ``55555`` or ``EQSANS_55555`` or file path or ``EQSANS_55555, EQSANS_55556``
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to barscan and tube-width calibrations.
     detector_offset: float
         Additional translation of the detector along the Z-axis, in mm. Positive
         moves the detector downstream.
@@ -231,6 +235,7 @@ def load_events_and_histogram(run, detector_offset=0., sample_offset=0., path_to
             ws_monitors = None
 
         ws = load_events(run=run[0],
+                         pixel_calibration=pixel_calibration,
                          detector_offset=detector_offset,
                          sample_offset=sample_offset,
                          path_to_pixel=path_to_pixel,

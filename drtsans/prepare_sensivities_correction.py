@@ -130,6 +130,9 @@ class PrepareSensitivityCorrection(object):
         # Dark current
         self._dark_current_runs = None
 
+        # Pixel calibration default
+        self._apply_calibration = False
+
         # Apply solid angle correction or not?
         self._solid_angle_correction = False
 
@@ -146,6 +149,16 @@ class PrepareSensitivityCorrection(object):
         self._wing_det_mask_angle = None
         # Mask angles on main detector pixels to mask on beam center.
         self._main_det_mask_angle = None
+
+    def set_pixel_calibration_flag(self, apply_calibration):
+        """Set the flag to apply pixel calibrations.
+
+        Parameters
+        ----------
+        apply_calibration : bool
+            Flag for applying the pixel calibration.
+        """
+        self._apply_calibration = apply_calibration
 
     def set_solid_angle_correction_flag(self, apply_correction):
         """Set the flag to apply solid angle correction
@@ -360,6 +373,7 @@ class PrepareSensitivityCorrection(object):
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
         flood_ws = prepare_data(data='{}_{}'.format(self._instrument, self._flood_runs[index]),
+                                pixel_calibration=self._apply_calibration,
                                 mask=self._default_mask,
                                 btp=self._extra_mask_dict,
                                 center_x=beam_center[0],
@@ -658,6 +672,7 @@ class PrepareSensitivityCorrection(object):
             flux_method = 'monitor'
 
         beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
+                                             pixel_calibration=self._apply_calibration,
                                              center_x=0.,  # force to not to center
                                              center_y=0.,
                                              mask=self._default_mask,
@@ -759,6 +774,7 @@ class PrepareSensitivityCorrection(object):
 
         # Load, mask default and pixels, and normalize
         transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_beam_run),
+                                              pixel_calibration=self._apply_calibration,
                                               mask=self._default_mask, btp=self._extra_mask_dict,
                                               flux_method='monitor',
                                               solid_angle=False,
@@ -776,6 +792,7 @@ class PrepareSensitivityCorrection(object):
 
         # Load, mask default and pixels, normalize
         transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
+                                             pixel_calibration=self._apply_calibration,
                                              mask=self._default_mask, btp=self._extra_mask_dict,
                                              flux_method='monitor',
                                              solid_angle=False,

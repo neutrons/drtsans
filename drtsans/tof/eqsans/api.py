@@ -66,6 +66,25 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     empty = reduction_input["emptyTransmission"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
 
+    # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
+    # In the future this should be made optional
+    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+                    for run_number in (sample,
+                                       bkgd,
+                                       empty,
+                                       sample_trans,
+                                       bkgd_trans)]
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group')
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{center}_raw_events')
+    ws_to_remove.append(f'{prefix}_sensitivity')
+    ws_to_remove.append(f'{prefix}_mask')
+    if reduction_config["darkFileName"]:
+        run_number = extract_run_number(reduction_config["darkFileName"])
+        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+    for ws_name in ws_to_remove:
+        if registered_workspace(ws_name):
+            mtd.remove(ws_name)
+
     filenames = set()
 
     default_mask = None

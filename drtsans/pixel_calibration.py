@@ -753,6 +753,9 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)
+    else:
+        CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+
     if isinstance(calibrations, str):  # we passed only one calibration
         calibrations = [calibrations, ]  # convert `calibrations` into a list
     components = {InstrumentEnumName.BIOSANS: ['detector1', 'wing_detector'],
@@ -763,7 +766,7 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
         for caltype in calibrations:
             try:
                 calibration = load_calibration(input_workspace, caltype, component, database=database)
-                calibration.apply(input_workspace)
+                calibration.apply(output_workspace)
             except CalibrationNotFound as e:
                 sys.stderr.write(e)
     return mtd[output_workspace]

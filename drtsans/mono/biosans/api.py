@@ -132,12 +132,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             print(f"Loading filename {filename}")
             if timeslice:
-                timesliceinterval = float(reduction_config["timesliceinterval"])
+                timesliceinterval = float(reduction_config["timeSliceInterval"])
                 logslicename = logsliceinterval = None
             elif logslice:
                 timesliceinterval = None
-                logslicename = reduction_config["logslicename"]
-                logsliceinterval = reduction_config["logsliceinterval"]
+                logslicename = reduction_config["logSliceName"]
+                logsliceinterval = reduction_config["logSliceInterval"]
             biosans.load_and_split(filename, output_workspace=ws_name,
                                    time_interval=timesliceinterval,
                                    log_name=logslicename, log_value_interval=logsliceinterval,

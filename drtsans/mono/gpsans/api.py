@@ -96,7 +96,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
 
     # sample thickness
     # thickness is written to sample log if it is defined...
-    # FIXME - thickness is used in reduce_configuration... - shall these 2 places more unified?
     thickness = reduction_input['sample']['thickness']
 
     # sample aperture diameter in mm

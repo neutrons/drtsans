@@ -92,7 +92,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             raise ValueError("Can't do slicing on summed data sets")
 
     # thickness is written to sample log if it is defined...
-    # FIXME - thickness is used in reduce_configuration... - shall these 2 places more unified?
     thickness = reduction_input['sample']['thickness']
     sample_aperture_diameter = reduction_config['sampleApertureSize']  # in milimiters
     source_aperture_diameter = reduction_config['sourceApertureDiameter']  # in milimiters

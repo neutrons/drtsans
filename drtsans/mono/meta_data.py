@@ -162,7 +162,7 @@ def _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor
     return
 
 
-def parse_json_wave_length_and_spread(reduction_config):
+def parse_json_wave_length_and_spread(reduction_input):
     """Parse wave length and wave length spread from JSON dict
 
     * drt-sans should be supporting overwriting wavelength only and
@@ -170,7 +170,7 @@ def parse_json_wave_length_and_spread(reduction_config):
 
     Parameters
     ----------
-    reduction_config: ~dict
+    reduction_input: ~dict
         reduction configuration parsed from JSON
     Returns
     -------
@@ -179,14 +179,14 @@ def parse_json_wave_length_and_spread(reduction_config):
 
     """
     # Parse wave length with instrument scientists' preferred defaults
-    wave_length_dict = parse_json_meta_data(reduction_config, 'wavelength', 1.,
+    wave_length_dict = parse_json_meta_data(reduction_input, 'wavelength', 1.,
                                             beam_center_run=True, background_run=True,
                                             empty_transmission_run=True,
                                             transmission_run=True, background_transmission=True,
                                             block_beam_run=True, dark_current_run=False)
 
     # Parse wave length with instrument scientists' preferred defaults
-    wave_length_spread_dict = parse_json_meta_data(reduction_config, 'wavelengthSpread', 1.,
+    wave_length_spread_dict = parse_json_meta_data(reduction_input, 'wavelengthSpread', 1.,
                                                    beam_center_run=True, background_run=True,
                                                    empty_transmission_run=True,
                                                    transmission_run=True, background_transmission=True,

@@ -82,7 +82,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     #     # wave length spread cannot be overwritten by itself without wave length or vice verse
     #     # this is left for discussion on wave length
     #     wavelength = wavelength_spread_user = None
-    wave_length_dict, wave_length_spread_dict = meta_data.parse_json_wave_length_and_spread(reduction_config)
+    wave_length_dict, wave_length_spread_dict = meta_data.parse_json_wave_length_and_spread(reduction_input)
 
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries

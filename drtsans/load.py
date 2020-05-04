@@ -13,7 +13,6 @@ from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, Fi
 from mantid.simpleapi import AddSampleLogMultiple
 import mantid
 from drtsans.path import registered_workspace
-from drtsans.instruments import is_mono as is_mono_sans
 
 
 __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']

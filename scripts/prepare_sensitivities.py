@@ -49,6 +49,12 @@ MASKED_PIXELS = '1-18,239-256'  # CG3
 MAIN_DET_MASK_ANGLE = 1.5
 WING_DET_MASK_ANGLE = 57.05
 
+# Adjust pixel heights and widths from bar-scan and tube-width calibrations for the following data:
+# - flood runs
+# - beam center runs
+# - transmission runs
+PIXEL_CALIBRATION = True
+
 # Corrections
 SOLID_ANGLE_CORRECTION = False
 TRANSMISSION_CORRECTION = True
@@ -106,6 +112,9 @@ if TRANSMISSION_REFERENCE_RUNS is not None:
 # Dark runs
 if DARK_CURRENT_RUNS is not None:
     preparer.set_dark_current_runs(DARK_CURRENT_RUNS)
+
+# Pixel calibration
+preparer.set_pixel_calibration_flag(PIXEL_CALIBRATION)
 
 # Solid angle
 preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)

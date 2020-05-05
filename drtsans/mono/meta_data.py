@@ -88,7 +88,7 @@ def parse_json_meta_data(reduction_input, meta_name, unit_conversion_factor,
             # Overwritten value error
             overwrite_value = None
             overwrite_dict[SAMPLE] = overwrite_value
-        except TypeError as type_err:
+        except TypeError:  # as type_err:
             overwrite_value = None
             # msg = 'Meta data {} does not exist'.format(meta_name)
             overwrite_dict[SAMPLE] = overwrite_value

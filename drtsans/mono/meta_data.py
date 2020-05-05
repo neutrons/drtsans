@@ -92,7 +92,7 @@ def parse_json_meta_data(reduction_input, meta_name, unit_conversion_factor,
             overwrite_value = None
             msg = 'Meta data {} does not exist'.format(meta_name)
             overwrite_dict[SAMPLE] = overwrite_value
-            print(msg + '\n' + str(type_err))
+            #print(msg + '\n' + str(type_err))
             # raise TypeError(msg + '\n' + str(type_err))
         except KeyError as key_error:
             # Required value cannot be found

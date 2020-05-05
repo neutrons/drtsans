@@ -14,6 +14,7 @@ from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, Fi
 from mantid.simpleapi import AddSampleLogMultiple
 import mantid
 from drtsans.path import registered_workspace
+from drtsans.instruments import is_time_of_flight
 
 
 __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
@@ -92,8 +93,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         output_workspace = '{}_{}{}'.format(instrument_unique_name, run_number, output_suffix)
 
     # determine if this is a monochromatic measurement
-    is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
-              (instrument_unique_name == InstrumentEnumName.GPSANS)
+    is_mono = not is_time_of_flight(instrument_unique_name)
 
     if reuse_workspace and mtd.doesExist(output_workspace):
         # if it exists skip loading

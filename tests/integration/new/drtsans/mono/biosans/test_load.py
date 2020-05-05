@@ -111,7 +111,8 @@ def test_load_all_files(reference_dir):
         assert wave_length == pytest.approx(6.00881338, 1.E-7), \
             '{}-th workspace: wave length {} shall be equal to 6.00881338 angstrom'.format(ws_index, wave_length)
         assert wave_length_spread == pytest.approx(0.1323529411, 1.E-7), \
-            '{}-th workspace: wave length spread {} shall be equal to 0.13235294 angstrom'.format(ws_index, wave_length_spread)
+            '{}-th workspace: wave length spread {} shall be equal to 0.13235294 angstrom' \
+            ''.format(ws_index, wave_length_spread)
 
 
 def generate_test_json(sens_nxs_dir):

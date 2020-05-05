@@ -92,7 +92,7 @@ def test_load_all_files(reference_dir):
         # overwriting value
         assert wave_length == pytest.approx(1.23, 1.E-7), \
             '{}-th workspace: wave length {} shall be equal to 1.23 angstrom'.format(ws_index, wave_length)
-        assert wave_length_spread == pytest.approx(0.46, 1.E-7), \
+        assert wave_length_spread == pytest.approx(0.1323529411, 1.E-7), \
             '{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom' \
             ''.format(ws_index, wave_length_spread)
 

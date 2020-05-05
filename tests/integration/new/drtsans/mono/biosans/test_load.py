@@ -91,6 +91,22 @@ def test_load_all_files(reference_dir):
         assert pixel_size_y == pytest.approx(2.34567 * 1.E-3, 1.E-7), \
             '{}-th workspace: Pixel size X {} (m) shall be equal to 2.34567 mm'.format(ws_index, pixel_size_y)
 
+    # Verify that if some meta-data is changed that it gets applied correctly on reload, use thickness as test
+    # First check the current value
+    thickness = SampleLogs(sample_run).single_value('sample_thickness')
+    assert thickness == pytest.approx(0.1), '{} has a wrong thickness {}' \
+                              .format(str(sample_run), thickness)
+
+    # Change reduction input and rerun load_all_files
+    reduction_input["sample"]["thickness"] = 0.2
+    load_all_files(reduction_input, path=nexus_dir, prefix='BioTestLoadAll')
+    sample_run = mtd['BioTestLoadAll_BIOSANS_5709_raw_histo']
+
+    # Check that the value has changed
+    thickness = SampleLogs(sample_run).single_value('sample_thickness')
+    assert thickness == pytest.approx(0.2), '{} has a wrong thickness {}' \
+                              .format(str(sample_run), thickness)
+
 
 def generate_test_json(sens_nxs_dir):
     """

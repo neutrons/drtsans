@@ -57,6 +57,18 @@ def test_load_all_files_simple():
     assert loaded.sensitivity is None
     assert loaded.mask is None
 
+    # Verify that if something is changed that it gets applied correctly on reload, use default mask as test
+    # First check the current value
+    assert not loaded.sample[0].data.detectorInfo().isMasked(1)
+
+    # Change reduction input and rerun load_all_files
+    reduction_input['configuration']['useDefaultMask'] = True
+    reduction_input['configuration']['defaultMask'] = "{'Pixel':'1'}"
+    loaded = load_all_files(reduction_input)
+
+    # Check that the value has changed
+    assert loaded.sample[0].data.detectorInfo().isMasked(1)
+
 
 @pytest.mark.parametrize('generic_workspace', [{'name': 'ws_raw_histo'}], indirect=True)
 def test_prepare_data_workspaces_simple(generic_workspace):

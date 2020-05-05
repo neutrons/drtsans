@@ -70,8 +70,28 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
     empty = reduction_input["emptyTransmission"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
-
     blocked_beam = reduction_config['blockedBeamRunNumber']
+
+    # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
+    # In the future this should be made optional
+    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+                    for run_number in (sample,
+                                       center,
+                                       bkgd,
+                                       empty,
+                                       sample_trans,
+                                       bkgd_trans,
+                                       blocked_beam)]
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group')
+    ws_to_remove.append(f'{prefix}_sensitivity')
+    ws_to_remove.append(f'{prefix}_mask')
+    if reduction_config["darkFileName"]:
+        run_number = extract_run_number(reduction_config["darkFileName"])
+        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+    for ws_name in ws_to_remove:
+        if registered_workspace(ws_name):
+            mtd.remove(ws_name)
+
     # sample offsets, etc
     if load_params is None:
         load_params = {}
@@ -324,6 +344,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
 
 
 def prepare_data(data,
+                 pixel_calibration=False,
                  mask_detector=None,
                  detector_offset=0, sample_offset=0,
                  center_x=None, center_y=None,
@@ -345,6 +366,8 @@ def prepare_data(data,
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to barscan and tube-width calibrations.
     mask_detector: str
         Name of an instrument component to mask
     detector_offset: float
@@ -409,7 +432,7 @@ def prepare_data(data,
     # GPSANS: detector offset is fixed to 0. Only detector sample distance is essential.
     #         So one offset is sufficient
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     detector_offset=0, sample_offset=sample_offset)
+                     pixel_calibration=pixel_calibration, detector_offset=0, sample_offset=sample_offset)
 
     # Reset the offset
     sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,

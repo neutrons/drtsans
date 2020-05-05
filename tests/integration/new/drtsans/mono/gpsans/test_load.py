@@ -96,6 +96,22 @@ def test_load_all_files(reference_dir):
             '{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom' \
             ''.format(ws_index, wave_length_spread)
 
+    # Verify that if some meta-data is changed that it gets applied correctly on reload, use thickness as test
+    # First check the current value
+    thickness = SampleLogs(sample_run).single_value('sample_thickness')
+    assert thickness == pytest.approx(0.1), '{} has a wrong thickness {}' \
+                              .format(str(sample_run), thickness)
+
+    # Change reduction input and rerun load_all_files
+    reduction_input["sample"]["thickness"] = 0.2
+    load_all_files(reduction_input, prefix='GP_TEST_LOAD', load_params=None, path=reference_dir.new.gpsans)
+    sample_run = mtd['GP_TEST_LOAD_GPSANS_9166_raw_histo']
+
+    # Check that the value has changed
+    thickness = SampleLogs(sample_run).single_value('sample_thickness')
+    assert thickness == pytest.approx(0.2), '{} has a wrong thickness {}' \
+                              .format(str(sample_run), thickness)
+
 
 def generate_test_json():
     """Generate testing JSON

@@ -73,6 +73,30 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     center = reduction_input['beamCenter']['runNumber']
     blocked_beam = reduction_config['blockedBeamRunNumber']
 
+    # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
+    # In the future this should be made optional
+    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+                    for run_number in (sample,
+                                       center,
+                                       bkgd,
+                                       empty,
+                                       sample_trans,
+                                       bkgd_trans,
+                                       blocked_beam)]
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group')
+    ws_to_remove.append(f'{prefix}_main_sensitivity')
+    ws_to_remove.append(f'{prefix}_wing_sensitivity')
+    ws_to_remove.append(f'{prefix}_mask')
+    if reduction_config["darkMainFileName"]:
+        run_number = extract_run_number(reduction_config["darkMainFileName"])
+        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+    if reduction_config["darkWingFileName"]:
+        run_number = extract_run_number(reduction_config["darkWingFileName"])
+        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+    for ws_name in ws_to_remove:
+        if registered_workspace(ws_name):
+            mtd.remove(ws_name)
+
     # sample offsets, etc
     if load_params is None:
         load_params = {}
@@ -131,12 +155,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             print(f"Loading filename {filename}")
             if timeslice:
-                timesliceinterval = float(reduction_config["timesliceinterval"])
+                timesliceinterval = float(reduction_config["timeSliceInterval"])
                 logslicename = logsliceinterval = None
             elif logslice:
                 timesliceinterval = None
-                logslicename = reduction_config["logslicename"]
-                logsliceinterval = reduction_config["logsliceinterval"]
+                logslicename = reduction_config["logSliceName"]
+                logsliceinterval = reduction_config["logSliceInterval"]
             biosans.load_and_split(filename, output_workspace=ws_name,
                                    time_interval=timesliceinterval,
                                    log_name=logslicename, log_value_interval=logsliceinterval,
@@ -229,37 +253,37 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
-        dark_current_file_main = reduction_config["darkMainFileName"]
-        dark_current_file_wing = reduction_config["darkWingFileName"]
-        if dark_current_file_main and dark_current_file_wing:
-            # dark current for main detector
-            dark_current_main = dark_current_correction(dark_current_file_main,
-                                                        default_mask,
-                                                        instrument_name,
-                                                        ipts,
-                                                        load_params,
-                                                        path,
-                                                        prefix,
-                                                        wave_length_dict[meta_data.DARK_CURRENT],
-                                                        wave_length_spread_dict[meta_data.DARK_CURRENT],
-                                                        swd_value_dict[meta_data.DARK_CURRENT],
-                                                        sdd_value_dict[meta_data.DARK_CURRENT],
-                                                        smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
-                                                        smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
-            # dark current for wing detector
-            dark_current_wing = dark_current_correction(dark_current_file_wing,
-                                                        default_mask,
-                                                        instrument_name,
-                                                        ipts,
-                                                        load_params,
-                                                        path,
-                                                        prefix,
-                                                        wave_length_dict[meta_data.DARK_CURRENT],
-                                                        wave_length_spread_dict[meta_data.DARK_CURRENT],
-                                                        swd_value_dict[meta_data.DARK_CURRENT],
-                                                        sdd_value_dict[meta_data.DARK_CURRENT],
-                                                        smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
-                                                        smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
+    dark_current_file_main = reduction_config["darkMainFileName"]
+    dark_current_file_wing = reduction_config["darkWingFileName"]
+    if dark_current_file_main and dark_current_file_wing:
+        # dark current for main detector
+        dark_current_main = dark_current_correction(dark_current_file_main,
+                                                    default_mask,
+                                                    instrument_name,
+                                                    ipts,
+                                                    load_params,
+                                                    path,
+                                                    prefix,
+                                                    wave_length_dict[meta_data.DARK_CURRENT],
+                                                    wave_length_spread_dict[meta_data.DARK_CURRENT],
+                                                    swd_value_dict[meta_data.DARK_CURRENT],
+                                                    sdd_value_dict[meta_data.DARK_CURRENT],
+                                                    smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                                                    smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
+        # dark current for wing detector
+        dark_current_wing = dark_current_correction(dark_current_file_wing,
+                                                    default_mask,
+                                                    instrument_name,
+                                                    ipts,
+                                                    load_params,
+                                                    path,
+                                                    prefix,
+                                                    wave_length_dict[meta_data.DARK_CURRENT],
+                                                    wave_length_spread_dict[meta_data.DARK_CURRENT],
+                                                    swd_value_dict[meta_data.DARK_CURRENT],
+                                                    sdd_value_dict[meta_data.DARK_CURRENT],
+                                                    smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                                                    smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
 
     # load required processed_files
     sensitivity_main_ws_name = None
@@ -1043,6 +1067,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
 
 def prepare_data(data,
+                 pixel_calibration=False,
                  mask_detector=None,
                  detector_offset=0, sample_offset=0,
                  center_x=None, center_y=None, center_y_wing=None,
@@ -1064,6 +1089,8 @@ def prepare_data(data,
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to barscan and tube-width calibrations.
     mask_detector: str
         Name of an instrument component to mask
     detector_offset: float
@@ -1133,7 +1160,7 @@ def prepare_data(data,
 
     # Load event without moving detector and sample after loading NeXus and instrument
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     detector_offset=0., sample_offset=0.)
+                     pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.)
 
     # Reset the offset
     sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,

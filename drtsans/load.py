@@ -2,6 +2,7 @@ from drtsans.geometry import translate_detector_by_z, translate_sample_by_z, tra
 from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName
 from drtsans.path import abspath
 from drtsans.path import exists as path_exists
+from drtsans.pixel_calibration import apply_calibrations
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config
 import h5py
@@ -13,6 +14,7 @@ from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, Fi
 from mantid.simpleapi import AddSampleLogMultiple
 import mantid
 from drtsans.path import registered_workspace
+from drtsans.instruments import is_time_of_flight
 
 
 __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
@@ -44,7 +46,7 @@ def __monitor_counts(filename, monitor_name='monitor1'):
 
 
 def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
-                detector_offset=0., sample_offset=0.,
+                pixel_calibration=False, detector_offset=0., sample_offset=0.,
                 reuse_workspace=False, **kwargs):
     r"""
     Load an event Nexus file produced by the instruments at ORNL.
@@ -64,6 +66,8 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     detector_offset: float
         Additional translation of the detector along the Z-axis, in mm. Positive
         moves the detector downstream.
@@ -89,8 +93,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         output_workspace = '{}_{}{}'.format(instrument_unique_name, run_number, output_suffix)
 
     # determine if this is a monochromatic measurement
-    is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or \
-              (instrument_unique_name == InstrumentEnumName.GPSANS)
+    is_mono = not is_time_of_flight(instrument_unique_name)
 
     if reuse_workspace and mtd.doesExist(output_workspace):
         # if it exists skip loading
@@ -101,6 +104,8 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
             kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+            if pixel_calibration is True:
+                apply_calibrations(output_workspace)
 
     # insert monitor counts for monochromatic instruments
     if is_mono:

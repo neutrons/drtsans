@@ -66,6 +66,25 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     empty = reduction_input["emptyTransmission"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
 
+    # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
+    # In the future this should be made optional
+    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+                    for run_number in (sample,
+                                       bkgd,
+                                       empty,
+                                       sample_trans,
+                                       bkgd_trans)]
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group')
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{center}_raw_events')
+    ws_to_remove.append(f'{prefix}_sensitivity')
+    ws_to_remove.append(f'{prefix}_mask')
+    if reduction_config["darkFileName"]:
+        run_number = extract_run_number(reduction_config["darkFileName"])
+        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+    for ws_name in ws_to_remove:
+        if registered_workspace(ws_name):
+            mtd.remove(ws_name)
+
     filenames = set()
 
     default_mask = None
@@ -820,6 +839,7 @@ def apply_solid_angle_correction(input_workspace):
 
 
 def prepare_data(data,
+                 pixel_calibration=False,
                  detector_offset=0, sample_offset=0,
                  bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                  center_x=None, center_y=None,
@@ -840,6 +860,8 @@ def prepare_data(data,
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to barscan and tube-width calibrations.
     detector_offset: float
         Additional translation of the detector along Z-axis, in mili-meters.
     sample_offset: float
@@ -912,6 +934,7 @@ def prepare_data(data,
     # First, load the event stream data into a workspace
     # The output_workspace name is for the Mantid workspace
     workspaces = load_events_and_histogram(data,
+                                           pixel_calibration=pixel_calibration,
                                            detector_offset=detector_offset,
                                            sample_offset=sample_offset,
                                            output_workspace=output_workspace, output_suffix=output_suffix,

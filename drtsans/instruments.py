@@ -164,7 +164,7 @@ def is_time_of_flight(input_query):
 
     Parameters
     ----------
-    input_query: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
+    input_query: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace, InstrumentEnumName
         string representing a valid instrument name, or a Mantid workspace containing an instrument
 
     Returns

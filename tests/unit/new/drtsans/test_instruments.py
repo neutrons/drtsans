@@ -29,6 +29,10 @@ def test_is_time_of_flight(serve_events_workspace):
         assert is_time_of_flight(query) is True
     for query in ('GPSANS', 'CG2', 'BIOSANS', 'CG3'):
         assert is_time_of_flight(query) is False
+    for query in [InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS]:
+        assert is_time_of_flight(query) is False
+    for query in [InstrumentEnumName.EQSANS]:
+        assert is_time_of_flight(query) is True
 
 
 def test_extract_run_number():

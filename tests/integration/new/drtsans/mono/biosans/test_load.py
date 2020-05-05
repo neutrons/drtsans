@@ -91,6 +91,11 @@ def test_load_all_files(reference_dir):
         assert pixel_size_y == pytest.approx(2.34567 * 1.E-3, 1.E-7), \
             '{}-th workspace: Pixel size X {} (m) shall be equal to 2.34567 mm'.format(ws_index, pixel_size_y)
 
+    # Check center wave length and spread
+    for ws_index, ws in enumerate([sample_run, beam_center_run]):
+        print(ws.readX(0))
+        print(ws.readX(1))
+
 
 def generate_test_json(sens_nxs_dir):
     """
@@ -167,8 +172,8 @@ def generate_test_json(sens_nxs_dir):
          "QmaxWing": "",
          "useErrorWeighting": false,
          "useMaskBackTubes": false,
-         "wavelength": "",
-         "wavelengthSpread": "",
+         "wavelength": "1.23",
+         "wavelengthSpread": "0.23",
          "overlapStitchQmin": "0.075",
          "overlapStitchQmax": "0.095",
          "useTimeSlice": false,

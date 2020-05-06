@@ -107,6 +107,11 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
                                                RHSWorkspace=reference_intensity_workspace,
                                                OutputWorkspace=output_workspace)
 
+    # Notify of incorrect calculation of zero angle transmission
+    # Will happen if the beam centers have been totally masked
+    if bool(np.all(np.isnan(zero_angle_transmission_workspace.readY(0)))) is True:
+        raise RuntimeError('Transmission at zero-angle is NaN')
+
     # Notify of average transmission value
     non_gap_indexes = np.isfinite(zero_angle_transmission_workspace.readY(0))
     average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.readY(0)[non_gap_indexes])

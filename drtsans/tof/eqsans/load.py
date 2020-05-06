@@ -323,16 +323,32 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
 
 
 def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
-                   data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                   data_dir=None, output_workspace=None, output_suffix='',
+                   overwrite_instrument=True, pixel_calibration=False,
                    bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                    center_x=None, center_y=None, mask=None, monitors=False,
                    keep_events=True,
                    time_interval=None, log_name=None, log_value_interval=None,
                    reuse_workspace=False, **kwargs):
+    r"""Load an event NeXus file and filter into a WorkspaceGroup depending
+    on the provided filter options. Either a time_interval must be
+    provided or a log_name and log_value_interval.
 
+    Parameters
+    ----------
+    run: str, ~mantid.api.IEventWorkspace
+        Examples: ``CG3_55555``, ``CG355555`` or file path.
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
+
+    Returns
+    -------
+    WorkspaceGroup
+        Reference to the workspace groups containing all the split workspaces
+    """
     ws = generic_load_and_split(run=run, data_dir=data_dir,
-                                output_workspace=output_workspace, overwrite_instrument=overwrite_instrument,
-                                output_suffix=output_suffix,
+                                output_workspace=output_workspace, output_suffix=output_suffix,
+                                overwrite_instrument=overwrite_instrument, pixel_calibration=pixel_calibration,
                                 detector_offset=detector_offset, sample_offset=sample_offset,
                                 time_interval=time_interval, log_name=log_name, log_value_interval=log_value_interval,
                                 reuse_workspace=reuse_workspace, monitors=False,

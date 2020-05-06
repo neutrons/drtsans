@@ -96,6 +96,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     if load_params is None:
         load_params = {}
 
+    # Adjust pixel heights and widths
+    load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
+
     # wave length and wave length spread
     wave_length_dict, wave_length_spread_dict = meta_data.parse_json_wave_length_and_spread(reduction_input)
 

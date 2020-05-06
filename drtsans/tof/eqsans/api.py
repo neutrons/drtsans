@@ -98,7 +98,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if not registered_workspace(center_ws_name):
             center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
             filenames.add(center_filename)
-            load_events(center_filename, output_workspace=center_ws_name)
+            load_events(center_filename,
+                        pixel_calibration=reduction_config.get('usePixelCalibration', False),
+                        output_workspace=center_ws_name)
             if reduction_config["useDefaultMask"]:
                 apply_mask(center_ws_name, mask=default_mask)
         center_x, center_y = find_beam_center(center_ws_name)
@@ -114,6 +116,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     if load_params is None:
         load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
+
+    # Adjust pixel heights and widths
+    load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
 
     if reduction_config['detectorOffset'] is not None:
         load_params['detector_offset'] = reduction_config['detectorOffset']

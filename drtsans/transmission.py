@@ -95,6 +95,11 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
     reference_intensity_workspace = RebinToWorkspace(WorkspaceToRebin=reference_intensity_workspace,
                                                      WorkspaceToMatch=sample_intensity_workspace,
                                                      OutputWorkspace=reference_intensity_workspace.name())
+    # RebinToWorkspace may spill some intensity in the reference workspace in the region of wavelengths
+    # corresponding to the gap between the lead and skip pulses. We have to harmonize the gap of the
+    # reference workspace to that of the sample workspace
+    gap_indexes = np.where(sample_intensity_workspace.dataY(0) == 0.0)
+    reference_intensity_workspace.dataY(0)[gap_indexes] = 0.0
 
     # calculate zero angle transmission coefficient(s)
     zero_angle_transmission_workspace = Divide(LHSWorkspace=sample_intensity_workspace,

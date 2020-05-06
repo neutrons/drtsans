@@ -117,8 +117,10 @@ def fit_band(input_workspace, band, fit_function='name=UserFunction,Formula=a*x+
     if output_workspace is None:
         output_workspace = unique_workspace_dundername()
 
+    # We require IgnoreInvalidData=True for the boundary cases when band.min or band.max picks a `nan`
+    # value from the neighboring band gap (only for skip frame mode)
     mantid_fit = Fit(Function=fit_function, InputWorkspace=input_workspace, WorkspaceIndex=0,
-                     StartX=band.min, EndX=band.max, Output=unique_workspace_dundername())
+                     StartX=band.min, EndX=band.max, IgnoreInvalidData=True, Output=unique_workspace_dundername())
 
     # The fit only contains transmission values within the wavelength range [band.min, band.max]. Insert this values
     # into a workspace with a wavelength range same as that of the input workspace. For instance, we are fitting the

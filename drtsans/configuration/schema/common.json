@@ -447,13 +447,12 @@
     },
     "wavelength": {
       "$ref":  "common.json#/definitions/safeStringPositiveFloat",
-      "pairedTo": "#configuration/wavelengthSpread",
-      "description": ""
+      "description": "Wave length in Angstrom"
     },
     "wavelengthSpread": {
       "$ref":  "common.json#/definitions/safeStringPositiveFloat",
       "pairedTo": "#configuration/wavelength",
-      "description": ""
+      "description": "Wave length spread in Angstrom.  Wave length must be specified too"
     },
     "normalization": {
       "type": "string", "enum": ["Monitor", "Time"],

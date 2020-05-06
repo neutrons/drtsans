@@ -162,6 +162,44 @@ def _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor
     return
 
 
+def parse_json_wave_length_and_spread(reduction_input):
+    """Parse wave length and wave length spread from JSON dict
+
+    * drt-sans should be supporting overwriting wavelength only and
+    * overwriting both (NOT overwriting wavelength spread only).
+
+    Parameters
+    ----------
+    reduction_input: ~dict
+        reduction configuration parsed from JSON
+    Returns
+    -------
+    ~tuple
+        wave length and wave length spread in format of dictionary
+
+    """
+    # Parse wave length with instrument scientists' preferred defaults
+    wave_length_dict = parse_json_meta_data(reduction_input, 'wavelength', 1.,
+                                            beam_center_run=True, background_run=True,
+                                            empty_transmission_run=True,
+                                            transmission_run=True, background_transmission=True,
+                                            block_beam_run=True, dark_current_run=False)
+
+    # Parse wave length with instrument scientists' preferred defaults
+    wave_length_spread_dict = parse_json_meta_data(reduction_input, 'wavelengthSpread', 1.,
+                                                   beam_center_run=True, background_run=True,
+                                                   empty_transmission_run=True,
+                                                   transmission_run=True, background_transmission=True,
+                                                   block_beam_run=True, dark_current_run=False)
+
+    # Check valid or not
+    if wave_length_dict[SAMPLE] is None and wave_length_spread_dict[SAMPLE] is not None:
+        # the case that is not allowed such that only wave length spread is overwritten
+        raise RuntimeError('It is not allowed to overwrite wavelengthSpread only but not wavelength')
+
+    return wave_length_dict, wave_length_spread_dict
+
+
 def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
                   sample_offset=0.,
                   sample_aperture_diameter=None, sample_thickness=None,

@@ -91,6 +91,29 @@ def test_load_all_files(reference_dir):
         assert pixel_size_y == pytest.approx(2.34567 * 1.E-3, 1.E-7), \
             '{}-th workspace: Pixel size X {} (m) shall be equal to 2.34567 mm'.format(ws_index, pixel_size_y)
 
+    # Check center wave length and spread
+    for ws_index, ws in enumerate([sample_run, beam_center_run, bkgd_run, empty_trans_run]):
+        sample_log_i = SampleLogs(ws)
+        wave_length = sample_log_i['wavelength'].value[0]
+        wave_length_spread = sample_log_i['wavelength_spread'].value[0]
+        # overwriting value
+        assert wave_length == pytest.approx(1.23, 1.E-7), \
+            '{}-th workspace: wave length {} shall be equal to 1.23 angstrom'.format(ws_index, wave_length)
+        assert wave_length_spread == pytest.approx(0.46, 1.E-7), \
+            '{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom' \
+            ''.format(ws_index, wave_length_spread)
+
+    for ws_index, ws in enumerate([dark_run]):
+        sample_log_i = SampleLogs(ws)
+        wave_length = sample_log_i['wavelength'].value[0]
+        wave_length_spread = sample_log_i['wavelength_spread'].value[0]
+        # original value
+        assert wave_length == pytest.approx(6.00881338, 1.E-7), \
+            '{}-th workspace: wave length {} shall be equal to 6.00881338 angstrom'.format(ws_index, wave_length)
+        assert wave_length_spread == pytest.approx(0.1323529411, 1.E-7), \
+            '{}-th workspace: wave length spread {} shall be equal to 0.13235294 angstrom' \
+            ''.format(ws_index, wave_length_spread)
+
     # Verify that if some meta-data is changed that it gets applied correctly on reload, use thickness as test
     # First check the current value
     thickness = SampleLogs(sample_run).single_value('sample_thickness')
@@ -183,8 +206,8 @@ def generate_test_json(sens_nxs_dir):
          "QmaxWing": "",
          "useErrorWeighting": false,
          "useMaskBackTubes": false,
-         "wavelength": "",
-         "wavelengthSpread": "",
+         "wavelength": "1.23",
+         "wavelengthSpread": "0.46",
          "overlapStitchQmin": "0.075",
          "overlapStitchQmax": "0.095",
          "useTimeSlice": false,

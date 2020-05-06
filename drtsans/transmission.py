@@ -95,6 +95,7 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
     reference_intensity_workspace = RebinToWorkspace(WorkspaceToRebin=reference_intensity_workspace,
                                                      WorkspaceToMatch=sample_intensity_workspace,
                                                      OutputWorkspace=reference_intensity_workspace.name())
+
     # RebinToWorkspace may spill some intensity in the reference workspace in the region of wavelengths
     # corresponding to the gap between the lead and skip pulses. We have to harmonize the gap of the
     # reference workspace to that of the sample workspace
@@ -106,9 +107,15 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
                                                RHSWorkspace=reference_intensity_workspace,
                                                OutputWorkspace=output_workspace)
 
+    # Notify of incorrect calculation of zero angle transmission
+    # Will happen if the beam centers have been totally masked
+    if bool(np.all(np.isnan(zero_angle_transmission_workspace.readY(0)))) is True:
+        raise RuntimeError('Transmission at zero-angle is NaN')
+
     # Notify of average transmission value
-    average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.readY(0))
-    average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.readE(0))
+    non_gap_indexes = np.isfinite(zero_angle_transmission_workspace.readY(0))
+    average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.readY(0)[non_gap_indexes])
+    average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.readE(0)[non_gap_indexes])
     message = 'Average zero angle transmission = {0} +/- {1}'.format(average_zero_angle_transmission,
                                                                      average_zero_angle_transmission_error)
     logger.warning(message)

@@ -238,7 +238,7 @@ def test_masked_beam_center(reference_dir, transmission_fixture):
     with amend_config(data_dir=reference_dir.new.eqsans):
         sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
         reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
-    with pytest.raises(RuntimeError, match=r'number or NaN found in input data'):
+    with pytest.raises(RuntimeError, match=r'Transmission at zero-angle is NaN'):
         calculate_transmission(sample_workspace, reference_workspace)
     [workspace.delete() for workspace in (sample_workspace, reference_workspace)]
 

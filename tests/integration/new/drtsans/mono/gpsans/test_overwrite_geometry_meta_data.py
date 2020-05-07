@@ -198,6 +198,7 @@ def test_no_overwrite(reference_dir):
             "useLogQBinsEvenDecade": False,
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
+            "usePixelCalibration": False
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
@@ -252,6 +253,7 @@ def test_overwrite_sample2si(reference_dir):
             "useLogQBinsEvenDecade": False,
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
+            "usePixelCalibration": False
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
@@ -306,6 +308,7 @@ def test_overwrite_sdd(reference_dir):
             "useLogQBinsEvenDecade": False,
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
+            "usePixelCalibration": False
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
@@ -366,6 +369,7 @@ def test_overwrite_both(reference_dir):
             "useLogQBinsEvenDecade": False,
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
+            "usePixelCalibration": False
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation

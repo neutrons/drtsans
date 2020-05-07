@@ -738,7 +738,7 @@ class ReductionParameters:
         ~jsonschema.ValidationError
             when the validator fails or when `value` is not one of the allowed values
         """
-        if instance is not None and isinstance(instance, [int, float]) is False:
+        if instance is not None and isinstance(instance, (int, float)) is False:
             yield jsonschema.ValidationError(f'{instance} is not a number')
         entry_paths = value
         if isinstance(value, str):
@@ -746,7 +746,7 @@ class ReductionParameters:
         for entry_path in entry_paths:
             other_instance = self.get_parameter_value(entry_path)
             if other_instance is not None:
-                if isinstance(other_instance, [int, float]) is False:
+                if isinstance(other_instance, (int, float)) is False:
                     yield jsonschema.ValidationError(f'{entry_path} is not a number')
                 if instance >= other_instance:
                     yield jsonschema.ValidationError(f'{instance} is not smaller than {entry_path}')

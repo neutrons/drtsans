@@ -43,7 +43,7 @@
         "sampleApertureSize":     {"$ref":  "common.json#/configuration/sampleApertureSize"},
         "sourceApertureDiameter": {"$ref":  "common.json#/configuration/sourceApertureDiameter"},
 
-        "usePixelCalibration": {"$ref":  "common.json#/configuration/usePixelCalibration", "default": true},
+        "usePixelCalibration": {"$ref":  "common.json#/configuration/usePixelCalibration", "default": false},
 
         "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName"},
         "useDefaultMask":   {"$ref":  "common.json#/configuration/useDefaultMask", "default": true,

@@ -102,14 +102,32 @@
         "useSubpixels":       {"$ref":  "common.json#/configuration/useSubpixels", "default": false},
         "subpixelsX":         {"$ref":  "common.json#/configuration/subpixelsX"},
         "subpixelsY":         {"$ref":  "common.json#/configuration/subpixelsY"},
-        "QminMain": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.02,
-                     "description": "The minimum |Q| value for scalar, wedge, or annular binning in the main detector"},
-        "QmaxMain": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.125,
-                     "description": "The maximum |Q| value for scalar, wedge, or annular binning in the wing detector"},
-        "QminWing": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.06,
-                     "description": "The minimum |Q| value for scalar, wedge, or annular binning in the wing detector"},
-        "QmaxWing": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 1.0,
-                     "description": "The maximum |Q| value for scalar, wedge, or annular binning in the main detector"},
+        "QminMain": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.02,
+          "pairedTo": "#configuration/QmaxMain",
+          "lessThan": "#configuration/QmaxMain",
+          "description": "The minimum |Q| value for scalar, wedge, or annular binning in the main detector"
+        },
+        "QmaxMain": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.125,
+          "pairedTo": "#configuration/QminMain",
+          "description": "The maximum |Q| value for scalar, wedge, or annular binning in the wing detector"
+        },
+        "QminWing": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.06,
+          "pairedTo": "#configuration/QmaxWing",
+          "lessThan": "#configuration/QmaxWing",
+          "description": "The minimum |Q| value for scalar, wedge, or annular binning in the wing detector"
+        },
+        "QmaxWing": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 1.0,
+          "pairedTo": "#configuration/QminWing",
+          "description": "The maximum |Q| value for scalar, wedge, or annular binning in the main detector"
+        },
         "overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQbounsSpecs",
           "evaluateCondition": "{this} is None or len({this})==1 or len({this})==len({#configuration/WedgeMinAngles})",
@@ -121,21 +139,73 @@
           "description": "The maximum |Q| value in the region where intensities for main and wing detector overlap"
         },
 
-        "wedge1QminMain": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.02},
-        "wedge1QmaxMain": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.09},
-        "wedge1QminWing": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.08},
-        "wedge1QmaxWing": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.09},
-        "wedge1QmaxWing": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.09},
-        "wedge1overlapStitchQmin": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.0825},
-        "wedge1overlapStitchQmax": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.0875},
+        "wedge1QminMain": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.02,
+          "lessThan": "#configuration/wedge1QmaxMain"
+        },
+        "wedge1QmaxMain": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.09,
+          "pairedTo": "#configuration/wedge1QminMain"
+        },
 
-        "wedge2QminMain": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.02},
-        "wedge2QmaxMain": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.125},
-        "wedge2QminWing": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.06},
-        "wedge2QmaxWing": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 1.0},
-        "wedge2overlapStitchQmin": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.075},
-        "wedge2overlapStitchQmax": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.095}
+        "wedge1QminWing": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.08,
+          "lessThan": "#configuration/wedge1QmaxWing"
+        },
+        "wedge1QmaxWing": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.09,
+          "pairedTo": "#configuration/wedge1QminWing"
+        },
+
+        "wedge1overlapStitchQmin": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.0825,
+          "lessThan": "#configuration/wedge1overlapStitchQmax"
+        },
+        "wedge1overlapStitchQmax": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.0875,
+          "pairedTo": "#configuration/wedge1overlapStitchQmin"
+        },
+
+        "wedge2QminMain": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.02,
+          "lessThan": "#configuration/wedge2QmaxMain"
+        },
+        "wedge2QmaxMain": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.125,
+          "pairedTo": "#configuration/wedge2QminMain"
+        },
+
+        "wedge2QminWing": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.06,
+          "lessThan": "#configuration/wedge2QmaxWing"
+        },
+        "wedge2QmaxWing": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 1.0,
+          "pairedTo": "#configuration/wedge2QminWing"
+        },
+
+        "wedge2overlapStitchQmin": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.075,
+          "lessThan": "#configuration/wedge2overlapStitchQmax"
+        },
+        "wedge2overlapStitchQmax": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.095,
+          "pairedTo": "#configuration/wedge2overlapStitchQmin"
+        }
       },
+
       "maxProperties": 74,
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
         "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset",

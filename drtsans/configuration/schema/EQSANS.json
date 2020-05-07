@@ -64,10 +64,18 @@
         "useTOFcuts": {"type": "boolean", "description": "Flag to use user defined time of flight range",
                        "default": true, "examples": [true, false],
                        "useEntry": ["#configuration/cutTOFmin", "#configuration/cutTOFmax"]},
-        "cutTOFmin": {"$ref":  "common.json#/definitions/safeStringNonNegativeFloat", "default": 500.0,
-                      "description": "User defined time of flight range minimum"},
-        "cutTOFmax": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 1500.0,
-                      "description": "User defined time of flight range maximum"},
+        "cutTOFmin": {
+          "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
+          "default": 500.0,
+          "description": "User defined time of flight range minimum",
+          "lessThan": "#configuration/cutTOFmax"
+        },
+        "cutTOFmax": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 1500.0,
+          "description": "User defined time of flight range maximum",
+          "pairedTo": "#configuration/cutTOFmin"
+        },
 
         "wavelengthStep": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.1,
                            "description": "Wavelength step. The loaded data files are transformed into wavelength in angstroms, then binned with this step"},

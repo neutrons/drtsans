@@ -376,6 +376,7 @@
     "autoWedgeQmin": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "pairedTo": "#configuration/autoWedgeQmax",
+      "lessThan": "#configuration/autoWedgeQmax",
       "description": "Minimum Q for automatic wedge fitting"
     },
     "autoWedgeQmax": {
@@ -410,6 +411,7 @@
     "Qmin": {
        "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "pairedTo": "#configuration/Qmax",
+      "lessThan": "#configuration/Qmax",
       "description": "The minimum |Q| value for scalar, wedge, or annular binning"
     },
     "Qmax": {

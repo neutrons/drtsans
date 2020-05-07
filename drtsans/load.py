@@ -1,20 +1,18 @@
+import h5py
+import re
+import warnings
+
+import mantid
+from mantid.simpleapi import mtd
+from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
+from mantid.simpleapi import AddSampleLogMultiple
+
 from drtsans.geometry import translate_detector_by_z, translate_sample_by_z, translate_source_by_z
-from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName
-from drtsans.path import abspath
-from drtsans.path import exists as path_exists
+from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName, is_time_of_flight
+from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config
-import h5py
-import re
-# https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
-from mantid.simpleapi import mtd
-# https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
-from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
-from mantid.simpleapi import AddSampleLogMultiple
-import mantid
-from drtsans.path import registered_workspace
-from drtsans.instruments import is_time_of_flight
 
 
 __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']

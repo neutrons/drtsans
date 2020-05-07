@@ -470,6 +470,7 @@ class ReductionParameters:
 
     _validators = {'dataSource': '_validate_data_source',
                    'evaluateCondition': '_validate_evaluate_condition',
+                   'lessThan': '_validate_less_than',
                    'exclusiveOr': '_validate_exclusive_or',
                    'fluxFileTOF': '_validate_flux_file_tof',
                    'pairedTo': '_validate_is_paired_to',
@@ -716,6 +717,40 @@ class ReductionParameters:
         if eval(condition) is False:
             yield jsonschema.ValidationError(f'{value} condition has evaluated to False')
 
+    def _validate_less_than(self, validator, value, instance, schema):
+        r"""
+        Check the parameter value is smaller than the value of other parameters
+
+        Example: Qmin should be smaller than Qmax
+
+        Parameters
+        ----------
+        validator: ~jsonschema.IValidator
+        value: str, list
+            entry path(s) of the other parameters to compare to (e.g. '#configuration/Qmax')
+        instance: str
+            file path or run number to be validated.
+        schema: dict
+            schema related to `instance`
+
+        Raises
+        ------
+        ~jsonschema.ValidationError
+            when the validator fails or when `value` is not one of the allowed values
+        """
+        if instance is not None and isinstance(instance, [int, float]) is False:
+            yield jsonschema.ValidationError(f'{instance} is not a number')
+        entry_paths = value
+        if isinstance(value, str):
+            entry_paths = [value]
+        for entry_path in entry_paths:
+            other_instance = self.get_parameter_value(entry_path)
+            if other_instance is not None:
+                if isinstance(other_instance, [int, float]) is False:
+                    yield jsonschema.ValidationError(f'{entry_path} is not a number')
+                if instance >= other_instance:
+                    yield jsonschema.ValidationError(f'{instance} is not smaller than {entry_path}')
+
     def _validate_exclusive_or(self, validator, value, instance, schema):
         r"""
         Check that only one of two related entries entries is not :py:obj:`None`.
@@ -724,10 +759,7 @@ class ReductionParameters:
         ----------
         validator: ~jsonschema.IValidator
         value: str
-            One of 'file' or 'events'.
-            - 'file' triggers a call to os.path.exists for a search of `instance` in the local file system.
-            - 'events' triggers a call to ~drtsans.path.abspath to search the nexus events file associated
-            to `instance`. Preconditions are that the JSON files contains entries 'iptsNumber' and 'instrumentName'.
+            entry name for the datum entry associated with the boolean entry.
         instance: str
             file path or run number to be validated.
         schema: dict
@@ -755,7 +787,7 @@ class ReductionParameters:
         ----------
         validator: ~jsonschema.IValidator
         value: str, list
-            entry(ies) name9s) for the datum entry associated with the boolean entry.
+            entry(ies) name(s) for the datum entry associated with the boolean entry.
         instance: bool
             only check for the datum entry if :py:obj:`True`
         schema: dict

@@ -1,6 +1,5 @@
 import h5py
 import re
-import warnings
 
 import mantid
 from mantid.simpleapi import mtd

@@ -27,6 +27,12 @@
       "anyOf": [{"type": "string"},
                 {"type": "null"}]
     },
+    "safeStringFloat": {
+      "anyOf": [{"type": "string", "pattern": "^$|^[0-9]*.[0-9]*$"},
+                {"type": "null"},
+                {"type": "number"}],
+      "preferredType": "float"
+    },
     "safeStringNonNegativeFloat": {
       "anyOf": [{"type": "string", "pattern": "^$|^[0-9]*.[0-9]*$"},
                 {"type": "null"},
@@ -227,7 +233,7 @@
       "description": "Sample log interval for slicing"
     },
     "sampleOffset": {
-      "$ref": "common.json#/definitions/safeStringNonNegativeFloat",
+      "$ref": "common.json#/definitions/safeStringFloat",
       "description": "Sample offset in mm"
     },
     "useDetectorOffset": {
@@ -236,7 +242,7 @@
       "description": "Flag whether to use the detector offset"
     },
     "detectorOffset": {
-      "$ref": "common.json#/definitions/safeStringNonNegativeFloat",
+      "$ref": "common.json#/definitions/safeStringFloat",
       "description": "Detector offset in mm"
     },
     "sampleDetectorDistance": {

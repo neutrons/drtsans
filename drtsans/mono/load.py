@@ -100,7 +100,8 @@ def load_mono(filename, **kwargs):
         return load_histogram(filename, **kwargs)
 
 
-def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_suffix='',
+                              overwrite_instrument=True, pixel_calibration=False,
                               reuse_workspace=False,
                               sample_to_si_name=None, si_nominal_distance=None,
                               sample_to_si_value=None, sample_detector_distance_value=None,
@@ -112,14 +113,19 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
     ----------
     run: str, list of runs to load
         Examples: ``CG3_55555``, ``CG355555``, file path, ``CG3_55555,CG3_55556``
-    output_workspace: str
-        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
     data_dir: str, list
         Additional data search directories
+    output_workspace: str
+        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
     overwrite_instrument: bool, str
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     sample_to_si_name: str
         Meta data name for sample to Silicon window distance
     si_nominal_distance: float
@@ -128,9 +134,6 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
         Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
     sample_detector_distance_value: float or None
         Sample to detector distance to overwrite the EPICS value.  None for no operation. unit = meter
-    output_suffix: str
-        If the ``output_workspace`` is not specified, this is appended to the automatically generated
-        output workspace name.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
     kwargs: dict
@@ -155,6 +158,7 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, overwri
                          output_workspace=output_workspace,
                          overwrite_instrument=overwrite_instrument,
                          output_suffix=output_suffix,
+                         pixel_calibration=pixel_calibration,
                          detector_offset=0.,
                          sample_offset=0.,
                          reuse_workspace=reuse_workspace,
@@ -283,7 +287,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
 
 def load_and_split(run,
                    sample_to_si_name, si_nominal_distance,
-                   data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+                   data_dir=None, output_workspace=None, output_suffix='',
+                   overwrite_instrument=True, pixel_calibration=False,
                    time_interval=None, log_name=None, log_value_interval=None,
                    sample_to_si_value=None, sample_detector_distance_value=None,
                    reuse_workspace=False, monitors=False, **kwargs):
@@ -301,25 +306,27 @@ def load_and_split(run,
     ----------
     run: str, ~mantid.api.IEventWorkspace
         Examples: ``CG3_55555``, ``CG355555`` or file path.
-    output_workspace: str
-        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
-    data_dir: str, list
-        Additional data search directories
-    overwrite_instrument: bool, str
-        If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
-        latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
-        desired IDF.
-    output_suffix: str
-        If the ``output_workspace`` is not specified, this is appended to the automatically generated
-        output workspace name.
-    time_interval: float or list of floats
-        Array for lengths of time intervals for splitters.  If the array has one value,
-        then all splitters will have same time intervals. If the size of the array is larger
-        than one, then the splitters can have various time interval values.
     sample_to_si_name: str
         Meta data name for sample to Silicon window distance
     si_nominal_distance: float
         distance between nominal position to silicon window.  unit = meter
+    data_dir: str, list
+        Additional data search directories
+    output_workspace: str
+        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
+    overwrite_instrument: bool, str
+        If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
+        latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
+        desired IDF.
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
+    time_interval: float or list of floats
+        Array for lengths of time intervals for splitters.  If the array has one value,
+        then all splitters will have same time intervals. If the size of the array is larger
+        than one, then the splitters can have various time interval values.
     sample_to_si_value: float or None
         Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
     sample_detector_distance_value: float or None
@@ -344,6 +351,7 @@ def load_and_split(run,
                      data_dir=data_dir,
                      output_workspace='_load_tmp',
                      overwrite_instrument=overwrite_instrument,
+                     pixel_calibration=pixel_calibration,
                      output_suffix=output_suffix,
                      detector_offset=0.,
                      sample_offset=0.,

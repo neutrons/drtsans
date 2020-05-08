@@ -1,20 +1,17 @@
+import h5py
+import re
+
+import mantid
+from mantid.simpleapi import mtd
+from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
+from mantid.simpleapi import AddSampleLogMultiple
+
 from drtsans.geometry import translate_detector_by_z, translate_sample_by_z, translate_source_by_z
-from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName
-from drtsans.path import abspath
-from drtsans.path import exists as path_exists
+from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName, is_time_of_flight
+from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config
-import h5py
-import re
-# https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
-from mantid.simpleapi import mtd
-# https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
-from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
-from mantid.simpleapi import AddSampleLogMultiple
-import mantid
-from drtsans.path import registered_workspace
-from drtsans.instruments import is_time_of_flight
 
 
 __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
@@ -207,7 +204,8 @@ def move_instrument(workspace, sample_offset, detector_offset, is_mono=False, sa
     return mtd[workspace_name]
 
 
-def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrument=True, output_suffix='',
+def load_and_split(run, data_dir=None, output_workspace=None, output_suffix='',
+                   overwrite_instrument=True, pixel_calibration=False,
                    detector_offset=0., sample_offset=0.,
                    time_interval=None, log_name=None, log_value_interval=None,
                    reuse_workspace=False, monitors=False, instrument_unique_name=None, is_mono=None,
@@ -226,17 +224,19 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
     ----------
     run: str, ~mantid.api.IEventWorkspace
         Examples: ``CG3_55555``, ``CG355555`` or file path.
-    output_workspace: str
-        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
     data_dir: str, list
         Additional data search directories
+    output_workspace: str
+        If not specified it will be ``BIOSANS_55555`` determined from the supplied value of ``run``.
+    output_suffix: str
+        If the ``output_workspace`` is not specified, this is appended to the automatically generated
+        output workspace name.
     overwrite_instrument: bool, str
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
-    output_suffix: str
-        If the ``output_workspace`` is not specified, this is appended to the automatically generated
-        output workspace name.
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     detector_offset: float
         Additional translation of the detector along the Z-axis, in mm. Positive
         moves the detector downstream.
@@ -285,6 +285,7 @@ def load_and_split(run, data_dir=None, output_workspace=None, overwrite_instrume
                          data_dir=data_dir,
                          output_workspace='_load_tmp',
                          overwrite_instrument=overwrite_instrument,
+                         pixel_calibration=pixel_calibration,
                          output_suffix=output_suffix,
                          detector_offset=detector_offset,
                          sample_offset=sample_offset,

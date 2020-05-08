@@ -766,9 +766,12 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
         for caltype in calibrations:
             try:
                 calibration = load_calibration(input_workspace, caltype, component, database=database)
-                calibration.apply(output_workspace)
             except CalibrationNotFound as e:
-                sys.stderr.write(e)
+                calibration = None
+                warnings.warn(str(e))
+            if calibration is not None:
+                calibration.apply(output_workspace)
+
     return mtd[output_workspace]
 
 

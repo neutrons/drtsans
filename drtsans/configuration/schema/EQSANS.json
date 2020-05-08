@@ -68,7 +68,7 @@
           "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
           "default": 500.0,
           "description": "User defined time of flight range minimum",
-          "lessThan": "#configuration/cutTOFmax"
+          "pairedTo": "#configuration/cutTOFmax"
         },
         "cutTOFmax": {
           "$ref":  "common.json#/definitions/safeStringPositiveFloat",

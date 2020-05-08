@@ -1,12 +1,17 @@
 # Integration test for overwriting instrument geometry related meta data for BIO-SANS
-import pytest
-import numpy as np
-import json
-import os
+# (imports alphabetically ordered)
 import h5py
+import json
+import numpy as np
+import os
+import pytest
+import time
+
+from mantid.simpleapi import SaveNexus
+
+# drtsans imports
 from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
-import time
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>

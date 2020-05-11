@@ -2,7 +2,8 @@ import pytest
 from pytest import approx
 from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent, CreateWorkspace
 from drtsans.settings import unique_workspace_dundername as uwd
-from drtsans.transmission import calculate_transmission, apply_transmission_correction
+from drtsans.mono.transmission import calculate_transmission
+from drtsans.transmission import apply_transmission_correction
 from drtsans.mono.gpsans import find_beam_center
 
 

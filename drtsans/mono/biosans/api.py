@@ -107,6 +107,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
         default_mask = reduction_config["defaultMask"] if reduction_config["defaultMask"] is not None else []
+    else:
+        default_mask = []
 
     # check for time/log slicing
     timeslice = reduction_config["useTimeSlice"]
@@ -284,6 +286,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                     sdd_value_dict[meta_data.DARK_CURRENT],
                                                     smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
                                                     smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
+    else:
+        dark_current_main = dark_current_wing = None
 
     # load required processed_files
     sensitivity_main_ws_name = None

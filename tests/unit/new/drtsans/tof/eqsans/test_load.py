@@ -86,6 +86,11 @@ def test_merge_Data(reference_dir):
     assert mtd[str(ws2)].extractY().sum() == 65694
     assert mtd[str(merged_workspaces)].extractY().sum() == 284923 + 1368485 + 65694
 
+    mtd.remove(str(ws0))
+    mtd.remove(str(ws1))
+    mtd.remove(str(ws2))
+    mtd.remove(str(merged_workspaces))
+
 
 def test_load_events_and_histogram(reference_dir):
     ws0 = load_events_and_histogram('EQSANS_101595', data_dir=reference_dir.new.eqsans)
@@ -112,6 +117,9 @@ def test_load_events_and_histogram(reference_dir):
     assert sample_logs1.getProtonCharge() == pytest.approx(83.37074628055555, + 111.1237739861111 + 27.799524525,
                                                            abs=1e-9)
     assert sample_logs1.proton_charge.size() == 12933 + 17343 + 4341
+
+    mtd.remove(str(ws0))
+    mtd.remove(str(ws1))
 
 
 def test_generic_load_and_split(reference_dir):

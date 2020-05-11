@@ -1,9 +1,10 @@
 from mantid.kernel import logger
 from drtsans.geometry import beam_radius
 from drtsans.transmission import calculate_transmission as raw_calculate_transmission
+from drtsans.transmission import apply_transmission_correction
 
 # Symbols to be exported to the eqsans namespace
-__all__ = ['calculate_transmission']
+__all__ = ['calculate_transmission', 'apply_transmission_correction']
 
 
 def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm',

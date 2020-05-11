@@ -2,6 +2,7 @@
   "schemaStamp": "2020-04-15T21:09:52.745905",
   "instrumentName": "GPSANS",
   "iptsNumber": "20775",
+  "dataDirectories": null,
   "sample": {
     "runNumber": "8944",
     "thickness": "0.1",
@@ -24,18 +25,16 @@
   "beamCenter": {
     "runNumber": "8953"
   },
-  "outputFileName": "reduction_output",
+  "outputFileName": "CG2_8944",
   "configuration": {
-    "outputDir": "/tmp/gpsans_reduction",
+    "outputDir": "/tmp/pytest-of-rwp/pytest-36/test_gpsans_8944_0",
     "wavelength": "",
     "wavelengthSpread": "",
     "useTimeSlice": "",
     "timeSliceInterval": "",
-
     "useLogSlice": "",
     "logSliceName": "",
     "logSliceInterval": "",
-
     "sampleOffset": "",
     "useDetectorOffset": false,
     "detectorOffset": "",
@@ -43,9 +42,7 @@
     "sampleToSi": "",
     "sampleApertureSize": "",
     "sourceApertureDiameter": "",
-
     "usePixelCalibration": true,
-
     "maskFileName": "",
     "useDefaultMask": "",
     "defaultMask": [
@@ -54,19 +51,16 @@
       }
     ],
     "useMaskBackTubes": false,
-
     "darkFileName": "",
     "normalization": "Monitor",
     "sensitivityFileName": "/HFIR/CG2/shared/drt_sensitivity/sens_c486_LDS.nxs",
     "useSolidAngleCorrection": true,
-
     "blockedBeamRunNumber": "8179",
     "useThetaDepTransCorrection": true,
     "DBScalingBeamRadius": "40.0",
     "mmRadiusForTransmission": "",
     "absoluteScaleMethod": "direct_beam",
     "StandardAbsoluteScale": "1.0",
-
     "numQxQyBins": "192",
     "1DQbinType": "scalar",
     "QbinType": "log",
@@ -79,10 +73,10 @@
     "autoWedgeQmin": 0.003,
     "autoWedgeQmax": 0.04,
     "autoWedgeQdelta": 0.01,
-    "autoWedgeAzimuthalDelta": 1.0,
+    "autoWedgeAzimuthalDelta": 1,
     "autoWedgePeakWidth": 0.25,
     "autoWedgeBackgroundWidth": 1.5,
-    "autoWedgeSignalToNoiseMin": 2.0,
+    "autoWedgeSignalToNoiseMin": 2,
     "AnnularAngleBin": "",
     "Qmin": "",
     "Qmax": "",

@@ -105,6 +105,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
         default_mask = reduction_config["defaultMask"] if reduction_config["defaultMask"] is not None else []
+    else:
+        default_mask = []
 
     if path is None:
         path = f'/HFIR/{instrument_filesystem_name(instrument_name)}/IPTS-{ipts}/nexus'

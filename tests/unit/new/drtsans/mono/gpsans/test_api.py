@@ -4,6 +4,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace
 from drtsans.mono.gpsans.api import load_all_files, prepare_data_workspaces, process_single_configuration
+from drtsans.mono.gpsans import reduction_parameters
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unique_workspace_dundername as uwd
 
@@ -14,33 +15,38 @@ def test_load_all_files_simple():
     reduction_input = {
         "instrumentName": "CG2",
         "iptsNumber": "23801",
-        "runNumber": "1338",
-        "transmission": {"runNumber": ""},
+        "sample": {"runNumber": "1338",
+                   "transmission": {"runNumber": ""}},
         "background": {"runNumber": "",
                        "transmission": {"runNumber": ""}},
-        "emptyTrans": {"runNumber": ""},
+        "emptyTransmission": {"runNumber": ""},
         "beamCenter": {"runNumber": "1338"},
         "configuration": {
-            "useDefaultMask": False,
-            "useDarkFileName": False,
-            "wavelength": "",
-            "wavelengthSpread": ""}
+            "useDefaultMask": False
+        }
     }
+
+    reduction_input = reduction_parameters(reduction_input, 'GPSANS', validate=False)
     loaded = load_all_files(reduction_input)
 
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
     history = loaded.sample[0].getHistory()
-    assert history.size() == 4
+    assert history.size() == 9
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
     assert history.getAlgorithm(0).getProperty("Filename").value == '/HFIR/CG2/IPTS-23801/nexus/CG2_1338.nxs.h5'
-    assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(2).name() == "HFIRSANS2Wavelength"
-    assert history.getAlgorithm(3).name() == "SetUncertainties"
+    assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"  # moderator
+    assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"  # sample-position
+    assert history.getAlgorithm(3).name() == "MoveInstrumentComponent"  # detector1
+    assert history.getAlgorithm(4).name() == "AddSampleLogMultiple"  # CG2:CS:SampleToSi
+    assert history.getAlgorithm(5).name() == "AddSampleLogMultiple"  # sample_detector_distance
+    assert history.getAlgorithm(6).name() == "HFIRSANS2Wavelength"
+    assert history.getAlgorithm(7).name() == "SetUncertainties"
+    assert history.getAlgorithm(8).name() == "AddSampleLogMultiple"  # sample_offset
 
     assert loaded.background is None
-    assert loaded.background_transmisson is None
-    assert loaded.center is not None
+    assert loaded.background_transmission is None
+    assert str(loaded.center) == str(loaded.sample[0])
     assert loaded.empty is None
     assert loaded.sample_transmission is None
     assert loaded.blocked_beam is None

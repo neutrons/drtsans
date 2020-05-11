@@ -26,7 +26,7 @@ from drtsans.geometry import beam_radius
 __all__ = ['apply_transmission_correction', 'calculate_transmission']
 
 
-def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm', output_workspace=None):
+def calculate_transmission(input_sample, input_reference, radius, radius_unit='mm', output_workspace=None):
     """
     Calculate the raw transmission coefficients at zero scattering angle
     from already prepared sample and reference data.

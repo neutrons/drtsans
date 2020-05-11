@@ -135,7 +135,7 @@
         },
         "overlapStitchQmax": {
           "$ref":  "common.json#/definitions/safeStitchQbounsSpecs",
-          "evaluateCondition": "{this} is None or len({this})==1 or len({this})==({#configuration/WedgeMaxAngles})",
+          "evaluateCondition": "{this} is None or len({this})==1 or len({this})==len({#configuration/WedgeMaxAngles})",
           "description": "The maximum |Q| value in the region where intensities for main and wing detector overlap"
         },
 

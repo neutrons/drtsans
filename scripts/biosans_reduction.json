@@ -2,6 +2,7 @@
   "schemaStamp": "2020-04-15T21:09:52.745905",
   "instrumentName": "BIOSANS",
   "iptsNumber": "23782",
+  "dataDirectories": null,
   "sample": {
     "runNumber": "4822",
     "thickness": "0.1",
@@ -24,9 +25,9 @@
   "beamCenter": {
     "runNumber": "4819"
   },
-  "outputFileName": "reduction_output",
+  "outputFileName": "CG3_4822",
   "configuration": {
-    "outputDir": "/tmp/biosans_reduction",
+    "outputDir": "/tmp/pytest-of-rwp/pytest-36/test_biosans_4822_0",
     "wavelength": null,
     "wavelengthSpread": null,
     "useTimeSlice": false,
@@ -59,7 +60,7 @@
     "useSolidAngleCorrection": true,
     "blockedBeamRunNumber": "",
     "useThetaDepTransCorrection": true,
-    "DBScalingBeamRadius": 40.0,
+    "DBScalingBeamRadius": 40,
     "mmRadiusForTransmission": null,
     "absoluteScaleMethod": "standard",
     "StandardAbsoluteScale": "2e-8",
@@ -73,15 +74,21 @@
     "LogQBinsPerDecadeWing": null,
     "useLogQBinsDecadeCenter": false,
     "useLogQBinsEvenDecade": true,
-    "WedgeMinAngles": [-30, 60],
-    "WedgeMaxAngles": [30, 120],
+    "WedgeMinAngles": [
+      -30,
+      60
+    ],
+    "WedgeMaxAngles": [
+      30,
+      120
+    ],
     "autoWedgeQmin": 0.003,
     "autoWedgeQmax": 0.04,
     "autoWedgeQdelta": 0.01,
-    "autoWedgeAzimuthalDelta": 1.0,
+    "autoWedgeAzimuthalDelta": 1,
     "autoWedgePeakWidth": 0.25,
     "autoWedgeBackgroundWidth": 1.5,
-    "autoWedgeSignalToNoiseMin": 2.0,
+    "autoWedgeSignalToNoiseMin": 2,
     "AnnularAngleBin": 1,
     "useErrorWeighting": true,
     "smearingPixelSizeX": null,
@@ -94,7 +101,7 @@
     "QminWing": 0.23,
     "QmaxWing": 0.99,
     "overlapStitchQmin": 0.23,
-    "overlapStitchQmax": 0.30,
+    "overlapStitchQmax": 0.3,
     "wedge1QminMain": 0.02,
     "wedge1QmaxMain": 0.09,
     "wedge1QminWing": 0.08,
@@ -104,7 +111,7 @@
     "wedge2QminMain": 0.02,
     "wedge2QmaxMain": 0.125,
     "wedge2QminWing": 0.06,
-    "wedge2QmaxWing": 1.0,
+    "wedge2QmaxWing": 1,
     "wedge2overlapStitchQmin": 0.075,
     "wedge2overlapStitchQmax": 0.095
   }

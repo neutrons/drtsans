@@ -709,8 +709,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
         SaveNexus(processed_data_main, Filename=filename)
         # binning
-        iq1d_main_in = convert_to_q(processed_data_main, mode='scalar')
-        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')
+        subpixel_kwargs = dict()
+        if reduction_config['useSubpixels'] is True:
+            subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
+                               'n_vertical': reduction_config['subpixelsY']}
+        iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
+        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
             print('found wedge angles:')

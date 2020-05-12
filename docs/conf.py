@@ -197,7 +197,12 @@ intersphinx_mapping = {'https://docs.python.org/3': None,
 
 
 class ExecDirective(Directive):
-    r"""Execute the specified python code and insert the output into the document"""
+    r"""
+    Execute the specified python code and insert the output into the document
+
+    Credit goes to:
+    https://stackoverflow.com/questions/27875455/displaying-dictionary-data-in-sphinx-documentation/29789910#29789910
+    """
     has_content = True
 
     def run(self):

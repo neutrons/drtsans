@@ -279,7 +279,7 @@ def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_
             "overlapStitchQmax": "0.095",
             "useTimeSlice": False,
             "timeSliceInterval": "200",
-            "usePixelCalibration": False
+            "usePixelCalibration": False,
             "useSubpixels": False
         }
     }

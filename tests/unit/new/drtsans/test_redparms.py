@@ -382,6 +382,32 @@ configuration:
                     'configuration': {'outputDir': None, 'timeSliceInterval': None}}
         assert d == compared
 
+    def test_to_rest(self, default_json):
+        d = default_json.to_rest()
+        compared = r"""BIOSANS
+=======
+
+.. code-block:: python
+
+   {
+     "instrumentName": "BIOSANS",
+     "iptsNumber": 42,
+     "sample": {
+       "runNumber": None,
+       "transmission": {
+         "runNumber": None,
+         "value": None
+       }
+     },
+     "configuration": {
+       "outputDir": None,
+       "timeSliceInterval": None
+     }
+   }
+
+"""
+        assert d == compared
+
     def test_property_names(self, default_json):
         compared = {'instrumentName', 'iptsNumber', 'sample', 'configuration', 'runNumber', 'transmission',
                     'runNumber', 'value', 'outputDir', 'timeSliceInterval'}

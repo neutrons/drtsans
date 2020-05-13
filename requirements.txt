@@ -1,3 +1,5 @@
+docutils
+jsonschema>=3.0.2
 lmfit
 matplotlib  # is this necessary
 mpld3

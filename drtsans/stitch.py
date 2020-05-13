@@ -57,7 +57,9 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         start_q, end_q = overlaps[current_index]
 
         # Rescale the "to_target" profile to match the scaling of the target profile
-        to_target_profile = to_target_profile * scaling(target_profile, to_target_profile, start_q, end_q)
+        scale = scaling(target_profile, to_target_profile, start_q, end_q)
+        to_target_profile = to_target_profile * scale
+        print(f'Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}')
 
         # Discard extrema points
         to_target_profile = to_target_profile.extract(to_target_profile.mod_q < end_q)  # keep data with Q < end_q
@@ -78,7 +80,9 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         start_q, end_q = overlaps[current_index - 1]
 
         # Rescale the "to_target" profile to match the scaling of the target profile
-        to_target_profile = to_target_profile * scaling(target_profile, to_target_profile, start_q, end_q)
+        scale = scaling(target_profile, to_target_profile, start_q, end_q)
+        to_target_profile = to_target_profile * scale
+        print(f'Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}')
 
         # Discard extrema points
         to_target_profile = to_target_profile.extract(to_target_profile.mod_q > start_q)  # keep data with Q < end_q

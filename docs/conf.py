@@ -21,6 +21,12 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 # The full version, including alpha/beta/rc tags.
+import sys
+from os.path import basename
+from io import StringIO
+from docutils.parsers.rst import Directive
+from docutils import nodes, statemachine
+
 from drtsans import __version__ as release
 
 # -- General configuration ------------------------------------------------
@@ -186,3 +192,39 @@ intersphinx_mapping = {'https://docs.python.org/3': None,
                        'https://docs.scipy.org/doc/numpy/': None,
                        'https://docs.mantidproject.org/nightly/': None,
                        'https://matplotlib.org/': None}
+
+# -- Custom directives ----------------------------------------------------
+
+
+class ExecDirective(Directive):
+    r"""
+    Execute the specified python code and insert the output into the document
+
+    Credit goes to:
+    https://stackoverflow.com/questions/27875455/displaying-dictionary-data-in-sphinx-documentation/29789910#29789910
+    """
+    has_content = True
+
+    def run(self):
+        old_stdout, sys.stdout = sys.stdout, StringIO()
+
+        tab_width = self.options.get('tab-width', self.state.document.settings.tab_width)
+        source = self.state_machine.input_lines.source(self.lineno - self.state_machine.input_offset - 1)
+
+        try:
+            exec('\n'.join(self.content))
+            text = sys.stdout.getvalue()
+            lines = statemachine.string2lines(text, tab_width, convert_whitespace=True)
+            self.state_machine.insert_input(lines, source)
+            return []
+        except Exception:
+            error_message = f'Unable to execute python code at {basename(source)}:{self.lineno}:'
+            return [nodes.error(None,
+                                nodes.paragraph(text=error_message),
+                                nodes.paragraph(text=str(sys.exc_info()[1])))]
+        finally:
+            sys.stdout = old_stdout
+
+
+def setup(app):
+    app.add_directive('exec', ExecDirective)

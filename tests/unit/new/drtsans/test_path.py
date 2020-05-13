@@ -101,21 +101,22 @@ def test_registered_workspace():
     assert registered_workspace(w) is True
 
 
-def test_allow_overwrite():
+def test_allow_overwrite(cleanfile):
     tmpdir = gettempdir()
     # create an empty file
     tmpfile = NamedTemporaryFile(dir=tmpdir, delete=False)
     tmpfile.close()
+    cleanfile(tmpfile.name)  # remove the file when test finishes
+
     # check if others write permission is false
     path = pathlib.Path(tmpfile.name)
     assert not bool(path.stat().st_mode & stat.S_IWOTH)
     allow_overwrite(tmpdir)
     # check permissions
-    assert bool(path.stat().st_mode & stat.S_IWUSR)
-    assert bool(path.stat().st_mode & stat.S_IWGRP)
-    assert bool(path.stat().st_mode & stat.S_IWOTH)
+    assert bool(path.stat().st_mode & stat.S_IWUSR), 'user writable'
+    assert bool(path.stat().st_mode & stat.S_IWGRP), 'group writable'
+    assert bool(path.stat().st_mode & stat.S_IWOTH), 'world writable'
     # delete file
-    path.unlink()
 
 
 if __name__ == '__main__':

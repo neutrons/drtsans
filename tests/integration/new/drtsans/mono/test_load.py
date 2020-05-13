@@ -42,7 +42,8 @@ def test_load_gpsans():
 
     # Move instrument
     # Move sample and detector
-    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True, sample_si_name='CG2:CS:SampleToSi')
+    ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
+                         sample_si_name='CG2:CS:SampleToSi', si_window_to_nominal_distance=0)
 
     # Verify
     new_sample_det_distance = sample_detector_distance(ws, unit='m', search_logs=False)
@@ -143,7 +144,7 @@ def test_load_biosans_sample_off_nominal():
 
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
-                         sample_si_name='CG3:CS:SampleToSi')
+                         sample_si_name='CG3:CS:SampleToSi', si_window_to_nominal_distance=0)
 
     # Verify: sample position at (0., 0., -0.00321)
     sample_pos = np.array(ws.getInstrument().getSample().getPos())
@@ -175,13 +176,13 @@ def test_load_biosans_overwrite_swd():
 
     # Calculate offset with overwriting to sample-detector-distance
     sample_offset, detector_offset = get_sample_detector_offset(ws, 'CG3:CS:SampleToSi', 71. * 1E-3,
-                                                                overwrite_sample_si_distance=74.21)
+                                                                overwrite_sample_si_distance=0.07421)
     print('[TEST INFO] Sample offset = {}, Detector offset = {}'
           ''.format(sample_offset, detector_offset))
 
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
-                         sample_si_name='CG3:CS:SampleToSi')
+                         sample_si_name='CG3:CS:SampleToSi', si_window_to_nominal_distance=0.071)
 
     # Verify: sample position at (0., 0., -0.00321) because SampleToSi is overwritten to 74.21 mm
     sample_pos = np.array(ws.getInstrument().getSample().getPos())
@@ -232,7 +233,7 @@ def test_load_biosans_overwrite_sdd():
 
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
-                         sample_si_name='CG3:CS:SampleToSi')
+                         sample_si_name='CG3:CS:SampleToSi', si_window_to_nominal_distance=0)
 
     # Verify: sample position at (0., 0., 0.) because SampleToSi == 71 mm and not overwritten
     sample_pos = np.array(ws.getInstrument().getSample().getPos())

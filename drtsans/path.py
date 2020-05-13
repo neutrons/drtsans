@@ -24,12 +24,19 @@ def allow_overwrite(folder):
     -------
     None
     """
-    for path in pathlib.Path(folder).glob('*'):
-        permissions = path.stat().st_mode
+    # loop over the files in the directory
+    for path in pathlib.Path(folder).iterdir():
         try:
-            path.chmod(permissions | stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+            if path.is_dir() or path.is_symlink() or not path.is_file():
+                continue  # don't fix directories or symbolic links
+
+            # update permissions if necessary
+            permissions = path.stat().st_mode
+            permissions_new = permissions | stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+            if permissions != permissions_new:
+                path.chmod(permissions_new)
         except PermissionError:
-            pass
+            pass  # ignore all permission errors
 
 
 def abspath(path, instrument='', ipts='', directory=None, search_archive=True):

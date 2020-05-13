@@ -10,6 +10,7 @@
    /drtsans/mono/index
    /drtsans/plots
    /drtsans/tof/index
+   /drtsans/reduction_parameters
    /drtsans/wavelength
 
 

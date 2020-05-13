@@ -28,7 +28,6 @@
 "numQxQyBins":80,
 "QbinType":"linear",
 "numQBins":120,
-"useTOFcuts":false,
 "TOFmin":"10000","TOFmax":"2000",
 "useMaskBackTubes":false,
 "wavelenStepType":"constant lambda",

@@ -34,8 +34,6 @@
     "logSliceName": null,
     "logSliceInterval": 10,
 
-
-    "useTOFcuts": false,
     "cutTOFmin": 500.0,
     "cutTOFmax": 1500.0,
 

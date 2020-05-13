@@ -31,7 +31,6 @@
    "numQxQyBins":100,
    "QbinType":"linear",
    "numQBins":100,
-   "useTOFcuts":true,
    "TOFmin":"500",
    "TOFmax":"2000",
    "useMaskBackTubes":false,

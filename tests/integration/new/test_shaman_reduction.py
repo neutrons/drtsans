@@ -199,7 +199,6 @@ def test_eqsans(run_config, basename, tmpdir):
             "QbinType": "linear",
             "numQBins": 120,
             "AnnularAngleBin": 5,
-            "useTOFcuts": False,
             "wavelengthStepType": "constant Delta lambda",
             "wavelengthStep": 0.1,
         }

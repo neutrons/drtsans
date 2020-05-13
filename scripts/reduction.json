@@ -64,7 +64,6 @@
     "Qmin": "",
     "Qmax": "",
     "useErrorWeighting": false,
-    "useTOFcuts": false,
     "TOFmin": "500.0",
     "TOFmax": "2000.0",
     "useMaskBackTubes": false,

@@ -61,9 +61,6 @@
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},
         "logSliceInterval": {"$ref":  "common.json#/configuration/logSliceInterval"},
 
-        "useTOFcuts": {"type": "boolean", "description": "Flag to use user defined time of flight range",
-                       "default": true, "examples": [true, false],
-                       "useEntry": ["#configuration/cutTOFmin", "#configuration/cutTOFmax"]},
         "cutTOFmin": {
           "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
           "default": 500.0,
@@ -71,7 +68,7 @@
           "pairedTo": "#configuration/cutTOFmax"
         },
         "cutTOFmax": {
-          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
           "default": 1500.0,
           "description": "User defined time of flight range maximum",
           "pairedTo": "#configuration/cutTOFmin"
@@ -166,7 +163,7 @@
                                 "description": "If True, suffix is the slice index. If False, suffix is a composite (time, custom log values)",
                                 "examples": [true, false]}
       },
-      "maxProperties": 57,
+      "maxProperties": 56,
       "required": ["outputDir", "useTimeSlice", "timeSliceInterval", "useLogSlice", "logSliceName",
         "logSliceInterval", "sampleOffset", "useDetectorOffset", "detectorOffset",
         "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",
@@ -178,7 +175,7 @@
         "autoWedgeAzimuthalDelta", "autoWedgePeakWidth", "autoWedgeBackgroundWidth", "autoWedgeSignalToNoiseMin",
         "AnnularAngleBin", "Qmin", "Qmax", "useErrorWeighting", "smearingPixelSizeX",
         "smearingPixelSizeY", "useSubpixels", "subpixelsX", "subpixelsY", "useSliceIDxAsSuffix",
-        "useTOFcuts", "cutTOFmin", "cutTOFmax", "wavelengthStep", "wavelengthStepType", "normalization",
+        "cutTOFmin", "cutTOFmax", "wavelengthStep", "wavelengthStepType", "normalization",
         "fluxMonitorRatioFile", "beamFluxFileName"]
     }
   },

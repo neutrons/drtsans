@@ -1,5 +1,5 @@
 from mantid.kernel import logger
-from drtsans.geometry import beam_radius
+from drtsans.mono.geometry import beam_radius
 from drtsans.transmission import calculate_transmission as raw_calculate_transmission
 from drtsans.transmission import apply_transmission_correction
 

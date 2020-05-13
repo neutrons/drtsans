@@ -21,7 +21,7 @@ from drtsans.mono.load import (load_events, transform_to_wavelength, load_events
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
-from drtsans.transmission import apply_transmission_correction, calculate_transmission
+from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.mono.absolute_units import empty_beam_scaling
 from drtsans.mono.gpsans.attenuation import attenuation_factor

@@ -21,7 +21,7 @@ from drtsans.transmission import calculate_transmission as calculate_raw_transmi
 from drtsans.tof.eqsans.correct_frame import transmitted_bands_clipped
 from drtsans.tof.eqsans.geometry import insert_aperture_logs
 # from drtsans.tof.eqsans.geometry import beam_radius
-from drtsans.geometry import beam_radius
+from drtsans.mono.geometry import beam_radius
 
 # Symbols to be exported to the eqsans namespace
 __all__ = ['calculate_transmission', 'fit_raw_transmission']

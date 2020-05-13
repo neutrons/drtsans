@@ -130,7 +130,10 @@ def type_selector(preferred_type):  # noqa: C901
         # Expand
         for run_range in re.findall(r'(\d+\s*[-:]\s*\d+)', instance):
             run_range_no_whitespaces = run_range.replace(' ', '')
-            all_runs = IntArrayProperty('_', run_range_no_whitespaces).valueAsStr
+            try:
+                all_runs = IntArrayProperty('_', run_range_no_whitespaces).valueAsStr
+            except RuntimeError as e:
+                raise ValueError('Invalid range format: {}'.format(run_range_no_whitespaces)) from e
             instance = instance.replace(run_range, all_runs)
         return instance
 

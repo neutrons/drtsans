@@ -136,7 +136,7 @@ def clipped_bands_from_logs(input_workspace):
 
 @namedtuplefy
 def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_tof_clip=None, high_tof_clip=None,
-                              interior_clip=False, search_in_logs=True):
+                              interior_clip=True, search_in_logs=True):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by the choppers taking into account
     the TOF clippings for neutrons arriving at the detector, assuming a detector were placed at `distance`.
@@ -154,7 +154,7 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
     high_tof_clip: float
         trim neutrons of the leading pulse with TOF bigger than the maximal TOF minus this value. Units in
         micro-seconds. If py:obj:`None`, the value is retrieved from log entry `'low_tof_clip``.
-    interior_clip: False
+    interior_clip: bool
         If True, trim slow neutrons from the lead pulse (using `high_tof_clip`) and fast neutrons from the skip
         pulse (using `low_tof_clip`)
     search_in_logs: True
@@ -203,7 +203,7 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
 
 
 def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
-                      interior_clip=False):
+                      interior_clip=True):
     r"""
     Append to the logs relevant information about the time of flight
     frame and structure
@@ -222,7 +222,7 @@ def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
     high_tof_clip: float
         trim neutrons of the leading pulse with TOF bigger than the maximal
         TOF minus this value.  Units in micro-seconds
-    interior_clip: False
+    interior_clip: bool
         If True, also trim slow neutrons from the lead pulse (using `htc`) and
         fast neutrons from the skip pulse (using `ltc`)
 
@@ -592,7 +592,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
 
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=True, interior_clip=False,
+                            keep_events=True, interior_clip=True,
                             output_workspace=None):
     r"""
     API function that converts corrected TOF's to Wavelength.
@@ -611,7 +611,7 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
         TOF minus this quantity.
     keep_events: bool
         The final histogram will be an EventsWorkspace if True.
-    interior_clip: False
+    interior_clip: bool
         If True, trim slow neutrons from the lead pulse (using
         ``high_tof_clip``) and fast neutrons from the skip pulse (using
         ``low_tof_clip``)

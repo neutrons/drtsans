@@ -363,11 +363,6 @@ def beam_radius(input_workspace, unit='mm'):
     # retrieve sample detector distance
     sample_detector_dist = sample_detector_distance(input_workspace)
 
-    print('source aperture diameter = {}, sample aperture diameter = {} sample detector distance = {} '
-          'source sample distance = {}'
-          ''.format(source_aperture_diam, sample_aperture_diam, source_aperture_sample_dist,
-                    sample_detector_dist))
-
     # calculate beam radius
     r_beam = r_sam_ap + (r_sam_ap + r_src_ap) * sample_detector_dist / source_aperture_sample_dist
 

@@ -24,7 +24,8 @@ def test_load_all_files_simple():
              'configuration': {'outputDir': '/tmp',
                                "useDefaultMask": False,
                                "sampleOffset": "0",
-                               "LogQBinsPerDecade": 10,
+                               "LogQBinsPerDecade": None,
+                               "numQBins": None,
                                "normalization": "Total charge",
                                "absoluteScaleMethod": "standard",
                                "StandardAbsoluteScale": "5.18325"}
@@ -35,26 +36,27 @@ def test_load_all_files_simple():
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
     history = loaded.sample[0].data.getHistory()
-    assert history.size() == 10
+
+    assert history.size() == 11
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
     assert history.getAlgorithm(0).getProperty("Filename").value == '/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5'
-    assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(2).name() == "ChangeBinOffset"
-    assert history.getAlgorithm(3).name() == "SetInstrumentParameter"
+    assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"
+    assert history.getAlgorithm(3).name() == "ChangeBinOffset"
+    assert history.getAlgorithm(4).name() == "SetInstrumentParameter"
     # assert history.getAlgorithm(4).name() == "ModeratorTZero"
-    assert history.getAlgorithm(5).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(6).name() == "ConvertUnits"
-    assert history.getAlgorithm(7).name() == "Rebin"
-    assert history.getAlgorithm(8).name() == "SetUncertainties"
-    assert history.getAlgorithm(9).name() == "AddSampleLogMultiple"
+    assert history.getAlgorithm(6).name() == "MoveInstrumentComponent"
+    assert history.getAlgorithm(7).name() == "ConvertUnits"
+    assert history.getAlgorithm(8).name() == "Rebin"
+    assert history.getAlgorithm(9).name() == "SetUncertainties"
+    assert history.getAlgorithm(10).name() == "AddSampleLogMultiple"
 
     assert loaded.background.data is None
     assert loaded.background_transmission.data is None
     assert loaded.empty.data is None
     assert loaded.sample_transmission.data is None
-    assert loaded.dark_current.data is None
-    assert loaded.sensitivity is None
-    assert loaded.mask is None
+    assert loaded.dark_current.data is not None
+    assert loaded.sensitivity is not None
+    assert loaded.mask is not None
 
     # Verify that if something is changed that it gets applied correctly on reload, use default mask as test
     # First check the current value

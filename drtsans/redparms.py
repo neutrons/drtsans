@@ -328,7 +328,7 @@ class DefaultJson:
         if 'properties' in schema:
             dict_slim = dict()
             for name, value in schema['properties'].items():
-                dict_slim[name] = DefaultJson.trim_schema(value)
+                dict_slim[name] = DefaultJson.trim_schema(value, field=field)
             return dict_slim
         return schema.get(field, None)
 
@@ -1004,7 +1004,7 @@ class ReductionParameters:
                 yield jsonschema.ValidationError(f'No flux file was specified for {instance} normalization')
 
 
-def _instrument_json_generator(instrument=None):
+def _instrument_json_generator(instrument=None, field='default'):
     r"""
     For each instrument schema, yield a resolved ~drtsans.redparms.DefaultJson instance.
 
@@ -1012,6 +1012,8 @@ def _instrument_json_generator(instrument=None):
     ----------
     instrument: str
         Name of the instrument. If :py:obj:`None` then generate for all instruments
+    field: str
+        entry in the parameter's schema that we want to use as default value for the parameter.
 
     Returns
     -------
@@ -1025,7 +1027,7 @@ def _instrument_json_generator(instrument=None):
         with open(schema_file, 'r') as file_handle:
             schema_unresolved = json.load(file_handle)
             schema_resolved = resolver_common.dereference(schema_unresolved)
-            yield name, DefaultJson(schema_resolved)
+            yield name, DefaultJson(schema_resolved, field=field)
 
 
 def default_reduction_parameters(instrument_name):
@@ -1058,7 +1060,7 @@ def pretty_print_schemae(save_dir):
         open(save_path, 'w').write(str(default_json))
 
 
-def generate_json_files(save_dir, timestamp=True):
+def generate_json_files(save_dir, timestamp=True, field='default'):
     r"""
     For each instrument schema, dump only the physical properties and their default
     values into a JSON formatted file.
@@ -1070,7 +1072,7 @@ def generate_json_files(save_dir, timestamp=True):
     timestamp: bool
         Include a 'timestamp' entry
     """
-    for name, default_json in _instrument_json_generator():
+    for name, default_json in _instrument_json_generator(field=field):
         save_path = os.path.join(save_dir, f'{name}.json')
         default_json.dump(save_path)
 

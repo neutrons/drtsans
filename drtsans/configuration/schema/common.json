@@ -102,7 +102,7 @@
     "properties" : {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberTypes",
-        "description": "The run number(s) for the sample. The sample filename will be EQSANS_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the sample. The sample filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
         "examples": ["12345", 12345]
       },
       "thickness": {
@@ -124,7 +124,7 @@
         "properties": {
           "runNumber": {
             "$ref": "common.json#/definitions/runNumberOptionalTypes",
-            "description": "The run number(s) for the transmission sample. The filename will be EQSANS_{runNumber}.nxs.h5",
+            "description": "The run number(s) for the transmission sample. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
             "examples": ["12345", 12345]
           },
           "value": {
@@ -145,7 +145,7 @@
     "properties": {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
-        "description": "The run number(s) for the background run. The filename will be EQSANS_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the background run. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
         "examples": ["12345", 12345]
       },
       "transmission": {
@@ -153,7 +153,7 @@
         "properties": {
           "runNumber": {
             "$ref": "common.json#/definitions/runNumberOptionalTypes",
-            "description": "The run number(s) for the transmission of the background. The filename will be EQSANS_{runNumber}.nxs.h5",
+            "description": "The run number(s) for the transmission of the background. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
             "examples": ["12345", 12345]
           },
           "value": {
@@ -174,7 +174,7 @@
     "properties": {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
-        "description": "The run number(s) for the beam center calculation. The filename will be EQSANS_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the beam center calculation. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
         "examples": ["12345", 12345]
       }
     },
@@ -186,7 +186,7 @@
     "properties": {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
-        "description": "The run number(s) for the empty beam, used for transmission calculation as a reference. The filename will be EQSANS_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the empty beam, used for transmission calculation as a reference. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
         "examples": ["12345", 12345]
       },
       "value": {

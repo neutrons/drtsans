@@ -54,12 +54,12 @@
 
         "outputDir": {"$ref":  "common.json#/configuration/outputDir"},
 
-        "useTimeSlice":         {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
-        "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval"},
+        "useTimeSlice":      {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
+        "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval", "default":  300},
 
-        "useLogSlice":         {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
+        "useLogSlice":      {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},
-        "logSliceInterval": {"$ref":  "common.json#/configuration/logSliceInterval"},
+        "logSliceInterval": {"$ref":  "common.json#/configuration/logSliceInterval", "default":  10},
 
         "cutTOFmin": {
           "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
@@ -69,7 +69,7 @@
         },
         "cutTOFmax": {
           "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
-          "default": 1500.0,
+          "default": 2000.0,
           "description": "User defined time of flight range maximum",
           "pairedTo": "#configuration/cutTOFmin"
         },
@@ -80,28 +80,31 @@
                                "default": "constant Delta lambda",
                                "examples": ["constant Delta lambda",  "constant Delta lambda/lambda"]},
 
-        "sampleOffset":           {"$ref":  "common.json#/configuration/sampleOffset"},
+        "sampleOffset":           {"$ref":  "common.json#/configuration/sampleOffset", "default":  314.5},
         "useDetectorOffset":      {"$ref":  "common.json#/configuration/useDetectorOffset", "default": true,
                                    "useEntry": "#configuration/detectorOffset"},
-        "detectorOffset":         {"$ref":  "common.json#/configuration/detectorOffset", "default": 0},
+        "detectorOffset":         {"$ref":  "common.json#/configuration/detectorOffset", "default": 80},
         "sampleApertureSize":     {"$ref":  "common.json#/configuration/sampleApertureSize"},
         "sourceApertureDiameter": {"$ref":  "common.json#/configuration/sourceApertureDiameter"},
 
         "usePixelCalibration": {"$ref":  "common.json#/configuration/usePixelCalibration", "default": false},
 
-        "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName"},
+        "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName",
+          "default": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/mask_4m_general.nxs"},
         "useDefaultMask":   {"$ref":  "common.json#/configuration/useDefaultMask", "default": true},
         "defaultMask":      {"$ref":  "common.json#/configuration/defaultMask"},
         "useMaskBackTubes": {"$ref":  "common.json#/configuration/useMaskBackTubes", "default": false},
 
-        "darkFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
+        "darkFileName":    {"$ref":  "common.json#/configuration/darkFileName",
+          "default":  "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/EQSANS_113569.nxs.h5"},
         "normalization": {
           "anyOf": [{"type": "string", "enum": ["Monitor", "Total charge", "Time"]},
                     {"type": "null"}],
           "description": "Normalization type. Allowed values 'Total charge', 'Time', 'Monitor'",
           "fluxfiletof": {"Monitor": "#configuratin/fluxMonitorRatioFile",
                           "Total Charge": "#configuration/beamFluxFileName"},
-          "examples":  ["Monitor", "Total charge", "Time"]
+          "examples":  ["Monitor", "Total charge", "Time"],
+          "default": "Total charge"
         },
         "fluxMonitorRatioFile": {
           "type": ["string", "null"],
@@ -113,9 +116,11 @@
           "type": ["string", "null"],
           "datasource": "file",
           "description": "Path to the flux file (used in normalization by proton charge)",
-          "examples":  ["/path/to/file/beamFluxfile.dat"]
+          "examples":  ["/path/to/file/beamFluxfile.dat"],
+          "default": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample"
         },
-        "sensitivityFileName":        {"$ref":  "common.json#/configuration/sensitivityFileName"},
+        "sensitivityFileName":        {"$ref":  "common.json#/configuration/sensitivityFileName",
+          "default": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/Sensitivity_patched_thinPMMA_4m_113512_mantid.nxs"},
         "useSolidAngleCorrection":    {"$ref":  "common.json#/configuration/useSolidAngleCorrection", "default": true},
         "useThetaDepTransCorrection": {"$ref":  "common.json#/configuration/useThetaDepTransCorrection", "default": true},
         "mmRadiusForTransmission": {
@@ -123,17 +128,17 @@
           "description": "Integration radius (in mm) to be used for transmission calculation",
           "default": 25
         },
-        "absoluteScaleMethod":        {"$ref":  "common.json#/configuration/absoluteScaleMethod"},
+        "absoluteScaleMethod":   {"$ref":  "common.json#/configuration/absoluteScaleMethod", "default":  "standard"},
         "StandardAbsoluteScale": {"$ref":  "common.json#/configuration/StandardAbsoluteScale", "default": 1.0},
 
-        "numQxQyBins":          {"$ref":  "common.json#/configuration/numQxQyBins"},
+        "numQxQyBins":          {"$ref":  "common.json#/configuration/numQxQyBins", "default":  80},
         "1DQbinType":           {"$ref":  "common.json#/configuration/1DQbinType", "default": "scalar"},
         "QbinType": {
           "$ref":  "common.json#/configuration/QbinType",
           "default": "log",
           "evaluateCondition": "('{this}' == 'linear' and {#configuration/numQBins} is not None) or ('{this}' == 'log' and (({#configuration/numQBins} is None) ^ ({#configuration/LogQBinsPerDecade} is None)))"
         },
-        "numQBins":             {"$ref":  "common.json#/configuration/numQBins"},
+        "numQBins":             {"$ref":  "common.json#/configuration/numQBins", "default":  100},
         "LogQBinsPerDecade":    {"$ref":  "common.json#/configuration/LogQBinsPerDecade"},
         "useLogQBinsDecadeCenter": {"$ref":  "common.json#/configuration/useLogQBinsDecadeCenter", "default": false},
         "useLogQBinsEvenDecade":   {"$ref":  "common.json#/configuration/useLogQBinsEvenDecade", "default": false},

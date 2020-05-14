@@ -388,7 +388,7 @@ class DefaultJson:
         json.dump(self._json, file_handle, **kwargs)
         file_handle.close()
 
-    def to_rest(self):
+    def to_rest(self, line_length_max=75):
         r"""
         Represent the default parameters as a restructuredtext string.
 
@@ -396,10 +396,25 @@ class DefaultJson:
         -------
         str
         """
+        def quote_in(lines):
+            r"""Fix the quote marks when splitting a long line into a list of shorter lines"""
+            if len(lines) == 1:
+                return lines  # the line was not splited, so nothing to do
+            quoted_lines = [lines[0] + '"']  # first line needs ending '"'
+            for line in lines[1: -1]:
+                quoted_lines.append('"' + line + '"')  # middle lines must be quoted
+            quoted_lines.append('"' + lines[-1])  # last line needs beginning '"'
+            return quoted_lines
+
         name = self.parameters['instrumentName']
         doc = f'{name}\n' + ''.join(['='] * len(name)) + '\n\n'  # instrument header
         doc += '.. code-block:: python\n\n'
-        def_dict = self.dumps(indent=2).replace('\n', '\n   ')
+        def_dict = list()
+        # Split long lines
+        for line in self.dumps(indent=2).split('\n'):
+            def_dict.extend(quote_in([line[i:i + line_length_max] for i in range(0, len(line), line_length_max)]))
+        # Three white spaces for proper indentation of restructuredtext blockquotes
+        def_dict = '\n   '.join(def_dict)
         # Change back some keywords from JSON representation to Python
         for json_key, python_key in {': true': ': True', ': false': ': False', ': null': ': None'}.items():
             def_dict = def_dict.replace(json_key, python_key)

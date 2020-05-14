@@ -301,15 +301,23 @@ class DefaultJson:
     Parameters
     ----------
     schema: dict
+    field: str
+        entry in the parameter's schema that we want to use as default value for the parameter.
     """
 
     # public class/static methods:
 
     @staticmethod
-    def trim_schema(schema):
+    def trim_schema(schema, field='default'):
         r"""
         Trim the (key, val) items from a full schema so that keys are assigned their default values,
         or :py:obj:`None`
+
+        Parameters
+        ----------
+        schema: dict
+        field: str
+            entry in the schema for each parameter that we want to use as value
 
         Returns
         -------
@@ -322,7 +330,7 @@ class DefaultJson:
             for name, value in schema['properties'].items():
                 dict_slim[name] = DefaultJson.trim_schema(value)
             return dict_slim
-        return schema.get('default', None)
+        return schema.get(field, None)
 
     # public bound methods:
 
@@ -400,8 +408,9 @@ class DefaultJson:
 
     # private bound methods:
 
-    def __init__(self, schema):
-        self._json = self.trim_schema(schema)
+    def __init__(self, schema, field='default'):
+        self._field = field
+        self._json = self.trim_schema(schema, field=field)
 
     def __getitem__(self, item):
         return self._json.__getitem__(item)
@@ -428,7 +437,7 @@ class DefaultJson:
         str
         """
         if parent_dictionary is None:
-            s = '#\n# property-name (default value)\n#\n'
+            s = f'#\n# property-name ({self._field} value)\n#\n'
             parent_dictionary = self._json
         else:
             s = ''

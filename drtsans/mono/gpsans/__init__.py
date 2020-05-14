@@ -38,8 +38,8 @@ from ...solid_angle import *
 import drtsans.thickness_normalization
 from ...thickness_normalization import *
 
-import drtsans.transmission
-from ...transmission import *
+import drtsans.mono.transmission
+from ..transmission import *
 
 import drtsans.absolute_units
 from ..absolute_units import *
@@ -78,7 +78,7 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.stitch.__all__\
           + drtsans.solid_angle.__all__\
           + drtsans.thickness_normalization.__all__\
-          + drtsans.transmission.__all__\
+          + drtsans.mono.transmission.__all__\
           + drtsans.mono.absolute_units.__all__\
           + drtsans.mono.dark_current.__all__\
           + drtsans.mono.load.__all__\

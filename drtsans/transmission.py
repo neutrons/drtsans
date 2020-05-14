@@ -20,13 +20,12 @@ beam_radius <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drt
 """  # noqa: E501
 from drtsans.settings import unique_workspace_dundername
 from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
-from drtsans.geometry import beam_radius
 
 # Symbols to be exported
 __all__ = ['apply_transmission_correction', 'calculate_transmission']
 
 
-def calculate_transmission(input_sample, input_reference, radius=None, radius_unit='mm', output_workspace=None):
+def calculate_transmission(input_sample, input_reference, radius, radius_unit='mm', output_workspace=None):
     """
     Calculate the raw transmission coefficients at zero scattering angle
     from already prepared sample and reference data.
@@ -65,7 +64,7 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
 
     if radius is None:
         logger.information('Calculating beam radius from sample logs')
-        radius = beam_radius(input_reference, unit='mm')
+        raise NotImplementedError('beam radius must be specified')
     else:
         radius = float(radius) if radius_unit == 'mm' else 1.e3 * radius  # to mm
         logger.information('beam radius is (mm) {}'.format(radius))

@@ -23,7 +23,7 @@ from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.mono.load import load_events, transform_to_wavelength, set_init_uncertainties
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
-from drtsans.transmission import apply_transmission_correction, calculate_transmission
+from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D

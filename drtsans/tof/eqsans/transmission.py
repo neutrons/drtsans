@@ -1,5 +1,6 @@
 import numpy as np
 from mantid.api import mtd
+from mantid.kernel import logger
 
 r"""
 Hyperlinks to Mantid algorithms
@@ -19,6 +20,7 @@ from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
 from drtsans.tof.eqsans.correct_frame import transmitted_bands_clipped
 from drtsans.tof.eqsans.geometry import insert_aperture_logs
+from drtsans.tof.eqsans.geometry import beam_radius
 
 # Symbols to be exported to the eqsans namespace
 __all__ = ['calculate_transmission', 'fit_raw_transmission']
@@ -72,6 +74,8 @@ def calculate_transmission(input_sample, input_reference, radius=None, radius_un
 
     if radius is None:
         insert_aperture_logs(input_reference)  # necessary for calculation of the beam radius
+        logger.information('Calculating beam radius from sample logs')
+        radius = beam_radius(input_reference, unit='mm')
 
     # start calculating the raw transmissions
     raw_transmission_workspace = calculate_raw_transmission(input_sample, input_reference,

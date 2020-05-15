@@ -1,8 +1,6 @@
 import numpy as np
 from scipy import constants
 
-from drtsans.geometry import nominal_pixel_size
-
 
 __all__ = ['InstrumentSetupParameters', 'calculate_sigma_theta_prefactor', 'calculate_sigma_geometry',
            'calculate_sigma_theta_geometry', 'calculate_sigma_theta_gravity']
@@ -13,7 +11,7 @@ class InstrumentSetupParameters(object):
     Class to contain the parameters used to calculate Q resolution
     """
     def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius,
-                 pixel_width=None, pixel_height=None):
+                 pixel_width_ratio=None, pixel_height_ratio=None):
         """
         Initialization to set all the parameters (6) to calculate momentrum transfer resolution
 
@@ -27,18 +25,20 @@ class InstrumentSetupParameters(object):
             source aperture radius (meter)
         sample_aperture_radius:
             sample aperture radius (meter)
-        pixel_width: float
-            custom pixel width to replace the nominal pixel width of the instrument pixel detectors. Only
+        pixel_width_ratio: float
+            custom pixel width ratio (relative to nominal width)to replace the nominal pixel width of the
+            instrument pixel detectors. Only
             for the purpose of Q-resolution calculation.
-        pixel_height: float
-            custom pixel height to replace the nominal pixel height of the instrument pixel detectors. Only
+        pixel_height_ratio: float
+            custom pixel height ratio (relative to nominal height) to replace the nominal pixel height
+            of the instrument pixel detectors. Only
             for the purpose of Q-resolution calculation.
         """
         self._l1 = l1
         self._sample_det_center_dist = sample_det_center_dist
         self._source_aperture = source_aperture_radius
         self._sample_aperture = sample_aperture_radius
-        self.smearing_pixel_width, self.smearing_pixel_height = pixel_width, pixel_height
+        self.smearing_pixel_width_ratio, self.smearing_pixel_height_ratio = pixel_width_ratio, pixel_height_ratio
 
     def __str__(self):
         """
@@ -158,12 +158,10 @@ def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
     dy = pixel_info.smearing_pixel_size_y
 
     # Rescale pixel dimensions if custom pixel dimensions are present in the instrument parameters
-    if instrument_parameters.smearing_pixel_width is not None:
-        scaling = instrument_parameters.smearing_pixel_width / nominal_pixel_size().width
-        dx *= scaling
-    if instrument_parameters.smearing_pixel_height is not None:
-        scaling = instrument_parameters.smearing_pixel_height / nominal_pixel_size().height
-        dy *= scaling
+    if instrument_parameters.smearing_pixel_width_ratio is not None:
+        dx *= instrument_parameters.smearing_pixel_width_ratio
+    if instrument_parameters.smearing_pixel_height_ratio is not None:
+        dy *= instrument_parameters.smearing_pixel_height_ratio
 
     dx2, dy2 = np.square(dx), np.square(dy)
 

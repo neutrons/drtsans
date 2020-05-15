@@ -11,6 +11,8 @@ from drtsans.tof.eqsans.geometry import (sample_aperture_diameter, source_apertu
 from drtsans import geometry as sans_geometry
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
+from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod, DataType
 from mantid.kernel import logger
 
 __all__ = ['convert_to_q', 'split_by_frame']
@@ -164,12 +166,20 @@ def retrieve_instrument_setup(input_workspace):
     r2 = 0.5 * sample_aperture_diameter(input_workspace, unit='m')
     pixel_width, pixel_height = sans_geometry.logged_smearing_pixel_size(input_workspace)
 
+    nominal_pixel = sans_geometry.nominal_pixel_size(input_workspace)
+    pixel_width_ratio = None
+    pixel_height_ratio = None
+    if pixel_width is not None:
+        pixel_width_ratio = pixel_width / nominal_pixel.width
+    if pixel_height is not None:
+        pixel_height_ratio = pixel_height / nominal_pixel.height
+
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
                                                                 sample_aperture_radius=r2,
-                                                                pixel_width=pixel_width,
-                                                                pixel_height=pixel_height)
+                                                                pixel_width_ratio=pixel_width_ratio,
+                                                                pixel_height_ratio=pixel_height_ratio)
     return setup_params
 
 
@@ -229,6 +239,17 @@ def split_by_frame(input_workspace, *args, **kwargs):
     list
         A list with namedtuples
     """
+    # get the type of the input
+    try:
+        id_type = args[0].id()
+        if id_type == DataType.IQ_MOD:
+            input_type = IQmod
+        elif id_type == DataType.IQ_AZIMUTHAL:
+            input_type = IQazimuthal
+        elif id_type == DataType.IQ_CRYSTAL:
+            input_type = IQcrystal
+    except AttributeError:
+        input_type = None
     # transform args to dictionary
     try:
         kwargs = args[0]._asdict()
@@ -261,5 +282,8 @@ def split_by_frame(input_workspace, *args, **kwargs):
         for k in keys:
             output[k] = kwargs[k][keep]
         # create the namedtuple from a dictionary
-        output_list.append(namedtuple('frame', output)(**output))
+        if input_type is not None:
+            output_list.append(input_type(**output))
+        else:
+            output_list.append(namedtuple('frame', output)(**output))
     return output_list

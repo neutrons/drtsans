@@ -5,7 +5,7 @@ import drtsans.momentum_transfer
 import drtsans.resolution
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
 from drtsans.geometry import (logged_smearing_pixel_size, sample_aperture_diameter, sample_detector_distance,
-                              source_aperture_diameter, source_sample_distance)
+                              source_aperture_diameter, source_sample_distance, nominal_pixel_size)
 
 __all__ = ['convert_to_q']
 
@@ -150,15 +150,18 @@ def retrieve_instrument_setup(input_workspace):
     r2 = sample_aperture_diameter(input_workspace, unit='m') / 2.0
     pixel_width, pixel_height = logged_smearing_pixel_size(input_workspace)
 
-    # Information output
-    # print('[META] Sample detector distance = {} m, Source aperture radius = {} m, Sample aperture radius = {} m '
-    #       '       Pixel width = {} m, Pixel height = {} m   (None, None: calculate from IDF for each pixel)'
-    #       ''.format(l2, r1, r2, pixel_width, pixel_height))
+    nominal_pixel = nominal_pixel_size(input_workspace)
+    pixel_width_ratio = None
+    pixel_height_ratio = None
+    if pixel_width is not None:
+        pixel_width_ratio = pixel_width / nominal_pixel.width
+    if pixel_height is not None:
+        pixel_height_ratio = pixel_height / nominal_pixel.height
 
     setup_params = drtsans.resolution.InstrumentSetupParameters(l1=l1,
                                                                 sample_det_center_dist=l2,
                                                                 source_aperture_radius=r1,
                                                                 sample_aperture_radius=r2,
-                                                                pixel_width=pixel_width,
-                                                                pixel_height=pixel_height)
+                                                                pixel_width_ratio=pixel_width_ratio,
+                                                                pixel_height_ratio=pixel_height_ratio)
     return setup_params

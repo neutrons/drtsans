@@ -1347,7 +1347,8 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         # We scan the end of the tube for possible missassignments
         jump_index = None
         y = bottom_shadow_pixels[:, tube_index]
-        begin_index, end_index = number_bar_positions - 2, number_bar_positions - 12  # look at the last 12 pixels
+        begin_index = number_bar_positions - 2  # start next to last index
+        end_index = max(0, number_bar_positions - 12)  # look at the last 12 pixels
         for i in range(begin_index, end_index, -1):  # start from the bottom of the tube, work upwards
             if abs(y[i] - y[i-1]) > 10 * max(1, abs(y[i+1] - y[i])):  # value/factor of 10 selected as threshold
                 jump_index = i  # The position of the bar jumped by more than 10 pixels. Flags an incorrect assigment

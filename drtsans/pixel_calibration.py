@@ -1342,15 +1342,19 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     for tube_index in range(number_tubes):
         if bad_tube(bottom_shadow_pixels[:, tube_index]):
             continue  # this tube has all pixels marked as incorrectly assigned. Don't attempt to fix corner issues.
+        #
         # Correct corner case 1
+        # We scan the end of the tube for possible missassignments
         jump_index = None
         y = bottom_shadow_pixels[:, tube_index]
-        for i in range(number_bar_positions - 2, 0, -1):  # start from the bottom of the tube, work upwards
+        begin_index, end_index = number_bar_positions - 2, number_bar_positions - 12  # look at the last 12 pixels
+        for i in range(begin_index, end_index, -1):  # start from the bottom of the tube, work upwards
             if abs(y[i] - y[i-1]) > 10 * max(1, abs(y[i+1] - y[i])):  # value/factor of 10 selected as threshold
                 jump_index = i  # The position of the bar jumped by more than 10 pixels. Flags an incorrect assigment
                 break
         if jump_index is not None:
             y[jump_index:] = INCORRECT_PIXEL_ASSIGNMENT
+        #
         # Correct corner case 2
         y = bottom_shadow_pixels[:, tube_index]  # bar positions in pixel coordinates
         x = bar_positions[:, tube_index]  # bar positions in mili meters
@@ -1504,8 +1508,9 @@ def as_intensities(input_workspace, component='detector1', views=['positions', '
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         Workspace from which pixel properties are retrieved.
-    component: str
-        Name of one of the double detector array panels. For BIOSANS we have 'detector1' or 'wing-detector'.
+    component: str, list
+        Name or list of names for the double detector array panels. For BIOSANS we have 'detector1' or
+        'wing-detector'.
     views: list
         Generate views for the pixel properties provided.
 
@@ -1515,17 +1520,25 @@ def as_intensities(input_workspace, component='detector1', views=['positions', '
         A namedtuple containing the ~mantid.api.MatrixWorkspace workspaces
         with fields 'positions', 'positions_mantid', 'heights', and 'widths'
     """
+    if isinstance(component, str):
+        components = [component, ]
+    else:
+        components = component
+
+    # methods TubeSpectrum.pixel_y, TubeSpectrum.pixel_heights, and TubeSpectrum.pixel_widths
     tube_properties = {'positions': 'pixel_y', 'heights': 'pixel_heights', 'widths': 'pixel_widths'}
-    # Collect pixel information from the input workspace
-    collection = TubeCollection(input_workspace, component).sorted(view='decreasing X')
-    indexes = np.array([], dtype=int)  # workspace indexes
-    pixel_props = dict()
-    for tube in collection:
-        indexes = np.hstack((indexes, tube.spectrum_info_index))
-        for view in views:
-            current = pixel_props.get(view, np.array([]))
-            addition = getattr(tube, tube_properties[view])
-            pixel_props[view] = np.hstack((current, addition))
+
+    # collect pixel properties and associated workspace indexes
+    workspace_indexes = np.array([], dtype=int)
+    pixel_props = dict()  # on entry for each view, each entry is a 1D numpy array
+    for current_component in components:
+        collection = TubeCollection(input_workspace, current_component).sorted(view='decreasing X')
+        for tube in collection:
+            workspace_indexes = np.hstack((workspace_indexes, tube.spectrum_info_index))  # workspace indexes for the tube
+            for view in views:  # 'positions', 'heights', 'widths'
+                pixel_props_collected = pixel_props.get(view, np.array([]))  # pixel properties up to the current tube
+                addition = getattr(tube, tube_properties[view])  # pixel properties for the current tube
+                pixel_props[view] = np.hstack((pixel_props_collected, addition))
 
     # Mantid can only show positive quantities in the instrument view
     if 'positions' in pixel_props:
@@ -1535,9 +1548,10 @@ def as_intensities(input_workspace, component='detector1', views=['positions', '
     intensities = np.zeros(number_histograms)
 
     returned_views = {}
-    for cal_prop in pixel_props:
+    for cal_prop in pixel_props:  # 'positions', 'heights', 'widths', 'positions_mantid'
         output_workspace = f'{str(input_workspace)}_{cal_prop}'  # Workspace containing the property as  intensity
-        intensities[indexes] = pixel_props[cal_prop]
+        # intensties will be non-zero only for workpace indexes that have associated pixels of interests
+        intensities[workspace_indexes] = pixel_props[cal_prop]
         workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         for index in range(number_histograms):
             workspace.dataY(index)[:] = intensities[index]

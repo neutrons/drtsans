@@ -302,11 +302,7 @@
       "type": "boolean",
       "description": "Flag whether to apply solid angle correction"
     },
-    "blockedBeamRunNumber": {
-      "runNumber": {
-        "$ref": "common.json#/definitions/runNumberOptionalTypes"
-      }
-    },
+    "blockedBeamRunNumber": {"$ref": "common.json#/definitions/runNumberOptionalTypes"},
     "useThetaDepTransCorrection": {
       "type": "boolean",
       "description": "Flag whether to calculate a theta dependent transmission"

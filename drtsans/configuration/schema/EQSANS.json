@@ -138,7 +138,7 @@
           "default": "log",
           "evaluateCondition": "('{this}' == 'linear' and {#configuration/numQBins} is not None) or ('{this}' == 'log' and (({#configuration/numQBins} is None) ^ ({#configuration/LogQBinsPerDecade} is None)))"
         },
-        "numQBins":             {"$ref":  "common.json#/configuration/numQBins", "default":  100},
+        "numQBins":             {"$ref":  "common.json#/configuration/numQBins"},
         "LogQBinsPerDecade":    {"$ref":  "common.json#/configuration/LogQBinsPerDecade"},
         "useLogQBinsDecadeCenter": {"$ref":  "common.json#/configuration/useLogQBinsDecadeCenter", "default": false},
         "useLogQBinsEvenDecade":   {"$ref":  "common.json#/configuration/useLogQBinsEvenDecade", "default": false},

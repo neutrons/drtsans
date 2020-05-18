@@ -24,8 +24,7 @@ def test_load_all_files_simple():
              'configuration': {'outputDir': '/tmp',
                                "useDefaultMask": False,
                                "sampleOffset": "0",
-                               "LogQBinsPerDecade": None,
-                               "numQBins": None,
+                               "LogQBinsPerDecade": 10,
                                "normalization": "Total charge",
                                "absoluteScaleMethod": "standard",
                                "StandardAbsoluteScale": "5.18325"}

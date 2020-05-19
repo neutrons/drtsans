@@ -95,8 +95,8 @@
         "smearingPixelSizeX": {"$ref":  "common.json#/configuration/smearingPixelSizeX"},
         "smearingPixelSizeY": {"$ref":  "common.json#/configuration/smearingPixelSizeY"},
         "useSubpixels":      {"$ref":  "common.json#/configuration/useSubpixels", "default": true},
-        "subpixelsX":        {"$ref":  "common.json#/configuration/subpixelsX", "default": 2},
-        "subpixelsY":        {"$ref":  "common.json#/configuration/subpixelsY", "default": 2}
+        "subpixelsX":        {"$ref":  "common.json#/configuration/subpixelsX", "default": 5},
+        "subpixelsY":        {"$ref":  "common.json#/configuration/subpixelsY", "default": 5}
       },
       "maxProperties": 57,
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",

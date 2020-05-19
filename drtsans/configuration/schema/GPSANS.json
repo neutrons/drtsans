@@ -56,7 +56,7 @@
         "normalization":              {"$ref":  "common.json#/configuration/normalization", "default": "Monitor"},
         "sensitivityFileName":        {"$ref":  "common.json#/configuration/sensitivityFileName"},
         "useSolidAngleCorrection":    {"$ref":  "common.json#/configuration/useSolidAngleCorrection", "default": true},
-        "blockedBeamRunNumber":        {"$ref": "common.json#/configuration/blockedBeamRunNumber", "default":  ""},
+        "blockedBeamRunNumber":       {"$ref": "common.json#/configuration/blockedBeamRunNumber"},
         "useThetaDepTransCorrection": {"$ref":  "common.json#/configuration/useThetaDepTransCorrection",
                                        "default": true},
         "DBScalingBeamRadius":    {"$ref":  "common.json#/configuration/DBScalingBeamRadius"},

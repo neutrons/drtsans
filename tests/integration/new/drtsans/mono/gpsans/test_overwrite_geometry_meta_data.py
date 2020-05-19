@@ -2,6 +2,7 @@
 import h5py
 import numpy as np
 import pytest
+from tempfile import mkdtemp
 import time
 import os
 
@@ -165,7 +166,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_no_overwrite(reference_dir):
+def test_no_overwrite(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting neither SampleToSi (distance) nor SampleDetectorDistance.
 
     This test case is provided by Lisa and verified by Lilin
@@ -178,12 +179,14 @@ def test_no_overwrite(reference_dir):
 
     """
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
+    output_dir = mkdtemp(prefix='meta_overwrite_test1')
+    cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},
         "emptyTransmission": {"runNumber": 9177},
         "configuration": {
-            "outputDir": "/tmp",
+            "outputDir": output_dir,
             "useDefaultMask": True,
             "defaultMask": ["{'Pixel':'1-10,247-256'}"],
             "sensitivityFileName": sensitivity_file,
@@ -203,7 +206,6 @@ def test_no_overwrite(reference_dir):
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    output_dir = '/tmp/meta_overwrite_test1'
     reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix='CG2MetaRaw')
 
     # Get result files
@@ -217,7 +219,7 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_sample2si(reference_dir):
+def test_overwrite_sample2si(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting SampleToSi (distance) but not SampleDetectorDistance.
     Sample to detector distance will be changed accordingly.
 
@@ -233,12 +235,14 @@ def test_overwrite_sample2si(reference_dir):
 
     """
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
+    output_dir = mkdtemp(prefix='meta_overwrite_test2')
+    cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},
         "emptyTransmission": {"runNumber": 9177},
         "configuration": {
-            "outputDir": "/tmp",
+            "outputDir": output_dir,
             "sampleToSi": 94,
             "useDefaultMask": True,
             "defaultMask": ["{'Pixel':'1-10,247-256'}"],
@@ -259,7 +263,6 @@ def test_overwrite_sample2si(reference_dir):
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    output_dir = '/tmp/meta_overwrite_test2'
     reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, 'CG2MetaSWD')
 
     # Get result files
@@ -273,7 +276,7 @@ def test_overwrite_sample2si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_sdd(reference_dir):
+def test_overwrite_sdd(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
 
     - Overwrite DetectorToSample (distance) to 40 meter
@@ -289,12 +292,14 @@ def test_overwrite_sdd(reference_dir):
     """
     # Set test and run: sample to detector distance is changed to 40 meter
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
+    output_dir = mkdtemp(prefix='meta_overwrite_test3')
+    cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},
         "emptyTransmission": {"runNumber": 9177},
         "configuration": {
-            "outputDir": "/tmp",
+            "outputDir": output_dir,
             "sampleDetectorDistance": 40,
             "useDefaultMask": True,
             "defaultMask": ["{'Pixel':'1-10,247-256'}"],
@@ -315,7 +320,6 @@ def test_overwrite_sdd(reference_dir):
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    output_dir = '/tmp/meta_overwrite_test3'
     reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, 'CG2MetaSDD')
 
     # Get result files
@@ -333,7 +337,7 @@ def test_overwrite_sdd(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_both(reference_dir):
+def test_overwrite_both(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
 
     - Overwrite SampleToSi (distance) to 200 mm.
@@ -350,12 +354,14 @@ def test_overwrite_both(reference_dir):
     """
     # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
+    output_dir = mkdtemp(prefix='meta_overwrite_test4')
+    cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},
         "emptyTransmission": {"runNumber": 9177},
         "configuration": {
-            "outputDir": "/tmp",
+            "outputDir": output_dir,
             "sampleToSi": 200,
             "sampleDetectorDistance": 30,
             "useDefaultMask": True,
@@ -377,7 +383,6 @@ def test_overwrite_both(reference_dir):
         }
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    output_dir = '/tmp/meta_overwrite_test4'
     reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, 'CG2MetaBoth')
 
     # Get result files

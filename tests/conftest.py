@@ -1,8 +1,10 @@
 import sys
 import os
 import re
+from pathlib import Path
 import pytest
 import random
+from shutil import rmtree
 import string
 import numpy as np
 from os.path import join as pjoin
@@ -78,7 +80,7 @@ class GetWS(object):
 def cleanfile():
     '''Fixture that deletes registered files when the .py file is finished. It
     will cleanup on exception and will safely skip over files that do not
-    exist.
+    exist. Do not use this if you want the files to remain for a failing test.
 
     Usage:
 
@@ -89,14 +91,17 @@ def cleanfile():
     filenames = []
 
     def _cleanfile(filename):
-        filenames.append(filename)
+        filenames.append(Path(filename))
         return filename
 
     yield _cleanfile
 
-    for name in filenames:
-        if os.path.exists(name):
-            os.unlink(name)
+    for filename in filenames:
+        if filename.exists():
+            if filename.is_dir():
+                rmtree(filename)   # remove the directory and any files that are in it
+            else:
+                filename.unlink()  # remove the single file
 
 
 @pytest.fixture(scope='function')

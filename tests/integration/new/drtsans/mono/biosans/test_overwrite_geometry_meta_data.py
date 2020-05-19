@@ -5,6 +5,7 @@ import json
 import numpy as np
 import os
 import pytest
+from tempfile import mkdtemp
 import time
 
 # drtsans imports
@@ -14,7 +15,7 @@ from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_no_overwrite(reference_dir):
+def test_no_overwrite(reference_dir, cleanfile):
     """Test reduce 3 sets of data without overwriting either sampleToSi or sampleDetectorDistance
 
     This integration test is from a test from and verified by Shuo Qian.
@@ -28,7 +29,8 @@ def test_no_overwrite(reference_dir):
     """
     # Set up test
     json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, None)
-    output_dir = '/tmp/meta_overwrite_bio_test1/'
+    output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
+    cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix='BioMetaRaw')
@@ -43,7 +45,7 @@ def test_no_overwrite(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_both_minor(reference_dir):
+def test_overwrite_both_minor(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with minor change.
     - Overwrite sampleToSi (distance) to 61 mm.
@@ -60,7 +62,8 @@ def test_overwrite_both_minor(reference_dir):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 61, 6.9)
-    output_dir = '/tmp/meta_overwrite_bio_test1a/'
+    output_dir = mkdtemp(prefix='meta_overwrite_bio_test1a')
+    cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaMinor')
@@ -76,7 +79,7 @@ def test_overwrite_both_minor(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def Failed_test_overwrite_both_major(reference_dir):
+def Failed_test_overwrite_both_major(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with significant changes.
     - Overwrite sampleToSi (distance) to 200 mm.
@@ -93,7 +96,8 @@ def Failed_test_overwrite_both_major(reference_dir):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 200, 14)
-    output_dir = '/tmp/meta_overwrite_bio_test4/'
+    output_dir = mkdtemp(prefix='meta_overwrite_bio_test4')
+    cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaMajor2')
@@ -109,7 +113,7 @@ def Failed_test_overwrite_both_major(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_si(reference_dir):
+def test_overwrite_sample_to_si(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
@@ -126,7 +130,8 @@ def test_overwrite_sample_to_si(reference_dir):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 500, None)
-    output_dir = '/tmp/meta_overwrite_bio_test2/'
+    output_dir = mkdtemp(prefix='meta_overwrite_bio_test2')
+    cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaSWD')
@@ -142,7 +147,7 @@ def test_overwrite_sample_to_si(reference_dir):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_detector(reference_dir):
+def test_overwrite_sample_to_detector(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter
@@ -158,7 +163,8 @@ def test_overwrite_sample_to_detector(reference_dir):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, 14)
-    output_dir = '/tmp/meta_overwrite_bio_test3/'
+    output_dir = mkdtemp(prefix='meta_overwrite_bio_test3')
+    cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='CG3MetaSDD')

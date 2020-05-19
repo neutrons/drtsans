@@ -199,7 +199,8 @@
   },
   "outputFileName": {
     "type": "string",
-    "description": "The pattern for output filenames, such as {outputFileName}.png or {outputFileName}.dat. If empty, the pattern is EQSANS_{runNumber}"
+    "minLength": 1,
+    "description": "The prefix for all output filenames, such as {outputFileName}_Iqxqy.png. It cannot be left empty."
   },
 
   "configuration": {

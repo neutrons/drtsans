@@ -61,7 +61,7 @@
         "sensitivityMainFileName":    {"$ref": "common.json#/configuration/sensitivityFileName"},
         "sensitivityWingFileName":    {"$ref": "common.json#/configuration/sensitivityFileName"},
         "useSolidAngleCorrection":    {"$ref": "common.json#/configuration/useSolidAngleCorrection", "default": true},
-        "blockedBeamRunNumber":        {"$ref": "common.json#/configuration/blockedBeamRunNumber", "default": ""},
+        "blockedBeamRunNumber":        {"$ref": "common.json#/configuration/blockedBeamRunNumber"},
         "useThetaDepTransCorrection": {"$ref": "common.json#/configuration/useThetaDepTransCorrection", "default": true},
         "DBScalingBeamRadius":    {"$ref":  "common.json#/configuration/DBScalingBeamRadius", "default": 40.0},
         "mmRadiusForTransmission":    {"$ref": "common.json#/configuration/mmRadiusForTransmission"},

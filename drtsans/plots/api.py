@@ -268,7 +268,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
 
 
 def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-pixel',
-                  panel_name=None, imshow_kwargs={'norm': LogNorm(vmin = 1)}):
+                  panel_name=None, figure_kwargs={}, imshow_kwargs={'norm': LogNorm(vmin = 1)}):
     r"""
     Save a 2D plot representative of the supplied workspace
 
@@ -292,7 +292,7 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
     workspace = mtd[str(input_workspace)]
     backend = Backend.getMode(backend)
     detector_names = [panel_name, ] if panel_name is not None else panel_names(input_workspace)
-    fig = plt.figure()
+    fig = plt.figure(**figure_kwargs)
     for i_detector, detector_name in enumerate(detector_names):
         collection = TubeCollection(workspace, detector_name)
         collection = collection.sorted(view='fbfb')

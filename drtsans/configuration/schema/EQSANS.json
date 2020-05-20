@@ -76,17 +76,22 @@
 
         "wavelengthStep": {"$ref":  "common.json#/definitions/safeStringPositiveFloat", "default": 0.1,
                            "description": "Wavelength step. The loaded data files are transformed into wavelength in angstroms, then binned with this step"},
-        "wavelengthStepType": {"type": "string", "enum": ["constant Delta lambda",  "constant Delta lambda/lambda"],
-                               "default": "constant Delta lambda",
-                               "examples": ["constant Delta lambda",  "constant Delta lambda/lambda"]},
+        "wavelengthStepType": {
+          "type": "string", "enum": ["constant Delta lambda",  "constant Delta lambda/lambda"],
+          "default": "constant Delta lambda",
+          "examples": ["constant Delta lambda",  "constant Delta lambda/lambda"],
+          "description": "Type of binning. Options are 'constant Delta lambda' and 'constant Delta lambda/lambda. Currently only 'constant Delta lambda' is implemented."
+        },
 
         "sampleOffset":           {"$ref":  "common.json#/configuration/sampleOffset", "default":  314.5},
         "useDetectorOffset":      {"$ref":  "common.json#/configuration/useDetectorOffset", "default": true,
                                    "useEntry": "#configuration/detectorOffset"},
         "detectorOffset":         {"$ref":  "common.json#/configuration/detectorOffset", "default": 80},
         "sampleApertureSize":     {"$ref":  "common.json#/configuration/sampleApertureSize"},
-        "sourceApertureDiameter": {"$ref":  "common.json#/configuration/sourceApertureDiameter"},
-
+        "sourceApertureDiameter": {
+          "$ref":  "common.json#/configuration/sourceApertureDiameter",
+          "description": "diameter of the source aperture (mm).  Use the value to override the value determined form the three slit wheels."
+        },
         "usePixelCalibration": {"$ref":  "common.json#/configuration/usePixelCalibration", "default": false},
 
         "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName",

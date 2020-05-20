@@ -102,7 +102,7 @@
     "properties" : {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberTypes",
-        "description": "The run number(s) for the sample. The sample filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the sample. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
       },
       "thickness": {
@@ -124,7 +124,7 @@
         "properties": {
           "runNumber": {
             "$ref": "common.json#/definitions/runNumberOptionalTypes",
-            "description": "The run number(s) for the transmission sample. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
+            "description": "The run number(s) for the transmission sample. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
             "examples": ["12345", 12345]
           },
           "value": {
@@ -145,7 +145,7 @@
     "properties": {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
-        "description": "The run number(s) for the background run. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the background run. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
       },
       "transmission": {
@@ -174,7 +174,7 @@
     "properties": {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
-        "description": "The run number(s) for the beam center calculation. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the beam center calculation. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
       }
     },
@@ -186,7 +186,7 @@
     "properties": {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
-        "description": "The run number(s) for the empty beam, used for transmission calculation as a reference. The filename will be INSTRUMENTNAME_{runNumber}.nxs.h5",
+        "description": "The run number(s) for the empty beam, used for transmission calculation as a reference. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
       },
       "value": {
@@ -256,11 +256,10 @@
     },
     "sampleApertureSize": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "descrition": "Sample aperture diameter (mm)"
+      "description": "Sample aperture diameter (mm)"
     },
     "sourceApertureDiameter": {
-      "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "descrition": "Source aperture diameter (mm)"
+      "$ref": "common.json#/definitions/safeStringPositiveFloat"
     },
     "usePixelCalibration": {
       "type": "boolean",
@@ -303,7 +302,10 @@
       "type": "boolean",
       "description": "Flag whether to apply solid angle correction"
     },
-    "blockedBeamRunNumber": {"$ref": "common.json#/definitions/runNumberOptionalTypes"},
+    "blockedBeamRunNumber": {
+      "$ref": "common.json#/definitions/runNumberOptionalTypes",
+      "description": "Run number for the blocked beam run. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas."
+    },
     "useThetaDepTransCorrection": {
       "type": "boolean",
       "description": "Flag whether to calculate a theta dependent transmission"
@@ -438,6 +440,7 @@
     },
     "useSubpixels": {
       "type": "boolean",
+      "description": "boolean flag for stating whether or not the data pixels are to be subdivided. Used for data rebinning in momentum transfer.",
       "useEntry": ["#configuration/subpixelsX", "#configuration/subpixelsY"]
     },
     "subpixelsX": {

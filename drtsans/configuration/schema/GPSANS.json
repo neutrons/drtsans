@@ -41,8 +41,10 @@
         "sampleDetectorDistance": {"$ref":  "common.json#/configuration/sampleDetectorDistance"},
         "sampleToSi":             {"$ref":  "common.json#/configuration/sampleToSi"},
         "sampleApertureSize":     {"$ref":  "common.json#/configuration/sampleApertureSize"},
-        "sourceApertureDiameter": {"$ref":  "common.json#/configuration/sourceApertureDiameter"},
-
+        "sourceApertureDiameter": {
+          "$ref":  "common.json#/configuration/sourceApertureDiameter",
+          "description": "Source aperture diameter (mm)"
+        },
         "usePixelCalibration": {"$ref":  "common.json#/configuration/usePixelCalibration", "default": false},
 
         "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName"},

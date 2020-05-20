@@ -52,7 +52,7 @@ FILES = {'EQSANS_88980': ['EQSANS_88980_bkgd_88974_trans.txt',
          'CG2_8944': []}
 
 
-def write_configfile(input_json_file, basename, tmpdir):
+def write_configfile(input_json_file, basename, tmpdir, config_overrides=dict()):
     '''
     Create a new json configuration file with a better place for the output files
     and a standardized basename
@@ -63,6 +63,8 @@ def test_eqsans
         json file to modify. Expected to be in ``ROOT_DIR/scripts``
     basename: str
         The value of ``outputFileName``. This makes it significantly easier to find the output files.
+    config_overrides: dict
+        if it is specified, then additional configuration will be set specific to instruments
 
     Returns
     -------
@@ -90,6 +92,10 @@ def test_eqsans
     # update the output directory
     json_params["configuration"]["outputDir"] = outputdir
     print('Output directory set to "{}"'.format(outputdir))
+
+    # set additional values or overwrite the values from script
+    for conf_name, value in config_overrides.items():
+        json_params['configuration'][conf_name] = value
 
     # write out the new file
     with open(output_json_file, 'w') as handle:
@@ -226,11 +232,21 @@ def test_eqsans(run_config, basename, tmpdir):
                           ('biosans_autowedge_reduction.json', 'CG3_5532',
                            ('/HFIR/CG3/IPTS-21089/nexus/CG3_5532.nxs.h5', ))],
                          ids=['4822', '4822_wedge', '5532_autowedge'])
-def test_biosans(configfile, basename, required, tmpdir):
+def test_biosans(configfile, basename, required, tmpdir, reference_dir):
     check_for_required_files(required)
 
+    # Set for sensitivities files
+    config_overwrite_dict = dict()
+    sensitivity_dir = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020')
+
+    #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
+    config_overwrite_dict['sensitivityMainFileName'] = os.path.join(sensitivity_dir, 'sens_f4829m7p0_TDC_SAC.h5')
+
+    # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
+    config_overwrite_dict['sensitivityWingFileName'] = os.path.join(sensitivity_dir, 'sens_f4835w3p2_TDC_SAC.h5')
+
     # modify the config file and get the output directory and the full path to the new configuration file
-    outputdir, json_file = write_configfile(configfile, basename, tmpdir)
+    outputdir, json_file = write_configfile(configfile, basename, tmpdir, config_overwrite_dict)
 
     run_reduction('biosans_reduction.py', json_file)
 

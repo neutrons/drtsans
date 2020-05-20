@@ -420,8 +420,10 @@ class TestReductionParameters:
         ReductionParameters(redparms_data['reduction_parameters'], redparms_data['schema_instrument'])
 
 
-def test_generate_json_files():
-    generate_json_files('/tmp')
+def test_generate_json_files(tmpdir, cleanfile):
+    directory = tmpdir.mkdir('generate_json_files')
+    cleanfile(directory)
+    generate_json_files(directory)
 
 
 if __name__ == '__main__':

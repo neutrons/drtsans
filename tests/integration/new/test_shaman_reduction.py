@@ -95,7 +95,7 @@ def test_eqsans
 
     # set additional values or overwrite the values from script
     if sens_spec_config_dict is not None:
-        for conf_name, value in sens_spec_config_dict:
+        for conf_name, value in sens_spec_config_dict.items():
             json_params['configuration'][conf_name] = value
 
     # write out the new file

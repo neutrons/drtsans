@@ -490,6 +490,23 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
         """
         return _nary_operation((self, other), np.concatenate, unpack=False)
 
+    def ravel(self):
+        '''Create a new ~drtsans.dataobjects.IQazimuthal with all of the arrays flattened'''
+        kwargs = dict()
+
+        if self.delta_qx is not None:
+            kwargs['delta_qx'] = self.delta_qx.ravel()
+        if self.delta_qx is not None:
+            kwargs['delta_qy'] = self.delta_qy.ravel()
+        if self.wavelength is not None:
+            kwargs['wavelength'] = self.wavelength.ravel()
+
+        return IQazimuthal(intensity=self.intensity.ravel(),
+                           error=self.error.ravel(),
+                           qx=self.qx.ravel(),
+                           qy=self.qy.ravel(),
+                           **kwargs)
+
 
 class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx delta_qy delta_qz wavelength')):
     '''This class holds the information for the crystallographic projection, I(Qx, Qy, Qz). All of the

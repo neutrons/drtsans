@@ -550,9 +550,28 @@ class ReductionParameters:
     # 4. public bound methods
 
     def validate(self):
-        r"""Run all the validators on the reduction parameters"""
-        jsonschema.validate(self._parameters, self._schema,
-                            cls=self._json_validator, resolver=self._reference_resolver)
+        r"""
+        Run all the validators on the reduction parameters
+
+        This code reproduces jsonschema.validate omitting error selection when more
+        than one error is found
+
+        Raises
+        ------
+        jsonschema.ValidationError
+        """
+        from jsonschema.exceptions import relevance
+        import itertools
+
+        self._json_validator.check_schema(self._schema)
+        validator = self._json_validator(self._schema, resolver=self._reference_resolver)
+        errors = iter(validator.iter_errors(self._parameters))
+        best = next(errors, None)
+        if best is None:
+            return
+        error = max(itertools.chain([best], errors), key=relevance)
+        if error is not None:
+            raise error
 
     def dump(self, output_json, target='parameters', **kwargs):
         r"""

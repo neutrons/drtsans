@@ -1,7 +1,9 @@
 import ast
 from copy import deepcopy
+import itertools
 import json
 import jsonschema
+from jsonschema.exceptions import relevance
 import os
 import re
 import warnings
@@ -560,9 +562,6 @@ class ReductionParameters:
         ------
         jsonschema.ValidationError
         """
-        from jsonschema.exceptions import relevance
-        import itertools
-
         self._json_validator.check_schema(self._schema)
         validator = self._json_validator(self._schema, resolver=self._reference_resolver)
         errors = iter(validator.iter_errors(self._parameters))

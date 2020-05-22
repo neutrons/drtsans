@@ -1,6 +1,7 @@
 import json
 import jsonschema
 import os
+from pathlib import Path
 import pytest
 import shutil
 import tempfile
@@ -427,7 +428,7 @@ class TestReductionParametersGPSANS:
         'instrumentName': 'GPSANS',
         'iptsNumber': 21981,
         'sample': {
-            'runNumber': 9166,
+            'runNumber': 9165,
             'thickness': 1.0
         },
         'outputFileName': 'test_validator_datasource',
@@ -443,7 +444,8 @@ class TestReductionParametersGPSANS:
                              [('dataSource', {'sample': {'runNumber': 666999666}}),
                               ('evaluateCondition', {'configuration': {'numQBins': None}})]
                              )
-    def test_validators(self, validator_name, parameter_changes):
+    def test_validators(self, validator_name, parameter_changes, reference_dir):
+        parameter_changes['dataDirectories'] = str(Path(reference_dir.new.gpsans))
         with pytest.raises(jsonschema.ValidationError) as error_info:
             update_reduction_parameters(self.parameters_all, parameter_changes)
         assert validator_name in str(error_info.value)

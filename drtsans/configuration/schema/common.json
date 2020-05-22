@@ -106,16 +106,7 @@
         "examples": ["12345", 12345]
       },
       "thickness": {
-        "anyOf": [
-          {
-            "type": "string",
-            "minLength": 1
-          },
-          {
-            "type": "number",
-            "exclusiveMinimum": 0
-          }
-        ],
+        "anyOf": [{"type": "string","minLength": 1}, {"type": "number", "exclusiveMinimum": 0}],
         "description": "The sample thickness in cm",
         "preferredType": "float"
       },

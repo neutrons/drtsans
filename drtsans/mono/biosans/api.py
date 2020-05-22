@@ -383,7 +383,7 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
     if not registered_workspace(ws_name):
         print(f"Loading filename {dark_current_file}")
         # identify to use exact given path to NeXus or use OnCat instead
-        temp_name = abspath(run_number, instrument=instrument_name, ipts=ipts, directory=path)
+        temp_name = abspath(dark_current_file, instrument=instrument_name, ipts=ipts, directory=path)
         if os.path.exists(temp_name):
             dark_current_file = temp_name
         biosans.load_events_and_histogram(dark_current_file,

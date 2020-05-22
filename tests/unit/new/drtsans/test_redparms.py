@@ -1,13 +1,15 @@
 import json
+import jsonschema
 import os
+from pathlib import Path
 import pytest
 import shutil
 import tempfile
 
 from drtsans import configdir
 from drtsans.instruments import instrument_standard_names, instrument_standard_name
-from drtsans.redparms import (Suggest, ReductionParameters, ReferenceResolver, DefaultJson,
-                              load_schema, generate_json_files, resolver_common)
+from drtsans.redparms import (DefaultJson, Suggest, ReductionParameters, ReferenceResolver, generate_json_files,
+                              load_schema, reduction_parameters, resolver_common, update_reduction_parameters)
 
 
 @pytest.fixture(scope='module')
@@ -418,6 +420,35 @@ class TestReductionParameters:
 
     def test_init(self, redparms_data):
         ReductionParameters(redparms_data['reduction_parameters'], redparms_data['schema_instrument'])
+
+
+class TestReductionParametersGPSANS:
+
+    parameters_common = {
+        'instrumentName': 'GPSANS',
+        'iptsNumber': 21981,
+        'sample': {
+            'runNumber': 9165,
+            'thickness': 1.0
+        },
+        'outputFileName': 'test_validator_datasource',
+        'configuration': {
+            'outputDir': '/tmp',
+            'QbinType': 'linear',
+            'numQBins': 100
+        }
+    }
+    parameters_all = reduction_parameters(parameters_common, validate=False)
+
+    @pytest.mark.parametrize('validator_name, parameter_changes',
+                             [('dataSource', {'sample': {'runNumber': 666999666}}),
+                              ('evaluateCondition', {'configuration': {'numQBins': None}})]
+                             )
+    def test_validators(self, validator_name, parameter_changes, reference_dir):
+        parameter_changes['dataDirectories'] = str(Path(reference_dir.new.gpsans))
+        with pytest.raises(jsonschema.ValidationError) as error_info:
+            update_reduction_parameters(self.parameters_all, parameter_changes)
+        assert validator_name in str(error_info.value)
 
 
 def test_generate_json_files(tmpdir, cleanfile):

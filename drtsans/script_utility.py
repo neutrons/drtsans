@@ -38,7 +38,7 @@ def create_output_directory(output_dir="", subfolder=None, hfir_sans=True):
     else:
         for folder in subfolder_array:
             output_folder = Path(output_dir).joinpath(folder)
-            Path(output_folder).mkdir(exist_ok=True)
+            Path(output_folder).mkdir(parents=True, exist_ok=True)
 
 
 def run_reduction(reduction_input, q_type='', sample_name='', instrument=InstrumentEnumName.GPSANS):

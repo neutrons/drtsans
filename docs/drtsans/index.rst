@@ -11,6 +11,7 @@
    /drtsans/plots
    /drtsans/tof/index
    /drtsans/reduction_parameters
+   /drtsans/stitch
    /drtsans/wavelength
 
 

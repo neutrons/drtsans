@@ -40,6 +40,7 @@ from drtsans import __version__ as release
 # ones.
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
+              'sphinx.ext.graphviz',
               'sphinx.ext.intersphinx',
               'sphinx.ext.mathjax',
               'sphinx.ext.napoleon',

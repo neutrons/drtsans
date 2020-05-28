@@ -2,7 +2,7 @@ import numpy as np
 from os.path import join as path_join
 import pytest
 
-from mantid.simpleapi import LoadEmptyInstrument, LoadEventNexus, MoveInstrumentComponent
+from mantid.simpleapi import AddSampleLogMultiple, LoadEmptyInstrument, LoadEventNexus, MoveInstrumentComponent
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans import geometry as geo
@@ -127,6 +127,21 @@ def test_pixel_centers(workspace_with_instrument):
     pixel_positions = geo.pixel_centers(input_workspace, [0, 1, 2, 3])
     expected = 1.e-03 * np.array([[10, -10, 0.], [10, 10, 0.], [-10, -10, 0.], [-10, 10, 0.]])  # in meters
     assert pixel_positions == pytest.approx(expected)
+
+
+def test_logged_smearing_pixel_size(workspace_with_instrument):
+    workspace = workspace_with_instrument()
+
+    # Assert default value of `None` when no smearing pixels are provided
+    logged_values = geo.logged_smearing_pixel_size(workspace)
+    assert list(logged_values) == [None, None]
+
+    # Assert values are correctly retrieved when smearing pixels are provided
+    values, names, units = [0.0042, 0.0024], ['smearingPixelSizeX', 'smearingPixelSizeY'], ['m', 'm']
+    AddSampleLogMultiple(Workspace=workspace, LogNames=names, LogValues=values, LogUnits=units)
+    # the order of `logged_values` should be the same as that of `values`
+    logged_values = geo.logged_smearing_pixel_size(workspace)
+    assert logged_values == pytest.approx(logged_values)
 
 
 def test_sample_aperture_diameter(serve_events_workspace, reference_dir):

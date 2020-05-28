@@ -122,7 +122,7 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
 
 def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
     r"""
-    Calculates Undeterminacy in Q due to undeterminacies in the geometry of the instrument.
+    Calculates the undeterminacy in Q due to undeterminacies in the geometry of the instrument.
 
     .. math::
 

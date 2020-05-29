@@ -86,4 +86,4 @@ __all__ = [] + drtsans.absolute_units.__all__\
           + drtsans.mono.normalization.__all__\
           + drtsans.plots.api.__all__\
           + attenuation.__all__\
-          + api.__all__\
+          + api.__all__

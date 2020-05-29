@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
-set -xpue
+set -xpe
 
 source activate mantid
 conda config --add channels conda-forge

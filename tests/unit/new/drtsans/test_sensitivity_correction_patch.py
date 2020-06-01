@@ -127,5 +127,6 @@ def test_prepare_sensitivity(workspace_with_instrument):
     # Get correct results
     gold_sensitivity_matrix, gold_uncertainty_matrix = create_gold_result()
 
+    # Verify the result
     assert_allclose(gold_sensitivity_matrix, out_result, equal_nan=True, atol=0.001)
     assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)

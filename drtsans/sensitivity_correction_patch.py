@@ -170,6 +170,12 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     F = np.sum([value for value in II if not np.isnan(value) and not np.isneginf(value)])/n_elements
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F
+
+    print('[DEBUG] dI: {}'.format(dI))
+    print('[DEBUG] II: {}'.format(II))
+    print('[DEBUG] dF: {}'.format(dF))
+    print('[DEBUG] F : {}'.format(F))
+
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
 
     # Export the calculated sensitivities via Mantid Workspace

@@ -93,6 +93,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     II = y/F
     # calculate the normalized uncertainty on each pixel
     dI = II * np.sqrt(np.square(y_uncertainty/y) + np.square(dF/F))
+    print('[DEBUG Start] II[0] = {}, dI[0] = {}'.format(II[0], dI[0]))
 
     # Any pixel in II less than min_threshold or greater than max_threshold is masked
     counts = 0
@@ -102,6 +103,9 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
                 II[i] = np.nan
                 dI[i] = np.nan
                 counts += 1
+
+    print('[DEBUG] counts = {}'.format(counts))
+    print('[DEBUG Flag2] II[0] = {}, dI[0] = {}'.format(II[0], dI[0]))
 
     # Get the (main or wing) detector (component) to calculate sensitivity correction for
     # 'detector1' for EQSANS, GPSANS and BIOSANS's main detector
@@ -162,6 +166,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
             II[index] = y_new[i]
             dI[index] = e_new[i]
 
+        print('[DEBUG Tube {}] II[0] = {}, dI[0] = {}'.format(j, II[0], dI[0]))
+
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
@@ -171,11 +177,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F
 
-    print('[DEBUG] dI: {}'.format(dI))
-    print('[DEBUG] II: {}'.format(II))
-    print('[DEBUG] dF: {}'.format(dF))
-    print('[DEBUG] F : {}'.format(F))
-
+    print('[DEBUG  Final] II[0] = {}, dI[0] = {}'.format(II[0], dI[0]))
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
 
     # Export the calculated sensitivities via Mantid Workspace

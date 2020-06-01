@@ -119,6 +119,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     num_tubes = comp.dim_x
     num_pixels_per_tube = comp.dim_y
 
+    print('Number version: {}'.format(np.__version__))
+
     for j in range(0, num_tubes):
         xx = []
         yy = []

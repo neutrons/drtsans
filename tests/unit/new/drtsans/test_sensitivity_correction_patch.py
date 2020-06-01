@@ -129,4 +129,12 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     # Verify the result
     assert_allclose(gold_sensitivity_matrix, out_result, equal_nan=True, atol=0.001)
+
+    print('Different array elements: {}'
+          ''.format(np.where(np.abs(gold_uncertainty_matrix - out_uncertainty) > 0.001)))
+    print('Gold: {}'
+          ''.format(gold_uncertainty_matrix[(gold_uncertainty_matrix - out_uncertainty) > 0.001]))
+    print('Test: {}'
+          ''.format(out_result[(gold_uncertainty_matrix - out_uncertainty) > 0.001]))
+
     assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)

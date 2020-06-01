@@ -53,6 +53,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
+    # FIXME - Why this?
     SaveNexusProcessed(InputWorkspace=input_workspace, Filename='main_input.nxs')
 
     # Wavelength bins are summed together to remove the time-of-flight nature according

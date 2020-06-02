@@ -138,4 +138,9 @@ def test_prepare_sensitivity(workspace_with_instrument):
     print('Test: {}'
           ''.format(out_uncertainty[(gold_uncertainty_matrix - out_uncertainty) > 0.001]))
 
+    print('Gold Uncertainties: \n{}'.format(gold_uncertainty_matrix))
+    print('Test Uncertainties: \n{}'.format(out_uncertainty))
+
     assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)
+
+    assert 1 == 3

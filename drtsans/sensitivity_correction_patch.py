@@ -169,6 +169,8 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
             dI[index] = e_new[i]
 
         print('[DEBUG Tube {}] II[0] = {}, dI[0] = {}'.format(j, II[0], dI[0]))
+        print('[DEBUG        ] Poly Coeffecients: {}'.format(polynomial_coeffs))
+        print('[DEBUG        ] Poly Covariance  : {}'.format(cov_matrix))
 
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14

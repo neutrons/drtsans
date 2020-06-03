@@ -10,6 +10,11 @@ def create_gold_result():
     Refer to https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/
              992d682cd7f5e8da62a83fcd64ea67e6/calculate_sensitivity_patch_testR3.xlsx
 
+             Uncertainties of sensitivities are changed because original result is calculated from numpy 1.5,
+             while the covariance matrix from polyfit differs starting from numpy version 1.6
+    Refer to https://numpy.org/devdocs/release/
+             1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
+
     Returns
     -------
     ~np.ndarray, ~np.ndaray
@@ -40,7 +45,7 @@ def create_gold_result():
     ])
 
     gold_uncertainty_matrix = np.array([
-        [0.219001, 0.272036, 0.174035, 0.256469, 0.223259, 0.300262, 0.238803, 0.191695],
+        [0.203905, 0.251878, 0.162049, 0.235945, 0.207867, 0.278010, 0.222338, 0.178485],
         [0.119961, 0.116387, 0.119961, 0.121711, 0.121711, 0.119077, 0.119077, 0.117290],
         [0.125142, 0.119961, 0.120839, 0.118187, 0.117290, 0.124293, 0.121711, 0.120839],
         [0.117290, 0.121711, 0.121711, 0.120839, 0.121711, 0.119077, 0.117290, 0.116387],
@@ -48,8 +53,8 @@ def create_gold_result():
         [0.123438, 0.119961, 0.119077, 0.121711, 0.117290, 0.122578, 0.120839, 0.123438],
         [0.118187, np.nan, 0.117290, 0.124293, 0.124293, 0.116387, 0.116387, 0.120839],
         [0.122578, 0.118187, 0.119961, 0.121711, 0.124293, 0.119077, 0.125142, 0.119077],
-        [0.121711, 0.125142, 0.122578, 0.126769, 0.123438, 0.119961, 0.119961, 0.118187],
-        [0.119961, 0.119961, 0.120839, 0.114177, 0.122578, 0.122578, 0.118187, 0.124293],
+        [0.121711, 0.125142, 0.122578, 0.116665, 0.123438, 0.119961, 0.119961, 0.118187],
+        [0.119961, 0.119961, 0.120839, 0.105089, 0.122578, 0.122578, 0.118187, 0.124293],
         [0.122578, 0.125142, 0.120839, 0.118187, 0.124293, 0.118187, 0.119077, 0.123438],
         [0.119961, 0.117290, 0.118187, 0.119077, 0.119077, 0.125142, 0.121711, 0.123438],
         [0.120839, 0.121711, 0.123438, 0.124293, 0.118187, np.nan, 0.120839, 0.125142],
@@ -59,7 +64,7 @@ def create_gold_result():
         [0.116387, 0.116387, 0.118187, 0.122578, 0.119961, 0.125142, 0.125142, 0.123438],
         [0.116387, 0.122578, 0.122578, 0.125142, 0.118187, 0.123438, 0.125142, 0.122578],
         [0.118187, 0.116387, 0.119961, 0.121711, 0.119077, 0.116387, 0.121711, 0.120839],
-        [0.035379, 0.042823, 0.028597, 0.038726, 0.035874, 0.046481, 0.037820, 0.031042]
+        [0.033075, 0.039777, 0.026824, 0.035814, 0.033535, 0.043170, 0.035376, 0.029089]
     ])
 
     return gold_sens_matrix, gold_uncertainty_matrix
@@ -127,5 +132,6 @@ def test_prepare_sensitivity(workspace_with_instrument):
     # Get correct results
     gold_sensitivity_matrix, gold_uncertainty_matrix = create_gold_result()
 
+    # Verify the result
     assert_allclose(gold_sensitivity_matrix, out_result, equal_nan=True, atol=0.001)
     assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)

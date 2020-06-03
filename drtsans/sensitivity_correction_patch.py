@@ -53,8 +53,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
-    SaveNexusProcessed(InputWorkspace=input_workspace, Filename='main_input.nxs')
-
     # Wavelength bins are summed together to remove the time-of-flight nature according
     # to equations A3.1 and A3.2
     input_workspace = mtd[str(input_workspace)]
@@ -142,8 +140,11 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
         # Do poly fit
         num_interpolated_tubes += 1
-        #  the weights in a real sensitivity measurement are all going to be very similar,
-        #  so it should not really matter in practice.
+        # the weights in a real sensitivity measurement are all going to be very similar,
+        # so it should not really matter in practice.
+        # covariance matrix is calculated differently from numpy 1.6
+        # Refer to: https://numpy.org/devdocs/release/
+        #                   1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix
@@ -169,6 +170,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     F = np.sum([value for value in II if not np.isnan(value) and not np.isneginf(value)])/n_elements
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F
+    # propagate uncertainties from covariance matrix to sensitivities' uncertainty
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
 
     # Export the calculated sensitivities via Mantid Workspace

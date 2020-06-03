@@ -53,9 +53,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     if output_workspace is None:
         output_workspace = '{}_sensitivity'.format(input_workspace)
 
-    # FIXME - Why this?
-    SaveNexusProcessed(InputWorkspace=input_workspace, Filename='main_input.nxs')
-
     # Wavelength bins are summed together to remove the time-of-flight nature according
     # to equations A3.1 and A3.2
     input_workspace = mtd[str(input_workspace)]
@@ -93,7 +90,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     II = y/F
     # calculate the normalized uncertainty on each pixel
     dI = II * np.sqrt(np.square(y_uncertainty/y) + np.square(dF/F))
-    print('[DEBUG Start] II[0] = {}, dI[0] = {}'.format(II[0], dI[0]))
 
     # Any pixel in II less than min_threshold or greater than max_threshold is masked
     counts = 0
@@ -103,9 +99,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
                 II[i] = np.nan
                 dI[i] = np.nan
                 counts += 1
-
-    print('[DEBUG] counts = {}'.format(counts))
-    print('[DEBUG Flag2] II[0] = {}, dI[0] = {}'.format(II[0], dI[0]))
 
     # Get the (main or wing) detector (component) to calculate sensitivity correction for
     # 'detector1' for EQSANS, GPSANS and BIOSANS's main detector
@@ -118,8 +111,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # Loop over all the tubes
     num_tubes = comp.dim_x
     num_pixels_per_tube = comp.dim_y
-
-    print('Number version: {}'.format(np.__version__))
 
     for j in range(0, num_tubes):
         xx = []
@@ -168,10 +159,6 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
             II[index] = y_new[i]
             dI[index] = e_new[i]
 
-        print('[DEBUG Tube {}] II[0] = {}, dI[0] = {}'.format(j, II[0], dI[0]))
-        print('[DEBUG        ] Poly Coeffecients: {}'.format(polynomial_coeffs))
-        print('[DEBUG        ] Poly Covariance  : {}'.format(cov_matrix))
-
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
@@ -180,8 +167,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     F = np.sum([value for value in II if not np.isnan(value) and not np.isneginf(value)])/n_elements
     dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
     output = II/F
-
-    print('[DEBUG  Final] II[0] = {}, dI[0] = {}'.format(II[0], dI[0]))
+    # propagate uncertainties from covariance matrix to sensitivities' uncertainty
     output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
 
     # Export the calculated sensitivities via Mantid Workspace

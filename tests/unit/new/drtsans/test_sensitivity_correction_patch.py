@@ -9,8 +9,8 @@ def create_gold_result():
 
     Refer to https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/
              992d682cd7f5e8da62a83fcd64ea67e6/calculate_sensitivity_patch_testR3.xlsx
-
-             Sensitivities are changed due to numpy 1.8
+             Uncertainties of sensitivities are changed because original result is calculated from numpy 1.5,
+             while the covariance matrix from polyfit differs starting from numpy version 1.8
 
     Returns
     -------
@@ -131,5 +131,4 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     # Verify the result
     assert_allclose(gold_sensitivity_matrix, out_result, equal_nan=True, atol=0.001)
-
     assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)

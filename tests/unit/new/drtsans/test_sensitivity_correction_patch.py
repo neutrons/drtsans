@@ -9,8 +9,11 @@ def create_gold_result():
 
     Refer to https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/
              992d682cd7f5e8da62a83fcd64ea67e6/calculate_sensitivity_patch_testR3.xlsx
+
              Uncertainties of sensitivities are changed because original result is calculated from numpy 1.5,
-             while the covariance matrix from polyfit differs starting from numpy version 1.8
+             while the covariance matrix from polyfit differs starting from numpy version 1.6
+    Refer to https://numpy.org/devdocs/release/
+             1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
 
     Returns
     -------

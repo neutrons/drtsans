@@ -140,8 +140,11 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
         # Do poly fit
         num_interpolated_tubes += 1
-        #  the weights in a real sensitivity measurement are all going to be very similar,
-        #  so it should not really matter in practice.
+        # the weights in a real sensitivity measurement are all going to be very similar,
+        # so it should not really matter in practice.
+        # covariance matrix is calculated differently from numpy 1.6
+        # Refer to: https://numpy.org/devdocs/release/
+        #                   1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
         polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix

@@ -109,26 +109,30 @@ def test_save_load_iqmod():
     -------
 
     """
+    import numpy as np
     # Test on IQmod with Q, I, dI
     # I(Q) without delta Q
-    iq = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    iq = IQmod([1, 2, 3, np.nan], [4, 5, 6, 0], [7, 8, 9, 0])
     filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
     #  Save
     save_iqmod(iq, filename)
     # Load
     iq_other = load_iqmod(filename)
     # Verify
-    testing.assert_allclose(iq, iq_other)
+    iq_expected = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    testing.assert_allclose(iq_expected, iq_other)
 
     # Check column order
     iq_file = open(filename, 'r')
     line0 = iq_file.readline()
+    line1 = iq_file.readline()
     iq_file.close()
 
     # Clean
     os.remove(filename)
 
-    column_names = line0.split()
+    assert line0.strip() == "# NANs have been skipped"
+    column_names = line1.split()
     assert column_names == ['mod_q', 'intensity', 'error']
 
 

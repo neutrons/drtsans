@@ -218,7 +218,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         ~drtsans.dataobjects.IQmod
         """
         from pandas import read_csv as pd_read_csv
-        frame = pd_read_csv(file, sep=sep, dtype=np.float64, na_values='NAN')
+        frame = pd_read_csv(file, sep=sep, dtype=np.float64, na_values='NAN', comment='#')
         args = [frame[label].values for label in ['intensity', 'error', 'mod_q']]
         kwargs = {label: frame[label].values for label in ['delta_mod_q', 'wavelength']
                   if label in list(frame.columns)}
@@ -325,7 +325,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
                                UnitX='momentumtransfer', OutputWorkspace=name, Dx=dq,
                                EnableLogging=False)
 
-    def to_csv(self, file_name, sep=' ', float_format='%.6f'):
+    def to_csv(self, file_name, sep=' ', float_format='%.6E', skip_nan=True):
         r"""
         Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
@@ -337,6 +337,8 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
             String of length 1. Field delimiter for the output file.
         float_format: str
             Format string for floating point numbers.
+        skip_nan: bool
+            If true, any data point where intensity is NAN will not be written to file
         """
         # Convert to dictionary to construct a pandas DataFrame instance
         from pandas import DataFrame
@@ -349,8 +351,20 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
         if 'wavelength' in frame.keys():
             i_q_mod_cols.append('wavelength')
 
+        mode_nan = 'w'  # write mode for csv file. If we add a header first, it will be 'a'
+        # delete NANs if requested
+        if skip_nan:
+            finites = np.isfinite(frame['intensity'])
+            if np.count_nonzero(finites) < len(frame):
+                frame = frame[finites]
+                mode_nan = 'a'
+                with open(file_name, 'w') as f:
+                    f.write("# NANs have been skipped\n")
+
         # Write to file
-        frame.to_csv(file_name, columns=i_q_mod_cols, index=False, sep=sep, float_format=float_format, na_rep='NAN')
+        frame.to_csv(file_name, columns=i_q_mod_cols, index=False,
+                     sep=sep, float_format=float_format, na_rep='NAN',
+                     mode=mode_nan)
 
 
 def load_iqmod(file, sep=' '):
@@ -392,7 +406,7 @@ def load_iqmod(file, sep=' '):
     return IQmod.read_csv(file, sep=sep)
 
 
-def save_iqmod(iq, file, sep=' ', float_format='%.6f'):
+def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True):
     r"""
     Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
@@ -411,8 +425,10 @@ def save_iqmod(iq, file, sep=' ', float_format='%.6f'):
         String of length 1. Field delimiter for the output file.
     float_format: str
         Format string for floating point numbers.
+    skip_nan: bool
+        If true, any data point where intensity is NAN will not be written to file
     """
-    iq.to_csv(file, sep=sep, float_format=float_format)
+    iq.to_csv(file, sep=sep, float_format=float_format, skip_nan=skip_nan)
 
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):

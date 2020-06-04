@@ -26,7 +26,8 @@ from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.iq import bin_all
-from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
+from drtsans.save_ascii import save_ascii_binned_2D
+from drtsans.dataobjects import save_iqmod
 from drtsans.path import allow_overwrite
 from drtsans.dataobjects import IQmod
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
@@ -759,7 +760,7 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
     allow_overwrite(os.path.join(output_dir, '2D'))
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
     reduction_config = reduction_input["configuration"]
 
     flux_method = reduction_config["normalization"]
@@ -1000,10 +1001,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                 add_suffix = f'_wedge_{j}'
             ascii_1D_filename = os.path.join(output_dir, '1D',
                                              f'{outputFilename}{output_suffix}_1D_main{add_suffix}.txt')
-            save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq1d_main_out[j])
+            save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
+
             ascii_1D_filename = os.path.join(output_dir, '1D',
                                              f'{outputFilename}{output_suffix}_1D_wing{add_suffix}.txt')
-            save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq1d_wing_out[j])
+            save_iqmod(iq1d_wing_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
             try:
                 iq_output_both = biosans.stitch_profiles(profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
@@ -1012,7 +1014,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
 
                 ascii_1D_filename = os.path.join(output_dir, '1D',
                                                  f'{outputFilename}{output_suffix}_1D_both{add_suffix}.txt')
-                save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq_output_both)
+                save_iqmod(iq_output_both, ascii_1D_filename, skip_nan=skip_nan)
             except ZeroDivisionError:
                 iq_output_both = IQmod(intensity=[], error=[], mod_q=[])
 

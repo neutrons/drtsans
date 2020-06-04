@@ -540,7 +540,7 @@ def process_single_configuration(sample_ws_raw,
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
     reduction_config = reduction_input["configuration"]
 
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
@@ -757,7 +757,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                 add_suffix += fr_label
                 ascii_1D_filename = os.path.join(output_dir,
                                                  f'{outputFilename}{output_suffix}{add_suffix}_Iq.dat')
-                save_iqmod(iq1d_main_out[j], ascii_1D_filename)
+                save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
             IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
             current_output = IofQ_output(I2D_main=iq2d_main_out,

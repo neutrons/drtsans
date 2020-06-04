@@ -28,7 +28,8 @@ from drtsans.mono.gpsans.attenuation import attenuation_factor
 from drtsans.mono.gpsans import convert_to_q
 from drtsans import subtract_background
 from drtsans.iq import bin_all
-from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D
+from drtsans.save_ascii import save_ascii_binned_2D
+from drtsans.dataobjects import save_iqmod
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 from drtsans.load import move_instrument
 from drtsans.path import allow_overwrite
@@ -765,7 +766,7 @@ def process_single_configuration(sample_ws_raw,
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
     reduction_config = reduction_input['configuration']
 
     flux_method = reduction_config["normalization"]
@@ -948,7 +949,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix=''):
                 add_suffix = f'_wedge_{j}'
             ascii_1D_filename = os.path.join(output_dir, '1D',
                                              f'{outputFilename}{output_suffix}_1D{add_suffix}.txt')
-            save_ascii_binned_1D(ascii_1D_filename, "I(Q)", iq1d_main_out[j])
+            save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
         IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
         current_output = IofQ_output(I2D_main=iq2d_main_out,

@@ -147,3 +147,22 @@ def test_convert_to_q_eqsans(workspace_with_instrument):
     assert dqx == approx(expected_dqx, abs=1e6)
     dqy = result.delta_qy.reshape((5, 5, 3))
     assert dqy == approx(expected_dqy, abs=1e6)
+
+
+@pytest.mark.parametrize('generic_workspace',
+                         [{'name': 'EQSANS', 'Nx': 5, 'Ny': 5, 'dx': 0.00425, 'dy': 0.0055,
+                           'xc': 0.0, 'yc': 0.0, 'zc': 15.5, 'l1': 15, 'axis_values': [5.925, 6.075]}],
+                         indirect=True)
+def test_retrieve_instrument_setup(generic_workspace):
+    workspace = generic_workspace
+
+    # Insert logs
+    names = 'wavelength wavelength-spread source_aperture_diameter sample_aperture_diameter ' \
+            'smearingPixelSizeX smearingPixelSizeY source_aperture_sample_distance sample-detector-distance'.split()
+    values = [6.0, 0.15, 0.02, 0.007, 0.0085, 0.011, 15.0, 15.5]
+    units = 'A A mm mm m m m m'.split()
+    for name, value, unit in zip(names, values, units):
+        AddSampleLog(Workspace=workspace, LogName=name, LogText='{}'.format(value), LogType='Number', LogUnit=unit)
+
+    params = retrieve_instrument_setup(workspace)
+    assert [params.smearing_pixel_width_ratio, params.smearing_pixel_height_ratio] == pytest.approx([2.0, 2.0])

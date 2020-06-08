@@ -8,7 +8,7 @@ __all__ = ['InstrumentSetupParameters', 'calculate_sigma_theta_prefactor', 'calc
 
 class InstrumentSetupParameters(object):
     """
-    Class to contain the parameters used to calculate Q resolution
+    Data structure containing the parameters used to calculate Q resolution
     """
     def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius,
                  pixel_width_ratio=None, pixel_height_ratio=None):
@@ -102,8 +102,13 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
         the array of wavelengths (same shape as momentum transfer)
     pixel_info: ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep
-    instrument_parameters: InstrumentSetupParameters
-        Information abot instrument
+    instrument_parameters: ~drtsans.resolution.InstrumentSetupParameters
+        Data structure containing the parameters used to calculate Q resolution. In particular:
+        1. distance from source aperture to sample,
+        2. distance from sample to detector,
+        3. source aperture radius,
+        4. sample aperture radius,
+        5. custom pixel width and height to replace nominal pixel width and height, only for Q-resolution calculation.
 
     Returns
     -------
@@ -117,7 +122,7 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
 
 def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
     r"""
-    Calculates Undeterminacy in Q due to undeterminacies in the geometry of the instrument.
+    Calculates the effect of the geometry and wavelength uncertainty on the uncertainty in the value of Q.
 
     .. math::
 
@@ -137,13 +142,13 @@ def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
         One of "scalar", "azimuthal", "crystalographic"
     pixel_info: ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep, smearing_pixel_size_x, smearing_pixel_size_y
-    instrument_parameters: InstrumentSetupParameters
-        Information about the geometry of the instrument. In particular:
-        - distance from source aperture to sample
-        - distance from sample to detector
-        - source aperture radius
-        - sample aperture radius
-        - custom pixel width and height to replace nominal pixel width and height, only for Q-resolution calculation.
+    instrument_parameters: ~drtsans.resolution.InstrumentSetupParameters
+        Data structure containing the parameters used to calculate Q resolution. In particular:
+        1. distance from source aperture to sample,
+        2. distance from sample to detector,
+        3. source aperture radius,
+        4. sample aperture radius,
+        5. custom pixel width and height to replace nominal pixel width and height, only for Q-resolution calculation.
 
     Returns
     -------
@@ -189,8 +194,13 @@ def calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_param
         the array of wavelengths
     delta_wavelength: ~np.array
         the array of wavelength spreads
-    instrument_parameters: InstrumentSetupParameters
-        Information abot instrument
+    instrument_parameters: ~drtsans.resolution.InstrumentSetupParameters
+        Data structure containing the parameters used to calculate Q resolution. In particular:
+        1. distance from source aperture to sample,
+        2. distance from sample to detector,
+        3. source aperture radius,
+        4. sample aperture radius,
+        5. custom pixel width and height to replace nominal pixel width and height, only for Q-resolution calculation.
 
     Returns
     -------
@@ -222,10 +232,17 @@ def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, ins
         the array of wavelength widths (same shape as momentum transfer)
     pixel_info: ~collections.namedtuple
         A namedtuple with fields for two_theta, azimuthal, l2, keep
-    instrument_parameters: InstrumentSetupParameters
-        Information about instrument
+    instrument_parameters: ~drtsans.resolution.InstrumentSetupParameters
+        Data structure containing the parameters used to calculate Q resolution. In particular:
+        1. distance from source aperture to sample,
+        2. distance from sample to detector,
+        3. source aperture radius,
+        4. sample aperture radius,
+        5. custom pixel width and height to replace nominal pixel width and height, only for Q-resolution calculation.
 
-
+    Returns
+    =======
+    ~np.array
     """
     factor = calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameters)
     geometry_part = calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters)

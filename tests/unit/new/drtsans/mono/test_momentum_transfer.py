@@ -5,7 +5,7 @@ import scipy.constants
 from collections import namedtuple
 from mantid.simpleapi import AddSampleLog
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/convert_to_q.py
-from drtsans.mono.momentum_transfer import mono_resolution, convert_to_q
+from drtsans.mono.momentum_transfer import convert_to_q, mono_resolution, retrieve_instrument_setup
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
 import drtsans.resolution
 
@@ -97,6 +97,25 @@ def test_mono_resolution():
     # Check
     assert dqx3 == pytest.approx(dqx, abs=1E-8)
     assert dqy3 == pytest.approx(dqy, abs=1E-8)
+
+
+@pytest.mark.parametrize('generic_workspace',
+                         [{'name': 'GPSANS', 'Nx': 5, 'Ny': 5, 'dx': 0.00425, 'dy': 0.0055,
+                           'xc': 0.0, 'yc': 0.0, 'zc': 15.5, 'l1': 15, 'axis_values': [5.925, 6.075]}],
+                         indirect=True)
+def test_retrieve_instrument_setup(generic_workspace):
+    workspace = generic_workspace
+
+    # Insert logs
+    names = 'wavelength wavelength-spread source_aperture_diameter sample_aperture_diameter ' \
+            'smearingPixelSizeX smearingPixelSizeY source-sample-distance sample-detector-distance'.split()
+    values = [6.0, 0.15, 0.02, 0.007, 0.0085, 0.011, 15.0, 15.5]
+    units = 'A A mm mm m m m m'.split()
+    for name, value, unit in zip(names, values, units):
+        AddSampleLog(Workspace=workspace, LogName=name, LogText='{}'.format(value), LogType='Number', LogUnit=unit)
+
+    params = retrieve_instrument_setup(workspace)
+    assert [params.smearing_pixel_width_ratio, params.smearing_pixel_height_ratio] == pytest.approx([2.0, 2.0])
 
 
 @pytest.mark.parametrize('generic_workspace', [{

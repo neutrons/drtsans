@@ -603,10 +603,18 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bins):
 def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
-    Note: for binning parameters:
+    Note 1: for binning parameters:
     - 'min': float or None.  If None, set to default as min(Qx) (or Qy)
     - 'max': float or None.  If None, set to default as max(Qx) (or Qy)
     - 'bins': integer as number of bins
+
+    Note 2: output Intensity, error, dqx an dqy are in following order
+    -    qx = [[qx0, qx1, ...],
+               [qx0, qx1, ...],
+               ...]
+    -    qy = [[qy0, qy0, ...],
+               [qy1, qy1, ...],
+               ...]
 
     Parameters
     ----------
@@ -622,14 +630,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     Returns
     -------
     ~drtsans.dataobjects.IQazimuthal
-        binned IQazimuthal
-        output Intensity, error, dqx an dqy are in following order
-        qx = [[qx0, qx1, ...],
-              [qx0, qx1, ...],
-              ...]
-        qy = [[qy0, qy0, ...],
-              [qy1, qy1, ...],
-              ...]
+        binned IQazimuthal (important: must read Note 2)
     """
     # Check input I(Q) whether it meets assumptions
     check_iq_for_binning(i_of_q)

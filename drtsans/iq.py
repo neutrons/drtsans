@@ -644,24 +644,15 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     # construct return
     binned_intensities, binned_sigmas, binned_dqx, binned_dqy = binned_arrays
     # create Qx and Qy meshgrid explicitly
-    qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers)
-    # meshgrid result in as
-    # qx = [[qx0, qx1, ...],
-    #       [qx0, qx1, ...],
-    #       ...]
-    # qy = [[qy0, qy0, ...],
-    #       [qy1, qy1, ...],
-    #       ...]
-    # this does not agree with the return from histogram2D, which is as
+    # this must agree with the return from histogram2D, which is as
     # qx = [[qx0, qx0, ...],
     #       [qx1, qx1, ...],
     #       ...]
     # qy = [[qy0, qy1, ...],
     #       [qy0, qy1, ...],
     #       ...]
-    # Thus they must be transposed
-    qx_matrix = qx_matrix.transpose()
-    qy_matrix = qy_matrix.transpose()
+    # Thus indexing='ij' is used
+    qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers, indexing='ij')
 
     return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_matrix,
                        delta_qx=binned_dqx, qy=qy_matrix, delta_qy=binned_dqy)

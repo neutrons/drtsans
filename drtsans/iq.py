@@ -640,9 +640,11 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
 
     # construct return
     binned_intensities, binned_sigmas, binned_dqx, binned_dqy = binned_arrays
+    # create Qx and Qy meshgrid explicitly
+    qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers)
 
-    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_bins.centers,
-                       delta_qx=binned_dqx, qy=qy_bins.centers, delta_qy=binned_dqy)
+    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_matrix,
+                       delta_qx=binned_dqx, qy=qy_matrix, delta_qy=binned_dqy)
 
 
 def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

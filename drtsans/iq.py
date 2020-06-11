@@ -603,10 +603,14 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, bins):
 def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
-    Note: for binning parameters:
+    Note 1: for binning parameters:
     - 'min': float or None.  If None, set to default as min(Qx) (or Qy)
     - 'max': float or None.  If None, set to default as max(Qx) (or Qy)
     - 'bins': integer as number of bins
+
+    Note 2: output Intensity, error, dqx an dqy are in following order
+    -    qx = [[qx0, qx1, ...], [qx0, qx1, ...], ...]
+    -    qy = [[qy0, qy0, ...], [qy1, qy1, ...], ...]
 
     Parameters
     ----------
@@ -622,8 +626,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     Returns
     -------
     ~drtsans.dataobjects.IQazimuthal
-        binned IQazimuthal
-
+        binned IQazimuthal (important: must read Note 2)
     """
     # Check input I(Q) whether it meets assumptions
     check_iq_for_binning(i_of_q)
@@ -640,9 +643,19 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
 
     # construct return
     binned_intensities, binned_sigmas, binned_dqx, binned_dqy = binned_arrays
+    # create Qx and Qy meshgrid explicitly
+    # this must agree with the return from histogram2D, which is as
+    # qx = [[qx0, qx0, ...],
+    #       [qx1, qx1, ...],
+    #       ...]
+    # qy = [[qy0, qy1, ...],
+    #       [qy0, qy1, ...],
+    #       ...]
+    # Thus indexing='ij' is used
+    qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers, indexing='ij')
 
-    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_bins.centers,
-                       delta_qx=binned_dqx, qy=qy_bins.centers, delta_qy=binned_dqy)
+    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_matrix,
+                       delta_qx=binned_dqx, qy=qy_matrix, delta_qy=binned_dqy)
 
 
 def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

@@ -100,12 +100,6 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
         pass
     # make everything a 1d array
     # this does nothing if the array is already 1d
-
-    print('DEBUG save ascii binned 2D')
-    print(kwargs['qx'])
-    print(kwargs['qy'])
-    print(kwargs['intensity'])
-
     qx = kwargs['qx'].ravel()
     qy = kwargs['qy'].ravel()
     intensity = kwargs['intensity'].ravel()

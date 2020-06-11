@@ -642,6 +642,12 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     binned_intensities, binned_sigmas, binned_dqx, binned_dqy = binned_arrays
     # create Qx and Qy meshgrid explicitly
     qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers)
+    # meshgrid result in as 
+    # qx = [[x0, x1, ...],
+    #       [x0, x1, ...]...]
+    # this does not agree with the return from histogram2D.  Thus they must be transposed
+    qx_matrix = qx_matrix.transpose()
+    qy_matrix = qy_matrix.transpose()
 
     print('DEBUG In iq.py: ')
     print('Qx: ')

@@ -623,7 +623,13 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     -------
     ~drtsans.dataobjects.IQazimuthal
         binned IQazimuthal
-
+        output Intensity, error, dqx an dqy are in following order
+        qx = [[qx0, qx1, ...],
+              [qx0, qx1, ...],
+              ...]
+        qy = [[qy0, qy0, ...],
+              [qy1, qy1, ...],
+              ...]
     """
     # Check input I(Q) whether it meets assumptions
     check_iq_for_binning(i_of_q)

@@ -32,8 +32,10 @@ def test_bin_2d():
                                  annular_angle_bin=1., wedges=None,
                                  error_weighted=False)
 
-    assert binned2d.qx[0] == pytest.approx([-3, -1, 1, 3])
-    assert binned2d.qy[::, 0] == pytest.approx([-3, -1, 1, 3])
+    # From standard bin 2d, 2D Qx changes from row to row
+    # From standard bin 2d, 2D Qy changes from column to column
+    assert binned2d.qx[::, 0] == pytest.approx([-3, -1, 1, 3])
+    assert binned2d.qy[0] == pytest.approx([-3, -1, 1, 3])
     assert binned2d.intensity[2, 2] == pytest.approx(2.5)
     assert binned2d.intensity[1, 2] == pytest.approx(6.5)
     assert binned2d.intensity[1, 1] == pytest.approx(10.5)

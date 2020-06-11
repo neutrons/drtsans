@@ -432,7 +432,8 @@ def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True):
 
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):
-    '''This class holds the information for the azimuthal projection, I(Qx, Qy). The resolution terms,
+    r"""
+    This class holds the information for the azimuthal projection, I(Qx, Qy). The resolution terms,
     (``delta_qx``, ``delta_qy``) and ``wavelength`` fields are optional.
 
     All of the arrays must be 1-dimensional or 2-dimensional and matching length. For the 1-dimensional
@@ -443,14 +444,10 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
 
     if intensity is 2D, and qx and qy are 1D: In this constructor, it is assumed that intensity 2D array
     will match
-    # qx = [[qx0, qx1, ...],
-    #       [qx0, qx1, ...],
-    #       ...]
-    # qy = [[qy0, qy0, ...],
-    #       [qy1, qy1, ...],
-    #       ...]
+    qx = [[qx0, qx1, ...], [qx0, qx1, ...], ...]
+    qy = [[qy0, qy0, ...], [qy1, qy1, ...], ...]
     because qx and qy will be created in such style.
-    '''
+    """
     def __new__(cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None):  # noqa: C901
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)

@@ -609,12 +609,8 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     - 'bins': integer as number of bins
 
     Note 2: output Intensity, error, dqx an dqy are in following order
-    -    qx = [[qx0, qx1, ...],
-               [qx0, qx1, ...],
-               ...]
-    -    qy = [[qy0, qy0, ...],
-               [qy1, qy1, ...],
-               ...]
+    -    qx = [[qx0, qx1, ...], [qx0, qx1, ...], ...]
+    -    qy = [[qy0, qy0, ...], [qy1, qy1, ...], ...]
 
     Parameters
     ----------

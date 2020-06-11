@@ -61,19 +61,19 @@ def test_2d_bin_no_sub_no_wt():
                                                                             ''.format(binned_iq_2d[3][1][1], 0.00816)
 
     # verify Qx and Qy on off diagonal values
-    # Qx in col 0 shall be all same as qx bin center [0]
-    assert binned_iq_2d.qx[1][0] == pytest.approx(qx_bins.centers[0], abs=1E-5), \
-        'Qx[1, 0] {} shall be same as Qx bin center [0] {}'.format(binned_iq_2d.qx[1][0], qx_bins.centers[0])
-    # Qx in col 1 shall be all same as qx bin center [1]
-    assert binned_iq_2d.qx[0][1] == pytest.approx(qx_bins.centers[1], abs=1E-5), \
-        'Qx[0, 1] {} shall be same as Qx bin center [1] {}'.format(binned_iq_2d.qx[0][1], qx_bins.centers[1])
+    # Qx in row 0 shall be all same as qx bin center [1]
+    assert binned_iq_2d.qx[0][1] == pytest.approx(qx_bins.centers[0], abs=1E-5), \
+        'Qx[0, 1] {} shall be same as Qx bin center [1] {}'.format(binned_iq_2d.qx[0][1], qx_bins.centers[0])
+    # Qx in row 1 shall be all same as qx bin center [0]
+    assert binned_iq_2d.qx[1][0] == pytest.approx(qx_bins.centers[1], abs=1E-5), \
+        'Qx[1, 0] {} shall be same as Qx bin center [1] {}'.format(binned_iq_2d.qx[1][0], qx_bins.centers[1])
 
-    # Qy in row 0 shall be all same as qy bin center [0]
-    assert binned_iq_2d.qy[0][1] == pytest.approx(qy_bins.centers[0], abs=1E-5), \
-        'Qy[0, 1] {} shall be same as Qy bin center [0] {}'.format(binned_iq_2d.qy[0][1], qy_bins.centers[0])
-    # Qy in row 1 shall be all same as qy bin center [1]
-    assert binned_iq_2d.qy[1][0] == pytest.approx(qy_bins.centers[1], abs=1E-5), \
-        'Qy[0, 1] {} shall be same as Qy bin center [1] {}'.format(binned_iq_2d.qy[1][0], qy_bins.centers[1])
+    # Qy in col 0 shall be all same as qy bin center [0]
+    assert binned_iq_2d.qy[1][0] == pytest.approx(qy_bins.centers[0], abs=1E-5), \
+        'Qy[1, 0] {} shall be same as Qy bin center [0] {}'.format(binned_iq_2d.qy[1][0], qy_bins.centers[0])
+    # Qy in col 1 shall be all same as qy bin center [1]
+    assert binned_iq_2d.qy[0][1] == pytest.approx(qy_bins.centers[1], abs=1E-5), \
+        'Qy[0, 1] {} shall be same as Qy bin center [1] {}'.format(binned_iq_2d.qx[0][1], qy_bins.centers[1])
 
 
 def test_2d_bin_no_sub_wt():

@@ -643,6 +643,12 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     # create Qx and Qy meshgrid explicitly
     qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers)
 
+    print('DEBUG In iq.py: ')
+    print('Qx: ')
+    print(qx_matrix)
+    print('Qy: ')
+    print(qy_matrix)
+
     return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_matrix,
                        delta_qx=binned_dqx, qy=qy_matrix, delta_qy=binned_dqy)
 

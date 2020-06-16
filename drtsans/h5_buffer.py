@@ -1,7 +1,5 @@
 # Read an arbitrary h5 file in order to study its structure
 # Goal: reveal and duplicate a CANSAS file such that it can be imported by SASVIEW
-import numpy as np
-from enum import Enum
 import h5py
 
 

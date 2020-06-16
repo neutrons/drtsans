@@ -66,7 +66,7 @@ class HDFNode(object):
             value = None
         except AttributeError:
             # h5py._hl.dataset.Dataset
-            value = h5_entry.value
+            value = h5_entry[()]
             children_names = list()
 
         return attr_dict, value, children_names
@@ -97,7 +97,7 @@ class HDFNode(object):
         -------
 
         """
-        print('Create entry: {}'.format(self._name))
+        # print('Create entry: {}'.format(self._name))
         if self._name.endswith('_spectrum_sample'):
             print('SKIP!!!!!  Node {}'.format(self._name))
             return

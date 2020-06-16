@@ -26,9 +26,11 @@ def test_copy_nexus(reference_dir, cleanfile):
 
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/'
+    output_dir = '/tmp/nexus'
     cleanfile(output_dir)
-    target_nexus = os.path.join(output_dir, 'duplicated_cg2_nxs.h5')
+    if not os.path.exists(output_dir):
+        os.mkdir('/tmp/nexus')
+    target_nexus = os.path.join(output_dir, 'CG2_9177.nxs.h5')
 
     # Load the source
     nexus_h5 = h5py.File(source_nexus, 'r')
@@ -51,7 +53,7 @@ def test_copy_nexus(reference_dir, cleanfile):
     np.testing.assert_allclose(source_y, target_y)
 
     # Compare pixels' positions
-    num_hist = source_y.getNumberHistograms()
+    num_hist = source_ws.getNumberHistograms()
     for iws in range(0, num_hist, 100):
         source_det_i_pos = source_ws.getInstrument().getDetector(iws).getPos()
         target_det_i_pos = target_ws.getInstrument().getDetector(iws).getPos()

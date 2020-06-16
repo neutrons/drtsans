@@ -76,25 +76,23 @@ class HDFNode(object):
             # returned h5_attribute in fact is attribute name
             self._attributes[attr_name] = h5_entry.attrs[attr_name]
 
-        return
-
     @property
     def name(self):
         return self._name
 
-    def write(self, input):
+    def write(self, inputs):
         """
 
         Parameters
         ----------
-        input: str, ~h5py._hl.group.Group, ~h5py._hl.files.File
+        inputs: str, ~h5py._hl.group.Group, ~h5py._hl.files.File
             Node to input
 
         Returns
         -------
 
         """
-        raise NotImplementedError('Virtual method to write {}'.format(input))
+        raise NotImplementedError('Virtual method to write {}'.format(inputs))
 
     def write_attributes(self, curr_entry):
 
@@ -147,13 +145,12 @@ class GroupNode(HDFNode):
 
         Returns
         -------
-
         """
         # create group or data set
         # h5py._hl.group.Group only
         curr_entry = parent_entry.create_group(self._name)
         # write
-        self.write_attributes(curr_entry)
+        self.write_content(curr_entry)
 
     def write_content(self, curr_entry):
         # write child

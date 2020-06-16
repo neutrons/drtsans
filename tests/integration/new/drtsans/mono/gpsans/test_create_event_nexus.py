@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import os
-from drtsans.h5_buffer import HDFNode
+from drtsans.h5_buffer import parse_h5_entry
 from drtsans.load import load_events
 import h5py
 
@@ -32,12 +32,10 @@ def test_copy_nexus(reference_dir, cleanfile):
 
     # Load the source
     nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = HDFNode(nexus_h5, None)
+    source_root = parse_h5_entry(nexus_h5)
 
     # Duplicate
-    target_file = h5py.File(target_nexus, 'w')
-    source_root.write(target_file)
-    target_file.close()
+    source_root.write(target_nexus)
 
     # Load source file to workspace
     source_ws = load_events(test_nexus_name, output_workspace='cg2_source')

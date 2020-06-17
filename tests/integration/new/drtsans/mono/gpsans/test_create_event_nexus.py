@@ -314,5 +314,40 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
         raise assert_err
 
 
+def get_iq1d(log_file_name):
+    """Get I(Q) from output SANS log file
+
+    Parameters
+    ----------
+    log_file_name: str
+        log file name
+
+    Returns
+    -------
+    tuple
+        numpy 1D array for Q, numpy 1D array for intensity
+
+    """
+    # Open file and entry
+    log_h5 = h5py.File(log_file_name, 'r')
+
+    if '_slice_1' in log_h5:
+        data_entry = log_h5['_slice_1']['main']
+    else:
+        data_entry = log_h5['main']
+
+    # Get data
+    iq1d_entry = data_entry['I(Q)']
+
+    # Get data with a copy
+    vec_q = np.copy(iq1d_entry['Q'].value)
+    vec_i = np.copy(iq1d_entry['I'].value)
+
+    # close file
+    log_h5.close()
+
+    return vec_q, vec_i
+
+
 if __name__ == '__main__':
     pytest.main(__file__)

@@ -41,6 +41,7 @@ def test_copy_h5_file(reference_dir, cleanfile):
 
     # Duplicate
     source_root.write(target_nexus)
+    nexus_h5.close()
 
     # Load source file to workspace
     source_ws = load_events(source_nexus, output_workspace='cg2_source')

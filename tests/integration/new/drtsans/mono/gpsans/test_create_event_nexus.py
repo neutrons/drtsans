@@ -27,7 +27,7 @@ def test_copy_nexus(reference_dir, cleanfile):
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future
     output_dir = '/tmp/nexus'
-    cleanfile(output_dir)
+    # cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir('/tmp/nexus')
     target_nexus = os.path.join(output_dir, 'CG2_9177.nxs.h5')

@@ -21,7 +21,7 @@ def parse_h5_entry(h5_entry):
     entry_node = None
     for h5_entry_type, buffer_node_class in [(h5py._hl.files.File, FileNode),
                                              (h5py._hl.group.Group, GroupNode),
-                                             (h5py._hl.files.File, DataSetNode)]:
+                                             (h5py._hl.dataset.Dataset, DataSetNode)]:
         if isinstance(h5_entry, h5_entry_type):
             # generate node
             entry_node = buffer_node_class()
@@ -65,6 +65,9 @@ class HDFNode(object):
         -------
 
         """
+        # Name
+        self._name = h5_entry.name
+
         # Parse attributes
         # Reset data structure
         self._attributes = dict()
@@ -182,11 +185,12 @@ class FileNode(GroupNode):
 
         """
         # create file node
-        curr_entry = h5py.File(file_name, 'w')
+        h5 = h5py.File(file_name, 'w')
         # write
-        self.write_content(curr_entry)
+        self.write_content(h5)
+        
         # close
-        curr_entry.close()
+        h5.close()
 
 
 class DataSetNode(HDFNode):
@@ -218,7 +222,7 @@ class DataSetNode(HDFNode):
         super(DataSetNode, self).parse_h5_entry(h5_entry)
 
         # Parse value
-        self._value = h5_entry.value
+        self._value = h5_entry[()]
 
     def write(self, parent_entry):
         """Write buffer node to an HDF entry

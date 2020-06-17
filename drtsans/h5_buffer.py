@@ -188,7 +188,7 @@ class FileNode(GroupNode):
         h5 = h5py.File(file_name, 'w')
         # write
         self.write_content(h5)
-        
+
         # close
         h5.close()
 

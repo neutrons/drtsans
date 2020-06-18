@@ -81,6 +81,14 @@ class HDFNode(object):
     def name(self):
         return self._name
 
+    @property
+    def attributes(self):
+        return self._attributes
+
+    def add_attributes(self, attributes):
+        for attr_name in attributes.keys():
+            self._attributes[attr_name] = attributes[attr_name]
+
     def write(self, inputs):
         """
 

@@ -213,6 +213,7 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
 
     # set 'entry'
     entry_node = source_root.get_child('/entry')
+    entry_node.add_attributes(entry_node.attributes())
 
     # define black_list
     black_list = ['/entry/user1',

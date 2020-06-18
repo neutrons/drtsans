@@ -182,6 +182,43 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         plot_reduction_output(out, reduction_input, loglog=False)
 
 
+def copy_event_nexus(source_nexus, target_nexus):
+
+    nexus_h5 = h5py.File(source_nexus, 'r')
+    source_root = parse_h5_entry(nexus_h5)
+    # Duplicate
+    source_root.write(target_nexus)
+    # close HDF5
+    nexus_h5.close()
+
+
+def copy_event_nexus_prototype(source_nexus, target_nexus):
+    """Try to use links and etc. to copy nexus
+
+    Returns
+    -------
+
+    """
+    from drtsans.h5_buffer import FileNode, GroupNode, DataSetNode
+
+    # import source
+    nexus_h5 = h5py.File(source_nexus, 'r')
+    source_root = parse_h5_entry(nexus_h5)
+
+    # create a new file node
+    target_root_node = FileNode()
+
+    # set 'entry'
+    entry_node = source_root.get_child('entry')
+    target_root_node.set_child('entry', entry_node)
+
+    # write
+    target_root_node.write(target_nexus)
+
+    # close original file
+    nexus_h5.close()
+
+
 def test_reduction(reference_dir):
     """Test reduction result between raw and generated event nexus file
 
@@ -200,16 +237,19 @@ def test_reduction(reference_dir):
     if not os.path.exists(output_dir):
         os.mkdir('/tmp/nexus')
 
-    # Get the source file
+    # Copy a nexus file
     test_nexus_name = 'CG2_9166.nxs.h5'
     source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
     assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
     target_nexus = os.path.join(output_dir, 'CG2_9177.nxs.h5')
-    nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = parse_h5_entry(nexus_h5)
-    nexus_h5.close()
-    # Duplicate
-    source_root.write(target_nexus)
+
+    copy_event_nexus(source_nexus, target_nexus)
+
+    # nexus_h5 = h5py.File(source_nexus, 'r')
+    # source_root = parse_h5_entry(nexus_h5)
+    # nexus_h5.close()
+    # # Duplicate
+    # source_root.write(target_nexus)
 
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     # output_dir = mkdtemp(prefix='meta_overwrite_test1')

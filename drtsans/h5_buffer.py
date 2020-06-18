@@ -114,6 +114,51 @@ class GroupNode(HDFNode):
 
         self._children = list()
 
+    def get_child(self, child_name):
+        """Get a child
+
+        Parameters
+        ----------
+        child_name
+
+        Returns
+        -------
+        GroupNode, DataSetNode
+            Child HDFNode
+
+        """
+        child_node = None
+
+        for child_node_i in self._children:
+            if child_node_i.name == child_name:
+                child_node = child_node_i
+                break
+
+        if child_node is None:
+            raise RuntimeError(f'There is no child node with name {child_name} for node {self.name})')
+
+        return child_node
+
+    def set_child(self, child_node):
+        """
+
+        Parameters
+        ----------
+        child_node: GroupNode, DataSetNode
+            child node to append
+
+        Returns
+        -------
+
+        """
+        # Check whether a child with same name exists
+        for child_node_i in self._children:
+            if child_node_i.name == child_node.name:
+                raise RuntimeError(f'Node {self.name} has child with name {child_node.name} already!')
+
+        # Attach
+        self._children.append(child_node)
+
     def parse_h5_entry(self, h5_entry):
         """Parse HDF5 entry
 

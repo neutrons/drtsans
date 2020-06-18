@@ -209,8 +209,8 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
     target_root_node = FileNode()
 
     # set 'entry'
-    entry_node = source_root.get_child('entry')
-    target_root_node.set_child('entry', entry_node)
+    entry_node = source_root.get_child('/entry')
+    target_root_node.set_child(entry_node)
 
     # write
     target_root_node.write(target_nexus)
@@ -243,7 +243,8 @@ def test_reduction(reference_dir):
     assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
     target_nexus = os.path.join(output_dir, 'CG2_9177.nxs.h5')
 
-    copy_event_nexus(source_nexus, target_nexus)
+    # copy_event_nexus(source_nexus, target_nexus)
+    copy_event_nexus_prototype(source_nexus, target_nexus)
 
     # nexus_h5 = h5py.File(source_nexus, 'r')
     # source_root = parse_h5_entry(nexus_h5)

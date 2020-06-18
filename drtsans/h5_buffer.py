@@ -130,6 +130,7 @@ class GroupNode(HDFNode):
         child_node = None
 
         for child_node_i in self._children:
+            print(f'check child with name {child_node_i.name}')
             if child_node_i.name == child_name:
                 child_node = child_node_i
                 break

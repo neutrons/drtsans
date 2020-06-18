@@ -106,13 +106,17 @@ class GroupNode(HDFNode):
     """
     Node for an HDF Group
     """
-    def __init__(self):
+    def __init__(self, name=None):
         """
         Initialization
         """
-        super(GroupNode, self).__init__()
+        super(GroupNode, self).__init__(name)
 
         self._children = list()
+
+    @property
+    def children(self):
+        return self._children[:]
 
     def get_child(self, child_name):
         """Get a child
@@ -216,7 +220,7 @@ class FileNode(GroupNode):
         """
         Initialization
         """
-        super(FileNode, self).__init__()
+        super(FileNode, self).__init__('/')
 
     def write(self, file_name):
         """Write to a file
@@ -243,11 +247,11 @@ class DataSetNode(HDFNode):
     """
     Node for data set
     """
-    def __init__(self):
+    def __init__(self, name=None):
         """
         Initialization
         """
-        super(DataSetNode, self).__init__()
+        super(DataSetNode, self).__init__(name)
 
         self._value = None
 

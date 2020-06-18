@@ -207,10 +207,29 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
 
     # create a new file node
     target_root_node = FileNode()
+    # create an '/entry' node
+    target_entry_node = GroupNode('/entry')
+    target_root_node.set_child(target_entry_node)
 
     # set 'entry'
     entry_node = source_root.get_child('/entry')
-    target_root_node.set_child(entry_node)
+
+    # define black_list
+    black_list = ['/entry/user1',
+                  '/entry/user2',
+                  '/entry/user3',
+                  '/entry/user4',
+                  '/entry/user5',
+                  '/entry/user6',
+                  '/entry/user7',
+                  '/entry/user8']
+    black_list = ['/entry/instrument']
+    black_list = []
+
+    # get children from entry node
+    for child_node in entry_node.children:
+        if child_node.name not in black_list:
+            target_root_node.set_child(child_node)
 
     # write
     target_root_node.write(target_nexus)
@@ -241,7 +260,7 @@ def test_reduction(reference_dir):
     test_nexus_name = 'CG2_9166.nxs.h5'
     source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
     assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
-    target_nexus = os.path.join(output_dir, 'CG2_9177.nxs.h5')
+    target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
 
     # copy_event_nexus(source_nexus, target_nexus)
     copy_event_nexus_prototype(source_nexus, target_nexus)

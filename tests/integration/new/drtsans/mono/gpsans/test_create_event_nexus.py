@@ -251,23 +251,28 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
         # Das logs
         if True:
             target_logs_node = GroupNode('/entry/DASlogs')
+            target_entry_node.set_child(target_logs_node)
             # add attribute
             target_logs_node.add_attributes({'NX_class': 'NXcollection'})
 
             # add sample logs
 
             logs_white_list = ['wavelength', 'wavelength_spread',
-                               'CG2:CS:SampleToSi',
+                               'CG2:CS:SampleToSi', 'sample_detector_distance',
+                               'source_aperture_diameter', 'sample_aperture_diameter',
                                'proton_charge']
 
             source_logs_node = entry_node.get_child('/entry/DASlogs')
             for child_log in source_logs_node.children:
 
-                if child_log.name in logs_white_list:
+                child_log_name = child_log.name.split('/')[-1]
+
+                if child_log_name in logs_white_list:
                     # only add nodes in white list
+                    print(f'add DAS log {child_log.name}')
                     target_logs_node.set_child(child_log)
                 else:
-                    target_logs_node.set_child(child_log)
+                    # target_logs_node.set_child(child_log)
                     continue
 
         else:

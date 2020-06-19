@@ -225,9 +225,10 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
                       '/entry/user5',
                       '/entry/user6',
                       '/entry/user7',
-                      '/entry/user8']
-        black_list = ['/entry/instrument']
-        # black_list = []
+                      '/entry/user8',
+                      '/entry/instrument',
+                      '/entry/Software',
+                      '/entry/DASlogs']
 
         # get children from entry node
         for child_node in entry_node.children:
@@ -246,6 +247,33 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
                 print(child.name)
                 continue   # not duplicating these entries
             target_instrument.set_child(child)
+
+        # Das logs
+        if True:
+            target_logs_node = GroupNode('/entry/DASlogs')
+            # add attribute
+            target_logs_node.add_attributes({'NX_class': 'NXcollection'})
+
+            # add sample logs
+
+            logs_white_list = ['wavelength', 'wavelength_spread',
+                               'CG2:CS:SampleToSi',
+                               'proton_charge']
+
+            source_logs_node = entry_node.get_child('/entry/DASlogs')
+            for child_log in source_logs_node.children:
+
+                if child_log.name in logs_white_list:
+                    # only add nodes in white list
+                    target_logs_node.set_child(child_log)
+                else:
+                    target_logs_node.set_child(child_log)
+                    continue
+
+        else:
+            target_entry_node.set_child(entry_node.get_child('DASlogs'))
+
+        #
 
     else:
         # copy source entry

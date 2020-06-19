@@ -207,30 +207,50 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
 
     # create a new file node
     target_root_node = FileNode()
-    # create an '/entry' node
-    target_entry_node = GroupNode('/entry')
-    target_root_node.set_child(target_entry_node)
 
-    # set 'entry'
-    entry_node = source_root.get_child('/entry')
-    entry_node.add_attributes(entry_node.attributes())
+    if True:
+        # create an '/entry' node
+        target_entry_node = GroupNode('/entry')
+        target_root_node.set_child(target_entry_node)
 
-    # define black_list
-    black_list = ['/entry/user1',
-                  '/entry/user2',
-                  '/entry/user3',
-                  '/entry/user4',
-                  '/entry/user5',
-                  '/entry/user6',
-                  '/entry/user7',
-                  '/entry/user8']
-    black_list = ['/entry/instrument']
-    black_list = []
+        # set 'entry'
+        entry_node = source_root.get_child('/entry')
+        target_entry_node.add_attributes(entry_node.attributes)
 
-    # get children from entry node
-    for child_node in entry_node.children:
-        if child_node.name not in black_list:
-            target_root_node.set_child(child_node)
+        # define black_list
+        black_list = ['/entry/user1',
+                      '/entry/user2',
+                      '/entry/user3',
+                      '/entry/user4',
+                      '/entry/user5',
+                      '/entry/user6',
+                      '/entry/user7',
+                      '/entry/user8']
+        black_list = ['/entry/instrument']
+        # black_list = []
+
+        # get children from entry node
+        for child_node in entry_node.children:
+            if child_node.name not in black_list:
+                target_root_node.set_child(child_node)
+
+        # now work with instrument
+        source_instrument = entry_node.get_child('/entry/instrument')
+
+        target_instrument = GroupNode(source_instrument.name)
+        target_entry_node.set_child(target_instrument)
+        target_instrument.add_attributes(source_instrument.attributes)
+        # add all but not bank...
+        for child in source_instrument.children:
+            if child.name.count('bank') > 0 and child.name.endswith('_events') > 0:
+                print(child.name)
+                continue   # not duplicating these entries
+            target_instrument.set_child(child)
+
+    else:
+        # copy source entry
+        source_entry = source_root.get_child('/entry')
+        target_root_node.set_child(source_entry)
 
     # write
     target_root_node.write(target_nexus)

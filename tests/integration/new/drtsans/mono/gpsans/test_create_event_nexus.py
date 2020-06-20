@@ -258,24 +258,6 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
             # add sample logs
             source_logs_node = entry_node.get_child('/entry/DASlogs')
 
-            # Test white list
-            logs_white_list = ['wavelength', 'wavelength_spread',
-                               'CG2:CS:SampleToSi', 'sample_detector_distance',
-                               'source_aperture_diameter', 'sample_aperture_diameter',
-                               'proton_charge']
-
-            for child_log in source_logs_node.children:
-
-                child_log_name = child_log.name.split('/')[-1]
-
-                if child_log_name in logs_white_list:
-                    # only add nodes in white list
-                    print(f'DEBUG SKIPPED: add DAS log {child_log.name}')
-                    #  TODO - add this: target_logs_node.set_child(child_log)
-                else:
-                    # target_logs_node.set_child(child_log)
-                    continue
-
             # Test blacklist
             name_header_black_list = ['1K_Plate',
                                       'AllShutters',
@@ -288,6 +270,7 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
                                       'CG2:Mot:', 'ILLF', 'Poly', 'coll', 'Cryo', 'He3', 'trap',
                                       'magr', 'p_',
                                       'Coll', 'CG2:SE', 'CG2:VS',
+                                      'CG2:CS:',  # Partial black list
                                       ]
             for child_log in source_logs_node.children:
                 child_log_name = child_log.name.split('/')[-1]
@@ -307,11 +290,31 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
                 # add the node
                 target_logs_node.set_child(child_log)
 
+            # Test white list
+            # logs_white_list = ['wavelength', 'wavelength_spread',
+            #                    'CG2:CS:SampleToSi', 'sample_detector_distance',
+            #                    'source_aperture_diameter', 'sample_aperture_diameter',
+            #                    'proton_charge']
+            logs_white_list = ['CG2:CS:SampleToSi']
+
+            for child_log in source_logs_node.children:
+
+                child_log_name = child_log.name.split('/')[-1]
+
+                if child_log_name in logs_white_list:
+                    # only add nodes in white list
+                    print(f'DEBUG SKIPPED: add DAS log {child_log.name}')
+                    target_logs_node.set_child(child_log)
+                else:
+                    # target_logs_node.set_child(child_log)
+                    continue
+
         else:
             # an alternative cannot-be-wrong case
             target_entry_node.set_child(entry_node.get_child('DASlogs'))
 
-        #
+        # Print out the total number of sample logs
+        print('[DEBUG] Number of DAS logs = {}'.format(len(target_logs_node.children)))
 
     else:
         # copy source entry

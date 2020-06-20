@@ -245,7 +245,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
     fig, ax = plt.subplots()
     current_cmap = matplotlib.cm.get_cmap()
     current_cmap.set_bad(color='grey')
-    pcm = ax.imshow(workspace.intensity.T, extent=(qxmin, qxmax, qymin, qymax),
+    pcm = ax.imshow(workspace.intensity, extent=(qxmin, qxmax, qymin, qymax),
                     origin='lower', aspect='auto', **imshow_kwargs)
     # add calculated region of interest
     if roi is not None:

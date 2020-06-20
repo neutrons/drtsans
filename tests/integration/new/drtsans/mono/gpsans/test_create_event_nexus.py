@@ -256,26 +256,49 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
             target_logs_node.add_attributes({'NX_class': 'NXcollection'})
 
             # add sample logs
+            source_logs_node = entry_node.get_child('/entry/DASlogs')
 
+            # Test white list
             logs_white_list = ['wavelength', 'wavelength_spread',
                                'CG2:CS:SampleToSi', 'sample_detector_distance',
                                'source_aperture_diameter', 'sample_aperture_diameter',
                                'proton_charge']
 
-            source_logs_node = entry_node.get_child('/entry/DASlogs')
             for child_log in source_logs_node.children:
 
                 child_log_name = child_log.name.split('/')[-1]
 
                 if child_log_name in logs_white_list:
                     # only add nodes in white list
-                    print(f'add DAS log {child_log.name}')
-                    target_logs_node.set_child(child_log)
+                    print(f'DEBUG SKIPPED: add DAS log {child_log.name}')
+                    #  TODO - add this: target_logs_node.set_child(child_log)
                 else:
                     # target_logs_node.set_child(child_log)
                     continue
 
+            # Test blacklist
+            name_header_black_list = ['1K_Plate',
+                                      'AllShutters_State'
+                                      # 'CG2::Mot:',
+                                      # 'Device',
+                                      # 'Peltier',
+                                      'ap',
+                                      'guide'
+                                      ]
+            for child_log in source_logs_node.children:
+                child_log_name = child_log.name.split('/')[-1]
+
+                # Loop for black header
+                for black_header in name_header_black_list:
+                    if child_log_name.startswith(black_header):
+                        # skip the node with name's first several letters on black list
+                        continue
+
+                # add the node
+                target_logs_node.set_child(child_log)
+
         else:
+            # an alternative cannot-be-wrong case
             target_entry_node.set_child(entry_node.get_child('DASlogs'))
 
         #

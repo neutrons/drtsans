@@ -37,3 +37,29 @@ class EventNeXusWriter(object):
 
     def set_run_start_time(self, run_start_time):
         self._run_start = run_start_time
+
+
+def convert_histogram_to_events(det_id_array, det_counts_array, pulse_duration,
+                                min_tof=2000, max_tof=1000, tof_resolution=0.1):
+    """Convert histogram (counts on detector pixels) to 'fake' events
+
+    Parameters
+    ----------
+    det_id_array
+    det_counts_array
+    pulse_duration: float
+        pulse period duration in unit of second
+    min_tof: float
+        minimum TOF value in unit of microsecond
+    max_tof: float
+        maximum TOF value in unit of microsecond
+
+    Returns
+    -------
+    ~tuple
+        event_id (array), event_index (array), pulse_time_offset (array), event_time_zero, total_counts
+
+    """
+    # get total counts
+
+    return

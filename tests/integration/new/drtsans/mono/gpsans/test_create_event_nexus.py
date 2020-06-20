@@ -278,21 +278,31 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
 
             # Test blacklist
             name_header_black_list = ['1K_Plate',
-                                      'AllShutters_State'
-                                      # 'CG2::Mot:',
-                                      # 'Device',
-                                      # 'Peltier',
+                                      'AllShutters',
+                                      'Device',
+                                      'Peltier',
                                       'ap',
-                                      'guide'
+                                      'guide',
+                                      'CG2::SE:',
+                                      'CG2::VS:',
+                                      'CG2:Mot:', 'ILLF', 'Poly', 'coll', 'Cryo', 'He3', 'trap',
+                                      'magr', 'p_',
+                                      'Coll', 'CG2:SE', 'CG2:VS',
                                       ]
             for child_log in source_logs_node.children:
                 child_log_name = child_log.name.split('/')[-1]
 
                 # Loop for black header
+                on_black_list = False
                 for black_header in name_header_black_list:
                     if child_log_name.startswith(black_header):
                         # skip the node with name's first several letters on black list
-                        continue
+                        on_black_list = True
+                        break
+
+                # skip the node with name's first several letters on black list
+                if on_black_list:
+                    continue
 
                 # add the node
                 target_logs_node.set_child(child_log)

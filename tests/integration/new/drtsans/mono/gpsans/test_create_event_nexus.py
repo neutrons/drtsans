@@ -271,6 +271,11 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
                                       'magr', 'p_',
                                       'Coll', 'CG2:SE', 'CG2:VS',
                                       'CG2:CS:',  # Partial black list
+                                      'DLam', 'Lamb', 'Mag', 'Number', 'S', 'T', 'V',
+                                      'a', 'b', 'c',
+                                      'm', 'n', 'v', 'd',
+                                      'f', 'p', 't',
+                                      's', 'w'
                                       ]
             for child_log in source_logs_node.children:
                 child_log_name = child_log.name.split('/')[-1]
@@ -295,10 +300,14 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
             #                    'CG2:CS:SampleToSi', 'sample_detector_distance',
             #                    'source_aperture_diameter', 'sample_aperture_diameter',
             #                    'proton_charge']
-            logs_white_list = ['CG2:CS:SampleToSi']
-
+            logs_white_list = ['CG2:CS:SampleToSi',
+                               # 'dcal', 'dcal_Readback',
+                               # 'detector_trans',
+                               'wavelength', 'wavelength_spread',
+                               'sample_detector_distance',
+                               'source_aperture_diameter', 'sample_aperture_diameter',
+                               'detector_trans_Readback'] 
             for child_log in source_logs_node.children:
-
                 child_log_name = child_log.name.split('/')[-1]
 
                 if child_log_name in logs_white_list:

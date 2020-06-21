@@ -6,6 +6,7 @@ from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
+from drtsans.h5_buffer import FileNode, GroupNode, DataSetNode
 
 
 def test_hello_world():
@@ -182,7 +183,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         plot_reduction_output(out, reduction_input, loglog=False)
 
 
-def copy_event_nexus(source_nexus, target_nexus):
+def copy_event_nexus_prototype01(source_nexus, target_nexus):
 
     nexus_h5 = h5py.File(source_nexus, 'r')
     source_root = parse_h5_entry(nexus_h5)
@@ -192,6 +193,108 @@ def copy_event_nexus(source_nexus, target_nexus):
     nexus_h5.close()
 
 
+def copy_event_nexus(source_nexus, target_nexus):
+    """
+
+    Parameters
+    ----------
+    source_nexus
+    target_nexus
+
+    Returns
+    -------
+
+    """
+    # import source
+    nexus_h5 = h5py.File(source_nexus, 'r')
+    source_root = parse_h5_entry(nexus_h5)
+
+    # create a new file node
+    target_root_node = FileNode()
+
+    # create an '/entry' node
+    target_entry_node = GroupNode('/entry')
+    target_root_node.set_child(target_entry_node)
+
+    # set 'entry'
+    entry_node = source_root.get_child('/entry')
+    target_entry_node.add_attributes(entry_node.attributes)
+
+    # define black_list under /entry directly
+    level1_black_list = ['/entry/user1',
+                         '/entry/user2',
+                         '/entry/user3',
+                         '/entry/user4',
+                         '/entry/user5',
+                         '/entry/user6',
+                         '/entry/user7',
+                         '/entry/user8',
+                         '/entry/instrument',  # create node explicitly
+                         '/entry/DASlogs',     # create node explicitly
+                         # TODO '/entry/bank11_events',  # create node explicitly
+                         '/entry/Software']
+
+    # get children from entry node and duplicate except black list nodes
+    for child_node in entry_node.children:
+        if child_node.name not in level1_black_list:
+            target_root_node.set_child(child_node)
+
+    # set instrument node
+    set_instrument_node(entry_node, target_entry_node)
+
+    # set DAS logs
+    set_das_log_node(entry_node, target_entry_node)
+
+    # write
+    target_root_node.write(target_nexus)
+
+    # close original file
+    nexus_h5.close()
+
+
+def set_instrument_node(source_entry_node, target_entry_node):
+    # now work with instrument
+    source_instrument = source_entry_node.get_child('/entry/instrument')
+
+    target_instrument = GroupNode(source_instrument.name)
+    target_entry_node.set_child(target_instrument)
+    target_instrument.add_attributes(source_instrument.attributes)
+    # add all but not bank...
+    for child in source_instrument.children:
+        # skip all the bank*_events entries
+        if child.name.count('bank') > 0 and child.name.endswith('_events') > 0:
+            print(child.name)
+            continue   # not duplicating these entries
+        target_instrument.set_child(child)
+
+
+def set_das_log_node(source_entry_node, target_entry_node):
+    target_logs_node = GroupNode('/entry/DASlogs')
+    target_entry_node.set_child(target_logs_node)
+    # add attribute
+    target_logs_node.add_attributes({'NX_class': 'NXcollection'})
+
+    # add sample logs
+    source_logs_node = source_entry_node.get_child('/entry/DASlogs')
+
+    # Specify white list
+    logs_white_list = ['CG2:CS:SampleToSi',
+                       'wavelength', 'wavelength_spread',
+                       'sample_detector_distance',
+                       'source_aperture_diameter', 'sample_aperture_diameter',
+                       'detector_trans_Readback']
+    for child_log in source_logs_node.children:
+        # remove HDF path from entry name
+        child_log_name = child_log.name.split('/')[-1]
+
+        if child_log_name in logs_white_list:
+            # only add nodes in white list
+            target_logs_node.set_child(child_log)
+        else:
+            # target_logs_node.set_child(child_log)
+            continue
+
+
 def copy_event_nexus_prototype(source_nexus, target_nexus):
     """Try to use links and etc. to copy nexus
 
@@ -199,7 +302,6 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
     -------
 
     """
-    from drtsans.h5_buffer import FileNode, GroupNode, DataSetNode
 
     # import source
     nexus_h5 = h5py.File(source_nexus, 'r')
@@ -362,7 +464,7 @@ def test_reduction(reference_dir):
     target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
 
     # copy_event_nexus(source_nexus, target_nexus)
-    copy_event_nexus_prototype(source_nexus, target_nexus)
+    copy_event_nexus(source_nexus, target_nexus)
 
     # nexus_h5 = h5py.File(source_nexus, 'r')
     # source_root = parse_h5_entry(nexus_h5)

@@ -1,9 +1,10 @@
 # Create Event NeXus file
+import drtsans
 from drtsans.h5_buffer import HDFNode
 
 
-class BankNode(HDFNode):
-    """Node for bank
+class BankNode(drtsans.h5_buffer.GroupNode):
+    """Node for bank entry such as /entry/bank12
 
     """
     def __init__(self):
@@ -11,6 +12,45 @@ class BankNode(HDFNode):
 
         """
         super(BankNode, self).__init__()
+
+    def set_events(self):
+        """
+
+        Returns
+        -------
+
+        """
+        pass
+
+
+class InstrumentNode(drtsans.h5_buffer.GroupNode):
+    """
+    Node for instrument entry (i.e., /entry/instrument)
+    """
+    def __init__(self):
+        """
+
+        """
+        super(InstrumentNode, self).__init__()
+
+
+class DasLogNode(drtsans.h5_buffer.GroupNode):
+    """
+    Node for one specific DAS log such as /entry/DASlogs/sample_detector_distance
+    """
+    def __init__(self, log_name, log_times, log_values):
+        """
+
+        Parameters
+        ----------
+        log_name: str
+            full path log name as /entry/DASlogs/{log_name}
+        log_times
+        log_values
+        """
+        super(DasLogNode, self).__init__(name=log_name)
+        self._log_times = log_times
+        self._log_values = log_values
 
 
 class EventNeXusWriter(object):

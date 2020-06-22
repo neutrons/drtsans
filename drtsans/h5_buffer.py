@@ -402,7 +402,7 @@ class DataSetNode(HDFNode):
         -------
 
         """
-        self._value = str_single_array = np.array(str_list, dtype=str)
+        self._value = np.array(str_list, dtype=str)
 
     def write(self, parent_entry):
         """Write buffer node to an HDF entry

@@ -1,6 +1,7 @@
 # Read an arbitrary h5 file in order to study its structure
 # Goal: reveal and duplicate a CANSAS file such that it can be imported by SASVIEW
 import h5py
+import numpy as np
 
 
 def parse_h5_entry(h5_entry):
@@ -54,6 +55,47 @@ class HDFNode(object):
 
         return
 
+    def match(self, other_node):
+        """Compare 2 HDFNode to see whether they are same
+
+        If mismatch, an exception will be raised including
+        - TypeError: for nodes are nto same type
+        - ValueError: attribute or node name value mismatch
+        - KeyError: some attribute does not exist in both node
+
+        Parameters
+        ----------
+        other_node: HDFNode
+            other node to compare
+
+        Returns
+        -------
+
+        """
+        # compare class type
+        if isinstance(other_node, type(self)):
+            raise TypeError('Try to match instance of class {} (other) to {} (self)'
+                            ''.format(type(other_node), type(self)))
+
+        # compare name
+        if self._name != other_node.name:
+            raise ValueError('self.name = {}; other.name = {}'.format(self.name, other_node.name))
+
+        # compare attributes
+        if set(self._attributes.keys()) != set(other_node.attributes.keys()):
+            raise KeyError('Attributes are not same:\nself - other = {}]\nother - self = {}'
+                           ''.format(set(self._attributes.keys()) - set(other_node.attributes.keys()),
+                                     set(other_node.attributes.keys()) - set(self._attributes.keys())))
+
+        # compare attribute values
+        error_msg = ''
+        for attr_name in self._attributes.keys():
+            if self._attributes[attr_name] != other_node.attributes[attr_name]:
+                error_msg += 'Mismatch attribute {} value: self = {}, other = {}' \
+                             ''.format(attr_name, self._attributes[attr_name], other_node.attributes[attr_name])
+        if error_msg != '':
+            raise ValueError(error_msg)
+
     def parse_h5_entry(self, h5_entry):
         """Parse an HDF5 entry
 
@@ -86,6 +128,17 @@ class HDFNode(object):
         return self._attributes
 
     def add_attributes(self, attributes):
+        """Add a list of attributes to the HDF5 node
+
+        Parameters
+        ----------
+        attributes: ~dict
+            Attributes to add.  key = attribute name, value = attribute value
+
+        Returns
+        -------
+
+        """
         for attr_name in attributes.keys():
             self._attributes[attr_name] = attributes[attr_name]
 
@@ -125,6 +178,26 @@ class GroupNode(HDFNode):
     @property
     def children(self):
         return self._children[:]
+
+    def match(self, other_node):
+        """Compare this node with another node
+
+        Parameters
+        ----------
+        other_node
+
+        Returns
+        -------
+
+        """
+        # call base class
+        super(GroupNode, self).match(other_node)
+
+        # compare child
+        for child in self._children:
+            child_name = child.name
+            other_child = other_node.get_child(child_name)
+            child.match(other_child)
 
     def get_child(self, child_name):
         """Get a child
@@ -263,6 +336,23 @@ class DataSetNode(HDFNode):
 
         self._value = None
 
+    def match(self, other_node):
+        """Match this node with other
+
+        Parameters
+        ----------
+        other_node
+
+        Returns
+        -------
+
+        """
+        # call base class's match
+        super(DataSetNode, self).match(other_node)
+
+        # compare this one
+        np.testing.assert_allclose(self._value, other_node.value)
+
     def parse_h5_entry(self, h5_entry):
         """Parse HDF5 entry
 
@@ -281,6 +371,24 @@ class DataSetNode(HDFNode):
 
         # Parse value
         self._value = h5_entry[()]
+
+    @property
+    def value(self):
+        return self._value
+
+    def set_value(self, data_array):
+        """Set data value (as numpy array)
+
+        Parameters
+        ----------
+        data_array: np.ndarray
+            data value
+
+        Returns
+        -------
+
+        """
+        self._value = data_array
 
     def write(self, parent_entry):
         """Write buffer node to an HDF entry

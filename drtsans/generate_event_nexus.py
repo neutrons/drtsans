@@ -1,6 +1,7 @@
 # Create Event NeXus file
+import numpy as np
 import drtsans
-from drtsans.h5_buffer import HDFNode
+from drtsans.h5_buffer import HDFNode, DataSetNode
 
 
 class BankNode(drtsans.h5_buffer.GroupNode):
@@ -12,6 +13,9 @@ class BankNode(drtsans.h5_buffer.GroupNode):
 
         """
         super(BankNode, self).__init__()
+
+        # add NX_class
+        self.add_attributes({'NX_class': 'NXevent_data'})
 
     def set_events(self):
         """
@@ -31,7 +35,43 @@ class InstrumentNode(drtsans.h5_buffer.GroupNode):
         """
 
         """
-        super(InstrumentNode, self).__init__()
+        super(InstrumentNode, self).__init__(name='/entry/instrument')
+
+        # add the NeXus class attributes
+        self.add_attributes({'NX_class': 'NXinstrument'})
+
+    def set_instrument_info(self, target_station_number, beam_line, name):
+        """
+
+        Parameters
+        ----------
+        target_station_number: int
+            target station number.  1 is used for HFIR
+        beam_line: str
+            CG2, CG3
+        name: str
+            CG2, CG3
+
+        Returns
+        -------
+        None
+
+        """
+        str_single_array = np.ndarray(shape=(1,), dtype=np.dtype.str)
+
+        # target station node
+        target_station_node = DataSetNode(name=f'{self.name}/target_station_number')
+        target_station_node.set_value(np.array(target_station_number))
+
+        # beam line
+        beam_line_node = DataSetNode(name=f'{self.name}/beamline')
+        str_single_array[0] = beam_line
+        beam_line_node.set_value(str_single_array)
+
+        # beam line name
+        name_node = DataSetNode(name=f'{self.name}/name')
+        str_single_array[0] = name
+        name_node.set_value(str_single_array)
 
 
 class DasLogNode(drtsans.h5_buffer.GroupNode):
@@ -51,6 +91,20 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
         super(DasLogNode, self).__init__(name=log_name)
         self._log_times = log_times
         self._log_values = log_values
+
+        self.add_attributes({'NX_class': 'NXlog'})
+
+
+class DasLogsCollectionNode(drtsans.h5_buffer.GroupNode):
+    """
+    Node for '/entry/DASlogs'
+    """
+    def __init__(self):
+        """
+        Initialization
+        """
+        super(DasLogsCollectionNode, self).__init__(name='/entry/DASlogs')
+        self.add_attributes({'NX_class': 'NXcollection'})
 
 
 class EventNeXusWriter(object):

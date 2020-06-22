@@ -231,6 +231,10 @@ def copy_event_nexus(source_nexus, target_nexus):
                          '/entry/user8',
                          '/entry/instrument',  # create node explicitly
                          '/entry/DASlogs',     # create node explicitly
+                         '/entry/sample',
+                         '/entry/entry_identifier',
+                         '/entry/definition',
+                         '/entry/total_uncounted_counts',
                          # TODO '/entry/bank11_events',  # create node explicitly
                          '/entry/Software']
 
@@ -262,8 +266,8 @@ def set_instrument_node(source_entry_node, target_entry_node):
     # add all but not bank...
     for child in source_instrument.children:
         # skip all the bank*_events entries
-        if child.name.count('bank') > 0 and child.name.endswith('_events') > 0:
-            print(child.name)
+        if child.name.split('/')[-1].startswith('bank'):
+            print(f'skip node: {child.name}')
             continue   # not duplicating these entries
         target_instrument.set_child(child)
 

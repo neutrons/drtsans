@@ -6,7 +6,7 @@ from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
-from drtsans.h5_buffer import FileNode, GroupNode, DataSetNode
+from drtsans.h5_buffer import FileNode, GroupNode
 
 
 def test_hello_world():
@@ -412,7 +412,7 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
                                'wavelength', 'wavelength_spread',
                                'sample_detector_distance',
                                'source_aperture_diameter', 'sample_aperture_diameter',
-                               'detector_trans_Readback'] 
+                               'detector_trans_Readback']
             for child_log in source_logs_node.children:
                 child_log_name = child_log.name.split('/')[-1]
 

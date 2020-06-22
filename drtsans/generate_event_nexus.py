@@ -1,7 +1,7 @@
 # Create Event NeXus file
 import numpy as np
 import drtsans
-from drtsans.h5_buffer import HDFNode, DataSetNode
+from drtsans.h5_buffer import DataSetNode
 
 
 class BankNode(drtsans.h5_buffer.GroupNode):

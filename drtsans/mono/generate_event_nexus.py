@@ -1,7 +1,7 @@
 # Create Event NeXus file
 import numpy as np
 import drtsans
-from drtsans.h5_buffer import DataSetNode
+from drtsans.h5_buffer import DataSetNode, GroupNode
 
 
 class BankNode(drtsans.h5_buffer.GroupNode):
@@ -57,21 +57,57 @@ class InstrumentNode(drtsans.h5_buffer.GroupNode):
         None
 
         """
-        str_single_array = np.ndarray(shape=(1,), dtype=np.dtype.str)
-
         # target station node
         target_station_node = DataSetNode(name=f'{self.name}/target_station_number')
         target_station_node.set_value(np.array(target_station_number))
+        self.set_child(target_station_node)
 
         # beam line
         beam_line_node = DataSetNode(name=f'{self.name}/beamline')
-        str_single_array[0] = beam_line
-        beam_line_node.set_value(str_single_array)
+        beam_line_node.set_1d_string([beam_line])
+        self.set_child(beam_line_node)
 
         # beam line name
         name_node = DataSetNode(name=f'{self.name}/name')
-        str_single_array[0] = name
-        name_node.set_value(str_single_array)
+        name_node.set_1d_string([name])
+        self.set_child(name_node)
+
+    def set_idf(self, idf_str, idf_type, description):
+        """Set instrument xml
+
+        Parameters
+        ----------
+        idf_str: str
+            IDF XML string
+        idf_type: str
+            IDF type
+        description: str
+            Description
+
+        Returns
+        -------
+
+        """
+        # Create the instrument_xml node
+        xml_node_name = f'{self.name}/instrument_xml'
+        xml_node = GroupNode(name=xml_node_name)
+        xml_node.add_attributes({'NX_class': 'NXnote'})
+        self.set_child(xml_node)
+
+        # add data node
+        data_node = DataSetNode(name=f'{xml_node_name}/data')
+        data_node.set_1d_string([idf_str])
+        xml_node.set_child(data_node)
+
+        # add description
+        des_node = DataSetNode(name=f'{xml_node_name}/description')
+        des_node.set_1d_string([description])
+        xml_node.set_child(des_node)
+
+        # add type
+        type_node = DataSetNode(name=f'{xml_node_name}/type')
+        type_node.set_1d_string([idf_type])
+        xml_node.set_child(type_node)
 
 
 class DasLogNode(drtsans.h5_buffer.GroupNode):

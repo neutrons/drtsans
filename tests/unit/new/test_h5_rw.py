@@ -64,7 +64,7 @@ def test_create_data_node():
 
     node4 = DataSetNode(name)
     node4.add_attributes(attributes)
-    node4.set_value(np.ndarray([1, 2, 3.2]))
+    node4.set_value(np.ndarray([1, 2, 3.2], dtype=float))
 
     # Node 1 and 2 shall be same
     node2.match(node1)

@@ -238,7 +238,10 @@ class GroupNode(HDFNode):
         """
         # process name
         if is_short_name:
-            child_name = f'{self._name}/{child_name}'
+            if self._name.endswith('/'):
+                child_name = f'{self._name}{child_name}'
+            else:
+                child_name = f'{self._name}/{child_name}'
 
         child_node = None
         for child_node_i in self._children:

@@ -1,5 +1,9 @@
 # Create Event NeXus file
 import numpy as np
+import dateutil
+import datetime
+import math
+
 import drtsans
 from drtsans.h5_buffer import DataSetNode, GroupNode
 
@@ -124,7 +128,7 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
             full path log name as /entry/DASlogs/{log_name}
         log_times: numpy.ndarray
             relative sample log time
-        start_time: str
+        start_time: Bytes
             ISO standard time for run start
         log_values: numpy.ndarray
             sample log values
@@ -137,25 +141,80 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
         self._log_values = log_values
         self._log_unit = log_unit
 
+        # Standard NX_class type for DASlogs' node
         self.add_attributes({'NX_class': b'NXlog'})
 
-        self._set_time_value()
+        # Set log value and related terms
+        self._set_log_values()
+        # Set log times
+        self._set_log_times()
 
-    def _set_time_value(self):
+    def _set_log_times(self):
+        """Set log times' node
+        - time
+
+        Returns
+        -------
+
+        """
+        # convert date time in IOS string to datetime instance
+        run_start_time = dateutil.parser.parse(self._run_start)
+        epoch_time = datetime.datetime(1990, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(0)))
+        # offsets
+        time_offset = run_start_time.timestamp() - epoch_time.timestamp()
+        time_offset_second = int(time_offset)
+        # nanosecond shift
+        if run_start_time.decode().count('.') == 0:
+            # zero sub-second offset
+            time_offset_ns = 0
+        elif run_start_time.decode().count('.') == 1:
+            # non-zero sub-second offset
+            # has HH:MM:SS.nnnsssnnnss-05 format
+            sub_second_str = run_start_time.decode().split('.')[1].split('-')[0]
+            sub_seconds = float(sub_second_str)
+            # convert from sub seconds to nano seconds
+            # example: 676486982
+            digits = int(math.log(sub_seconds) / math.log(10)) + 1
+            time_offset_ns = int(sub_seconds * 10**(9 - digits))
+        else:
+            # more than 1 '.': not knowing the case.  Use robust solution
+            time_offset_ns = int((time_offset - time_offset_second) * 1E9)
+
+        # Now I set up time related attributes
+        time_node = DataSetNode(name=self._create_child_name('time'))
+        time_node.set_value(self._log_times)
+        time_node.add_attributes({'offset_nanoseconds': time_offset_ns,
+                                  'offset_seconds': time_offset_second,
+                                  'start': self._run_start,
+                                  'units': b'second'})
+        self.set_child(time_node)
+
+    def _set_log_values(self):
         """Set time and value including
         - average_value
         - average_value_error
         - maximum_value
         - minimum_value
-        - time
         - value
 
         Returns
         -------
 
         """
+        average_value = self._log_values.mean()
+        average_value_error = self._log_values.std()
+        min_value = np.min(self._log_values)
+        max_value = np.max(self._log_values)
 
-        return
+        for child_name, child_value in [('average_value', average_value),
+                                        ('average_value_error', average_value_error),
+                                        ('maximum_value', max_value),
+                                        ('minimum_value', min_value),
+                                        ('value', self._log_values)]:
+            child_node = DataSetNode(name=self._create_child_name(child_name))
+            child_node.set_value(np.array(child_value))
+            child_node.add_attributes({'units': self._log_unit})
+            self.set_child(child_node)
 
     def set_device_info(self, device_id, device_name, target):
         """Set node for device related information
@@ -176,7 +235,7 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
                                       ('target', target)]:
             child_node = DataSetNode(name=self._create_child_name(node_name))
             child_node.set_value(np.array(info_value))
-            self._children.append(child_node)
+            self.set_child(child_node)
 
         return
 

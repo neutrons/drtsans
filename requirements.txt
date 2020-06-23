@@ -1,3 +1,4 @@
+dateutil
 pytest
 h5py
 numpy

@@ -245,7 +245,7 @@ def copy_event_nexus(source_nexus, target_nexus):
             target_root_node.set_child(child_node)
 
     # set instrument node
-    set_instrument_node(entry_node, target_entry_node)
+    set_instrument_node(nexus_h5, target_entry_node)
 
     # set DAS logs
     set_das_log_node(entry_node, target_entry_node)
@@ -257,7 +257,7 @@ def copy_event_nexus(source_nexus, target_nexus):
     nexus_h5.close()
 
 
-def set_instrument_node(source_entry_node, target_entry_node):
+def set_instrument_node(source_h5, target_entry_node):
     """Set instrument node
 
     Parameters
@@ -270,7 +270,7 @@ def set_instrument_node(source_entry_node, target_entry_node):
 
     """
     # IDF in XML
-    xml_idf = source_entry_node.get_child('instrument').get_child('instrument_xml').get_child('data').value[0]
+    xml_idf = source_h5['entry']['instrument']['instrument_xml']['data'][0]
 
     # Create new instrument node
     instrument_node = InstrumentNode()

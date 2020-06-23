@@ -52,19 +52,19 @@ def test_create_data_node():
 
     node1 = DataSetNode(name)
     node1.add_attributes(attributes)
-    node1.set_value(np.ndarray([1, 2, 3]))
+    node1.set_value(np.array([1, 2, 3]))
 
     node2 = DataSetNode(name)
     node2.add_attributes(attributes)
-    node2.set_value(np.ndarray([1, 2, 3]))
+    node2.set_value(np.array([1, 2, 3]))
 
     node3 = DataSetNode(name)
     node3.add_attributes(attributes_alt1)
-    node3.set_value(np.ndarray([1, 2, 3]))
+    node3.set_value(np.array([1, 2, 3]))
 
     node4 = DataSetNode(name)
     node4.add_attributes(attributes)
-    node4.set_value(np.ndarray([1, 2, 3.2], dtype=float))
+    node4.set_value(np.array([1, 2, 3.2], dtype=float))
 
     # Node 1 and 2 shall be same
     node2.match(node1)
@@ -76,6 +76,57 @@ def test_create_data_node():
     # Node 1 and Node 4 are different by value
     with pytest.raises(ValueError):
         node1.match(node4)
+
+
+def test_create_group_node():
+    """Test creating and comparing GroupNode
+
+    Returns
+    -------
+
+    """
+    attributes = {'A': 3, 'B': 'hello world'}
+    attributes_alt1 = {'A': 3, 'B': 'hello worlds'}
+    name = 'test data'
+
+    # define nodes
+    node1 = GroupNode(name)
+    node1.add_attributes(attributes)
+
+    node2 = GroupNode(name)
+    node2.add_attributes(attributes)
+
+    node3 = GroupNode('node3')
+    node3.add_attributes(attributes_alt1)
+
+    node4 = GroupNode('node45')
+    node4.add_attributes(attributes_alt1)
+
+    node5 = GroupNode('node45')
+    node5.add_attributes(attributes_alt1)
+
+    node6 = DataSetNode('data')
+    node6.set_1d_string(['abcdefg'])
+
+    node7 = DataSetNode('data')
+    node7.set_1d_string(['abcdefgh'])
+
+    # set node 1 and its group
+    node1.set_child(node3)
+    node2.set_child(node3)
+
+    node1.set_child(node4)
+    node2.set_child(node5)
+
+    # node1 and node2 shall be same
+    node1.match(node2)
+
+    # both add node 6 and 7 under node 4 and 5
+    node4.set_child(node6)
+    node5.set_child(node7)
+    # except ValueError
+    with pytest.raises(ValueError):
+        node4.match(node5)
 
 
 def test_check_type():

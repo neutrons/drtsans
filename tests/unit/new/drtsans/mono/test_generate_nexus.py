@@ -40,7 +40,7 @@ def test_create_das_log_node(reference_dir):
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, 'r')
-    # source_root = parse_h5_entry(nexus_h5)
+    source_root = parse_h5_entry(nexus_h5)
 
     # Get times and value for /entry/DASlogs/sample_detector_distance
     ssd_entry = nexus_h5['entry']['DASlogs']['sample_detector_distance']
@@ -57,7 +57,10 @@ def test_create_das_log_node(reference_dir):
     ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
                                   target=b'/entry/DASlogs/CG2:SampleToDetRBV')
 
-    assert ssd_test_node
+    # match: to entry/DASlogs/sample_detector_distance
+    expected_node = source_root.get_child('entry', is_short_name=True).get_child('DASlogs', is_short_name=True)
+    expected_node = expected_node.get_child('sample_detector_distance', is_short_name=True)
+    ssd_test_node.match(expected_node)
 
     # Close HDF5
     nexus_h5.close()

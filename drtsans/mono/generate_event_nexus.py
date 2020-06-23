@@ -164,13 +164,13 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
         time_offset = run_start_time.timestamp() - epoch_time.timestamp()
         time_offset_second = int(time_offset)
         # nanosecond shift
-        if run_start_time.decode().count('.') == 0:
+        if self._run_start.decode().count('.') == 0:
             # zero sub-second offset
             time_offset_ns = 0
-        elif run_start_time.decode().count('.') == 1:
+        elif self._run_start.decode().count('.') == 1:
             # non-zero sub-second offset
             # has HH:MM:SS.nnnsssnnnss-05 format
-            sub_second_str = run_start_time.decode().split('.')[1].split('-')[0]
+            sub_second_str = self._run_start.decode().split('.')[1].split('-')[0]
             sub_seconds = float(sub_second_str)
             # convert from sub seconds to nano seconds
             # example: 676486982

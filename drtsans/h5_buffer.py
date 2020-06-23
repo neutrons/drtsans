@@ -221,12 +221,14 @@ class GroupNode(HDFNode):
             other_child = other_node.get_child(child_name)
             child.match(other_child)
 
-    def get_child(self, child_name):
+    def get_child(self, child_name, is_short_name=False):
         """Get a child
 
         Parameters
         ----------
-        child_name
+        child_name: str
+        is_short_name: bool
+            If True, concatenate the child name with current self._name
 
         Returns
         -------
@@ -234,8 +236,11 @@ class GroupNode(HDFNode):
             Child HDFNode
 
         """
-        child_node = None
+        # process name
+        if is_short_name:
+            child_name = f'{self._name}/{child_name}'
 
+        child_node = None
         for child_node_i in self._children:
             # print(f'check child with name {child_node_i.name}')
             if child_node_i.name == child_name:

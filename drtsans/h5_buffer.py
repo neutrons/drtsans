@@ -182,6 +182,25 @@ class GroupNode(HDFNode):
     def children(self):
         return self._children[:]
 
+    def _create_child_name(self, short_name):
+        """Create name of a child with full path from a short name
+
+        For example:
+            self._name = '/entry/DASlogs/Sampleid'
+            child short name = 'time'
+            child name with full path = '/entry/DASlogs/Sampleid/time'
+
+        Parameters
+        ----------
+        short_name: str
+            short name of child without full path
+
+        Returns
+        -------
+
+        """
+        return f'{self._name}/{short_name}'
+
     def match(self, other_node):
         """Compare this node with another node
 

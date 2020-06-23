@@ -139,15 +139,46 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
 
         self.add_attributes({'NX_class': b'NXlog'})
 
-        self._set_children()
+        self._set_time_value()
 
-    def _set_children(self):
-        """Set all the children nodes
+    def _set_time_value(self):
+        """Set time and value including
+        - average_value
+        - average_value_error
+        - maximum_value
+        - minimum_value
+        - time
+        - value
 
         Returns
         -------
 
         """
+
+        return
+
+    def set_device_info(self, device_id, device_name, target):
+        """Set node for device related information
+
+        Parameters
+        ----------
+        device_id
+        device_name
+        target
+
+        Returns
+        -------
+
+        """
+        # Create Device ID node
+        for node_name, info_value in [('device_id', device_id),
+                                      ('device_name', device_name),
+                                      ('target', target)]:
+            child_node = DataSetNode(name=self._create_child_name(node_name))
+            child_node.set_value(np.array(info_value))
+            self._children.append(child_node)
+
+        return
 
 
 class DasLogsCollectionNode(drtsans.h5_buffer.GroupNode):

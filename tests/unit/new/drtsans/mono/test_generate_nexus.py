@@ -47,12 +47,15 @@ def test_create_das_log_node(reference_dir):
     ssd_times = ssd_entry['time'].value
     ssd_start_time = ssd_entry['time'].attrs['start']
     ssd_value = ssd_entry['value'].value
-    ssd_value_unit = ssd_entry['value'].attrs['unit']
+    ssd_value_unit = ssd_entry['value'].attrs['units']
 
     # Set up a DAS log node
     ssd_test_node = DasLogNode(log_name='/entry/DASlogs/sample_detector_distance',
                                log_times=ssd_times, log_values=ssd_value,
                                start_time=ssd_start_time, log_unit=ssd_value_unit)
+
+    ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
+                                  target=b'/entry/DASlogs/CG2:SampleToDetRBV')
 
     assert ssd_test_node
 

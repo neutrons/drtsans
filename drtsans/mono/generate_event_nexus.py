@@ -115,21 +115,39 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
     """
     Node for one specific DAS log such as /entry/DASlogs/sample_detector_distance
     """
-    def __init__(self, log_name, log_times, log_values):
-        """
+    def __init__(self, log_name, log_times, start_time, log_values, log_unit):
+        """DAS log node for specific
 
         Parameters
         ----------
         log_name: str
             full path log name as /entry/DASlogs/{log_name}
-        log_times
-        log_values
+        log_times: numpy.ndarray
+            relative sample log time
+        start_time: str
+            ISO standard time for run start
+        log_values: numpy.ndarray
+            sample log values
+        log_unit: Byes
+            log unit
         """
         super(DasLogNode, self).__init__(name=log_name)
         self._log_times = log_times
+        self._run_start = start_time
         self._log_values = log_values
+        self._log_unit = log_unit
 
         self.add_attributes({'NX_class': b'NXlog'})
+
+        self._set_children()
+
+    def _set_children(self):
+        """Set all the children nodes
+
+        Returns
+        -------
+
+        """
 
 
 class DasLogsCollectionNode(drtsans.h5_buffer.GroupNode):

@@ -351,7 +351,17 @@ class DataSetNode(HDFNode):
         super(DataSetNode, self).match(other_node)
 
         # compare this one
-        np.testing.assert_allclose(self._value, other_node.value)
+        try:
+            np.testing.assert_allclose(self._value, other_node.value)
+        except TypeError:
+            # in case value is not float or integer
+            if self._value.shape != other_node.value.shape:
+                raise ValueError('Value have different shape')
+            this_value = self._value.flatten()
+            that_value = other_node.value.flatten()
+            for i in range(this_value.shape[0]):
+                if this_value[i] != that_value[i]:
+                    raise ValueError('Different values:\n 1: {}\n 2: {}'.format(self._value, other_node.value))
 
     def parse_h5_entry(self, h5_entry):
         """Parse HDF5 entry

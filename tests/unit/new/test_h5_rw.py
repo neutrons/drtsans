@@ -138,13 +138,13 @@ def test_check_type():
     """
     attributes = {'A': 3, 'B': 'hello world'}
 
-    node1 = HDFNode('base')
+    node1 = HDFNode('test')
     node1.add_attributes(attributes)
 
-    node2 = GroupNode('group')
+    node2 = GroupNode('test')
     node2.add_attributes(attributes)
 
-    node3 = DataSetNode('data')
+    node3 = DataSetNode('test')
     node3.add_attributes(attributes)
 
     # node 3 shall match to node 1

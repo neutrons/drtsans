@@ -15,7 +15,7 @@ class BankNode(drtsans.h5_buffer.GroupNode):
         super(BankNode, self).__init__()
 
         # add NX_class
-        self.add_attributes({'NX_class': 'NXevent_data'})
+        self.add_attributes({'NX_class': b'NXevent_data'})
 
     def set_events(self):
         """
@@ -38,9 +38,9 @@ class InstrumentNode(drtsans.h5_buffer.GroupNode):
         super(InstrumentNode, self).__init__(name='/entry/instrument')
 
         # add the NeXus class attributes
-        self.add_attributes({'NX_class': 'NXinstrument'})
+        self.add_attributes({'NX_class': b'NXinstrument'})
 
-    def set_instrument_info(self, target_station_number, beam_line, name):
+    def set_instrument_info(self, target_station_number, beam_line, name, short_name):
         """
 
         Parameters
@@ -71,6 +71,7 @@ class InstrumentNode(drtsans.h5_buffer.GroupNode):
         name_node = DataSetNode(name=f'{self.name}/name')
         name_node.set_1d_string([name])
         self.set_child(name_node)
+        name_node.add_attributes({'short_name': short_name})
 
     def set_idf(self, idf_str, idf_type, description):
         """Set instrument xml
@@ -91,7 +92,7 @@ class InstrumentNode(drtsans.h5_buffer.GroupNode):
         # Create the instrument_xml node
         xml_node_name = f'{self.name}/instrument_xml'
         xml_node = GroupNode(name=xml_node_name)
-        xml_node.add_attributes({'NX_class': 'NXnote'})
+        xml_node.add_attributes({'NX_class': b'NXnote'})
         self.set_child(xml_node)
 
         # add data node
@@ -128,7 +129,7 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
         self._log_times = log_times
         self._log_values = log_values
 
-        self.add_attributes({'NX_class': 'NXlog'})
+        self.add_attributes({'NX_class': b'NXlog'})
 
 
 class DasLogsCollectionNode(drtsans.h5_buffer.GroupNode):
@@ -140,7 +141,7 @@ class DasLogsCollectionNode(drtsans.h5_buffer.GroupNode):
         Initialization
         """
         super(DasLogsCollectionNode, self).__init__(name='/entry/DASlogs')
-        self.add_attributes({'NX_class': 'NXcollection'})
+        self.add_attributes({'NX_class': b'NXcollection'})
 
 
 class EventNeXusWriter(object):

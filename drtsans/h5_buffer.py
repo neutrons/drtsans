@@ -83,8 +83,11 @@ class HDFNode(object):
 
         # compare attributes
         if set(self._attributes.keys()) != set(other_node.attributes.keys()):
-            raise KeyError('Attributes are not same:\nself - other = {}]\nother - self = {}'
-                           ''.format(set(self._attributes.keys()) - set(other_node.attributes.keys()),
+            print('Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}'
+                  ''.format(self.name, set(self._attributes.keys()) - set(other_node.attributes.keys()),
+                            set(other_node.attributes.keys()) - set(self._attributes.keys())))
+            raise KeyError('Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}'
+                           ''.format(self.name, set(self._attributes.keys()) - set(other_node.attributes.keys()),
                                      set(other_node.attributes.keys()) - set(self._attributes.keys())))
 
         # compare attribute values
@@ -215,7 +218,7 @@ class GroupNode(HDFNode):
         child_node = None
 
         for child_node_i in self._children:
-            print(f'check child with name {child_node_i.name}')
+            # print(f'check child with name {child_node_i.name}')
             if child_node_i.name == child_name:
                 child_node = child_node_i
                 break
@@ -353,6 +356,8 @@ class DataSetNode(HDFNode):
         # compare this one
         try:
             np.testing.assert_allclose(self._value, other_node.value)
+        except AssertionError as ass_err:
+            raise ValueError(ass_err)
         except TypeError:
             # in case value is not float or integer
             if self._value.shape != other_node.value.shape:
@@ -412,7 +417,7 @@ class DataSetNode(HDFNode):
         -------
 
         """
-        self._value = np.array(str_list, dtype=str)
+        self._value = np.array(str_list)
 
     def write(self, parent_entry):
         """Write buffer node to an HDF entry

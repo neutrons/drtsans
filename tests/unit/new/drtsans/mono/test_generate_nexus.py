@@ -36,18 +36,19 @@ def test_create_instrument_node(reference_dir):
     source_root = parse_h5_entry(nexus_h5)
 
     # IDF in XML
-    xml_idf = str(nexus_h5['entry']['instrument']['instrument_xml']['data'].value[0])
+    xml_idf = nexus_h5['entry']['instrument']['instrument_xml']['data'][(0)]
 
     # Create new instrument node
     test_node = InstrumentNode()
-    test_node.set_idf(xml_idf, idf_type='text/xml', description='XML contents of the instrument IDF')
-    test_node.set_instrument_info(target_station_number=1, beam_line='CG2', name='CG2')
+    test_node.set_idf(xml_idf, idf_type=b'text/xml', description=b'XML contents of the instrument IDF')
+    test_node.set_instrument_info(target_station_number=1, beam_line=b'CG2', name=b'CG2', short_name=b'CG2')
 
     # Verify
     # attributes
-    source_instrument = source_root.get_child('/entry/instrument')
+    source_instrument = source_root.get_child('/entry').get_child('/entry/instrument')
 
     # attributes
+    # cannot get b'NXinstrument'
     assert source_instrument.attributes == test_node.attributes, '{} shall be same as {}' \
                                                                  ''.format(source_instrument.attributes,
                                                                            test_node.attributes)

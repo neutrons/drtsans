@@ -73,7 +73,7 @@ class HDFNode(object):
 
         """
         # compare class type
-        if isinstance(other_node, type(self)):
+        if not isinstance(other_node, type(self)):
             raise TypeError('Try to match instance of class {} (other) to {} (self)'
                             ''.format(type(other_node), type(self)))
 

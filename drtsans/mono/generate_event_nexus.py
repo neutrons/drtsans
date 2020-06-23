@@ -47,9 +47,9 @@ class InstrumentNode(drtsans.h5_buffer.GroupNode):
         ----------
         target_station_number: int
             target station number.  1 is used for HFIR
-        beam_line: str
+        beam_line: Bytes
             CG2, CG3
-        name: str
+        name: Bytes
             CG2, CG3
 
         Returns
@@ -78,11 +78,11 @@ class InstrumentNode(drtsans.h5_buffer.GroupNode):
 
         Parameters
         ----------
-        idf_str: str
+        idf_str: Bytes
             IDF XML string
-        idf_type: str
+        idf_type: Bytes
             IDF type
-        description: str
+        description: Bytes
             Description
 
         Returns

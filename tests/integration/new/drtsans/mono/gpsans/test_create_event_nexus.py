@@ -7,6 +7,7 @@ import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
 from drtsans.h5_buffer import FileNode, GroupNode
+from drtsans.mono.generate_event_nexus import InstrumentNode
 
 
 def test_hello_world():
@@ -257,6 +258,30 @@ def copy_event_nexus(source_nexus, target_nexus):
 
 
 def set_instrument_node(source_entry_node, target_entry_node):
+    """Set instrument node
+
+    Parameters
+    ----------
+    source_entry_node
+    target_entry_node
+
+    Returns
+    -------
+
+    """
+    # IDF in XML
+    xml_idf = source_entry_node.get_child('instrument').get_child('instrument_xml').get_child('data').value[0]
+
+    # Create new instrument node
+    instrument_node = InstrumentNode()
+    target_entry_node.set_child(instrument_node)
+
+    # Set values
+    instrument_node.set_idf(xml_idf, idf_type=b'text/xml', description=b'XML contents of the instrument IDF')
+    instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG2', name=b'CG2', short_name=b'CG2')
+
+
+def set_instrument_node_by_copy(source_entry_node, target_entry_node):
     # now work with instrument
     source_instrument = source_entry_node.get_child('/entry/instrument')
 

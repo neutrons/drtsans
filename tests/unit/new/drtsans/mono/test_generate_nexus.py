@@ -36,7 +36,7 @@ def test_create_instrument_node(reference_dir):
     source_root = parse_h5_entry(nexus_h5)
 
     # IDF in XML
-    xml_idf = nexus_h5['entry']['instrument']['instrument_xml']['data'][(0)]
+    xml_idf = nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
 
     # Create new instrument node
     test_node = InstrumentNode()

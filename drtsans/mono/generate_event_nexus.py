@@ -206,10 +206,10 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
         min_value = np.min(self._log_values)
         max_value = np.max(self._log_values)
 
-        for child_name, child_value in [('average_value', average_value),
-                                        ('average_value_error', average_value_error),
-                                        ('maximum_value', max_value),
-                                        ('minimum_value', min_value),
+        for child_name, child_value in [('average_value', [average_value]),
+                                        ('average_value_error', [average_value_error]),
+                                        ('maximum_value', [max_value]),
+                                        ('minimum_value', [min_value]),
                                         ('value', self._log_values)]:
             child_node = DataSetNode(name=self._create_child_name(child_name))
             child_node.set_value(np.array(child_value))
@@ -230,10 +230,11 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
 
         """
         # Create Device ID node
-        for node_name, info_value in [('device_id', device_id),
-                                      ('device_name', device_name),
-                                      ('target', target)]:
+        for node_name, info_value in [('device_id', [device_id]),
+                                      ('device_name', [device_name]),
+                                      ('target', [target])]:
             child_node = DataSetNode(name=self._create_child_name(node_name))
+            print(f'DEBUG {child_node.name} set value = {info_value}')
             child_node.set_value(np.array(info_value))
             self.set_child(child_node)
 

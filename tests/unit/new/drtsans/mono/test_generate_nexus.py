@@ -55,12 +55,12 @@ def test_create_das_log_node(reference_dir):
                                start_time=ssd_start_time, log_unit=ssd_value_unit)
 
     ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
-                                  target=b'/entry/DASlogs/CG2:SampleToDetRBV')
+                                  target=b'/entry/DASlogs/CG2:CS:SampleToDetRBV')
 
     # match: to entry/DASlogs/sample_detector_distance
     expected_node = source_root.get_child('entry', is_short_name=True).get_child('DASlogs', is_short_name=True)
     expected_node = expected_node.get_child('sample_detector_distance', is_short_name=True)
-    ssd_test_node.match(expected_node)
+    expected_node.match(ssd_test_node)
 
     # Close HDF5
     nexus_h5.close()

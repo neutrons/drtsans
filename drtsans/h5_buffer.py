@@ -388,7 +388,8 @@ class DataSetNode(HDFNode):
         except TypeError:
             # in case value is not float or integer
             if self._value.shape != other_node.value.shape:
-                raise ValueError('Value have different shape')
+                print(f'Node {self._name}: Value have different shape: self = {self.value.shape}, other = {other_node.value.shape}')
+                raise ValueError(f'Node {self._name}: Value have different shape: self = {self.value.shape}, other = {other_node.value.shape}')
             this_value = self._value.flatten()
             that_value = other_node.value.flatten()
             for i in range(this_value.shape[0]):

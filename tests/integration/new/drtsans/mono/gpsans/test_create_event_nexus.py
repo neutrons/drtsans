@@ -7,7 +7,7 @@ import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
 from drtsans.h5_buffer import FileNode, GroupNode
-from drtsans.mono.generate_event_nexus import InstrumentNode
+from drtsans.mono.generate_event_nexus import InstrumentNode, DasLogNode
 
 
 def test_hello_world():
@@ -248,7 +248,7 @@ def copy_event_nexus(source_nexus, target_nexus):
     set_instrument_node(nexus_h5, target_entry_node)
 
     # set DAS logs
-    set_das_log_node(entry_node, target_entry_node)
+    set_das_log_node(nexus_h5, entry_node, target_entry_node)
 
     # write
     target_root_node.write(target_nexus)
@@ -297,7 +297,21 @@ def set_instrument_node_by_copy(source_entry_node, target_entry_node):
         target_instrument.set_child(child)
 
 
-def set_das_log_node(source_entry_node, target_entry_node):
+def set_das_log_node(source_h5, source_entry_node, target_entry_node):
+    """Set DAS log node in a mixed way
+
+    Parameters
+    ----------
+    source_h5: H5 file
+    source_entry_node: GroupNode
+        source node
+    target_entry_node: GroupNode
+        target node
+
+    Returns
+    -------
+
+    """
     target_logs_node = GroupNode('/entry/DASlogs')
     target_entry_node.set_child(target_logs_node)
     # add attribute
@@ -309,7 +323,7 @@ def set_das_log_node(source_entry_node, target_entry_node):
     # Specify white list
     logs_white_list = ['CG2:CS:SampleToSi',
                        'wavelength', 'wavelength_spread',
-                       'sample_detector_distance',
+                       # 'sample_detector_distance',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback']
     for child_log in source_logs_node.children:
@@ -322,6 +336,29 @@ def set_das_log_node(source_entry_node, target_entry_node):
         else:
             # target_logs_node.set_child(child_log)
             continue
+
+    # Add sample_detector_distance  manually
+    set_sdd_node(target_logs_node, source_h5)
+
+
+def set_sdd_node(log_collection_node, source_h5):
+    # Get times and value for /entry/DASlogs/sample_detector_distance
+    ssd_entry = source_h5['entry']['DASlogs']['sample_detector_distance']
+    ssd_times = ssd_entry['time'].value
+    ssd_start_time = ssd_entry['time'].attrs['start']
+    ssd_value = ssd_entry['value'].value
+    ssd_value_unit = ssd_entry['value'].attrs['units']
+
+    # Set up a DAS log node
+    ssd_test_node = DasLogNode(log_name='/entry/DASlogs/sample_detector_distance',
+                               log_times=ssd_times, log_values=ssd_value,
+                               start_time=ssd_start_time, log_unit=ssd_value_unit)
+
+    ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
+                                  target=b'/entry/DASlogs/CG2:CS:SampleToDetRBV')
+
+    # append to parent node
+    log_collection_node.set_child(ssd_test_node)
 
 
 def copy_event_nexus_prototype(source_nexus, target_nexus):

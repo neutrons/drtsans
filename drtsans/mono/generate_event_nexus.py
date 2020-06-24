@@ -234,7 +234,6 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
                                       ('device_name', [device_name]),
                                       ('target', [target])]:
             child_node = DataSetNode(name=self._create_child_name(node_name))
-            print(f'DEBUG {child_node.name} set value = {info_value}')
             child_node.set_value(np.array(info_value))
             self.set_child(child_node)
 

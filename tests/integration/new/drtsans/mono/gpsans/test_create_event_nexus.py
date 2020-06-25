@@ -7,7 +7,7 @@ import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
 from drtsans.files.hdf5_rw import FileNode, GroupNode
-from drtsans.files.event_nexus_rw import InstrumentNode, DasLogNode, BankNode
+from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 
 
 def test_copy_h5_file(reference_dir, cleanfile):

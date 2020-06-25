@@ -43,7 +43,7 @@ def test_create_events_node(reference_dir):
     source_root = parse_h5_entry(nexus_h5)
 
     # Get a bank node
-    bank9_entry = nexus_h5['bank9_events']
+    bank9_entry = nexus_h5['/entry/bank9_events']
     event_ids = bank9_entry['event_id'][()]
     event_indexes = bank9_entry['event_index'][()]
     event_time_offsets = bank9_entry['event_time_offset'][()]

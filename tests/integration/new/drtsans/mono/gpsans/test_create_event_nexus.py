@@ -10,10 +10,6 @@ from drtsans.h5_buffer import FileNode, GroupNode
 from drtsans.mono.generate_event_nexus import InstrumentNode, DasLogNode
 
 
-def test_hello_world():
-    assert 'Hello World!'
-
-
 def test_copy_h5_file(reference_dir, cleanfile):
     """Test duplicating an HDF5/NeXus.
     Verification is to load both original and duplicated file and compare to each other
@@ -47,64 +43,6 @@ def test_copy_h5_file(reference_dir, cleanfile):
 
     # Load source file to workspace
     source_ws = load_events(source_nexus, output_workspace='cg2_source')
-
-    # Load the duplicated
-    target_ws = load_events(target_nexus, output_workspace='cg2_duplicated')
-
-    # Compare counts on each pixel
-    source_y = source_ws.extractY()
-    target_y = target_ws.extractY()
-    np.testing.assert_allclose(source_y, target_y)
-
-    # Compare pixels' positions
-    num_hist = source_ws.getNumberHistograms()
-    for iws in range(0, num_hist, 100):
-        source_det_i_pos = source_ws.getInstrument().getDetector(iws).getPos()
-        target_det_i_pos = target_ws.getInstrument().getDetector(iws).getPos()
-        np.testing.assert_allclose(source_det_i_pos, target_det_i_pos,
-                                   err_msg=f'Mismatch is detected at Detector {iws}')
-    # Check source position
-    source_moderator_pos = source_ws.getInstrument().getSource().getPos()
-    target_moderator_pos = target_ws.getInstrument().getSource().getPos()
-    np.testing.assert_allclose(source_moderator_pos, target_moderator_pos,
-                               err_msg=f'Mismatch is detected at neutron source position')
-
-    # Compare meta data
-    assert len(source_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
-
-
-def next_test_copy_nexus(reference_dir, cleanfile):
-    """Test creating event NeXus file, loading it and compare to the original event NeXus.
-
-    Test data: GPSANS run 9166
-
-    Returns
-    -------
-
-    """
-    # Get the source file
-    test_nexus_name = 'CG2_9177.nxs.h5'
-    source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
-    assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
-
-    # Duplicate the source file to the temporary directory
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/nexus'
-    cleanfile(output_dir)
-    if not os.path.exists(output_dir):
-        os.mkdir('/tmp/nexus')
-    target_nexus = os.path.join(output_dir, 'CG2_9177.nxs.h5')
-
-    # Load the source
-    nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = parse_h5_entry(nexus_h5)
-    nexus_h5.close()
-
-    # Duplicate
-    source_root.write(target_nexus)
-
-    # Load source file to workspace
-    source_ws = load_events(test_nexus_name, output_workspace='cg2_source')
 
     # Load the duplicated
     target_ws = load_events(target_nexus, output_workspace='cg2_duplicated')
@@ -184,18 +122,10 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         plot_reduction_output(out, reduction_input, loglog=False)
 
 
-def copy_event_nexus_prototype01(source_nexus, target_nexus):
+def generate_event_nexus(source_nexus, target_nexus):
+    """Generate an event nexus file from source Nexus file
 
-    nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = parse_h5_entry(nexus_h5)
-    # Duplicate
-    source_root.write(target_nexus)
-    # close HDF5
-    nexus_h5.close()
-
-
-def copy_event_nexus(source_nexus, target_nexus):
-    """
+    This is the test case for various NeXus nodes
 
     Parameters
     ----------
@@ -236,7 +166,7 @@ def copy_event_nexus(source_nexus, target_nexus):
                          '/entry/entry_identifier',
                          '/entry/definition',
                          '/entry/total_uncounted_counts',
-                         # TODO '/entry/bank11_events',  # create node explicitly
+                         '/entry/bank9_events',  # create node explicitly
                          '/entry/Software']
 
     # get children from entry node and duplicate except black list nodes
@@ -250,11 +180,32 @@ def copy_event_nexus(source_nexus, target_nexus):
     # set DAS logs
     set_das_log_node(nexus_h5, entry_node, target_entry_node)
 
+    # set Bank 9
+    set_bank9_node(nexus_h5, entry_node, target_entry_node)
+
     # write
     target_root_node.write(target_nexus)
 
     # close original file
     nexus_h5.close()
+
+
+def set_bank9_node(source_h5, source_entry_node, target_entry_node):
+    """
+
+    Parameters
+    ----------
+    source_h5
+    source_entry_node
+    target_entry_node
+
+    Returns
+    -------
+
+    """
+    assert source_h5
+    assert source_entry_node
+    assert target_entry_node
 
 
 def set_instrument_node(source_h5, target_entry_node):
@@ -279,22 +230,6 @@ def set_instrument_node(source_h5, target_entry_node):
     # Set values
     instrument_node.set_idf(xml_idf, idf_type=b'text/xml', description=b'XML contents of the instrument IDF')
     instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG2', name=b'CG2', short_name=b'CG2')
-
-
-def set_instrument_node_by_copy(source_entry_node, target_entry_node):
-    # now work with instrument
-    source_instrument = source_entry_node.get_child('/entry/instrument')
-
-    target_instrument = GroupNode(source_instrument.name)
-    target_entry_node.set_child(target_instrument)
-    target_instrument.add_attributes(source_instrument.attributes)
-    # add all but not bank...
-    for child in source_instrument.children:
-        # skip all the bank*_events entries
-        if child.name.split('/')[-1].startswith('bank'):
-            print(f'skip node: {child.name}')
-            continue   # not duplicating these entries
-        target_instrument.set_child(child)
 
 
 def set_das_log_node(source_h5, source_entry_node, target_entry_node):
@@ -506,7 +441,8 @@ def copy_event_nexus_prototype(source_nexus, target_nexus):
 
 
 def test_reduction(reference_dir):
-    """Test reduction result between raw and generated event nexus file
+    """Test generate (partially copy) an event Nexus file by
+    verifying reduction result between raw and generated event nexus file
 
     Testing is modified from mono.gpsans.test_overwrite_geometry_meta_data.test_no_overwrite()
 
@@ -530,13 +466,7 @@ def test_reduction(reference_dir):
     target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
 
     # copy_event_nexus(source_nexus, target_nexus)
-    copy_event_nexus(source_nexus, target_nexus)
-
-    # nexus_h5 = h5py.File(source_nexus, 'r')
-    # source_root = parse_h5_entry(nexus_h5)
-    # nexus_h5.close()
-    # # Duplicate
-    # source_root.write(target_nexus)
+    generate_event_nexus(source_nexus, target_nexus)
 
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     # output_dir = mkdtemp(prefix='meta_overwrite_test1')

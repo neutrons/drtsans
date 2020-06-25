@@ -428,4 +428,3 @@ def calculate_time_offsets(iso_time):
         time_offset_ns = int((time_offset - time_offset_second) * 1E9)
 
     return time_offset_second, time_offset_ns
-

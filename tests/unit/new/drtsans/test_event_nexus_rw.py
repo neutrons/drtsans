@@ -2,12 +2,12 @@ import pytest
 import numpy as np
 import os
 import h5py
-from drtsans.h5_buffer import parse_h5_entry
-from drtsans.mono.generate_event_nexus import EventNeXusWriter
-from drtsans.mono.generate_event_nexus import convert_histogram_to_events
-from drtsans.mono.generate_event_nexus import InstrumentNode
-from drtsans.mono.generate_event_nexus import BankNode
-from drtsans.mono.generate_event_nexus import DasLogNode
+from drtsans.files.hdf5_rw import parse_h5_entry
+from drtsans.files.event_nexus_rw import EventNeXusWriter
+from drtsans.files.event_nexus_rw import convert_histogram_to_events
+from drtsans.files.event_nexus_rw import InstrumentNode
+from drtsans.files.event_nexus_rw import BankNode
+from drtsans.files.event_nexus_rw import DasLogNode
 
 
 def test_imports():

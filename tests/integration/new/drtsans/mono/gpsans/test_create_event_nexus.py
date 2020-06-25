@@ -1,13 +1,13 @@
 import pytest
 import numpy as np
 import os
-from drtsans.h5_buffer import parse_h5_entry
+from drtsans.files.hdf5_rw import parse_h5_entry
 from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
-from drtsans.h5_buffer import FileNode, GroupNode
-from drtsans.mono.generate_event_nexus import InstrumentNode, DasLogNode, BankNode
+from drtsans.files.hdf5_rw import FileNode, GroupNode
+from drtsans.files.event_nexus_rw import InstrumentNode, DasLogNode, BankNode
 
 
 def test_copy_h5_file(reference_dir, cleanfile):

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from drtsans.h5_buffer import HDFNode, GroupNode, DataSetNode
+from drtsans.files.hdf5_rw import HDFNode, GroupNode, DataSetNode
 
 
 def test_create_base_node():

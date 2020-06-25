@@ -1,6 +1,11 @@
 import numpy as np
 from collections import namedtuple
 
+__all__ = ['TofHistogram', 'EventNeXusWriter', 'generate_events_from_histogram', 'convert_events_to_histogram']
+
+# Specify parameter
+TofHistogram = namedtuple('Histogram', ['pixel_ids', 'counts', 'pulse_duration', 'tof_min', 'tof_max'])
+
 
 class EventNeXusWriter(object):
     """
@@ -28,8 +33,8 @@ class EventNeXusWriter(object):
         self._run_start = run_start_time
 
 
-def convert_histogram_to_events(det_id_array, det_counts_array, pulse_duration,
-                                min_tof=2000, max_tof=1000, tof_resolution=0.1):
+def generate_events_from_histogram(det_id_array, det_counts_array, pulse_duration,
+                                   min_tof=2000, max_tof=1000, tof_resolution=0.1):
     """Convert histogram (counts on detector pixels) to 'fake' events
 
     Parameters
@@ -54,16 +59,16 @@ def convert_histogram_to_events(det_id_array, det_counts_array, pulse_duration,
     return
 
 
-def convert_to_histogram_bank(bank_entry):
+def convert_events_to_histogram(bank_entry):
     """Convert events information in bank to histogram
 
     Parameters
     ----------
-    bank_entry
+    bank_entry:
 
     Returns
     -------
-    ~namedtuple
+    TofHistogram
         Histogram converted from TOF bank information
 
     """
@@ -86,7 +91,6 @@ def convert_to_histogram_bank(bank_entry):
     tof_array = bank_entry['event_time_offset'][()]
 
     # Define namedtuple to record histogram from TOF events
-    TofHistogram = namedtuple('Histogram', ['pixel_ids', 'counts', 'pulse_duration', 'tof_min', 'tof_max'])
     histogram = TofHistogram(pixel_id_array, pixel_counts_array, pulse_duration,
                              tof_array.min(), tof_array.max())
 

@@ -2,8 +2,8 @@ import pytest
 import os
 import h5py
 from drtsans.files.event_nexus_rw import EventNeXusWriter
-from drtsans.files.event_nexus_rw import convert_histogram_to_events
-from drtsans.files.event_nexus_rw import convert_to_histogram_bank
+from drtsans.files.event_nexus_rw import generate_events_from_histogram
+from drtsans.files.event_nexus_rw import convert_events_to_histogram
 
 
 def test_imports():
@@ -17,7 +17,7 @@ def test_convert_histogram_to_events():
     -------
 
     """
-    assert convert_histogram_to_events
+    assert generate_events_from_histogram
 
 
 def test_convert_to_histogram(reference_dir):
@@ -37,7 +37,7 @@ def test_convert_to_histogram(reference_dir):
 
     # test with bank 9
     bank9_entry = nexus_h5['/entry/bank9_events']
-    bank9_histogram = convert_to_histogram_bank(bank9_entry)
+    bank9_histogram = convert_events_to_histogram(bank9_entry)
     #  pixel_id_array, pixel_counts_array, pulse_duration, tof_array.min(), tof_array.max()
 
     # close  file

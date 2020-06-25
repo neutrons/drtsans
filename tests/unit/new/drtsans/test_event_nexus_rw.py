@@ -44,11 +44,14 @@ def test_convert_to_histogram(reference_dir):
     nexus_h5.close()
 
     # verify
-    assert bank9_histogram.counts.shape == (982, )
+    assert bank9_histogram.counts.shape == (992, )
+    # pixel ID 17000 (ws index 17000 too) at index 597 has 224 counts
+    assert bank9_histogram.pixel_ids[597] == 17000
+    assert bank9_histogram.counts[597] == 224
     assert bank9_histogram.pixel_ids.min() >= 16384 and bank9_histogram.pixel_ids.max() < 17408
-    assert bank9_histogram.pulse_duration == pytest.approx(0.01666667, 1.E-6)
-    assert bank9_histogram.min_tof >= 0.0
-    assert bank9_histogram.max_tof == pytest.approx(16666.6, 0.1)
+    assert bank9_histogram.pulse_duration == pytest.approx(0.01666667, 1.E-4)
+    assert bank9_histogram.tof_min >= 0.0
+    assert bank9_histogram.tof_max == pytest.approx(16666.2, 0.1)
 
 
 if __name__ == '__main__':

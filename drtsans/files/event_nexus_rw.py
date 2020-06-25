@@ -335,7 +335,6 @@ class DasLogsCollectionNode(drtsans.files.hdf5_rw.GroupNode):
         self.add_attributes({'NX_class': b'NXcollection'})
 
 
-
 def calculate_time_offsets(iso_time):
     """Calculate time offset from 1990.01.01
 

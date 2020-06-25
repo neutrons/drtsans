@@ -12,23 +12,104 @@ class BankNode(drtsans.h5_buffer.GroupNode):
     """Node for bank entry such as /entry/bank12
 
     """
-    def __init__(self):
-        """
+    def __init__(self, name, bank_name):
+        """Initialization
 
+        Parameters
+        ----------
+        name: str
+            Bank node name
+        bank_name: str
+            name of bank, such as 'bank10' or 'bank39'
         """
-        super(BankNode, self).__init__()
+        self._bank_name = bank_name
+
+        super(BankNode, self).__init__(name)
 
         # add NX_class
         self.add_attributes({'NX_class': b'NXevent_data'})
 
-    def set_events(self):
+    def set_events(self, event_id_array, event_index_array, event_time_offset_array,
+                   run_start_time, event_time_zero_array):
         """
+
+        Parameters
+        ----------
+        event_id_array: numpy.ndarray
+            pixel IDs for each event.  Size is equal to number of events
+        event_time_offset_array: numpy.ndarray
+            TOF of each neutron event.  Size is equal to number of events
+        event_time_zero_array: numpy.ndarray
+            Staring time, as seconds offset to run start time, of each pulse
+        run_start_time: str
+            Run start time in ISO standard
+        event_index_array: numpy.ndarray
+            Index of staring event in each pulse.  Size is equal to number of pulses
 
         Returns
         -------
 
         """
-        pass
+        # Check inputs
+        assert event_id_array.shape == event_time_offset_array.shape
+        assert event_time_zero_array.shape == event_index_array.shape
+
+        # Total counts
+        total_counts = len(event_id_array)
+
+        # For all children except event time
+        for child_name, child_value, child_units in [('event_id', event_id_array, None),
+                                                     ('event_index', event_index_array, None),
+                                                     ('event_time_offset', event_time_offset_array, b'microsecond'),
+                                                     ('total_counts', [total_counts], None)]:
+            child_node = DataSetNode(name=self._create_child_name(child_name))
+            child_node.set_value(np.array(child_value))
+            # add target
+            target_value = f'/entry/DASlogs/instrument/{self._name}/{child_name}'.encode()
+            child_node.add_attributes({'target': target_value})
+
+            if child_value is not None:
+                child_node.add_attributes({'units': child_units})
+            self.set_child(child_node)
+
+        # Set pulse time node
+        self._set_pulse_time_node(event_time_zero_array, run_start_time)
+
+    def _set_pulse_time_node(self, event_time_zero_array, run_start_time):
+        """Set pulse time zero node
+
+        # add attriutes including
+        # offset : run start time
+        # offset_nanoseconds
+        # offset_seconds
+
+        Parameters
+        ----------
+        event_time_zero_array: numpy.ndarray
+            Staring time, as seconds offset to run start time, of each pulse
+        run_start_time: str
+            run start time in ISO format
+
+        Returns
+        -------
+
+        """
+        # calculate run start time offset
+        offset_second, offset_ns = calculate_time_offsets(run_start_time)
+
+        # Special for event_time_zero node
+        pulse_time_node = DataSetNode(name=self._create_child_name('event_time_zero'))
+        # link to self/its parent
+        self.set_child(pulse_time_node)
+        # set value
+        pulse_time_node.set_value(event_time_zero_array)
+        # set up attribution dictionary
+        pulse_attr_dict = {'units': 'second',
+                           'target': b'/entry/DASlogs/frequency/time',
+                           'offset': run_start_time.encode(),
+                           'offset_nanoseconds': offset_ns,
+                           'offset_seconds': offset_second}
+        pulse_time_node.add_attributes(pulse_attr_dict)
 
 
 class InstrumentNode(drtsans.h5_buffer.GroupNode):
@@ -157,28 +238,30 @@ class DasLogNode(drtsans.h5_buffer.GroupNode):
         -------
 
         """
-        # convert date time in IOS string to datetime instance
-        run_start_time = dateutil.parser.parse(self._run_start)
-        epoch_time = datetime.datetime(1990, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(0)))
-        # offsets
-        time_offset = run_start_time.timestamp() - epoch_time.timestamp()
-        time_offset_second = int(time_offset)
-        # nanosecond shift
-        if self._run_start.decode().count('.') == 0:
-            # zero sub-second offset
-            time_offset_ns = 0
-        elif self._run_start.decode().count('.') == 1:
-            # non-zero sub-second offset
-            # has HH:MM:SS.nnnsssnnnss-05 format
-            sub_second_str = self._run_start.decode().split('.')[1].split('-')[0]
-            sub_seconds = float(sub_second_str)
-            # convert from sub seconds to nano seconds
-            # example: 676486982
-            digits = int(math.log(sub_seconds) / math.log(10)) + 1
-            time_offset_ns = int(sub_seconds * 10**(9 - digits))
-        else:
-            # more than 1 '.': not knowing the case.  Use robust solution
-            time_offset_ns = int((time_offset - time_offset_second) * 1E9)
+        # # convert date time in IOS string to datetime instance
+        # run_start_time = dateutil.parser.parse(self._run_start)
+        # epoch_time = datetime.datetime(1990, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(0)))
+        # # offsets
+        # time_offset = run_start_time.timestamp() - epoch_time.timestamp()
+        # time_offset_second = int(time_offset)
+        # # nanosecond shift
+        # if self._run_start.decode().count('.') == 0:
+        #     # zero sub-second offset
+        #     time_offset_ns = 0
+        # elif self._run_start.decode().count('.') == 1:
+        #     # non-zero sub-second offset
+        #     # has HH:MM:SS.nnnsssnnnss-05 format
+        #     sub_second_str = self._run_start.decode().split('.')[1].split('-')[0]
+        #     sub_seconds = float(sub_second_str)
+        #     # convert from sub seconds to nano seconds
+        #     # example: 676486982
+        #     digits = int(math.log(sub_seconds) / math.log(10)) + 1
+        #     time_offset_ns = int(sub_seconds * 10**(9 - digits))
+        # else:
+        #     # more than 1 '.': not knowing the case.  Use robust solution
+        #     time_offset_ns = int((time_offset - time_offset_second) * 1E9)
+
+        time_offset_second, time_offset_ns = calculate_time_offsets(self._run_start)
 
         # Now I set up time related attributes
         time_node = DataSetNode(name=self._create_child_name('time'))
@@ -302,3 +385,47 @@ def convert_histogram_to_events(det_id_array, det_counts_array, pulse_duration,
     # get total counts
 
     return
+
+
+def calculate_time_offsets(iso_time):
+    """Calculate time offset from 1990.01.01
+
+    Parameters
+    ----------
+    iso_time: str, bytes
+        time in ISO format
+    Returns
+    -------
+    tuple
+        offset time in second (whole number), offset time in nanosecond (whole number)
+
+    """
+    # convert
+    if isinstance(iso_time, bytes):
+        iso_time = iso_time.decode()
+
+    # convert date time in IOS string to datetime instance
+    run_start_time = dateutil.parser.parse(iso_time)
+    epoch_time = datetime.datetime(1990, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(0)))
+    # offsets
+    time_offset = run_start_time.timestamp() - epoch_time.timestamp()
+    time_offset_second = int(time_offset)
+    # nanosecond shift
+    if iso_time.count('.') == 0:
+        # zero sub-second offset
+        time_offset_ns = 0
+    elif iso_time.count('.') == 1:
+        # non-zero sub-second offset
+        # has HH:MM:SS.nnnsssnnnss-05 format
+        sub_second_str = iso_time.split('.')[1].split('-')[0]
+        sub_seconds = float(sub_second_str)
+        # convert from sub seconds to nano seconds
+        # example: 676486982
+        digits = int(math.log(sub_seconds) / math.log(10)) + 1
+        time_offset_ns = int(sub_seconds * 10**(9 - digits))
+    else:
+        # more than 1 '.': not knowing the case.  Use robust solution
+        time_offset_ns = int((time_offset - time_offset_second) * 1E9)
+
+    return time_offset_second, time_offset_ns
+

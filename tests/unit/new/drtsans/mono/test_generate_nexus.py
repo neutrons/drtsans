@@ -1,10 +1,12 @@
 import pytest
+import numpy as np
 import os
 import h5py
 from drtsans.h5_buffer import parse_h5_entry
 from drtsans.mono.generate_event_nexus import EventNeXusWriter
 from drtsans.mono.generate_event_nexus import convert_histogram_to_events
 from drtsans.mono.generate_event_nexus import InstrumentNode
+from drtsans.mono.generate_event_nexus import BankNode
 from drtsans.mono.generate_event_nexus import DasLogNode
 
 
@@ -20,6 +22,44 @@ def test_convert_histogram_to_events():
 
     """
     assert convert_histogram_to_events
+
+
+def test_create_events_node(reference_dir):
+    """Test to create a Bank event node
+
+    Parameters
+    ----------
+    reference_dir
+
+    Returns
+    -------
+
+    """
+    # Parse NeXus file manually for the values nodes
+    source_nexus = os.path.join(reference_dir.new.gpsans, 'CG2_9166.nxs.h5')
+
+    # Parse the source HDF5
+    nexus_h5 = h5py.File(source_nexus, 'r')
+    source_root = parse_h5_entry(nexus_h5)
+
+    # Get a bank node
+    bank9_entry = nexus_h5['bank9_events']
+    event_ids = bank9_entry['event_id'][()]
+    event_indexes = bank9_entry['event_index'][()]
+    event_time_offsets = bank9_entry['event_time_offset'][()]
+    event_time_zeros = bank9_entry['event_time_zero'][(())]
+    run_start_time = bank9_entry['event_time_zero'].attrs['offset'].decode()
+
+    # check type
+    assert isinstance(event_ids, np.ndarray)
+
+    # Create bank node for bank 9
+    bank9_node = BankNode(name='/entry/bank9_events', bank_name='bank9')
+    bank9_node.set_events(event_ids, event_indexes, event_time_offsets, run_start_time, event_time_zeros)
+
+    # Verify
+    expected_bank9_node = source_root.get_child('/entry').get_child('bank9_events', is_short_name=True)
+    expected_bank9_node.match(bank9_node)
 
 
 def test_create_das_log_node(reference_dir):

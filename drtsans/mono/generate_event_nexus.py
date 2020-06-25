@@ -68,7 +68,7 @@ class BankNode(drtsans.h5_buffer.GroupNode):
             target_value = f'/entry/DASlogs/instrument/{self._name}/{child_name}'.encode()
             child_node.add_attributes({'target': target_value})
 
-            if child_value is not None:
+            if child_units is not None:
                 child_node.add_attributes({'units': child_units})
             self.set_child(child_node)
 

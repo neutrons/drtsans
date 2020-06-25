@@ -33,20 +33,15 @@ class EventNeXusWriter(object):
         self._run_start = run_start_time
 
 
-def generate_events_from_histogram(det_id_array, det_counts_array, pulse_duration,
-                                   min_tof=2000, max_tof=1000, tof_resolution=0.1):
+def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):
     """Convert histogram (counts on detector pixels) to 'fake' events
 
     Parameters
     ----------
-    det_id_array
-    det_counts_array
-    pulse_duration: float
-        pulse period duration in unit of second
-    min_tof: float
-        minimum TOF value in unit of microsecond
-    max_tof: float
-        maximum TOF value in unit of microsecond
+    bank_histogram: TofHistogram
+        Histogram for a single bank
+    tof_resolution: float
+        resolution of TOF
 
     Returns
     -------
@@ -55,6 +50,8 @@ def generate_events_from_histogram(det_id_array, det_counts_array, pulse_duratio
 
     """
     # get total counts
+    assert bank_histogram
+    assert tof_resolution
 
     return
 

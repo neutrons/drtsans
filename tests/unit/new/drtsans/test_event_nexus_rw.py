@@ -10,16 +10,6 @@ def test_imports():
     assert EventNeXusWriter
 
 
-def test_convert_histogram_to_events():
-    """
-
-    Returns
-    -------
-
-    """
-    assert generate_events_from_histogram
-
-
 def test_convert_to_histogram(reference_dir):
     """Test method to convert a single bank's TOF events to histogram
 
@@ -52,6 +42,26 @@ def test_convert_to_histogram(reference_dir):
     assert bank9_histogram.pulse_duration == pytest.approx(0.01666667, 1.E-4)
     assert bank9_histogram.tof_min >= 0.0
     assert bank9_histogram.tof_max == pytest.approx(16666.2, 0.1)
+
+
+def test_convert_histogram_to_events(reference_dir):
+    """
+
+    Returns
+    -------
+
+    """
+    # Create a TofHistogram from bank9
+    nexus_name = os.path.join(reference_dir.new.gpsans, 'CG2_9166.nxs.h5')
+    nexus_h5 = h5py.File(nexus_name, 'r')
+    # test with bank 9
+    bank9_entry = nexus_h5['/entry/bank9_events']
+    bank9_histogram = convert_events_to_histogram(bank9_entry)
+    # close  file
+    nexus_h5.close()
+
+    # generate events
+    generate_events_from_histogram(bank9_histogram, 0.1)
 
 
 if __name__ == '__main__':

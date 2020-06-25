@@ -65,7 +65,7 @@ class BankNode(drtsans.h5_buffer.GroupNode):
             child_node = DataSetNode(name=self._create_child_name(child_name))
             child_node.set_value(np.array(child_value))
             # add target
-            target_value = f'/entry/DASlogs/instrument/{self._bank_name}/{child_name}'.encode()
+            target_value = f'/entry/instrument/{self._bank_name}/{child_name}'.encode()
             child_node.add_attributes({'target': target_value})
 
             if child_units is not None:
@@ -104,7 +104,7 @@ class BankNode(drtsans.h5_buffer.GroupNode):
         # set value
         pulse_time_node.set_value(event_time_zero_array)
         # set up attribution dictionary
-        pulse_attr_dict = {'units': 'second',
+        pulse_attr_dict = {'units': b'second',
                            'target': b'/entry/DASlogs/frequency/time',
                            'offset': run_start_time.encode(),
                            'offset_nanoseconds': offset_ns,

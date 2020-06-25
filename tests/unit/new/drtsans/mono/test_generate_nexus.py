@@ -84,9 +84,9 @@ def test_create_das_log_node(reference_dir):
 
     # Get times and value for /entry/DASlogs/sample_detector_distance
     ssd_entry = nexus_h5['entry']['DASlogs']['sample_detector_distance']
-    ssd_times = ssd_entry['time'].value
+    ssd_times = ssd_entry['time'][()]
     ssd_start_time = ssd_entry['time'].attrs['start']
-    ssd_value = ssd_entry['value'].value
+    ssd_value = ssd_entry['value'][()]
     ssd_value_unit = ssd_entry['value'].attrs['units']
 
     # Set up a DAS log node

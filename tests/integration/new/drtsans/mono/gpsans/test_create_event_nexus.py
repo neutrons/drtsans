@@ -7,7 +7,7 @@ import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
 from drtsans.h5_buffer import FileNode, GroupNode
-from drtsans.mono.generate_event_nexus import InstrumentNode, DasLogNode
+from drtsans.mono.generate_event_nexus import InstrumentNode, DasLogNode, BankNode
 
 
 def test_copy_h5_file(reference_dir, cleanfile):
@@ -181,7 +181,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     set_das_log_node(nexus_h5, entry_node, target_entry_node)
 
     # set Bank 9
-    set_bank9_node(nexus_h5, entry_node, target_entry_node)
+    set_bank9_node(nexus_h5, target_entry_node)
 
     # write
     target_root_node.write(target_nexus)
@@ -190,22 +190,34 @@ def generate_event_nexus(source_nexus, target_nexus):
     nexus_h5.close()
 
 
-def set_bank9_node(source_h5, source_entry_node, target_entry_node):
+def set_bank9_node(source_h5, target_entry_node):
     """
 
     Parameters
     ----------
-    source_h5
-    source_entry_node
-    target_entry_node
+    source_h5: h5py._hl.files.File
+        HDF5 file entry
+    target_entry_node: GroupNode
+        Target (output) group node for /entry/
 
     Returns
     -------
 
     """
-    assert source_h5
-    assert source_entry_node
-    assert target_entry_node
+    # Get a bank node
+    bank9_entry = source_h5['/entry/bank9_events']
+    event_ids = bank9_entry['event_id'][()]
+    event_indexes = bank9_entry['event_index'][()]
+    event_time_offsets = bank9_entry['event_time_offset'][()]
+    event_time_zeros = bank9_entry['event_time_zero'][(())]
+    run_start_time = bank9_entry['event_time_zero'].attrs['offset'].decode()
+
+    # Create bank node for bank 9
+    bank9_node = BankNode(name='/entry/bank9_events', bank_name='bank9')
+    bank9_node.set_events(event_ids, event_indexes, event_time_offsets, run_start_time, event_time_zeros)
+
+    # Link with parent
+    target_entry_node.set_child(bank9_node)
 
 
 def set_instrument_node(source_h5, target_entry_node):
@@ -213,7 +225,8 @@ def set_instrument_node(source_h5, target_entry_node):
 
     Parameters
     ----------
-    source_entry_node
+    source_h5:  h5py._hl.files.File
+        source entry node
     target_entry_node
 
     Returns
@@ -258,7 +271,6 @@ def set_das_log_node(source_h5, source_entry_node, target_entry_node):
     # Specify white list
     logs_white_list = ['CG2:CS:SampleToSi',
                        'wavelength', 'wavelength_spread',
-                       # 'sample_detector_distance',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback']
     for child_log in source_logs_node.children:

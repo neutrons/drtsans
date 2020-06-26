@@ -6,7 +6,7 @@ from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import convert_events_to_histogram
 
 
-def test_imports():
+def test_write_event_nexus():
     assert EventNeXusWriter
 
 
@@ -61,7 +61,16 @@ def test_convert_histogram_to_events(reference_dir):
     nexus_h5.close()
 
     # generate events
-    generate_events_from_histogram(bank9_histogram, 0.1)
+    nexus_events = generate_events_from_histogram(bank9_histogram, 0.1)
+
+    # Verification
+    # check number of events
+    assert nexus_events.event_id.shpae[0] == nexus_events.event_index.sum()
+    assert nexus_events.event_id.shape == nexus_events.event_time_offset.shape
+    assert nexus_events.event_index.shape == nexus_events.event_time_zero.shape
+    assert nexus_events.event_time_offset.min() == bank9_histogram.tof_min
+    assert nexus_events.event_time_offset.max() <= bank9_histogram.tof_max
+    assert nexus_events.event_id.shape[0] == bank9_entry['total_counts'][0]
 
 
 if __name__ == '__main__':

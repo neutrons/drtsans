@@ -1,3 +1,6 @@
+"""
+Integration test to create event nexus file
+"""
 import pytest
 import numpy as np
 import os
@@ -8,6 +11,7 @@ from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_s
                                  reduction_parameters, update_reduction_parameters)
 from drtsans.files.hdf5_rw import FileNode, GroupNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
+from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
 
 
 def test_copy_h5_file(reference_dir, cleanfile):
@@ -190,7 +194,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     nexus_h5.close()
 
 
-def set_bank9_node(source_h5, target_entry_node):
+def set_bank9_node_exact_copy(source_h5, target_entry_node):
     """
 
     Parameters
@@ -215,6 +219,38 @@ def set_bank9_node(source_h5, target_entry_node):
     # Create bank node for bank 9
     bank9_node = BankNode(name='/entry/bank9_events', bank_name='bank9')
     bank9_node.set_events(event_ids, event_indexes, event_time_offsets, run_start_time, event_time_zeros)
+
+    # Link with parent
+    target_entry_node.set_child(bank9_node)
+
+
+def set_bank9_node(source_h5, target_entry_node):
+    """Test writing bank 9 from histogram
+
+    Parameters
+    ----------
+    source_h5: h5py._hl.files.File
+        HDF5 file entry
+    target_entry_node: GroupNode
+        Target (output) group node for /entry/
+
+    Returns
+    -------
+
+    """
+    # Test with bank 9: retrieve information from bank 9
+    bank9_entry = source_h5['/entry/bank9_events']
+    bank9_histogram = convert_events_to_histogram(bank9_entry)
+    run_start_time = bank9_entry['event_time_zero'].attrs['offset'].decode()
+
+    # generate events
+    nexus_events = generate_events_from_histogram(bank9_histogram, 0.1)
+
+    # Create bank node for bank 9
+    bank9_node = BankNode(name='/entry/bank9_events', bank_name='bank9')
+    bank9_node.set_events(nexus_events.event_id, nexus_events.event_index,
+                          nexus_events.event_time_offset, run_start_time,
+                          nexus_events.event_time_zero)
 
     # Link with parent
     target_entry_node.set_child(bank9_node)

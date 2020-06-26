@@ -70,6 +70,9 @@ def test_convert_histogram_to_events(reference_dir):
     assert nexus_events.event_index.shape == nexus_events.event_time_zero.shape
     assert nexus_events.event_time_offset.min() == bank9_histogram.tof_min
     assert nexus_events.event_time_offset.max() <= bank9_histogram.tof_max
+    print('Bank 9')
+    print(bank9_entry)
+    print(bank9_entry.keys())
     assert nexus_events.event_id.shape[0] == bank9_entry['total_counts'][0]
 
 

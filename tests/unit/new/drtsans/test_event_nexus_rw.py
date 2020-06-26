@@ -57,6 +57,7 @@ def test_convert_histogram_to_events(reference_dir):
     # test with bank 9
     bank9_entry = nexus_h5['/entry/bank9_events']
     bank9_histogram = convert_events_to_histogram(bank9_entry)
+    total_counts = bank9_entry['total_counts'][0]
     # close  file
     nexus_h5.close()
 
@@ -70,10 +71,7 @@ def test_convert_histogram_to_events(reference_dir):
     assert nexus_events.event_index.shape == nexus_events.event_time_zero.shape
     assert nexus_events.event_time_offset.min() == bank9_histogram.tof_min
     assert nexus_events.event_time_offset.max() <= bank9_histogram.tof_max
-    print('Bank 9')
-    print(bank9_entry)
-    print(bank9_entry.keys())
-    assert nexus_events.event_id.shape[0] == bank9_entry['total_counts'][0]
+    assert nexus_events.event_id.shape[0] == total_counts
 
 
 if __name__ == '__main__':

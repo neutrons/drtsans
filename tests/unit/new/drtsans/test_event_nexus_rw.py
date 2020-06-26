@@ -65,7 +65,7 @@ def test_convert_histogram_to_events(reference_dir):
 
     # Verification
     # check number of events
-    assert nexus_events.event_id.shpae[0] == nexus_events.event_index.sum()
+    assert nexus_events.event_id.shape[0] == nexus_events.event_index.sum()
     assert nexus_events.event_id.shape == nexus_events.event_time_offset.shape
     assert nexus_events.event_index.shape == nexus_events.event_time_zero.shape
     assert nexus_events.event_time_offset.min() == bank9_histogram.tof_min

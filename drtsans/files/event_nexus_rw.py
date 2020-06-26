@@ -86,7 +86,8 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):
     if last_pulse_event_number > 0:
         num_pulses += 1
         # add the incomplete TOF
-        event_time_offset_array = np.concatenate((event_time_offset_array, single_pulse_tof[0:last_pulse_event_number]))
+        event_time_offset_array = np.concatenate((event_time_offset_array,
+                                                  single_pulse_tof[0:last_pulse_event_number]))
         # add one more pulse
         last_pulse_time = event_time_zero_array[-1] + bank_histogram.pulse_duration
         event_time_zero_array = np.concatenate((event_time_zero_array, np.array([last_pulse_time])))

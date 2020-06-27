@@ -12,6 +12,7 @@ from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_s
 from drtsans.files.hdf5_rw import FileNode, GroupNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
+from mantid.simpleapi import LoadEventNexus
 
 
 def test_copy_h5_file(reference_dir, cleanfile):
@@ -344,148 +345,34 @@ def set_sdd_node(log_collection_node, source_h5):
     log_collection_node.set_child(ssd_test_node)
 
 
-def copy_event_nexus_prototype(source_nexus, target_nexus):
-    """Try to use links and etc. to copy nexus
+def verify_histogram(source_nexus, test_nexus):
+    """Check whether two NeXus files can render out same result
+
+    Parameters
+    ----------
+    source_nexus: str
+        source/gold nexus file name
+    test_nexus: str
+        nexus file to test
 
     Returns
     -------
 
     """
+    # Load NeXus file
+    src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='gold', NumberOfBins=1)
+    test_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='test', NumberOfBins=1)
 
-    # import source
-    nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = parse_h5_entry(nexus_h5)
-
-    # create a new file node
-    target_root_node = FileNode()
-
-    if True:
-        # create an '/entry' node
-        target_entry_node = GroupNode('/entry')
-        target_root_node.set_child(target_entry_node)
-
-        # set 'entry'
-        entry_node = source_root.get_child('/entry')
-        target_entry_node.add_attributes(entry_node.attributes)
-
-        # define black_list
-        black_list = ['/entry/user1',
-                      '/entry/user2',
-                      '/entry/user3',
-                      '/entry/user4',
-                      '/entry/user5',
-                      '/entry/user6',
-                      '/entry/user7',
-                      '/entry/user8',
-                      '/entry/instrument',
-                      '/entry/Software',
-                      '/entry/DASlogs']
-
-        # get children from entry node
-        for child_node in entry_node.children:
-            if child_node.name not in black_list:
-                target_root_node.set_child(child_node)
-
-        # now work with instrument
-        source_instrument = entry_node.get_child('/entry/instrument')
-
-        target_instrument = GroupNode(source_instrument.name)
-        target_entry_node.set_child(target_instrument)
-        target_instrument.add_attributes(source_instrument.attributes)
-        # add all but not bank...
-        for child in source_instrument.children:
-            if child.name.count('bank') > 0 and child.name.endswith('_events') > 0:
-                print(child.name)
-                continue   # not duplicating these entries
-            target_instrument.set_child(child)
-
-        # Das logs
-        if True:
-            target_logs_node = GroupNode('/entry/DASlogs')
-            target_entry_node.set_child(target_logs_node)
-            # add attribute
-            target_logs_node.add_attributes({'NX_class': 'NXcollection'})
-
-            # add sample logs
-            source_logs_node = entry_node.get_child('/entry/DASlogs')
-
-            # Test blacklist
-            name_header_black_list = ['1K_Plate',
-                                      'AllShutters',
-                                      'Device',
-                                      'Peltier',
-                                      'ap',
-                                      'guide',
-                                      'CG2::SE:',
-                                      'CG2::VS:',
-                                      'CG2:Mot:', 'ILLF', 'Poly', 'coll', 'Cryo', 'He3', 'trap',
-                                      'magr', 'p_',
-                                      'Coll', 'CG2:SE', 'CG2:VS',
-                                      'CG2:CS:',  # Partial black list
-                                      'DLam', 'Lamb', 'Mag', 'Number', 'S', 'T', 'V',
-                                      'a', 'b', 'c',
-                                      'm', 'n', 'v', 'd',
-                                      'f', 'p', 't',
-                                      's', 'w'
-                                      ]
-            for child_log in source_logs_node.children:
-                child_log_name = child_log.name.split('/')[-1]
-
-                # Loop for black header
-                on_black_list = False
-                for black_header in name_header_black_list:
-                    if child_log_name.startswith(black_header):
-                        # skip the node with name's first several letters on black list
-                        on_black_list = True
-                        break
-
-                # skip the node with name's first several letters on black list
-                if on_black_list:
-                    continue
-
-                # add the node
-                target_logs_node.set_child(child_log)
-
-            # Test white list
-            # logs_white_list = ['wavelength', 'wavelength_spread',
-            #                    'CG2:CS:SampleToSi', 'sample_detector_distance',
-            #                    'source_aperture_diameter', 'sample_aperture_diameter',
-            #                    'proton_charge']
-            logs_white_list = ['CG2:CS:SampleToSi',
-                               # 'dcal', 'dcal_Readback',
-                               # 'detector_trans',
-                               'wavelength', 'wavelength_spread',
-                               'sample_detector_distance',
-                               'source_aperture_diameter', 'sample_aperture_diameter',
-                               'detector_trans_Readback']
-            for child_log in source_logs_node.children:
-                child_log_name = child_log.name.split('/')[-1]
-
-                if child_log_name in logs_white_list:
-                    # only add nodes in white list
-                    print(f'DEBUG SKIPPED: add DAS log {child_log.name}')
-                    target_logs_node.set_child(child_log)
-                else:
-                    # target_logs_node.set_child(child_log)
-                    continue
-
-        else:
-            # an alternative cannot-be-wrong case
-            target_entry_node.set_child(entry_node.get_child('DASlogs'))
-
-        # Print out the total number of sample logs
-        print('[DEBUG] Number of DAS logs = {}'.format(len(target_logs_node.children)))
-
-    else:
-        # copy source entry
-        source_entry = source_root.get_child('/entry')
-        target_root_node.set_child(source_entry)
-
-    # write
-    target_root_node.write(target_nexus)
-
-    # close original file
-    nexus_h5.close()
+    # Compare counts
+    error_message = ''
+    for i in range(src_ws.getNumberHistograms()):
+        if src_ws.readY(i)[0] != test_ws.readY(i)[0]:
+            error_message += f'Workspace-index {i} / detector ID {src_ws.getDetector(i).getID()}/' \
+                             f'{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},' \
+                             f'Actual counts = {test_ws.readY(i)}\n'
+    if error_message != '':
+        print(error_message)
+        raise AssertionError(error_message)
 
 
 def test_reduction(reference_dir):
@@ -515,6 +402,8 @@ def test_reduction(reference_dir):
 
     # copy_event_nexus(source_nexus, target_nexus)
     generate_event_nexus(source_nexus, target_nexus)
+
+    verify_histogram(source_nexus, target_nexus)
 
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     # output_dir = mkdtemp(prefix='meta_overwrite_test1')

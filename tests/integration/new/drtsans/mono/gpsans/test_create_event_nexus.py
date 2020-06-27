@@ -12,7 +12,104 @@ from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_s
 from drtsans.files.hdf5_rw import FileNode, GroupNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
-from mantid.simpleapi import LoadEventNexus
+from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
+
+
+def test_step_by_step(reference_dir):
+    # Generate a new event NeXus file (source)
+    output_dir_src = '/tmp/nexus_src'
+    if not os.path.exists(output_dir_src):
+        os.mkdir(output_dir_src)
+
+    # Generate a new event NeXus file
+    output_dir = '/tmp/nexus'
+    if not os.path.exists(output_dir):
+        os.mkdir('/tmp/nexus')
+
+    # Copy a nexus file
+    test_nexus_name = 'CG2_9166.nxs.h5'
+    source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
+    assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
+    target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
+
+    # copy_event_nexus(source_nexus, target_nexus)
+    generate_event_nexus(source_nexus, target_nexus)
+
+    # Reduce
+    loaded_raw_dict = reduce_data_step_by_step(source_nexus, reference_dir.new.gpsans, reference_dir.new.gpsans,
+                                               output_dir_src, 'original')
+    print(loaded_raw_dict.keys())
+    print(loaded_raw_dict['sample'].keys())
+    loaded_sample_ws = loaded_raw_dict['sample']['Al4']
+    SaveNexusProcessed(InputWorkspace=loaded_sample_ws, Filename=os.path.join(output_dir_src, 'loaded.nxs'))
+
+    assert 1 == 3
+
+
+def reduce_data_step_by_step(sample_nexus, data_dir, sens_dir, output_dir, prefix):
+
+    sensitivity_file = os.path.join(sens_dir, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
+    specs = {
+        "iptsNumber": 21981,
+        "beamCenter": {"runNumber": 9177},
+        "emptyTransmission": {"runNumber": 9177},
+        "configuration": {
+            "outputDir": output_dir,
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
+            "sensitivityFileName": sensitivity_file,
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": 40,
+            "mmRadiusForTransmission": 40,
+            "numQxQyBins": 180,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 180,
+            "LogQBinsPerDecade": None,
+            "useLogQBinsEvenDecade": False,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+            "usePixelCalibration": False,
+            "useSubpixels": False
+        }
+    }
+    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
+
+    # USER Input here with scan numbers etc.
+    samples = [sample_nexus]  # ['9166']
+    samples_trans = ['9178']
+    sample_thick = ['0.1']
+    bkgd = ['9165']
+    bkgd_trans = ['9177']
+
+    # Sample names for output
+    sample_names = ["Al4"]
+
+    # set output directory
+    reduction_input["configuration"]["outputDir"] = output_dir
+    # create output directory
+    for subfolder in ['1D', '2D']:
+        output_folder = os.path.join(output_dir, subfolder)
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+    specs = {
+        "dataDirectories": data_dir,
+        "sample": {"runNumber": samples[0],
+                   "thickness": sample_thick[0],
+                   "transmission": {"runNumber": samples_trans[i]}
+                   },
+        "background": {"runNumber": bkgd[i],
+                       "transmission": {"runNumber": bkgd_trans[i]}
+                       },
+        "outputFileName": sample_names[i]
+    }
+    reduction_input = update_reduction_parameters(reduction_input, specs, validate=True)
+    loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
+    # out = reduce_single_configuration(loaded, reduction_input)
+    # plot_reduction_output(out, reduction_input, loglog=False)
+
+    return loaded
 
 
 def test_copy_h5_file(reference_dir, cleanfile):
@@ -92,7 +189,6 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
     """
     # USER Input here with scan numbers etc.
     samples = [sample_nexus_path]  # ['9166']
-    print('DEBUG Samples: {}'.format(samples[0]))
     samples_trans = ['9178']
     sample_thick = ['0.1']
     bkgd = ['9165']
@@ -385,7 +481,6 @@ def test_reduction(reference_dir):
     -------
 
     """
-
     # Generate a new event NeXus file
     # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
     # TODO - this will be replaced by tempfile for future
@@ -403,7 +498,7 @@ def test_reduction(reference_dir):
     # copy_event_nexus(source_nexus, target_nexus)
     generate_event_nexus(source_nexus, target_nexus)
 
-    verify_histogram(source_nexus, target_nexus)
+    # verify_histogram(source_nexus, target_nexus)
 
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     # output_dir = mkdtemp(prefix='meta_overwrite_test1')

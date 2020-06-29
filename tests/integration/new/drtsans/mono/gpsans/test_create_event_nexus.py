@@ -38,12 +38,37 @@ def test_step_by_step(reference_dir):
     # Reduce
     loaded_raw_dict = reduce_data_step_by_step(source_nexus, reference_dir.new.gpsans, reference_dir.new.gpsans,
                                                output_dir_src, 'original')
-    print(loaded_raw_dict.keys())
-    print(loaded_raw_dict['sample'].keys())
-    loaded_sample_ws = loaded_raw_dict['sample']['Al4']
-    SaveNexusProcessed(InputWorkspace=loaded_sample_ws, Filename=os.path.join(output_dir_src, 'loaded.nxs'))
+    loaded_sample_ws = loaded_raw_dict.sample[0]
+    print(f'sample ws: {loaded_sample_ws.name()}')
+    print(f'sample ws type: {type(loaded_sample_ws)}')
+    SaveNexusProcessed(InputWorkspace=loaded_sample_ws, Filename=os.path.join(output_dir_src, 'src_loaded.nxs'))
+    print(f'spec nunber = {loaded_sample_ws.getNumberHistograms()}')
 
-    assert 1 == 3
+    # Reduce
+    loaded_dup_dict = reduce_data_step_by_step(target_nexus, reference_dir.new.gpsans, reference_dir.new.gpsans,
+                                               output_dir_src, 'duplicated')
+    dup_sample_ws = loaded_dup_dict.sample[0]
+    print(f'sample ws: {dup_sample_ws.name()}')
+    SaveNexusProcessed(InputWorkspace=dup_sample_ws, Filename=os.path.join(output_dir, 'dup_loaded.nxs'))
+    print(f'spec nunber = {loaded_sample_ws.getNumberHistograms()}')
+
+    raw_x = loaded_sample_ws.extractX()
+    dup_x = dup_sample_ws.extractX()
+    diff_x = raw_x - dup_x
+    print(np.where(np.abs(diff_x) > 0))
+    print(diff_x[np.abs(diff_x) > 0]) 
+    raw_y = loaded_sample_ws.extractY()
+    dup_y = dup_sample_ws.extractY()
+    diff_y = raw_y - dup_y
+    print(np.where(np.abs(diff_y) > 0))
+    print(diff_y[np.abs(diff_y) > 0]) 
+    print(dup_y[np.abs(diff_y) > 0]) 
+    np.testing.assert_allclose(raw_x, dup_x)
+    np.testing.assert_allclose(raw_y, dup_y)
+
+    raw_e = loaded_sample_ws.extractE()
+    dup_e = dup_sample_ws.extractE()
+    np.testing.assert_allclose(raw_e, dup_e)
 
 
 def reduce_data_step_by_step(sample_nexus, data_dir, sens_dir, output_dir, prefix):
@@ -97,15 +122,18 @@ def reduce_data_step_by_step(sample_nexus, data_dir, sens_dir, output_dir, prefi
         "dataDirectories": data_dir,
         "sample": {"runNumber": samples[0],
                    "thickness": sample_thick[0],
-                   "transmission": {"runNumber": samples_trans[i]}
+                   "transmission": {"runNumber": samples_trans[0]}
                    },
-        "background": {"runNumber": bkgd[i],
-                       "transmission": {"runNumber": bkgd_trans[i]}
+        "background": {"runNumber": bkgd[0],
+                       "transmission": {"runNumber": bkgd_trans[0]}
                        },
-        "outputFileName": sample_names[i]
+        "outputFileName": sample_names[0]
     }
     reduction_input = update_reduction_parameters(reduction_input, specs, validate=True)
     loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
+
+    print(f'LOADED: type = {type(loaded)}')
+
     # out = reduce_single_configuration(loaded, reduction_input)
     # plot_reduction_output(out, reduction_input, loglog=False)
 
@@ -341,7 +369,7 @@ def set_bank9_node(source_h5, target_entry_node):
     run_start_time = bank9_entry['event_time_zero'].attrs['offset'].decode()
 
     # generate events
-    nexus_events = generate_events_from_histogram(bank9_histogram, 0.1)
+    nexus_events = generate_events_from_histogram(bank9_histogram, 10.)
 
     # Create bank node for bank 9
     bank9_node = BankNode(name='/entry/bank9_events', bank_name='bank9')
@@ -457,7 +485,7 @@ def verify_histogram(source_nexus, test_nexus):
     """
     # Load NeXus file
     src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='gold', NumberOfBins=1)
-    test_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='test', NumberOfBins=1)
+    test_ws = LoadEventNexus(Filename=test_nexus, OutputWorkspace='test', NumberOfBins=1)
 
     # Compare counts
     error_message = ''
@@ -498,7 +526,7 @@ def test_reduction(reference_dir):
     # copy_event_nexus(source_nexus, target_nexus)
     generate_event_nexus(source_nexus, target_nexus)
 
-    # verify_histogram(source_nexus, target_nexus)
+    verify_histogram(source_nexus, target_nexus)
 
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     # output_dir = mkdtemp(prefix='meta_overwrite_test1')

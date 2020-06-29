@@ -286,7 +286,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     set_instrument_node(source_nexus_h5, target_entry_node)
 
     # set DAS logs
-    set_das_log_node(source_nexus, entry_node, target_entry_node)
+    set_das_log_node(source_nexus_h5, entry_node, target_entry_node)
 
     # set Bank 9
     set_bank9_node(source_nexus_h5, target_entry_node)
@@ -337,7 +337,7 @@ def generate_event_nexus(source_nexus, target_nexus):
         if child_node.name not in level1_black_list:
             target_nexus_root.set_child(child_node)
             if child_node.name.startswith('/entry/bank') is False:
-                print(f'White List Node: {child_node}')
+                print(f'White List Node: {child_node.name}')
 
     # write
     target_nexus_root.write(target_nexus)

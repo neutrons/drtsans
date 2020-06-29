@@ -278,7 +278,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     # set entry's attributes
     entry_node = source_root.get_child('/entry')
 
-    target_entry_node = target_nexus_root.get_child('entry')
+    target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
     target_entry_node.add_attributes(entry_node.attributes)
     print(f'Entry attributes: {entry_node.attributes}')
 

@@ -318,14 +318,14 @@ def generate_event_nexus(source_nexus, target_nexus):
     # '/entry/total_pulses',
     # '/entry/experiment_identifier',
     # '/entry/experiment_title',
+    # '/entry/duration',
+    # '/entry/proton_charge',
+    # '/entry/run_number',
     entry_level_white_list = [
         '/entry/monitor1',
-        '/entry/proton_charge',
-        '/entry/duration',
         '/entry/start_time',
-        '/entry/end_time',
+        '/entry/end_time',  #  critical
         '/entry/raw_frames',
-        '/entry/run_number',
     ]
     for child_node_name in entry_level_white_list:
         child_node = source_entry_node.get_child(child_node_name)

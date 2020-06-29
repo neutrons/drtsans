@@ -259,6 +259,27 @@ def generate_event_nexus(source_nexus, target_nexus):
     """Generate event NeXus using white list.
     This serves as the prototype to create event nexus from SANS histogram raw data
 
+    White list
+    Entry attributes: {'NX_class': b'NXentry'}
+
+    White List Node: /entry/monitor1
+    White List Node: /entry/proton_charge
+
+    White List Node: /entry/duration
+    White List Node: /entry/start_time
+    White List Node: /entry/end_time
+
+    White List Node: /entry/experiment_identifier
+    White List Node: /entry/experiment_title
+    White List Node: /entry/title
+    White List Node: /entry/notes
+    White List Node: /entry/raw_frames
+    White List Node: /entry/run_number
+
+    White List Node: /entry/total_counts
+    White List Node: /entry/total_other_counts
+    White List Node: /entry/total_pulses
+
     Parameters
     ----------
     source_nexus
@@ -270,74 +291,84 @@ def generate_event_nexus(source_nexus, target_nexus):
     """
     # Import source
     source_nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = parse_h5_entry(source_nexus_h5)
+    source_root_node = parse_h5_entry(source_nexus_h5)
 
     # Create new nexus file structure
     target_nexus_root = init_event_nexus()
 
     # set entry's attributes
-    entry_node = source_root.get_child('/entry')
+    source_entry_node = source_root_node.get_child('/entry')
 
     target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
-    target_entry_node.add_attributes(entry_node.attributes)
-    print(f'Entry attributes: {entry_node.attributes}')
+    # Nothing here! TODO - remove this
+    target_entry_node.add_attributes(source_entry_node.attributes)
+    print(f'Entry attributes: {source_entry_node.attributes}')
 
     # set instrument node
     set_instrument_node(source_nexus_h5, target_entry_node)
 
     # set DAS logs
-    set_das_log_node(source_nexus_h5, entry_node, target_entry_node)
+    set_das_log_node(source_nexus_h5, source_entry_node, target_entry_node)
+
+    # # define black_list under /entry directly
+    # level1_black_list = ['/entry/user1',
+    #                      '/entry/user2',
+    #                      '/entry/user3',
+    #                      '/entry/user4',
+    #                      '/entry/user5',
+    #                      '/entry/user6',
+    #                      '/entry/user7',
+    #                      '/entry/user8',
+    #                      '/entry/instrument',  # create node explicitly
+    #                      '/entry/DASlogs',     # create node explicitly
+    #                      '/entry/sample',
+    #                      '/entry/entry_identifier',
+    #                      '/entry/definition',
+    #                      '/entry/total_uncounted_counts',
+    #                      '/entry/bank9_events',  # create node explicitly
+    #                      '/entry/Software']
+    #
+    # # get children from entry node and duplicate except black list nodes
+    # for child_node in entry_node.children:
+    #     if child_node.name not in level1_black_list:
+    #         target_nexus_root.set_child(child_node)
+    #         if child_node.name.startswith('/entry/bank') is False:
+    #             print(f'White List Node: {child_node.name}')
+
+    # Add node on the white list
+    entry_level_white_list = [
+        '/entry/monitor1',
+        '/entry/proton_charge',
+        '/entry/duration',
+        '/entry/start_time',
+        '/entry/end_time',
+        '/entry/experiment_identifier',
+        '/entry/experiment_title',
+        '/entry/title',
+        '/entry/notes',
+        '/entry/raw_frames',
+        '/entry/run_number',
+        '/entry/total_counts',
+        '/entry/total_other_counts',
+        '/entry/total_pulses',
+    ]
+    for child_node_name in entry_level_white_list:
+        child_node = source_entry_node.get_child(child_node_name)
+        target_entry_node.set_child(child_node)
+
+    # Add bank nodes
+    for bank_id in range(1, 48 + 1):
+
+        # skip bank 9
+        if bank_id == 9:
+            continue
+
+        bank_entry_name = f'bank{bank_id}_events'
+        bank_node_i = source_entry_node.get_child(bank_entry_name, is_short_name=True)
+        target_entry_node.set_child(bank_node_i)
 
     # set Bank 9
     set_bank9_node(source_nexus_h5, target_entry_node)
-
-    """ White list
-    Entry attributes: {'NX_class': b'NXentry'}
-    
-    White List Node: /entry/monitor1
-    White List Node: /entry/proton_charge
-
-    White List Node: /entry/duration
-    White List Node: /entry/start_time
-    White List Node: /entry/end_time
-    
-    White List Node: /entry/experiment_identifier
-    White List Node: /entry/experiment_title
-    White List Node: /entry/title
-    White List Node: /entry/notes
-    White List Node: /entry/raw_frames
-    White List Node: /entry/run_number
-
-    White List Node: /entry/total_counts
-    White List Node: /entry/total_other_counts
-    White List Node: /entry/total_pulses
-    
-    """
-
-    # define black_list under /entry directly
-    level1_black_list = ['/entry/user1',
-                         '/entry/user2',
-                         '/entry/user3',
-                         '/entry/user4',
-                         '/entry/user5',
-                         '/entry/user6',
-                         '/entry/user7',
-                         '/entry/user8',
-                         '/entry/instrument',  # create node explicitly
-                         '/entry/DASlogs',     # create node explicitly
-                         '/entry/sample',
-                         '/entry/entry_identifier',
-                         '/entry/definition',
-                         '/entry/total_uncounted_counts',
-                         '/entry/bank9_events',  # create node explicitly
-                         '/entry/Software']
-
-    # get children from entry node and duplicate except black list nodes
-    for child_node in entry_node.children:
-        if child_node.name not in level1_black_list:
-            target_nexus_root.set_child(child_node)
-            if child_node.name.startswith('/entry/bank') is False:
-                print(f'White List Node: {child_node.name}')
 
     # write
     target_nexus_root.write(target_nexus)
@@ -621,7 +652,8 @@ def test_reduction(reference_dir):
     target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
 
     # copy_event_nexus(source_nexus, target_nexus)
-    generate_event_nexus_prototype(source_nexus, target_nexus)
+    # generate_event_nexus_prototype(source_nexus, target_nexus)
+    generate_event_nexus(source_nexus, target_nexus)
 
     verify_histogram(source_nexus, target_nexus)
 

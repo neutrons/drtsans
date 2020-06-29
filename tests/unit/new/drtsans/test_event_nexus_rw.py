@@ -65,12 +65,13 @@ def test_convert_histogram_to_events(reference_dir):
     nexus_events = generate_events_from_histogram(bank9_histogram, 0.1)
 
     # Verification
-    # check number of events
-    assert nexus_events.event_id.shape[0] == nexus_events.event_index.sum()
+    # event index only contain the starting event index of each pulse. Its aggregated value is useless
+    assert nexus_events.event_id.shape[0] >= nexus_events.event_index.sum()
     assert nexus_events.event_id.shape == nexus_events.event_time_offset.shape
     assert nexus_events.event_index.shape == nexus_events.event_time_zero.shape
     assert nexus_events.event_time_offset.min() == bank9_histogram.tof_min
     assert nexus_events.event_time_offset.max() <= bank9_histogram.tof_max
+    # check number of events:
     assert nexus_events.event_id.shape[0] == total_counts
 
 

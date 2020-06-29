@@ -244,7 +244,88 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         plot_reduction_output(out, reduction_input, loglog=False)
 
 
+def init_event_nexus():
+    # create a new file node
+    target_root_node = FileNode()
+
+    # create an '/entry' node
+    target_entry_node = GroupNode('/entry')
+    target_root_node.set_child(target_entry_node)
+
+    return target_root_node
+
+
 def generate_event_nexus(source_nexus, target_nexus):
+    """Generate event NeXus using white list.
+    This serves as the prototype to create event nexus from SANS histogram raw data
+
+    Parameters
+    ----------
+    source_nexus
+    target_nexus
+
+    Returns
+    -------
+
+    """
+    # Import source
+    source_nexus_h5 = h5py.File(source_nexus, 'r')
+    source_root = parse_h5_entry(source_nexus_h5)
+
+    # Create new nexus file structure
+    target_nexus_root = init_event_nexus()
+
+    # set entry's attributes
+    entry_node = source_root.get_child('/entry')
+
+    target_entry_node = target_nexus_root.get_child('entry')
+    target_entry_node.add_attributes(entry_node.attributes)
+    print(f'Entry attributes: {entry_node.attributes}')
+
+    # set instrument node
+    set_instrument_node(source_nexus_h5, target_entry_node)
+
+    # set DAS logs
+    set_das_log_node(source_nexus, entry_node, target_entry_node)
+
+    # set Bank 9
+    set_bank9_node(source_nexus_h5, target_entry_node)
+
+    # define black_list under /entry directly
+    level1_black_list = ['/entry/user1',
+                         '/entry/user2',
+                         '/entry/user3',
+                         '/entry/user4',
+                         '/entry/user5',
+                         '/entry/user6',
+                         '/entry/user7',
+                         '/entry/user8',
+                         '/entry/instrument',  # create node explicitly
+                         '/entry/DASlogs',     # create node explicitly
+                         '/entry/sample',
+                         '/entry/entry_identifier',
+                         '/entry/definition',
+                         '/entry/total_uncounted_counts',
+                         '/entry/bank9_events',  # create node explicitly
+                         '/entry/Software']
+
+    # get children from entry node and duplicate except black list nodes
+    for child_node in entry_node.children:
+        if child_node.name not in level1_black_list:
+            target_nexus_root.set_child(child_node)
+            if child_node.name.startswith('/entry/bank') is False:
+                print(f'White List Node: {child_node}')
+
+    # write
+    target_nexus_root.write(target_nexus)
+
+    # close original file
+    source_nexus_h5.close()
+
+    return
+
+
+def generate_event_nexus_prototype(source_nexus, target_nexus):
     """Generate an event nexus file from source Nexus file
 
     This is the test case for various NeXus nodes
@@ -517,7 +598,7 @@ def test_reduction(reference_dir):
     target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
 
     # copy_event_nexus(source_nexus, target_nexus)
-    generate_event_nexus(source_nexus, target_nexus)
+    generate_event_nexus_prototype(source_nexus, target_nexus)
 
     verify_histogram(source_nexus, target_nexus)
 
@@ -591,7 +672,8 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
 
     Parameters
     ----------
-    test_log_file
+    test_log_file: str
+        name of drtsans result log file
     gold_log_file
     title: str
         title of output figure

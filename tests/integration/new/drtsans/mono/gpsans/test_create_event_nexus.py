@@ -310,47 +310,22 @@ def generate_event_nexus(source_nexus, target_nexus):
     # set DAS logs
     set_das_log_node(source_nexus_h5, source_entry_node, target_entry_node)
 
-    # # define black_list under /entry directly
-    # level1_black_list = ['/entry/user1',
-    #                      '/entry/user2',
-    #                      '/entry/user3',
-    #                      '/entry/user4',
-    #                      '/entry/user5',
-    #                      '/entry/user6',
-    #                      '/entry/user7',
-    #                      '/entry/user8',
-    #                      '/entry/instrument',  # create node explicitly
-    #                      '/entry/DASlogs',     # create node explicitly
-    #                      '/entry/sample',
-    #                      '/entry/entry_identifier',
-    #                      '/entry/definition',
-    #                      '/entry/total_uncounted_counts',
-    #                      '/entry/bank9_events',  # create node explicitly
-    #                      '/entry/Software']
-    #
-    # # get children from entry node and duplicate except black list nodes
-    # for child_node in entry_node.children:
-    #     if child_node.name not in level1_black_list:
-    #         target_nexus_root.set_child(child_node)
-    #         if child_node.name.startswith('/entry/bank') is False:
-    #             print(f'White List Node: {child_node.name}')
-
     # Add node on the white list
     entry_level_white_list = [
         '/entry/monitor1',
         '/entry/proton_charge',
-        '/entry/duration',
-        '/entry/start_time',
-        '/entry/end_time',
-        '/entry/experiment_identifier',
-        '/entry/experiment_title',
-        '/entry/title',
-        '/entry/notes',
+        # '/entry/duration',
+        # '/entry/start_time',
+        # '/entry/end_time',
+        # '/entry/experiment_identifier',
+        # '/entry/experiment_title',
+        # '/entry/title',
+        # '/entry/notes',
         '/entry/raw_frames',
         '/entry/run_number',
-        '/entry/total_counts',
-        '/entry/total_other_counts',
-        '/entry/total_pulses',
+        # '/entry/total_counts',
+        # '/entry/total_other_counts',
+        # '/entry/total_pulses',
     ]
     for child_node_name in entry_level_white_list:
         child_node = source_entry_node.get_child(child_node_name)
@@ -377,74 +352,6 @@ def generate_event_nexus(source_nexus, target_nexus):
     source_nexus_h5.close()
 
     return
-
-
-def generate_event_nexus_prototype(source_nexus, target_nexus):
-    """Generate an event nexus file from source Nexus file
-
-    This is the test case for various NeXus nodes
-
-    Parameters
-    ----------
-    source_nexus
-    target_nexus
-
-    Returns
-    -------
-
-    """
-    # import source
-    nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = parse_h5_entry(nexus_h5)
-
-    # create a new file node
-    target_root_node = FileNode()
-
-    # create an '/entry' node
-    target_entry_node = GroupNode('/entry')
-    target_root_node.set_child(target_entry_node)
-
-    # set 'entry'
-    entry_node = source_root.get_child('/entry')
-    target_entry_node.add_attributes(entry_node.attributes)
-
-    # define black_list under /entry directly
-    level1_black_list = ['/entry/user1',
-                         '/entry/user2',
-                         '/entry/user3',
-                         '/entry/user4',
-                         '/entry/user5',
-                         '/entry/user6',
-                         '/entry/user7',
-                         '/entry/user8',
-                         '/entry/instrument',  # create node explicitly
-                         '/entry/DASlogs',     # create node explicitly
-                         '/entry/sample',
-                         '/entry/entry_identifier',
-                         '/entry/definition',
-                         '/entry/total_uncounted_counts',
-                         '/entry/bank9_events',  # create node explicitly
-                         '/entry/Software']
-
-    # get children from entry node and duplicate except black list nodes
-    for child_node in entry_node.children:
-        if child_node.name not in level1_black_list:
-            target_root_node.set_child(child_node)
-
-    # set instrument node
-    set_instrument_node(nexus_h5, target_entry_node)
-
-    # set DAS logs
-    set_das_log_node(nexus_h5, entry_node, target_entry_node)
-
-    # set Bank 9
-    set_bank9_node(nexus_h5, target_entry_node)
-
-    # write
-    target_root_node.write(target_nexus)
-
-    # close original file
-    nexus_h5.close()
 
 
 def set_bank9_node_exact_copy(source_h5, target_entry_node):

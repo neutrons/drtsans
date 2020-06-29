@@ -311,21 +311,21 @@ def generate_event_nexus(source_nexus, target_nexus):
     set_das_log_node(source_nexus_h5, source_entry_node, target_entry_node)
 
     # Add node on the white list
+    # '/entry/title',
+    # '/entry/notes',
+    # '/entry/total_counts',
+    # '/entry/total_other_counts',
+    # '/entry/total_pulses',
+    # '/entry/experiment_identifier',
+    # '/entry/experiment_title',
     entry_level_white_list = [
         '/entry/monitor1',
         '/entry/proton_charge',
-        # '/entry/duration',
-        # '/entry/start_time',
-        # '/entry/end_time',
-        # '/entry/experiment_identifier',
-        # '/entry/experiment_title',
-        # '/entry/title',
-        # '/entry/notes',
+        '/entry/duration',
+        '/entry/start_time',
+        '/entry/end_time',
         '/entry/raw_frames',
         '/entry/run_number',
-        # '/entry/total_counts',
-        # '/entry/total_other_counts',
-        # '/entry/total_pulses',
     ]
     for child_node_name in entry_level_white_list:
         child_node = source_entry_node.get_child(child_node_name)

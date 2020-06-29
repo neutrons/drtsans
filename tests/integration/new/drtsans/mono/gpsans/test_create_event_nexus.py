@@ -54,7 +54,6 @@ def test_step_by_step(reference_dir):
 
     raw_x = loaded_sample_ws.extractX()
     dup_x = dup_sample_ws.extractX()
-    diff_x = raw_x - dup_x
     raw_y = loaded_sample_ws.extractY()
     dup_y = dup_sample_ws.extractY()
     np.testing.assert_allclose(raw_x, dup_x)

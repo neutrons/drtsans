@@ -291,6 +291,29 @@ def generate_event_nexus(source_nexus, target_nexus):
     # set Bank 9
     set_bank9_node(source_nexus_h5, target_entry_node)
 
+    """ White list
+    Entry attributes: {'NX_class': b'NXentry'}
+    
+    White List Node: /entry/monitor1
+    White List Node: /entry/proton_charge
+
+    White List Node: /entry/duration
+    White List Node: /entry/start_time
+    White List Node: /entry/end_time
+    
+    White List Node: /entry/experiment_identifier
+    White List Node: /entry/experiment_title
+    White List Node: /entry/title
+    White List Node: /entry/notes
+    White List Node: /entry/raw_frames
+    White List Node: /entry/run_number
+
+    White List Node: /entry/total_counts
+    White List Node: /entry/total_other_counts
+    White List Node: /entry/total_pulses
+    
+    """
+
     # define black_list under /entry directly
     level1_black_list = ['/entry/user1',
                          '/entry/user2',

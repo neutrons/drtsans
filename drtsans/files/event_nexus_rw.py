@@ -92,18 +92,17 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):
                                                   single_pulse_tof[0:last_pulse_event_number]))
         # add one more pulse
         if len(event_time_zero_array) > 0:
+            # last pulse time
             prev_last_pulse_time = event_time_zero_array[-1]
-            event_index_array = np.concatenate((event_index_array, np.array([event_index_array[-1] + num_events_per_pulse],
-                                               dtype='uint64')))
+            event_index_array = np.concatenate((event_index_array,
+                                                np.array([event_index_array[-1] + num_events_per_pulse],
+                                                         dtype='uint64')))
         else:
             # number of total count is less than number of events per pulse
             prev_last_pulse_time = 0
             event_index_array = np.array([0], dtype='uint64')
         last_pulse_time = prev_last_pulse_time + bank_histogram.pulse_duration
         event_time_zero_array = np.concatenate((event_time_zero_array, np.array([last_pulse_time])))
-        # append number of events in last pulse
-        print(f'Pre... event index array = {event_index_array}, {event_index_array.dtype}')
-        print(f'Pro... event index array = {event_index_array}, {event_index_array.dtype}, tof: {event_time_offset_array.dtype}')
 
     # construct output
     faked_nexus_events = NexusEvents(event_id_array, event_index_array,

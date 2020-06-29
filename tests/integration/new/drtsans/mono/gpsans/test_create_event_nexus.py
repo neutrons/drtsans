@@ -55,14 +55,8 @@ def test_step_by_step(reference_dir):
     raw_x = loaded_sample_ws.extractX()
     dup_x = dup_sample_ws.extractX()
     diff_x = raw_x - dup_x
-    print(np.where(np.abs(diff_x) > 0))
-    print(diff_x[np.abs(diff_x) > 0]) 
     raw_y = loaded_sample_ws.extractY()
     dup_y = dup_sample_ws.extractY()
-    diff_y = raw_y - dup_y
-    print(np.where(np.abs(diff_y) > 0))
-    print(diff_y[np.abs(diff_y) > 0]) 
-    print(dup_y[np.abs(diff_y) > 0]) 
     np.testing.assert_allclose(raw_x, dup_x)
     np.testing.assert_allclose(raw_y, dup_y)
 

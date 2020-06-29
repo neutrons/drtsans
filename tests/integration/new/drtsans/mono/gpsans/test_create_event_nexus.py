@@ -328,25 +328,20 @@ def generate_event_nexus(source_nexus, target_nexus):
         '/entry/monitor1',
         '/entry/start_time',
         '/entry/end_time',
-        '/entry/raw_frames',
+        # '/entry/raw_frames',
     ]
     for child_node_name in entry_level_white_list:
         child_node = source_entry_node.get_child(child_node_name)
         target_entry_node.set_child(child_node)
 
     # Add bank nodes
+    # for bank_id in range(21, 48 + 1):
+    #     bank_entry_name = f'bank{bank_id}_events'
+    #     bank_node_i = source_entry_node.get_child(bank_entry_name, is_short_name=True)
+    #     target_entry_node.set_child(bank_node_i)
+
+    # set Bank 1 - 48
     for bank_id in range(1, 48 + 1):
-
-        # skip bank 1 to 9
-        if bank_id <= 9:
-            continue
-
-        bank_entry_name = f'bank{bank_id}_events'
-        bank_node_i = source_entry_node.get_child(bank_entry_name, is_short_name=True)
-        target_entry_node.set_child(bank_node_i)
-
-    # set Bank 9
-    for bank_id in range(1, 10):
         set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=bank_id)
 
     # write

@@ -246,13 +246,16 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
 
 def init_event_nexus():
     # create a new file node
-    target_root_node = FileNode()
+    nexus_root_node = FileNode()
 
     # create an '/entry' node
-    target_entry_node = GroupNode('/entry')
-    target_root_node.set_child(target_entry_node)
+    entry_node = GroupNode('/entry')
+    nexus_root_node.set_child(entry_node)
 
-    return target_root_node
+    # add attribution as NX_class
+    entry_node.add_attributes({'NX_class': 'NXentry'})
+
+    return nexus_root_node
 
 
 def generate_event_nexus(source_nexus, target_nexus):
@@ -300,9 +303,9 @@ def generate_event_nexus(source_nexus, target_nexus):
     source_entry_node = source_root_node.get_child('/entry')
 
     target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
-    # Nothing here! TODO - remove this
-    target_entry_node.add_attributes(source_entry_node.attributes)
-    print(f'Entry attributes: {source_entry_node.attributes}')
+    # # Nothing here! TODO - remove this
+    # target_entry_node.add_attributes(source_entry_node.attributes)
+    # print(f'Entry attributes: {source_entry_node.attributes}')
 
     # set instrument node
     set_instrument_node(source_nexus_h5, target_entry_node)
@@ -334,8 +337,8 @@ def generate_event_nexus(source_nexus, target_nexus):
     # Add bank nodes
     for bank_id in range(1, 48 + 1):
 
-        # skip bank 9
-        if bank_id == 9:
+        # skip bank 1 to 9
+        if bank_id <= 9:
             continue
 
         bank_entry_name = f'bank{bank_id}_events'
@@ -343,7 +346,8 @@ def generate_event_nexus(source_nexus, target_nexus):
         target_entry_node.set_child(bank_node_i)
 
     # set Bank 9
-    set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=9)
+    for bank_id in range(1, 10):
+        set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=bank_id)
 
     # write
     target_nexus_root.write(target_nexus)

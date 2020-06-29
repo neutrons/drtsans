@@ -324,7 +324,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     entry_level_white_list = [
         '/entry/monitor1',
         '/entry/start_time',
-        '/entry/end_time',  #  critical
+        '/entry/end_time',
         '/entry/raw_frames',
     ]
     for child_node_name in entry_level_white_list:
@@ -343,7 +343,7 @@ def generate_event_nexus(source_nexus, target_nexus):
         target_entry_node.set_child(bank_node_i)
 
     # set Bank 9
-    set_bank9_node(source_nexus_h5, target_entry_node)
+    set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=9)
 
     # write
     target_nexus_root.write(target_nexus)
@@ -384,7 +384,7 @@ def set_bank9_node_exact_copy(source_h5, target_entry_node):
     target_entry_node.set_child(bank9_node)
 
 
-def set_bank9_node(source_h5, target_entry_node):
+def set_single_bank_node(source_h5, target_entry_node, bank_id):
     """Test writing bank 9 from histogram
 
     Parameters
@@ -393,27 +393,29 @@ def set_bank9_node(source_h5, target_entry_node):
         HDF5 file entry
     target_entry_node: GroupNode
         Target (output) group node for /entry/
+    bank_id: int
+        bank ID (from 1 to 48)
 
     Returns
     -------
 
     """
-    # Test with bank 9: retrieve information from bank 9
-    bank9_entry = source_h5['/entry/bank9_events']
-    bank9_histogram = convert_events_to_histogram(bank9_entry)
-    run_start_time = bank9_entry['event_time_zero'].attrs['offset'].decode()
+    # Retrieve information from specified bank
+    bank_entry = source_h5[f'/entry/bank{bank_id}_events']
+    bank_histogram = convert_events_to_histogram(bank_entry)
+    run_start_time = bank_entry['event_time_zero'].attrs['offset'].decode()
 
     # generate events
-    nexus_events = generate_events_from_histogram(bank9_histogram, 10.)
+    nexus_events = generate_events_from_histogram(bank_histogram, 10.)
 
-    # Create bank node for bank 9
-    bank9_node = BankNode(name='/entry/bank9_events', bank_name='bank9')
-    bank9_node.set_events(nexus_events.event_id, nexus_events.event_index,
-                          nexus_events.event_time_offset, run_start_time,
-                          nexus_events.event_time_zero)
+    # Create bank node for bank
+    bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
+    bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
+                         nexus_events.event_time_offset, run_start_time,
+                         nexus_events.event_time_zero)
 
     # Link with parent
-    target_entry_node.set_child(bank9_node)
+    target_entry_node.set_child(bank_node)
 
 
 def set_instrument_node(source_h5, target_entry_node):

@@ -313,7 +313,7 @@ def generate_event_nexus(source_nexus, target_nexus):
 
     # Add node on the white list
     entry_level_white_list = [
-        '/entry/monitor1',
+        # '/entry/monitor1',
         '/entry/start_time',
         '/entry/end_time',
     ]
@@ -326,7 +326,7 @@ def generate_event_nexus(source_nexus, target_nexus):
         set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=bank_id)
 
     # Set monitor node
-    set_monitor_node()
+    set_monitor_node(source_nexus_h5, target_entry_node)
 
     # write
     target_nexus_root.write(target_nexus)
@@ -337,13 +337,12 @@ def generate_event_nexus(source_nexus, target_nexus):
     return
 
 
-def set_monitor_node(source_h5, source_entry_node, target_entry_node):
+def set_monitor_node(source_h5, target_entry_node):
     """
 
     Parameters
     ----------
     source_h5
-    source_entry_node
     target_entry_node
 
     Returns

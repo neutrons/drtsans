@@ -98,7 +98,7 @@ def test_convert_monitor_counts_to_events():
     # Verify
     assert monitor_events_even.event_time_offset.shape == (num_counts, )
     assert monitor_events_even.event_index.shape == (250, )
-    assert monitor_events_even.event_index[-1] == 100
+    assert monitor_events_even.event_index[-1] == num_counts - 100
 
     # Case 2: Counts cannot be spread unevenly
     num_counts = 25013
@@ -109,8 +109,8 @@ def test_convert_monitor_counts_to_events():
     # Verify
     assert monitor_events_uneven.event_time_offset.shape == (num_counts, )
     assert monitor_events_uneven.event_index.shape == (250, )
-    assert monitor_events_uneven.event_index[-1] == 101
-    assert monitor_events_uneven.event_index[-12] == 101
+    assert monitor_events_uneven.event_index[-1] == num_counts - 101
+    assert monitor_events_uneven.event_index[-12] == num_counts - 101 * 12
 
 
 if __name__ == '__main__':

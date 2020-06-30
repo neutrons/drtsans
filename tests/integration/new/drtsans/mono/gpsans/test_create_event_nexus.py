@@ -9,9 +9,10 @@ from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
-from drtsans.files.hdf5_rw import FileNode, GroupNode
-from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
+from drtsans.files.hdf5_rw import GroupNode
+from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
+from drtsans.files.event_nexus_rw import init_event_nexus
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
 
 
@@ -242,20 +243,20 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
         plot_reduction_output(out, reduction_input, loglog=False)
-
-
-def init_event_nexus():
-    # create a new file node
-    nexus_root_node = FileNode()
-
-    # create an '/entry' node
-    entry_node = GroupNode('/entry')
-    nexus_root_node.set_child(entry_node)
-
-    # add attribution as NX_class
-    entry_node.add_attributes({'NX_class': 'NXentry'})
-
-    return nexus_root_node
+#
+#
+# def init_event_nexus():
+#     # create a new file node
+#     nexus_root_node = FileNode()
+#
+#     # create an '/entry' node
+#     entry_node = GroupNode('/entry')
+#     nexus_root_node.set_child(entry_node)
+#
+#     # add attribution as NX_class
+#     entry_node.add_attributes({'NX_class': 'NXentry'})
+#
+#     return nexus_root_node
 
 
 def generate_event_nexus(source_nexus, target_nexus):
@@ -324,6 +325,9 @@ def generate_event_nexus(source_nexus, target_nexus):
     for bank_id in range(1, 48 + 1):
         set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=bank_id)
 
+    # Set monitor node
+    set_monitor_node()
+
     # write
     target_nexus_root.write(target_nexus)
 
@@ -331,6 +335,40 @@ def generate_event_nexus(source_nexus, target_nexus):
     source_nexus_h5.close()
 
     return
+
+
+def set_monitor_node(source_h5, source_entry_node, target_entry_node):
+    """
+
+    Parameters
+    ----------
+    source_h5
+    source_entry_node
+    target_entry_node
+
+    Returns
+    -------
+
+    """
+    # Retrieve information from specified bank
+    monitor_entry = source_h5[f'/entry/monitor1']
+    # monitor_histogram = convert_events_to_histogram(bank_entry)
+    run_start_time = monitor_entry['event_time_zero'].attrs['offset'].decode()
+
+    # Generate a monitor node
+    target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
+
+    # Get values
+    event_indexes = monitor_entry['event_index'][()]
+    event_time_offsets = monitor_entry['event_time_offset'][()]
+    event_time_zeros = monitor_entry['event_time_zero'][()]
+
+    target_monitor_node.set_monitor_events(event_index_array=event_indexes,
+                                           event_time_offset_array=event_time_offsets,
+                                           run_start_time=run_start_time,
+                                           event_time_zero_array=event_time_zeros)
+
+    target_entry_node.set_child(target_monitor_node)
 
 
 def set_single_bank_node(source_h5, target_entry_node, bank_id):

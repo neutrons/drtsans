@@ -1,5 +1,6 @@
 import numpy as np
 from collections import namedtuple
+from drtsans.files.hdf5_rw import FileNode, GroupNode
 
 __all__ = ['TofHistogram', 'NexusEvents', 'EventNeXusWriter', 'generate_events_from_histogram',
            'convert_events_to_histogram']
@@ -36,6 +37,20 @@ class EventNeXusWriter(object):
 
     def set_run_start_time(self, run_start_time):
         self._run_start = run_start_time
+
+
+def init_event_nexus():
+    # create a new file node
+    nexus_root_node = FileNode()
+
+    # create an '/entry' node
+    entry_node = GroupNode('/entry')
+    nexus_root_node.set_child(entry_node)
+
+    # add attribution as NX_class
+    entry_node.add_attributes({'NX_class': 'NXentry'})
+
+    return nexus_root_node
 
 
 def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):

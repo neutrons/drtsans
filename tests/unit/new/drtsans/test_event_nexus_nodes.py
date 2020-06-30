@@ -6,6 +6,47 @@ from drtsans.files.hdf5_rw import parse_h5_entry
 from drtsans.files.event_nexus_nodes import InstrumentNode
 from drtsans.files.event_nexus_nodes import BankNode
 from drtsans.files.event_nexus_nodes import DasLogNode
+from drtsans.files.event_nexus_nodes import MonitorNode
+
+
+def test_create_monitor_node(reference_dir):
+    """Test to create a Monitor node
+
+    Parameters
+    ----------
+    reference_dir
+
+    Returns
+    -------
+
+    """
+    # Parse NeXus file manually for the values nodes
+    source_nexus = os.path.join(reference_dir.new.gpsans, 'CG2_9166.nxs.h5')
+
+    # Parse the source HDF5
+    nexus_h5 = h5py.File(source_nexus, 'r')
+    source_root = parse_h5_entry(nexus_h5)
+
+    # Get a bank node
+    bank9_entry = nexus_h5['/entry/monitor1']
+    event_indexes = bank9_entry['event_index'][()]
+    event_time_offsets = bank9_entry['event_time_offset'][()]
+    event_time_zeros = bank9_entry['event_time_zero'][(())]
+    run_start_time = bank9_entry['event_time_zero'].attrs['offset'].decode()
+
+    # check type
+    assert isinstance(event_indexes, np.ndarray)
+
+    # Create bank node for bank 9
+    monitor_node = MonitorNode(name='/entry/monitor1', monitor_name='monitor')
+    monitor_node.set_monitor_events(event_indexes, event_time_offsets, run_start_time, event_time_zeros)
+
+    # Verify
+    expected_monitor_node = source_root.get_child('/entry').get_child('monitor1', is_short_name=True)
+    expected_monitor_node.match(monitor_node)
+
+    # Close file
+    nexus_h5.close()
 
 
 def test_create_events_node(reference_dir):
@@ -44,6 +85,9 @@ def test_create_events_node(reference_dir):
     # Verify
     expected_bank9_node = source_root.get_child('/entry').get_child('bank9_events', is_short_name=True)
     expected_bank9_node.match(bank9_node)
+
+    # Close file
+    nexus_h5.close()
 
 
 def test_create_das_log_node(reference_dir):

@@ -25,7 +25,7 @@ class MonitorNode(drtsans.files.hdf5_rw.GroupNode):
         super(MonitorNode, self).__init__(name)
 
         # add NX_class
-        self.add_attributes({'NX_class': b'NXevent_monitor'})
+        self.add_attributes({'NX_class': b'NXmonitor'})
 
     def set_monitor_events(self, event_index_array, event_time_offset_array,
                            run_start_time, event_time_zero_array):

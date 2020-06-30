@@ -96,8 +96,9 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
         event_time_offset_plus1 = np.tile(base_tof_array_p1, num_plus_one)
         # create event index array: incrementing by (num_event_per_pulse + 1)
         event_index_array_plus1 = np.arange(num_plus_one).astype('uint64') * (num_events_per_pulse + 1)
+        event_shift = event_index_array[-1] + num_events_per_pulse
         # shift
-        event_index_array_plus1 += event_time_offset_array[-1] + num_events_per_pulse
+        event_index_array_plus1 += int(event_shift)
 
         # concatenate
         event_time_offset_array = np.concatenate((event_time_offset_array, event_time_offset_plus1))

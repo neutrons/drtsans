@@ -53,6 +53,59 @@ def init_event_nexus():
     return nexus_root_node
 
 
+def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, min_tof, max_tof):
+    """Generate monitor events from a single monitor count
+
+    Parameters
+    ----------
+    monitor_counts
+    event_time_zero_array: numpy.ndarray
+        event time zero array (for pulse time)
+
+    Returns
+    -------
+    NexusEvents
+        Generated TOF events for monitor counts
+
+    """
+    # Create event_id list
+    event_id_array = np.zeros((monitor_counts, ), dtype='uint32')
+
+    # number of events per pulse
+    num_pulses = event_time_zero_array.shape[0]
+    num_events_per_pulse = monitor_counts // num_pulses
+
+    # create event index array
+    event_index_array = np.arange(num_pulses).astype('uint64') * num_events_per_pulse
+
+    # Time of flight array
+    # number of pulses with regular value or more value
+    num_plus_one =  monitor_counts % num_pulses
+    num_regular = num_pulses - num_plus_one
+
+    # base TOF array
+    # resolution
+    resolution = (max_tof - min_tof) / num_events_per_pulse
+    base_tof_array = np.arange(num_events_per_pulse) * resolution + min_tof
+    event_time_offset_array = np.tile(base_tof_array, num_regular)
+
+    # plus 1 ones
+    if num_plus_one > 0:
+        # resolution
+        resolution = (max_tof - min_tof) / (num_events_per_pulse + 1)
+        base_tof_array_p1 = np.arange(num_events_per_pulse + 1) * resolution + min_tof
+        event_time_offset_plus1 = np.tile(base_tof_array_p1, num_plus_one)
+
+        # concatenate
+        event_time_offset_array = np.concatenate((event_time_offset_array, event_time_offset_plus1))
+
+    # construct output
+    faked_nexus_events = NexusEvents(event_id_array, event_index_array,
+                                     event_time_offset_array, event_time_zero_array)
+
+    return faked_nexus_events
+
+
 def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):
     """Convert histogram (counts on detector pixels) to 'fake' events
 

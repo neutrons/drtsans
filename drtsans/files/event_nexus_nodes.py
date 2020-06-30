@@ -20,7 +20,7 @@ class MonitorNode(drtsans.files.hdf5_rw.GroupNode):
         name
         monitor_name
         """
-        self._bank_name = monitor_name
+        self._monitor_name = monitor_name
 
         super(MonitorNode, self).__init__(name)
 
@@ -58,9 +58,6 @@ class MonitorNode(drtsans.files.hdf5_rw.GroupNode):
                                                      ('total_counts', [total_counts], None)]:
             child_node = DataSetNode(name=self._create_child_name(child_name))
             child_node.set_value(np.array(child_value))
-            # add target
-            target_value = f'/entry/instrument/{self._bank_name}/{child_name}'.encode()
-            child_node.add_attributes({'target': target_value})
 
             if child_units is not None:
                 child_node.add_attributes({'units': child_units})
@@ -159,26 +156,12 @@ class BankNode(drtsans.files.hdf5_rw.GroupNode):
         -------
 
         """
+        # create child node name with full path
         node_name = self._create_child_name('event_time_zero')
+        # create child node for event time zero (pulse time)
         pulse_time_node = generate_event_time_zero_node(node_name, event_time_zero_array, run_start_time)
         # link to self/its parent
         self.set_child(pulse_time_node)
-        # # calculate run start time offset
-        # offset_second, offset_ns = calculate_time_offsets(run_start_time)
-        #
-        # # Special for event_time_zero node
-        # pulse_time_node = DataSetNode(name=self._create_child_name('event_time_zero'))
-        # # link to self/its parent
-        # self.set_child(pulse_time_node)
-        # # set value
-        # pulse_time_node.set_value(event_time_zero_array)
-        # # set up attribution dictionary
-        # pulse_attr_dict = {'units': b'second',
-        #                    'target': b'/entry/DASlogs/frequency/time',
-        #                    'offset': run_start_time.encode(),
-        #                    'offset_nanoseconds': offset_ns,
-        #                    'offset_seconds': offset_second}
-        # pulse_time_node.add_attributes(pulse_attr_dict)
 
 
 def generate_event_time_zero_node(node_name, event_time_zero_array, run_start_time):

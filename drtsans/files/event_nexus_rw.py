@@ -80,7 +80,7 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
 
     # Time of flight array
     # number of pulses with regular value or more value
-    num_plus_one =  monitor_counts % num_pulses
+    num_plus_one = monitor_counts % num_pulses
     num_regular = num_pulses - num_plus_one
 
     # base TOF array

@@ -86,7 +86,7 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
     base_tof_array = np.arange(num_events_per_pulse) * resolution + min_tof
     event_time_offset_array = np.tile(base_tof_array, num_regular)
     # create event index array
-    event_index_array = np.arange(num_regualr).astype('uint64') * num_events_per_pulse
+    event_index_array = np.arange(num_regular).astype('uint64') * num_events_per_pulse
 
     # plus 1 ones
     if num_plus_one > 0:
@@ -94,10 +94,10 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
         resolution = (max_tof - min_tof) / (num_events_per_pulse + 1)
         base_tof_array_p1 = np.arange(num_events_per_pulse + 1) * resolution + min_tof
         event_time_offset_plus1 = np.tile(base_tof_array_p1, num_plus_one)
-    	# create event index array: incrementing by (num_event_per_pulse + 1)
-    	event_index_array_plus1 = np.arange(num_plus_one).astype('uint64') * (num_event_per_pulse + 1)
+        # create event index array: incrementing by (num_event_per_pulse + 1)
+        event_index_array_plus1 = np.arange(num_plus_one).astype('uint64') * (num_events_per_pulse + 1)
         # shift
-    	event_index_array_plus1 += event_time_offset_array[-1] + num_event_per_purlse
+        event_index_array_plus1 += event_time_offset_array[-1] + num_events_per_pulse
 
         # concatenate
         event_time_offset_array = np.concatenate((event_time_offset_array, event_time_offset_plus1))

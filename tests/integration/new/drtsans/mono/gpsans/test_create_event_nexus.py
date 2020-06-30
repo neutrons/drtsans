@@ -50,7 +50,7 @@ def test_step_by_step(reference_dir):
     dup_sample_ws = loaded_dup_dict.sample[0]
     print(f'sample ws: {dup_sample_ws.name()}')
     SaveNexusProcessed(InputWorkspace=dup_sample_ws, Filename=os.path.join(output_dir, 'dup_loaded.nxs'))
-    print(f'spec nunber = {loaded_sample_ws.getNumberHistograms()}')
+    print(f'spec number = {loaded_sample_ws.getNumberHistograms()}')
 
     raw_x = loaded_sample_ws.extractX()
     dup_x = dup_sample_ws.extractX()
@@ -303,9 +303,6 @@ def generate_event_nexus(source_nexus, target_nexus):
     source_entry_node = source_root_node.get_child('/entry')
 
     target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
-    # # Nothing here! TODO - remove this
-    # target_entry_node.add_attributes(source_entry_node.attributes)
-    # print(f'Entry attributes: {source_entry_node.attributes}')
 
     # set instrument node
     set_instrument_node(source_nexus_h5, target_entry_node)
@@ -314,31 +311,14 @@ def generate_event_nexus(source_nexus, target_nexus):
     set_das_log_node(source_nexus_h5, source_entry_node, target_entry_node)
 
     # Add node on the white list
-    # '/entry/title',
-    # '/entry/notes',
-    # '/entry/total_counts',
-    # '/entry/total_other_counts',
-    # '/entry/total_pulses',
-    # '/entry/experiment_identifier',
-    # '/entry/experiment_title',
-    # '/entry/duration',
-    # '/entry/proton_charge',
-    # '/entry/run_number',
     entry_level_white_list = [
         '/entry/monitor1',
         '/entry/start_time',
         '/entry/end_time',
-        # '/entry/raw_frames',
     ]
     for child_node_name in entry_level_white_list:
         child_node = source_entry_node.get_child(child_node_name)
         target_entry_node.set_child(child_node)
-
-    # Add bank nodes
-    # for bank_id in range(21, 48 + 1):
-    #     bank_entry_name = f'bank{bank_id}_events'
-    #     bank_node_i = source_entry_node.get_child(bank_entry_name, is_short_name=True)
-    #     target_entry_node.set_child(bank_node_i)
 
     # set Bank 1 - 48
     for bank_id in range(1, 48 + 1):
@@ -351,36 +331,6 @@ def generate_event_nexus(source_nexus, target_nexus):
     source_nexus_h5.close()
 
     return
-
-
-def set_bank9_node_exact_copy(source_h5, target_entry_node):
-    """
-
-    Parameters
-    ----------
-    source_h5: h5py._hl.files.File
-        HDF5 file entry
-    target_entry_node: GroupNode
-        Target (output) group node for /entry/
-
-    Returns
-    -------
-
-    """
-    # Get a bank node
-    bank9_entry = source_h5['/entry/bank9_events']
-    event_ids = bank9_entry['event_id'][()]
-    event_indexes = bank9_entry['event_index'][()]
-    event_time_offsets = bank9_entry['event_time_offset'][()]
-    event_time_zeros = bank9_entry['event_time_zero'][(())]
-    run_start_time = bank9_entry['event_time_zero'].attrs['offset'].decode()
-
-    # Create bank node for bank 9
-    bank9_node = BankNode(name='/entry/bank9_events', bank_name='bank9')
-    bank9_node.set_events(event_ids, event_indexes, event_time_offsets, run_start_time, event_time_zeros)
-
-    # Link with parent
-    target_entry_node.set_child(bank9_node)
 
 
 def set_single_bank_node(source_h5, target_entry_node, bank_id):

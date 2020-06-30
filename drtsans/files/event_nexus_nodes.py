@@ -8,6 +8,71 @@ import drtsans
 from drtsans.files.hdf5_rw import DataSetNode, GroupNode
 
 
+class MonitorNode(drtsans.files.hdf5_rw.GroupNode):
+    """
+    Node to record monitor counts
+    """
+    def __init__(self, name, monitor_name):
+        """
+
+        Parameters
+        ----------
+        name
+        monitor_name
+        """
+        self._bank_name = monitor_name
+
+        super(MonitorNode, self).__init__(name)
+
+        # add NX_class
+        self.add_attributes({'NX_class': b'NXevent_monitor'})
+
+    def set_monitor_events(self, event_index_array, event_time_offset_array,
+                           run_start_time, event_time_zero_array):
+        """Monitor counts are recorded as events
+
+        Parameters
+        ----------
+        event_time_offset_array: numpy.ndarray
+            TOF of each neutron event.  Size is equal to number of events
+        event_time_zero_array: numpy.ndarray
+            Staring time, as seconds offset to run start time, of each pulse
+        run_start_time: str
+            Run start time in ISO standard
+        event_index_array: numpy.ndarray
+            Index of staring event in each pulse.  Size is equal to number of pulses
+
+        Returns
+        -------
+
+        """
+        # Check inputs
+        assert event_time_zero_array.shape == event_index_array.shape
+
+        # Total counts
+        total_counts = len(event_time_offset_array)
+
+        # For all children except event time
+        for child_name, child_value, child_units in [('event_index', event_index_array, None),
+                                                     ('event_time_offset', event_time_offset_array, b'microsecond'),
+                                                     ('total_counts', [total_counts], None)]:
+            child_node = DataSetNode(name=self._create_child_name(child_name))
+            child_node.set_value(np.array(child_value))
+            # add target
+            target_value = f'/entry/instrument/{self._bank_name}/{child_name}'.encode()
+            child_node.add_attributes({'target': target_value})
+
+            if child_units is not None:
+                child_node.add_attributes({'units': child_units})
+            self.set_child(child_node)
+
+        # Set pulse time node (event time zero)
+        node_name = self._create_child_name('event_time_zero')
+        pulse_time_node = generate_event_time_zero_node(node_name, event_time_zero_array, run_start_time)
+        # link to self/its parent
+        self.set_child(pulse_time_node)
+
+
 class BankNode(drtsans.files.hdf5_rw.GroupNode):
     """Node for bank entry such as /entry/bank12
 
@@ -94,22 +159,46 @@ class BankNode(drtsans.files.hdf5_rw.GroupNode):
         -------
 
         """
-        # calculate run start time offset
-        offset_second, offset_ns = calculate_time_offsets(run_start_time)
-
-        # Special for event_time_zero node
-        pulse_time_node = DataSetNode(name=self._create_child_name('event_time_zero'))
+        node_name = self._create_child_name('event_time_zero')
+        pulse_time_node = generate_event_time_zero_node(node_name, event_time_zero_array, run_start_time)
         # link to self/its parent
         self.set_child(pulse_time_node)
-        # set value
-        pulse_time_node.set_value(event_time_zero_array)
-        # set up attribution dictionary
-        pulse_attr_dict = {'units': b'second',
-                           'target': b'/entry/DASlogs/frequency/time',
-                           'offset': run_start_time.encode(),
-                           'offset_nanoseconds': offset_ns,
-                           'offset_seconds': offset_second}
-        pulse_time_node.add_attributes(pulse_attr_dict)
+        # # calculate run start time offset
+        # offset_second, offset_ns = calculate_time_offsets(run_start_time)
+        #
+        # # Special for event_time_zero node
+        # pulse_time_node = DataSetNode(name=self._create_child_name('event_time_zero'))
+        # # link to self/its parent
+        # self.set_child(pulse_time_node)
+        # # set value
+        # pulse_time_node.set_value(event_time_zero_array)
+        # # set up attribution dictionary
+        # pulse_attr_dict = {'units': b'second',
+        #                    'target': b'/entry/DASlogs/frequency/time',
+        #                    'offset': run_start_time.encode(),
+        #                    'offset_nanoseconds': offset_ns,
+        #                    'offset_seconds': offset_second}
+        # pulse_time_node.add_attributes(pulse_attr_dict)
+
+
+def generate_event_time_zero_node(node_name, event_time_zero_array, run_start_time):
+    # calculate run start time offset
+    offset_second, offset_ns = calculate_time_offsets(run_start_time)
+
+    # Special for event_time_zero node
+    pulse_time_node = DataSetNode(name=node_name)
+
+    # set value
+    pulse_time_node.set_value(event_time_zero_array)
+    # set up attribution dictionary
+    pulse_attr_dict = {'units': b'second',
+                       'target': b'/entry/DASlogs/frequency/time',
+                       'offset': run_start_time.encode(),
+                       'offset_nanoseconds': offset_ns,
+                       'offset_seconds': offset_second}
+    pulse_time_node.add_attributes(pulse_attr_dict)
+
+    return pulse_time_node
 
 
 class InstrumentNode(drtsans.files.hdf5_rw.GroupNode):

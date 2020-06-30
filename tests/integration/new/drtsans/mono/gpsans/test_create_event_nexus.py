@@ -12,6 +12,7 @@ from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_s
 from drtsans.files.hdf5_rw import GroupNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
+from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
 
@@ -322,11 +323,15 @@ def generate_event_nexus(source_nexus, target_nexus):
         target_entry_node.set_child(child_node)
 
     # set Bank 1 - 48
+    max_pulse_time_array = None
     for bank_id in range(1, 48 + 1):
-        set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=bank_id)
+        bank_node_i = set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=bank_id)
+        event_time_zeros = bank_node_i.get_child('event_time_zero', is_short_name=True).value
+        if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
+            max_pulse_time_array = event_time_zeros
 
     # Set monitor node
-    set_monitor_node(source_nexus_h5, target_entry_node)
+    set_monitor_node(source_nexus_h5, target_entry_node, max_pulse_time_array)
 
     # write
     target_nexus_root.write(target_nexus)
@@ -337,7 +342,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     return
 
 
-def set_monitor_node(source_h5, target_entry_node):
+def set_monitor_node(source_h5, target_entry_node, event_time_zeros):
     """
 
     Parameters
@@ -356,14 +361,23 @@ def set_monitor_node(source_h5, target_entry_node):
 
     # Generate a monitor node
     target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
+    monitor_counts = monitor_entry['event_time_offset'][()].shape[0]
+
+    tof_min = 0.
+    tof_max = 10000.
+    monitor_events = generate_monitor_events_from_count(monitor_counts, event_time_zeros, tof_min, tof_max)
 
     # Get values
-    event_indexes = monitor_entry['event_index'][()]
-    event_time_offsets = monitor_entry['event_time_offset'][()]
-    event_time_zeros = monitor_entry['event_time_zero'][()]
+    # event_indexes = monitor_entry['event_index'][()]
+    # event_time_offsets = monitor_entry['event_time_offset'][()]
+    # event_time_zeros = monitor_entry['event_time_zero'][()]
+    # target_monitor_node.set_monitor_events(event_index_array=event_indexes,
+    #                                        event_time_offset_array=event_time_offsets,
+    #                                        run_start_time=run_start_time,
+    #                                        event_time_zero_array=event_time_zeros)
 
-    target_monitor_node.set_monitor_events(event_index_array=event_indexes,
-                                           event_time_offset_array=event_time_offsets,
+    target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
+                                           event_time_offset_array=monitor_events.event_time_offset,
                                            run_start_time=run_start_time,
                                            event_time_zero_array=event_time_zeros)
 
@@ -384,6 +398,8 @@ def set_single_bank_node(source_h5, target_entry_node, bank_id):
 
     Returns
     -------
+    BankNode
+        newly generated bank node
 
     """
     # Retrieve information from specified bank
@@ -402,6 +418,8 @@ def set_single_bank_node(source_h5, target_entry_node, bank_id):
 
     # Link with parent
     target_entry_node.set_child(bank_node)
+
+    return bank_node
 
 
 def set_instrument_node(source_h5, target_entry_node):

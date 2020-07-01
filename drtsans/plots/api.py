@@ -249,12 +249,18 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
     # Determine whether intensity matrix shall be inverted or not
     qx2d = workspace.qx
     qy2d = workspace.qy
-    if qx2d.shape[0] > 1:
-        assert np.sum(qx2d[0] == qx2d[1]) == qx2d.shape[1], 'Qx shall have identical among rows'
-    if qy2d.shape[1] > 1:
-        assert np.sum(qy2d[:, 0] == qy2d[:, 1]) == qy2d.shape[0], 'Qy shall have identical columns'
+    if qx2d.shape[0] > 1 and np.sum(qx2d[0] == qx2d[1]) == qx2d.shape[1]:
+        # I(Qx, Qy) is of same order as meshgrid(Qx, Qy)
+        # Qx have identical among rows:
+        if qy2d.shape[1] > 1:
+            # sanity check
+            assert np.sum(qy2d[:, 0] == qy2d[:, 1]) == qy2d.shape[0], 'Qy shall have identical columns'
+        intensity = workspace.intensity
+    else:
+        # I(Qx, Qy) is tranposed to meshgrid(Qx, Qy)
+        intensity = workspace.intensity.T
 
-    pcm = ax.imshow(workspace.intensity, extent=(qxmin, qxmax, qymin, qymax),
+    pcm = ax.imshow(intensity, extent=(qxmin, qxmax, qymin, qymax),
                     origin='lower', aspect='auto', **imshow_kwargs)
     # Here is the debugging output
     qx = workspace.qx

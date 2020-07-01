@@ -245,8 +245,24 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
     fig, ax = plt.subplots()
     current_cmap = matplotlib.cm.get_cmap()
     current_cmap.set_bad(color='grey')
+
+    # Determine whether intensity matrix shall be inverted or not
+    qx2d = workspace.qx
+    qy2d = workspace.qy
+    if qx2d.shape[0] > 1:
+        assert np.sum(qx2d[0] == qx2d[1]) == qx2d.shape[1], 'Qx shall have identical among rows'
+    if qy2d.shape[1] > 1:
+        assert np.sum(qy2d[:, 0] == qy2d[:, 1]) == qy2d.shape[0], 'Qy shall have identical columns'
+
     pcm = ax.imshow(workspace.intensity, extent=(qxmin, qxmax, qymin, qymax),
                     origin='lower', aspect='auto', **imshow_kwargs)
+    # Here is the debugging output
+    qx = workspace.qx
+    qy = workspace.qy
+    print(qx.shape, qy.shape)
+    print(qx[0])
+    print(qx[:, 0])
+
     # add calculated region of interest
     if roi is not None:
         roi = np.ma.masked_where(roi, roi.astype(int))

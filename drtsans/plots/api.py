@@ -262,12 +262,6 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
 
     pcm = ax.imshow(intensity, extent=(qxmin, qxmax, qymin, qymax),
                     origin='lower', aspect='auto', **imshow_kwargs)
-    # Here is the debugging output
-    qx = workspace.qx
-    qy = workspace.qy
-    print(qx.shape, qy.shape)
-    print(qx[0])
-    print(qx[:, 0])
 
     # add calculated region of interest
     if roi is not None:

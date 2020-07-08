@@ -1,6 +1,10 @@
 import numpy as np
 from collections import namedtuple
 from drtsans.files.hdf5_rw import FileNode, GroupNode
+from drtsans.files.hdf5_rw import DataSetNode
+from drtsans.files.event_nexus_nodes import InstrumentNode, BankNode, MonitorNode, DasLogNode, DasLogsCollectionNode
+import h5py
+
 
 __all__ = ['TofHistogram', 'NexusEvents', 'EventNeXusWriter', 'generate_events_from_histogram',
            'convert_events_to_histogram']
@@ -12,31 +16,320 @@ TofHistogram = namedtuple('TofHistogram', ['pixel_ids', 'counts', 'pulse_duratio
 # TOF events generated from histogram
 NexusEvents = namedtuple('NexusEvents', ['event_id', 'event_index', 'event_time_offset', 'event_time_zero'])
 
+# Run time in ISO time string
+RunTime = namedtuple('RunTime', ['start', 'stop'])
+
+# DAS log: time is relative time to run start in seconds
+DasLog = namedtuple('DasLog', ['name', 'times', 'values', 'unit', 'device'])
+
+# Sample log device parameters
+DasDevice = namedtuple('DasDevice', ['id', 'name', 'target'])
+
 
 class EventNeXusWriter(object):
     """
     Write an Event NeXus file
     """
-    def __init__(self):
+    def __init__(self, beam_line, instrument_name):
         """ Initialization
         """
+        self._beam_line = beam_line
+        self._set_instrument_name = instrument_name
+
+        # entry node
+        self._entry_node = None
+        self._root_node = None
+
+        # Initialize
+        self._init_event_nexus()
+
         # Bank of events
         self._banks_dict = dict()
+
+        # Instrument
+        self._num_banks = None
+        self._idf_xml = None
 
         # Meta data
         self._meta_data_dict = dict()
 
-        # Run start time
-        self._run_start = None
+        # Run start and stop time
+        self._run_time = None
 
-    def set_counts(self, bank_id, counts, detector_ids):
-        self._banks_dict[bank_id] = counts, detector_ids
+    def _init_event_nexus(self):
+        """Initialize event Nexus node
+
+        Returns
+        -------
+        None
+
+        """
+        # create a new file node
+        self._root_node = FileNode()
+
+        # create an '/entry' node
+        self._entry_node = GroupNode('/entry')
+        # add attribution as NX_class
+        self._entry_node.add_attributes({'NX_class': 'NXentry'})
+        # append entry node to root
+        self._root_node.set_child(self._entry_node)
+
+        # Set DAS log node
+        self._log_collection_node = DasLogsCollectionNode()
+        self._entry_node.set_child(self._log_collection_node)
+
+        # Create new instrument node
+        self._instrument_node = InstrumentNode()
+        self._entry_node.set_child(self._instrument_node)
+
+    def set_instrument_info(self, num_banks, instrument_xml):
+        """Set information related to SANS instrument including IDF in plain XML string and
+        number of banks
+
+        Parameters
+        ----------
+        num_banks: int
+            number of banks
+        instrument_xml: str
+            instrument definition in plain XML string
+
+        Returns
+        -------
+
+        """
+        self._num_banks = num_banks
+        self._idf_xml = instrument_xml
+
+    def set_bank_histogram(self, bank_id, bank_histogram):
+        """Set a single bank's counts
+
+        Parameters
+        ----------
+        bank_id
+        bank_histogram: TofHistogram
+            Histogram for simulating TOF
+
+        Returns
+        -------
+
+        """
+        self._banks_dict[bank_id] = bank_histogram
 
     def set_meta_data(self, meta_name, value, unit):
         self._meta_data_dict[meta_name] = value, unit
 
-    def set_run_start_time(self, run_start_time):
-        self._run_start = run_start_time
+    def _set_instrument_node(self, xml_idf):
+        """Set instrument node
+
+        Parameters
+        ----------
+        xml_idf: str
+            IDF XML
+
+        Returns
+        -------
+
+        """
+        # Set values
+        self._instrument_node.set_idf(xml_idf, idf_type=b'text/xml',
+                                      description=b'XML contents of the instrument IDF')
+        self._instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG2',
+                                                  name=b'CG2', short_name=b'CG2')
+
+    def _set_log_node(self, log_name, relative_log_times, log_values, log_unit, device):
+        """Set a DAS log node
+
+        Parameters
+        ----------
+        log_name
+        relative_log_times
+        log_values
+        log_unit
+        device: DasDevice
+            DAS device parameters
+
+        Returns
+        -------
+
+        """
+
+        # Set up a DAS log node
+        das_log_node = DasLogNode(log_name=f'/entry/DASlogs/{log_name}',
+                                  log_times=relative_log_times,
+                                  log_values=log_values,
+                                  start_time=self._run_time.start,
+                                  log_unit=log_unit)
+
+        # Set device information
+        if device is not None:
+            das_log_node.set_device_info(device_id=device.id, device_name=device.name.encode(),
+                                         target=f'/entry/DASlogs/{device.target}'.encode())
+
+        # append to parent node
+        self._log_collection_node.set_child(das_log_node)
+
+    # def set_sdd_node(self, log_collection_node):
+    #     # Get times and value for /entry/DASlogs/sample_detector_distance
+    #     ssd_entry = source_h5['entry']['DASlogs']['sample_detector_distance']
+    #     ssd_times = ssd_entry['time'].value
+    #     ssd_start_time = ssd_entry['time'].attrs['start']
+    #     ssd_value = ssd_entry['value'].value
+    #     ssd_value_unit = ssd_entry['value'].attrs['units']
+    #
+    #     # Set up a DAS log node
+    #     ssd_test_node = DasLogNode(log_name='/entry/DASlogs/sample_detector_distance',
+    #                                log_times=ssd_times, log_values=ssd_value,
+    #                                start_time=ssd_start_time, log_unit=ssd_value_unit)
+    #
+    #     ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
+    #                                   target=b'/entry/DASlogs/CG2:CS:SampleToDetRBV')
+    #
+    #     # append to parent node
+    #     log_collection_node.set_child(ssd_test_node)
+
+    def _set_das_logs_node(self):
+        """Set DAS log node in a mixed way
+
+        Returns
+        -------
+
+        """
+        # Create DAS logs node and set to entry
+        self._das_logs_node = DasLogsCollectionNode()
+        self._entry_node.set_child(self._das_logs_node)
+
+        # Set logs
+        for das_log in self._meta_data_dict:
+            self._set_log_node(das_log.name, das_log.times, das_log.values,
+                               das_log.unit, das_log.device)
+
+    def _set_run_time(self, start_time, stop_time):
+        """Set run start and stop time
+
+        Parameters
+        ----------
+        start_time: str
+            run start time in ISO standard
+        stop_time: str
+            run stop time in ISO standard
+
+        Returns
+        -------
+
+        """
+        # Set up the list
+        entry_value_tuples = [
+            ('/entry/start_time', start_time),
+            ('/entry/end_time', stop_time)
+        ]
+
+        for child_node_name, value in entry_value_tuples:
+            # Init regular DataSetNode and set value
+            child_node = DataSetNode(child_node_name)
+            child_node.set_value(np.array([value]))
+            # Link as the child of entry
+            self._entry_node.set_child(child_node)
+
+    def _set_single_bank_node(self, bank_id, bank_histogram):
+        """Test writing bank 9 from histogram
+
+        Parameters
+        ----------
+        bank_id: int
+            bank ID (from 1 to 48)
+        bank_histogram: TofHistogram
+            Histogram converted from TOF bank information
+
+        Returns
+        -------
+        BankNode
+            newly generated bank node
+
+        """
+        # Retrieve information from specified bank
+        # bank_entry = source_h5[f'/entry/bank{bank_id}_events']
+        # bank_histogram = convert_events_to_histogram(bank_entry)
+        # run_start_time = bank_entry['event_time_zero'].attrs['offset'].decode()
+
+        # generate events
+        nexus_events = generate_events_from_histogram(bank_histogram, 10.)
+
+        # Create bank node for bank
+        bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
+        bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
+                             nexus_events.event_time_offset, self._run_time.start,
+                             nexus_events.event_time_zero)
+
+        # Link with parent
+        self._entry_node.set_child(bank_node)
+
+        return bank_node
+
+    def _set_monitor_node(self, monitor_counts, event_time_zeros):
+        """
+
+        Parameters
+        ----------
+        monitor_counts: int, float
+            monitor counts
+        event_time_zeros
+
+        Returns
+        -------
+
+        """
+        # Generate a monitor node
+        target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
+
+        tof_min = 0.
+        tof_max = 10000.
+        monitor_events = generate_monitor_events_from_count(monitor_counts, event_time_zeros, tof_min, tof_max)
+
+        target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
+                                               event_time_offset_array=monitor_events.event_time_offset,
+                                               run_start_time=self._run_time.start,
+                                               event_time_zero_array=event_time_zeros)
+
+        self._entry_node.set_child(target_monitor_node)
+
+    def generate_event_nexus(self, nexus_name, start_time, stop_time, monitor_counts):
+        """Generate an event Nexus file from scratch
+        Parameters
+        ----------
+        nexus_name: str
+            Output NeXus file name
+        start_time
+        stop_time
+        monitor_counts
+
+        Returns
+        -------
+
+        """
+        # set instrument node
+        self._set_instrument_node(self._idf_xml)
+
+        # set DAS logs
+        self._set_das_logs_node()
+
+        # set run start and stop information
+        self._set_run_time(start_time, stop_time)
+
+        # set Bank 1 - 48
+        max_pulse_time_array = None
+        for bank_id in range(1, 48 + 1):
+            bank_node_i = self._set_single_bank_node(bank_id=bank_id, bank_histogram=self._banks_dict[bank_id])
+            event_time_zeros = bank_node_i.get_child('event_time_zero', is_short_name=True).value
+            if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
+                max_pulse_time_array = event_time_zeros
+
+        # Set monitor node
+        self._set_monitor_node(monitor_counts, max_pulse_time_array)
+
+        # write
+        self._run_time.write(nexus_name)
+
+        return
 
 
 def init_event_nexus():
@@ -61,6 +354,10 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
     monitor_counts
     event_time_zero_array: numpy.ndarray
         event time zero array (for pulse time)
+    min_tof: float
+        minimum TOF value for faked neutron events
+    max_tof: float
+        maximum TOF value for faked neutron events
 
     Returns
     -------
@@ -109,6 +406,69 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
                                      event_time_offset_array, event_time_zero_array)
 
     return faked_nexus_events
+
+
+def parse_event_nexus(source_nexus_name, num_banks):
+    """Parse an event Nexus file for minimal required information
+
+    Parameters
+    ----------
+    source_nexus_name
+    num_banks: int
+        number of banks. assuming bank numbers are consecutive
+
+    Returns
+    -------
+
+    """
+    # Import source
+    source_nexus_h5 = h5py.File(source_nexus_name, 'r')
+
+    # Run start and stop
+    run_start = source_nexus_h5['entry']['start_time'][0]
+    run_stop = source_nexus_h5['entry']['end_time'][0]
+
+    # IDF in XML
+    xml_idf = source_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+    # Retrieve information from specified bank
+    bank_histograms = dict()
+    for bank_id in range(1, num_banks + 1):
+        bank_entry = source_nexus_h5[f'/entry/bank{bank_id}_events']
+        bank_histogram = convert_events_to_histogram(bank_entry)
+        bank_histograms[bank_id] = bank_histogram
+
+    # Retrieve information from specified bank
+    monitor_entry = source_nexus_h5[f'/entry/monitor1']
+    monitor_counts = monitor_entry['event_time_offset'][()].shape[0]
+
+    # add sample logs
+    source_logs_node = source_nexus_h5['entry']['DASlogs']
+
+    # Specify white list
+    logs_white_list = ['CG2:CS:SampleToSi',
+                       'wavelength', 'wavelength_spread',
+                       'source_aperture_diameter', 'sample_aperture_diameter',
+                       'detector_trans_Readback']
+
+    das_log_dict = dict()
+
+    for log_name in logs_white_list:
+        log_times = source_logs_node[log_name]['time'][()]
+        log_value = source_logs_node[log_name]['value'][()]
+        log_value_unit = source_logs_node[log_name]['value'].attrs['unit']
+        device_name = source_logs_node[log_name]['device_name'][0]
+        device_id = source_logs_node[log_name]['device_id'][0]
+        device_target = source_logs_node[log_name]['target'][0]
+        # Set to proper data structure
+        device = DasDevice(device_id, device_name, device_target)
+        das_log = DasLog(log_name, log_times, log_value, log_value_unit, device)
+        # Add to dictionary
+        das_log_dict[log_name] = das_log
+
+    # close original file
+    source_nexus_h5.close()
+
+    return xml_idf, bank_histograms, monitor_counts, run_start, run_stop, das_log_dict
 
 
 def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):

@@ -244,20 +244,6 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
         plot_reduction_output(out, reduction_input, loglog=False)
-#
-#
-# def init_event_nexus():
-#     # create a new file node
-#     nexus_root_node = FileNode()
-#
-#     # create an '/entry' node
-#     entry_node = GroupNode('/entry')
-#     nexus_root_node.set_child(entry_node)
-#
-#     # add attribution as NX_class
-#     entry_node.add_attributes({'NX_class': 'NXentry'})
-#
-#     return nexus_root_node
 
 
 def generate_event_nexus(source_nexus, target_nexus):
@@ -366,15 +352,6 @@ def set_monitor_node(source_h5, target_entry_node, event_time_zeros):
     tof_min = 0.
     tof_max = 10000.
     monitor_events = generate_monitor_events_from_count(monitor_counts, event_time_zeros, tof_min, tof_max)
-
-    # Get values
-    # event_indexes = monitor_entry['event_index'][()]
-    # event_time_offsets = monitor_entry['event_time_offset'][()]
-    # event_time_zeros = monitor_entry['event_time_zero'][()]
-    # target_monitor_node.set_monitor_events(event_index_array=event_indexes,
-    #                                        event_time_offset_array=event_time_offsets,
-    #                                        run_start_time=run_start_time,
-    #                                        event_time_zero_array=event_time_zeros)
 
     target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
                                            event_time_offset_array=monitor_events.event_time_offset,

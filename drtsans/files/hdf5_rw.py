@@ -4,6 +4,9 @@ import h5py
 import numpy as np
 
 
+__all__ = ['HDFNode', 'GroupNode', 'FileNode', 'DataSetNode']
+
+
 def parse_h5_entry(h5_entry):
     """Parse an HDF5 entry and generate an HDFNode object including all the sub entries
 

@@ -106,10 +106,10 @@ def test_create_group_node():
     node5.add_attributes(attributes_alt1)
 
     node6 = DataSetNode('data')
-    node6.set_1d_string(['abcdefg'])
+    node6.set_string_value('abcdefg')
 
     node7 = DataSetNode('data')
-    node7.set_1d_string(['abcdefgh'])
+    node7.set_string_value('abcdefgh')
 
     # set node 1 and its group
     node1.set_child(node3)

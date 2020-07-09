@@ -374,7 +374,8 @@ class DataSetNode(HDFNode):
 
         Parameters
         ----------
-        other_node
+        other_node: DataSetNode
+            another node to match against
 
         Returns
         -------
@@ -436,19 +437,21 @@ class DataSetNode(HDFNode):
         """
         self._value = data_array
 
-    def set_1d_string(self, str_list):
-        """
+    def set_string_value(self, str_value):
+        """Set value from a single string (object)
 
         Parameters
         ----------
-        str_list: ~list
-            List of encoded string
+        str_value: str
+            string to be written to an entry's only value
 
         Returns
         -------
 
         """
-        self._value = np.array(str_list)
+        # it is possible that input string is of type as unicode.  so it is better
+        # to enforce it to be a string (encoded string) that can be accepted by h5py
+        self._value = np.array([np.string_(str_value)])
 
     def write(self, parent_entry):
         """Write buffer node to an HDF entry

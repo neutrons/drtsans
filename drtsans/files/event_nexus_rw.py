@@ -233,7 +233,7 @@ class EventNeXusWriter(object):
         for child_node_name, value in entry_value_tuples:
             # Init regular DataSetNode and set value
             child_node = DataSetNode(child_node_name)
-            child_node.set_value(np.array([value]))
+            child_node.set_value(np.array([np.string_(value)]))
             # Link as the child of entry
             self._entry_node.set_child(child_node)
 
@@ -313,6 +313,9 @@ class EventNeXusWriter(object):
         -------
 
         """
+        # Set time
+        self._run_time = RunTime(start_time, stop_time)
+
         # set instrument node
         self._set_instrument_node(self._idf_xml)
 
@@ -324,7 +327,7 @@ class EventNeXusWriter(object):
 
         # set Bank 1 - 48
         max_pulse_time_array = None
-        for bank_id in range(1, 48 + 1):
+        for bank_id in range(1, self._num_banks + 1):
             bank_node_i = self._set_single_bank_node(bank_id=bank_id, bank_histogram=self._banks_dict[bank_id])
             event_time_zeros = bank_node_i.get_child('event_time_zero', is_short_name=True).value
             if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
@@ -334,9 +337,7 @@ class EventNeXusWriter(object):
         self._set_monitor_node(monitor_counts, max_pulse_time_array)
 
         # write
-        self._run_time.write(nexus_name)
-
-        return
+        self._root_node.write(nexus_name)
 
 
 def init_event_nexus():

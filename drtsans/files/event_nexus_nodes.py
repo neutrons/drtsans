@@ -224,12 +224,12 @@ class InstrumentNode(drtsans.files.hdf5_rw.GroupNode):
 
         # beam line
         beam_line_node = DataSetNode(name=f'{self.name}/beamline')
-        beam_line_node.set_1d_string([beam_line])
+        beam_line_node.set_1d_string([np.string_(beam_line)])
         self.set_child(beam_line_node)
 
         # beam line name
         name_node = DataSetNode(name=f'{self.name}/name')
-        name_node.set_1d_string([name])
+        name_node.set_1d_string([np.string_(name)])
         self.set_child(name_node)
         name_node.add_attributes({'short_name': short_name})
 
@@ -257,17 +257,19 @@ class InstrumentNode(drtsans.files.hdf5_rw.GroupNode):
 
         # add data node
         data_node = DataSetNode(name=f'{xml_node_name}/data')
-        data_node.set_1d_string([idf_str])
+        # it is possible that input string is of type as unicode.  so it is better
+        # to enforce it to be a string (encoded string) that can be accepted by h5py
+        data_node.set_1d_string([np.string_(idf_str)])
         xml_node.set_child(data_node)
 
         # add description
         des_node = DataSetNode(name=f'{xml_node_name}/description')
-        des_node.set_1d_string([description])
+        des_node.set_1d_string([np.string_(description)])
         xml_node.set_child(des_node)
 
         # add type
         type_node = DataSetNode(name=f'{xml_node_name}/type')
-        type_node.set_1d_string([idf_type])
+        type_node.set_1d_string([np.string_(idf_type)])
         xml_node.set_child(type_node)
 
 

@@ -127,14 +127,14 @@ def test_generate_event_nexus():
     # set instrument
     event_nexus_writer.set_instrument_info(2, '<IDF in XML>')
     # set counts
-    for bank_id in range(2):
+    for bank_id in range(1, 2 + 1):
         histogram_i = TofHistogram(np.arange(4) + bank_id * 4, np.arange(4)**3 + bank_id * 4, 0.20, 1000, 2000)
         event_nexus_writer.set_bank_histogram(bank_id, histogram_i)
     # END-FOR
     # set meta
     for meta_name, meta_value, unit in [('SampleToSi', 81, 'mm'),
                                         ('SampleToDetector', 2.323, 'm')]:
-        meta_data = DasLog(meta_name, np.ndarray([0., 1000.0]), np.ndarray[meta_value], unit, None)
+        meta_data = DasLog(meta_name, np.array([0., 1000.0]), np.array([meta_value]), unit, None)
         event_nexus_writer.set_meta_data(meta_data)
 
     # Generate
@@ -144,8 +144,8 @@ def test_generate_event_nexus():
     if os.path.exists(out_nexus_name):
         os.remove(out_nexus_name)
 
-    start_time = '2020-02-19T01:02:03:123456-05:00'
-    end_time = '2020-02-19T01:05:03:654321-05:00'
+    start_time = '2020-02-19T01:02:03.123456-05:00'
+    end_time = '2020-02-19T01:05:03.654321-05:00'
     event_nexus_writer.generate_event_nexus(out_nexus_name, start_time, end_time, 12345)
 
     # Verify

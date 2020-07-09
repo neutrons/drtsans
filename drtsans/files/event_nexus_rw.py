@@ -194,10 +194,6 @@ class EventNeXusWriter(object):
         -------
 
         """
-        # Create DAS logs node and set to entry
-        self._das_logs_node = DasLogsCollectionNode()
-        self._entry_node.set_child(self._das_logs_node)
-
         # Set logs
         for das_log in self._meta_data_dict:
             self._set_log_node(das_log.name, das_log.times, das_log.values,

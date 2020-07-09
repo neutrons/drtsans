@@ -148,8 +148,23 @@ def test_generate_event_nexus():
     end_time = '2020-02-19T01:05:03.654321-05:00'
     event_nexus_writer.generate_event_nexus(out_nexus_name, start_time, end_time, 12345)
 
-    # Verify
-    assert os.path.exists(out_nexus_name)
+    # Verify file existence
+    assert os.path.exists(out_nexus_name), f'Output event nexus file {out_nexus_name} does not exist'
+
+    # Import file
+    nexus_h5 = h5py.File(out_nexus_name, 'r')
+
+    # check directory
+    assert 'entry' in nexus_h5
+    assert 'DASlogs' in nexus_h5['entry']
+    assert 'SampleToSi' in nexus_h5['entry']['DASlogs']
+    assert 'SampleToDetector' in nexus_h5['entry']['DASlogs']
+    assert 'instrument' in nexus_h5['entry']
+    assert 'instrument_xml' in nexus_h5['entry']['instrument']
+    assert 'bank1_events' in nexus_h5['entry']
+    assert 'bank2_events' in nexus_h5['entry']
+    assert 'start_time' in nexus_h5['entry']
+    assert 'end_time' in nexus_h5['entry']
 
 
 if __name__ == '__main__':

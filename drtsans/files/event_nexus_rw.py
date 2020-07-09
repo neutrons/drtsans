@@ -7,7 +7,7 @@ import h5py
 
 
 __all__ = ['TofHistogram', 'NexusEvents', 'EventNeXusWriter', 'generate_events_from_histogram',
-           'convert_events_to_histogram']
+           'convert_events_to_histogram', 'DasLog', 'DasDevice', 'RunTime']
 
 # Specify parameter
 # Histogram converted from TOF events
@@ -115,8 +115,19 @@ class EventNeXusWriter(object):
         """
         self._banks_dict[bank_id] = bank_histogram
 
-    def set_meta_data(self, meta_name, value, unit):
-        self._meta_data_dict[meta_name] = value, unit
+    def set_meta_data(self, meta_data):
+        """
+
+        Parameters
+        ----------
+        meta_data: DasLog
+            Das log object
+
+        Returns
+        -------
+
+        """
+        self._meta_data_dict[meta_data.name] = meta_data
 
     def _set_instrument_node(self, xml_idf):
         """Set instrument node

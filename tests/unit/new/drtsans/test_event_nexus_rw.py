@@ -4,7 +4,7 @@ import os
 import h5py
 from drtsans.files.event_nexus_rw import EventNeXusWriter
 from drtsans.files.event_nexus_rw import generate_events_from_histogram, generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import convert_events_to_histogram, TofHistogram
+from drtsans.files.event_nexus_rw import convert_events_to_histogram, TofHistogram, DasLog
 
 
 def test_write_event_nexus():
@@ -134,7 +134,8 @@ def test_generate_event_nexus():
     # set meta
     for meta_name, meta_value, unit in [('SampleToSi', 81, 'mm'),
                                         ('SampleToDetector', 2.323, 'm')]:
-        event_nexus_writer.set_meta_data(meta_name, meta_value, unit)
+        meta_data = DasLog(meta_name, np.ndarray([0., 1000.0]), np.ndarray[meta_value], unit, None)
+        event_nexus_writer.set_meta_data(meta_data)
 
     # Generate
     # TODO / FIXME - use a tempfile

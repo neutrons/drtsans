@@ -195,7 +195,7 @@ class EventNeXusWriter(object):
 
         """
         # Set logs
-        for das_log in self._meta_data_dict:
+        for das_log in self._meta_data_dict.values():
             self._set_log_node(das_log.name, das_log.times, das_log.values,
                                das_log.unit, das_log.device)
 

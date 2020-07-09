@@ -4,7 +4,7 @@ import os
 import h5py
 from drtsans.files.event_nexus_rw import EventNeXusWriter
 from drtsans.files.event_nexus_rw import generate_events_from_histogram, generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import convert_events_to_histogram
+from drtsans.files.event_nexus_rw import convert_events_to_histogram, EventNeXusWriter, TofHistogram
 
 
 def test_write_event_nexus():
@@ -111,6 +111,44 @@ def test_convert_monitor_counts_to_events():
     assert monitor_events_uneven.event_index.shape == (250, )
     assert monitor_events_uneven.event_index[-1] == num_counts - 101
     assert monitor_events_uneven.event_index[-12] == num_counts - 101 * 12
+
+
+def test_generate_event_nexus():
+    """Test for generating an event nexus file
+
+    Returns
+    -------
+
+    """
+    # Initialize writer
+    event_nexus_writer = EventNeXusWriter(beam_line='TEST1', instrument_name='TestMonoSANS')
+
+    # Set variables
+    # set instrument
+    event_nexus_writer.set_instrument_info(2, '<IDF in XML>')
+    # set counts
+    for bank_id in range(2):
+        histogram_i = TofHistogram(np.arange(4) + bank_id * 4, np.arange(4)**3 + bank_id * 4, 0.20, 1000, 2000)
+        event_nexus_writer.set_bank_histogram(bank_id, histogram_i)
+    # END-FOR
+    # set meta
+    for meta_name, meta_value, unit in [('SampleToSi', 81, 'mm'),
+                                        ('SampleToDetector', 2.323, 'm')]:
+        event_nexus_writer.set_meta_data(meta_name, meta_value, unit)
+
+    # Generate
+    # TODO / FIXME - use a tempfile
+    out_nexus_name = '/tmp/fake.nxs.h5'
+    # clean
+    if os.path.exists(out_nexus_name):
+        os.remove(out_nexus_name)
+
+    start_time = '2020-02-19T01:02:03:123456-05:00'
+    end_time = '2020-02-19T01:05:03:654321-05:00'
+    event_nexus_writer.generate_event_nexus(out_nexus_name, start_time, end_time, 12345)
+
+    # Verify
+    assert os.path.exists(out_nexus_name)
 
 
 if __name__ == '__main__':

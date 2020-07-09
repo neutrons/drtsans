@@ -199,7 +199,7 @@ class InstrumentNode(drtsans.files.hdf5_rw.GroupNode):
         self.add_attributes({'NX_class': b'NXinstrument'})
 
     def set_instrument_info(self, target_station_number, beam_line, name, short_name):
-        """
+        """Set instrument information
 
         Parameters
         ----------
@@ -208,6 +208,8 @@ class InstrumentNode(drtsans.files.hdf5_rw.GroupNode):
         beam_line: Bytes
             CG2, CG3
         name: Bytes
+            CG2, CG3
+        short_name: Bytes
             CG2, CG3
 
         Returns

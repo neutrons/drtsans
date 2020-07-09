@@ -4,7 +4,7 @@ import os
 import h5py
 from drtsans.files.event_nexus_rw import EventNeXusWriter
 from drtsans.files.event_nexus_rw import generate_events_from_histogram, generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import convert_events_to_histogram, EventNeXusWriter, TofHistogram
+from drtsans.files.event_nexus_rw import convert_events_to_histogram, TofHistogram
 
 
 def test_write_event_nexus():

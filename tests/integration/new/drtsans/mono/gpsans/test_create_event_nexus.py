@@ -13,7 +13,7 @@ from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, DasLog
+from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
 
 
@@ -286,13 +286,13 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
 
     # Import source
     source_nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root_node = parse_h5_entry(source_nexus_h5)
+    # source_root_node = parse_h5_entry(source_nexus_h5)
 
     # Create new nexus file structure
     target_nexus_root = init_event_nexus()
 
     # set entry's attributes
-    source_entry_node = source_root_node.get_child('/entry')
+    # source_entry_node = source_root_node.get_child('/entry')
 
     target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
 

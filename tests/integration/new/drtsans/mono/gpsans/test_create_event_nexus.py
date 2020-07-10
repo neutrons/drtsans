@@ -297,7 +297,7 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
 
     # set instrument node
-    set_instrument_node(source_nexus_h5, target_entry_node)
+    set_instrument_node(nexus_contents[0], target_entry_node)
 
     # set DAS logs
     set_das_log_node(source_nexus_h5, source_entry_node, target_entry_node)
@@ -310,7 +310,6 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     for child_node_name, child_value in entry_level_white_list:
         child_node = DataSetNode(child_node_name)
         child_node.set_string_value(child_value)
-        # child_node = source_entry_node.get_child(child_node_name)
         target_entry_node.set_child(child_node)
 
     # set Bank 1 - 48
@@ -404,7 +403,7 @@ def set_single_bank_node(source_h5, target_entry_node, bank_id):
     return bank_node
 
 
-def set_instrument_node(source_h5, target_entry_node):
+def set_instrument_node(xml_idf, target_entry_node):
     """Set instrument node
 
     Parameters
@@ -418,7 +417,7 @@ def set_instrument_node(source_h5, target_entry_node):
 
     """
     # IDF in XML
-    xml_idf = source_h5['entry']['instrument']['instrument_xml']['data'][0]
+    # xml_idf = source_h5['entry']['instrument']['instrument_xml']['data'][0]
 
     # Create new instrument node
     instrument_node = InstrumentNode()

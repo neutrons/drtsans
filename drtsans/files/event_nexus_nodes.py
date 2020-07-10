@@ -177,7 +177,7 @@ def generate_event_time_zero_node(node_name, event_time_zero_array, run_start_ti
     # set up attribution dictionary
     pulse_attr_dict = {'units': b'second',
                        'target': b'/entry/DASlogs/frequency/time',
-                       'offset': run_start_time.encode(),
+                       'offset': np.string_(run_start_time),
                        'offset_nanoseconds': offset_ns,
                        'offset_seconds': offset_second}
     pulse_time_node.add_attributes(pulse_attr_dict)

@@ -388,9 +388,10 @@ class DasLogNode(drtsans.files.hdf5_rw.GroupNode):
 
         """
         # Create Device ID node
+        # Need to make sure all strings are Bytes
         for node_name, info_value in [('device_id', [device_id]),
-                                      ('device_name', [device_name]),
-                                      ('target', [target])]:
+                                      ('device_name', [np.string_(device_name)]),
+                                      ('target', [np.string_(target)])]:
             child_node = DataSetNode(name=self._create_child_name(node_name))
             child_node.set_value(np.array(info_value))
             self.set_child(child_node)

@@ -509,9 +509,9 @@ def set_single_log_node(log_collection_node, das_log, start_time):
         if das_log.device.target is None:
             device_target = None
         else:
-            device_target = das_log.device.target.encode()
+            device_target = das_log.device.target
         das_log_node.set_device_info(device_id=das_log.device.id,
-                                     device_name=das_log.device.name.encode(),
+                                     device_name=das_log.device.name,
                                      target=device_target)
 
     # append to parent node

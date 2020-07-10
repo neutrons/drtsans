@@ -11,7 +11,7 @@ from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_s
                                  reduction_parameters, update_reduction_parameters)
 from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
-from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
+from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
@@ -338,10 +338,12 @@ def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_ti
 
     Parameters
     ----------
-    source_h5
+    monitor_counts: float, int
     target_entry_node
     event_time_zeros: ~numpy.ndarray
         event time zeros
+    run_start_time: str, Bytes
+        run start time
 
     Returns
     -------
@@ -373,12 +375,14 @@ def set_single_bank_node(bank_histogram, target_entry_node, bank_id, run_start_t
 
     Parameters
     ----------
-    source_h5: h5py._hl.files.File
+    bank_histogram: TofHistogram
         HDF5 file entry
     target_entry_node: GroupNode
         Target (output) group node for /entry/
     bank_id: int
         bank ID (from 1 to 48)
+    run_start_time: str, Bytes
+        run start time
 
     Returns
     -------

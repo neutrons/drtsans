@@ -176,30 +176,20 @@ class EventNeXusWriter(object):
 
         # Set device information
         if device is not None:
-            das_log_node.set_device_info(device_id=device.id, device_name=device.name.encode(),
-                                         target=f'/entry/DASlogs/{device.target}'.encode())
+            # about device target
+            if isinstance(device.target, bytes):
+                device_target = device.target.decode()
+            else:
+                device_target = device.target
+            # add full path if device.target is only a short name
+            if not device_target.startswith('/entry'):
+                device_target = f'/entry/DASlogs/{device_target}'
+
+            das_log_node.set_device_info(device_id=device.id, device_name=np.string_(device.name),
+                                         target=device_target.encode())
 
         # append to parent node
         self._log_collection_node.set_child(das_log_node)
-
-    # def set_sdd_node(self, log_collection_node):
-    #     # Get times and value for /entry/DASlogs/sample_detector_distance
-    #     ssd_entry = source_h5['entry']['DASlogs']['sample_detector_distance']
-    #     ssd_times = ssd_entry['time'].value
-    #     ssd_start_time = ssd_entry['time'].attrs['start']
-    #     ssd_value = ssd_entry['value'].value
-    #     ssd_value_unit = ssd_entry['value'].attrs['units']
-    #
-    #     # Set up a DAS log node
-    #     ssd_test_node = DasLogNode(log_name='/entry/DASlogs/sample_detector_distance',
-    #                                log_times=ssd_times, log_values=ssd_value,
-    #                                start_time=ssd_start_time, log_unit=ssd_value_unit)
-    #
-    #     ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
-    #                                   target=b'/entry/DASlogs/CG2:CS:SampleToDetRBV')
-    #
-    #     # append to parent node
-    #     log_collection_node.set_child(ssd_test_node)
 
     def _set_das_logs_node(self):
         """Set DAS log node in a mixed way

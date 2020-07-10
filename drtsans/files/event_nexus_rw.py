@@ -465,11 +465,10 @@ def parse_event_nexus(source_nexus_name, num_banks):
     source_logs_node = source_nexus_h5['entry']['DASlogs']
 
     # Specify white list
-    logs_white_list = ['CG2:CS:SampleToSi',
+    logs_white_list = ['CG2:CS:SampleToSi', 'sample_detector_distance',
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback']
-
     das_log_dict = dict()
 
     for log_name in logs_white_list:

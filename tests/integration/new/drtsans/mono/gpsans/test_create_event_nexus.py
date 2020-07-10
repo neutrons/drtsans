@@ -13,7 +13,7 @@ from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus
+from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, DasLog
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
 
 
@@ -300,7 +300,7 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     set_instrument_node(nexus_contents[0], target_entry_node)
 
     # set DAS logs
-    set_das_log_node(source_nexus_h5, source_entry_node, target_entry_node)
+    set_das_log_node(nexus_contents[5], nexus_contents[3], target_entry_node)
 
     # Add node on the white list
     entry_level_white_list = [
@@ -339,6 +339,8 @@ def set_monitor_node(source_h5, target_entry_node, event_time_zeros):
     ----------
     source_h5
     target_entry_node
+    event_time_zeros: ~numpy.ndarray
+        event time zeros
 
     Returns
     -------
@@ -408,8 +410,8 @@ def set_instrument_node(xml_idf, target_entry_node):
 
     Parameters
     ----------
-    source_h5:  h5py._hl.files.File
-        source entry node
+    xml_idf:  str
+        IDF content
     target_entry_node
 
     Returns
@@ -428,14 +430,15 @@ def set_instrument_node(xml_idf, target_entry_node):
     instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG2', name=b'CG2', short_name=b'CG2')
 
 
-def set_das_log_node(source_h5, source_entry_node, target_entry_node):
+def set_das_log_node(das_log_dict, run_start_time, target_entry_node):
     """Set DAS log node in a mixed way
 
     Parameters
     ----------
-    source_h5: H5 file
-    source_entry_node: GroupNode
-        source node
+    das_log_dict: dict
+        das log dictionary containing DasLog objects
+    run_start_time: str
+        run start time
     target_entry_node: GroupNode
         target node
 
@@ -449,26 +452,70 @@ def set_das_log_node(source_h5, source_entry_node, target_entry_node):
     target_logs_node.add_attributes({'NX_class': 'NXcollection'})
 
     # add sample logs
-    source_logs_node = source_entry_node.get_child('/entry/DASlogs')
+    # source_logs_node = source_entry_node.get_child('/entry/DASlogs')
 
     # Specify white list
     logs_white_list = ['CG2:CS:SampleToSi',
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback']
-    for child_log in source_logs_node.children:
-        # remove HDF path from entry name
-        child_log_name = child_log.name.split('/')[-1]
 
-        if child_log_name in logs_white_list:
-            # only add nodes in white list
-            target_logs_node.set_child(child_log)
-        else:
-            # target_logs_node.set_child(child_log)
-            continue
+    for log_name in logs_white_list:
+        set_single_log_node(target_logs_node, das_log_dict[log_name], run_start_time)
+
+    # for child_log in source_logs_node.children:
+    #     # remove HDF path from entry name
+    #     child_log_name = child_log.name.split('/')[-1]
+    #
+    #     if child_log_name in logs_white_list:
+    #         # only add nodes in white list
+    #         target_logs_node.set_child(child_log)
+    #     else:
+    #         # target_logs_node.set_child(child_log)
+    #         continue
 
     # Add sample_detector_distance  manually
-    set_sdd_node(target_logs_node, source_h5)
+    # set_sdd_node(target_logs_node, source_h5)
+
+
+def set_single_log_node(log_collection_node, das_log, start_time):
+    """
+
+    Parameters
+    ----------
+    log_collection_node
+    das_log: DasLog
+    start_time: str
+
+    Returns
+    -------
+
+    """
+    # Get times and value for /entry/DASlogs/sample_detector_distance
+    # ssd_entry = source_h5['entry']['DASlogs']['sample_detector_distance']
+    # ssd_times = ssd_entry['time'].value
+    # ssd_start_time = ssd_entry['time'].attrs['start']
+    # ssd_value = ssd_entry['value'].value
+    # ssd_value_unit = ssd_entry['value'].attrs['units']
+
+    # Set up a DAS log node
+    das_log_node = DasLogNode(log_name=f'/entry/DASlogs/{das_log.name}',
+                              log_times=das_log.times,
+                              log_values=das_log.values,
+                              start_time=start_time,
+                              log_unit=das_log.unit)
+
+    if das_log.device is not None:
+        if das_log.device.target is None:
+            device_target = None
+        else:
+            device_target = das_log.device.target.encode()
+        das_log_node.set_device_info(device_id=das_log.device.id,
+                                     device_name=das_log.device.name.encode(),
+                                     target=device_target)
+
+    # append to parent node
+    log_collection_node.set_child(das_log_node)
 
 
 def set_sdd_node(log_collection_node, source_h5):

@@ -285,7 +285,7 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     nexus_contents = parse_event_nexus(source_nexus, num_banks=48)
 
     # Import source
-    source_nexus_h5 = h5py.File(source_nexus, 'r')
+    # source_nexus_h5 = h5py.File(source_nexus, 'r')
     # source_root_node = parse_h5_entry(source_nexus_h5)
 
     # Create new nexus file structure
@@ -315,7 +315,8 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     # set Bank 1 - 48
     max_pulse_time_array = None
     for bank_id in range(1, 48 + 1):
-        bank_node_i = set_single_bank_node(source_nexus_h5, target_entry_node, bank_id=bank_id)
+        bank_node_i = set_single_bank_node(nexus_contents[1][bank_id], target_entry_node, bank_id=bank_id,
+                                           run_start_time=nexus_contents[3])
         event_time_zeros = bank_node_i.get_child('event_time_zero', is_short_name=True).value
         if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
             max_pulse_time_array = event_time_zeros
@@ -327,7 +328,7 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     target_nexus_root.write(target_nexus)
 
     # close original file
-    source_nexus_h5.close()
+    # source_nexus_h5.close()
 
     return
 
@@ -367,7 +368,7 @@ def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_ti
     target_entry_node.set_child(target_monitor_node)
 
 
-def set_single_bank_node(source_h5, target_entry_node, bank_id):
+def set_single_bank_node(bank_histogram, target_entry_node, bank_id, run_start_time):
     """Test writing bank 9 from histogram
 
     Parameters
@@ -386,12 +387,17 @@ def set_single_bank_node(source_h5, target_entry_node, bank_id):
 
     """
     # Retrieve information from specified bank
-    bank_entry = source_h5[f'/entry/bank{bank_id}_events']
-    bank_histogram = convert_events_to_histogram(bank_entry)
-    run_start_time = bank_entry['event_time_zero'].attrs['offset'].decode()
+    # bank_entry = source_h5[f'/entry/bank{bank_id}_events']
+    # bank_histogram = convert_events_to_histogram(bank_entry)
+    # run_start_time = bank_entry['event_time_zero'].attrs['offset'].decode()
 
     # generate events
     nexus_events = generate_events_from_histogram(bank_histogram, 10.)
+
+    try:
+        run_start_time = run_start_time.decode()
+    except AttributeError:
+        pass
 
     # Create bank node for bank
     bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')

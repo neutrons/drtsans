@@ -476,10 +476,16 @@ def parse_event_nexus(source_nexus_name, num_banks):
         print(f'Reading sample log {log_name}')
         log_times = source_logs_node[log_name]['time'][()]
         log_value = source_logs_node[log_name]['value'][()]
-        log_value_unit = source_logs_node[log_name]['value'].attrs['unit']
+        try:
+            log_value_unit = source_logs_node[log_name]['value'].attrs['units']
+        except KeyError:
+            log_value_unit = None
         device_name = source_logs_node[log_name]['device_name'][0]
         device_id = source_logs_node[log_name]['device_id'][0]
-        device_target = source_logs_node[log_name]['target'][0]
+        try:
+            device_target = source_logs_node[log_name]['target'][0]
+        except KeyError:
+            device_target = None
         # Set to proper data structure
         device = DasDevice(device_id, device_name, device_target)
         das_log = DasLog(log_name, log_times, log_value, log_value_unit, device)

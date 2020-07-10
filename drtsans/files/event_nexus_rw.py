@@ -7,7 +7,7 @@ import h5py
 
 
 __all__ = ['TofHistogram', 'NexusEvents', 'EventNeXusWriter', 'generate_events_from_histogram',
-           'convert_events_to_histogram', 'DasLog', 'DasDevice', 'RunTime']
+           'convert_events_to_histogram', 'DasLog', 'DasDevice', 'RunTime', 'init_event_nexus']
 
 # Specify parameter
 # Histogram converted from TOF events
@@ -65,14 +65,17 @@ class EventNeXusWriter(object):
 
         """
         # create a new file node
-        self._root_node = FileNode()
+        self._root_node = init_event_nexus()
 
-        # create an '/entry' node
-        self._entry_node = GroupNode('/entry')
-        # add attribution as NX_class
-        self._entry_node.add_attributes({'NX_class': 'NXentry'})
-        # append entry node to root
-        self._root_node.set_child(self._entry_node)
+        # get entry node
+        self._entry_node = self._root_node.get_child('/entry')
+
+        # # create an '/entry' node
+        # self._entry_node = GroupNode('/entry')
+        # # add attribution as NX_class
+        # self._entry_node.add_attributes({'NX_class': 'NXentry'})
+        # # append entry node to root
+        # self._root_node.set_child(self._entry_node)
 
         # Set DAS log node
         self._log_collection_node = DasLogsCollectionNode()
@@ -341,6 +344,15 @@ class EventNeXusWriter(object):
 
 
 def init_event_nexus():
+    """Initialize an event Nexus file buffer including
+    - entry
+
+    Returns
+    -------
+    FileNode
+        root event NeXus node
+
+    """
     # create a new file node
     nexus_root_node = FileNode()
 

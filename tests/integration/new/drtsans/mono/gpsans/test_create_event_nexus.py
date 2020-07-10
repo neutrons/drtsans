@@ -9,11 +9,11 @@ from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
-from drtsans.files.hdf5_rw import GroupNode
+from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import convert_events_to_histogram, generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus
+from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
 
 
@@ -35,7 +35,7 @@ def test_step_by_step(reference_dir):
     target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
 
     # copy_event_nexus(source_nexus, target_nexus)
-    generate_event_nexus(source_nexus, target_nexus)
+    generate_event_nexus_prototype(source_nexus, target_nexus)
 
     # Reduce
     loaded_raw_dict = reduce_data_step_by_step(source_nexus, reference_dir.new.gpsans, reference_dir.new.gpsans,
@@ -246,7 +246,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         plot_reduction_output(out, reduction_input, loglog=False)
 
 
-def generate_event_nexus(source_nexus, target_nexus):
+def generate_event_nexus_prototype(source_nexus, target_nexus):
     """Generate event NeXus using white list.
     This serves as the prototype to create event nexus from SANS histogram raw data
 
@@ -273,13 +273,17 @@ def generate_event_nexus(source_nexus, target_nexus):
 
     Parameters
     ----------
-    source_nexus
+    source_nexus: str
+        source event NeXus file name
     target_nexus
 
     Returns
     -------
 
     """
+    # parse nexus information
+    nexus_contents = parse_event_nexus(source_nexus, num_banks=48)
+
     # Import source
     source_nexus_h5 = h5py.File(source_nexus, 'r')
     source_root_node = parse_h5_entry(source_nexus_h5)
@@ -300,12 +304,13 @@ def generate_event_nexus(source_nexus, target_nexus):
 
     # Add node on the white list
     entry_level_white_list = [
-        # '/entry/monitor1',
-        '/entry/start_time',
-        '/entry/end_time',
+        ('/entry/start_time', nexus_contents[3]),
+        ('/entry/end_time', nexus_contents[4])
     ]
-    for child_node_name in entry_level_white_list:
-        child_node = source_entry_node.get_child(child_node_name)
+    for child_node_name, child_value in entry_level_white_list:
+        child_node = DataSetNode(child_node_name)
+        child_node.set_string_value(child_value)
+        # child_node = source_entry_node.get_child(child_node_name)
         target_entry_node.set_child(child_node)
 
     # set Bank 1 - 48
@@ -543,7 +548,7 @@ def test_reduction(reference_dir):
 
     # copy_event_nexus(source_nexus, target_nexus)
     # generate_event_nexus_prototype(source_nexus, target_nexus)
-    generate_event_nexus(source_nexus, target_nexus)
+    generate_event_nexus_prototype(source_nexus, target_nexus)
 
     verify_histogram(source_nexus, target_nexus)
 

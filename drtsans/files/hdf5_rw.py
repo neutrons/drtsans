@@ -173,9 +173,9 @@ class HDFNode(object):
                 curr_entry.attrs[attr_name] = self._attributes[attr_name]
             except TypeError as type_error:
                 print(f'[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}')
-                raise TypeError(f'[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}: {type_error}')
+                raise TypeError(f'[ERROR] {self._name}-node attribute {attr_name} is of type '
+                                f'{type(attr_name)}: {type_error}')
                 
-
 
 class GroupNode(HDFNode):
     """

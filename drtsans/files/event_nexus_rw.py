@@ -177,10 +177,10 @@ class EventNeXusWriter(object):
         # Set device information
         if device is not None:
             # about device target
-            if isinstance(device.target, bytes):
-                device_target = device.target.decode()
+            if device.target is None:
+                device_target = np.string_(device.name).decode()
             else:
-                device_target = device.target
+                device_target = np.string_(device.target).decode()
             # add full path if device.target is only a short name
             if not device_target.startswith('/entry'):
                 device_target = f'/entry/DASlogs/{device_target}'

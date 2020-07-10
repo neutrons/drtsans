@@ -166,7 +166,15 @@ class HDFNode(object):
 
         # attributes
         for attr_name in self._attributes:
-            curr_entry.attrs[attr_name] = self._attributes[attr_name]
+            # ignore if an attribute is None (might be missing)
+            if self._attributes[attr_name] is None:
+                continue
+            try:
+                curr_entry.attrs[attr_name] = self._attributes[attr_name]
+            except TypeError as type_error:
+                print(f'[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}')
+                raise TypeError(f'[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}: {type_error}')
+                
 
 
 class GroupNode(HDFNode):

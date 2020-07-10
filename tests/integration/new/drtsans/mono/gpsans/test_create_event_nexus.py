@@ -455,12 +455,12 @@ def set_das_log_node(das_log_dict, run_start_time, target_entry_node):
     # source_logs_node = source_entry_node.get_child('/entry/DASlogs')
 
     # Specify white list
-    logs_white_list = ['CG2:CS:SampleToSi',
-                       'wavelength', 'wavelength_spread',
-                       'source_aperture_diameter', 'sample_aperture_diameter',
-                       'detector_trans_Readback']
+    # logs_white_list = ['CG2:CS:SampleToSi',
+    #                    'wavelength', 'wavelength_spread',
+    #                    'source_aperture_diameter', 'sample_aperture_diameter',
+    #                    'detector_trans_Readback']
 
-    for log_name in logs_white_list:
+    for log_name in das_log_dict:
         set_single_log_node(target_logs_node, das_log_dict[log_name], run_start_time)
 
     # for child_log in source_logs_node.children:

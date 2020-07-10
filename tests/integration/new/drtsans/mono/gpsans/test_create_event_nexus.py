@@ -147,8 +147,8 @@ def test_copy_h5_file(reference_dir, cleanfile):
     """
     # Get the source file
     source_nexus_file = 'CG2_9177.nxs.h5'
-    pro_nexus = os.path.join(reference_dir.new.gpsans, source_nexus_file)
-    assert os.path.exists(pro_nexus), f'Test data {pro_nexus} does not exist'
+    source_nexus_file = os.path.join(reference_dir.new.gpsans, source_nexus_file)
+    assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
 
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future

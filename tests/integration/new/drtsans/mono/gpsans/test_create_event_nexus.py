@@ -4,7 +4,6 @@ Integration test to create event nexus file
 import pytest
 import numpy as np
 import os
-from drtsans.files.hdf5_rw import parse_h5_entry
 from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,

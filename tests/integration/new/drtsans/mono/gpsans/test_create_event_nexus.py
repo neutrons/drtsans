@@ -321,7 +321,7 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
             max_pulse_time_array = event_time_zeros
 
     # Set monitor node
-    set_monitor_node(source_nexus_h5, target_entry_node, max_pulse_time_array)
+    set_monitor_node(nexus_contents[2],  nexus_contents[3], target_entry_node, max_pulse_time_array)
 
     # write
     target_nexus_root.write(target_nexus)
@@ -332,7 +332,7 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     return
 
 
-def set_monitor_node(source_h5, target_entry_node, event_time_zeros):
+def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_time_zeros):
     """
 
     Parameters
@@ -347,13 +347,13 @@ def set_monitor_node(source_h5, target_entry_node, event_time_zeros):
 
     """
     # Retrieve information from specified bank
-    monitor_entry = source_h5[f'/entry/monitor1']
+    # monitor_entry = source_h5[f'/entry/monitor1']
     # monitor_histogram = convert_events_to_histogram(bank_entry)
-    run_start_time = monitor_entry['event_time_zero'].attrs['offset'].decode()
+    # run_start_time = monitor_entry['event_time_zero'].attrs['offset'].decode()
 
     # Generate a monitor node
     target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
-    monitor_counts = monitor_entry['event_time_offset'][()].shape[0]
+    # monitor_counts = monitor_entry['event_time_offset'][()].shape[0]
 
     tof_min = 0.
     tof_max = 10000.

@@ -13,7 +13,7 @@ from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus
+from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
 
 
@@ -136,8 +136,9 @@ def reduce_data_step_by_step(sample_nexus, data_dir, sens_dir, output_dir, prefi
 
 
 def test_copy_h5_file(reference_dir, cleanfile):
-    """Test duplicating an HDF5/NeXus.
-    Verification is to load both original and duplicated file and compare to each other
+    """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
+
+    Verification is to load both of the generated Event NeXus to do a comparison
 
     Test data: GPSANS run 9166
 
@@ -146,9 +147,9 @@ def test_copy_h5_file(reference_dir, cleanfile):
 
     """
     # Get the source file
-    test_nexus_name = 'CG2_9177.nxs.h5'
-    source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
-    assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
+    source_nexus_file = 'CG2_9177.nxs.h5'
+    pro_nexus = os.path.join(reference_dir.new.gpsans, source_nexus_file)
+    assert os.path.exists(pro_nexus), f'Test data {pro_nexus} does not exist'
 
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future
@@ -156,42 +157,44 @@ def test_copy_h5_file(reference_dir, cleanfile):
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir('/tmp/nexus')
-    target_nexus = os.path.join(output_dir, 'CG2_9177.nxs.h5')
+    prototype_dup_nexus = os.path.join(output_dir, 'CG2_9177_prototype.nxs.h5')
+    product_dup_nexus = os.path.join(output_dir, 'CG2_9177_product.nxs.h5')
 
-    # Load the source
-    nexus_h5 = h5py.File(source_nexus, 'r')
-    source_root = parse_h5_entry(nexus_h5)
+    # TODO - clean existing files
+    for out_file in [prototype_dup_nexus, product_dup_nexus]:
+        if os.path.exists(out_file):
+            os.remove(out_file)
 
-    # Duplicate
-    source_root.write(target_nexus)
-    nexus_h5.close()
+    # Duplicate with both approach
+    generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus)
+    generate_event_nexus(source_nexus_file, product_dup_nexus)
 
     # Load source file to workspace
-    source_ws = load_events(source_nexus, output_workspace='cg2_source')
+    target_ws = load_events(product_dup_nexus, output_workspace='cg2_product')
 
     # Load the duplicated
-    target_ws = load_events(target_nexus, output_workspace='cg2_duplicated')
+    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg2_prototype')
 
     # Compare counts on each pixel
-    source_y = source_ws.extractY()
+    source_y = prototype_ws.extractY()
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
 
     # Compare pixels' positions
-    num_hist = source_ws.getNumberHistograms()
+    num_hist = prototype_ws.getNumberHistograms()
     for iws in range(0, num_hist, 100):
-        source_det_i_pos = source_ws.getInstrument().getDetector(iws).getPos()
+        source_det_i_pos = prototype_ws.getInstrument().getDetector(iws).getPos()
         target_det_i_pos = target_ws.getInstrument().getDetector(iws).getPos()
         np.testing.assert_allclose(source_det_i_pos, target_det_i_pos,
                                    err_msg=f'Mismatch is detected at Detector {iws}')
     # Check source position
-    source_moderator_pos = source_ws.getInstrument().getSource().getPos()
+    source_moderator_pos = prototype_ws.getInstrument().getSource().getPos()
     target_moderator_pos = target_ws.getInstrument().getSource().getPos()
     np.testing.assert_allclose(source_moderator_pos, target_moderator_pos,
                                err_msg=f'Mismatch is detected at neutron source position')
 
     # Compare meta data
-    assert len(source_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
+    assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
 
 
 def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path):
@@ -246,8 +249,45 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         plot_reduction_output(out, reduction_input, loglog=False)
 
 
+def generate_event_nexus(source_nexus, target_nexus):
+    """Generate event NeXus properly
+
+    Parameters
+    ----------
+    source_nexus
+    target_nexus
+
+    Returns
+    -------
+
+    """
+    # Import essential experimental data from source event nexus file
+    nexus_contents = parse_event_nexus(source_nexus, num_banks=48)
+    # Generate event nexus writer
+    event_nexus_writer = EventNeXusWriter(beam_line='CG2', instrument_name='CG2')
+
+    # set instrument
+    event_nexus_writer.set_instrument_info(2,  nexus_contents[0])
+
+    # set counts
+    for bank_id in range(1, 48 + 1):
+        event_nexus_writer.set_bank_histogram(bank_id, nexus_contents[1][bank_id])
+
+    # set meta
+    for das_log in nexus_contents[5].values():
+        event_nexus_writer.set_meta_data(das_log)
+
+    # time
+    start_time = nexus_contents[3]
+    end_time = nexus_contents[4]
+
+    # Write file
+    event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
+
+
 def generate_event_nexus_prototype(source_nexus, target_nexus):
     """Generate event NeXus using white list.
+
     This serves as the prototype to create event nexus from SANS histogram raw data
 
     White list

@@ -473,6 +473,7 @@ def parse_event_nexus(source_nexus_name, num_banks):
     das_log_dict = dict()
 
     for log_name in logs_white_list:
+        print(f'Reading sample log {log_name}')
         log_times = source_logs_node[log_name]['time'][()]
         log_value = source_logs_node[log_name]['value'][()]
         log_value_unit = source_logs_node[log_name]['value'].attrs['unit']

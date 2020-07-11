@@ -128,6 +128,12 @@ def test_create_group_node():
     with pytest.raises(ValueError):
         node4.match(node5)
 
+    # Test remove node
+    node4.remove_child(node6.name)
+
+    with pytest.raises(RuntimeError):
+        node4.get_child(node6.name)
+
 
 def test_check_type():
     """Test to check node type

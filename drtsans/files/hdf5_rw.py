@@ -266,6 +266,11 @@ class GroupNode(HDFNode):
 
         return child_node
 
+    def remove_child(self, child_node_name):
+        for child_node in self._children:
+            if child_node.name == child_node_name:
+                self._children.remove(child_node)
+
     def set_child(self, child_node):
         """
 

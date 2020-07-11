@@ -52,9 +52,23 @@ def test_copy_event_nexus(reference_dir):
     source_root = FileNode()
     source_root.parse_h5_entry(source_h5)
 
+    source_entry = source_root.get_child('/entry')
+
     # Create a new one
     duplicate_root = FileNode()
     duplicate_root.set_child(source_root.get_child('/entry/'))
+    duplicate_entry_node = duplicate_root.get_child('/entry')
+
+    # Replace node instrument
+    source_instrument = source_entry.get_child('/entry/instrument')
+    source_xml = source_instrument.get_child('/entry/instrument/instrument_xml')
+    xml_idf_content = source_xml.get_child('/entry/instrument/instrument_xml/data').value[0]
+
+    duplicate_entry_node.remove_child('/entry/instrument')
+    new_instrument_node = InstrumentNode()
+    new_instrument_node.set_instrument_info(1, 'CG3', 'CG3', 'CG3')
+    new_instrument_node.set_idf(xml_idf_content,
+                                idf_type='XML content of instrument IDF', description='text/xml')
 
     # write
     duplicate_root.write(prototype_dup_nexus)

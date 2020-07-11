@@ -456,10 +456,10 @@ def parse_event_nexus(source_nexus_name, num_banks, logs_white_list=None):
 
     # Specify white list
     if logs_white_list is None:
-       logs_white_list = ['CG2:CS:SampleToSi', 'sample_detector_distance',
-                          'wavelength', 'wavelength_spread',
-                          'source_aperture_diameter', 'sample_aperture_diameter',
-                          'detector_trans_Readback']
+        logs_white_list = ['CG2:CS:SampleToSi', 'sample_detector_distance',
+                           'wavelength', 'wavelength_spread',
+                           'source_aperture_diameter', 'sample_aperture_diameter',
+                           'detector_trans_Readback']
     das_log_dict = dict()
 
     for log_name in logs_white_list:

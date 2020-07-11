@@ -13,7 +13,7 @@ from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
 # drtsans imports
-from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_single_configuration,
+from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
 from mantid.simpleapi import LoadEventNexus
 from drtsans.files.hdf5_rw import FileNode
@@ -64,11 +64,14 @@ def test_copy_event_nexus(reference_dir):
     source_xml = source_instrument.get_child('/entry/instrument/instrument_xml')
     xml_idf_content = source_xml.get_child('/entry/instrument/instrument_xml/data').value[0]
 
-    duplicate_entry_node.remove_child('/entry/instrument')
     new_instrument_node = InstrumentNode()
     new_instrument_node.set_instrument_info(1, 'CG3', 'CG3', 'CG3')
     new_instrument_node.set_idf(xml_idf_content,
                                 idf_type='XML content of instrument IDF', description='text/xml')
+
+    # replace instrument node
+    duplicate_entry_node.remove_child('/entry/instrument')
+    duplicate_entry_node.set_child(new_instrument_node)
 
     # write
     duplicate_root.write(prototype_dup_nexus)

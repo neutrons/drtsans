@@ -100,7 +100,8 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         with amend_config({'default.instrument': str(instrument_unique_name)}, data_dir=data_dir):
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
             kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
-            LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+            ws = LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+            print(f'Load {filename} to {output_workspace} with Bins = {len(ws.readX(0))}')
             if pixel_calibration is True:
                 apply_calibrations(output_workspace)
 

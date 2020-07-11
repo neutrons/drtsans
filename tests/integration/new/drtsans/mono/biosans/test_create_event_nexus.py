@@ -6,8 +6,6 @@ import numpy as np
 import os
 from drtsans.load import load_events
 import h5py
-from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
-                                 reduction_parameters, update_reduction_parameters)
 from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram

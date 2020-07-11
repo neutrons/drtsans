@@ -31,27 +31,31 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     """
     # Get the source file
     source_nexus_file = 'CG3_5709.nxs.h5'
-    source_nexus_file = os.path.join(reference_dir.new.bioans, source_nexus_file)
+    source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
     assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
 
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future
     output_dir = '/tmp/dupcg3nexus'
-    cleanfile(output_dir)
+    # cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    prototype_dup_nexus = os.path.join(output_dir, 'CG2_5709_prototype.nxs.h5')
-    product_dup_nexus = os.path.join(output_dir, 'CG2_5709_product.nxs.h5')
+    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
+    product_dup_nexus = os.path.join(output_dir, 'CG3_5709_product.nxs.h5')
 
     # Duplicate with both approach
-    generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus)
-    generate_event_nexus(source_nexus_file, product_dup_nexus)
-
-    # Load source file to workspace
-    target_ws = load_events(product_dup_nexus, output_workspace='cg3_product', NumberOfBins=2)
+    logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+                       'wavelength', 'wavelength_spread',
+                       'source_aperture_diameter', 'sample_aperture_diameter',
+                       'detector_trans_Readback']
+    generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus, logs_white_list)
+    generate_event_nexus(source_nexus_file, product_dup_nexus, logs_white_list)
 
     # Load the duplicated
     prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
+
+    # Load source file to workspace
+    target_ws = load_events(product_dup_nexus, output_workspace='cg3_product', NumberOfBins=2)
 
     # Compare pixels' positions
     num_hist = prototype_ws.getNumberHistograms()
@@ -75,7 +79,7 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
 
 
-def generate_event_nexus(source_nexus, target_nexus):
+def generate_event_nexus(source_nexus, target_nexus, das_log_list):
     """Generate event NeXus properly
 
     Parameters
@@ -90,9 +94,9 @@ def generate_event_nexus(source_nexus, target_nexus):
     cg3_num_banks = 88
 
     # Import essential experimental data from source event nexus file
-    nexus_contents = parse_event_nexus(source_nexus, num_banks=48)
+    nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
     # Generate event nexus writer
-    event_nexus_writer = EventNeXusWriter(beam_line='CG2', instrument_name='CG2')
+    event_nexus_writer = EventNeXusWriter(beam_line='CG3', instrument_name='CG3')
 
     # set instrument: 88 banks (2 detectors)
     event_nexus_writer.set_instrument_info(cg3_num_banks,  nexus_contents[0])
@@ -113,7 +117,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
 
 
-def generate_event_nexus_prototype(source_nexus, target_nexus):
+def generate_event_nexus_prototype(source_nexus, target_nexus, das_log_list):
     """Generate event NeXus using white list.
 
     This serves as the prototype to create event nexus from SANS histogram raw data
@@ -150,7 +154,7 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
 
     """
     # parse nexus information
-    nexus_contents = parse_event_nexus(source_nexus, num_banks=48)
+    nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
 
     # Create new nexus file structure
     target_nexus_root = init_event_nexus()
@@ -230,7 +234,7 @@ def set_single_bank_node(bank_histogram, target_entry_node, bank_id, run_start_t
     target_entry_node: GroupNode
         Target (output) group node for /entry/
     bank_id: int
-        bank ID (from 1 to 48)
+        bank ID (from 1 to 88)
     run_start_time: str, Bytes
         run start time
 
@@ -279,7 +283,7 @@ def set_instrument_node(xml_idf, target_entry_node):
 
     # Set values
     instrument_node.set_idf(xml_idf, idf_type=b'text/xml', description=b'XML contents of the instrument IDF')
-    instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG2', name=b'CG2', short_name=b'CG2')
+    instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG3', name=b'CG3', short_name=b'CG3')
 
 
 def set_das_log_node(das_log_dict, run_start_time, target_entry_node):
@@ -354,7 +358,7 @@ def set_sdd_node(log_collection_node, source_h5):
                                start_time=ssd_start_time, log_unit=ssd_value_unit)
 
     ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
-                                  target=b'/entry/DASlogs/CG2:CS:SampleToDetRBV')
+                                  target=b'/entry/DASlogs/CG3:CS:SampleToDetRBV')
 
     # append to parent node
     log_collection_node.set_child(ssd_test_node)

@@ -418,7 +418,7 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
     return faked_nexus_events
 
 
-def parse_event_nexus(source_nexus_name, num_banks):
+def parse_event_nexus(source_nexus_name, num_banks, logs_white_list=None):
     """Parse an event Nexus file for minimal required information
 
     Parameters
@@ -455,10 +455,11 @@ def parse_event_nexus(source_nexus_name, num_banks):
     source_logs_node = source_nexus_h5['entry']['DASlogs']
 
     # Specify white list
-    logs_white_list = ['CG2:CS:SampleToSi', 'sample_detector_distance',
-                       'wavelength', 'wavelength_spread',
-                       'source_aperture_diameter', 'sample_aperture_diameter',
-                       'detector_trans_Readback']
+    if logs_white_list is None:
+       logs_white_list = ['CG2:CS:SampleToSi', 'sample_detector_distance',
+                          'wavelength', 'wavelength_spread',
+                          'source_aperture_diameter', 'sample_aperture_diameter',
+                          'detector_trans_Readback']
     das_log_dict = dict()
 
     for log_name in logs_white_list:

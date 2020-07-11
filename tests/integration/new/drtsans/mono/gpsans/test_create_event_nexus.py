@@ -169,15 +169,10 @@ def test_copy_h5_file(reference_dir, cleanfile):
     generate_event_nexus(source_nexus_file, product_dup_nexus)
 
     # Load source file to workspace
-    target_ws = load_events(product_dup_nexus, output_workspace='cg2_product')
+    target_ws = load_events(product_dup_nexus, output_workspace='cg2_product', NumberOfBins=2)
 
     # Load the duplicated
-    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg2_prototype')
-
-    # Compare counts on each pixel
-    source_y = prototype_ws.extractY()
-    target_y = target_ws.extractY()
-    np.testing.assert_allclose(source_y, target_y)
+    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg2_prototype', NumberOfBins=2)
 
     # Compare pixels' positions
     num_hist = prototype_ws.getNumberHistograms()
@@ -191,6 +186,11 @@ def test_copy_h5_file(reference_dir, cleanfile):
     target_moderator_pos = target_ws.getInstrument().getSource().getPos()
     np.testing.assert_allclose(source_moderator_pos, target_moderator_pos,
                                err_msg=f'Mismatch is detected at neutron source position')
+
+    # Compare counts on each pixel
+    source_y = prototype_ws.extractY()
+    target_y = target_ws.extractY()
+    np.testing.assert_allclose(source_y, target_y)
 
     # Compare meta data
     assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'

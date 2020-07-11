@@ -16,6 +16,54 @@ from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, Ev
 from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
 from mantid.simpleapi import LoadEventNexus
+from drtsans.files.hdf5_rw import FileNode
+
+
+def test_copy_event_nexus(reference_dir):
+    """Prototype test to find out why LoadEventNexusFiled
+
+    LoadEventNexus-[Warning] Empty proton_charge sample log. You will not be able to filter by time.
+    LoadEventNexus-[Error] Error in execution of algorithm LoadEventNexus:
+    LoadEventNexus-[Error] Error finding workspace index; pixelID 49152 with offset 2 is out of range
+        (length=49154)
+    =================================================================================================
+
+    Parameters
+    ----------
+    reference_dir
+
+    Returns
+    -------
+
+    """
+    # Get the source file
+    source_nexus_file = 'CG3_5709.nxs.h5'
+    source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
+    assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
+
+    # Duplicate the source file to the temporary directory
+    output_dir = '/tmp/prototype_cg3nexus'
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
+
+    # Load source
+    source_h5 = h5py.File(source_nexus_file, 'r')
+    source_root = FileNode()
+    source_root.parse_h5_entry(source_h5)
+
+    # Create a new one
+    duplicate_root = FileNode()
+    duplicate_root.set_child(source_root.get_child('/entry/'))
+
+    # write
+    duplicate_root.write(prototype_dup_nexus)
+
+    # Close
+    source_h5.close()
+
+    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
+    assert prototype_ws
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):

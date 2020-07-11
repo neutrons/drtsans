@@ -13,7 +13,7 @@ from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
-from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
+from mantid.simpleapi import LoadEventNexus
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):

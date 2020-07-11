@@ -16,125 +16,7 @@ from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, Ev
 from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed
 
 
-def test_step_by_step(reference_dir):
-    # Generate a new event NeXus file (source)
-    output_dir_src = '/tmp/nexus_src'
-    if not os.path.exists(output_dir_src):
-        os.mkdir(output_dir_src)
-
-    # Generate a new event NeXus file
-    output_dir = '/tmp/nexus'
-    if not os.path.exists(output_dir):
-        os.mkdir('/tmp/nexus')
-
-    # Copy a nexus file
-    test_nexus_name = 'CG2_9166.nxs.h5'
-    source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
-    assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
-    target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
-
-    # copy_event_nexus(source_nexus, target_nexus)
-    generate_event_nexus_prototype(source_nexus, target_nexus)
-
-    # Reduce
-    loaded_raw_dict = reduce_data_step_by_step(source_nexus, reference_dir.new.gpsans, reference_dir.new.gpsans,
-                                               output_dir_src, 'original')
-    loaded_sample_ws = loaded_raw_dict.sample[0]
-    print(f'sample ws: {loaded_sample_ws.name()}')
-    print(f'sample ws type: {type(loaded_sample_ws)}')
-    SaveNexusProcessed(InputWorkspace=loaded_sample_ws, Filename=os.path.join(output_dir_src, 'src_loaded.nxs'))
-    print(f'spec nunber = {loaded_sample_ws.getNumberHistograms()}')
-
-    # Reduce
-    loaded_dup_dict = reduce_data_step_by_step(target_nexus, reference_dir.new.gpsans, reference_dir.new.gpsans,
-                                               output_dir_src, 'duplicated')
-    dup_sample_ws = loaded_dup_dict.sample[0]
-    print(f'sample ws: {dup_sample_ws.name()}')
-    SaveNexusProcessed(InputWorkspace=dup_sample_ws, Filename=os.path.join(output_dir, 'dup_loaded.nxs'))
-    print(f'spec number = {loaded_sample_ws.getNumberHistograms()}')
-
-    raw_x = loaded_sample_ws.extractX()
-    dup_x = dup_sample_ws.extractX()
-    raw_y = loaded_sample_ws.extractY()
-    dup_y = dup_sample_ws.extractY()
-    np.testing.assert_allclose(raw_x, dup_x)
-    np.testing.assert_allclose(raw_y, dup_y)
-
-    raw_e = loaded_sample_ws.extractE()
-    dup_e = dup_sample_ws.extractE()
-    np.testing.assert_allclose(raw_e, dup_e)
-
-
-def reduce_data_step_by_step(sample_nexus, data_dir, sens_dir, output_dir, prefix):
-
-    sensitivity_file = os.path.join(sens_dir, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    specs = {
-        "iptsNumber": 21981,
-        "beamCenter": {"runNumber": 9177},
-        "emptyTransmission": {"runNumber": 9177},
-        "configuration": {
-            "outputDir": output_dir,
-            "useDefaultMask": True,
-            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
-            "sensitivityFileName": sensitivity_file,
-            "absoluteScaleMethod": "direct_beam",
-            "DBScalingBeamRadius": 40,
-            "mmRadiusForTransmission": 40,
-            "numQxQyBins": 180,
-            "1DQbinType": "scalar",
-            "QbinType": "linear",
-            "numQBins": 180,
-            "LogQBinsPerDecade": None,
-            "useLogQBinsEvenDecade": False,
-            "WedgeMinAngles": "-30, 60",
-            "WedgeMaxAngles": "30, 120",
-            "usePixelCalibration": False,
-            "useSubpixels": False
-        }
-    }
-    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-
-    # USER Input here with scan numbers etc.
-    samples = [sample_nexus]  # ['9166']
-    samples_trans = ['9178']
-    sample_thick = ['0.1']
-    bkgd = ['9165']
-    bkgd_trans = ['9177']
-
-    # Sample names for output
-    sample_names = ["Al4"]
-
-    # set output directory
-    reduction_input["configuration"]["outputDir"] = output_dir
-    # create output directory
-    for subfolder in ['1D', '2D']:
-        output_folder = os.path.join(output_dir, subfolder)
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-
-    specs = {
-        "dataDirectories": data_dir,
-        "sample": {"runNumber": samples[0],
-                   "thickness": sample_thick[0],
-                   "transmission": {"runNumber": samples_trans[0]}
-                   },
-        "background": {"runNumber": bkgd[0],
-                       "transmission": {"runNumber": bkgd_trans[0]}
-                       },
-        "outputFileName": sample_names[0]
-    }
-    reduction_input = update_reduction_parameters(reduction_input, specs, validate=True)
-    loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
-
-    print(f'LOADED: type = {type(loaded)}')
-
-    # out = reduce_single_configuration(loaded, reduction_input)
-    # plot_reduction_output(out, reduction_input, loglog=False)
-
-    return loaded
-
-
-def test_copy_h5_file(reference_dir, cleanfile):
+def test_duplicate_event_nexus(reference_dir, cleanfile):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -152,17 +34,12 @@ def test_copy_h5_file(reference_dir, cleanfile):
 
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/nexus'
-    # cleanfile(output_dir)
+    output_dir = '/tmp/dupnexus'
+    cleanfile(output_dir)
     if not os.path.exists(output_dir):
-        os.mkdir('/tmp/nexus')
+        os.mkdir(output_dir)
     prototype_dup_nexus = os.path.join(output_dir, 'CG2_9177_prototype.nxs.h5')
     product_dup_nexus = os.path.join(output_dir, 'CG2_9177_product.nxs.h5')
-
-    # TODO - clean existing files
-    for out_file in [prototype_dup_nexus, product_dup_nexus]:
-        if os.path.exists(out_file):
-            os.remove(out_file)
 
     # Duplicate with both approach
     generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus)
@@ -323,15 +200,8 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     # parse nexus information
     nexus_contents = parse_event_nexus(source_nexus, num_banks=48)
 
-    # Import source
-    # source_nexus_h5 = h5py.File(source_nexus, 'r')
-    # source_root_node = parse_h5_entry(source_nexus_h5)
-
     # Create new nexus file structure
     target_nexus_root = init_event_nexus()
-
-    # set entry's attributes
-    # source_entry_node = source_root_node.get_child('/entry')
 
     target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
 
@@ -366,11 +236,6 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     # write
     target_nexus_root.write(target_nexus)
 
-    # close original file
-    # source_nexus_h5.close()
-
-    return
-
 
 def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_time_zeros):
     """
@@ -388,14 +253,8 @@ def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_ti
     -------
 
     """
-    # Retrieve information from specified bank
-    # monitor_entry = source_h5[f'/entry/monitor1']
-    # monitor_histogram = convert_events_to_histogram(bank_entry)
-    # run_start_time = monitor_entry['event_time_zero'].attrs['offset'].decode()
-
     # Generate a monitor node
     target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
-    # monitor_counts = monitor_entry['event_time_offset'][()].shape[0]
 
     tof_min = 0.
     tof_max = 10000.
@@ -429,11 +288,6 @@ def set_single_bank_node(bank_histogram, target_entry_node, bank_id, run_start_t
         newly generated bank node
 
     """
-    # Retrieve information from specified bank
-    # bank_entry = source_h5[f'/entry/bank{bank_id}_events']
-    # bank_histogram = convert_events_to_histogram(bank_entry)
-    # run_start_time = bank_entry['event_time_zero'].attrs['offset'].decode()
-
     # generate events
     nexus_events = generate_events_from_histogram(bank_histogram, 10.)
 
@@ -467,9 +321,6 @@ def set_instrument_node(xml_idf, target_entry_node):
     -------
 
     """
-    # IDF in XML
-    # xml_idf = source_h5['entry']['instrument']['instrument_xml']['data'][0]
-
     # Create new instrument node
     instrument_node = InstrumentNode()
     target_entry_node.set_child(instrument_node)
@@ -500,31 +351,8 @@ def set_das_log_node(das_log_dict, run_start_time, target_entry_node):
     # add attribute
     target_logs_node.add_attributes({'NX_class': 'NXcollection'})
 
-    # add sample logs
-    # source_logs_node = source_entry_node.get_child('/entry/DASlogs')
-
-    # Specify white list
-    # logs_white_list = ['CG2:CS:SampleToSi',
-    #                    'wavelength', 'wavelength_spread',
-    #                    'source_aperture_diameter', 'sample_aperture_diameter',
-    #                    'detector_trans_Readback']
-
     for log_name in das_log_dict:
         set_single_log_node(target_logs_node, das_log_dict[log_name], run_start_time)
-
-    # for child_log in source_logs_node.children:
-    #     # remove HDF path from entry name
-    #     child_log_name = child_log.name.split('/')[-1]
-    #
-    #     if child_log_name in logs_white_list:
-    #         # only add nodes in white list
-    #         target_logs_node.set_child(child_log)
-    #     else:
-    #         # target_logs_node.set_child(child_log)
-    #         continue
-
-    # Add sample_detector_distance  manually
-    # set_sdd_node(target_logs_node, source_h5)
 
 
 def set_single_log_node(log_collection_node, das_log, start_time):
@@ -540,13 +368,6 @@ def set_single_log_node(log_collection_node, das_log, start_time):
     -------
 
     """
-    # Get times and value for /entry/DASlogs/sample_detector_distance
-    # ssd_entry = source_h5['entry']['DASlogs']['sample_detector_distance']
-    # ssd_times = ssd_entry['time'].value
-    # ssd_start_time = ssd_entry['time'].attrs['start']
-    # ssd_value = ssd_entry['value'].value
-    # ssd_value_unit = ssd_entry['value'].attrs['units']
-
     # Set up a DAS log node
     das_log_node = DasLogNode(log_name=f'/entry/DASlogs/{das_log.name}',
                               log_times=das_log.times,
@@ -617,7 +438,7 @@ def verify_histogram(source_nexus, test_nexus):
         raise AssertionError(error_message)
 
 
-def test_reduction(reference_dir):
+def test_reduction(reference_dir, cleanfile):
     """Test generate (partially copy) an event Nexus file by
     verifying reduction result between raw and generated event nexus file
 
@@ -630,10 +451,10 @@ def test_reduction(reference_dir):
     # Generate a new event NeXus file
     # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
     # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/nexus'
-    # cleanfile(output_dir)
+    output_dir = '/tmp/reducecg2nexus'
+    cleanfile(output_dir)
     if not os.path.exists(output_dir):
-        os.mkdir('/tmp/nexus')
+        os.mkdir(output_dir)
 
     # Copy a nexus file
     test_nexus_name = 'CG2_9166.nxs.h5'
@@ -648,8 +469,6 @@ def test_reduction(reference_dir):
     verify_histogram(source_nexus, target_nexus)
 
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    # output_dir = mkdtemp(prefix='meta_overwrite_test1')
-    # cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},

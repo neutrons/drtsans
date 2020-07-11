@@ -153,7 +153,7 @@ def test_copy_h5_file(reference_dir, cleanfile):
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future
     output_dir = '/tmp/nexus'
-    cleanfile(output_dir)
+    # cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir('/tmp/nexus')
     prototype_dup_nexus = os.path.join(output_dir, 'CG2_9177_prototype.nxs.h5')
@@ -266,7 +266,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     event_nexus_writer = EventNeXusWriter(beam_line='CG2', instrument_name='CG2')
 
     # set instrument
-    event_nexus_writer.set_instrument_info(2,  nexus_contents[0])
+    event_nexus_writer.set_instrument_info(48,  nexus_contents[0])
 
     # set counts
     for bank_id in range(1, 48 + 1):
@@ -642,8 +642,8 @@ def test_reduction(reference_dir):
     target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
 
     # copy_event_nexus(source_nexus, target_nexus)
+    generate_event_nexus(source_nexus, target_nexus)
     # generate_event_nexus_prototype(source_nexus, target_nexus)
-    generate_event_nexus_prototype(source_nexus, target_nexus)
 
     verify_histogram(source_nexus, target_nexus)
 

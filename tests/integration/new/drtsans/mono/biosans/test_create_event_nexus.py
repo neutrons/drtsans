@@ -76,7 +76,6 @@ def test_copy_event_nexus(reference_dir):
                                 idf_type='XML content of instrument IDF', description='text/xml')
 
     # The bank nodes
-    # TODO  - Testing block
     bank_histograms = cg3_nexus[1]
     run_start_time = cg3_nexus[3]
 
@@ -88,8 +87,9 @@ def test_copy_event_nexus(reference_dir):
         duplicate_entry_node.remove_child(bank_node_name)
 
     # Add back all the bank nodes
+    max_pulse_time_array = None
     for bank_id in bank_node_dict:
-        if bank_id in [49]:
+        if bank_id in range(1, 88):
             # generate fake events from counts
             nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
             # Create bank node for bank
@@ -97,12 +97,26 @@ def test_copy_event_nexus(reference_dir):
             bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
                                  nexus_events.event_time_offset, run_start_time,
                                  nexus_events.event_time_zero)
-
+            if max_pulse_time_array is None or nexus_events.event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
+                max_pulse_time_array = nexus_events.event_time_zeros
         else:
             bank_node = bank_node_dict[bank_id]
+            raise RuntimeError('Cannot be here!')
         # set child
         duplicate_entry_node.set_child(bank_node)
 
+    # Monitor counts
+    # TODO  - Testing block
+    duplicate_entry_node.remove_child('/entry/monitor1')
+    tof_min = 0.
+    tof_max = 10000.
+    monitor_events = generate_monitor_events_from_count(cg3_nexus[2], max_pulse_time_array, tof_min, tof_max)
+    target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
+    target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
+                                           event_time_offset_array=monitor_events.event_time_offset,
+                                           run_start_time=run_start_time,
+                                           event_time_zero_array=max_pulse_time_array)
+    duplicate_entry_node.set_child(target_monitor_node)
     # END-TODO
 
     # replace instrument node

@@ -89,19 +89,15 @@ def test_copy_event_nexus(reference_dir):
     # Add back all the bank nodes
     max_pulse_time_array = None
     for bank_id in bank_node_dict:
-        if bank_id in range(1, 88):
-            # generate fake events from counts
-            nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
-            # Create bank node for bank
-            bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
-            bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
-                                 nexus_events.event_time_offset, run_start_time,
-                                 nexus_events.event_time_zero)
-            if max_pulse_time_array is None or nexus_events.event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
-                max_pulse_time_array = nexus_events.event_time_zeros
-        else:
-            bank_node = bank_node_dict[bank_id]
-            raise RuntimeError('Cannot be here!')
+        # generate fake events from counts
+        nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
+        # Create bank node for bank
+        bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
+        bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
+                             nexus_events.event_time_offset, run_start_time,
+                             nexus_events.event_time_zero)
+        if max_pulse_time_array is None or nexus_events.event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
+            max_pulse_time_array = nexus_events.event_time_zeros
         # set child
         duplicate_entry_node.set_child(bank_node)
 
@@ -122,6 +118,25 @@ def test_copy_event_nexus(reference_dir):
     # replace instrument node
     duplicate_entry_node.remove_child('/entry/instrument')
     duplicate_entry_node.set_child(new_instrument_node)
+
+    # Delete nodes under entry
+    black_list = ['title',
+                  'total_counts',
+                  'total_other_counts',
+                  'total_pulses',
+                  'total_uncounted_counts',
+                  'user1',
+                  'user2',
+                  'user3',
+                  'user4',
+                  'user5',
+                  'entry_identifier',
+                  'sample',
+                  'Software'
+                  ]
+    for short_name in black_list:
+        full_name = f'/entry/{short_name}'
+        duplicate_entry_node.remove_child(full_name)
 
     # write
     duplicate_root.write(prototype_dup_nexus)

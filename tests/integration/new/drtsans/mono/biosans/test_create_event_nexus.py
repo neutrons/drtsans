@@ -51,12 +51,11 @@ def test_copy_event_nexus(reference_dir):
     source_h5 = h5py.File(source_nexus_file, 'r')
     source_root = FileNode()
     source_root.parse_h5_entry(source_h5)
-
     source_entry = source_root.get_child('/entry')
 
     # Create a new one
     duplicate_root = FileNode()
-    duplicate_root.set_child(source_root.get_child('/entry/'))
+    duplicate_root.set_child(source_root.get_child('/entry'))
     duplicate_entry_node = duplicate_root.get_child('/entry')
 
     # Replace node instrument
@@ -81,6 +80,7 @@ def test_copy_event_nexus(reference_dir):
 
     prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
     assert prototype_ws
+    assert prototype_ws.getNumberHistograms() == 90112
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):

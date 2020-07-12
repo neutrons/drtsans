@@ -89,7 +89,7 @@ def test_copy_event_nexus(reference_dir):
     # Add back all the bank nodes
     max_pulse_time_array = None
     for bank_id in bank_node_dict:
-        if bank_id in range(1, 88):
+        if bank_id in range(1, 88 + 1):
             # generate fake events from counts
             nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
             # Create bank node for bank
@@ -97,8 +97,8 @@ def test_copy_event_nexus(reference_dir):
             bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
                                  nexus_events.event_time_offset, run_start_time,
                                  nexus_events.event_time_zero)
-            if max_pulse_time_array is None or nexus_events.event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
-                max_pulse_time_array = nexus_events.event_time_zeros
+            if max_pulse_time_array is None or nexus_events.event_time_zero.shape[0] > max_pulse_time_array.shape[0]:
+                max_pulse_time_array = nexus_events.event_time_zero
         else:
             bank_node = bank_node_dict[bank_id]
             raise RuntimeError('Cannot be here!')

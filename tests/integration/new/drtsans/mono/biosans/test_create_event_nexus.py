@@ -41,6 +41,13 @@ def test_copy_event_nexus(reference_dir):
     source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
     assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
 
+    # Parse
+    logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+                       'wavelength', 'wavelength_spread',
+                       'source_aperture_diameter', 'sample_aperture_diameter',
+                       'detector_trans_Readback']
+    cg3_nexus = parse_event_nexus(source_nexus_file, 88, logs_white_list)
+
     # Duplicate the source file to the temporary directory
     output_dir = '/tmp/prototype_cg3nexus'
     if not os.path.exists(output_dir):
@@ -70,15 +77,30 @@ def test_copy_event_nexus(reference_dir):
 
     # The bank nodes
     # TODO  - Testing block
-    bank_node_list = list()
+    bank_histograms = cg3_nexus[1]
+    run_start_time = cg3_nexus[3]
+
+    bank_node_dict = dict()
     for bank_id in range(1, 88 + 1):
         bank_node_name = f'/entry/bank{bank_id}_events'
         bank_node = duplicate_entry_node.get_child(bank_node_name)
-        bank_node_list.append(bank_node)
+        bank_node_dict[bank_id] = bank_node
         duplicate_entry_node.remove_child(bank_node_name)
 
     # Add back all the bank nodes
-    for bank_node in bank_node_list:
+    for bank_id in bank_node_dict:
+        if bank_id in [49]:
+            # generate fake events from counts
+            nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
+            # Create bank node for bank
+            bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
+            bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
+                                 nexus_events.event_time_offset, run_start_time,
+                                 nexus_events.event_time_zero)
+
+        else:
+            bank_node = bank_node_dict[bank_id]
+        # set child
         duplicate_entry_node.set_child(bank_node)
 
     # END-TODO

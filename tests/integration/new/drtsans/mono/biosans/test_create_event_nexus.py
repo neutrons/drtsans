@@ -68,6 +68,21 @@ def test_copy_event_nexus(reference_dir):
     new_instrument_node.set_idf(xml_idf_content,
                                 idf_type='XML content of instrument IDF', description='text/xml')
 
+    # The bank nodes
+    # TODO  - Testing block
+    bank_node_list = list()
+    for bank_id in range(1, 88 + 1):
+        bank_node_name = f'/entry/bank{bank_id}'
+        bank_node = duplicate_entry_node.get_child(bank_node_name)
+        bank_node_list.append(bank_node)
+        duplicate_entry_node.remove_child(bank_node_name)
+
+    # Add back all the bank nodes
+    for bank_node in bank_node_list:
+        duplicate_entry_node.set_child(bank_node)
+
+    # END-TODO
+
     # replace instrument node
     duplicate_entry_node.remove_child('/entry/instrument')
     duplicate_entry_node.set_child(new_instrument_node)

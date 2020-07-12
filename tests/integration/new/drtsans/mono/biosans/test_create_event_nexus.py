@@ -72,7 +72,7 @@ def test_copy_event_nexus(reference_dir):
     # TODO  - Testing block
     bank_node_list = list()
     for bank_id in range(1, 88 + 1):
-        bank_node_name = f'/entry/bank{bank_id}'
+        bank_node_name = f'/entry/bank{bank_id}_events'
         bank_node = duplicate_entry_node.get_child(bank_node_name)
         bank_node_list.append(bank_node)
         duplicate_entry_node.remove_child(bank_node_name)

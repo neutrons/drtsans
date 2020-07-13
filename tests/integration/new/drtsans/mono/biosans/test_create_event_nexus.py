@@ -552,9 +552,28 @@ def verify_histogram(source_nexus, test_nexus):
             error_message += f'Workspace-index {i} / detector ID {src_ws.getDetector(i).getID()}/' \
                              f'{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},' \
                              f'Actual counts = {test_ws.readY(i)}\n'
-    if error_message != '':
-        print(error_message)
-        raise AssertionError(error_message)
+
+    # Nothing wrong!
+    if error_message == '':
+        return
+
+    # Compare in HDF5 level
+    source_h5 = h5py.File(source_nexus, 'r')
+    target_h5 = h5py.File(test_nexus, 'r')
+
+    # Check all the banks
+    for bank_id in range(1, 89):
+        source_event_ids = source_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        target_event_ids = target_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        if source_event_ids.shape != target_event_ids.shape:
+            print(f'Bank {bank_id}  {source_event_ids.shape} vs {target_event_ids.shape}')
+
+    # close
+    source_h5.close()
+    target_h5.close()
+
+    print(error_message)
+    raise AssertionError(error_message)
 
 
 def test_reduction(reference_dir, cleanfile):

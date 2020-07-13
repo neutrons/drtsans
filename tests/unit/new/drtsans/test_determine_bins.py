@@ -304,6 +304,10 @@ def test_example4():
     User specified X min and X max are used as X min/max exactly.
 
     Test from Example 4 in log_bin_definition_testsR1.xlsx
+    Modified the gold data in the following way:
+      - constant logarithmic step equal to 1/10
+      - reduced number of points (it is less then 3 decades)
+      - fixed the last center, so it's in the middle of last bin
 
     Returns
     -------
@@ -326,6 +330,22 @@ def test_example4():
     np.testing.assert_allclose(test_bin.edges[1:], gold_log_bins_example4[:, 2], rtol=1e-7, atol=1e-6)
 
     return
+
+
+def test_issue599():
+    """
+    Use function in issue 599
+    """
+    q_min = 0.02
+    q_max = 5
+    n_bins_per_decade = 5
+    delta = 1./n_bins_per_decade
+    logqmin = np.log10(q_min)
+    logqmax = np.log10(q_max)
+    logqmin = delta*np.floor(logqmin/delta)
+    expected_values = 10**np.arange(logqmin, logqmax + delta * .999999, delta)
+    test_bin = determine_1d_log_bins(q_min, q_max, n_bins_per_decade, decade_on_center=True, even_decade=True)
+    np.testing.assert_allclose(test_bin.centers[1:-1], expected_values, rtol=1e-7, atol=1e-6)
 
 
 if __name__ == '__main__':

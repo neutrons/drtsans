@@ -483,7 +483,7 @@ def parse_event_nexus(source_nexus_name, num_banks, logs_white_list=None):
     return xml_idf, bank_histograms, monitor_counts, run_start, run_stop, das_log_dict
 
 
-def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):
+def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=False):
     """Convert histogram (counts on detector pixels) to 'fake' events
 
     Parameters
@@ -501,7 +501,9 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):
     """
     # get total counts
     total_counts = bank_histogram.counts.sum()
-    print(f'total counts = {total_counts} type = {type(total_counts)}')
+    if verbose:
+        print(f'Pixel ID range: {bank_histogram.pixel_ids.min()} - {bank_histogram.pixel_ids.max()}; '
+              f'Total counts = {total_counts} type = {type(total_counts)}')
 
     # Create event_id
     event_id_array = np.ndarray(shape=(total_counts,), dtype='uint32')
@@ -521,7 +523,8 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1):
 
     # event_time_offset, event_index
     single_pulse_tof = np.arange(num_events_per_pulse, dtype='float32') * tof_resolution + bank_histogram.tof_min
-    print(f'single pulse TOF: {single_pulse_tof}')
+    if verbose:
+        print(f'single pulse TOF: {single_pulse_tof}')
     event_time_offset_array = np.tile(single_pulse_tof, num_pulses)
     # event indexes: number of events of each pulse: same value for the first N pulses completely filled
     event_index_array = np.arange(num_pulses).astype('uint64') * num_events_per_pulse

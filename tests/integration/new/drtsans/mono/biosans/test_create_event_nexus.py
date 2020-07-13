@@ -57,11 +57,14 @@ def generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus):
         bank_node_name = f'/entry/bank{bank_id}_events'
         bank_node = duplicate_entry_node.get_child(bank_node_name)
         bank_node_dict[bank_id] = bank_node
-        duplicate_entry_node.remove_child(bank_node_name)
+        if bank_id not in [48, 53]:
+            duplicate_entry_node.remove_child(bank_node_name)
 
     # Add back all the bank nodes
     max_pulse_time_array = None
     for bank_id in bank_node_dict:
+        if bank_id in [48, 53]:
+            continue
         # generate fake events from counts
         nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
         # Create bank node for bank
@@ -102,7 +105,7 @@ def generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus):
                   'user4',
                   'user5',
                   'entry_identifier', 'definition', 'bank_error_events', 'bank_unmapped_events',
-                  'sample', 'duration', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge',
+                  'sample', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge',
                   'raw_frames',
                   'Software'
                   ]
@@ -567,12 +570,19 @@ def verify_histogram(source_nexus, test_nexus):
         target_event_ids = target_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
         if source_event_ids.shape != target_event_ids.shape:
             print(f'Bank {bank_id}  {source_event_ids.shape} vs {target_event_ids.shape}')
+        for pid in [48139, 58367]:
+            if source_event_ids.min() <= pid < source_event_ids.max():
+                print(f'PID {pid} in source bank {bank_id}')
+            if target_event_ids.min() <= pid < target_event_ids.max():
+                print(f'PID {pid} in target bank {bank_id}')
 
     # close
     source_h5.close()
     target_h5.close()
 
     print(error_message)
+    print(f'source: {source_nexus}')
+    print(f'target: {test_nexus}')
     raise AssertionError(error_message)
 
 
@@ -725,7 +735,8 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     reduction_input = json.loads(json_str)
     reduction_input["dataDirectories"] = nexus_dir
     reduction_input["configuration"]["outputDir"] = output_dir
-    reduction_input["sample"]["runNumber"] = source_sample_nexus
+    # reduction_input["sample"]["runNumber"] = source_sample_nexus
+    reduction_input["sample"]["runNumber"] = test_sample_nexus
     reduction_input["sample"]["transmission"]["runNumber"] = samples_tran
     reduction_input["background"]["runNumber"] = backgrounds[0]
     reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[0]

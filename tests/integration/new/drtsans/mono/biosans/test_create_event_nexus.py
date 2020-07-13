@@ -102,7 +102,6 @@ def test_copy_event_nexus(reference_dir):
         duplicate_entry_node.set_child(bank_node)
 
     # Monitor counts
-    # TODO  - Testing block
     duplicate_entry_node.remove_child('/entry/monitor1')
     tof_min = 0.
     tof_max = 10000.
@@ -113,7 +112,6 @@ def test_copy_event_nexus(reference_dir):
                                            run_start_time=run_start_time,
                                            event_time_zero_array=max_pulse_time_array)
     duplicate_entry_node.set_child(target_monitor_node)
-    # END-TODO
 
     # replace instrument node
     duplicate_entry_node.remove_child('/entry/instrument')
@@ -137,6 +135,25 @@ def test_copy_event_nexus(reference_dir):
     for short_name in black_list:
         full_name = f'/entry/{short_name}'
         duplicate_entry_node.remove_child(full_name)
+
+    # TODO  - Testing block
+    # Sample logs
+    das_logs_node = duplicate_entry_node.get_child('/entry/DASlogs')
+    # get all the children names
+    das_log_dict = dict()
+    for child_log_node in das_logs_node.children:
+        das_log_dict[child_log_node.name] = child_log_node
+
+    # remove all children
+    for child_log_name in das_log_dict:
+        das_logs_node.remove_child(child_log_name)
+
+    # add back some
+    for child_log_name in das_log_dict:
+        short_name = child_log_name.split('DASlogs/')[1]
+        if short_name in logs_white_list:
+            das_logs_node.set_child(das_log_dict[child_log_name])
+    # END-TODO
 
     # write
     duplicate_root.write(prototype_dup_nexus)

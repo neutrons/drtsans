@@ -681,10 +681,18 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     """
     # Set up (testing) runs
     sample_names = ['csmb_ecoli1h_n2']
-    samples = ['5709']
-    samples_trans = samples
+    sample = '5709'
+    samples_tran = sample
     backgrounds = ['5715']
     backgrounds_trans = backgrounds
+
+    # Replace duplicate
+    source_sample_nexus = os.path.join(nexus_dir, f'CG3_{sample}.nxs.h5')
+    os.path.exists(source_sample_nexus), f'Source sample NeXus {source_sample_nexus} does not exist'
+    # TODO - need a better name for test sample nexus
+    test_sample_nexus = os.path.join(output_dir, f'CG3_{sample}.nxs.h5')
+    generate_event_nexus_prototype_x(source_sample_nexus, test_sample_nexus)
+    verify_histogram(source_sample_nexus, test_sample_nexus)
 
     # checking if output directory exists, if it doesn't, creates the folder
     for subfolder in ['1D', '2D']:
@@ -698,8 +706,8 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     reduction_input = json.loads(json_str)
     reduction_input["dataDirectories"] = nexus_dir
     reduction_input["configuration"]["outputDir"] = output_dir
-    reduction_input["sample"]["runNumber"] = samples[0]
-    reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
+    reduction_input["sample"]["runNumber"] = source_sample_nexus
+    reduction_input["sample"]["transmission"]["runNumber"] = samples_tran
     reduction_input["background"]["runNumber"] = backgrounds[0]
     reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[0]
     reduction_input["outputFileName"] = sample_names[0]

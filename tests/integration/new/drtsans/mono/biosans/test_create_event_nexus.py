@@ -97,7 +97,7 @@ def generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus):
                   'total_pulses',
                   'total_uncounted_counts',
                   'user1',
-                  'user2',
+                  'user2', 'notes',
                   'user3',
                   'user4',
                   'user5',
@@ -232,7 +232,14 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     np.testing.assert_allclose(source_y, target_y)
 
     # Compare meta data
-    assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
+    if len(prototype_ws.getRun().getProperties()) != len(target_ws.getRun().getProperties()):
+        print(f'Prototype:')
+        for p in prototype_ws.getRun().getProperties():
+            print(f'property: {p.name}')
+        print(f'Product')
+        for p in target_ws.getRun().getProperties():
+            print(f'property: {p.name}')
+        raise RuntimeError('Meta data mismatch')
 
 
 def generate_event_nexus(source_nexus, target_nexus, das_log_list):
@@ -566,7 +573,7 @@ def test_reduction(reference_dir, cleanfile):
     # TODO / FIXME - switch to tempfile later
     # output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
     output_dir = '/tmp/nexuscg3reduction/'
-    cleanfile(output_dir)
+    # cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix='BioMetaRaw')
@@ -784,9 +791,13 @@ def get_iq1d(log_file_name):
     """
     # Open file and entry
     log_h5 = h5py.File(log_file_name, 'r')
+    print(f'Log file to load: {log_file_name}')
 
     if '_slice_1' in log_h5:
-        data_entry = log_h5['_slice_1']['main']
+        if 'main' in log_h5['_slice_1']:
+            data_entry = log_h5['_slice_1']['main']
+        else:
+            data_entry = log_h5['_slice_1']['main_0']
     else:
         data_entry = log_h5['main']
 

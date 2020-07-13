@@ -720,7 +720,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
         assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
         # gold file
-        gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
+        gold_log_file = os.path.join(gold_path, '{}_test1_reduction_log.hdf'.format(sample_name))
         assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
         # compare
         title_i = '{}: {}'.format(sample_name, title)
@@ -756,6 +756,7 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
     log_errors = list()
 
     for is_main_detector in [True, False]:
+        assert os.path.exists(gold_log_file)
         vec_q_a, vec_i_a = get_iq1d(test_log_file, is_main=is_main_detector)
         vec_q_b, vec_i_b = get_iq1d(gold_log_file, is_main=is_main_detector)
 
@@ -801,6 +802,7 @@ def get_iq1d(log_file_name, is_main=True):
 
     """
     # Open file and entry
+    assert os.path.exists(log_file_name)
     log_h5 = h5py.File(log_file_name, 'r')
     try:
         if is_main:

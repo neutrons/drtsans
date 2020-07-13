@@ -19,40 +19,13 @@ from mantid.simpleapi import LoadEventNexus
 from drtsans.files.hdf5_rw import FileNode
 
 
-def test_copy_event_nexus(reference_dir):
-    """Prototype test to find out why LoadEventNexusFiled
-
-    LoadEventNexus-[Warning] Empty proton_charge sample log. You will not be able to filter by time.
-    LoadEventNexus-[Error] Error in execution of algorithm LoadEventNexus:
-    LoadEventNexus-[Error] Error finding workspace index; pixelID 49152 with offset 2 is out of range
-        (length=49154)
-    =================================================================================================
-
-    Parameters
-    ----------
-    reference_dir
-
-    Returns
-    -------
-
-    """
-    # Get the source file
-    source_nexus_file = 'CG3_5709.nxs.h5'
-    source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
-    assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
-
+def generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus):
     # Parse
     logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback']
     cg3_nexus = parse_event_nexus(source_nexus_file, 88, logs_white_list)
-
-    # Duplicate the source file to the temporary directory
-    output_dir = '/tmp/prototype_cg3nexus'
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
 
     # Load source
     source_h5 = h5py.File(source_nexus_file, 'r')
@@ -129,7 +102,8 @@ def test_copy_event_nexus(reference_dir):
                   'user4',
                   'user5',
                   'entry_identifier', 'definition', 'bank_error_events', 'bank_unmapped_events',
-                  'sample', 'duration', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge', 'raw_frames',
+                  'sample', 'duration', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge',
+                  'raw_frames',
                   'Software'
                   ]
     for short_name in black_list:
@@ -160,6 +134,39 @@ def test_copy_event_nexus(reference_dir):
 
     # Close
     source_h5.close()
+
+    return
+
+
+def test_copy_event_nexus(reference_dir):
+    """Prototype test to find out why LoadEventNexusFiled
+
+    LoadEventNexus-[Warning] Empty proton_charge sample log. You will not be able to filter by time.
+    LoadEventNexus-[Error] Error in execution of algorithm LoadEventNexus:
+    LoadEventNexus-[Error] Error finding workspace index; pixelID 49152 with offset 2 is out of range
+        (length=49154)
+    =================================================================================================
+
+    Parameters
+    ----------
+    reference_dir
+
+    Returns
+    -------
+
+    """
+    # Get the source file
+    source_nexus_file = 'CG3_5709.nxs.h5'
+    source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
+    assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
+
+    # Duplicate the source file to the temporary directory
+    output_dir = '/tmp/prototype_cg3nexus'
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
+
+    generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus)
 
     prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
     assert prototype_ws
@@ -196,7 +203,8 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback']
-    generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus, logs_white_list)
+    # generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus, logs_white_list)
+    generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus)
     generate_event_nexus(source_nexus_file, product_dup_nexus, logs_white_list)
 
     # Load the duplicated

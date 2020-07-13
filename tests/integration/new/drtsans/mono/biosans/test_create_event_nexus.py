@@ -579,7 +579,7 @@ def test_reduction(reference_dir, cleanfile):
     reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix='BioMetaRaw')
 
     # Get result files
-    sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
+    sample_names = ['csmb_ecoli1h_n2']
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1/')
 
     # Verify
@@ -737,76 +737,85 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
 
 
 def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
-    """Compare I(Q) from reduced file and gold file
+    """
 
     Parameters
     ----------
     test_log_file: str
-        name of drtsans result log file
-    gold_log_file
+        Absolute
+    gold_log_file: str
     title: str
-        title of output figure
+        plot title
     prefix: str
-        prefix of output file
+        file name prefix
 
     Returns
     -------
 
     """
-    # Plot main
-    test_q_vec, test_intensity_vec = get_iq1d(test_log_file)
-    gold_q_vec, gold_intensity_vec = get_iq1d(gold_log_file)
+    log_errors = list()
 
-    # Verify result
-    try:
-        np.testing.assert_allclose(test_q_vec, test_q_vec, atol=1E-4)
-        np.testing.assert_allclose(test_intensity_vec, gold_intensity_vec, atol=1E-7)
-    except AssertionError as assert_err:
-        from matplotlib import pyplot as plt
-        plt.cla()
-        plt.plot(test_q_vec, test_intensity_vec, color='red', label='Corrected')
-        plt.plot(gold_q_vec, gold_intensity_vec, color='black', label='Before being corrected')
-        plt.legend()
-        plt.title(title)
-        plt.yscale('log')
-        out_name = prefix + '_' + os.path.basename(test_log_file).split('.')[0] + '.png'
-        plt.savefig(out_name)
+    for is_main_detector in [True, False]:
+        vec_q_a, vec_i_a = get_iq1d(test_log_file, is_main=is_main_detector)
+        vec_q_b, vec_i_b = get_iq1d(gold_log_file, is_main=is_main_detector)
 
-        raise assert_err
+        try:
+            np.testing.assert_allclose(vec_q_a, vec_q_b)
+            np.testing.assert_allclose(vec_i_a, vec_i_b)
+            log_errors.append(None)
+        except AssertionError as assert_err:
+            log_errors.append(assert_err)
+            from matplotlib import pyplot as plt
+            if is_main_detector:
+                flag = 'Main_detector'
+            else:
+                flag = 'Wing_detector'
+            plt.cla()
+            plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
+            plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))
+            plt.yscale('log')
+            plt.title(title)
+            plt.legend()
+            out_name = prefix + '_' + os.path.basename(test_log_file).split('.')[0] + '_{}.png'.format(flag)
+            plt.savefig(out_name)
+    # END-FOR
+
+    # Report
+    if not (log_errors[0] is None and log_errors[1] is None):
+        error_message = 'Main: {}; Wing: {}'.format(log_errors[0], log_errors[1])
+        raise AssertionError(error_message)
 
 
-def get_iq1d(log_file_name):
-    """Get I(Q) from output SANS log file
+def get_iq1d(log_file_name, is_main=True):
+    """
 
     Parameters
     ----------
     log_file_name: str
-        log file name
+        output log file's name
+    is_main: bool
+        for main or wing
 
     Returns
     -------
-    tuple
-        numpy 1D array for Q, numpy 1D array for intensity
 
     """
     # Open file and entry
     log_h5 = h5py.File(log_file_name, 'r')
-    print(f'Log file to load: {log_file_name}')
-
-    if '_slice_1' in log_h5:
-        if 'main' in log_h5['_slice_1']:
-            data_entry = log_h5['_slice_1']['main']
+    try:
+        if is_main:
+            iq1d_entry = log_h5['main_0']['I(Q)']
         else:
-            data_entry = log_h5['_slice_1']['main_0']
-    else:
-        data_entry = log_h5['main']
-
-    # Get data
-    iq1d_entry = data_entry['I(Q)']
+            iq1d_entry = log_h5['wing_0']['I(Q)']
+    except KeyError:
+        if is_main:
+            iq1d_entry = log_h5['_slice_1']['main_0']['I(Q)']
+        else:
+            iq1d_entry = log_h5['_slice_1']['wing_0']['I(Q)']
 
     # Get data with a copy
-    vec_q = np.copy(iq1d_entry['Q'][()])
-    vec_i = np.copy(iq1d_entry['I'][()])
+    vec_q = np.copy(iq1d_entry['Q'].value)
+    vec_i = np.copy(iq1d_entry['I'].value)
 
     # close file
     log_h5.close()

@@ -34,7 +34,7 @@ class EventNeXusWriter(object):
         """ Initialization
         """
         self._beam_line = beam_line
-        self._set_instrument_name = instrument_name
+        self._instrument_name = instrument_name
 
         # entry node
         self._entry_node = None
@@ -69,13 +69,6 @@ class EventNeXusWriter(object):
 
         # get entry node
         self._entry_node = self._root_node.get_child('/entry')
-
-        # # create an '/entry' node
-        # self._entry_node = GroupNode('/entry')
-        # # add attribution as NX_class
-        # self._entry_node.add_attributes({'NX_class': 'NXentry'})
-        # # append entry node to root
-        # self._root_node.set_child(self._entry_node)
 
         # Set DAS log node
         self._log_collection_node = DasLogsCollectionNode()
@@ -147,8 +140,10 @@ class EventNeXusWriter(object):
         # Set values
         self._instrument_node.set_idf(xml_idf, idf_type=b'text/xml',
                                       description=b'XML contents of the instrument IDF')
-        self._instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG2',
-                                                  name=b'CG2', short_name=b'CG2')
+        self._instrument_node.set_instrument_info(target_station_number=1,
+                                                  beam_line=np.string_(self._instrument_name),
+                                                  name=np.string_(self._instrument_name),
+                                                  short_name=np.string_(self._instrument_name))
 
     def _set_log_node(self, log_name, relative_log_times, log_values, log_unit, device):
         """Set a DAS log node

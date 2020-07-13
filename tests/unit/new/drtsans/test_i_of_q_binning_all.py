@@ -90,7 +90,7 @@ def test_bin_modq():
                                  annular_angle_bin=1., wedges=None,
                                  error_weighted=False)
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins(1., 4., 4, even_decade=False).centers
+    expected_q = determine_1d_log_bins(1., 4., None, 4, even_decade=False).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
 
     # test log scale even decade

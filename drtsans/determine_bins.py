@@ -150,6 +150,10 @@ def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None,
         bin_edges[-1] = x_max
     # END-IF-ELSE
 
+    # recalculate the last center
+    if bin_centers[-1] >= bin_edges[-1]:
+        bin_centers[-1] = 0.5 * (bin_edges[-1] + bin_edges[-2])
+
     # Construct Bins instance
     log_bins = Bins(bin_edges, bin_centers)
 

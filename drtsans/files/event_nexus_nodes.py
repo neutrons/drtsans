@@ -313,29 +313,6 @@ class DasLogNode(drtsans.files.hdf5_rw.GroupNode):
         -------
 
         """
-        # # convert date time in IOS string to datetime instance
-        # run_start_time = dateutil.parser.parse(self._run_start)
-        # epoch_time = datetime.datetime(1990, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(0)))
-        # # offsets
-        # time_offset = run_start_time.timestamp() - epoch_time.timestamp()
-        # time_offset_second = int(time_offset)
-        # # nanosecond shift
-        # if self._run_start.decode().count('.') == 0:
-        #     # zero sub-second offset
-        #     time_offset_ns = 0
-        # elif self._run_start.decode().count('.') == 1:
-        #     # non-zero sub-second offset
-        #     # has HH:MM:SS.nnnsssnnnss-05 format
-        #     sub_second_str = self._run_start.decode().split('.')[1].split('-')[0]
-        #     sub_seconds = float(sub_second_str)
-        #     # convert from sub seconds to nano seconds
-        #     # example: 676486982
-        #     digits = int(math.log(sub_seconds) / math.log(10)) + 1
-        #     time_offset_ns = int(sub_seconds * 10**(9 - digits))
-        # else:
-        #     # more than 1 '.': not knowing the case.  Use robust solution
-        #     time_offset_ns = int((time_offset - time_offset_second) * 1E9)
-
         time_offset_second, time_offset_ns = calculate_time_offsets(self._run_start)
 
         # Now I set up time related attributes

@@ -611,8 +611,10 @@ def test_reduction(reference_dir, cleanfile):
 
     # TODO / FIXME - switch to tempfile later
     output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
-    output_dir = '/tmp/nexuscg3reduction/'
+    # output_dir = '/tmp/nexuscg3reduction/'
     cleanfile(output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix='BioMetaRaw')

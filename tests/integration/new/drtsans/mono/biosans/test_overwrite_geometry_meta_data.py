@@ -15,7 +15,7 @@ from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def skip_test_no_overwrite(reference_dir, cleanfile):
+def test_no_overwrite(reference_dir, cleanfile):
     """Test reduce 3 sets of data without overwriting either sampleToSi or sampleDetectorDistance
 
     This integration test is from a test from and verified by Shuo Qian.
@@ -27,22 +27,17 @@ def skip_test_no_overwrite(reference_dir, cleanfile):
     -------
 
     """
-    # Set up test
+    # Set up test: specify sensitivity file
     json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, None)
-    # output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
-    # cleanfile(output_dir)
-    output_dir = '/tmp/meta_overwrite_bio_test1'
-    if os.path.exists(output_dir):
-        import shutil
-        shutil.rmtree(output_dir)
-    os.mkdir(output_dir)
+    output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
+    cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix='BioMetaRaw')
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
@@ -67,8 +62,13 @@ def skip_test_overwrite_both_minor(reference_dir, cleanfile):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 61, 6.9)
-    output_dir = mkdtemp(prefix='meta_overwrite_bio_test1a')
-    cleanfile(output_dir)
+    # output_dir = mkdtemp(prefix='meta_overwrite_bio_test1a')
+    # cleanfile(output_dir)
+    output_dir = '/tmp/meta_overwrite_bio_test1a'
+    if os.path.exists(output_dir):
+        import shutil
+        shutil.rmtree(output_dir)
+    os.mkdir(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaMinor')

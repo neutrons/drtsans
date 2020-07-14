@@ -63,6 +63,8 @@ def generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus):
         bank_node_dict[bank_id] = bank_node
         if bank_id not in [48, 53]:
             duplicate_entry_node.remove_child(bank_node_name)
+        else:
+            duplicate_entry_node.remove_child(bank_node_name)
 
     # Add back all the bank nodes
     max_pulse_time_array = None
@@ -70,7 +72,7 @@ def generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus):
         if bank_id in [48, 53]:
             nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10., verbose=True)
             print(f'Bank {bank_id}, Pixel IDs: {nexus_events.event_id.min()} to {nexus_events.event_id.max()}')
-            continue
+            # continue
         # generate fake events from counts
         nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
         # Create bank node for bank
@@ -592,7 +594,7 @@ def verify_histogram(source_nexus, test_nexus):
     raise AssertionError(error_message)
 
 
-def failed_test_reduction(reference_dir, cleanfile):
+def test_reduction(reference_dir, cleanfile):
     """Test generate (partially copy) an event Nexus file by
     verifying reduction result between raw and generated event nexus file
 
@@ -727,6 +729,11 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     # TODO - need a better name for test sample nexus
     test_sample_nexus = os.path.join(output_dir, f'CG3_{sample}.nxs.h5')
     generate_event_nexus_prototype_x(source_sample_nexus, test_sample_nexus)
+    # logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+    #                    'wavelength', 'wavelength_spread',
+    #                    'source_aperture_diameter', 'sample_aperture_diameter',
+    #                    'detector_trans_Readback']
+    # generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
     verify_histogram(source_sample_nexus, test_sample_nexus)
 
     # checking if output directory exists, if it doesn't, creates the folder

@@ -518,13 +518,19 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
         start_index = stop_index
 
     # Get pulse related parameters
-    num_events_per_pulse = int((bank_histogram.tof_max - bank_histogram.tof_min) / tof_resolution)
+    # num_events_per_pulse = int((bank_histogram.tof_max - bank_histogram.tof_min) / tof_resolution)
+    tof_max = 20000
+    tof_min = 10000
+    num_events_per_pulse = int((tof_max - tof_min) / tof_resolution)
     num_pulses = total_counts // num_events_per_pulse  # This value is just a whole number. It could +1
+    if verbose:
+        print(f'Original TOF range = {bank_histogram.tof_min}, {bank_histogram.tof_max}')
+        print(f'event/pulse = {num_events_per_pulse}; number pulses = {num_pulses}')
 
     # event_time_offset, event_index
     single_pulse_tof = np.arange(num_events_per_pulse, dtype='float32') * tof_resolution + bank_histogram.tof_min
-    if verbose:
-        print(f'single pulse TOF: {single_pulse_tof}')
+    # if verbose:
+    #     print(f'single pulse TOF: {single_pulse_tof}')
     event_time_offset_array = np.tile(single_pulse_tof, num_pulses)
     # event indexes: number of events of each pulse: same value for the first N pulses completely filled
     event_index_array = np.arange(num_pulses).astype('uint64') * num_events_per_pulse

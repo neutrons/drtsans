@@ -479,7 +479,6 @@ class DataSetNode(HDFNode):
 
         """
         # Generate current entry and set the data
-        print(self._name, self._value)
         curr_entry = parent_entry.create_dataset(self._name, data=self._value)
 
         self.write_attributes(curr_entry)

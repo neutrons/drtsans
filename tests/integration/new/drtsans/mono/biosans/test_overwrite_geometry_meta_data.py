@@ -45,7 +45,7 @@ def test_no_overwrite(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def skip_test_overwrite_both_minor(reference_dir, cleanfile):
+def test_overwrite_both_minor(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with minor change.
     - Overwrite sampleToSi (distance) to 61 mm.
@@ -75,7 +75,7 @@ def skip_test_overwrite_both_minor(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1a/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1a/')
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',

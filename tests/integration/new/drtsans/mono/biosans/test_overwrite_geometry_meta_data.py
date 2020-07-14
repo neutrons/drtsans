@@ -27,7 +27,7 @@ def test_no_overwrite(reference_dir, cleanfile):
     -------
 
     """
-    # Set up test
+    # Set up test: specify sensitivity file
     json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, None)
     output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
     cleanfile(output_dir)
@@ -37,7 +37,7 @@ def test_no_overwrite(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
@@ -70,7 +70,7 @@ def test_overwrite_both_minor(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1a/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1a/')
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
@@ -115,7 +115,7 @@ def Failed_test_overwrite_both_major(reference_dir, cleanfile):
 # SME - Shuo Qian <qians@ornl.gov>
 @pytest.mark.skip(reason='Underlying geometry algorithm is incorrect but can be tolerated in real experiment'
                          '. Refer to MR #784.')
-def test_overwrite_sample_to_si(reference_dir, cleanfile):
+def skip_test_overwrite_sample_to_si(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance
     Sample to detector distance will be modified accordingly with the move of sample relative to nominal point.
 
@@ -174,7 +174,7 @@ def test_overwrite_sample_to_detector(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test3/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test3/')
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='SampleDetectorDistance -> 14 meter',

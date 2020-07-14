@@ -99,17 +99,17 @@ def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None,
     if n_bins_per_decade is not None and n_bins_per_decade > 0 and n_bins is None:
         # Number of bins shall contain all the decade from c_min to c_max
         # Thus, floor to c_min and ciel to c_max shall make sure the calculation is correct
-        total_num_bins = (int(np.ceil(c_max) - np.floor(c_min))) * n_bins_per_decade
+        total_num_bins = int(np.ceil((c_max - c_min) * n_bins_per_decade))
+        delta_l = 1./n_bins_per_decade
     elif n_bins_per_decade is None and n_bins is not None and n_bins > 0:
         # Use user specified total number of bins
         total_num_bins = n_bins
+        # Calculate Delta L: Equation 11.28 (master document)
+        delta_l = (c_max - c_min) / total_num_bins
     else:
         # Non-supported case
         raise RuntimeError('n_bins_per_decade ({}) and n_bins ({}) cannot be both specified or not specified.'
                            'and they must be positive integers'.format(n_bins_per_decade, n_bins))
-
-    # Calculate Delta L: Equation 11.28 (master document)
-    delta_l = (c_max - c_min) / total_num_bins
 
     # Define an array of k, i.e., [0, 1, 2, ...]
     if decade_on_center:
@@ -149,6 +149,10 @@ def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None,
         bin_edges[0] = x_min
         bin_edges[-1] = x_max
     # END-IF-ELSE
+
+    # recalculate the last center
+    if bin_centers[-1] >= bin_edges[-1]:
+        bin_centers[-1] = 0.5 * (bin_edges[-1] + bin_edges[-2])
 
     # Construct Bins instance
     log_bins = Bins(bin_edges, bin_centers)

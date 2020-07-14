@@ -62,13 +62,8 @@ def test_overwrite_both_minor(reference_dir, cleanfile):
     """
     # Set up test
     json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), 61, 6.9)
-    # output_dir = mkdtemp(prefix='meta_overwrite_bio_test1a')
-    # cleanfile(output_dir)
-    output_dir = '/tmp/meta_overwrite_bio_test1a'
-    if os.path.exists(output_dir):
-        import shutil
-        shutil.rmtree(output_dir)
-    os.mkdir(output_dir)
+    output_dir = mkdtemp(prefix='meta_overwrite_bio_test1a')
+    cleanfile(output_dir)
 
     # Run
     reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix='BioMetaMinor')
@@ -155,7 +150,7 @@ def skip_test_overwrite_sample_to_si(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def skip_test_overwrite_sample_to_detector(reference_dir, cleanfile):
+def test_overwrite_sample_to_detector(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter
@@ -179,7 +174,7 @@ def skip_test_overwrite_sample_to_detector(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test3/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test3/')
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='SampleDetectorDistance -> 14 meter',

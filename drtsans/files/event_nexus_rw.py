@@ -458,7 +458,7 @@ def parse_event_nexus(source_nexus_name, num_banks, logs_white_list=None):
     das_log_dict = dict()
 
     for log_name in logs_white_list:
-        print(f'Reading sample log {log_name}')
+        # print(f'Reading sample log {log_name}')
         log_times = source_logs_node[log_name]['time'][()]
         log_value = source_logs_node[log_name]['value'][()]
         try:

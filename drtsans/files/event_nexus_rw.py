@@ -454,7 +454,7 @@ def parse_event_nexus(source_nexus_name, num_banks, logs_white_list=None):
         logs_white_list = ['CG2:CS:SampleToSi', 'sample_detector_distance',
                            'wavelength', 'wavelength_spread',
                            'source_aperture_diameter', 'sample_aperture_diameter',
-                           'detector_trans_Readback']
+                           'detector_trans_Readback', 'attenuator']
     das_log_dict = dict()
 
     for log_name in logs_white_list:
@@ -540,22 +540,25 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
     # for the rest of events in the REAL last pulse: partially filled
     last_pulse_event_number = total_counts - num_pulses * num_events_per_pulse
     if last_pulse_event_number > 0:
-        num_pulses += 1
-        # add the incomplete TOF
+        # num_pulses += 1
+        # add the TOF of the last pulse to add
         event_time_offset_array = np.concatenate((event_time_offset_array,
                                                   single_pulse_tof[0:last_pulse_event_number]))
-        # add one more pulse
+        # add event indexes for the last added pulse
         if len(event_time_zero_array) > 0:
             # last pulse time
-            prev_last_pulse_time = event_time_zero_array[-1]
             event_index_array = np.concatenate((event_index_array,
                                                 np.array([event_index_array[-1] + num_events_per_pulse],
                                                          dtype='uint64')))
         else:
             # number of total count is less than number of events per pulse
-            #
-            prev_last_pulse_time = 0
-            event_index_array = np.array([0, last_pulse_event_number], dtype='uint64')
+            # THIS IS TO AVOID A BUG IN MANTID
+            # Init even time zero array with 1 pulse
+            event_time_zero_array = np.arange(1) * bank_histogram.pulse_duration
+            event_index_array = np.array([0, 0], dtype='uint64')
+
+        # add last pulse time (event time zeor)
+        prev_last_pulse_time = event_time_zero_array[-1]
         last_pulse_time = prev_last_pulse_time + bank_histogram.pulse_duration
         event_time_zero_array = np.concatenate((event_time_zero_array, np.array([last_pulse_time])))
 

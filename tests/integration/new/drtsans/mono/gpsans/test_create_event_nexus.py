@@ -112,8 +112,8 @@ def test_reduction(reference_dir, cleanfile):
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     specs = {
         "iptsNumber": 21981,
-        "beamCenter": {"runNumber": 9177},
-        "emptyTransmission": {"runNumber": 9177},
+        "beamCenter": {"runNumber": nexus_file_dict[9177]},
+        "emptyTransmission": {"runNumber": nexus_file_dict[9177]},
         "configuration": {
             "outputDir": output_dir,
             "useDefaultMask": True,
@@ -136,7 +136,8 @@ def test_reduction(reference_dir, cleanfile):
     }
     reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
     reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix='CG2MetaRaw',
-                       sample_nexus_path=target_nexus)
+                       sample_nexus_path=nexus_file_dict[9166], sample_trans_path=nexus_file_dict[9178],
+                       background_path=nexus_file_dict[9165], background_trans_path=nexus_file_dict[9177])
 
     # Get result files
     sample_names = ["Al4"]
@@ -147,7 +148,8 @@ def test_reduction(reference_dir, cleanfile):
                              title='Raw (No Overwriting)',  prefix='CG2MetaRaw')
 
 
-def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path):
+def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path, sample_trans_path,
+                       background_path, background_trans_path):
     """Standard reduction workflow
 
     Parameters
@@ -166,10 +168,10 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
     # sample_trans_file = None):
     # USER Input here with scan numbers etc.
     samples = [sample_nexus_path]  # ['9166']
-    samples_trans = ['9178']
+    samples_trans = [sample_trans_path]  # ['9178']
     sample_thick = ['0.1']
-    bkgd = ['9165']
-    bkgd_trans = ['9177']
+    bkgd = [background_path]  # 9165
+    bkgd_trans = [background_trans_path]  # ['9177']
 
     # Sample names for output
     sample_names = ["Al4"]

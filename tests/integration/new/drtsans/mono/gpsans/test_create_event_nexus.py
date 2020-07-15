@@ -73,6 +73,80 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
 
 
+def test_reduction(reference_dir, cleanfile):
+    """Test generate (partially copy) an event Nexus file by
+    verifying reduction result between raw and generated event nexus file
+
+    Testing is modified from mono.gpsans.test_overwrite_geometry_meta_data.test_no_overwrite()
+
+    Returns
+    -------
+
+    """
+    # Generate a new event NeXus file
+    # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
+    # TODO - this will be replaced by tempfile for future
+    output_dir = '/tmp/reducecg2nexus'
+    cleanfile(output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    # Concert NeXus files
+    nexus_file_dict = dict()
+    for run_number in [9166, 9177, 9165, 9178]:
+        # set source NeXus and target (testing) NeXus name
+        # samples_trans = ['9178']
+        # bkgd = ['9165']
+        # bkgd_trans = ['9177']
+        test_nexus_name = f'CG2_{run_number}.nxs.h5'
+        source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
+        assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
+        target_nexus = os.path.join(output_dir, f'CG2_{run_number}.nxs.h5')
+        # generate and verify
+        generate_event_nexus(source_nexus, target_nexus)
+        verify_histogram(source_nexus, target_nexus)
+        # add to dictionary
+        nexus_file_dict[run_number] = target_nexus
+
+    # Set up reduction JSON
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
+    specs = {
+        "iptsNumber": 21981,
+        "beamCenter": {"runNumber": 9177},
+        "emptyTransmission": {"runNumber": 9177},
+        "configuration": {
+            "outputDir": output_dir,
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
+            "sensitivityFileName": sensitivity_file,
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": 40,
+            "mmRadiusForTransmission": 40,
+            "numQxQyBins": 180,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 180,
+            "LogQBinsPerDecade": None,
+            "useLogQBinsEvenDecade": False,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+            "usePixelCalibration": False,
+            "useSubpixels": False
+        }
+    }
+    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix='CG2MetaRaw',
+                       sample_nexus_path=target_nexus)
+
+    # Get result files
+    sample_names = ["Al4"]
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test1/')
+
+    # Verify results
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Raw (No Overwriting)',  prefix='CG2MetaRaw')
+
+
 def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path):
     """Standard reduction workflow
 
@@ -89,6 +163,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
     -------
 
     """
+    # sample_trans_file = None):
     # USER Input here with scan numbers etc.
     samples = [sample_nexus_path]  # ['9166']
     samples_trans = ['9178']
@@ -436,74 +511,6 @@ def verify_histogram(source_nexus, test_nexus):
     if error_message != '':
         print(error_message)
         raise AssertionError(error_message)
-
-
-def test_reduction(reference_dir, cleanfile):
-    """Test generate (partially copy) an event Nexus file by
-    verifying reduction result between raw and generated event nexus file
-
-    Testing is modified from mono.gpsans.test_overwrite_geometry_meta_data.test_no_overwrite()
-
-    Returns
-    -------
-
-    """
-    # Generate a new event NeXus file
-    # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/reducecg2nexus'
-    cleanfile(output_dir)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-
-    # Copy a nexus file
-    test_nexus_name = 'CG2_9166.nxs.h5'
-    source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
-    assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
-    target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
-
-    # copy_event_nexus(source_nexus, target_nexus)
-    generate_event_nexus(source_nexus, target_nexus)
-    # generate_event_nexus_prototype(source_nexus, target_nexus)
-
-    verify_histogram(source_nexus, target_nexus)
-
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    specs = {
-        "iptsNumber": 21981,
-        "beamCenter": {"runNumber": 9177},
-        "emptyTransmission": {"runNumber": 9177},
-        "configuration": {
-            "outputDir": output_dir,
-            "useDefaultMask": True,
-            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
-            "sensitivityFileName": sensitivity_file,
-            "absoluteScaleMethod": "direct_beam",
-            "DBScalingBeamRadius": 40,
-            "mmRadiusForTransmission": 40,
-            "numQxQyBins": 180,
-            "1DQbinType": "scalar",
-            "QbinType": "linear",
-            "numQBins": 180,
-            "LogQBinsPerDecade": None,
-            "useLogQBinsEvenDecade": False,
-            "WedgeMinAngles": "-30, 60",
-            "WedgeMaxAngles": "30, 120",
-            "usePixelCalibration": False,
-            "useSubpixels": False
-        }
-    }
-    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix='CG2MetaRaw',
-                       sample_nexus_path=target_nexus)
-
-    # Get result files
-    sample_names = ["Al4"]
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test1/')
-
-    # Verify results
-    verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Raw (No Overwriting)',  prefix='CG2MetaRaw')
 
 
 def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):

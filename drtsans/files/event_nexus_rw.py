@@ -553,8 +553,9 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
                                                          dtype='uint64')))
         else:
             # number of total count is less than number of events per pulse
+            #
             prev_last_pulse_time = 0
-            event_index_array = np.array([0], dtype='uint64')
+            event_index_array = np.array([0, last_pulse_event_number], dtype='uint64')
         last_pulse_time = prev_last_pulse_time + bank_histogram.pulse_duration
         event_time_zero_array = np.concatenate((event_time_zero_array, np.array([last_pulse_time])))
 

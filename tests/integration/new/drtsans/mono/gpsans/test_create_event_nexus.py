@@ -95,9 +95,6 @@ def test_reduction(reference_dir, cleanfile):
     nexus_file_dict = dict()
     for run_number in [9166, 9177, 9165, 9178]:
         # set source NeXus and target (testing) NeXus name
-        # samples_trans = ['9178']
-        # bkgd = ['9165']
-        # bkgd_trans = ['9177']
         test_nexus_name = f'CG2_{run_number}.nxs.h5'
         source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
         assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'

@@ -12,7 +12,7 @@ def test_get_das_logs(reference_dir):
     """
     # Init the parser
     # test_xml = '/Users/wzz/Projects/SANS/sans-backend/temp/FromXML/CG2_exp315_scan0005_0060.xml'
-    test_xml = os.path.join(reference_dir.reference_dir.new.gpsans, '/CG2_exp315_scan0005_0060.xm')
+    test_xml = os.path.join(reference_dir.new.gpsans, '/CG2_exp315_scan0005_0060.xm')
     assert os.path.exists(test_xml), f'Test XML {test_xml} cannot be found'
     xml_parser = SpiceXMLParser(test_xml)
 

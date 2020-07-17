@@ -122,4 +122,3 @@ class SpiceXMLParser(object):
         unit = xml_node.attrib['units']
 
         return value, unit
-

@@ -1,6 +1,7 @@
 import pytest
 import os
 from drtsans.mono.spice_xml_parser import SpiceXMLParser
+from mantid.simpleapi import LoadEventNexus, mtd
 
 
 def test_get_das_logs(reference_dir):
@@ -16,16 +17,14 @@ def test_get_das_logs(reference_dir):
     assert os.path.exists(test_xml), f'Test XML {test_xml} cannot be found'
     xml_parser = SpiceXMLParser(test_xml)
 
+    # Test method to retrieve the XML node
     nodes = ['sample_to_flange', 'sdd', 'source_aperture_size', 'sample_aperture_size',
              'detector_trans', 'source_distance']
     for node_name in nodes:
         xml_node = xml_parser.get_xml_node(node_name)
-        print(f'{xml_node.tag} is located by {node_name}')
+        assert xml_node
 
-    for node_name in nodes:
-        value, unit = xml_parser.get_node_value(node_name, float)
-        print(f'{node_name}: value = {value}, unit = {unit}')
-
+    # Test method to retrieve the data value and unit
     nexus_spice_log_map = {
         "CG2:CS:SampleToSi": ("sample_to_flange", 'mm'),
         "sample_detector_distance": ("sdd", 'm'),
@@ -37,16 +36,32 @@ def test_get_das_logs(reference_dir):
         "source_distance": ("source_distance", 'm'),
         "beamtrap_diameter": ("beamtrap_diameter", 'mm')}
 
+    das_log_values = dict()
     for nexus_name, spice_tuple in nexus_spice_log_map.items():
         spice_name, default_unit = spice_tuple
         value, unit = xml_parser.get_node_value(spice_name, float)
         if unit is None:
             unit = default_unit
-        print(f'{nexus_name}: value = {value}, unit = {unit}')
+        # print(f'{nexus_name}: value = {value}, unit = {unit}')
+        das_log_values[nexus_name] = value, unit
 
-    xml_parser.read_attenuator()
+    # Attenuator: special case
+    atten_value, atten_unit = xml_parser.read_attenuator()
+    assert atten_value == pytest.approx(52.997100, 0.00001), f'Attenuator value {atten_value} shall be 52.997100'
+    assert atten_unit == 'mm', f'Attenuator unit {atten_unit} shall be mm'
 
+    # close
     xml_parser.close()
+
+    # Verify other values
+    LoadEventNexus(Filename=test_xml, OutputWorkspace='SpiceXMLTest')
+    spice_ws = mtd['SpiceXMLTest']
+
+    for das_log_name in das_log_values:
+        run_property = spice_ws.run().getProperty(das_log_name)
+        log_unit, log_value = das_log_values[das_log_name]
+        assert run_property.value == log_value
+        assert run_property.units == log_unit
 
 
 if __name__ == '__main__':

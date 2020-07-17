@@ -21,7 +21,7 @@ def test_get_das_logs(reference_dir):
     nodes = ['sample_to_flange', 'sdd', 'source_aperture_size', 'sample_aperture_size',
              'detector_trans', 'source_distance']
     for node_name in nodes:
-        xml_node = xml_parser.get_xml_node(node_name)
+        xml_parser.get_xml_node(node_name)
         # assert xml_node
 
     # Test method to retrieve the data value and unit

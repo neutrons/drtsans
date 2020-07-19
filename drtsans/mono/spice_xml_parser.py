@@ -29,10 +29,7 @@ class SpiceXMLParser(object):
 
         """
         if self._xml_file is not None:
-            try:
-                self._xml_file.close()
-            except OSError:
-                pass
+            self._xml_file.close()
 
     def get_xml_node(self, node_name, required_attribs=None):
         """Get an XML node by its name

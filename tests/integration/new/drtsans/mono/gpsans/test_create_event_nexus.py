@@ -4,6 +4,7 @@ Integration test to create event nexus file
 import pytest
 import numpy as np
 import os
+import shutil
 from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
@@ -13,7 +14,8 @@ from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
-from mantid.simpleapi import LoadEventNexus
+from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):
@@ -609,6 +611,77 @@ def get_iq1d(log_file_name):
     log_h5.close()
 
     return vec_q, vec_i
+
+
+def test_convert_spice_to_nexus(reference_dir, cleanfile):
+    """Test to convert SPICE to NeXus
+
+    Parameters
+    ----------
+    reference_dir
+    cleanfile
+
+    Returns
+    -------
+
+    """
+    # Specify the test data
+    spice_data_file = os.path.join(reference_dir.new.gpsans, 'CG2_exp315_scan0005_0060.xml')
+    template_nexus_file = os.path.join(reference_dir.new.gpsans, 'CG2_9177.nxs.h5')
+    assert os.path.exists(spice_data_file)
+    assert os.path.exists(template_nexus_file)
+
+    # FIXME - use tempfile after the test is finished
+    output_dir = '/tmp/spice2nexus/'
+    if os.path.exists(output_dir):
+        # remove everything
+        shutil.rmtree(output_dir)
+    os.mkdir(output_dir)
+
+    # Convert from SPICE to event Nexus
+    out_nexus_file = os.path.join(output_dir, 'CG2_31500050060.nxs.h5')
+
+    # init convert
+    converter = EventNexusConverter('CG2', 'CG2')
+    converter.load_idf(template_nexus_file)
+    converter.load_sans_xml(spice_data_file)
+    converter.generate_event_nexus(out_nexus_file, num_banks=48)
+
+    # Check
+    os.path.exists(out_nexus_file)
+    test_ws_name = 'TestSpice2Nexus315560'
+    LoadEventNexus(Filename=out_nexus_file, OutputWorkspace=test_ws_name, NumberOfBins=1)
+    ConvertToMatrixWorkspace(InputWorkspace=test_ws_name, OutputWorkspace=test_ws_name)
+    test_nexus_ws = mtd[test_ws_name]
+
+    # Load template event nexus
+    LoadEventNexus(Filename=template_nexus_file, OutputWorkspace='cg3template', MetaDataOnly=True)
+    template_ws = mtd['cg3template']
+
+    # Check number of histograms
+
+    # Compare units of required DAS logs
+    for das_log_name in ['CG2:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
+                         'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
+                         'detector_trans_Readback']:
+        template_unit = template_ws.run().getProperty(das_log_name).umits
+        test_unit = test_nexus_ws.run().getProperty(das_log_name).units
+        assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
+
+    # Check instrument
+
+    # Load original SPICE file
+
+    # compare histograms
+
+    # compare DAS logs
+    # SDD of different unit
+    # das_log_name = 'sample_detector_distance'
+    # blabla
+
+    # SPICE workspace: absolute value; Nexus workspace: relative
+    # das_log_name = 'wavelength_spread'
+    # blabla
 
 
 if __name__ == '__main__':

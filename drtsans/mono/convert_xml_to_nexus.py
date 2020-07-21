@@ -3,7 +3,7 @@
 import os
 import numpy as np
 from drtsans.mono.spice_xml_parser import SpiceXMLParser
-from drtsans.files.event_nexus_rw import DasLog, EventNeXusWriter
+from drtsans.files.event_nexus_rw import DasLog, EventNeXusWriter, TofHistogram
 import h5py
 from mantid.simpleapi import LoadHFIRSANS
 from mantid.simpleapi import mtd   # logger
@@ -31,7 +31,7 @@ class EventNexusConverter(object):
         self._idf_content = None
 
         # counts
-        self._detector_counts = None
+        self._detector_counts = None   # 1D array ranging from PID 0 (aka workspace index 0)
         self._monitor_counts = None
 
         # sample logs
@@ -55,6 +55,11 @@ class EventNexusConverter(object):
         -------
 
         """
+        # Set constants
+        pulse_duration = 0.1  # second
+        tof_min = 1000.
+        tof_max = 20000.
+
         # Generate event nexus writer
         event_nexus_writer = EventNeXusWriter(beam_line=self._beam_line, instrument_name=self._instrument_name)
 
@@ -63,6 +68,11 @@ class EventNexusConverter(object):
 
         # set counts
         for bank_id in range(1, num_banks + 1):
+            start_pid, end_pid = self.get_pid_range(bank_id)
+            pix_ids = np.arange(start_pid, end_pid + 1)
+            counts = self._detector_counts[start_pid:end_pid + 1]
+            histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
+
             event_nexus_writer.set_bank_histogram(bank_id, self._detector_counts[bank_id])
 
         # set meta
@@ -219,3 +229,31 @@ class EventNexusConverter(object):
             nexus_log_dict[nexus_das_log_name] = nexus_das_log
 
         return nexus_log_dict
+
+    @staticmethod
+    def get_pid_range(bank_id):
+        """Set GPSANS bank and pixel ID relation
+
+        Parameters
+        ----------
+        bank_id: int
+            bank ID from 1 to 48
+
+        Returns
+        -------
+        tuple
+            start PID, end PID (assuming PID are consecutive in a bank and end PID is inclusive)
+
+        """
+        # calculate starting PID
+        if bank_id <= 24:
+            # from 1 to 24: front panel
+            start_pid = bank_id * 2 * 1024
+        else:
+            # from 25 to 48: back panel
+            start_pid = (bank_id - 25) * 2 * 1024
+
+        # calculate end PID
+        end_pid = start_pid + 1023
+
+        return start_pid, end_pid

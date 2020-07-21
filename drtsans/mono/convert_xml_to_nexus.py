@@ -249,7 +249,7 @@ class EventNexusConverter(object):
         # calculate starting PID
         if bank_id <= 24:
             # from 1 to 24: front panel
-            start_pid = bank_id * 2 * 1024
+            start_pid = (bank_id - 1) * 2 * 1024
         else:
             # from 25 to 48: back panel
             start_pid = (bank_id - 25) * 2 * 1024

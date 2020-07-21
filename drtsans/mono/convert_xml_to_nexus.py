@@ -68,12 +68,13 @@ class EventNexusConverter(object):
 
         # set counts
         for bank_id in range(1, num_banks + 1):
+            # create TofHistogram instance
             start_pid, end_pid = self.get_pid_range(bank_id)
             pix_ids = np.arange(start_pid, end_pid + 1)
             counts = self._detector_counts[start_pid:end_pid + 1]
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
-
-            event_nexus_writer.set_bank_histogram(bank_id, self._detector_counts[bank_id])
+            # set to writer
+            event_nexus_writer.set_bank_histogram(bank_id, histogram)
 
         # set meta
         for das_log in self._das_logs.values():

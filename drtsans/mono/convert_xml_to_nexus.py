@@ -180,12 +180,12 @@ class EventNexusConverter(object):
             print(f'{nexus_log_name}: value = {value}, unit = {unit}')
 
         # Attenuator is special
-        das_spice_log_map['attenuator'] = spice_reader.read_attenuator()
+        das_log_values['attenuator'] = spice_reader.read_attenuator()
 
         # Close file
         spice_reader.close()
 
-        return das_spice_log_map
+        return das_log_values
 
     @staticmethod
     def convert_log_units(spice_log_dict):
@@ -213,6 +213,7 @@ class EventNexusConverter(object):
             elif nexus_das_log_name == 'wavelength_spread':
                 log_unit = None
             # form das log
+            print(f'[DEBUG] {nexus_das_log_name}: value = {log_value}')
             nexus_das_log = DasLog(nexus_das_log_name, np.array([0.]), np.array([log_value]), log_unit, None)
             # add
             nexus_log_dict[nexus_das_log_name] = nexus_das_log

@@ -70,12 +70,10 @@ class EventNexusConverter(object):
         for bank_id in range(1, num_banks + 1):
             # create TofHistogram instance
             start_pid, end_pid = self.get_pid_range(bank_id)
-            print(f'bank {bank_id}  pixel range: {start_pid}, {end_pid}')
             pix_ids = np.arange(start_pid, end_pid + 1)
             counts = self._detector_counts[start_pid:end_pid + 1]
             counts = counts.astype('int64')
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
-            print(f'bank {bank_id}: counts = {counts}, total counts = {np.sum(counts)}')
 
             # set to writer
             event_nexus_writer.set_bank_histogram(bank_id, histogram)
@@ -227,7 +225,6 @@ class EventNexusConverter(object):
             elif nexus_das_log_name == 'wavelength_spread':
                 log_unit = None
             # form das log
-            print(f'[DEBUG] {nexus_das_log_name}: value = {log_value}')
             nexus_das_log = DasLog(nexus_das_log_name, np.array([0.]), np.array([log_value]), log_unit, None)
             # add
             nexus_log_dict[nexus_das_log_name] = nexus_das_log

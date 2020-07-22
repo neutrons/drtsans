@@ -336,9 +336,6 @@ class DasLogNode(drtsans.files.hdf5_rw.GroupNode):
         -------
 
         """
-        print(self.name)
-        print(self._log_values)
-        print(type(self._log_values))
         average_value = self._log_values.mean()
         average_value_error = self._log_values.std()
         min_value = np.min(self._log_values)

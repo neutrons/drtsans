@@ -15,7 +15,7 @@ from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
-from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace
+from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace, LoadHFIRSANS
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):
@@ -659,6 +659,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     template_ws = mtd['cg3template']
 
     # Check number of histograms
+    assert test_nexus_ws.getNumberHistograms() == template_ws.getNumberHistograms()
 
     # Compare units of required DAS logs
     for das_log_name in ['CG2:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
@@ -668,20 +669,27 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
         test_unit = test_nexus_ws.run().getProperty(das_log_name).units
         assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
 
-    # Check instrument
+    # Check instrument by comparing pixel position
+    for iws in range(0, template_ws.getNumberHistograms(), 100):
+        test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
+        expected_pixel_pos = template_ws.getDetector(iws).getPos()
+        np.testing.assert_allclose(test_pixel_pos, expected_pixel_pos, rtol=1e-7, atol=1e-8)
 
     # Load original SPICE file
+    spice_ws_name = os.path.basename(spice_data_file).split('.')[0]
+    spice_ws_name = f'CG3IntTestSpice_{spice_ws_name}'
+    LoadHFIRSANS(Filename=spice_data_file, OutputWorkspace=spice_ws_name)
+    spice_ws = mtd[spice_ws_name]
 
     # compare histograms
+    for iws in range(0, test_nexus_ws.getNumberHistograms()):
+        assert test_nexus_ws.readY(iws)[0] == pytest.approx(spice_ws.readY(iws + 2)[0], abs=1E-3)
 
-    # compare DAS logs
-    # SDD of different unit
-    # das_log_name = 'sample_detector_distance'
-    # blabla
-
-    # SPICE workspace: absolute value; Nexus workspace: relative
-    # das_log_name = 'wavelength_spread'
-    # blabla
+    # compare DAS logs (partial)
+    for log_name in ['wavelength', 'source_aperture_diameter', 'sample_aperture_diameter']:
+        nexus_log_value = test_nexus_ws.getProperty(log_name).value.mean()
+        spice_log_value = spice_ws.getProperty(log_name).value
+        assert nexus_log_value == pytest.approx(spice_log_value, 1e-7)
 
 
 if __name__ == '__main__':

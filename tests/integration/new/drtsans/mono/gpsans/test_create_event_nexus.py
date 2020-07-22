@@ -4,7 +4,6 @@ Integration test to create event nexus file
 import pytest
 import numpy as np
 import os
-import shutil
 from drtsans.load import load_events
 import h5py
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
@@ -16,6 +15,7 @@ from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
 from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace, LoadHFIRSANS
+from tempfile import mkdtemp
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):
@@ -35,8 +35,7 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
 
     # Duplicate the source file to the temporary directory
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/dupnexus'
+    output_dir = mkdtemp(prefix='dupnexus')
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -87,8 +86,7 @@ def test_reduction(reference_dir, cleanfile):
     """
     # Generate a new event NeXus file
     # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/reducecg2nexus'
+    output_dir = mkdtemp(prefix='reducecg2nexus')
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -630,12 +628,8 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     assert os.path.exists(spice_data_file)
     assert os.path.exists(template_nexus_file)
 
-    # FIXME - use tempfile after the test is finished
-    output_dir = '/tmp/spice2nexus/'
-    if os.path.exists(output_dir):
-        # remove everything
-        shutil.rmtree(output_dir)
-    os.mkdir(output_dir)
+    output_dir = mkdtemp(prefix='spice2nexus/')
+    cleanfile(output_dir)
 
     # Convert from SPICE to event Nexus
     out_nexus_file = os.path.join(output_dir, 'CG2_31500050060.nxs.h5')

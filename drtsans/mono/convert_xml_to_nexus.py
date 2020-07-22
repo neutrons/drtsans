@@ -70,9 +70,13 @@ class EventNexusConverter(object):
         for bank_id in range(1, num_banks + 1):
             # create TofHistogram instance
             start_pid, end_pid = self.get_pid_range(bank_id)
+            print(f'bank {bank_id}  pixel range: {start_pid}, {end_pid}')
             pix_ids = np.arange(start_pid, end_pid + 1)
             counts = self._detector_counts[start_pid:end_pid + 1]
+            counts = counts.astype('int64')
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
+            print(f'bank {bank_id}: counts = {counts}, total counts = {np.sum(counts)}')
+
             # set to writer
             event_nexus_writer.set_bank_histogram(bank_id, histogram)
 
@@ -114,7 +118,8 @@ class EventNexusConverter(object):
         counts = sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
 
         self._detector_counts = counts[2:]
-        self._monitor_counts = counts[:2]
+        monitor_counts = int(counts[0])
+        self._monitor_counts = monitor_counts
 
         # get run start time
         self._run_start = sans_ws.run().getProperty('run_start').value

@@ -664,7 +664,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     for das_log_name in ['CG2:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
                          'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
                          'detector_trans_Readback']:
-        template_unit = template_ws.run().getProperty(das_log_name).umits
+        template_unit = template_ws.run().getProperty(das_log_name).units
         test_unit = test_nexus_ws.run().getProperty(das_log_name).units
         assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
 

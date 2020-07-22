@@ -121,12 +121,11 @@ class EventNexusConverter(object):
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
 
-        # get run start time
+        # get run start time: force to a new time
         self._run_start = sans_ws.run().getProperty('run_start').value
         self._run_stop = sans_ws.run().getProperty('end_time').value
 
-    @staticmethod
-    def load_idf(template_nexus_file):
+    def load_idf(self, template_nexus_file):
         """Load IDF content from a template NeXus file
 
         Parameters
@@ -140,11 +139,11 @@ class EventNexusConverter(object):
         # Import source
         source_nexus_h5 = h5py.File(template_nexus_file, 'r')
         # IDF in XML
-        xml_idf = source_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+        self._idf_content = source_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
         # Close
         source_nexus_h5.close()
 
-        return xml_idf
+        return
 
     @staticmethod
     def retrieve_meta_data(spice_file_name):
@@ -193,7 +192,6 @@ class EventNexusConverter(object):
                                        f'expected {default_unit}')
 
             das_log_values[nexus_log_name] = value, unit
-            print(f'{nexus_log_name}: value = {value}, unit = {unit}')
 
         # Attenuator is special
         das_log_values['attenuator'] = spice_reader.read_attenuator()

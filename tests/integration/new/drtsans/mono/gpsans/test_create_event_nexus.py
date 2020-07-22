@@ -660,12 +660,14 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
 
     # Load
     test_ws_name = 'TestSpice2Nexus315560'
-    LoadEventNexus(Filename=out_nexus_file, OutputWorkspace=test_ws_name, NumberOfBins=1, LoadNexusInstrumentXML=True)
+    LoadEventNexus(Filename=out_nexus_file, OutputWorkspace=test_ws_name,
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
     ConvertToMatrixWorkspace(InputWorkspace=test_ws_name, OutputWorkspace=test_ws_name)
     test_nexus_ws = mtd[test_ws_name]
 
     # Load template event nexus
-    LoadEventNexus(Filename=template_nexus_file, OutputWorkspace='cg3template', NumberOfBins=1, LoadNexusInstrumentXML=True)
+    LoadEventNexus(Filename=template_nexus_file, OutputWorkspace='cg3template',
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
     template_ws = mtd['cg3template']
 
     # Check number of histograms
@@ -690,7 +692,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
         test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
         expected_pixel_pos = template_ws.getDetector(iws).getPos()
         # constant difference at x
-        assert test_pixel_pos[0] - 0.001 == pytest.approx(expected_pixel_pos[0], abs=1e-7)
+        assert test_pixel_pos[0] - diff_x == pytest.approx(expected_pixel_pos[0], abs=1e-7)
         # y shall be exactly same
         assert test_pixel_pos[1] == pytest.approx(expected_pixel_pos[1], abs=1e-7)
         # z shall have constant difference

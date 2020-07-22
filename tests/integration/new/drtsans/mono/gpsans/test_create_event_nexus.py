@@ -628,7 +628,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     assert os.path.exists(spice_data_file)
     assert os.path.exists(template_nexus_file)
 
-    output_dir = mkdtemp(prefix='spice2nexus/')
+    output_dir = mkdtemp(prefix='spice2nexus')
     cleanfile(output_dir)
 
     # Convert from SPICE to event Nexus

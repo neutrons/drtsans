@@ -13,7 +13,9 @@ from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
-from mantid.simpleapi import LoadEventNexus
+from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace, LoadHFIRSANS
+from tempfile import mkdtemp
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):
@@ -33,8 +35,7 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
 
     # Duplicate the source file to the temporary directory
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/dupnexus'
+    output_dir = mkdtemp(prefix='dupnexus')
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -73,7 +74,79 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
 
 
-def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path):
+def test_reduction(reference_dir, cleanfile):
+    """Test generate (partially copy) an event Nexus file by
+    verifying reduction result between raw and generated event nexus file
+
+    Testing is modified from mono.gpsans.test_overwrite_geometry_meta_data.test_no_overwrite()
+
+    Returns
+    -------
+
+    """
+    # Generate a new event NeXus file
+    # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
+    output_dir = mkdtemp(prefix='reducecg2nexus')
+    cleanfile(output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    # Concert NeXus files
+    nexus_file_dict = dict()
+    for run_number in [9166, 9177, 9165, 9178]:
+        # set source NeXus and target (testing) NeXus name
+        test_nexus_name = f'CG2_{run_number}.nxs.h5'
+        source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
+        assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
+        target_nexus = os.path.join(output_dir, f'CG2_{run_number}.nxs.h5')
+        # generate and verify
+        generate_event_nexus(source_nexus, target_nexus)
+        verify_histogram(source_nexus, target_nexus)
+        # add to dictionary
+        nexus_file_dict[run_number] = target_nexus
+
+    # Set up reduction JSON
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
+    specs = {
+        "iptsNumber": 21981,
+        "beamCenter": {"runNumber": nexus_file_dict[9177]},
+        "emptyTransmission": {"runNumber": nexus_file_dict[9177]},
+        "configuration": {
+            "outputDir": output_dir,
+            "useDefaultMask": True,
+            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
+            "sensitivityFileName": sensitivity_file,
+            "absoluteScaleMethod": "direct_beam",
+            "DBScalingBeamRadius": 40,
+            "mmRadiusForTransmission": 40,
+            "numQxQyBins": 180,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 180,
+            "LogQBinsPerDecade": None,
+            "useLogQBinsEvenDecade": False,
+            "WedgeMinAngles": "-30, 60",
+            "WedgeMaxAngles": "30, 120",
+            "usePixelCalibration": False,
+            "useSubpixels": False
+        }
+    }
+    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix='CG2MetaRaw',
+                       sample_nexus_path=nexus_file_dict[9166], sample_trans_path=nexus_file_dict[9178],
+                       background_path=nexus_file_dict[9165], background_trans_path=nexus_file_dict[9177])
+
+    # Get result files
+    sample_names = ["Al4"]
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test1/')
+
+    # Verify results
+    verify_reduction_results(sample_names, output_dir, gold_path,
+                             title='Raw (No Overwriting)',  prefix='CG2MetaRaw')
+
+
+def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path, sample_trans_path,
+                       background_path, background_trans_path):
     """Standard reduction workflow
 
     Parameters
@@ -89,12 +162,13 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
     -------
 
     """
+    # sample_trans_file = None):
     # USER Input here with scan numbers etc.
     samples = [sample_nexus_path]  # ['9166']
-    samples_trans = ['9178']
+    samples_trans = [sample_trans_path]  # ['9178']
     sample_thick = ['0.1']
-    bkgd = ['9165']
-    bkgd_trans = ['9177']
+    bkgd = [background_path]  # 9165
+    bkgd_trans = [background_trans_path]  # ['9177']
 
     # Sample names for output
     sample_names = ["Al4"]
@@ -434,76 +508,7 @@ def verify_histogram(source_nexus, test_nexus):
                              f'{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},' \
                              f'Actual counts = {test_ws.readY(i)}\n'
     if error_message != '':
-        print(error_message)
         raise AssertionError(error_message)
-
-
-def test_reduction(reference_dir, cleanfile):
-    """Test generate (partially copy) an event Nexus file by
-    verifying reduction result between raw and generated event nexus file
-
-    Testing is modified from mono.gpsans.test_overwrite_geometry_meta_data.test_no_overwrite()
-
-    Returns
-    -------
-
-    """
-    # Generate a new event NeXus file
-    # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/reducecg2nexus'
-    cleanfile(output_dir)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-
-    # Copy a nexus file
-    test_nexus_name = 'CG2_9166.nxs.h5'
-    source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
-    assert os.path.exists(source_nexus), f'Test data {source_nexus} does not exist'
-    target_nexus = os.path.join(output_dir, 'CG2_9166.nxs.h5')
-
-    # copy_event_nexus(source_nexus, target_nexus)
-    generate_event_nexus(source_nexus, target_nexus)
-    # generate_event_nexus_prototype(source_nexus, target_nexus)
-
-    verify_histogram(source_nexus, target_nexus)
-
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    specs = {
-        "iptsNumber": 21981,
-        "beamCenter": {"runNumber": 9177},
-        "emptyTransmission": {"runNumber": 9177},
-        "configuration": {
-            "outputDir": output_dir,
-            "useDefaultMask": True,
-            "defaultMask": ["{'Pixel':'1-10,247-256'}"],
-            "sensitivityFileName": sensitivity_file,
-            "absoluteScaleMethod": "direct_beam",
-            "DBScalingBeamRadius": 40,
-            "mmRadiusForTransmission": 40,
-            "numQxQyBins": 180,
-            "1DQbinType": "scalar",
-            "QbinType": "linear",
-            "numQBins": 180,
-            "LogQBinsPerDecade": None,
-            "useLogQBinsEvenDecade": False,
-            "WedgeMinAngles": "-30, 60",
-            "WedgeMaxAngles": "30, 120",
-            "usePixelCalibration": False,
-            "useSubpixels": False
-        }
-    }
-    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix='CG2MetaRaw',
-                       sample_nexus_path=target_nexus)
-
-    # Get result files
-    sample_names = ["Al4"]
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test1/')
-
-    # Verify results
-    verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Raw (No Overwriting)',  prefix='CG2MetaRaw')
 
 
 def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
@@ -603,6 +608,107 @@ def get_iq1d(log_file_name):
     log_h5.close()
 
     return vec_q, vec_i
+
+
+def test_convert_spice_to_nexus(reference_dir, cleanfile):
+    """Test to convert SPICE to NeXus
+
+    Parameters
+    ----------
+    reference_dir
+    cleanfile
+
+    Returns
+    -------
+
+    """
+    # Specify the test data
+    spice_data_file = os.path.join(reference_dir.new.gpsans, 'CG2_exp315_scan0005_0060.xml')
+    template_nexus_file = os.path.join(reference_dir.new.gpsans, 'CG2_9177.nxs.h5')
+    assert os.path.exists(spice_data_file)
+    assert os.path.exists(template_nexus_file)
+
+    output_dir = mkdtemp(prefix='spice2nexus')
+    cleanfile(output_dir)
+
+    # Convert from SPICE to event Nexus
+    out_nexus_file = os.path.join(output_dir, 'CG2_31500050060.nxs.h5')
+
+    # init convert
+    converter = EventNexusConverter('CG2', 'CG2')
+    converter.load_idf(template_nexus_file)
+    converter.load_sans_xml(spice_data_file)
+    converter.generate_event_nexus(out_nexus_file, num_banks=48)
+
+    # Check
+    os.path.exists(out_nexus_file)
+
+    # Check instrument node against the original one
+    test_nexus_h5 = h5py.File(out_nexus_file, 'r')
+    test_idf = test_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+    expected_nexus_h5 = h5py.File(template_nexus_file, 'r')
+    expected_idf = expected_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+    assert test_idf == expected_idf
+    test_nexus_h5.close()
+    expected_nexus_h5.close()
+
+    # Load
+    test_ws_name = 'TestSpice2Nexus315560'
+    LoadEventNexus(Filename=out_nexus_file, OutputWorkspace=test_ws_name,
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
+    ConvertToMatrixWorkspace(InputWorkspace=test_ws_name, OutputWorkspace=test_ws_name)
+    test_nexus_ws = mtd[test_ws_name]
+
+    # Load template event nexus
+    LoadEventNexus(Filename=template_nexus_file, OutputWorkspace='cg3template',
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
+    template_ws = mtd['cg3template']
+
+    # Check number of histograms
+    assert test_nexus_ws.getNumberHistograms() == template_ws.getNumberHistograms()
+
+    # Compare units of required DAS logs
+    for das_log_name in ['CG2:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
+                         'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
+                         'detector_trans_Readback']:
+        template_unit = template_ws.run().getProperty(das_log_name).units
+        test_unit = test_nexus_ws.run().getProperty(das_log_name).units
+        assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
+
+    # Check instrument by comparing pixel position
+    # Run 9711: detector_trans_Readback = 0.002 mm (to negative X direction)
+    # Exp315 Scan 5  Run 60: detector trans = 0.001 mm
+    # Thus all pixels of from-SPICE data shall have a postive 1 mm shift
+    # Both data have different SDD.  Thus all the pixels will have a constant shift along Z direction
+    diff_x = 0.001
+    diff_z_list = list()
+    for iws in range(0, template_ws.getNumberHistograms(), 10):
+        test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
+        expected_pixel_pos = template_ws.getDetector(iws).getPos()
+        # constant difference at x
+        assert test_pixel_pos[0] - diff_x == pytest.approx(expected_pixel_pos[0], abs=1e-7)
+        # y shall be exactly same
+        assert test_pixel_pos[1] == pytest.approx(expected_pixel_pos[1], abs=1e-7)
+        # z shall have constant difference
+        diff_z_list.append(test_pixel_pos[2] - expected_pixel_pos[2])
+    # shift along Z-axis shall be a constant
+    assert np.array(diff_z_list).std() < 1E-12
+
+    # Load original SPICE file
+    spice_ws_name = os.path.basename(spice_data_file).split('.')[0]
+    spice_ws_name = f'CG3IntTestSpice_{spice_ws_name}'
+    LoadHFIRSANS(Filename=spice_data_file, OutputWorkspace=spice_ws_name)
+    spice_ws = mtd[spice_ws_name]
+
+    # compare histograms
+    for iws in range(0, test_nexus_ws.getNumberHistograms()):
+        assert test_nexus_ws.readY(iws)[0] == pytest.approx(spice_ws.readY(iws + 2)[0], abs=1E-3)
+
+    # compare DAS logs (partial)
+    for log_name in ['wavelength', 'source_aperture_diameter', 'sample_aperture_diameter']:
+        nexus_log_value = test_nexus_ws.run().getProperty(log_name).value.mean()
+        spice_log_value = spice_ws.run().getProperty(log_name).value
+        assert nexus_log_value == pytest.approx(spice_log_value, 1e-7)
 
 
 if __name__ == '__main__':

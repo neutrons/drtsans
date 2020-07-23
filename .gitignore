@@ -111,3 +111,6 @@ testenv2.7
 # PyCharm
 .idea
 .vscode
+
+# gvim
+*.swp

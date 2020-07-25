@@ -17,7 +17,7 @@ from drtsans.tubecollection import TubeCollection
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
 
 
-def test_pixel_map_legacy():
+def test_pixel_map_legacy(reference_dir):
     """
 
     Returns
@@ -29,7 +29,8 @@ def test_pixel_map_legacy():
         pytest.skip('This test is only supposed to run locally')
 
     # Set template event nexus
-    template_event_nexus = ''
+    template_event_nexus = os.path.join(reference_dir.new.gpsans, 'CG2_9177.nxs.h5')
+    assert os.path.exists(template_event_nexus)
 
     # First and last pt for the barscan: Set by user
     # IPTS 828 Exp 280.  (/HFIR/CG2/IPTS-828/exp280/Datafiles)
@@ -39,13 +40,14 @@ def test_pixel_map_legacy():
     scan_number = 5
     first_pt = 1
     last_pt = 111
+    first_pt = 11  # FIXME 11 just for test
 
     # Convert files
     bar_scan_dir = os.path.join(root_dir, f'IPTS-{ipts}/exp{exp_number}/Datafiles')
     bar_scan_files = dict()   # key = pt number, value = SPICE file name
     for pt_number in range(first_pt, last_pt + 1):
         # form the file name
-        bar_scan_file = 'CG2_Scan{:04}_{:04}'.format(scan_number, pt_number)
+        bar_scan_file = 'CG2_exp{}_scan{:04}_{:04}.xml'.format(exp_number, scan_number, pt_number)
         bar_scan_file = os.path.join(bar_scan_dir, bar_scan_file)
         assert os.path.exists(bar_scan_file), f'Bar scan file {bar_scan_file} does not exist'
         bar_scan_files[pt_number] = bar_scan_file
@@ -56,9 +58,13 @@ def test_pixel_map_legacy():
 
     # Convert from SPICE xml to event Nexus
     ipts_directory = f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp_number}/'
+    if os.path.exists(ipts_directory) is False:
+        os.mkdir(ipts_directory)
+
     data_files = dict()
     for pt_number, spice_file in bar_scan_files.items():
         event_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(exp_number, scan_number, pt_number)
+        event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
         converter.load_sans_xml(spice_file)
         converter.generate_event_nexus(event_nexus_name, 48)
         data_files[pt_number] = event_nexus_name
@@ -73,6 +79,7 @@ def test_pixel_map_legacy():
         os.mkdir(save_dir_root)
 
     save_dir = os.path.join(save_dir_root, 'runs_{0}_{1}'.format(first_pt, last_pt))
+    print(f'save to {save_dir}')
     os.makedirs(save_dir, exist_ok=True)
 
     print('####\n\nCreating intermediate files, one for each barscan run. This can take up to one hour')
@@ -95,7 +102,7 @@ def test_pixel_map_legacy():
         DeleteWorkspaces([workspace_events, workspace_counts])
 
     # Early return for stage 1 test
-    return
+    assert 1 == 3
 
     # Populate the list of barscan files
     barscan_dataset = list()  # list of histogram files

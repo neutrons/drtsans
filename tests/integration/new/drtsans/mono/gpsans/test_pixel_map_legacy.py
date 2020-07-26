@@ -84,6 +84,7 @@ def test_pixel_map_legacy(reference_dir):
 
     print('####\n\nCreating intermediate files, one for each barscan run. This can take up to one hour')
     time.sleep(4)
+    barscan_dataset = list()  # list of histogram files
     for pt_number in range(first_pt, 1 + last_pt):
         file_histogram = os.path.join(save_dir,
                                       'CG2_Exp{}_Scan_{}_Pt{}.nxs'.format(exp_number, scan_number, pt_number))
@@ -99,22 +100,28 @@ def test_pixel_map_legacy(reference_dir):
         HFIRSANS2Wavelength(InputWorkspace=workspace_events, OutputWorkspace=workspace_counts)
 
         SaveNexus(InputWorkspace=workspace_counts, Filename=file_histogram)
+        barscan_dataset.append(file_histogram)
+
+        # Clean workspace
         DeleteWorkspaces([workspace_events, workspace_counts])
 
     # Early return for stage 1 test
-    assert 1 == 3
 
-    # Populate the list of barscan files
-    barscan_dataset = list()  # list of histogram files
-    for run in range(first_run, 1 + last_run):
-        file_histogram = os.path.join(save_dir, 'CG2_{0}.nxs'.format(run))
-        barscan_dataset.append(file_histogram)
+    # # Populate the list of barscan files
+    # for run in range(first_pt, 1 + last_pt):
+    #     file_histogram = os.path.join(save_dir, 'CG2_{0}.nxs'.format(run))
 
     print('#####\n\nWe inspect a few of the bar scans by looking at the intensity pattern',
           'on a detector with default (uncalibrated) detector heights and positions')
-    delta = int((last_run - first_run) / 4)
-    for index, run in enumerate(range(first_run, last_run, delta)):
-        output_workspace = 'CG2_{0}'.format(run)
+    delta = int((last_pt - first_pt) / 4)
+    delta_2 = (last_pt - first_pt) // 4
+    assert delta == delta_2
+    # FIXME - use delta_2 to replace delta
+
+    # Load every 4 bar scan: what for???
+    # FIXME - consider to remove this for-section
+    for index, pt_number in enumerate(range(first_pt, last_pt, delta)):
+        output_workspace = 'CG2_Exp{}_Scan{}_Pt{}'.format(exp_number, scan_number, pt_number)
         print(output_workspace)
         LoadNexus(Filename=barscan_dataset[index * delta], OutputWorkspace=output_workspace)
         plot_workspace(output_workspace)
@@ -131,6 +138,9 @@ def test_pixel_map_legacy(reference_dir):
     plt.show()
     report_tilt(calibration.positions)
     plt.show()
+
+    # Early return
+    return
 
     print('#####\n\nComparison before and after applying the calibration')
     middle_run = int((first_run + last_run) / 2)

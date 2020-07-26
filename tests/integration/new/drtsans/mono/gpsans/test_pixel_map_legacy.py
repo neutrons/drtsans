@@ -40,7 +40,7 @@ def test_pixel_map_legacy(reference_dir):
     scan_number = 5
     first_pt = 1
     last_pt = 111
-    first_pt = 11  # FIXME 11 just for test
+    last_pt = 11  # FIXME 11 just for test
 
     # Convert files
     bar_scan_dir = os.path.join(root_dir, f'IPTS-{ipts}/exp{exp_number}/Datafiles')

@@ -186,7 +186,7 @@ def test_copy_event_nexus(reference_dir, cleanfile):
     assert prototype_ws.getNumberHistograms() == 90112
 
 
-def skip_test_duplicate_event_nexus(reference_dir, cleanfile):
+def test_duplicate_event_nexus(reference_dir, cleanfile):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -627,8 +627,8 @@ def test_reduction(reference_dir, cleanfile):
     # FIXME - now it fails. Take it back!
     try:
         verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
-    except AssertionError:
-        pass
+    except AssertionError as a_error:
+        raise AssertionError(f'Reduction result does not match {a_error}')
 
 
 def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance):

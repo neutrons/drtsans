@@ -47,7 +47,7 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
     # Load source
     source_h5 = h5py.File(source_nexus_file, 'r')
     source_root = FileNode()
-    # source_root.parse_h5_entry(source_h5)
+    source_root.parse_h5_entry(source_h5)
     source_entry = source_root.get_child('/entry')
 
     # Create a new FileNode and child GroupNode entry
@@ -58,9 +58,24 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
     duplicate_entry_node = duplicate_root.get_child('/entry')
 
     # Add back all the bank nodes
-    max_pulse_time_array = None
-    for bank_id in range(1, 88 + 1):
-        if False:
+    if True:
+        # parse nexus information
+        das_log_list = list()
+        nexus_contents = parse_event_nexus(source_nexus_file, 88, das_log_list)
+        bank_histograms = nexus_contents[1]
+        run_start_time = nexus_contents[3]
+            
+        max_pulse_time_array = None
+        for bank_id in range(1, 88 + 1):
+            # skip some:
+            # first bad one: bank 53
+            # last bad one: bank 75
+            if 52 < bank_id < 75:
+                continue
+
+            # remove original node
+            duplicate_entry_node.remove_child(f'/entry/bank{bank_id}_events')
+
             # generate fake events from counts
             nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
             # Create bank node for bank
@@ -70,16 +85,17 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
                                  nexus_events.event_time_zero)
             if max_pulse_time_array is None or nexus_events.event_time_zero.shape[0] > max_pulse_time_array.shape[0]:
                 max_pulse_time_array = nexus_events.event_time_zero
-        # set child
-        duplicate_entry_node.set_child(bank_node)
+            # set child
+            duplicate_entry_node.set_child(bank_node)
+            print(f'set bank {bank_node.name}')
 
     # Monitor counts
-    if False:
+    if True:
         # remove original
         duplicate_entry_node.remove_child('/entry/monitor1')
         tof_min = 0.
         tof_max = 10000.
-        monitor_events = generate_monitor_events_from_count(cg3_nexus[2], max_pulse_time_array, tof_min, tof_max)
+        monitor_events = generate_monitor_events_from_count(nexus_contents[2], max_pulse_time_array, tof_min, tof_max)
         target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
         target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
                                                event_time_offset_array=monitor_events.event_time_offset,
@@ -89,7 +105,7 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
         duplicate_entry_node.set_child(target_monitor_node)
 
     # Replace instrument node
-    if False:
+    if True:
         # Copy/Duplicate node instrument
         source_instrument = source_entry.get_child('/entry/instrument')
         source_xml = source_instrument.get_child('/entry/instrument/instrument_xml')
@@ -124,16 +140,33 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
 
     # Sample logs
     das_logs_node = duplicate_entry_node.get_child('/entry/DASlogs')
-    black_das_list = []
+    # remove das log in the black list
+
+    # user specified with exact name 
+    black_das_set = {'AllShutters_State'}
+
+    # search with wild card (begin with)
+    black_das_wild_card_list = ['guide', 'Device', 'Peltier', 'Sample', 'trap',
+                                'CG3:SE']
+    for child_log_node in das_logs_node.children:
+        # get short name (base name) for DAS log node
+        child_name_i = child_log_node.name
+        child_name_i = child_name_i.split('DASlogs/')[1]
+        # go over all the wild card string in the black list
+        for black_wild_card in black_das_wild_card_list:
+            if child_name_i.startswith(black_wild_card):
+                black_das_set.add(child_name_i)
+                break
+
+    for child_log_name in black_das_set:
+        das_log_node_name = f'/entry/DASlogs/{child_log_name}'
+        das_logs_node.remove_child(das_log_node_name)
+
     # # get all the children names
     # das_log_dict = dict()
     # for child_log_node in das_logs_node.children:
     #     das_log_dict[child_log_node.name] = child_log_node
     #
-    # remove das log in the black list
-    for child_log_name in black_das_list:
-        das_log_node_name = f'/entry/DASlogs/{child_log_name}'
-        das_logs_node.remove_child(das_log_node_name)
 
     # for child_log_name in das_log_dict:
     #     short_name = child_log_name.split('DASlogs/')[1]
@@ -612,9 +645,9 @@ def test_reduction(reference_dir, cleanfile):
     json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, None)
 
     # TODO / FIXME - switch to tempfile later
-    output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
-    # output_dir = '/tmp/nexuscg3reduction/'
-    cleanfile(output_dir)
+    # output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
+    output_dir = '/tmp/nexuscg3reduction/'
+    # cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -623,7 +656,7 @@ def test_reduction(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1/')
 
     # Verify
     # FIXME - now it fails. Take it back!
@@ -738,13 +771,14 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     os.path.exists(source_sample_nexus), f'Source sample NeXus {source_sample_nexus} does not exist'
     # TODO - need a better name for test sample nexus
     test_sample_nexus = os.path.join(output_dir, f'CG3_{sample}.nxs.h5')
-    generate_event_nexus_prototype_black(source_sample_nexus, test_sample_nexus)
-    # logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
-    #                    'wavelength', 'wavelength_spread',
-    #                    'source_aperture_diameter', 'sample_aperture_diameter',
-    #                    'detector_trans_Readback']
-    # generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
-    verify_histogram(source_sample_nexus, test_sample_nexus)
+    if True:
+        generate_event_nexus_prototype_black(source_sample_nexus, test_sample_nexus)
+        # logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+        #                    'wavelength', 'wavelength_spread',
+        #                    'source_aperture_diameter', 'sample_aperture_diameter',
+        #                    'detector_trans_Readback']
+        # generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
+        verify_histogram(source_sample_nexus, test_sample_nexus)
 
     # checking if output directory exists, if it doesn't, creates the folder
     for subfolder in ['1D', '2D']:
@@ -760,8 +794,9 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     reduction_input["configuration"]["outputDir"] = output_dir
 
     # TODO FIXME - shall use the re-generated event NeXus file
-    reduction_input["sample"]["runNumber"] = source_sample_nexus
-    # reduction_input["sample"]["runNumber"] = test_sample_nexus
+    # reduction_input["sample"]["runNumber"] = source_sample_nexus
+    reduction_input["sample"]["runNumber"] = test_sample_nexus
+    print(test_sample_nexus)
 
     reduction_input["sample"]["transmission"]["runNumber"] = samples_tran
     reduction_input["background"]["runNumber"] = backgrounds[0]

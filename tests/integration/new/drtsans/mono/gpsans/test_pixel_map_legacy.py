@@ -121,7 +121,8 @@ def test_pixel_map_legacy(reference_dir):
     # FIXME - consider to remove this for-section
     for index, pt_number in enumerate(range(first_pt, last_pt, delta)):
         output_workspace = 'CG2_Exp{}_Scan{}_Pt{}'.format(exp_number, scan_number, pt_number)
-        print(f'output workspace: {output_workspace}, bar scan data set length = {len(barscan_dataset)}, index = {index}, delta = {delta}')
+        print(f'output workspace: {output_workspace},'
+              f'bar scan data set length = {len(barscan_dataset)}, index = {index}, delta = {delta}')
         LoadNexus(Filename=barscan_dataset[index * delta], OutputWorkspace=output_workspace)
         plot_workspace(output_workspace)
         plt.show()
@@ -145,7 +146,6 @@ def test_pixel_map_legacy(reference_dir):
     if middle_workspace not in mtd:
         # Load middle Pt data if it is not loaded
         LoadNexus(Filename=barscan_dataset[middle_run], OutputWorkspace=middle_workspace)
-    assert middle_workspace in mtd, f'There is no workspace name {middle_workspace}, Available are {mtd.geObjectNames()}'
     # LoadNexus(Filename=os.path.join(save_dir, middle_workspace + '.nxs'),
     #           OutputWorkspace=middle_workspace)
     middle_workspace_calibrated = middle_workspace + '_calibrated'

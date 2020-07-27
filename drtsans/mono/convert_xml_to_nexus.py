@@ -41,6 +41,9 @@ class EventNexusConverter(object):
         self._run_start = None
         self._run_stop = None
 
+        # run number
+        self._run_number = None
+
     def generate_event_nexus(self, target_nexus, num_banks):
         """Generate event NeXus properly
 
@@ -82,6 +85,9 @@ class EventNexusConverter(object):
         for das_log in self._das_logs.values():
             event_nexus_writer.set_meta_data(das_log)
 
+        # set fake run number
+        event_nexus_writer.set_run_number(self._run_number)
+
         # Write file
         event_nexus_writer.generate_event_nexus(target_nexus, self._run_start, self._run_stop, self._monitor_counts)
 
@@ -100,7 +106,7 @@ class EventNexusConverter(object):
 
         """
         # Load meta data and convert to NeXus format
-        spice_log_dict = self.retrieve_meta_data(xml_file_name)
+        spice_log_dict, pt_number = self.retrieve_meta_data(xml_file_name)
         self._das_logs = self.convert_log_units(spice_log_dict)
 
         # output workspace name
@@ -122,6 +128,8 @@ class EventNexusConverter(object):
         # get run start time: force to a new time
         self._run_start = sans_ws.run().getProperty('run_start').value
         self._run_stop = sans_ws.run().getProperty('end_time').value
+
+        self._run_number = pt_number
 
     def load_idf(self, template_nexus_file):
         """Load IDF content from a template NeXus file
@@ -154,21 +162,24 @@ class EventNexusConverter(object):
 
         Returns
         -------
-        ~dict
-            key: Nexus das log name, value: (log value, log unit)
+        tuple
+            (1) dict with key: Nexus das log name, value: (log value, log unit)  (2) int for pt number
 
         """
         # 'attenuator': 'attenuator_pos',
         # TODO FIXME This is very instrument-dependent!
-        das_spice_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),   # same
-                             'sample_detector_distance': ('sdd', 'm'),  # same
-                             'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
-                             'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
-                             'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
-                             'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
-                             'detector_trans_Readback': ('detector_trans', 'mm'),  # same
-                             'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
-                             'beamtrap_diameter': ('beamtrap_diameter', 'mm')   # not there
+        # <dcal pos="5.00000" units="mm" description="Detector Calibration Bar (mm)" type="FLOAT32">5.000005</dcal>
+        # FIXME - shall source-distance written as  source-aperture-sample-aperture
+        das_spice_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm', float),   # same
+                             'sample_detector_distance': ('sdd', 'm', float),  # same
+                             'wavelength': ('lambda', 'angstroms', float),  # angstroms -> A
+                             'wavelength_spread': ('dlambda', 'fraction', float),  # fraction -> None
+                             'source_aperture_diameter': ('source_aperture_size', 'mm', float),  # same
+                             'sample_aperture_diameter': ('sample_aperture_size', 'mm', float),  # same
+                             'detector_trans_Readback': ('detector_trans', 'mm', float),  # same
+                             'source_distance': ('source_distance', 'm', float),  # same
+                             'beamtrap_diameter': ('beamtrap_diameter', 'mm', float),   # not there
+                             'dcal_Readback': ('dcal', 'mm', float)  # same unit mm
                              }
 
         # Load SPICE file
@@ -177,8 +188,8 @@ class EventNexusConverter(object):
         das_log_values = dict()
         for nexus_log_name, spice_tuple in das_spice_log_map.items():
             # read value from XML node
-            spice_log_name, default_unit = spice_tuple
-            value, unit = spice_reader.get_node_value(spice_log_name, float)
+            spice_log_name, default_unit, data_type = spice_tuple
+            value, unit = spice_reader.get_node_value(spice_log_name, data_type)
 
             # set default
             if unit is None:
@@ -194,10 +205,12 @@ class EventNexusConverter(object):
         # Attenuator is special
         das_log_values['attenuator'] = spice_reader.read_attenuator()
 
-        # Close file
+        # Get pt number
+        pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
+
         spice_reader.close()
 
-        return das_log_values
+        return das_log_values, pt_number
 
     @staticmethod
     def convert_log_units(spice_log_dict):

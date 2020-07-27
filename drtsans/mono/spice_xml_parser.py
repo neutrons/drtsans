@@ -32,7 +32,7 @@ class SpiceXMLParser(object):
             self._xml_file.close()
 
     def get_xml_node(self, node_name, required_attribs=None):
-        """Get an XML node by its name
+        """Get an XML node by its name regardless its level in XML tree
 
         Parameters
         ----------
@@ -76,7 +76,7 @@ class SpiceXMLParser(object):
         return xml_node_list[0]
 
     def get_node_value(self, node_name, value_type):
-        """
+        """Get an XML node value regardless of the level of the node in the XML tree
 
         Parameters
         ----------

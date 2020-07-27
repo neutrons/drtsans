@@ -1,5 +1,4 @@
 import pytest
-import os
 from copy import deepcopy
 from matplotlib import pyplot as plt
 import numpy as np
@@ -40,7 +39,6 @@ def test_pixel_map_legacy(reference_dir):
     scan_number = 5
     first_pt = 1
     last_pt = 111
-    last_pt = 11  # FIXME 11 just for test
 
     # Convert files
     bar_scan_dir = os.path.join(root_dir, f'IPTS-{ipts}/exp{exp_number}/Datafiles')
@@ -65,6 +63,7 @@ def test_pixel_map_legacy(reference_dir):
     for pt_number, spice_file in bar_scan_files.items():
         event_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(exp_number, scan_number, pt_number)
         event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
+        print(f'Converting {spice_file} to {event_nexus_name}')
         converter.load_sans_xml(spice_file)
         converter.generate_event_nexus(event_nexus_name, 48)
         data_files[pt_number] = event_nexus_name
@@ -89,23 +88,24 @@ def test_pixel_map_legacy(reference_dir):
         file_histogram = os.path.join(save_dir,
                                       'CG2_Exp{}_Scan_{}_Pt{}.nxs'.format(exp_number, scan_number, pt_number))
         if os.path.exists(file_histogram):
+            # exist
             print('File {} already exists'.format(file_histogram))
-            continue  # the file already exists, no need to create it again
-        print(pt_number, ', ', end='')
+        else:
+            # load and recreate
+            print(pt_number, ', ', end='')
 
-        workspace_events = f'events_{exp_number}_{scan_number}_{pt_number}'
-        LoadEventNexus(Filename=data_files[pt_number], LoadMonitors=False, OutputWorkspace=workspace_events)
+            workspace_events = f'events_{exp_number}_{scan_number}_{pt_number}'
+            LoadEventNexus(Filename=data_files[pt_number], LoadMonitors=False, OutputWorkspace=workspace_events)
 
-        workspace_counts = f'counts_{exp_number}_{scan_number}_{pt_number}'
-        HFIRSANS2Wavelength(InputWorkspace=workspace_events, OutputWorkspace=workspace_counts)
+            workspace_counts = f'counts_{exp_number}_{scan_number}_{pt_number}'
+            HFIRSANS2Wavelength(InputWorkspace=workspace_events, OutputWorkspace=workspace_counts)
 
-        SaveNexus(InputWorkspace=workspace_counts, Filename=file_histogram)
+            SaveNexus(InputWorkspace=workspace_counts, Filename=file_histogram)
+            # Clean workspace
+            DeleteWorkspaces([workspace_events, workspace_counts])
+
+        # append file name for next step
         barscan_dataset.append(file_histogram)
-
-        # Clean workspace
-        DeleteWorkspaces([workspace_events, workspace_counts])
-
-    # Early return for stage 1 test
 
     # # Populate the list of barscan files
     # for run in range(first_pt, 1 + last_pt):
@@ -113,16 +113,15 @@ def test_pixel_map_legacy(reference_dir):
 
     print('#####\n\nWe inspect a few of the bar scans by looking at the intensity pattern',
           'on a detector with default (uncalibrated) detector heights and positions')
-    delta = int((last_pt - first_pt) / 4)
-    delta_2 = (last_pt - first_pt) // 4
-    assert delta == delta_2
+    delta = (last_pt - first_pt) // 4
     # FIXME - use delta_2 to replace delta
+    print(f'[DEBUG] Delta = {delta}')
 
     # Load every 4 bar scan: what for???
     # FIXME - consider to remove this for-section
     for index, pt_number in enumerate(range(first_pt, last_pt, delta)):
         output_workspace = 'CG2_Exp{}_Scan{}_Pt{}'.format(exp_number, scan_number, pt_number)
-        print(output_workspace)
+        print(f'output workspace: {output_workspace}, bar scan data set length = {len(barscan_dataset)}, index = {index}, delta = {delta}')
         LoadNexus(Filename=barscan_dataset[index * delta], OutputWorkspace=output_workspace)
         plot_workspace(output_workspace)
         plt.show()
@@ -139,14 +138,16 @@ def test_pixel_map_legacy(reference_dir):
     report_tilt(calibration.positions)
     plt.show()
 
-    # Early return
-    return
-
     print('#####\n\nComparison before and after applying the calibration')
-    middle_run = int((first_run + last_run) / 2)
-    middle_workspace = 'CG2_' + str(middle_run)
-    LoadNexus(Filename=os.path.join(save_dir, middle_workspace + '.nxs'),
-              OutputWorkspace=middle_workspace)
+    middle_run = (first_pt + last_pt) // 2
+    middle_workspace = 'CG2_Exp{}_Scan{}_Pt{}'.format(exp_number, scan_number, middle_run)
+    print(f'Middle Pt workspace: {middle_workspace}')
+    if middle_workspace not in mtd:
+        # Load middle Pt data if it is not loaded
+        LoadNexus(Filename=barscan_dataset[middle_run], OutputWorkspace=middle_workspace)
+    assert middle_workspace in mtd, f'There is no workspace name {middle_workspace}, Available are {mtd.geObjectNames()}'
+    # LoadNexus(Filename=os.path.join(save_dir, middle_workspace + '.nxs'),
+    #           OutputWorkspace=middle_workspace)
     middle_workspace_calibrated = middle_workspace + '_calibrated'
     calibration.apply(middle_workspace, output_workspace=middle_workspace_calibrated)
     plot_workspace(middle_workspace, axes_mode='xy')  # before calibration
@@ -156,9 +157,21 @@ def test_pixel_map_legacy(reference_dir):
     print('#####\n\nSaving the calibration')
     # Notice we overwrite the already saved calibration, which will happen if we run this notebook more than once.
     # def save(self, database=None, tablefile=None, overwrite=False):
-    calibration.save(overwrite=True, database=db, tablefile=tf)
+
+    # data base file name
+    database_file = {'CG2': '/HFIR/CG2/shared/calibration/pixel_calibration.json',
+                     'CG3': '/HFIR/CG3/shared/calibration/pixel_calibration.json'}
+    test_db_file = os.path.join(save_dir, os.path.basename(database_file['CG2']))
+    print(f'Test database file {test_db_file}')
+    # table file name
+    cal_dir = os.path.join(os.path.dirname(test_db_file), 'tables')  # directory where to save the table file
+    os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if already exists
+    test_table_file = os.path.join(cal_dir, 'Test_CG2_Pixel_Calibration') + '.nxs'
+    # save
+    calibration.save(overwrite=True, database=test_db_file, tablefile=test_table_file)
 
     print('#####\n\napply the calibration to the flood run as a test')
+    flood_file = 'Lisa will let me know'
     LoadEventNexus(Filename=flood_file, OutputWorkspace='flood_run')
     HFIRSANS2Wavelength(InputWorkspace='flood_run', OutputWorkspace='flood_workspace')
     apply_calibrations('flood_workspace', calibrations='BARSCAN', output_workspace='flood_workspace_calibrated')
@@ -183,7 +196,7 @@ def test_pixel_map_legacy(reference_dir):
     print('#####\n\nSaving the Tube Width calibration')
     # Notice we overwrite the already saved calibration, which will happen if we run this notebook more than once.
     # calibration.save(overwrite=True)
-    calibration.save(overwrite=True, database=db, tablefile=tf)
+    calibration.save(overwrite=True, database=test_db_file, tablefile=test_table_file)
 
     # Calibration calculation is over
     # Starting testing

@@ -15,9 +15,9 @@ from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, Ev
 # drtsans imports
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
-from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed, LoadNexusProcessed, GeneratePythonScript, Rebin
+from mantid.simpleapi import LoadEventNexus, Rebin  # SaveNexusProcessed, LoadNexusProcessed, GeneratePythonScript
 from drtsans.files.hdf5_rw import FileNode
-from tempfile import mkdtemp
+# from tempfile import mkdtemp
 from matplotlib import pyplot as plt
 
 
@@ -58,7 +58,7 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
         nexus_contents = parse_event_nexus(source_nexus_file, 88, das_log_list)
         bank_histograms = nexus_contents[1]
         run_start_time = nexus_contents[3]
-            
+
         max_pulse_time_array = None
         for bank_id in range(1, 88 + 1):
             # skip some banks as some events in these banks are beyond 20000 mu-sec and thus thrown away
@@ -404,6 +404,14 @@ def generate_event_nexus_prototype_white(source_nexus, target_nexus, das_log_lis
         child_node = DataSetNode(child_node_name)
         child_node.set_string_value(child_value)
         target_entry_node.set_child(child_node)
+    # Add duration
+    import dateutil
+    t0 = dateutil.parser.parse(nexus_contents[3])
+    tf = dateutil.parser.parse(nexus_contents[4])
+    duration = (tf - t0).total_seconds()
+    duration_node = DataSetNode('/entry/duration')
+    duration_node.set_value(np.array([duration]).astype('float32'))
+    target_entry_node.set_child(duration_node)
 
     # set Bank 1 - 88 (2 detectors)
     max_pulse_time_array = None
@@ -815,8 +823,8 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback', 'ww_rot_Readback']
-    generate_event_nexus_prototype_white(source_sample_nexus, test_sample_nexus, logs_white_list)
-    # generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
+    # generate_event_nexus_prototype_white(source_sample_nexus, test_sample_nexus, logs_white_list)
+    generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
     verify_histogram(source_sample_nexus, test_sample_nexus)
 
     # checking if output directory exists, if it doesn't, creates the folder
@@ -835,11 +843,8 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     # TODO FIXME - shall use the re-generated event NeXus file
     if False:
         reduction_input["sample"]["runNumber"] = source_sample_nexus
-        raw = True
     else:
         reduction_input["sample"]["runNumber"] = test_sample_nexus
-        raw = False
-    print(test_sample_nexus)
 
     reduction_input["sample"]["transmission"]["runNumber"] = samples_tran
     reduction_input["background"]["runNumber"] = backgrounds[0]

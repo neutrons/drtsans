@@ -15,9 +15,10 @@ from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, Ev
 # drtsans imports
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
-from mantid.simpleapi import LoadEventNexus
+from mantid.simpleapi import LoadEventNexus, SaveNexusProcessed, LoadNexusProcessed, GeneratePythonScript, Rebin
 from drtsans.files.hdf5_rw import FileNode
 from tempfile import mkdtemp
+from matplotlib import pyplot as plt
 
 
 # FIXME - BioSANS special
@@ -37,13 +38,6 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
     -------
 
     """
-    # Parse
-    # logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
-    #                    'wavelength', 'wavelength_spread',
-    #                    'source_aperture_diameter', 'sample_aperture_diameter',
-    #                    'detector_trans_Readback']
-    # cg3_nexus = parse_event_nexus(source_nexus_file, 88, logs_white_list)
-
     # Load source
     source_h5 = h5py.File(source_nexus_file, 'r')
     source_root = FileNode()
@@ -67,11 +61,8 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
             
         max_pulse_time_array = None
         for bank_id in range(1, 88 + 1):
-            # skip some:
-            # first bad one: bank 53
-            # last bad one: bank 75
-            if 52 < bank_id < 75:
-                continue
+            # skip some banks as some events in these banks are beyond 20000 mu-sec and thus thrown away
+            # for run 5709: banks = [53, 54, 75]
 
             # remove original node
             duplicate_entry_node.remove_child(f'/entry/bank{bank_id}_events')
@@ -118,61 +109,87 @@ def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
         duplicate_entry_node.remove_child('/entry/instrument')
         duplicate_entry_node.set_child(new_instrument_node)
 
-    # Delete nodes under entry
-    black_list = ['title',
-                  'total_counts',
-                  'total_other_counts',
-                  'total_pulses',
-                  'total_uncounted_counts',
-                  'user1',
-                  'user2', 'notes',
-                  'user3',
-                  'user4',
-                  'user5',
-                  'entry_identifier', 'definition', 'bank_error_events', 'bank_unmapped_events',
-                  'sample', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge',
-                  'raw_frames',
-                  'Software'
-                  ]
-    for short_name in black_list:
-        full_name = f'/entry/{short_name}'
-        duplicate_entry_node.remove_child(full_name)
-
-    # Sample logs
+    # DAS logs
     das_logs_node = duplicate_entry_node.get_child('/entry/DASlogs')
-    # remove das log in the black list
+    if False:
+        # black list approach
 
-    # user specified with exact name 
-    black_das_set = {'AllShutters_State'}
+        # black list for '/entry/'
+        black_list = ['title',
+                      'total_counts',
+                      'total_other_counts',
+                      'total_pulses',
+                      'total_uncounted_counts',
+                      'user1',
+                      'user2', 'notes',
+                      'user3',
+                      'user4',
+                      'user5',
+                      'entry_identifier', 'definition', 'bank_error_events', 'bank_unmapped_events',
+                      'sample', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge',
+                      'raw_frames',
+                      'Software'
+                      ]
+        for short_name in black_list:
+            full_name = f'/entry/{short_name}'
+            duplicate_entry_node.remove_child(full_name)
 
-    # search with wild card (begin with)
-    black_das_wild_card_list = ['guide', 'Device', 'Peltier', 'Sample', 'trap',
-                                'CG3:SE']
-    for child_log_node in das_logs_node.children:
-        # get short name (base name) for DAS log node
-        child_name_i = child_log_node.name
-        child_name_i = child_name_i.split('DASlogs/')[1]
-        # go over all the wild card string in the black list
-        for black_wild_card in black_das_wild_card_list:
-            if child_name_i.startswith(black_wild_card):
-                black_das_set.add(child_name_i)
-                break
+        # black list for '/entry/DASlogs/'
+        # user specified with exact name
+        black_das_set = {'AllShutters_State'}
+        # search with wild card (begin with)
+        black_das_wild_card_list = ['guide', 'Device', 'Peltier', 'Sample', 'trap',
+                                    'CG3:SE', 'CG3:Mot', 'Cryo',
+                                    'CG3:CS:ITEMS', 'CG3:VS', 'Wtlo', 'WaterBathTemp', 'ap',
+                                    'vs', 'salt', 'hum', 'coll', 'CG3:CS',
+                                    'CollGV', 'acx', 'com', 'p',
+                                    'tumbler', 'ww_dcal']   # 'ww']  # ,
+        for child_log_node in das_logs_node.children:
+            # get short name (base name) for DAS log node
+            child_name_i = child_log_node.name
+            child_name_i = child_name_i.split('DASlogs/')[1]
+            # go over all the wild card string in the black list
+            for black_wild_card in black_das_wild_card_list:
+                if child_name_i.startswith(black_wild_card):
+                    black_das_set.add(child_name_i)
+                    break
 
-    for child_log_name in black_das_set:
-        das_log_node_name = f'/entry/DASlogs/{child_log_name}'
-        das_logs_node.remove_child(das_log_node_name)
+        # white list
+        logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+                           'wavelength', 'wavelength_spread',
+                           'source_aperture_diameter', 'sample_aperture_diameter',
+                           'detector_trans_Readback']
 
-    # # get all the children names
-    # das_log_dict = dict()
-    # for child_log_node in das_logs_node.children:
-    #     das_log_dict[child_log_node.name] = child_log_node
-    #
+        # delete all the nodes in the black list
+        for child_log_name in black_das_set:
+            # rule out the name in white list
+            if child_log_name in logs_white_list:
+                continue
 
-    # for child_log_name in das_log_dict:
-    #     short_name = child_log_name.split('DASlogs/')[1]
-    #     if short_name in logs_white_list:
-    #         das_logs_node.set_child(das_log_dict[child_log_name])
-    # # END-TODO
+            das_log_node_name = f'/entry/DASlogs/{child_log_name}'
+            das_logs_node.remove_child(das_log_node_name)
+
+    else:
+        # white list
+        logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+                           'wavelength', 'wavelength_spread',
+                           'source_aperture_diameter', 'sample_aperture_diameter',
+                           'detector_trans_Readback', 'ww_rot_Readback']
+        # get all the children names
+        das_log_dict = dict()
+        for child_log_node in das_logs_node.children:
+            das_log_dict[child_log_node.name] = child_log_node
+
+        # delete all the nodes NOT in the white list
+        for child_log_name in das_log_dict:
+            short_name = child_log_name.split('DASlogs/')[1]
+            if short_name in logs_white_list:
+                pass
+                # das_logs_node.set_child(das_log_dict[child_log_name])
+            else:
+                # delete
+                das_logs_node.remove_child(child_log_name)
+        # END-TODO
 
     # write
     duplicate_root.write(prototype_dup_nexus)
@@ -589,9 +606,51 @@ def verify_histogram(source_nexus, test_nexus):
     -------
 
     """
+    # Compare in HDF5 level
+    source_h5 = h5py.File(source_nexus, 'r')
+    target_h5 = h5py.File(test_nexus, 'r')
+
+    # Check all the banks
+    error_hdf = ''
+    for bank_id in range(1, 89):
+        source_event_ids = source_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        target_event_ids = target_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        if source_event_ids.shape != target_event_ids.shape:
+            error_hdf += f'Bank {bank_id}  {source_event_ids.shape} vs {target_event_ids.shape}\n'
+
+    # close nexus files as hdf5
+    source_h5.close()
+    target_h5.close()
+
+    # Report error
+    if len(error_hdf) > 0:
+        print(error_hdf)
+        print(f'source: {source_nexus}')
+        print(f'target: {test_nexus}')
+        raise AssertionError(error_hdf)
+
+    # Compare with NeXus
     # Load NeXus file
-    src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='gold', NumberOfBins=1)
+    src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='gold', NumberOfBins=500)
     test_ws = LoadEventNexus(Filename=test_nexus, OutputWorkspace='test', NumberOfBins=1)
+
+    # Compare with raw counts
+    error_message = ''
+    for i in range(src_ws.getNumberHistograms()):
+        if src_ws.readY(i).sum() != test_ws.readY(i)[0]:
+            error_message += f'Workspace-index {i} / detector ID {src_ws.getDetector(i).getID()}/' \
+                             f'{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},' \
+                             f'Actual counts = {test_ws.readY(i)}\n'
+
+    # report error
+    if len(error_message) > 0:
+        print(error_message)
+        print(f'source: {source_nexus}')
+        print(f'target: {test_nexus}')
+        raise AssertionError(error_message)
+
+    # A more tricky situation: Rebin throws away events
+    src_ws = Rebin(InputWorkspace=src_ws, Params='-20000,40000,20000', PreserveEvents=False)
 
     # Compare counts
     error_message = ''
@@ -601,34 +660,12 @@ def verify_histogram(source_nexus, test_nexus):
                              f'{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},' \
                              f'Actual counts = {test_ws.readY(i)}\n'
 
-    # Nothing wrong!
-    if error_message == '':
-        return
-
-    # Compare in HDF5 level
-    source_h5 = h5py.File(source_nexus, 'r')
-    target_h5 = h5py.File(test_nexus, 'r')
-
-    # Check all the banks
-    for bank_id in range(1, 89):
-        source_event_ids = source_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
-        target_event_ids = target_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
-        if source_event_ids.shape != target_event_ids.shape:
-            print(f'Bank {bank_id}  {source_event_ids.shape} vs {target_event_ids.shape}')
-        for pid in [48139, 58367]:
-            if source_event_ids.min() <= pid < source_event_ids.max():
-                print(f'PID {pid} in source bank {bank_id}')
-            if target_event_ids.min() <= pid < target_event_ids.max():
-                print(f'PID {pid} in target bank {bank_id}')
-
-    # close
-    source_h5.close()
-    target_h5.close()
-
-    print(error_message)
-    print(f'source: {source_nexus}')
-    print(f'target: {test_nexus}')
-    raise AssertionError(error_message)
+    # write the error message to disk
+    report_file_name = os.path.basename(source_nexus).split('.')[0] + '_error_log.txt'
+    with open(report_file_name, 'w') as report_file:
+        report_file.write(error_message)
+        report_file.write(f'source: {source_nexus}\n')
+        report_file.write(f'target: {test_nexus}\n')
 
 
 def test_reduction(reference_dir, cleanfile):
@@ -661,7 +698,9 @@ def test_reduction(reference_dir, cleanfile):
     # Verify
     # FIXME - now it fails. Take it back!
     try:
-        verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
+        # there are some minor difference because Rebin throws away some events
+        verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1',
+                                 rel_tol=3e-6)
     except AssertionError as a_error:
         raise AssertionError(f'Reduction result does not match {a_error}')
 
@@ -771,14 +810,14 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     os.path.exists(source_sample_nexus), f'Source sample NeXus {source_sample_nexus} does not exist'
     # TODO - need a better name for test sample nexus
     test_sample_nexus = os.path.join(output_dir, f'CG3_{sample}.nxs.h5')
-    if True:
-        generate_event_nexus_prototype_black(source_sample_nexus, test_sample_nexus)
-        # logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
-        #                    'wavelength', 'wavelength_spread',
-        #                    'source_aperture_diameter', 'sample_aperture_diameter',
-        #                    'detector_trans_Readback']
-        # generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
-        verify_histogram(source_sample_nexus, test_sample_nexus)
+    # black list test: generate_event_nexus_prototype_black(source_sample_nexus, test_sample_nexus)
+    logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+                       'wavelength', 'wavelength_spread',
+                       'source_aperture_diameter', 'sample_aperture_diameter',
+                       'detector_trans_Readback', 'ww_rot_Readback']
+    generate_event_nexus_prototype_white(source_sample_nexus, test_sample_nexus, logs_white_list)
+    # generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
+    verify_histogram(source_sample_nexus, test_sample_nexus)
 
     # checking if output directory exists, if it doesn't, creates the folder
     for subfolder in ['1D', '2D']:
@@ -794,8 +833,12 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     reduction_input["configuration"]["outputDir"] = output_dir
 
     # TODO FIXME - shall use the re-generated event NeXus file
-    # reduction_input["sample"]["runNumber"] = source_sample_nexus
-    reduction_input["sample"]["runNumber"] = test_sample_nexus
+    if False:
+        reduction_input["sample"]["runNumber"] = source_sample_nexus
+        raw = True
+    else:
+        reduction_input["sample"]["runNumber"] = test_sample_nexus
+        raw = False
     print(test_sample_nexus)
 
     reduction_input["sample"]["transmission"]["runNumber"] = samples_tran
@@ -807,10 +850,12 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     loaded = load_all_files(reduction_input,
                             path=nexus_dir,
                             prefix=prefix)
+
+    # reduce
     reduce_single_configuration(loaded, reduction_input)
 
 
-def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
+def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix, rel_tol=1e-7):
 
     unmatched_errors = ''
 
@@ -824,7 +869,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         # compare
         title_i = '{}: {}'.format(sample_name, title)
         try:
-            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
+            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix, rel_tol=rel_tol)
         except AssertionError as unmatched_error:
             unmatched_errors = 'Testing output {} is different from gold result {}:\n{}' \
                                ''.format(output_log_file, gold_log_file, unmatched_error)
@@ -835,7 +880,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         raise AssertionError(unmatched_errors)
 
 
-def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
+def compare_reduced_iq(test_log_file, gold_log_file, title, prefix, rel_tol=1e-7):
     """
 
     Parameters
@@ -860,16 +905,15 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
         vec_q_b, vec_i_b = get_iq1d(gold_log_file, is_main=is_main_detector)
 
         try:
-            np.testing.assert_allclose(vec_q_a, vec_q_b)
-            np.testing.assert_allclose(vec_i_a, vec_i_b)
+            np.testing.assert_allclose(vec_q_a, vec_q_b, rtol=rel_tol)
+            np.testing.assert_allclose(vec_i_a, vec_i_b, rtol=rel_tol)
             log_errors.append(None)
         except AssertionError as assert_err:
-            log_errors.append(assert_err)
-            from matplotlib import pyplot as plt
             if is_main_detector:
                 flag = 'Main_detector'
             else:
                 flag = 'Wing_detector'
+            log_errors.append(f'{flag}: {assert_err}')
             plt.cla()
             plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
             plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))

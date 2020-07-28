@@ -255,54 +255,43 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     # Duplicate the source file to the temporary directory
     # TODO - this will be replaced by tempfile for future
     output_dir = '/tmp/dupcg3nexus'
-    cleanfile(output_dir)
+    # cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
     product_dup_nexus = os.path.join(output_dir, 'CG3_5709_product.nxs.h5')
 
     # Duplicate with both approach
     logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
-                       'detector_trans_Readback']
-    # generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus, logs_white_list)
-    generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
+                       'detector_trans_Readback', 'ww_rot_Readback',
+                       'source_aperture_sample_aperture_distance']
     generate_event_nexus(source_nexus_file, product_dup_nexus, logs_white_list)
 
-    # Load the duplicated
-    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
-
     # Load source file to workspace
-    target_ws = load_events(product_dup_nexus, output_workspace='cg3_product', NumberOfBins=2)
+    target_ws = load_events(product_dup_nexus, output_workspace='cg3_product', NumberOfBins=1,
+                            LoadNexusInstrumentXML=True)
+    source_ws = load_events(source_nexus_file, output_workspace='cg3_source', NumberOfBins=1,
+                            LoadNexusInstrumentXML=True)
 
     # Compare pixels' positions
-    num_hist = prototype_ws.getNumberHistograms()
-    for iws in range(0, num_hist, 100):
-        source_det_i_pos = prototype_ws.getInstrument().getDetector(iws).getPos()
+    num_hist = source_ws.getNumberHistograms()
+    for iws in range(0, num_hist):
+        source_det_i_pos = source_ws.getInstrument().getDetector(iws).getPos()
         target_det_i_pos = target_ws.getInstrument().getDetector(iws).getPos()
         np.testing.assert_allclose(source_det_i_pos, target_det_i_pos,
                                    err_msg=f'Mismatch is detected at Detector {iws}')
     # Check source position
-    source_moderator_pos = prototype_ws.getInstrument().getSource().getPos()
+    source_moderator_pos = source_ws.getInstrument().getSource().getPos()
     target_moderator_pos = target_ws.getInstrument().getSource().getPos()
+    print(f'source moderator @ {source_moderator_pos}; re-generated moderator @ {target_moderator_pos}')
     np.testing.assert_allclose(source_moderator_pos, target_moderator_pos,
                                err_msg=f'Mismatch is detected at neutron source position')
 
     # Compare counts on each pixel
-    source_y = prototype_ws.extractY()
+    source_y = source_ws.extractY()
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
-
-    # Compare meta data
-    if len(prototype_ws.getRun().getProperties()) != len(target_ws.getRun().getProperties()):
-        print(f'Prototype:')
-        for p in prototype_ws.getRun().getProperties():
-            print(f'property: {p.name}')
-        print(f'Product')
-        for p in target_ws.getRun().getProperties():
-            print(f'property: {p.name}')
-        raise RuntimeError('Meta data mismatch')
 
 
 def generate_event_nexus(source_nexus, target_nexus, das_log_list):
@@ -822,7 +811,8 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
-                       'detector_trans_Readback', 'ww_rot_Readback']
+                       'detector_trans_Readback', 'ww_rot_Readback',
+                       'source_aperture_sample_aperture_distance']
     # generate_event_nexus_prototype_white(source_sample_nexus, test_sample_nexus, logs_white_list)
     generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
     verify_histogram(source_sample_nexus, test_sample_nexus)

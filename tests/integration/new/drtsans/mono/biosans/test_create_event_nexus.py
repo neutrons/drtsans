@@ -11,12 +11,13 @@ from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
+from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus   #, EventNeXusWriter
 # drtsans imports
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
 from mantid.simpleapi import LoadEventNexus, Rebin  # SaveNexusProcessed, LoadNexusProcessed, GeneratePythonScript
 from drtsans.files.hdf5_rw import FileNode
+from drtsans.mono.biosans.convert_spice_to_nexus import generate_event_nexus
 # from tempfile import mkdtemp
 from matplotlib import pyplot as plt
 
@@ -293,45 +294,45 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
 
-
-def generate_event_nexus(source_nexus, target_nexus, das_log_list):
-    """Generate event NeXus properly
-
-    This method will be migrated to drtsans.mono.biaosans
-
-    Parameters
-    ----------
-    source_nexus
-    target_nexus
-
-    Returns
-    -------
-
-    """
-    cg3_num_banks = 88
-
-    # Import essential experimental data from source event nexus file
-    nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
-    # Generate event nexus writer
-    event_nexus_writer = EventNeXusWriter(beam_line='CG3', instrument_name='CG3')
-
-    # set instrument: 88 banks (2 detectors)
-    event_nexus_writer.set_instrument_info(cg3_num_banks,  nexus_contents[0])
-
-    # set counts: 88 banks (2 detectors)
-    for bank_id in range(1, cg3_num_banks + 1):
-        event_nexus_writer.set_bank_histogram(bank_id, nexus_contents[1][bank_id])
-
-    # set meta
-    for das_log in nexus_contents[5].values():
-        event_nexus_writer.set_meta_data(das_log)
-
-    # time
-    start_time = nexus_contents[3]
-    end_time = nexus_contents[4]
-
-    # Write file
-    event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
+#
+# def generate_event_nexus(source_nexus, target_nexus, das_log_list):
+#     """Generate event NeXus properly
+#
+#     This method will be migrated to drtsans.mono.biaosans
+#
+#     Parameters
+#     ----------
+#     source_nexus
+#     target_nexus
+#
+#     Returns
+#     -------
+#
+#     """
+#     cg3_num_banks = 88
+#
+#     # Import essential experimental data from source event nexus file
+#     nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
+#     # Generate event nexus writer
+#     event_nexus_writer = EventNeXusWriter(beam_line='CG3', instrument_name='CG3')
+#
+#     # set instrument: 88 banks (2 detectors)
+#     event_nexus_writer.set_instrument_info(cg3_num_banks,  nexus_contents[0])
+#
+#     # set counts: 88 banks (2 detectors)
+#     for bank_id in range(1, cg3_num_banks + 1):
+#         event_nexus_writer.set_bank_histogram(bank_id, nexus_contents[1][bank_id])
+#
+#     # set meta
+#     for das_log in nexus_contents[5].values():
+#         event_nexus_writer.set_meta_data(das_log)
+#
+#     # time
+#     start_time = nexus_contents[3]
+#     end_time = nexus_contents[4]
+#
+#     # Write file
+#     event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
 
 
 def generate_event_nexus_prototype_white(source_nexus, target_nexus, das_log_list):

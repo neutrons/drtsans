@@ -11,7 +11,7 @@ from drtsans.files.hdf5_rw import GroupNode, DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus   #, EventNeXusWriter
+from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus
 # drtsans imports
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
@@ -20,10 +20,6 @@ from drtsans.files.hdf5_rw import FileNode
 from drtsans.mono.biosans.convert_spice_to_nexus import generate_event_nexus
 # from tempfile import mkdtemp
 from matplotlib import pyplot as plt
-
-
-# FIXME - BioSANS special
-# - dark current: das log 'duration'
 
 
 def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus):

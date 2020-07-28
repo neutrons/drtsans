@@ -70,9 +70,6 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
 
-    # Compare meta data
-    assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
-
 
 def test_reduction(reference_dir, cleanfile):
     """Test generate (partially copy) an event Nexus file by

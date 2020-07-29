@@ -724,7 +724,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
-        fr_label = ''
+        # fr_label = ''
         _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:

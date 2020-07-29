@@ -7,230 +7,12 @@ import os
 from drtsans.load import load_events
 import json
 import h5py
-from drtsans.files.hdf5_rw import GroupNode, DataSetNode
-from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
-from drtsans.files.event_nexus_rw import generate_events_from_histogram
-from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus
-# drtsans imports
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
-from mantid.simpleapi import LoadEventNexus, Rebin  # SaveNexusProcessed, LoadNexusProcessed, GeneratePythonScript
-from drtsans.files.hdf5_rw import FileNode
+from mantid.simpleapi import LoadEventNexus, Rebin
 from drtsans.mono.biosans.convert_spice_to_nexus import generate_event_nexus
-# from tempfile import mkdtemp
+from tempfile import mkdtemp
 from matplotlib import pyplot as plt
-
-
-def generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus):
-    """This is the prototype for CG3 to create an event Nexus with black list by ruling out
-    all unused information
-
-    Parameters
-    ----------
-    source_nexus_file
-    prototype_dup_nexus
-
-    Returns
-    -------
-
-    """
-    # Load source
-    source_h5 = h5py.File(source_nexus_file, 'r')
-    source_root = FileNode()
-    source_root.parse_h5_entry(source_h5)
-    source_entry = source_root.get_child('/entry')
-
-    # Create a new FileNode and child GroupNode entry
-    duplicate_root = FileNode()
-
-    # Using source's entry node
-    duplicate_root.set_child(source_root.get_child('/entry'))
-    duplicate_entry_node = duplicate_root.get_child('/entry')
-
-    # Add back all the bank nodes
-    if True:
-        # parse nexus information
-        das_log_list = list()
-        nexus_contents = parse_event_nexus(source_nexus_file, 88, das_log_list)
-        bank_histograms = nexus_contents[1]
-        run_start_time = nexus_contents[3]
-
-        max_pulse_time_array = None
-        for bank_id in range(1, 88 + 1):
-            # skip some banks as some events in these banks are beyond 20000 mu-sec and thus thrown away
-            # for run 5709: banks = [53, 54, 75]
-
-            # remove original node
-            duplicate_entry_node.remove_child(f'/entry/bank{bank_id}_events')
-
-            # generate fake events from counts
-            nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
-            # Create bank node for bank
-            bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
-            bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
-                                 nexus_events.event_time_offset, run_start_time,
-                                 nexus_events.event_time_zero)
-            if max_pulse_time_array is None or nexus_events.event_time_zero.shape[0] > max_pulse_time_array.shape[0]:
-                max_pulse_time_array = nexus_events.event_time_zero
-            # set child
-            duplicate_entry_node.set_child(bank_node)
-            print(f'set bank {bank_node.name}')
-
-    # Monitor counts
-    if True:
-        # remove original
-        duplicate_entry_node.remove_child('/entry/monitor1')
-        tof_min = 0.
-        tof_max = 10000.
-        monitor_events = generate_monitor_events_from_count(nexus_contents[2], max_pulse_time_array, tof_min, tof_max)
-        target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
-        target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
-                                               event_time_offset_array=monitor_events.event_time_offset,
-                                               run_start_time=run_start_time,
-                                               event_time_zero_array=max_pulse_time_array)
-        # add duplicate
-        duplicate_entry_node.set_child(target_monitor_node)
-
-    # Replace instrument node
-    if True:
-        # Copy/Duplicate node instrument
-        source_instrument = source_entry.get_child('/entry/instrument')
-        source_xml = source_instrument.get_child('/entry/instrument/instrument_xml')
-        xml_idf_content = source_xml.get_child('/entry/instrument/instrument_xml/data').value[0]
-
-        new_instrument_node = InstrumentNode()
-        new_instrument_node.set_instrument_info(1, 'CG3', 'CG3', 'CG3')
-        new_instrument_node.set_idf(xml_idf_content,
-                                    idf_type='XML content of instrument IDF', description='text/xml')
-        duplicate_entry_node.remove_child('/entry/instrument')
-        duplicate_entry_node.set_child(new_instrument_node)
-
-    # DAS logs
-    das_logs_node = duplicate_entry_node.get_child('/entry/DASlogs')
-    if False:
-        # black list approach
-
-        # black list for '/entry/'
-        black_list = ['title',
-                      'total_counts',
-                      'total_other_counts',
-                      'total_pulses',
-                      'total_uncounted_counts',
-                      'user1',
-                      'user2', 'notes',
-                      'user3',
-                      'user4',
-                      'user5',
-                      'entry_identifier', 'definition', 'bank_error_events', 'bank_unmapped_events',
-                      'sample', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge',
-                      'raw_frames',
-                      'Software'
-                      ]
-        for short_name in black_list:
-            full_name = f'/entry/{short_name}'
-            duplicate_entry_node.remove_child(full_name)
-
-        # black list for '/entry/DASlogs/'
-        # user specified with exact name
-        black_das_set = {'AllShutters_State'}
-        # search with wild card (begin with)
-        black_das_wild_card_list = ['guide', 'Device', 'Peltier', 'Sample', 'trap',
-                                    'CG3:SE', 'CG3:Mot', 'Cryo',
-                                    'CG3:CS:ITEMS', 'CG3:VS', 'Wtlo', 'WaterBathTemp', 'ap',
-                                    'vs', 'salt', 'hum', 'coll', 'CG3:CS',
-                                    'CollGV', 'acx', 'com', 'p',
-                                    'tumbler', 'ww_dcal']   # 'ww']  # ,
-        for child_log_node in das_logs_node.children:
-            # get short name (base name) for DAS log node
-            child_name_i = child_log_node.name
-            child_name_i = child_name_i.split('DASlogs/')[1]
-            # go over all the wild card string in the black list
-            for black_wild_card in black_das_wild_card_list:
-                if child_name_i.startswith(black_wild_card):
-                    black_das_set.add(child_name_i)
-                    break
-
-        # white list
-        logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
-                           'wavelength', 'wavelength_spread',
-                           'source_aperture_diameter', 'sample_aperture_diameter',
-                           'detector_trans_Readback']
-
-        # delete all the nodes in the black list
-        for child_log_name in black_das_set:
-            # rule out the name in white list
-            if child_log_name in logs_white_list:
-                continue
-
-            das_log_node_name = f'/entry/DASlogs/{child_log_name}'
-            das_logs_node.remove_child(das_log_node_name)
-
-    else:
-        # white list
-        logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
-                           'wavelength', 'wavelength_spread',
-                           'source_aperture_diameter', 'sample_aperture_diameter',
-                           'detector_trans_Readback', 'ww_rot_Readback']
-        # get all the children names
-        das_log_dict = dict()
-        for child_log_node in das_logs_node.children:
-            das_log_dict[child_log_node.name] = child_log_node
-
-        # delete all the nodes NOT in the white list
-        for child_log_name in das_log_dict:
-            short_name = child_log_name.split('DASlogs/')[1]
-            if short_name in logs_white_list:
-                pass
-                # das_logs_node.set_child(das_log_dict[child_log_name])
-            else:
-                # delete
-                das_logs_node.remove_child(child_log_name)
-        # END-TODO
-
-    # write
-    duplicate_root.write(prototype_dup_nexus)
-
-    # Close
-    source_h5.close()
-
-    return
-
-
-def test_copy_event_nexus(reference_dir, cleanfile):
-    """Prototype test to find out why LoadEventNexusFiled
-
-    LoadEventNexus-[Warning] Empty proton_charge sample log. You will not be able to filter by time.
-    LoadEventNexus-[Error] Error in execution of algorithm LoadEventNexus:
-    LoadEventNexus-[Error] Error finding workspace index; pixelID 49152 with offset 2 is out of range
-        (length=49154)
-    =================================================================================================
-
-    Parameters
-    ----------
-    reference_dir
-
-    Returns
-    -------
-
-    """
-    # Get the source file
-    source_nexus_file = 'CG3_5709.nxs.h5'
-    source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
-    assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
-
-    # Duplicate the source file to the temporary directory
-    output_dir = '/tmp/prototype_cg3nexus'
-    cleanfile(output_dir)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
-
-    generate_event_nexus_prototype_black(source_nexus_file, prototype_dup_nexus)
-
-    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
-    assert prototype_ws
-    assert prototype_ws.getNumberHistograms() == 90112
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):
@@ -250,9 +32,8 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
 
     # Duplicate the source file to the temporary directory
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/dupcg3nexus'
-    # cleanfile(output_dir)
+    output_dir = mkdtemp(prefix='dupcg3nexus')
+    cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     product_dup_nexus = os.path.join(output_dir, 'CG3_5709_product.nxs.h5')
@@ -289,301 +70,6 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     source_y = source_ws.extractY()
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
-
-#
-# def generate_event_nexus(source_nexus, target_nexus, das_log_list):
-#     """Generate event NeXus properly
-#
-#     This method will be migrated to drtsans.mono.biaosans
-#
-#     Parameters
-#     ----------
-#     source_nexus
-#     target_nexus
-#
-#     Returns
-#     -------
-#
-#     """
-#     cg3_num_banks = 88
-#
-#     # Import essential experimental data from source event nexus file
-#     nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
-#     # Generate event nexus writer
-#     event_nexus_writer = EventNeXusWriter(beam_line='CG3', instrument_name='CG3')
-#
-#     # set instrument: 88 banks (2 detectors)
-#     event_nexus_writer.set_instrument_info(cg3_num_banks,  nexus_contents[0])
-#
-#     # set counts: 88 banks (2 detectors)
-#     for bank_id in range(1, cg3_num_banks + 1):
-#         event_nexus_writer.set_bank_histogram(bank_id, nexus_contents[1][bank_id])
-#
-#     # set meta
-#     for das_log in nexus_contents[5].values():
-#         event_nexus_writer.set_meta_data(das_log)
-#
-#     # time
-#     start_time = nexus_contents[3]
-#     end_time = nexus_contents[4]
-#
-#     # Write file
-#     event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
-
-
-def generate_event_nexus_prototype_white(source_nexus, target_nexus, das_log_list):
-    """Generate event NeXus using white list
-
-    This serves as the prototype to create event nexus from SANS histogram raw data
-
-    White list
-    Entry attributes: {'NX_class': b'NXentry'}
-
-    White List Node: /entry/monitor1
-    White List Node: /entry/proton_charge
-
-    White List Node: /entry/duration
-    White List Node: /entry/start_time
-    White List Node: /entry/end_time
-
-    White List Node: /entry/experiment_identifier
-    White List Node: /entry/experiment_title
-    White List Node: /entry/title
-    White List Node: /entry/notes
-    White List Node: /entry/raw_frames
-    White List Node: /entry/run_number
-
-    White List Node: /entry/total_counts
-    White List Node: /entry/total_other_counts
-    White List Node: /entry/total_pulses
-
-    Parameters
-    ----------
-    source_nexus: str
-        source event NeXus file name
-    target_nexus
-
-    Returns
-    -------
-
-    """
-    # parse nexus information
-    nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
-
-    # Create new nexus file structure
-    target_nexus_root = init_event_nexus()
-
-    target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
-
-    # set instrument node
-    set_instrument_node(nexus_contents[0], target_entry_node)
-
-    # set DAS logs
-    set_das_log_node(nexus_contents[5], nexus_contents[3], target_entry_node)
-
-    # Add node on the white list
-    entry_level_white_list = [
-        ('/entry/start_time', nexus_contents[3]),
-        ('/entry/end_time', nexus_contents[4])
-    ]
-    for child_node_name, child_value in entry_level_white_list:
-        child_node = DataSetNode(child_node_name)
-        child_node.set_string_value(child_value)
-        target_entry_node.set_child(child_node)
-    # Add duration
-    import dateutil
-    t0 = dateutil.parser.parse(nexus_contents[3])
-    tf = dateutil.parser.parse(nexus_contents[4])
-    duration = (tf - t0).total_seconds()
-    duration_node = DataSetNode('/entry/duration')
-    duration_node.set_value(np.array([duration]).astype('float32'))
-    target_entry_node.set_child(duration_node)
-
-    # set Bank 1 - 88 (2 detectors)
-    max_pulse_time_array = None
-    for bank_id in range(1, 88 + 1):
-        bank_node_i = set_single_bank_node(nexus_contents[1][bank_id], target_entry_node, bank_id=bank_id,
-                                           run_start_time=nexus_contents[3])
-        event_time_zeros = bank_node_i.get_child('event_time_zero', is_short_name=True).value
-        if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
-            max_pulse_time_array = event_time_zeros
-
-    # Set monitor node
-    set_monitor_node(nexus_contents[2],  nexus_contents[3], target_entry_node, max_pulse_time_array)
-
-    # write
-    target_nexus_root.write(target_nexus)
-
-
-def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_time_zeros):
-    """
-
-    Parameters
-    ----------
-    monitor_counts: float, int
-    target_entry_node
-    event_time_zeros: ~numpy.ndarray
-        event time zeros
-    run_start_time: str, Bytes
-        run start time
-
-    Returns
-    -------
-
-    """
-    # Generate a monitor node
-    target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
-
-    tof_min = 0.
-    tof_max = 10000.
-    monitor_events = generate_monitor_events_from_count(monitor_counts, event_time_zeros, tof_min, tof_max)
-
-    target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
-                                           event_time_offset_array=monitor_events.event_time_offset,
-                                           run_start_time=run_start_time,
-                                           event_time_zero_array=event_time_zeros)
-
-    target_entry_node.set_child(target_monitor_node)
-
-
-def set_single_bank_node(bank_histogram, target_entry_node, bank_id, run_start_time):
-    """Test writing bank 9 from histogram
-
-    Parameters
-    ----------
-    bank_histogram: TofHistogram
-        HDF5 file entry
-    target_entry_node: GroupNode
-        Target (output) group node for /entry/
-    bank_id: int
-        bank ID (from 1 to 88)
-    run_start_time: str, Bytes
-        run start time
-
-    Returns
-    -------
-    BankNode
-        newly generated bank node
-
-    """
-    # generate events
-    nexus_events = generate_events_from_histogram(bank_histogram, 10.)
-
-    try:
-        run_start_time = np.string_(run_start_time).decode()
-    except AttributeError:
-        pass
-
-    # Create bank node for bank
-    bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
-    bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
-                         nexus_events.event_time_offset, run_start_time,
-                         nexus_events.event_time_zero)
-
-    # Link with parent
-    target_entry_node.set_child(bank_node)
-
-    return bank_node
-
-
-def set_instrument_node(xml_idf, target_entry_node):
-    """Set instrument node
-
-    Parameters
-    ----------
-    xml_idf:  str
-        IDF content
-    target_entry_node
-
-    Returns
-    -------
-
-    """
-    # Create new instrument node
-    instrument_node = InstrumentNode()
-    target_entry_node.set_child(instrument_node)
-
-    # Set values
-    instrument_node.set_idf(xml_idf, idf_type=b'text/xml', description=b'XML contents of the instrument IDF')
-    instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG3', name=b'CG3', short_name=b'CG3')
-
-
-def set_das_log_node(das_log_dict, run_start_time, target_entry_node):
-    """Set DAS log node in a mixed way
-
-    Parameters
-    ----------
-    das_log_dict: dict
-        das log dictionary containing DasLog objects
-    run_start_time: str
-        run start time
-    target_entry_node: GroupNode
-        target node
-
-    Returns
-    -------
-
-    """
-    target_logs_node = GroupNode('/entry/DASlogs')
-    target_entry_node.set_child(target_logs_node)
-    # add attribute
-    target_logs_node.add_attributes({'NX_class': 'NXcollection'})
-
-    for log_name in das_log_dict:
-        set_single_log_node(target_logs_node, das_log_dict[log_name], run_start_time)
-
-
-def set_single_log_node(log_collection_node, das_log, start_time):
-    """
-
-    Parameters
-    ----------
-    log_collection_node
-    das_log: DasLog
-    start_time: str
-
-    Returns
-    -------
-
-    """
-    # Set up a DAS log node
-    das_log_node = DasLogNode(log_name=f'/entry/DASlogs/{das_log.name}',
-                              log_times=das_log.times,
-                              log_values=das_log.values,
-                              start_time=start_time,
-                              log_unit=das_log.unit)
-
-    if das_log.device is not None:
-        if das_log.device.target is None:
-            device_target = None
-        else:
-            device_target = das_log.device.target
-        das_log_node.set_device_info(device_id=das_log.device.id,
-                                     device_name=das_log.device.name,
-                                     target=device_target)
-
-    # append to parent node
-    log_collection_node.set_child(das_log_node)
-
-
-def set_sdd_node(log_collection_node, source_h5):
-    # Get times and value for /entry/DASlogs/sample_detector_distance
-    ssd_entry = source_h5['entry']['DASlogs']['sample_detector_distance']
-    ssd_times = ssd_entry['time'].value
-    ssd_start_time = ssd_entry['time'].attrs['start']
-    ssd_value = ssd_entry['value'].value
-    ssd_value_unit = ssd_entry['value'].attrs['units']
-
-    # Set up a DAS log node
-    ssd_test_node = DasLogNode(log_name='/entry/DASlogs/sample_detector_distance',
-                               log_times=ssd_times, log_values=ssd_value,
-                               start_time=ssd_start_time, log_unit=ssd_value_unit)
-
-    ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
-                                  target=b'/entry/DASlogs/CG3:CS:SampleToDetRBV')
-
-    # append to parent node
-    log_collection_node.set_child(ssd_test_node)
 
 
 def verify_histogram(source_nexus, test_nexus):
@@ -675,10 +161,9 @@ def test_reduction(reference_dir, cleanfile):
     # Set up test
     json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, None)
 
-    # TODO / FIXME - switch to tempfile later
-    # output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
-    output_dir = '/tmp/nexuscg3reduction/'
-    # cleanfile(output_dir)
+    # Create output directory
+    output_dir = mkdtemp(prefix='nexuscg3reduction')
+    cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -690,7 +175,6 @@ def test_reduction(reference_dir, cleanfile):
     gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1/')
 
     # Verify
-    # FIXME - now it fails. Take it back!
     try:
         # there are some minor difference because Rebin throws away some events
         verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1',
@@ -805,8 +289,6 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback', 'ww_rot_Readback',
                        'source_aperture_sample_aperture_distance']
-    # generate_event_nexus_prototype_white(source_sample_nexus, test_sample_nexus, logs_white_list)
-    # black list test: generate_event_nexus_prototype_black(source_sample_nexus, test_sample_nexus)
 
     # generate sample
     source_sample_nexus = os.path.join(nexus_dir, f'CG3_{sample}.nxs.h5')
@@ -906,6 +388,8 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix, rel_tol=1e-7
         plot title
     prefix: str
         file name prefix
+    rel_tol: float
+        relative tolerance of the difference between expected value and actual value
 
     Returns
     -------

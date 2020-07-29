@@ -40,6 +40,11 @@ def test_pixel_map_legacy(reference_dir):
     first_pt = 1
     last_pt = 111
 
+    flood_ipts = 828
+    flood_exp = 280
+    flood_scan = 4
+    flood_pt = 1
+
     # Convert files
     bar_scan_dir = os.path.join(root_dir, f'IPTS-{ipts}/exp{exp_number}/Datafiles')
     bar_scan_files = dict()   # key = pt number, value = SPICE file name
@@ -49,6 +54,11 @@ def test_pixel_map_legacy(reference_dir):
         bar_scan_file = os.path.join(bar_scan_dir, bar_scan_file)
         assert os.path.exists(bar_scan_file), f'Bar scan file {bar_scan_file} does not exist'
         bar_scan_files[pt_number] = bar_scan_file
+
+    # flood file
+    flood_file_dir = os.path.join(root_dir, f'IPTS-{flood_ipts}/exp{flood_exp}/Datafiles')
+    flood_spice = 'CG2_exp{}_scan{:04}_{:04}.xml'.format(flood_exp, flood_scan, flood_pt)
+    flood_spice = os.path.join(flood_file_dir, flood_spice)
 
     # Init convert
     converter = EventNexusConverter('CG2', 'CG2')
@@ -68,6 +78,14 @@ def test_pixel_map_legacy(reference_dir):
         converter.generate_event_nexus(event_nexus_name, 48)
         data_files[pt_number] = event_nexus_name
     # END-FOR
+
+    # convert flood file
+    # TODO: refactor convert XML to event Nexus for all files
+    event_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(flood_exp, flood_scan, flood_pt)
+    event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
+    converter.load_sans_xml(flood_spice)
+    converter.generate_event_nexus(event_nexus_name, 48)
+    flood_nexus_name = event_nexus_name
 
     # FIXME : not sure how to deal with this
     # data_files = os.path.join(ipts_directory, 'nexus/CG2_{0}.nxs.h5')
@@ -171,8 +189,7 @@ def test_pixel_map_legacy(reference_dir):
     calibration.save(overwrite=True, database=test_db_file, tablefile=test_table_file)
 
     print('#####\n\napply the calibration to the flood run as a test')
-    flood_file = 'Lisa will let me know'
-    LoadEventNexus(Filename=flood_file, OutputWorkspace='flood_run')
+    LoadEventNexus(Filename=flood_nexus_name, OutputWorkspace='flood_run')
     HFIRSANS2Wavelength(InputWorkspace='flood_run', OutputWorkspace='flood_workspace')
     apply_calibrations('flood_workspace', calibrations='BARSCAN', output_workspace='flood_workspace_calibrated')
 
@@ -180,6 +197,8 @@ def test_pixel_map_legacy(reference_dir):
     plot_workspace('flood_workspace', axes_mode='xy')
     plot_workspace('flood_workspace_calibrated', axes_mode='xy')
     plt.show()
+
+    raise RuntimeError('Need a mask from Lisa')
 
     print('#####\n\nCalculating the Tube Width Calibration')
     # Flood file

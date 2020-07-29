@@ -70,9 +70,6 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
 
-    # Compare meta data
-    assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
-
 
 def test_reduction(reference_dir, cleanfile):
     """Test generate (partially copy) an event Nexus file by
@@ -288,7 +285,8 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     # Add node on the white list
     entry_level_white_list = [
         ('/entry/start_time', nexus_contents[3]),
-        ('/entry/end_time', nexus_contents[4])
+        ('/entry/end_time', nexus_contents[4]),
+        ('/entry/duration', 'only used by biosans')
     ]
     for child_node_name, child_value in entry_level_white_list:
         child_node = DataSetNode(child_node_name)

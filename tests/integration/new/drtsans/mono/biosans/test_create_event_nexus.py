@@ -796,23 +796,38 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     sample_names = ['csmb_ecoli1h_n2']
     sample = '5709'
     samples_tran = sample
-    backgrounds = ['5715']
-    backgrounds_trans = backgrounds
+    background = '5715'
+    backgrounds_trans = background
 
-    # Replace duplicate
-    source_sample_nexus = os.path.join(nexus_dir, f'CG3_{sample}.nxs.h5')
-    os.path.exists(source_sample_nexus), f'Source sample NeXus {source_sample_nexus} does not exist'
-    # TODO - need a better name for test sample nexus
-    test_sample_nexus = os.path.join(output_dir, f'CG3_{sample}.nxs.h5')
-    # black list test: generate_event_nexus_prototype_black(source_sample_nexus, test_sample_nexus)
+    # Replace by duplicates
     logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
                        'detector_trans_Readback', 'ww_rot_Readback',
                        'source_aperture_sample_aperture_distance']
     # generate_event_nexus_prototype_white(source_sample_nexus, test_sample_nexus, logs_white_list)
+    # black list test: generate_event_nexus_prototype_black(source_sample_nexus, test_sample_nexus)
+
+    # generate sample
+    source_sample_nexus = os.path.join(nexus_dir, f'CG3_{sample}.nxs.h5')
+    os.path.exists(source_sample_nexus), f'Source sample NeXus {source_sample_nexus} does not exist'
+    test_sample_nexus = os.path.join(output_dir, f'CG3_{sample}.nxs.h5')
     generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
     verify_histogram(source_sample_nexus, test_sample_nexus)
+
+    # generate background
+    source_bkgd_nexus = os.path.join(nexus_dir, f'CG3_{background}.nxs.h5')
+    os.path.exists(source_bkgd_nexus), f'Source background NeXus {source_bkgd_nexus} does not exist'
+    test_bkgd_nexus = os.path.join(output_dir, f'CG3_{background}.nxs.h5')
+    generate_event_nexus(source_bkgd_nexus, test_bkgd_nexus, logs_white_list)
+
+    # sample trans
+    if samples_tran == sample:
+        samples_tran = test_sample_nexus
+
+    # background
+    if backgrounds_trans == background:
+        backgrounds_trans = test_bkgd_nexus
 
     # checking if output directory exists, if it doesn't, creates the folder
     for subfolder in ['1D', '2D']:
@@ -826,17 +841,24 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     reduction_input = json.loads(json_str)
     reduction_input["dataDirectories"] = nexus_dir
     reduction_input["configuration"]["outputDir"] = output_dir
-
-    # TODO FIXME - shall use the re-generated event NeXus file
-    if False:
-        reduction_input["sample"]["runNumber"] = source_sample_nexus
-    else:
-        reduction_input["sample"]["runNumber"] = test_sample_nexus
-
-    reduction_input["sample"]["transmission"]["runNumber"] = samples_tran
-    reduction_input["background"]["runNumber"] = backgrounds[0]
-    reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[0]
+    reduction_input["sample"]["runNumber"] = test_sample_nexus
+    reduction_input["sample"]["transmission"]["runNumber"] = samples_tran   # set to test
+    reduction_input["background"]["runNumber"] = test_bkgd_nexus  # backgrounds[0]
+    reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans
     reduction_input["outputFileName"] = sample_names[0]
+
+    # beam center: convert and reset
+    beam_center_run = reduction_input['beamCenter']['runNumber']
+    source_bc_nexus = os.path.join(nexus_dir, f'CG3_{beam_center_run}.nxs.h5')
+    os.path.exists(source_bc_nexus), f'Source background NeXus {source_bc_nexus} does not exist'
+    test_bc_nexus = os.path.join(output_dir, f'CG3_{beam_center_run}.nxs.h5')
+    # specific log: there is no source_aperture_diameter in run 1322
+    das_1322_list = ['CG3:CS:SampleToSi', 'sample_detector_distance', 'wavelength', 'wavelength_spread',
+                     'detector_trans_Readback', 'ww_rot_Readback',
+                     'source_aperture_sample_aperture_distance']
+    generate_event_nexus(source_bc_nexus, test_bc_nexus, das_1322_list)
+    reduction_input['beamCenter']['runNumber'] = test_bc_nexus
+
     # always check after updating the parameters
     reduction_input = validate_reduction_parameters(reduction_input)
     loaded = load_all_files(reduction_input,
@@ -951,8 +973,8 @@ def get_iq1d(log_file_name, is_main=True):
             iq1d_entry = log_h5['_slice_1']['wing_0']['I(Q)']
 
     # Get data with a copy
-    vec_q = np.copy(iq1d_entry['Q'].value)
-    vec_i = np.copy(iq1d_entry['I'].value)
+    vec_q = np.copy(iq1d_entry['Q'][()])
+    vec_i = np.copy(iq1d_entry['I'][()])
 
     # close file
     log_h5.close()

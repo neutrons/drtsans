@@ -921,6 +921,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal',  **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically
+            print(f'Auto wedge options: {autoWedgeOpts}')
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
             print('found wedge angles:')
             peak_wedge, back_wedge = wedges

@@ -285,7 +285,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
 
 def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-pixel',
                   panel_name=None, figure_kwargs={'figsize': (8, 6)},
-                  imshow_kwargs={'norm': LogNorm(vmin = 1)}):
+                  imshow_kwargs={'norm': LogNorm(vmin=1)}):
     r"""
     Save a 2D plot representative of the supplied workspace
 
@@ -346,5 +346,6 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
         [getattr(axis, prop)(value) for prop, value in axis_properties.items()]
         fig.colorbar(image, ax=axis)
     fig.tight_layout()
+
     if filename is not None:
         _saveFile(fig, filename, backend)

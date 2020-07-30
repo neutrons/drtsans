@@ -43,8 +43,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
 
     Results
     =======
-    tuple
-      tuple of tuples i.e. ``((angle_min1, angle_max1), (angle_min2, angle_max2), ...)``
+    ~list
+      list containing 2 2-tuples as ``[((peak1_min, peak1_max), (peak2_min, peak2_max)), ((..., ...), (..., ...))]``
     '''
     q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
                                              azimuthal_delta=azimuthal_delta)

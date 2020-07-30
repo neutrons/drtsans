@@ -718,6 +718,9 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
     ~drtsans.pixel_calibration.Table
     """
     enum_instrument = instrument_enum_name(input_workspace)
+
+    print(f'[DEBUG] User database file: {database}')
+
     if database is None:
         database = database_file[enum_instrument]  # default database name
     return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
@@ -1380,7 +1383,8 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         y[(residuals > large_residual) & (y != INCORRECT_PIXEL_ASSIGNMENT)] = INCORRECT_PIXEL_ASSIGNMENT
 
 
-def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True):
+def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True,
+                                  db_file=None):
     r"""
     Determine the tube width most efficient for detecting neutrons. An effective tube (or pixel) diameter is
     determined for tubes in the front panel, and likewise for the tubes in the back panel.
@@ -1403,9 +1407,9 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     load_barscan_calibration: bool
         Load pixel positions and heights from the pixel-calibrations database appropriate to ```input_workspace```. If
         :py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
+    db_file: str, None
+        database file.  None for default.
 
-    Returns
-    -------
     Returns
     -------
     dict
@@ -1438,7 +1442,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
 
     # Update pixel positions and heights with the appropriate calibration, if so requested.
     if load_barscan_calibration is True:
-        calibration = load_calibration(input_workspace, 'BARSCAN', component=component)
+        calibration = load_calibration(input_workspace, 'BARSCAN', component=component, database=db_file)
         calibration.apply(integrated_intensities)
 
     # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated

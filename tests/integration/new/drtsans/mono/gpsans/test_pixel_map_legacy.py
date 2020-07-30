@@ -24,7 +24,7 @@ def test_pixel_map_legacy(reference_dir):
 
     """
     # Skip if on build server
-    if not os.path.exists('/HFIR/CG2/'):
+    if not os.path.exists('/HFIR/CG2/IPTS-828/exp280/Datafiles'):
         pytest.skip('This test is only supposed to run locally')
 
     # Set template event nexus
@@ -100,7 +100,7 @@ def test_pixel_map_legacy(reference_dir):
     os.makedirs(save_dir, exist_ok=True)
 
     print('####\n\nCreating intermediate files, one for each barscan run. This can take up to one hour')
-    time.sleep(4)
+
     barscan_dataset = list()  # list of histogram files
     for pt_number in range(first_pt, 1 + last_pt):
         file_histogram = os.path.join(save_dir,
@@ -191,25 +191,25 @@ def test_pixel_map_legacy(reference_dir):
     print('#####\n\napply the calibration to the flood run as a test')
     LoadEventNexus(Filename=flood_nexus_name, OutputWorkspace='flood_run')
     HFIRSANS2Wavelength(InputWorkspace='flood_run', OutputWorkspace='flood_workspace')
-    apply_calibrations('flood_workspace', calibrations='BARSCAN', output_workspace='flood_workspace_calibrated')
+    apply_calibrations('flood_workspace', calibrations='BARSCAN', output_workspace='flood_workspace_calibrated',
+                       database=test_db_file)
 
     print('#####\n\nCompare before and after applying the calibration')
     plot_workspace('flood_workspace', axes_mode='xy')
     plot_workspace('flood_workspace_calibrated', axes_mode='xy')
     plt.show()
 
-    raise RuntimeError('Need a mask from Lisa')
-
     print('#####\n\nCalculating the Tube Width Calibration')
     # Flood file
-    flood_file = f'/HFIR/CG2/IPTS-{ipts}/nexus/CG2_11425.nxs.h5'
+    # flood_file = f'/HFIR/CG2/IPTS-{ipts}/nexus/CG2_11425.nxs.h5'
     # Mask file containing the detector ID's comprising the beam center.
-    mask_file = f'/HFIR/CG2/IPTS-{ipts}/shared/pixel_flood_mask.nxs'
+    # mask_file = f'/HFIR/CG2/IPTS-{ipts}/shared/pixel_flood_mask.nxs'
+    mask_file = f'/HFIR/CG2/shared/pixel_flood_mask.nxs'
 
-    time.sleep(5)
     apply_mask('flood_workspace', mask=mask_file)
     start_time = time.time()
-    calibration = calculate_apparent_tube_width('flood_workspace', load_barscan_calibration=True)
+    calibration = calculate_apparent_tube_width('flood_workspace', load_barscan_calibration=True,
+                                                db_file=test_db_file)
     print('Calibration took ', int(time.time() - start_time), 'seconds')
 
     print('#####\n\nSaving the Tube Width calibration')
@@ -221,7 +221,8 @@ def test_pixel_map_legacy(reference_dir):
     # Starting testing
 
     print('#####\n\nApply the barscan and tube width calibration to the flood run')
-    apply_calibrations('flood_workspace', output_workspace='flood_workspace_calibrated')
+    apply_calibrations('flood_workspace', output_workspace='flood_workspace_calibrated',
+                       database=test_db_file)
     plot_workspace('flood_workspace_calibrated', axes_mode='xy')
     plt.show()
 
@@ -241,11 +242,11 @@ def test_pixel_map_legacy(reference_dir):
     plt.show()
 
     print('#####\n\nTest applying the just-saved barcan and tube-with calibrations to the flood run')
-    LoadEventNexus(Filename=flood_file, OutputWorkspace='workspace')
+    LoadEventNexus(Filename=flood_nexus_name, OutputWorkspace='workspace')
     HFIRSANS2Wavelength(InputWorkspace='flood_run', OutputWorkspace='workspace')
     print('Plot before and after applying the calibration')
     plot_workspace('workspace', axes_mode='xy')
-    apply_calibrations('workspace')
+    apply_calibrations('workspace', database=test_db_file)
     plot_workspace('workspace', axes_mode='xy')
     plt.show()
 

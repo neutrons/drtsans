@@ -945,6 +945,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             print('    peak:      ', peak_wedge)
             print('    background:', back_wedge)
             del peak_wedge, back_wedge
+            print(f'wedges: {wedges}')
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_config["wedges"] = wedges

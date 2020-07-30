@@ -921,10 +921,13 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal',  **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically
+            logger.notice(f'Auto wedge options: {autoWedgeOpts}')
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            print('found wedge angles:')
-            for left, right in wedges:
-                print('  {:.1f} to {:.1f}'.format(left, right))
+            logger.notice(f'found wedge angles:\n'
+                          f'              peak: {wedges[0]}\n'
+                          f'        background: {wedges[1]}')
+            # sanity check
+            assert len(wedges) == 2, f'Auto-wedges {wedges} shall have 2 2-tuples'
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_config["wedges"] = wedges

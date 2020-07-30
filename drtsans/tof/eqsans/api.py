@@ -715,16 +715,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                'n_vertical': reduction_config['subpixelsY']}
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
-        if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
+        if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
+            logger.notice(f'Auto wedge options: {autoWedgeOpts}')
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            print('found wedge angles:')
-            for left, right in wedges:
-                print('  {:.1f} to {:.1f}'.format(left, right))
+            logger.notice(f'found wedge angles:\n'
+                          f'              peak: {wedges[0]}\n'
+                          f'        background: {wedges[1]}')
+            # sanity check
+            assert len(wedges) == 2, f'Auto-wedges {wedges} shall have 2 2-tuples'
 
         iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
-        fr_label = ''
+        # fr_label = ''
         _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:

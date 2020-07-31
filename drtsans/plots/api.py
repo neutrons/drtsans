@@ -12,6 +12,7 @@ import mpld3  # noqa E402
 from mpld3 import plugins  # noqa E402
 
 from mantid.api import mtd # noqa E402
+from mantid.simpleapi import logger
 from drtsans.tubecollection import TubeCollection # noqa E402
 from drtsans.dataobjects import DataType, getDataType # noqa E402
 from drtsans.geometry import panel_names # noqa E402
@@ -227,12 +228,18 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
         wedge_angles = []
         for wedge in [get_wedges(left, right, symmetric_wedges) for (left, right) in wedges]:
             wedge_angles.extend(wedge)
+            logger.notice(f'Add wedge {wedge} to I(Qx, Qy) plot')
 
         # create the individual selections and combine with 'or'
-        azimuthal = np.rad2deg(np.arctan2(workspace.qy, workspace.qx))
+        # Note: qx is in [[qx0, qx0, qx0, ...], [qx1, qx1, qx1, ...], ...]
+        #       qy is in [[qy0, qy1, qy2, ...], [qy0, qy1, qy2, ...], ...]
+        # this is transposed comparing to how Qx and Qy is plotted for the output
+        azimuthal = np.rad2deg(np.arctan2(workspace.qy.transpose(), workspace.qx.transpose()))
+        # Try 1azimuthal = np.rad2deg(np.arctan2(workspace.qx, workspace.qy))
         azimuthal[azimuthal <= -90.] += 360.
         for left, right in wedge_angles:
             wedge = np.logical_and((azimuthal > left), (azimuthal < right))
+            # Try 0 wedge = np.logical_and((azimuthal < right), (azimuthal > left))
             roi_wedges = np.logical_or(roi_wedges, wedge)
 
         # combine with existing roi
@@ -265,7 +272,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
 
     # add calculated region of interest
     if roi is not None:
-        roi = np.ma.masked_where(roi, roi.astype(int))
+        roi = np.ma.masked_where(roi, roi.astype(int))  # This is a fix.transpose()
         ax.imshow(roi, alpha=mask_alpha, extent=(qxmin, qxmax, qymin, qymax),
                   cmap='gray', vmax=roi.max(),
                   interpolation='none',

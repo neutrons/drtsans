@@ -4,15 +4,55 @@ from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 from drtsans.settings import unique_workspace_dundername
 # https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
-from mantid.simpleapi import DeleteWorkspace
+from mantid.simpleapi import DeleteWorkspace, logger
 # https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html
 from mantid.simpleapi import Fit
+import h5py
 
 __all__ = ['getWedgeSelection']
 
 # factor to convert from a sigma to full width half max
 # https://docs.mantidproject.org/nightly/fitting/fitfunctions/Gaussian.html
 SIGMA_TO_FWHM = 2. * np.sqrt(2. * np.log(2.))
+
+
+def _debug_output(iq2d, rings, azimuthal_delta):
+    """write annular binned I(Qx, Qy) and intensity rings to hdf5 for further review
+
+    Parameters
+    ----------
+    iq2d:  ~drtsans.dataobjects.Azimuthal
+    rings: ~list
+        List of I(Qx, Qy) in rings
+
+    Returns
+    -------
+
+    """
+    # annular binning on the full range
+    azimuthal_offset = 0.5 * azimuthal_delta
+    azimuthal_binning = BinningParams(0. - azimuthal_offset, 360. - azimuthal_offset,
+                                      bins=int(360. / azimuthal_delta))
+    q1d = np.sqrt(iq2d.qx**2 + iq2d.qy**2)
+    logger.notice(f'[DEBUG] I(Qx, Qy) Q range: {q1d.min()}, {q1d.max()}')
+    full_range_annular = bin_annular_into_q1d(iq2d, azimuthal_binning, q1d.min(), q1d.max(),
+                                              BinningMethod.NOWEIGHT)
+
+    # open
+    debug_h5 = h5py.File('annular_i_q.h5', 'w')
+
+    # write full range
+    group = debug_h5.create_group('full range')
+    group.create_dataset('q', data=full_range_annular.mod_q)
+    group.create_dataset('intensity', data=full_range_annular.intensity)
+
+    for index, ring in enumerate(rings):
+        group = debug_h5.create_group(f'slice {index}')
+        group.create_dataset('q', data=ring.mod_q)
+        group.create_dataset('intensity', data=ring.intensity)
+
+    # close
+    debug_h5.close()
 
 
 def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width=0.25, background_width=1.5,
@@ -46,8 +86,10 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     ~list
       list containing 2 2-tuples as ``[((peak1_min, peak1_max), (peak2_min, peak2_max)), ((..., ...), (..., ...))]``
     '''
+    # Bin azimuthal
     q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
                                              azimuthal_delta=azimuthal_delta)
+
     center_vec, fwhm_vec = _fitQAndAzimuthal(azimuthal_rings, q_bins=q,
                                              signal_to_noise_min=signal_to_noise_min, azimuthal_start=110.,
                                              maxchisq=1000.)
@@ -112,7 +154,6 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     tuple
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     '''
-
     # the bonus two steps is to get the end-point in the array
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
 
@@ -414,25 +455,39 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
     # select out a single spectrum
     peakResults = [[], []]
     q_centers_used = []
+
+    index = 0
+    used_index = list()
+    unfit_message = ''
+
     for spectrum, q_center in zip(azimuthal_rings, q_centers):
+        index += 1
         try:
-            # print('Fitting spectrum {} with Q={}A'.format(spec_index, q_center))
             fitresult = _fitSpectrum(spectrum, q_center,
                                      signal_to_noise_min=signal_to_noise_min, azimuthal_start=azimuthal_start)
             newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ['f1', 'f2']]
 
             if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(newlyFittedPeaks[1][0][0]):
+                unfit_message += f'spectrum {index}: failed to fit peaks due to NaN in fit result\n'
                 continue
 
             for i in range(len(peakResults)):
                 peakResults[i].append(newlyFittedPeaks[i])
             q_centers_used.append(q_center)
+            used_index.append(index - 1)
         except RuntimeError as e:
-            print('Not using information from Q-slice ({}A):'.format(q_center),
-                  'Encountered runtime error:', e)  # don't worry about it
+            unfit_message += 'spectrum {}: Not using information from Q-slice ({}A):'.format(index, q_center)
+            unfit_message += f'Encountered runtime error: {e}\n'  # don't worry about it
+            continue
+        except ValueError as val_err:
+            # in case user specifies a range containing no Q values
+            unfit_message += f'Spectrum {index}: unable to fit peaks due to {val_err}\n'
             continue
 
-    print('Q-rings used to determine overall wedges: {}'.format(q_centers_used))
+    logger.notice(f'Q-rings used to determine overall wedges: {q_centers_used}')
+    logger.information(f'used annular binning index: {used_index}')
+    logger.notice(unfit_message)
+
     peakResults = [_weighted_position_and_width(peak) for peak in peakResults]
 
     # convert into parallel arrays of centers and fwhm
@@ -441,5 +496,7 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
     for center, fwhm in peakResults:
         center_list.append(center)
         fwhm_list.append(fwhm)
+
+    logger.notice(f'Fitted peak centers: {center_list}\nFWHMs              : {fwhm_list}')
 
     return center_list, fwhm_list

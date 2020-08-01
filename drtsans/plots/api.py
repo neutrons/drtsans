@@ -12,7 +12,7 @@ import mpld3  # noqa E402
 from mpld3 import plugins  # noqa E402
 
 from mantid.api import mtd # noqa E402
-from mantid.simpleapi import logger
+from mantid.simpleapi import logger  # noqa E402
 from drtsans.tubecollection import TubeCollection # noqa E402
 from drtsans.dataobjects import DataType, getDataType # noqa E402
 from drtsans.geometry import panel_names # noqa E402

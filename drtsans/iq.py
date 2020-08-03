@@ -122,7 +122,9 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
         # in this case min_angle and max_angle are actually two wedges
         # that should be summed together
         wedges = []
+        print(f'[Asymmetric] Extending from min angle {min_angle}: {valid_wedge(*min_angle)}')
         wedges.extend(valid_wedge(*min_angle))
+        print(f'[Asymmetric] Extending from max angle {max_angle}: {valid_wedge(*max_angle)}')
         wedges.extend(valid_wedge(*max_angle))
 
     return wedges

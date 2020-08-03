@@ -228,7 +228,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
         wedge_angles = []
         print(f'[DEBUG] wedges: {wedges}')
         for left, right in wedges:
-            print(f'[DEBUT] left = {left}, right = {right}: {get_wedges(left, right, symmetric_wedges)}')
+            print(f'[DEBUG] left = {left}, right = {right}: {get_wedges(left, right, symmetric_wedges)}')
         for wedge in [get_wedges(left, right, symmetric_wedges) for (left, right) in wedges]:
             wedge_angles.extend(wedge)
             logger.notice(f'Add wedge {wedge} to I(Qx, Qy) plot')

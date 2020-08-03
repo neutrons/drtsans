@@ -21,9 +21,6 @@ def determine_1d_linear_bins(x_min, x_max, bins):
         Q max of bin edge
     bins : integer
         number of bins
-    x_array: numpy.ndarray
-        1-dimensional numpy array for X-axis such as Q, Qx, Qy or annular angles
-        The default is None if min X and max X are specified by users
 
     Returns
     -------
@@ -125,10 +122,13 @@ def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None,
         bin_centers = np.power(10, delta_l * (vec_k + 0.5) + c_min)
     # END-IF-ELSE
 
-    # Calculate bin boundaries from bin center
-    # Equation 11.30
+    # Calculate bin boundaries (edges) from bin center
+    # Equation 11.30 revised by Ken
+    n_step = 10 ** (1 / n_bins_per_decade)
+    kay = (n_step - 1) / (n_step + 1)
+
     bin_edges = np.ndarray(shape=(bin_centers.shape[0] + 1,), dtype=float)
-    bin_edges[1:-1] = 0.5 * (bin_centers[:-1] + bin_centers[1:])
+    bin_edges[:-1] = bin_centers[:] - kay * bin_centers[:]
 
     # Set the min and max of bins explicitly
     if decade_on_center:
@@ -136,8 +136,8 @@ def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None,
         # then first and last bin edges/boundaries are defined as
         # 10^{C_min - deltaL / 2 } and 10^{C_max + deltaL / 2}
         # according to the paragraph after equation 11.31
-        bin_edges[0] = np.power(10, c_min - 0.5 * delta_l)
-        bin_edges[-1] = np.power(10, c_max + 0.5 * delta_l)
+        # bin_edges[0] = np.power(10, c_min - 0.5 * delta_l)
+        bin_edges[-1] = bin_centers[-1] + kay * bin_centers[-1]
     elif even_decade:
         # x_min and 10^{c_max} on the first and last bin boundary
         # then first and last bin edges/boundaries are defined as

@@ -102,17 +102,23 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     # convert to min and max ranges
     min_vec, max_vec = [], []
 
+    print(f'{center_vec[0]}, {peak_width * fwhm_vec[0]}')
     min_vec.append(center_vec[0] - peak_width * fwhm_vec[0])
     max_vec.append(center_vec[0] + peak_width * fwhm_vec[0])
 
+    print(f'{center_vec[0]}, {background_width * fwhm_vec[0]}')
+    print(f'{center_vec[0]}, {background_width * fwhm_vec[1]}')
     min_vec.append(center_vec[0] + background_width * fwhm_vec[0])
     max_vec.append(center_vec[1] - background_width * fwhm_vec[1])
 
+    print(f'{center_vec[1]}, {peak_width * fwhm_vec[1]}')
     min_vec.append(center_vec[1] - peak_width * fwhm_vec[1])
     max_vec.append(center_vec[1] + peak_width * fwhm_vec[1])
 
+    print(f'{center_vec[1]}, {background_width * fwhm_vec[1]}')
     min_vec.append(center_vec[1] + background_width * fwhm_vec[1])
     max_vec.append(center_vec[0] - background_width * fwhm_vec[0])
+
 
     # clean up the data to be in the form expected by select_i_of_q_by_wedge
     min_vec = np.array(min_vec)

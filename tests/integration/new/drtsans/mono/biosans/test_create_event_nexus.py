@@ -15,6 +15,54 @@ from tempfile import mkdtemp
 from matplotlib import pyplot as plt
 
 
+def test_convert_spice_to_nexus(reference_dir, cleanfile):
+    """Test to convert SPICE to NeXus
+
+    Parameters
+    ----------
+    reference_dir
+    cleanfile
+
+    Returns
+    -------
+
+    """
+    # Specify the test data
+    # FIXME in this stage, using data in /HFIR/CG3/; data in reference_dir will be used
+    spice_data_file = os.path.join(reference_dir.new.gpsans, 'CG2_exp315_scan0005_0060.xml')
+    template_nexus_file = os.path.join(reference_dir.new.gpsans, 'CG2_9177.nxs.h5')
+    assert os.path.exists(spice_data_file)
+    assert os.path.exists(template_nexus_file)
+
+    # Specify the output directory
+    output_dir = mkdtemp(prefix='cg3spice2nexus')
+    cleanfile(output_dir)
+
+    # Convert from SPICE to event Nexus
+    # FIXME in this stage, output is written to /tmp/; tempfile will be used later
+    # Convert from SPICE to event Nexus
+    # output file name
+    out_nexus_file = os.path.join(output_dir, 'CG3_31500050060.nxs.h5')
+
+    # init convert
+    converter = EventNexusConverter('CG3', 'CG3')
+    converter.load_idf(template_nexus_file)
+    converter.load_sans_xml(spice_data_file)
+    converter.generate_event_nexus(out_nexus_file, num_banks=48)
+
+    # Check
+    os.path.exists(out_nexus_file)
+
+    # Load original data by LoadHFIRSSANS
+
+
+    # Load event Nexus
+
+    # Compare 2 workspaces' counts
+
+    # Compare the essential meta data
+
+
 def test_duplicate_event_nexus(reference_dir, cleanfile):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 

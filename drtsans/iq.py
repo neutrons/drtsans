@@ -85,7 +85,7 @@ def valid_wedge(min_angle, max_angle):
         raise ValueError("wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} < 180"
                          "".format(max_angle, min_angle, diff))
     diff = min_angle - max_angle
-    if (diff <= 180):
+    if diff <= 180:
         raise ValueError("wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} <= 180"
                          "".format(min_angle, max_angle, diff))
     return [(min_angle, 270.1), (-90.1, max_angle)]

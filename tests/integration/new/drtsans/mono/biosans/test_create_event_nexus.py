@@ -30,8 +30,8 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     """
     # Specify the test data
     # FIXME in this stage, using data in /HFIR/CG3/; data in reference_dir will be used
-    spice_data_file = os.path.join(reference_dir.new.gpsans, 'BioSANS_exp327_scan0014_0001.xml')
-    template_nexus_file = os.path.join(reference_dir.new.gpsans, 'CG3_5705.nxs.h5')
+    spice_data_file = os.path.join(reference_dir.new.biosans, 'BioSANS_exp327_scan0014_0001.xml')
+    template_nexus_file = os.path.join(reference_dir.new.biosans, 'CG3_5705.nxs.h5')
     assert os.path.exists(spice_data_file), f'SPICE file {spice_data_file} cannot be located'
     assert os.path.exists(template_nexus_file), f'Template NeXus file {template_nexus_file} cannot be located'
 
@@ -44,7 +44,8 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
         # FIXME - remove this section after this test is passed
         import shutil
         output_dir = '/tmp/cg3spice2nexus'
-        shutil.rmtree(output_dir)
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
         os.mkdir(output_dir)
 
     # output file name

@@ -116,7 +116,7 @@ class EventNexusConverter(object):
                            'beamtrap_diameter': ('beamtrap_diameter', 'mm')  # not there
                            }
 
-        spice_log_dict = self.retrieve_meta_data(xml_file_name, das_log_map)
+        spice_log_dict = self._retrieve_meta_data(xml_file_name, das_log_map)
         self._das_logs = self.convert_log_units(spice_log_dict)
 
         # output workspace name
@@ -160,7 +160,7 @@ class EventNexusConverter(object):
         return
 
     @staticmethod
-    def retrieve_meta_data(spice_file_name, das_spice_log_map):
+    def _retrieve_meta_data(spice_file_name, das_spice_log_map):
         """Retrieve meta from workspace
 
         Parameters
@@ -173,7 +173,7 @@ class EventNexusConverter(object):
         Returns
         -------
         ~dict
-            key: Nexus das log name, value: (log value, log unit)
+            key: Nexus das log name, value: (log value, log unit). if das log is not found, value will be None
 
         """
         # Load SPICE file
@@ -197,7 +197,10 @@ class EventNexusConverter(object):
             das_log_values[nexus_log_name] = value, unit
 
         # Attenuator is special
-        das_log_values['attenuator'] = spice_reader.read_attenuator()
+        try:
+            das_log_values['attenuator'] = spice_reader.read_attenuator()
+        except IndexError:
+            das_log_values['attenuator'] = None
 
         # Close file
         spice_reader.close()
@@ -222,8 +225,14 @@ class EventNexusConverter(object):
         nexus_log_dict = dict()
 
         for nexus_das_log_name in spice_log_dict:
+            # TEST/FIXME/TODO is attenuator essential to CG2?
+            if nexus_das_log_name == 'attenuator':
+                print('[DEBUG] attenuator is skipped')
+                continue
+
             # get value
             log_value, log_unit = spice_log_dict[nexus_das_log_name]
+
             # use the name of the NeXus das log value unit
             if nexus_das_log_name == 'wavelength':
                 log_unit = 'A'

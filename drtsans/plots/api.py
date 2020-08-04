@@ -226,9 +226,6 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
         roi_wedges = np.logical_not(workspace.qx < 1000.)
         # expand the supplied variables into an easier form
         wedge_angles = []
-        print(f'[DEBUG] wedges: {wedges}')
-        for left, right in wedges:
-            print(f'[DEBUG] left = {left}, right = {right}: {get_wedges(left, right, symmetric_wedges)}')
         for wedge in [get_wedges(left, right, symmetric_wedges) for (left, right) in wedges]:
             wedge_angles.extend(wedge)
             logger.notice(f'Add wedge {wedge} to I(Qx, Qy) plot')

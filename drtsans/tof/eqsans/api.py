@@ -723,14 +723,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                           f'        background: {wedges[1]}')
             # sanity check
             assert len(wedges) == 2, f'Auto-wedges {wedges} shall have 2 2-tuples'
-            # set automated wedge to reduction configuration for correct plotting
+            # set automated wedge to reduction configuration for correct plotting.
+            # reduction_config is an in/out function argument
             reduction_config["wedges"] = wedges
             reduction_config["symmetric_wedges"] = symmetric_wedges
 
         iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
-        # fr_label = ''
         _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
@@ -825,9 +825,6 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
 
         wedges = reduction_config["wedges"] if bin1d_type == 'wedge' else None
         symmetric_wedges = reduction_config.get("symmetric_wedges", True)
-
-        print(f'[DEBUG] wedges: {wedges}')
-        print(f'[DEBUG] Symmetric? : {symmetric_wedges}')
 
         qmin = reduction_config["Qmin"]
         qmax = reduction_config["Qmax"]

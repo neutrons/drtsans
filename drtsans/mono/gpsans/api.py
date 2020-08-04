@@ -816,9 +816,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                          'signal_to_noise_min': reduction_config['autoWedgeSignalToNoiseMin']}
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
-        print(f'[DEBUG] auto wedge is selected')
-    else:
-        print(f'[DEBUG] bin1d type: {bin1d_type}, wedges = {wedges_min}, {wedges_max}')
 
     xc, yc = find_beam_center(loaded_ws.center)
     print("Center  =", xc, yc)

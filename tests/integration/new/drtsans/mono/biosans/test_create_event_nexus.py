@@ -9,8 +9,9 @@ import json
 import h5py
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
-from mantid.simpleapi import LoadEventNexus, Rebin
+from mantid.simpleapi import LoadEventNexus, Rebin, ConvertToMatrixWorkspace, mtd, LoadHFIRSANS
 from drtsans.mono.biosans.convert_spice_to_nexus import generate_event_nexus
+from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
 from tempfile import mkdtemp
 from matplotlib import pyplot as plt
 
@@ -60,7 +61,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
         'detector_trans_Readback': ('detector_trans', 'mm'),  # same
         'source_distance': ('ource_aperture_sample_aperture_distance', 'm'),  # same. source-aperture-sample-aperture
         'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
-        'ww_rot_Readback': (det_west_wing_rot, 'degree')
+        'ww_rot_Readback': ('det_west_wing_rot', 'degree')
     }
 
     # init convert

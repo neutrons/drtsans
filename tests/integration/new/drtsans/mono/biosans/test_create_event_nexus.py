@@ -29,38 +29,115 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     """
     # Specify the test data
     # FIXME in this stage, using data in /HFIR/CG3/; data in reference_dir will be used
-    spice_data_file = os.path.join(reference_dir.new.gpsans, 'CG2_exp315_scan0005_0060.xml')
-    template_nexus_file = os.path.join(reference_dir.new.gpsans, 'CG2_9177.nxs.h5')
-    assert os.path.exists(spice_data_file)
-    assert os.path.exists(template_nexus_file)
+    spice_data_file = os.path.join(reference_dir.new.gpsans, 'BioSANS_exp327_scan0014_0001.xml')
+    template_nexus_file = os.path.join(reference_dir.new.gpsans, 'CG3_5705.nxs.h5')
+    assert os.path.exists(spice_data_file), f'SPICE file {spice_data_file} cannot be located'
+    assert os.path.exists(template_nexus_file), f'Template NeXus file {template_nexus_file} cannot be located'
 
     # Specify the output directory
-    output_dir = mkdtemp(prefix='cg3spice2nexus')
-    cleanfile(output_dir)
+    if False:
+        # FIXME - enable this section after this test is passed
+        output_dir = mkdtemp(prefix='cg3spice2nexus')
+        cleanfile(output_dir)
+    else:
+        # FIXME - remove this section after this test is passed
+        import shutil
+        output_dir = '/tmp/cg3spice2nexus'
+        shutil.rmtree(output_dir)
+        os.mkdir(output_dir)
 
-    # Convert from SPICE to event Nexus
-    # FIXME in this stage, output is written to /tmp/; tempfile will be used later
-    # Convert from SPICE to event Nexus
     # output file name
-    out_nexus_file = os.path.join(output_dir, 'CG3_31500050060.nxs.h5')
+    out_nexus_file = os.path.join(output_dir, 'CG3_32700140001.nxs.h5')
+
+    # set DAS meta data log map
+    meta_map = {
+        'CG3:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
+        'sample_detector_distance': ('sdd', 'm'),  # same
+        'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
+        'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
+        'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
+        'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
+        'detector_trans_Readback': ('detector_trans', 'mm'),  # same
+        'source_distance': ('ource_aperture_sample_aperture_distance', 'm'),  # same. source-aperture-sample-aperture
+        'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+        'ww_rot_Readback': (det_west_wing_rot, 'degree')
+    }
 
     # init convert
     converter = EventNexusConverter('CG3', 'CG3')
     converter.load_idf(template_nexus_file)
-    converter.load_sans_xml(spice_data_file)
-    converter.generate_event_nexus(out_nexus_file, num_banks=48)
+    converter.load_sans_xml(spice_data_file, meta_map)
+    converter.generate_event_nexus(out_nexus_file, num_banks=88)
 
-    # Check
+    # Check: file existence
     os.path.exists(out_nexus_file)
 
-    # Load original data by LoadHFIRSSANS
+    # Check instrument node against the original one
+    test_nexus_h5 = h5py.File(out_nexus_file, 'r')
+    test_idf = test_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+    expected_nexus_h5 = h5py.File(template_nexus_file, 'r')
+    expected_idf = expected_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+    assert test_idf == expected_idf
+    test_nexus_h5.close()
+    expected_nexus_h5.close()
 
+    # Load test data
+    test_ws_name = 'TestFaked_CG3_32700140001'
+    LoadEventNexus(Filename=out_nexus_file, OutputWorkspace=test_ws_name,
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
+    ConvertToMatrixWorkspace(InputWorkspace=test_ws_name, OutputWorkspace=test_ws_name)
+    test_nexus_ws = mtd[test_ws_name]
 
-    # Load event Nexus
+    # Load template event nexus
+    LoadEventNexus(Filename=template_nexus_file, OutputWorkspace='cg3template',
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
+    template_ws = mtd['cg3template']
 
-    # Compare 2 workspaces' counts
+    # Check number of histograms
+    assert test_nexus_ws.getNumberHistograms() == template_ws.getNumberHistograms()
 
-    # Compare the essential meta data
+    # Compare units of required DAS logs
+    for das_log_name in ['CG3:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
+                         'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
+                         'detector_trans_Readback', 'www_rot_Readback']:
+        template_unit = template_ws.run().getProperty(das_log_name).units
+        test_unit = test_nexus_ws.run().getProperty(das_log_name).units
+        assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
+
+    # Check instrument by comparing pixel position
+    # Run 9711: detector_trans_Readback = 0.002 mm (to negative X direction)
+    # Exp315 Scan 5  Run 60: detector trans = 0.001 mm
+    # Thus all pixels of from-SPICE data shall have a postive 1 mm shift
+    # Both data have different SDD.  Thus all the pixels will have a constant shift along Z direction
+    diff_x = 0.001
+    diff_z_list = list()
+    for iws in range(0, template_ws.getNumberHistograms(), 10):
+        test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
+        expected_pixel_pos = template_ws.getDetector(iws).getPos()
+        # constant difference at x
+        assert test_pixel_pos[0] - diff_x == pytest.approx(expected_pixel_pos[0], abs=1e-7)
+        # y shall be exactly same
+        assert test_pixel_pos[1] == pytest.approx(expected_pixel_pos[1], abs=1e-7)
+        # z shall have constant difference
+        diff_z_list.append(test_pixel_pos[2] - expected_pixel_pos[2])
+    # shift along Z-axis shall be a constant
+    assert np.array(diff_z_list).std() < 1E-12
+
+    # Load original SPICE file
+    spice_ws_name = os.path.basename(spice_data_file).split('.')[0]
+    spice_ws_name = f'CG3IntTestSpice_{spice_ws_name}'
+    LoadHFIRSANS(Filename=spice_data_file, OutputWorkspace=spice_ws_name)
+    spice_ws = mtd[spice_ws_name]
+
+    # compare histograms
+    for iws in range(0, test_nexus_ws.getNumberHistograms()):
+        assert test_nexus_ws.readY(iws)[0] == pytest.approx(spice_ws.readY(iws + 2)[0], abs=1E-3)
+
+    # compare DAS logs (partial)
+    for log_name in ['wavelength', 'source_aperture_diameter', 'sample_aperture_diameter']:
+        nexus_log_value = test_nexus_ws.run().getProperty(log_name).value.mean()
+        spice_log_value = spice_ws.run().getProperty(log_name).value
+        assert nexus_log_value == pytest.approx(spice_log_value, 1e-7)
 
 
 def test_duplicate_event_nexus(reference_dir, cleanfile):

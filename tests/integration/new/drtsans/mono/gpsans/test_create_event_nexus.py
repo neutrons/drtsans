@@ -694,7 +694,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
 
     # Load original SPICE file
     spice_ws_name = os.path.basename(spice_data_file).split('.')[0]
-    spice_ws_name = f'CG3IntTestSpice_{spice_ws_name}'
+    spice_ws_name = f'CG2IntTestSpice_{spice_ws_name}'
     LoadHFIRSANS(Filename=spice_data_file, OutputWorkspace=spice_ws_name)
     spice_ws = mtd[spice_ws_name]
 

@@ -85,7 +85,7 @@ class EventNexusConverter(object):
         # Write file
         event_nexus_writer.generate_event_nexus(target_nexus, self._run_start, self._run_stop, self._monitor_counts)
 
-    def load_sans_xml(self, xml_file_name, prefix=''):
+    def load_sans_xml(self, xml_file_name, prefix='', das_log_map=None):
         """Load data and meta data from legacy SANS XML data file
 
         Parameters
@@ -94,13 +94,29 @@ class EventNexusConverter(object):
             name of SANS XML file
         prefix: str
             prefix for output workspace name
+        das_log_map: None, ~dict
+            meta data map between event NeXus and SPICE
 
         Returns
         -------
 
         """
         # Load meta data and convert to NeXus format
-        spice_log_dict = self.retrieve_meta_data(xml_file_name)
+        if das_log_map is None:
+            # 'attenuator': 'attenuator_pos',
+            # TODO FIXME This is very instrument-dependent!
+            das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
+                           'sample_detector_distance': ('sdd', 'm'),  # same
+                           'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
+                           'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
+                           'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
+                           'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
+                           'detector_trans_Readback': ('detector_trans', 'mm'),  # same
+                           'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
+                           'beamtrap_diameter': ('beamtrap_diameter', 'mm')  # not there
+                           }
+
+        spice_log_dict = self.retrieve_meta_data(xml_file_name, das_log_map)
         self._das_logs = self.convert_log_units(spice_log_dict)
 
         # output workspace name
@@ -144,13 +160,15 @@ class EventNexusConverter(object):
         return
 
     @staticmethod
-    def retrieve_meta_data(spice_file_name):
+    def retrieve_meta_data(spice_file_name, das_spice_log_map):
         """Retrieve meta from workspace
 
         Parameters
         ----------
         spice_file_name: str
             full path of SPICE data file in XML format
+        das_spice_log_map: ~dict
+            DAS log conversion map between event NeXus and spice
 
         Returns
         -------
@@ -158,19 +176,6 @@ class EventNexusConverter(object):
             key: Nexus das log name, value: (log value, log unit)
 
         """
-        # 'attenuator': 'attenuator_pos',
-        # TODO FIXME This is very instrument-dependent!
-        das_spice_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),   # same
-                             'sample_detector_distance': ('sdd', 'm'),  # same
-                             'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
-                             'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
-                             'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
-                             'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
-                             'detector_trans_Readback': ('detector_trans', 'mm'),  # same
-                             'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
-                             'beamtrap_diameter': ('beamtrap_diameter', 'mm')   # not there
-                             }
-
         # Load SPICE file
         spice_reader = SpiceXMLParser(spice_file_name)
 

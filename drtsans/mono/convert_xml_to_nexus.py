@@ -12,7 +12,8 @@ from mantid.simpleapi import mtd   # logger
 # SPICE NeXus meta data unit name conversion.  Note that the units are same but with difference names.
 SPICE_NEXUS_UNIT_NAME_MAP = {'wavelength': 'A',
                              'wavelength_spread': None,
-                             'ww_rot_Readback': 'deg'}
+                             'ww_rot_Readback': 'deg',
+                             'attenuator': None}
 
 
 class EventNexusConverter(object):

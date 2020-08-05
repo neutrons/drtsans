@@ -10,9 +10,9 @@ from mantid.simpleapi import mtd   # logger
 
 
 # SPICE NeXus meta data unit name conversion.  Note that the units are same but with difference names.
-SPICE_NEXUS_UNIT_MAP = {'wavelength': 'A',
-                        'wavelength_spread': None,
-                        'ww_rot_Readback': 'deg'}
+SPICE_NEXUS_UNIT_NAME_MAP = {'wavelength': 'A',
+                             'wavelength_spread': None,
+                             'ww_rot_Readback': 'deg'}
 
 
 class EventNexusConverter(object):
@@ -218,8 +218,8 @@ class EventNexusConverter(object):
             log_value, log_unit = spice_log_dict[nexus_das_log_name]
 
             # use the name of the NeXus das log value unit
-            if nexus_das_log_name in SPICE_NEXUS_UNIT_MAP:
-                log_unit = SPICE_NEXUS_UNIT_MAP[nexus_das_log_name]
+            if nexus_das_log_name in SPICE_NEXUS_UNIT_NAME_MAP:
+                log_unit = SPICE_NEXUS_UNIT_NAME_MAP[nexus_das_log_name]
 
             # # TODO - need to refactor
             # if nexus_das_log_name == 'wavelength':

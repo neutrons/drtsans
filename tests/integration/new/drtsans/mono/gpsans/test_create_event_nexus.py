@@ -82,7 +82,6 @@ def test_reduction(reference_dir, cleanfile):
 
     """
     # Generate a new event NeXus file
-    # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
     output_dir = mkdtemp(prefix='reducecg2nexus')
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
@@ -634,7 +633,6 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
 
     # init convert
     # Load meta data and convert to NeXus format
-    # TODO FIXME - it is special for 'attenuator': 'attenuator_pos',
     das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
                    'sample_detector_distance': ('sdd', 'm'),  # same
                    'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
@@ -681,7 +679,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     # Compare units of required DAS logs
     for das_log_name in ['CG2:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
                          'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
-                         'detector_trans_Readback']:
+                         'detector_trans_Readback', 'attenuator']:
         template_unit = template_ws.run().getProperty(das_log_name).units
         test_unit = test_nexus_ws.run().getProperty(das_log_name).units
         assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'

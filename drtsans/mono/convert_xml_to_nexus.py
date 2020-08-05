@@ -221,13 +221,6 @@ class EventNexusConverter(object):
             if nexus_das_log_name in SPICE_NEXUS_UNIT_NAME_MAP:
                 log_unit = SPICE_NEXUS_UNIT_NAME_MAP[nexus_das_log_name]
 
-            # # TODO - need to refactor
-            # if nexus_das_log_name == 'wavelength':
-            #     log_unit = 'A'
-            # elif nexus_das_log_name == 'wavelength_spread':
-            #     log_unit = None
-            # elif nexus_das_log_name == 'ww_rot_Readback':
-            #     log_unit = 'deg'
             # form das log
             nexus_das_log = DasLog(nexus_das_log_name, np.array([0.]), np.array([log_value]), log_unit, None)
             # add

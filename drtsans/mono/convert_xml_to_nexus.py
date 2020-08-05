@@ -13,7 +13,7 @@ class EventNexusConverter(object):
     """
     Class to provide service to convert to event NeXus from various input
     """
-    def __init__(self, beam_line, instrument_name):
+    def __init__(self, beam_line, instrument_name, num_banks):
         """
 
         Parameters
@@ -26,6 +26,7 @@ class EventNexusConverter(object):
         # beam line name
         self._beam_line = beam_line
         self._instrument_name = instrument_name
+        self._num_banks = num_banks
 
         # instrument XML IDF content
         self._idf_content = None
@@ -41,20 +42,23 @@ class EventNexusConverter(object):
         self._run_start = None
         self._run_stop = None
 
-    def generate_event_nexus(self, target_nexus, num_banks):
+    def generate_event_nexus(self, target_nexus):
         """Generate event NeXus properly
+
+        num_banks: int
+            CG2 = 48, CG3 = 88
 
         Parameters
         ----------
         target_nexus: str
             name of the output Nexus file
-        num_banks: int
-            CG2 = 48, CG3 = ???
 
         Returns
         -------
 
         """
+        num_banks = self._num_banks
+
         # Set constants
         pulse_duration = 0.1  # second
         tof_min = 1000.
@@ -85,7 +89,7 @@ class EventNexusConverter(object):
         # Write file
         event_nexus_writer.generate_event_nexus(target_nexus, self._run_start, self._run_stop, self._monitor_counts)
 
-    def load_sans_xml(self, xml_file_name, prefix='', das_log_map=None):
+    def load_sans_xml(self, xml_file_name, das_log_map, prefix=''):
         """Load data and meta data from legacy SANS XML data file
 
         Parameters
@@ -101,21 +105,6 @@ class EventNexusConverter(object):
         -------
 
         """
-        # Load meta data and convert to NeXus format
-        if das_log_map is None:
-            # 'attenuator': 'attenuator_pos',
-            # TODO FIXME This is very instrument-dependent!
-            das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
-                           'sample_detector_distance': ('sdd', 'm'),  # same
-                           'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
-                           'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
-                           'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
-                           'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
-                           'detector_trans_Readback': ('detector_trans', 'mm'),  # same
-                           'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
-                           'beamtrap_diameter': ('beamtrap_diameter', 'mm')  # not there
-                           }
-
         spice_log_dict = self._retrieve_meta_data(xml_file_name, das_log_map)
         self._das_logs = self.convert_log_units(spice_log_dict)
 
@@ -245,8 +234,7 @@ class EventNexusConverter(object):
 
         return nexus_log_dict
 
-    @staticmethod
-    def get_pid_range(bank_id):
+    def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
 
         Parameters
@@ -260,15 +248,16 @@ class EventNexusConverter(object):
             start PID, end PID (assuming PID are consecutive in a bank and end PID is inclusive)
 
         """
-        # calculate starting PID
-        if bank_id <= 24:
-            # from 1 to 24: front panel
-            start_pid = (bank_id - 1) * 2 * 1024
-        else:
-            # from 25 to 48: back panel
-            start_pid = ((bank_id - 25) * 2 + 1) * 1024
-
-        # calculate end PID
-        end_pid = start_pid + 1023
-
-        return start_pid, end_pid
+        raise RuntimeError(f'{self.__class__.__name__} is virtual and base class.')
+        # # calculate starting PID
+        # if bank_id <= 24:
+        #     # from 1 to 24: front panel
+        #     start_pid = (bank_id - 1) * 2 * 1024
+        # else:
+        #     # from 25 to 48: back panel
+        #     start_pid = ((bank_id - 25) * 2 + 1) * 1024
+        #
+        # # calculate end PID
+        # end_pid = start_pid + 1023
+        #
+        # return start_pid, end_pid

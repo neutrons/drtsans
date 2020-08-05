@@ -13,7 +13,7 @@ from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
-from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace, LoadHFIRSANS
 from tempfile import mkdtemp
 
@@ -633,10 +633,22 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     out_nexus_file = os.path.join(output_dir, 'CG2_31500050060.nxs.h5')
 
     # init convert
-    converter = EventNexusConverter('CG2', 'CG2')
+    # Load meta data and convert to NeXus format
+    # TODO FIXME - it is special for 'attenuator': 'attenuator_pos',
+    das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
+                   'sample_detector_distance': ('sdd', 'm'),  # same
+                   'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
+                   'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
+                   'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
+                   'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
+                   'detector_trans_Readback': ('detector_trans', 'mm'),  # same
+                   'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
+                   'beamtrap_diameter': ('beamtrap_diameter', 'mm')  # not there
+                   }
+    converter = CG2EventNexusConvert()
     converter.load_idf(template_nexus_file)
-    converter.load_sans_xml(spice_data_file)
-    converter.generate_event_nexus(out_nexus_file, num_banks=48)
+    converter.load_sans_xml(spice_data_file, das_log_map)
+    converter.generate_event_nexus(out_nexus_file)
 
     # Check
     os.path.exists(out_nexus_file)

@@ -72,7 +72,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     converter.generate_event_nexus(out_nexus_file, num_banks=88)
 
     # Check: file existence
-    os.path.exists(out_nexus_file)
+    os.path.exists(out_nexus_file), f'Output file {out_nexus_file} cannot be located'
 
     # Check instrument node against the original one
     test_nexus_h5 = h5py.File(out_nexus_file, 'r')

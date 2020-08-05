@@ -3,7 +3,7 @@ import pytest
 import h5py
 import os
 import numpy as np
-from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 
 
 def test_pid_range(reference_dir):
@@ -26,7 +26,7 @@ def test_pid_range(reference_dir):
         pids = nexus_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
         min_pid = np.min(pids)
         max_pid = np.max(pids)
-        start_pid, end_pid = EventNexusConverter.get_pid_range(bank_id)
+        start_pid, end_pid = CG2EventNexusConvert().get_pid_range(bank_id)
 
         assert start_pid <= min_pid <= max_pid <= end_pid, f'Bank {bank_id} PID is out of range'
 

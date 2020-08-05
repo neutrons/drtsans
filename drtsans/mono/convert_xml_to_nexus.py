@@ -98,7 +98,7 @@ class EventNexusConverter(object):
             name of SANS XML file
         prefix: str
             prefix for output workspace name
-        das_log_map: None, ~dict
+        das_log_map: ~dict, None
             meta data map between event NeXus and SPICE
 
         Returns
@@ -184,12 +184,6 @@ class EventNexusConverter(object):
                                        f'expected {default_unit}')
 
             das_log_values[nexus_log_name] = value, unit
-
-        # Attenuator is special
-        try:
-            das_log_values['attenuator'] = spice_reader.read_attenuator()
-        except IndexError:
-            das_log_values['attenuator'] = None
 
         # Close file
         spice_reader.close()

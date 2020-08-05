@@ -643,7 +643,8 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
                    'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
                    'detector_trans_Readback': ('detector_trans', 'mm'),  # same
                    'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
-                   'beamtrap_diameter': ('beamtrap_diameter', 'mm')  # not there
+                   'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+                   'attenuator': ('attenuator_pos', 'mm')  # special
                    }
     converter = CG2EventNexusConvert()
     converter.load_idf(template_nexus_file)

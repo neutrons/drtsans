@@ -9,6 +9,12 @@ from mantid.simpleapi import LoadHFIRSANS
 from mantid.simpleapi import mtd   # logger
 
 
+# SPICE NeXus meta data unit name conversion.  Note that the units are same but with difference names.
+SPICE_NEXUS_UNIT_MAP = {'wavelength': 'A',
+                        'wavelength_spread': None,
+                        'ww_rot_Readback': 'deg'}
+
+
 class EventNexusConverter(object):
     """
     Class to provide service to convert to event NeXus from various input
@@ -212,13 +218,16 @@ class EventNexusConverter(object):
             log_value, log_unit = spice_log_dict[nexus_das_log_name]
 
             # use the name of the NeXus das log value unit
-            # TODO - need to refactor
-            if nexus_das_log_name == 'wavelength':
-                log_unit = 'A'
-            elif nexus_das_log_name == 'wavelength_spread':
-                log_unit = None
-            elif nexus_das_log_name == 'ww_rot_Readback':
-                log_unit = 'deg'
+            if nexus_das_log_name in SPICE_NEXUS_UNIT_MAP:
+                log_unit = SPICE_NEXUS_UNIT_MAP[nexus_das_log_name]
+
+            # # TODO - need to refactor
+            # if nexus_das_log_name == 'wavelength':
+            #     log_unit = 'A'
+            # elif nexus_das_log_name == 'wavelength_spread':
+            #     log_unit = None
+            # elif nexus_das_log_name == 'ww_rot_Readback':
+            #     log_unit = 'deg'
             # form das log
             nexus_das_log = DasLog(nexus_das_log_name, np.array([0.]), np.array([log_value]), log_unit, None)
             # add
@@ -241,15 +250,3 @@ class EventNexusConverter(object):
 
         """
         raise RuntimeError(f'{self.__class__.__name__} is virtual and base class.')
-        # # calculate starting PID
-        # if bank_id <= 24:
-        #     # from 1 to 24: front panel
-        #     start_pid = (bank_id - 1) * 2 * 1024
-        # else:
-        #     # from 25 to 48: back panel
-        #     start_pid = ((bank_id - 25) * 2 + 1) * 1024
-        #
-        # # calculate end PID
-        # end_pid = start_pid + 1023
-        #
-        # return start_pid, end_pid

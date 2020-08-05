@@ -10,7 +10,7 @@ import h5py
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
 from mantid.simpleapi import LoadEventNexus, Rebin, ConvertToMatrixWorkspace, mtd, LoadHFIRSANS
-from drtsans.mono.biosans.convert_spice_to_nexus import generate_event_nexus
+from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
 from tempfile import mkdtemp
 from matplotlib import pyplot as plt

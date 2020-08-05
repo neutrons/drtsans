@@ -8,8 +8,10 @@ class CG2EventNexusConvert(EventNexusConverter):
     def __init__(self):
         """
         initialization
+
+        work for 48 banks
         """
-        super(CG2EventNexusConvert, self).__init__('CG3', 'CG3', 48)
+        super(CG2EventNexusConvert, self).__init__('CG2', 'CG2', 48)
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation

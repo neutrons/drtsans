@@ -10,8 +10,8 @@ import h5py
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
 from mantid.simpleapi import LoadEventNexus, Rebin, ConvertToMatrixWorkspace, mtd, LoadHFIRSANS
-from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
-from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus, CG3EventNexusConvert
+from drtsans.files.event_nexus_rw import DasLog
 from tempfile import mkdtemp
 from matplotlib import pyplot as plt
 
@@ -60,16 +60,29 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
         'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
         'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
         'detector_trans_Readback': ('detector_trans', 'mm'),  # same
-        'source_distance': ('ource_aperture_sample_aperture_distance', 'm'),  # same. source-aperture-sample-aperture
+        'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
         'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
-        'ww_rot_Readback': ('det_west_wing_rot', 'degree')
+        'ww_rot_Readback': ('det_west_wing_rot', 'degrees')   # degrees -> deg
     }
 
     # init convert
-    converter = EventNexusConverter('CG3', 'CG3')
+    converter = CG3EventNexusConvert()
     converter.load_idf(template_nexus_file)
     converter.load_sans_xml(spice_data_file, meta_map)
-    converter.generate_event_nexus(out_nexus_file, num_banks=88)
+
+    # in order to do a reasonable pixel position comparison, hard set the ww_rot_Readback to be
+    # the same value as template event Nexus file
+    # CG3_5705.nxs.h5: ww_rot_Readback = 3.19938537 degrees
+    # BioSANS_exp327_scan0014_0001: det_west_wing_rot = 3.20174 degrees
+    print(converter._das_logs['ww_rot_Readback'])
+    ww_rot = converter._das_logs['ww_rot_Readback']
+    spice_ww_rot = ww_rot.values
+    assert spice_ww_rot == pytest.approx(3.20174, 1E-5)
+    converter._das_logs['ww_rot_Readback'] = DasLog(ww_rot.name, ww_rot.times, np.array([3.19938537]),
+                                                    ww_rot.unit, ww_rot.device)
+
+    # generate event nexus
+    converter.generate_event_nexus(out_nexus_file)
 
     # Check: file existence
     os.path.exists(out_nexus_file), f'Output file {out_nexus_file} cannot be located'
@@ -101,29 +114,44 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     # Compare units of required DAS logs
     for das_log_name in ['CG3:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
                          'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
-                         'detector_trans_Readback', 'www_rot_Readback']:
+                         'detector_trans_Readback', 'ww_rot_Readback']:
         template_unit = template_ws.run().getProperty(das_log_name).units
         test_unit = test_nexus_ws.run().getProperty(das_log_name).units
         assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
 
-    # Check instrument by comparing pixel position
-    # Run 9711: detector_trans_Readback = 0.002 mm (to negative X direction)
-    # Exp315 Scan 5  Run 60: detector trans = 0.001 mm
-    # Thus all pixels of from-SPICE data shall have a postive 1 mm shift
+    # Check instrument by comparing pixel position for main detector
+    # CG3_5705.nxs.h5: detector_trans_Readback = 1.500124 mm (to negative X direction)
+    # BioSANS_exp327_scan0014_0001: detector trans = 4.9999 mm
+    # Thus all pixels of from-SPICE data shall have a positive 1 mm shift
     # Both data have different SDD.  Thus all the pixels will have a constant shift along Z direction
-    diff_x = 0.001
+    diff_x = (-4.99999 - (-1.500124)) * 0.001
     diff_z_list = list()
-    for iws in range(0, template_ws.getNumberHistograms(), 10):
+    for iws in range(0, 1024 * 48, 10):
         test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
         expected_pixel_pos = template_ws.getDetector(iws).getPos()
         # constant difference at x
-        assert test_pixel_pos[0] - diff_x == pytest.approx(expected_pixel_pos[0], abs=1e-7)
+        if test_pixel_pos[0] - diff_x != pytest.approx(expected_pixel_pos[0], abs=1e-7):
+            error_message = f'Pixel {iws} test pixel position X: {test_pixel_pos} != ' \
+                            f'expected pixel position X: {expected_pixel_pos}'
+            raise AssertionError(error_message)
         # y shall be exactly same
         assert test_pixel_pos[1] == pytest.approx(expected_pixel_pos[1], abs=1e-7)
         # z shall have constant difference
         diff_z_list.append(test_pixel_pos[2] - expected_pixel_pos[2])
     # shift along Z-axis shall be a constant
     assert np.array(diff_z_list).std() < 1E-12
+
+    # check pixel positions for wing detector
+    # CG3_5705.nxs.h5: ww_rot_Readback = 3.19938537 degrees
+    # BioSANS_exp327_scan0014_0001: det_west_wing_rot = 3.20174 degrees
+    # In previous step, ww_rot_Readback is hard set to 3.19938537 degrees
+    for iws in range(1024 * 48, template_ws.getNumberHistograms()):
+        test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
+        expected_pixel_pos = template_ws.getDetector(iws).getPos()
+        # compare pixel position between generated and expected
+        np.testing.assert_allclose(test_pixel_pos, expected_pixel_pos,
+                                   err_msg=f'Pixel {iws} test pixel position X: {test_pixel_pos} '
+                                           f'!= expected pixel position X: {expected_pixel_pos}')
 
     # Load original SPICE file
     spice_ws_name = os.path.basename(spice_data_file).split('.')[0]

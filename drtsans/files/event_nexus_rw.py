@@ -515,13 +515,6 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
               f'Total counts = {total_counts} type = {type(total_counts)}')
 
     # Create event_id
-    print(bank_histogram.counts)
-    if len(bank_histogram.counts) == 0:
-        print(f'total counts = {total_counts}')
-
-    if len(bank_histogram.pixel_ids) == 0:
-        raise RuntimeError(f'total count = {total_counts}')
-
     event_id_array = np.ndarray(shape=(total_counts,), dtype='uint32')
     # repeat each pixel for its 'counts' times to simulate the number of events
     start_index = 0

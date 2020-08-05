@@ -208,19 +208,17 @@ class EventNexusConverter(object):
         nexus_log_dict = dict()
 
         for nexus_das_log_name in spice_log_dict:
-            # TEST/FIXME/TODO is attenuator essential to CG2?
-            if nexus_das_log_name == 'attenuator':
-                print('[DEBUG] attenuator is skipped')
-                continue
-
             # get value
             log_value, log_unit = spice_log_dict[nexus_das_log_name]
 
             # use the name of the NeXus das log value unit
+            # TODO - need to refactor
             if nexus_das_log_name == 'wavelength':
                 log_unit = 'A'
             elif nexus_das_log_name == 'wavelength_spread':
                 log_unit = None
+            elif nexus_das_log_name == 'ww_rot_Readback':
+                log_unit = 'deg'
             # form das log
             nexus_das_log = DasLog(nexus_das_log_name, np.array([0.]), np.array([log_value]), log_unit, None)
             # add

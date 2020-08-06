@@ -1,11 +1,63 @@
 from drtsans.mono.convert_xml_to_nexus import EventNeXusWriter
 from drtsans.files.event_nexus_rw import parse_event_nexus
+from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
 
 
 DAS_LOGs = ['CG3:CS:SampleToSi', 'sample_detector_distance', 'wavelength', 'wavelength_spread',
             'source_aperture_diameter', 'sample_aperture_diameter',
             'detector_trans_Readback', 'ww_rot_Readback',
             'source_aperture_sample_aperture_distance']
+
+
+class CG3EventNexusConvert(EventNexusConverter):
+    """
+
+    """
+    def __init__(self):
+        """
+        initialization
+
+        work for 88 banks
+        """
+        super(CG3EventNexusConvert, self).__init__('CG3', 'CG3', 88)
+
+    def get_pid_range(self, bank_id):
+        """Set GPSANS bank and pixel ID relation
+
+        Parameters
+        ----------
+        bank_id: int
+            bank ID from 1 to 88
+
+        Returns
+        -------
+        tuple
+            start PID, end PID (assuming PID are consecutive in a bank and end PID is inclusive)
+
+        """
+        # Check input valid
+        if bank_id < 1 or bank_id > 88:
+            raise RuntimeError(f'CG3 (BioSANS) has 88 banks indexed from 1 to 88. '
+                               f'Bank {bank_id} is out of range.')
+
+        # calculate starting PID
+        if bank_id <= 24:
+            # from 1 to 24: front panel
+            start_pid = (bank_id - 1) * 2 * 1024
+        elif bank_id <= 48:
+            # from 25 to 48: back panel
+            start_pid = ((bank_id - 25) * 2 + 1) * 1024
+        elif bank_id <= 68:
+            # from 49 to 68: even bank from 49152 (main detector pixel number)
+            start_pid = (bank_id - 49) * 2 * 1024 + 48 * 1024
+        else:
+            # from 69 to 88
+            start_pid = ((bank_id - 69) * 2 + 1) * 1024 + 48 * 1024
+
+        # calculate end PID
+        end_pid = start_pid + 1023
+
+        return start_pid, end_pid
 
 
 def generate_event_nexus(source_nexus, target_nexus, das_log_list=DAS_LOGs):

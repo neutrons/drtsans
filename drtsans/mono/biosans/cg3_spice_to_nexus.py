@@ -27,7 +27,7 @@ class CG3EventNexusConvert(EventNexusConverter):
         Parameters
         ----------
         bank_id: int
-            bank ID from 1 to 48
+            bank ID from 1 to 88
 
         Returns
         -------
@@ -35,6 +35,11 @@ class CG3EventNexusConvert(EventNexusConverter):
             start PID, end PID (assuming PID are consecutive in a bank and end PID is inclusive)
 
         """
+        # Check input valid
+        if bank_id < 1 or bank_id > 88:
+            raise RuntimeError(f'CG3 (BioSANS) has 88 banks indexed from 1 to 88. '
+                               f'Bank {bank_id} is out of range.')
+
         # calculate starting PID
         if bank_id <= 24:
             # from 1 to 24: front panel

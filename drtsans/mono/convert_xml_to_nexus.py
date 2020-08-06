@@ -7,6 +7,8 @@ from drtsans.files.event_nexus_rw import DasLog, EventNeXusWriter, TofHistogram
 import h5py
 from mantid.simpleapi import LoadHFIRSANS
 from mantid.simpleapi import mtd   # logger
+import abc
+from abc import ABC
 
 
 # SPICE NeXus meta data unit name conversion.  Note that the units are same but with difference names.
@@ -16,7 +18,7 @@ SPICE_NEXUS_UNIT_NAME_MAP = {'wavelength': 'A',
                              'attenuator': None}
 
 
-class EventNexusConverter(object):
+class EventNexusConverter(ABC):
     """
     Class to provide service to convert to event NeXus from various input
     """
@@ -229,6 +231,7 @@ class EventNexusConverter(object):
 
         return nexus_log_dict
 
+    @abc.abstractmethod
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
 
@@ -243,4 +246,4 @@ class EventNexusConverter(object):
             start PID, end PID (assuming PID are consecutive in a bank and end PID is inclusive)
 
         """
-        raise RuntimeError(f'{self.__class__.__name__} is virtual and base class.')
+        raise RuntimeError('Class method EventNexusConverter.get_pid_range is abstract')

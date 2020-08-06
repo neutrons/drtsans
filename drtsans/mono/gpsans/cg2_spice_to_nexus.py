@@ -27,6 +27,11 @@ class CG2EventNexusConvert(EventNexusConverter):
             start PID, end PID (assuming PID are consecutive in a bank and end PID is inclusive)
 
         """
+        # Check input valid
+        if bank_id < 1 or bank_id > 48:
+            raise RuntimeError(f'CG2 (GP-SANS) has 88 banks indexed from 1 to 48. '
+                               f'Bank {bank_id} is out of range.')
+
         # calculate starting PID
         if bank_id <= 24:
             # from 1 to 24: front panel

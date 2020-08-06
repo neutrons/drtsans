@@ -34,6 +34,12 @@ def test_cg2_pid_range(reference_dir):
     # close file
     nexus_h5.close()
 
+    # Check out of range bank ID
+    with pytest.raises(RuntimeError):
+        CG2EventNexusConvert().get_pid_range(0)
+    with pytest.raises(RuntimeError):
+        CG2EventNexusConvert().get_pid_range(49)
+
 
 def test_cg3__pid_range(reference_dir):
     """Test PID range
@@ -64,6 +70,12 @@ def test_cg3__pid_range(reference_dir):
 
     # close file
     nexus_h5.close()
+
+    # Check out of range bank ID
+    with pytest.raises(RuntimeError):
+        CG3EventNexusConvert().get_pid_range(0)
+    with pytest.raises(RuntimeError):
+        CG3EventNexusConvert().get_pid_range(89)
 
 
 if __name__ == '__main__':

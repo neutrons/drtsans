@@ -29,24 +29,14 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
 
     """
     # Specify the test data
-    # FIXME in this stage, using data in /HFIR/CG3/; data in reference_dir will be used
     spice_data_file = os.path.join(reference_dir.new.biosans, 'BioSANS_exp327_scan0014_0001.xml')
     template_nexus_file = os.path.join(reference_dir.new.biosans, 'CG3_5705.nxs.h5')
     assert os.path.exists(spice_data_file), f'SPICE file {spice_data_file} cannot be located'
     assert os.path.exists(template_nexus_file), f'Template NeXus file {template_nexus_file} cannot be located'
 
     # Specify the output directory
-    if False:
-        # FIXME - enable this section after this test is passed
-        output_dir = mkdtemp(prefix='cg3spice2nexus')
-        cleanfile(output_dir)
-    else:
-        # FIXME - remove this section after this test is passed
-        import shutil
-        output_dir = '/tmp/cg3spice2nexus'
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
-        os.mkdir(output_dir)
+    output_dir = mkdtemp(prefix='cg3spice2nexus')
+    cleanfile(output_dir)
 
     # output file name
     out_nexus_file = os.path.join(output_dir, 'CG3_32700140001.nxs.h5')
@@ -124,6 +114,10 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     # BioSANS_exp327_scan0014_0001: detector trans = 4.9999 mm
     # Thus all pixels of from-SPICE data shall have a positive 1 mm shift
     # Both data have different SDD.  Thus all the pixels will have a constant shift along Z direction
+    # Current IDF does not work well with detector position in z-direction.
+    # Thus after loading the Nexus file, the detector's position in X- and Y- direction are correct
+    # but not in Z-direction.  It will be positioned correctly in drt-sans reduction.
+    # Therefore, as long as the detector plane are perpendicular to Z-axis, it is correct.
     diff_x = (-4.99999 - (-1.500124)) * 0.001
     diff_z_list = list()
     for iws in range(0, 1024 * 48, 10):

@@ -101,7 +101,7 @@ expected_log_bin_example1 = np.array([
     [0.035247482583969,	0.039811, 0.044374]])
 
 
-def test_example1new():
+def test_example1():
     """Example 1: decade on center and bin density are specified
 
     Returns
@@ -124,7 +124,7 @@ def test_example1new():
     # verify bin boundaries min
     np.testing.assert_allclose(test_bins.edges[:-1], expected_log_bin_example1[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example1[:, 2], rtol=1e-20, atol=1e-6)
+    np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example1[:, 2], rtol=1e-7, atol=1e-6)
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
@@ -152,7 +152,7 @@ expected_log_bin_example2 = np.array([
 ])
 
 
-def test_example2new():
+def test_example2():
     """Example 2: bin density is specified but decade on center is not required
 
     Returns
@@ -219,7 +219,7 @@ expected_log_bin_example3 = np.array([
 ])
 
 
-def test_example3new():
+def test_example3():
     """Example 3: total number of bins are specified
 
     Returns
@@ -287,7 +287,7 @@ expected_log_bin_example4 = np.array([
 ])
 
 
-def test_example4new():
+def test_example4():
     """Example 4: total number of bins is specified
 
     Returns
@@ -346,7 +346,7 @@ expected_log_bin_example5 = np.array([
 ])
 
 
-def test_example5new():
+def test_example5():
     """Example 5: total number of bins is specified.  Q min and Q max are specified on decades.
     Thus bin centers have all the decades between Q min and Q max
 

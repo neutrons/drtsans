@@ -73,9 +73,11 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
     """
     # Check inputs
     if n_bins_per_decade is None and n_bins is None:
-        raise RuntimeError('blabla')
+        raise RuntimeError('Density of points (n_bins_per_decade) and total number of bins (n_bins) cannot be '
+                           'None simultaneously.  One and only one of them must be specified.')
     elif n_bins_per_decade is not None and n_bins is not None:
-        raise RuntimeError('blabla')
+        raise RuntimeError('Density of points (n_bins_per_decade) and total number of bins (n_bins) cannot be '
+                           'specified simultaneously.  One and only one of them must be specified.')
     # only allow either n_bins or n_bins_per_decade
 
     # Calculate Q min, number of total bins and number of steps
@@ -85,18 +87,14 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
         # determine X min
         if decade_on_center:
             x_ref = _calculate_x_ref(x_min, n_bins_per_decade)
-            print(f'reference X = {x_ref}')
         else:
             x_ref = x_min
 
         # calculate step size
         n_step = 10**(1 / n_bins_per_decade)
-        print(f'n_step = {n_step}')
 
         # calculate number of bins
         n_bins = _calculate_n_bins(x_ref, x_max, n_step, n_bins_per_decade)
-        print(f'total number of bins = {n_bins}')
-
     else:
         # user specifies number of total bins
 
@@ -170,15 +168,6 @@ def _calculate_n_bins(x_min, x_max, n_step, bin_density):
 
     """
     n_bins = np.floor(np.ceil((np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)))
-
-    """
-        t0 = np.log10(x_max / x_min)
-        t1 = bin_density * np.log10((1 + 10**(1. / bin_density)) / 2.0)
-        print(f't0 = {t0}')
-        print(f't1 = {t1}')
-        n_bins_x = np.ceil(t0 + t1)
-        print(f'[DEBUG] total bins = {n_bins}  vs {n_bins_x}')
-    """
 
     # to avoid round off error such that n_bins = |n_bins| + epsilon, where epsilon is an infinitesimally
     # small value

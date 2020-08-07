@@ -5,7 +5,7 @@ from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
 from enum import Enum
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
-from drtsans.determine_bins import determine_1d_log_bins_deprecated, determine_1d_linear_bins, BinningParams
+from drtsans.determine_bins import determine_1d_log_bins_new, determine_1d_linear_bins, BinningParams
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -231,11 +231,11 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
         if log_scale:
-            bins_1d = determine_1d_log_bins_deprecated(qmin, qmax,
+            # log bins
+            bins_1d = determine_1d_log_bins_new(qmin, qmax,
                                                        n_bins_per_decade=n1dbins_per_decade,
                                                        n_bins=n1dbins,
-                                                       decade_on_center=decade_on_center,
-                                                       even_decade=even_decade)
+                                                       decade_on_center=decade_on_center)
             for ub1d in unbinned_1d:
                 # The filter is needed for logarithmic binning so that
                 # the qmin and qmax are correctly taken into account
@@ -247,7 +247,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                       ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method))
         else:
-            bins_1d = determine_1d_log_bins_deprecated(qmin, qmax, n1dbins)
+            # linear bins
+            bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
             for ub1d in unbinned_1d:
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
     return binned_q2d, binned_q1d_list

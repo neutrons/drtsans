@@ -56,11 +56,16 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
 
     Parameters
     ----------
-    x_min
-    x_max
-    decade_on_center
-    n_bins_per_decade
-    n_bins
+    x_min: float
+        minimum value of X in the bins
+    x_max: float
+        maximum value of X in the bins
+    decade_on_center: bool
+        flag that data must be centered on decades
+    n_bins_per_decade: int, None
+        density of points (number of data points per decade)
+    n_bins: int, None
+        total number of points in the output
 
     Returns
     -------
@@ -79,15 +84,17 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
 
         # determine X min
         if decade_on_center:
-            x_min = _calculate_x_min(x_min, n_bins_per_decade)
-            print(f'calculated x_min = {x_min}')
+            x_ref = _calculate_x_ref(x_min, n_bins_per_decade)
+            print(f'reference X = {x_ref}')
+        else:
+            x_ref = x_min
 
         # calculate step size
         n_step = 10**(1 / n_bins_per_decade)
         print(f'n_step = {n_step}')
 
         # calculate number of bins
-        n_bins = _calculate_n_bins(x_min, x_max, n_step)
+        n_bins = _calculate_n_bins(x_ref, x_max, n_step, n_bins_per_decade)
         print(f'total number of bins = {n_bins}')
 
     else:
@@ -97,21 +104,26 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
         if decade_on_center:
             assert n_bins_per_decade is not None, 'For option decade_on_center, number of bins per decade ' \
                                                   'is required'
+        x_ref = x_min
 
         # calculate bin step size
-        n_step = 10**((np.log10(x_max / x_min)) / (n_bins - 1))
+        # Equation 11.33
+        n_step = 10**((np.log10(x_max / x_ref)) / (n_bins - 1))
         print(f'n_steps = {n_step}')
 
     # Calculate kay
     kay = (n_step - 1) / (n_step + 1)
 
     # Calculate bin centers
+    # init an array ranging from 0 to (n_bins - 1)
     bin_centers = np.arange(n_bins).astype('float64')
-    bin_centers = x_min * n_step**bin_centers
+    # Equation 11.34: Q_k = Q_ref * 10^(k * delta L)
+    bin_centers = x_ref * n_step**bin_centers
 
-    # Calculate bin edges
+    # Calculate bin edges (aka boundaries)
+    # Equation 11.35
     bin_edges = np.ndarray(shape=(n_bins + 1, ), dtype='float64')
-    # calculate left edges (i.e., right edges except last one)
+    # calculate left edges (i.e., right edges except last one), i.e., Q_{k-1, max} = Q_{k, min}
     bin_edges[:-1] = bin_centers[:] - kay * bin_centers[:]
     # calculate last right edge
     bin_edges[-1] = bin_centers[-1] + kay * bin_centers[-1]
@@ -122,25 +134,29 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
     return log_bins
 
 
-def _calculate_x_min(x_min, n_bins_per_decade):
-    """
-     10^((1/N_bins_decade)*(round(N_bins_decade*log10(Q_min))))
+def _calculate_x_ref(x_min, n_bins_per_decade):
+    """Calculate reference X (minimum X) by Equation in Chapter 11
+    x_ref = 10^((1/N_bins_decade)*(round(N_bins_decade*log10(Q_min))))
     Parameters
     ----------
-    x_min
-    n_bins_per_decade
+    x_min: float
+        minimum x value
+    n_bins_per_decade: int
+        point density
 
     Returns
     -------
 
     """
-    cal_x_min = 10**((1. / n_bins_per_decade) * (np.round(n_bins_per_decade * np.log10(x_min))))
+    ref_x = 10 ** ((1. / n_bins_per_decade) * (np.round(n_bins_per_decade * np.log10(x_min))))
 
-    return cal_x_min
+    return ref_x
 
 
-def _calculate_n_bins(x_min, x_max, n_step):
-    """
+def _calculate_n_bins(x_min, x_max, n_step, bin_density):
+    """Calculate number of total bins by implementing
+    Equation 11.32
+
     N_bins = floor(ceil((log10(Q_max/Calc_Q_min) + log10((N_step+1)/2.0))/log10(N_step)))
 
     Parameters
@@ -153,7 +169,12 @@ def _calculate_n_bins(x_min, x_max, n_step):
     -------
 
     """
-    n_bins = np.floor(np.ceil((np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)))
+    if False:
+        n_bins = np.floor(np.ceil((np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)))
+    else:
+        t0 = np.log10(x_max / x_min)
+        t1 = bin_density * np.log10((1 + 10**n_step) / 2.0)
+        n_bins = np.ceil(t0 + t1)
 
     # to avoid round off error such that n_bins = |n_bins| + epsilon, where epsilon is an infinitesimally
     # small value
@@ -162,8 +183,8 @@ def _calculate_n_bins(x_min, x_max, n_step):
     return n_bins
 
 
-def determine_1d_log_bins(x_min, x_max, n_bins_per_decade=None, n_bins=None,
-                          decade_on_center=False, even_decade=False):
+def determine_1d_log_bins_deprecated(x_min, x_max, n_bins_per_decade=None, n_bins=None,
+                                     decade_on_center=False, even_decade=False):
     """Determine logarithm bins
 
     Including bin edge and bin center.

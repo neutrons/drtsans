@@ -5,7 +5,7 @@ from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
 from enum import Enum
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
-from drtsans.determine_bins import determine_1d_linear_bins, BinningParams
+from drtsans.determine_bins import determine_1d_log_bins_deprecated , BinningParams
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -247,7 +247,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                       ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method))
         else:
-            bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
+            bins_1d = determine_1d_log_bins_deprecated(qmin, qmax, n1dbins)
             for ub1d in unbinned_1d:
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
     return binned_q2d, binned_q1d_list

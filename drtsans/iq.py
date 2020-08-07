@@ -231,11 +231,11 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
         if log_scale:
-            bins_1d = determine_1d_log_bins(qmin, qmax,
-                                            n_bins_per_decade=n1dbins_per_decade,
-                                            n_bins=n1dbins,
-                                            decade_on_center=decade_on_center,
-                                            even_decade=even_decade)
+            bins_1d = determine_1d_log_bins_deprecated(qmin, qmax,
+                                                       n_bins_per_decade=n1dbins_per_decade,
+                                                       n_bins=n1dbins,
+                                                       decade_on_center=decade_on_center,
+                                                       even_decade=even_decade)
             for ub1d in unbinned_1d:
                 # The filter is needed for logarithmic binning so that
                 # the qmin and qmax are correctly taken into account

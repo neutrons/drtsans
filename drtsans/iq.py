@@ -5,13 +5,13 @@ from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
 from enum import Enum
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
-from drtsans.determine_bins import determine_1d_linear_bins, determine_1d_log_bins, BinningParams
+from drtsans.determine_bins import determine_1d_linear_bins, BinningParams
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
 __all__ = ['bin_all', 'bin_intensity_into_q1d', 'select_i_of_q_by_wedge',
            'bin_annular_into_q1d', 'bin_intensity_into_q2d', 'BinningMethod', 'check_iq_for_binning',
-           'determine_1d_linear_bins', 'determine_1d_log_bins', 'BinningParams']
+           'determine_1d_linear_bins', 'BinningParams']
 
 
 class BinningMethod(Enum):

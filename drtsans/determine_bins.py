@@ -169,12 +169,16 @@ def _calculate_n_bins(x_min, x_max, n_step, bin_density):
     -------
 
     """
-    if False:
-        n_bins = np.floor(np.ceil((np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)))
-    else:
+    n_bins = np.floor(np.ceil((np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)))
+
+    """
         t0 = np.log10(x_max / x_min)
-        t1 = bin_density * np.log10((1 + 10**n_step) / 2.0)
-        n_bins = np.ceil(t0 + t1)
+        t1 = bin_density * np.log10((1 + 10**(1. / bin_density)) / 2.0)
+        print(f't0 = {t0}')
+        print(f't1 = {t1}')
+        n_bins_x = np.ceil(t0 + t1)
+        print(f'[DEBUG] total bins = {n_bins}  vs {n_bins_x}')
+    """
 
     # to avoid round off error such that n_bins = |n_bins| + epsilon, where epsilon is an infinitesimally
     # small value

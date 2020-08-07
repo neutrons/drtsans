@@ -233,9 +233,9 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         if log_scale:
             # log bins
             bins_1d = determine_1d_log_bins_new(qmin, qmax,
-                                                       n_bins_per_decade=n1dbins_per_decade,
-                                                       n_bins=n1dbins,
-                                                       decade_on_center=decade_on_center)
+                                                n_bins_per_decade=n1dbins_per_decade,
+                                                n_bins=n1dbins,
+                                                decade_on_center=decade_on_center)
             for ub1d in unbinned_1d:
                 # The filter is needed for logarithmic binning so that
                 # the qmin and qmax are correctly taken into account
@@ -430,7 +430,6 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
 
     # select binning method
     # the methods call the independent axis "Q", but are generic to whatever values are passed in
-    do_1d_binning = None  # reference to function that was selected
     if method == BinningMethod.NOWEIGHT:
         # no weight binning
         do_1d_binning = _do_1d_no_weight_binning

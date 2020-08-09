@@ -5,7 +5,7 @@ import os
 import json
 
 from drtsans import savereductionlog
-from drtsans.iq import determine_1d_log_bins
+from drtsans.iq import determine_1d_log_bins_new
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_log_bins
 from drtsans.dataobjects import IQmod
 from drtsans.dataobjects import IQazimuthal
@@ -54,7 +54,7 @@ def _create_iq():
     num_steps_per_10 = 10  # 10 steps per decade
 
     # Verify bin edges and bin center
-    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
+    log_bins = determine_1d_log_bins_new(q_min, q_max, True, num_steps_per_10)
     gold_edges, gold_centers = get_gold_1d_log_bins()
 
     np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)

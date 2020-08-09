@@ -1,6 +1,6 @@
 from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
-from drtsans.iq import determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d,\
+from drtsans.iq import determine_1d_log_bins_new, BinningMethod, bin_intensity_into_q1d,\
     select_i_of_q_by_wedge
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
@@ -38,7 +38,7 @@ def test_1d_bin_log_wedge_no_wt():
 
     # Get data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
-    log_bins = determine_1d_log_bins(q_min, q_max, step_per_decade, even_decade=True)
+    log_bins = determine_1d_log_bins_new(q_min, q_max, True, step_per_decade)
 
     # Test high level method
     # Define input data

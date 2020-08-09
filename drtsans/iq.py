@@ -11,7 +11,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 __all__ = ['bin_all', 'bin_intensity_into_q1d', 'select_i_of_q_by_wedge',
            'bin_annular_into_q1d', 'bin_intensity_into_q2d', 'BinningMethod', 'check_iq_for_binning',
-           'determine_1d_linear_bins', 'BinningParams']
+           'determine_1d_linear_bins', 'determine_1d_log_bins_new', 'BinningParams']
 
 
 class BinningMethod(Enum):

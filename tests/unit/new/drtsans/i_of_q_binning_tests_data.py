@@ -218,24 +218,23 @@ def get_gold_1d_linear_bins():
 def get_gold_1d_log_bins():
     """Get the gold array for 1D logarithm bins
 
-    The gold data comes from test '1D_bin_log_wedge_no_sub_no_wt' in
-    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-    eqsans_tof_q_binning_tests_R5.xlsx
+    The gold data is re-generated due to the change in log bins calculation equation required by
+    issue https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/643
 
-    This is to test the method to create logarithm bins
+    This is to test the method to create logarithm bins with the setup as
+    for bin centers: q_min = 0.001, q_max = 0.010, points density = 9
+    match the previous one best (with 10 bins in total)
 
     Returns
     -------
     ndarray, ndarray
         bin edges, bin centers
     """
-    edge_array = np.array(
-        [0.001000, 0.001267, 0.001595, 0.002009, 0.002529, 0.003183, 0.004007,
-         0.005045, 0.006351, 0.007996, 0.010000])
+    edge_array = np.array([0.000885, 0.001115, 0.001403, 0.001767, 0.002224, 0.0028,
+                           0.003525, 0.004437, 0.005586, 0.007033, 0.008854, 0.011146])
 
-    center_array = np.array(
-        [0.001122, 0.001413, 0.001778, 0.002239, 0.002818, 0.003548, 0.004467,
-         0.005623, 0.007079, 0.008913])
+    center_array = np.array([0.001000, 0.001259, 0.001585, 0.001995, 0.002512, 0.003162,
+                             0.003981, 0.005012, 0.00631 , 0.007943, 0.0100])
 
     return edge_array, center_array
 

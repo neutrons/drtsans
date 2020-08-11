@@ -85,4 +85,3 @@ scan = 4
 pt = 1
 
 convert_spice_to_nexus(ipts, exp, scan, pt)
-

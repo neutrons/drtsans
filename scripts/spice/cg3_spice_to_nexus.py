@@ -1,4 +1,7 @@
 # Convert BIOSANS SPICE file to event NeXus
+# All the output file is supposed to be written to
+# /HFIR/CG3/IPTS-{ipts_number}/shared/spice_nexus/CG3_{exp}{scan}{pt}'
+# and make up a unique run number from experiment number, scan number and pt number
 import os
 from drtsans.mono.biosans.cg3_spice_to_nexus import CG3EventNexusConvert
 
@@ -62,8 +65,12 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number):
 
     # init convert
     converter = CG3EventNexusConvert()
+    # load instrument definition (IDF)
     converter.load_idf(template_nexus_file)
+    # load SPICE (xml file)
     converter.load_sans_xml(spice_data_file, meta_map)
+    # generate event nexus
+    converter.generate_event_nexus(out_nexus_file)
 
 
 # ---------------------------------------------------------------------------

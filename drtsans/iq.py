@@ -131,7 +131,7 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
 def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             n1dbins_per_decade=None, bin1d_type='scalar',
             log_scale=False, decade_on_center=False,
-            even_decade=False, qmin=None, qmax=None,
+            qmin=None, qmax=None,
             annular_angle_bin=1., wedges=None, symmetric_wedges=True,
             error_weighted=False):
     r"""Do all 1D and 2D binning for a configuration or detector
@@ -158,8 +158,6 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         if True, 1D scalar or wedge binning will be logarithmic. Ignored for anything else
     decade_on_center: bool
         Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
-    even_decade: bool
-        Flag to have even decade for minimum and maximum value in the generated bins
     qmin: float
         minimum 1D q
     qmax: float

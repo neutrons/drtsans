@@ -91,21 +91,29 @@ class SpiceXMLParser(object):
             value, unit
 
         """
-        # Get node
-        xml_node = self.get_xml_node(node_name)
+        if node_name == 'attenuator':
+            # Attenuator is special
+            value, units = self._read_attenuator()
 
-        # Get value
-        str_value = xml_node.text
-
-        # Get unit
-        if 'units' in xml_node.attrib:
-            units = xml_node.attrib['units']
         else:
-            units = None
+            # regular node
+            # Get node
+            xml_node = self.get_xml_node(node_name)
 
-        return value_type(str_value), units
+            # Get value
+            str_value = xml_node.text
 
-    def read_attenuator(self):
+            # Get unit
+            if 'units' in xml_node.attrib:
+                units = xml_node.attrib['units']
+            else:
+                units = None
+
+            value = value_type(str_value)
+
+        return value, units
+
+    def _read_attenuator(self):
         """Use this attenuator_pos and the attribute pos="open"
 
         Returns

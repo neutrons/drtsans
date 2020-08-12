@@ -7,186 +7,164 @@ import os
 from drtsans.load import load_events
 import json
 import h5py
-from drtsans.files.hdf5_rw import GroupNode, DataSetNode
-from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode, MonitorNode
-from drtsans.files.event_nexus_rw import generate_events_from_histogram
-from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
-from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
-# drtsans imports
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
-from mantid.simpleapi import LoadEventNexus
-from drtsans.files.hdf5_rw import FileNode
+from mantid.simpleapi import LoadEventNexus, Rebin, ConvertToMatrixWorkspace, mtd, LoadHFIRSANS
+from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus, CG3EventNexusConvert
+from drtsans.files.event_nexus_rw import DasLog
 from tempfile import mkdtemp
+from matplotlib import pyplot as plt
 
 
-# FIXME - BioSANS special
-# - dark current: das log 'duration'
-
-
-def generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus):
-    # Parse
-    logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
-                       'wavelength', 'wavelength_spread',
-                       'source_aperture_diameter', 'sample_aperture_diameter',
-                       'detector_trans_Readback']
-    cg3_nexus = parse_event_nexus(source_nexus_file, 88, logs_white_list)
-
-    # Load source
-    source_h5 = h5py.File(source_nexus_file, 'r')
-    source_root = FileNode()
-    source_root.parse_h5_entry(source_h5)
-    source_entry = source_root.get_child('/entry')
-
-    # Create a new one
-    duplicate_root = FileNode()
-    duplicate_root.set_child(source_root.get_child('/entry'))
-    duplicate_entry_node = duplicate_root.get_child('/entry')
-
-    # Replace node instrument
-    source_instrument = source_entry.get_child('/entry/instrument')
-    source_xml = source_instrument.get_child('/entry/instrument/instrument_xml')
-    xml_idf_content = source_xml.get_child('/entry/instrument/instrument_xml/data').value[0]
-
-    new_instrument_node = InstrumentNode()
-    new_instrument_node.set_instrument_info(1, 'CG3', 'CG3', 'CG3')
-    new_instrument_node.set_idf(xml_idf_content,
-                                idf_type='XML content of instrument IDF', description='text/xml')
-
-    # The bank nodes
-    bank_histograms = cg3_nexus[1]
-    run_start_time = cg3_nexus[3]
-
-    bank_node_dict = dict()
-    for bank_id in range(1, 88 + 1):
-        bank_node_name = f'/entry/bank{bank_id}_events'
-        bank_node = duplicate_entry_node.get_child(bank_node_name)
-        bank_node_dict[bank_id] = bank_node
-        if bank_id not in [48, 53]:
-            duplicate_entry_node.remove_child(bank_node_name)
-        else:
-            duplicate_entry_node.remove_child(bank_node_name)
-
-    # Add back all the bank nodes
-    max_pulse_time_array = None
-    for bank_id in bank_node_dict:
-        if bank_id in [48, 53]:
-            nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10., verbose=True)
-            print(f'Bank {bank_id}, Pixel IDs: {nexus_events.event_id.min()} to {nexus_events.event_id.max()}')
-            # continue
-        # generate fake events from counts
-        nexus_events = generate_events_from_histogram(bank_histograms[bank_id], 10.)
-        # Create bank node for bank
-        bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
-        bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
-                             nexus_events.event_time_offset, run_start_time,
-                             nexus_events.event_time_zero)
-        if max_pulse_time_array is None or nexus_events.event_time_zero.shape[0] > max_pulse_time_array.shape[0]:
-            max_pulse_time_array = nexus_events.event_time_zero
-        # set child
-        duplicate_entry_node.set_child(bank_node)
-
-    # Monitor counts
-    duplicate_entry_node.remove_child('/entry/monitor1')
-    tof_min = 0.
-    tof_max = 10000.
-    monitor_events = generate_monitor_events_from_count(cg3_nexus[2], max_pulse_time_array, tof_min, tof_max)
-    target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
-    target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
-                                           event_time_offset_array=monitor_events.event_time_offset,
-                                           run_start_time=run_start_time,
-                                           event_time_zero_array=max_pulse_time_array)
-    duplicate_entry_node.set_child(target_monitor_node)
-
-    # replace instrument node
-    duplicate_entry_node.remove_child('/entry/instrument')
-    duplicate_entry_node.set_child(new_instrument_node)
-
-    # Delete nodes under entry
-    black_list = ['title',
-                  'total_counts',
-                  'total_other_counts',
-                  'total_pulses',
-                  'total_uncounted_counts',
-                  'user1',
-                  'user2', 'notes',
-                  'user3',
-                  'user4',
-                  'user5',
-                  'entry_identifier', 'definition', 'bank_error_events', 'bank_unmapped_events',
-                  'sample', 'experiment_title', 'experiment_identifier', 'run_number', 'proton_charge',
-                  'raw_frames',
-                  'Software'
-                  ]
-    for short_name in black_list:
-        full_name = f'/entry/{short_name}'
-        duplicate_entry_node.remove_child(full_name)
-
-    # TODO  - Testing block
-    # Sample logs
-    das_logs_node = duplicate_entry_node.get_child('/entry/DASlogs')
-    # get all the children names
-    das_log_dict = dict()
-    for child_log_node in das_logs_node.children:
-        das_log_dict[child_log_node.name] = child_log_node
-
-    # remove all children
-    for child_log_name in das_log_dict:
-        das_logs_node.remove_child(child_log_name)
-
-    # add back some
-    for child_log_name in das_log_dict:
-        short_name = child_log_name.split('DASlogs/')[1]
-        if short_name in logs_white_list:
-            das_logs_node.set_child(das_log_dict[child_log_name])
-    # END-TODO
-
-    # write
-    duplicate_root.write(prototype_dup_nexus)
-
-    # Close
-    source_h5.close()
-
-    return
-
-
-def test_copy_event_nexus(reference_dir, cleanfile):
-    """Prototype test to find out why LoadEventNexusFiled
-
-    LoadEventNexus-[Warning] Empty proton_charge sample log. You will not be able to filter by time.
-    LoadEventNexus-[Error] Error in execution of algorithm LoadEventNexus:
-    LoadEventNexus-[Error] Error finding workspace index; pixelID 49152 with offset 2 is out of range
-        (length=49154)
-    =================================================================================================
+def test_convert_spice_to_nexus(reference_dir, cleanfile):
+    """Test to convert SPICE to NeXus
 
     Parameters
     ----------
     reference_dir
+    cleanfile
 
     Returns
     -------
 
     """
-    # Get the source file
-    source_nexus_file = 'CG3_5709.nxs.h5'
-    source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
-    assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
+    # Specify the test data
+    spice_data_file = os.path.join(reference_dir.new.biosans, 'BioSANS_exp327_scan0014_0001.xml')
+    template_nexus_file = os.path.join(reference_dir.new.biosans, 'CG3_5705.nxs.h5')
+    assert os.path.exists(spice_data_file), f'SPICE file {spice_data_file} cannot be located'
+    assert os.path.exists(template_nexus_file), f'Template NeXus file {template_nexus_file} cannot be located'
 
-    # Duplicate the source file to the temporary directory
-    output_dir = '/tmp/prototype_cg3nexus'
+    # Specify the output directory
+    output_dir = mkdtemp(prefix='cg3spice2nexus')
     cleanfile(output_dir)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
 
-    generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus)
+    # output file name
+    out_nexus_file = os.path.join(output_dir, 'CG3_32700140001.nxs.h5')
 
-    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
-    assert prototype_ws
-    assert prototype_ws.getNumberHistograms() == 90112
+    # set DAS meta data log map
+    meta_map = {
+        'CG3:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
+        'sample_detector_distance': ('sdd', 'm'),  # same
+        'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
+        'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
+        'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
+        'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
+        'detector_trans_Readback': ('detector_trans', 'mm'),  # same
+        'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
+        'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+        'ww_rot_Readback': ('det_west_wing_rot', 'degrees')   # degrees -> deg
+    }
+
+    # init convert
+    converter = CG3EventNexusConvert()
+    converter.load_idf(template_nexus_file)
+    converter.load_sans_xml(spice_data_file, meta_map)
+
+    # in order to do a reasonable pixel position comparison, hard set the ww_rot_Readback to be
+    # the same value as template event Nexus file
+    # CG3_5705.nxs.h5: ww_rot_Readback = 3.19938537 degrees
+    # BioSANS_exp327_scan0014_0001: det_west_wing_rot = 3.20174 degrees
+    print(converter._das_logs['ww_rot_Readback'])
+    ww_rot = converter._das_logs['ww_rot_Readback']
+    spice_ww_rot = ww_rot.values
+    assert spice_ww_rot == pytest.approx(3.20174, 1E-5)
+    converter._das_logs['ww_rot_Readback'] = DasLog(ww_rot.name, ww_rot.times, np.array([3.19938537]),
+                                                    ww_rot.unit, ww_rot.device)
+
+    # generate event nexus
+    converter.generate_event_nexus(out_nexus_file)
+
+    # Check: file existence
+    os.path.exists(out_nexus_file), f'Output file {out_nexus_file} cannot be located'
+
+    # Check instrument node against the original one
+    test_nexus_h5 = h5py.File(out_nexus_file, 'r')
+    test_idf = test_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+    expected_nexus_h5 = h5py.File(template_nexus_file, 'r')
+    expected_idf = expected_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+    assert test_idf == expected_idf
+    test_nexus_h5.close()
+    expected_nexus_h5.close()
+
+    # Load test data
+    test_ws_name = 'TestFaked_CG3_32700140001'
+    LoadEventNexus(Filename=out_nexus_file, OutputWorkspace=test_ws_name,
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
+    ConvertToMatrixWorkspace(InputWorkspace=test_ws_name, OutputWorkspace=test_ws_name)
+    test_nexus_ws = mtd[test_ws_name]
+
+    # Load template event nexus
+    LoadEventNexus(Filename=template_nexus_file, OutputWorkspace='cg3template',
+                   NumberOfBins=1, LoadNexusInstrumentXML=True)
+    template_ws = mtd['cg3template']
+
+    # Check number of histograms
+    assert test_nexus_ws.getNumberHistograms() == template_ws.getNumberHistograms()
+
+    # Compare units of required DAS logs
+    for das_log_name in ['CG3:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
+                         'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
+                         'detector_trans_Readback', 'ww_rot_Readback']:
+        template_unit = template_ws.run().getProperty(das_log_name).units
+        test_unit = test_nexus_ws.run().getProperty(das_log_name).units
+        assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
+
+    # Check instrument by comparing pixel position for main detector
+    # CG3_5705.nxs.h5: detector_trans_Readback = 1.500124 mm (to negative X direction)
+    # BioSANS_exp327_scan0014_0001: detector trans = 4.9999 mm
+    # Thus all pixels of from-SPICE data shall have a positive 1 mm shift
+    # Both data have different SDD.  Thus all the pixels will have a constant shift along Z direction
+    # Current IDF does not work well with detector position in z-direction.
+    # Thus after loading the Nexus file, the detector's position in X- and Y- direction are correct
+    # but not in Z-direction.  It will be positioned correctly in drt-sans reduction.
+    # Therefore, as long as the detector plane are perpendicular to Z-axis, it is correct.
+    diff_x = (-4.99999 - (-1.500124)) * 0.001
+    diff_z_list = list()
+    for iws in range(0, 1024 * 48, 10):
+        test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
+        expected_pixel_pos = template_ws.getDetector(iws).getPos()
+        # constant difference at x
+        if test_pixel_pos[0] - diff_x != pytest.approx(expected_pixel_pos[0], abs=1e-7):
+            error_message = f'Pixel {iws} test pixel position X: {test_pixel_pos} != ' \
+                            f'expected pixel position X: {expected_pixel_pos}'
+            raise AssertionError(error_message)
+        # y shall be exactly same
+        assert test_pixel_pos[1] == pytest.approx(expected_pixel_pos[1], abs=1e-7)
+        # z shall have constant difference
+        diff_z_list.append(test_pixel_pos[2] - expected_pixel_pos[2])
+    # shift along Z-axis shall be a constant
+    assert np.array(diff_z_list).std() < 1E-12
+
+    # check pixel positions for wing detector
+    # CG3_5705.nxs.h5: ww_rot_Readback = 3.19938537 degrees
+    # BioSANS_exp327_scan0014_0001: det_west_wing_rot = 3.20174 degrees
+    # In previous step, ww_rot_Readback is hard set to 3.19938537 degrees
+    for iws in range(1024 * 48, template_ws.getNumberHistograms()):
+        test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
+        expected_pixel_pos = template_ws.getDetector(iws).getPos()
+        # compare pixel position between generated and expected
+        np.testing.assert_allclose(test_pixel_pos, expected_pixel_pos,
+                                   err_msg=f'Pixel {iws} test pixel position X: {test_pixel_pos} '
+                                           f'!= expected pixel position X: {expected_pixel_pos}')
+
+    # Load original SPICE file
+    spice_ws_name = os.path.basename(spice_data_file).split('.')[0]
+    spice_ws_name = f'CG3IntTestSpice_{spice_ws_name}'
+    LoadHFIRSANS(Filename=spice_data_file, OutputWorkspace=spice_ws_name)
+    spice_ws = mtd[spice_ws_name]
+
+    # compare histograms
+    for iws in range(0, test_nexus_ws.getNumberHistograms()):
+        assert test_nexus_ws.readY(iws)[0] == pytest.approx(spice_ws.readY(iws + 2)[0], abs=1E-3)
+
+    # compare DAS logs (partial)
+    for log_name in ['wavelength', 'source_aperture_diameter', 'sample_aperture_diameter']:
+        nexus_log_value = test_nexus_ws.run().getProperty(log_name).value.mean()
+        spice_log_value = spice_ws.run().getProperty(log_name).value
+        assert nexus_log_value == pytest.approx(spice_log_value, 1e-7)
 
 
-def skip_test_duplicate_event_nexus(reference_dir, cleanfile):
+def test_duplicate_event_nexus(reference_dir, cleanfile):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -203,341 +181,44 @@ def skip_test_duplicate_event_nexus(reference_dir, cleanfile):
     assert os.path.exists(source_nexus_file), f'Test data {source_nexus_file} does not exist'
 
     # Duplicate the source file to the temporary directory
-    # TODO - this will be replaced by tempfile for future
-    output_dir = '/tmp/dupcg3nexus'
+    output_dir = mkdtemp(prefix='dupcg3nexus')
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    prototype_dup_nexus = os.path.join(output_dir, 'CG3_5709_prototype.nxs.h5')
     product_dup_nexus = os.path.join(output_dir, 'CG3_5709_product.nxs.h5')
 
     # Duplicate with both approach
     logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
                        'wavelength', 'wavelength_spread',
                        'source_aperture_diameter', 'sample_aperture_diameter',
-                       'detector_trans_Readback']
-    # generate_event_nexus_prototype(source_nexus_file, prototype_dup_nexus, logs_white_list)
-    generate_event_nexus_prototype_x(source_nexus_file, prototype_dup_nexus)
+                       'detector_trans_Readback', 'ww_rot_Readback',
+                       'source_aperture_sample_aperture_distance']
     generate_event_nexus(source_nexus_file, product_dup_nexus, logs_white_list)
 
-    # Load the duplicated
-    prototype_ws = load_events(prototype_dup_nexus, output_workspace='cg3_prototype', NumberOfBins=2)
-
     # Load source file to workspace
-    target_ws = load_events(product_dup_nexus, output_workspace='cg3_product', NumberOfBins=2)
+    target_ws = load_events(product_dup_nexus, output_workspace='cg3_product', NumberOfBins=1,
+                            LoadNexusInstrumentXML=True)
+    source_ws = load_events(source_nexus_file, output_workspace='cg3_source', NumberOfBins=1,
+                            LoadNexusInstrumentXML=True)
 
     # Compare pixels' positions
-    num_hist = prototype_ws.getNumberHistograms()
-    for iws in range(0, num_hist, 100):
-        source_det_i_pos = prototype_ws.getInstrument().getDetector(iws).getPos()
+    num_hist = source_ws.getNumberHistograms()
+    for iws in range(0, num_hist):
+        source_det_i_pos = source_ws.getInstrument().getDetector(iws).getPos()
         target_det_i_pos = target_ws.getInstrument().getDetector(iws).getPos()
         np.testing.assert_allclose(source_det_i_pos, target_det_i_pos,
                                    err_msg=f'Mismatch is detected at Detector {iws}')
     # Check source position
-    source_moderator_pos = prototype_ws.getInstrument().getSource().getPos()
+    source_moderator_pos = source_ws.getInstrument().getSource().getPos()
     target_moderator_pos = target_ws.getInstrument().getSource().getPos()
+    print(f'source moderator @ {source_moderator_pos}; re-generated moderator @ {target_moderator_pos}')
     np.testing.assert_allclose(source_moderator_pos, target_moderator_pos,
                                err_msg=f'Mismatch is detected at neutron source position')
 
     # Compare counts on each pixel
-    source_y = prototype_ws.extractY()
+    source_y = source_ws.extractY()
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
-
-    # Compare meta data
-    if len(prototype_ws.getRun().getProperties()) != len(target_ws.getRun().getProperties()):
-        print(f'Prototype:')
-        for p in prototype_ws.getRun().getProperties():
-            print(f'property: {p.name}')
-        print(f'Product')
-        for p in target_ws.getRun().getProperties():
-            print(f'property: {p.name}')
-        raise RuntimeError('Meta data mismatch')
-
-
-def generate_event_nexus(source_nexus, target_nexus, das_log_list):
-    """Generate event NeXus properly
-
-    Parameters
-    ----------
-    source_nexus
-    target_nexus
-
-    Returns
-    -------
-
-    """
-    cg3_num_banks = 88
-
-    # Import essential experimental data from source event nexus file
-    nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
-    # Generate event nexus writer
-    event_nexus_writer = EventNeXusWriter(beam_line='CG3', instrument_name='CG3')
-
-    # set instrument: 88 banks (2 detectors)
-    event_nexus_writer.set_instrument_info(cg3_num_banks,  nexus_contents[0])
-
-    # set counts: 88 banks (2 detectors)
-    for bank_id in range(1, cg3_num_banks + 1):
-        event_nexus_writer.set_bank_histogram(bank_id, nexus_contents[1][bank_id])
-
-    # set meta
-    for das_log in nexus_contents[5].values():
-        event_nexus_writer.set_meta_data(das_log)
-
-    # time
-    start_time = nexus_contents[3]
-    end_time = nexus_contents[4]
-
-    # Write file
-    event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
-
-
-def generate_event_nexus_prototype(source_nexus, target_nexus, das_log_list):
-    """Generate event NeXus using white list.
-
-    This serves as the prototype to create event nexus from SANS histogram raw data
-
-    White list
-    Entry attributes: {'NX_class': b'NXentry'}
-
-    White List Node: /entry/monitor1
-    White List Node: /entry/proton_charge
-
-    White List Node: /entry/duration
-    White List Node: /entry/start_time
-    White List Node: /entry/end_time
-
-    White List Node: /entry/experiment_identifier
-    White List Node: /entry/experiment_title
-    White List Node: /entry/title
-    White List Node: /entry/notes
-    White List Node: /entry/raw_frames
-    White List Node: /entry/run_number
-
-    White List Node: /entry/total_counts
-    White List Node: /entry/total_other_counts
-    White List Node: /entry/total_pulses
-
-    Parameters
-    ----------
-    source_nexus: str
-        source event NeXus file name
-    target_nexus
-
-    Returns
-    -------
-
-    """
-    # parse nexus information
-    nexus_contents = parse_event_nexus(source_nexus, 88, das_log_list)
-
-    # Create new nexus file structure
-    target_nexus_root = init_event_nexus()
-
-    target_entry_node = target_nexus_root.get_child('entry', is_short_name=True)
-
-    # set instrument node
-    set_instrument_node(nexus_contents[0], target_entry_node)
-
-    # set DAS logs
-    set_das_log_node(nexus_contents[5], nexus_contents[3], target_entry_node)
-
-    # Add node on the white list
-    entry_level_white_list = [
-        ('/entry/start_time', nexus_contents[3]),
-        ('/entry/end_time', nexus_contents[4])
-    ]
-    for child_node_name, child_value in entry_level_white_list:
-        child_node = DataSetNode(child_node_name)
-        child_node.set_string_value(child_value)
-        target_entry_node.set_child(child_node)
-
-    # set Bank 1 - 88 (2 detectors)
-    max_pulse_time_array = None
-    for bank_id in range(1, 88 + 1):
-        bank_node_i = set_single_bank_node(nexus_contents[1][bank_id], target_entry_node, bank_id=bank_id,
-                                           run_start_time=nexus_contents[3])
-        event_time_zeros = bank_node_i.get_child('event_time_zero', is_short_name=True).value
-        if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
-            max_pulse_time_array = event_time_zeros
-
-    # Set monitor node
-    set_monitor_node(nexus_contents[2],  nexus_contents[3], target_entry_node, max_pulse_time_array)
-
-    # write
-    target_nexus_root.write(target_nexus)
-
-
-def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_time_zeros):
-    """
-
-    Parameters
-    ----------
-    monitor_counts: float, int
-    target_entry_node
-    event_time_zeros: ~numpy.ndarray
-        event time zeros
-    run_start_time: str, Bytes
-        run start time
-
-    Returns
-    -------
-
-    """
-    # Generate a monitor node
-    target_monitor_node = MonitorNode('/entry/monitor1', 'monitor1')
-
-    tof_min = 0.
-    tof_max = 10000.
-    monitor_events = generate_monitor_events_from_count(monitor_counts, event_time_zeros, tof_min, tof_max)
-
-    target_monitor_node.set_monitor_events(event_index_array=monitor_events.event_index,
-                                           event_time_offset_array=monitor_events.event_time_offset,
-                                           run_start_time=run_start_time,
-                                           event_time_zero_array=event_time_zeros)
-
-    target_entry_node.set_child(target_monitor_node)
-
-
-def set_single_bank_node(bank_histogram, target_entry_node, bank_id, run_start_time):
-    """Test writing bank 9 from histogram
-
-    Parameters
-    ----------
-    bank_histogram: TofHistogram
-        HDF5 file entry
-    target_entry_node: GroupNode
-        Target (output) group node for /entry/
-    bank_id: int
-        bank ID (from 1 to 88)
-    run_start_time: str, Bytes
-        run start time
-
-    Returns
-    -------
-    BankNode
-        newly generated bank node
-
-    """
-    # generate events
-    nexus_events = generate_events_from_histogram(bank_histogram, 10.)
-
-    try:
-        run_start_time = np.string_(run_start_time).decode()
-    except AttributeError:
-        pass
-
-    # Create bank node for bank
-    bank_node = BankNode(name=f'/entry/bank{bank_id}_events', bank_name=f'bank{bank_id}')
-    bank_node.set_events(nexus_events.event_id, nexus_events.event_index,
-                         nexus_events.event_time_offset, run_start_time,
-                         nexus_events.event_time_zero)
-
-    # Link with parent
-    target_entry_node.set_child(bank_node)
-
-    return bank_node
-
-
-def set_instrument_node(xml_idf, target_entry_node):
-    """Set instrument node
-
-    Parameters
-    ----------
-    xml_idf:  str
-        IDF content
-    target_entry_node
-
-    Returns
-    -------
-
-    """
-    # Create new instrument node
-    instrument_node = InstrumentNode()
-    target_entry_node.set_child(instrument_node)
-
-    # Set values
-    instrument_node.set_idf(xml_idf, idf_type=b'text/xml', description=b'XML contents of the instrument IDF')
-    instrument_node.set_instrument_info(target_station_number=1, beam_line=b'CG3', name=b'CG3', short_name=b'CG3')
-
-
-def set_das_log_node(das_log_dict, run_start_time, target_entry_node):
-    """Set DAS log node in a mixed way
-
-    Parameters
-    ----------
-    das_log_dict: dict
-        das log dictionary containing DasLog objects
-    run_start_time: str
-        run start time
-    target_entry_node: GroupNode
-        target node
-
-    Returns
-    -------
-
-    """
-    target_logs_node = GroupNode('/entry/DASlogs')
-    target_entry_node.set_child(target_logs_node)
-    # add attribute
-    target_logs_node.add_attributes({'NX_class': 'NXcollection'})
-
-    for log_name in das_log_dict:
-        set_single_log_node(target_logs_node, das_log_dict[log_name], run_start_time)
-
-
-def set_single_log_node(log_collection_node, das_log, start_time):
-    """
-
-    Parameters
-    ----------
-    log_collection_node
-    das_log: DasLog
-    start_time: str
-
-    Returns
-    -------
-
-    """
-    # Set up a DAS log node
-    das_log_node = DasLogNode(log_name=f'/entry/DASlogs/{das_log.name}',
-                              log_times=das_log.times,
-                              log_values=das_log.values,
-                              start_time=start_time,
-                              log_unit=das_log.unit)
-
-    if das_log.device is not None:
-        if das_log.device.target is None:
-            device_target = None
-        else:
-            device_target = das_log.device.target
-        das_log_node.set_device_info(device_id=das_log.device.id,
-                                     device_name=das_log.device.name,
-                                     target=device_target)
-
-    # append to parent node
-    log_collection_node.set_child(das_log_node)
-
-
-def set_sdd_node(log_collection_node, source_h5):
-    # Get times and value for /entry/DASlogs/sample_detector_distance
-    ssd_entry = source_h5['entry']['DASlogs']['sample_detector_distance']
-    ssd_times = ssd_entry['time'].value
-    ssd_start_time = ssd_entry['time'].attrs['start']
-    ssd_value = ssd_entry['value'].value
-    ssd_value_unit = ssd_entry['value'].attrs['units']
-
-    # Set up a DAS log node
-    ssd_test_node = DasLogNode(log_name='/entry/DASlogs/sample_detector_distance',
-                               log_times=ssd_times, log_values=ssd_value,
-                               start_time=ssd_start_time, log_unit=ssd_value_unit)
-
-    ssd_test_node.set_device_info(device_id=13, device_name=b'Mot-Galil3',
-                                  target=b'/entry/DASlogs/CG3:CS:SampleToDetRBV')
-
-    # append to parent node
-    log_collection_node.set_child(ssd_test_node)
 
 
 def verify_histogram(source_nexus, test_nexus):
@@ -554,9 +235,51 @@ def verify_histogram(source_nexus, test_nexus):
     -------
 
     """
+    # Compare in HDF5 level
+    source_h5 = h5py.File(source_nexus, 'r')
+    target_h5 = h5py.File(test_nexus, 'r')
+
+    # Check all the banks
+    error_hdf = ''
+    for bank_id in range(1, 89):
+        source_event_ids = source_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        target_event_ids = target_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        if source_event_ids.shape != target_event_ids.shape:
+            error_hdf += f'Bank {bank_id}  {source_event_ids.shape} vs {target_event_ids.shape}\n'
+
+    # close nexus files as hdf5
+    source_h5.close()
+    target_h5.close()
+
+    # Report error
+    if len(error_hdf) > 0:
+        print(error_hdf)
+        print(f'source: {source_nexus}')
+        print(f'target: {test_nexus}')
+        raise AssertionError(error_hdf)
+
+    # Compare with NeXus
     # Load NeXus file
-    src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='gold', NumberOfBins=1)
+    src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace='gold', NumberOfBins=500)
     test_ws = LoadEventNexus(Filename=test_nexus, OutputWorkspace='test', NumberOfBins=1)
+
+    # Compare with raw counts
+    error_message = ''
+    for i in range(src_ws.getNumberHistograms()):
+        if src_ws.readY(i).sum() != test_ws.readY(i)[0]:
+            error_message += f'Workspace-index {i} / detector ID {src_ws.getDetector(i).getID()}/' \
+                             f'{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},' \
+                             f'Actual counts = {test_ws.readY(i)}\n'
+
+    # report error
+    if len(error_message) > 0:
+        print(error_message)
+        print(f'source: {source_nexus}')
+        print(f'target: {test_nexus}')
+        raise AssertionError(error_message)
+
+    # A more tricky situation: Rebin throws away events
+    src_ws = Rebin(InputWorkspace=src_ws, Params='-20000,40000,20000', PreserveEvents=False)
 
     # Compare counts
     error_message = ''
@@ -566,34 +289,12 @@ def verify_histogram(source_nexus, test_nexus):
                              f'{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},' \
                              f'Actual counts = {test_ws.readY(i)}\n'
 
-    # Nothing wrong!
-    if error_message == '':
-        return
-
-    # Compare in HDF5 level
-    source_h5 = h5py.File(source_nexus, 'r')
-    target_h5 = h5py.File(test_nexus, 'r')
-
-    # Check all the banks
-    for bank_id in range(1, 89):
-        source_event_ids = source_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
-        target_event_ids = target_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
-        if source_event_ids.shape != target_event_ids.shape:
-            print(f'Bank {bank_id}  {source_event_ids.shape} vs {target_event_ids.shape}')
-        for pid in [48139, 58367]:
-            if source_event_ids.min() <= pid < source_event_ids.max():
-                print(f'PID {pid} in source bank {bank_id}')
-            if target_event_ids.min() <= pid < target_event_ids.max():
-                print(f'PID {pid} in target bank {bank_id}')
-
-    # close
-    source_h5.close()
-    target_h5.close()
-
-    print(error_message)
-    print(f'source: {source_nexus}')
-    print(f'target: {test_nexus}')
-    raise AssertionError(error_message)
+    # write the error message to disk
+    report_file_name = os.path.basename(source_nexus).split('.')[0] + '_error_log.txt'
+    with open(report_file_name, 'w') as report_file:
+        report_file.write(error_message)
+        report_file.write(f'source: {source_nexus}\n')
+        report_file.write(f'target: {test_nexus}\n')
 
 
 def test_reduction(reference_dir, cleanfile):
@@ -609,9 +310,8 @@ def test_reduction(reference_dir, cleanfile):
     # Set up test
     json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020'), None, None)
 
-    # TODO / FIXME - switch to tempfile later
-    output_dir = mkdtemp(prefix='meta_overwrite_bio_test1')
-    # output_dir = '/tmp/nexuscg3reduction/'
+    # Create output directory
+    output_dir = mkdtemp(prefix='nexuscg3reduction')
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -621,14 +321,15 @@ def test_reduction(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_04282020/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1/')
 
     # Verify
-    # FIXME - now it fails. Take it back!
     try:
-        verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
-    except AssertionError:
-        pass
+        # there are some minor difference because Rebin throws away some events
+        verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1',
+                                 rel_tol=3e-6)
+    except AssertionError as a_error:
+        raise AssertionError(f'Reduction result does not match {a_error}')
 
 
 def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance):
@@ -728,21 +429,36 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     sample_names = ['csmb_ecoli1h_n2']
     sample = '5709'
     samples_tran = sample
-    backgrounds = ['5715']
-    backgrounds_trans = backgrounds
+    background = '5715'
+    backgrounds_trans = background
 
-    # Replace duplicate
+    # Replace by duplicates
+    logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
+                       'wavelength', 'wavelength_spread',
+                       'source_aperture_diameter', 'sample_aperture_diameter',
+                       'detector_trans_Readback', 'ww_rot_Readback',
+                       'source_aperture_sample_aperture_distance']
+
+    # generate sample
     source_sample_nexus = os.path.join(nexus_dir, f'CG3_{sample}.nxs.h5')
     os.path.exists(source_sample_nexus), f'Source sample NeXus {source_sample_nexus} does not exist'
-    # TODO - need a better name for test sample nexus
     test_sample_nexus = os.path.join(output_dir, f'CG3_{sample}.nxs.h5')
-    generate_event_nexus_prototype_x(source_sample_nexus, test_sample_nexus)
-    # logs_white_list = ['CG3:CS:SampleToSi', 'sample_detector_distance',
-    #                    'wavelength', 'wavelength_spread',
-    #                    'source_aperture_diameter', 'sample_aperture_diameter',
-    #                    'detector_trans_Readback']
-    # generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
+    generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
     verify_histogram(source_sample_nexus, test_sample_nexus)
+
+    # generate background
+    source_bkgd_nexus = os.path.join(nexus_dir, f'CG3_{background}.nxs.h5')
+    os.path.exists(source_bkgd_nexus), f'Source background NeXus {source_bkgd_nexus} does not exist'
+    test_bkgd_nexus = os.path.join(output_dir, f'CG3_{background}.nxs.h5')
+    generate_event_nexus(source_bkgd_nexus, test_bkgd_nexus, logs_white_list)
+
+    # sample trans
+    if samples_tran == sample:
+        samples_tran = test_sample_nexus
+
+    # background
+    if backgrounds_trans == background:
+        backgrounds_trans = test_bkgd_nexus
 
     # checking if output directory exists, if it doesn't, creates the folder
     for subfolder in ['1D', '2D']:
@@ -756,21 +472,35 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     reduction_input = json.loads(json_str)
     reduction_input["dataDirectories"] = nexus_dir
     reduction_input["configuration"]["outputDir"] = output_dir
-    # reduction_input["sample"]["runNumber"] = source_sample_nexus
     reduction_input["sample"]["runNumber"] = test_sample_nexus
-    reduction_input["sample"]["transmission"]["runNumber"] = samples_tran
-    reduction_input["background"]["runNumber"] = backgrounds[0]
-    reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[0]
+    reduction_input["sample"]["transmission"]["runNumber"] = samples_tran   # set to test
+    reduction_input["background"]["runNumber"] = test_bkgd_nexus  # backgrounds[0]
+    reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans
     reduction_input["outputFileName"] = sample_names[0]
+
+    # beam center: convert and reset
+    beam_center_run = reduction_input['beamCenter']['runNumber']
+    source_bc_nexus = os.path.join(nexus_dir, f'CG3_{beam_center_run}.nxs.h5')
+    os.path.exists(source_bc_nexus), f'Source background NeXus {source_bc_nexus} does not exist'
+    test_bc_nexus = os.path.join(output_dir, f'CG3_{beam_center_run}.nxs.h5')
+    # specific log: there is no source_aperture_diameter in run 1322
+    das_1322_list = ['CG3:CS:SampleToSi', 'sample_detector_distance', 'wavelength', 'wavelength_spread',
+                     'detector_trans_Readback', 'ww_rot_Readback',
+                     'source_aperture_sample_aperture_distance']
+    generate_event_nexus(source_bc_nexus, test_bc_nexus, das_1322_list)
+    reduction_input['beamCenter']['runNumber'] = test_bc_nexus
+
     # always check after updating the parameters
     reduction_input = validate_reduction_parameters(reduction_input)
     loaded = load_all_files(reduction_input,
                             path=nexus_dir,
                             prefix=prefix)
+
+    # reduce
     reduce_single_configuration(loaded, reduction_input)
 
 
-def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
+def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix, rel_tol=1e-7):
 
     unmatched_errors = ''
 
@@ -784,7 +514,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         # compare
         title_i = '{}: {}'.format(sample_name, title)
         try:
-            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
+            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix, rel_tol=rel_tol)
         except AssertionError as unmatched_error:
             unmatched_errors = 'Testing output {} is different from gold result {}:\n{}' \
                                ''.format(output_log_file, gold_log_file, unmatched_error)
@@ -795,7 +525,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         raise AssertionError(unmatched_errors)
 
 
-def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
+def compare_reduced_iq(test_log_file, gold_log_file, title, prefix, rel_tol=1e-7):
     """
 
     Parameters
@@ -807,6 +537,8 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
         plot title
     prefix: str
         file name prefix
+    rel_tol: float
+        relative tolerance of the difference between expected value and actual value
 
     Returns
     -------
@@ -820,16 +552,15 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
         vec_q_b, vec_i_b = get_iq1d(gold_log_file, is_main=is_main_detector)
 
         try:
-            np.testing.assert_allclose(vec_q_a, vec_q_b)
-            np.testing.assert_allclose(vec_i_a, vec_i_b)
+            np.testing.assert_allclose(vec_q_a, vec_q_b, rtol=rel_tol)
+            np.testing.assert_allclose(vec_i_a, vec_i_b, rtol=rel_tol)
             log_errors.append(None)
         except AssertionError as assert_err:
-            log_errors.append(assert_err)
-            from matplotlib import pyplot as plt
             if is_main_detector:
                 flag = 'Main_detector'
             else:
                 flag = 'Wing_detector'
+            log_errors.append(f'{flag}: {assert_err}')
             plt.cla()
             plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
             plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))
@@ -875,8 +606,8 @@ def get_iq1d(log_file_name, is_main=True):
             iq1d_entry = log_h5['_slice_1']['wing_0']['I(Q)']
 
     # Get data with a copy
-    vec_q = np.copy(iq1d_entry['Q'].value)
-    vec_i = np.copy(iq1d_entry['I'].value)
+    vec_q = np.copy(iq1d_entry['Q'][()])
+    vec_i = np.copy(iq1d_entry['I'][()])
 
     # close file
     log_h5.close()

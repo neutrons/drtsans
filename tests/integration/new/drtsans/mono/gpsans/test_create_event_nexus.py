@@ -13,7 +13,7 @@ from drtsans.files.event_nexus_nodes import InstrumentNode, DasLogNode, BankNode
 from drtsans.files.event_nexus_rw import generate_events_from_histogram
 from drtsans.files.event_nexus_rw import generate_monitor_events_from_count
 from drtsans.files.event_nexus_rw import init_event_nexus, parse_event_nexus, EventNeXusWriter
-from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace, LoadHFIRSANS
 from tempfile import mkdtemp
 
@@ -70,9 +70,6 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
 
-    # Compare meta data
-    assert len(prototype_ws.getRun().getProperties()) == len(target_ws.getRun().getProperties()), 'Meta data mismatch'
-
 
 def test_reduction(reference_dir, cleanfile):
     """Test generate (partially copy) an event Nexus file by
@@ -85,7 +82,6 @@ def test_reduction(reference_dir, cleanfile):
 
     """
     # Generate a new event NeXus file
-    # TODO - in future it will be moved to a proper method in drtsans.generate_event_nexus
     output_dir = mkdtemp(prefix='reducecg2nexus')
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
@@ -288,7 +284,8 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
     # Add node on the white list
     entry_level_white_list = [
         ('/entry/start_time', nexus_contents[3]),
-        ('/entry/end_time', nexus_contents[4])
+        ('/entry/end_time', nexus_contents[4]),
+        ('/entry/duration', 'only used by biosans')
     ]
     for child_node_name, child_value in entry_level_white_list:
         child_node = DataSetNode(child_node_name)
@@ -635,10 +632,22 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     out_nexus_file = os.path.join(output_dir, 'CG2_31500050060.nxs.h5')
 
     # init convert
-    converter = EventNexusConverter('CG2', 'CG2')
+    # Load meta data and convert to NeXus format
+    das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
+                   'sample_detector_distance': ('sdd', 'm'),  # same
+                   'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
+                   'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
+                   'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
+                   'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
+                   'detector_trans_Readback': ('detector_trans', 'mm'),  # same
+                   'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
+                   'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+                   'attenuator': ('attenuator_pos', 'mm')  # special
+                   }
+    converter = CG2EventNexusConvert()
     converter.load_idf(template_nexus_file)
-    converter.load_sans_xml(spice_data_file)
-    converter.generate_event_nexus(out_nexus_file, num_banks=48)
+    converter.load_sans_xml(spice_data_file, das_log_map)
+    converter.generate_event_nexus(out_nexus_file)
 
     # Check
     os.path.exists(out_nexus_file)
@@ -670,7 +679,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     # Compare units of required DAS logs
     for das_log_name in ['CG2:CS:SampleToSi', 'wavelength', 'wavelength_spread', 'source_aperture_diameter',
                          'sample_aperture_diameter', 'detector_trans_Readback', 'sample_detector_distance',
-                         'detector_trans_Readback']:
+                         'detector_trans_Readback', 'attenuator']:
         template_unit = template_ws.run().getProperty(das_log_name).units
         test_unit = test_nexus_ws.run().getProperty(das_log_name).units
         assert template_unit == test_unit, f'DAS log {das_log_name} unit does not match'
@@ -696,7 +705,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
 
     # Load original SPICE file
     spice_ws_name = os.path.basename(spice_data_file).split('.')[0]
-    spice_ws_name = f'CG3IntTestSpice_{spice_ws_name}'
+    spice_ws_name = f'CG2IntTestSpice_{spice_ws_name}'
     LoadHFIRSANS(Filename=spice_data_file, OutputWorkspace=spice_ws_name)
     spice_ws = mtd[spice_ws_name]
 

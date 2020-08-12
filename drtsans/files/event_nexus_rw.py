@@ -4,6 +4,7 @@ from drtsans.files.hdf5_rw import FileNode, GroupNode
 from drtsans.files.hdf5_rw import DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, BankNode, MonitorNode, DasLogNode, DasLogsCollectionNode
 import h5py
+import dateutil
 
 
 __all__ = ['TofHistogram', 'NexusEvents', 'EventNeXusWriter', 'generate_events_from_histogram',
@@ -212,16 +213,22 @@ class EventNeXusWriter(object):
         -------
 
         """
+        # Calculate duration
+        t0 = dateutil.parser.parse(start_time)
+        tf = dateutil.parser.parse(stop_time)
+        duration_s = (tf - t0).total_seconds()
+
         # Set up the list
         entry_value_tuples = [
-            ('/entry/start_time', start_time),
-            ('/entry/end_time', stop_time)
+            ('/entry/start_time', np.array([np.string_(start_time)])),
+            ('/entry/end_time', np.array([np.string_(stop_time)])),
+            ('/entry/duration', np.array([duration_s]).astype('float32'))
         ]
 
         for child_node_name, value in entry_value_tuples:
             # Init regular DataSetNode and set value
             child_node = DataSetNode(child_node_name)
-            child_node.set_value(np.array([np.string_(value)]))
+            child_node.set_value(value)
             # Link as the child of entry
             self._entry_node.set_child(child_node)
 
@@ -514,6 +521,8 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
         Histogram for a single bank
     tof_resolution: float
         resolution of TOF
+    verbose: bool
+        flag to print out events information
 
     Returns
     -------

@@ -188,7 +188,15 @@ class EventNexusConverter(ABC):
         das_log_values = dict()
         for nexus_log_name, spice_tuple in das_spice_log_map.items():
             # read value from XML node
-            spice_log_name, default_unit, data_type = spice_tuple
+            # FIXME - this is a temporary solution in order to work with both new and old
+            # FIXME - meta data map
+            spice_log_name = spice_tuple[0]
+            default_unit = spice_tuple[1]
+            if len(spice_tuple) >= 3:
+                data_type = spice_tuple[2]
+            else:
+                # default
+                data_type = float
             value, unit = spice_reader.get_node_value(spice_log_name, data_type)
 
             # set default
@@ -203,7 +211,11 @@ class EventNexusConverter(ABC):
             das_log_values[nexus_log_name] = value, unit
 
         # Get pt number
-        pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
+        try:
+            pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
+        except KeyError as key_err:
+            # some spice file may not have Scan_Point_Number
+            pt_number = key_err
 
         # Close file
         spice_reader.close()

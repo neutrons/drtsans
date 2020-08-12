@@ -16,6 +16,9 @@ class SpiceXMLParser(object):
         spice_xml_name: str
             SPICE XML file
         """
+        # Store file name for reference
+        self._spice_name = spice_xml_name
+
         # open the file
         self._xml_file = open(spice_xml_name, 'r')
         # parse
@@ -51,7 +54,7 @@ class SpiceXMLParser(object):
 
         # Only allow unique solution
         if len(xml_node_list) == 0:
-            raise KeyError(f'XML node {node_name} does not exist.')
+            raise KeyError(f'SPICE file {self._spice_name}: XML node {node_name} does not exist.')
 
         # Check required attributes
         if required_attribs is not None:

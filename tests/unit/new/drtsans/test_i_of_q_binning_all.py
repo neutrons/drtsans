@@ -102,9 +102,9 @@ def failed_test_bin_modq():
                                  error_weighted=False)
     binned1d = binned1d[0]
     expected_q = determine_1d_log_bins_new(1., 4.,  decade_on_center=True, n_bins_per_decade=4).centers
-    # FIXME-skip assert binned1d.mod_q == pytest.approx(expected_q)
+    assert binned1d.mod_q == pytest.approx(expected_q)
     expected_intensity = np.array([(1.+16)/2, np.nan, (32+17.)/2, np.nan])
-    # FIXME-skip assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
+    assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
 
     # test log scale even decade and q_min, q_max
     binned2d, binned1d = bin_all(iq2d, iq1d,

@@ -66,7 +66,7 @@ def generate_pixel_map_legacy():
     #
 
     # Convert from SPICE xml to event Nexus
-    ipts_directory = f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp_number}/'
+    ipts_directory = os.path.join(root_dir, f'IPTS-{ipts}/shared/Exp{exp_number}/')
     if os.path.exists(ipts_directory) is False:
         os.mkdir(ipts_directory)
 

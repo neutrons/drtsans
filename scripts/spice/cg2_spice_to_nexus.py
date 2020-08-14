@@ -55,6 +55,7 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number):
                    'detector_trans_Readback': ('detector_trans', 'mm'),  # same
                    'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
                    'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+                   'dcal_Readback': ('dcal', 'mm'),  # required by pixel calibration
                    'attenuator': ('attenuator_pos', 'mm')  # special
                    }
 

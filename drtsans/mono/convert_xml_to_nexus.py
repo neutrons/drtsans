@@ -113,7 +113,7 @@ class EventNexusConverter(ABC):
             name of SANS XML file
         prefix: str
             prefix for output workspace name
-        das_log_map: ~dict, None
+        das_log_map: ~dict
             meta data map between event NeXus and SPICE
 
         Returns

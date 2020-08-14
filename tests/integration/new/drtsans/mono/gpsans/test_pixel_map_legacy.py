@@ -13,7 +13,8 @@ from drtsans.mono.gpsans import (apply_calibrations, apply_mask, calculate_appar
                                  calculate_barscan_calibration, plot_detector)
 from drtsans.pixel_calibration import Table
 from drtsans.tubecollection import TubeCollection
-from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+# from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 
 
 def test_pixel_map_legacy(reference_dir):
@@ -64,7 +65,7 @@ def test_pixel_map_legacy(reference_dir):
     flood_spice = os.path.join(flood_file_dir, flood_spice)
 
     # Init convert
-    converter = EventNexusConverter('CG2', 'CG2')
+    converter = CG2EventNexusConvert()
     converter.load_idf(template_event_nexus)
 
     # Convert from SPICE xml to event Nexus
@@ -72,13 +73,27 @@ def test_pixel_map_legacy(reference_dir):
     if os.path.exists(ipts_directory) is False:
         os.mkdir(ipts_directory)
 
+    # Load meta data and convert to NeXus format
+    das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
+                   'sample_detector_distance': ('sdd', 'm'),  # same
+                   'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
+                   'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
+                   'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
+                   'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
+                   'detector_trans_Readback': ('detector_trans', 'mm'),  # same
+                   'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
+                   'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+                   'attenuator': ('attenuator_pos', 'mm'),  # special
+                   'dcal_Readback': ('dcal', 'mm')  # required by calibration
+                   }
+
     data_files = dict()
     for pt_number, spice_file in bar_scan_files.items():
         event_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(exp_number, scan_number, pt_number)
         event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
         print(f'Converting {spice_file} to {event_nexus_name}')
-        converter.load_sans_xml(spice_file)
-        converter.generate_event_nexus(event_nexus_name, 48)
+        converter.load_sans_xml(spice_file, das_log_map)
+        converter.generate_event_nexus(event_nexus_name)
         data_files[pt_number] = event_nexus_name
     # END-FOR
 
@@ -86,8 +101,9 @@ def test_pixel_map_legacy(reference_dir):
     # TODO: refactor convert XML to event Nexus for all files
     event_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(flood_exp, flood_scan, flood_pt)
     event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
-    converter.load_sans_xml(flood_spice)
-    converter.generate_event_nexus(event_nexus_name, 48)
+    converter.load_sans_xml(flood_spice, das_log_map)
+    print(f'Converting {flood_spice} to {event_nexus_name}')
+    converter.generate_event_nexus(event_nexus_name)
     flood_nexus_name = event_nexus_name
 
     # FIXME : not sure how to deal with this

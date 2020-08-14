@@ -719,8 +719,6 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
     """
     enum_instrument = instrument_enum_name(input_workspace)
 
-    print(f'[DEBUG] User database file: {database}')
-
     if database is None:
         database = database_file[enum_instrument]  # default database name
     return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
@@ -1112,8 +1110,15 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
                 barscan_workspaces.append(barscan_workspace)
         else:  # barscan_dataset is a set of workspaces
             barscan_workspaces = barscan_dataset
-        bar_positions = [SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
-                         for barscan_workspace in barscan_workspaces]
+        # bar_positions = [SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
+        #                  for barscan_workspace in barscan_workspaces]
+        bar_positions = list()
+        for barscan_workspace in barscan_workspaces:
+            try:
+                bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
+            except RuntimeError as run_error:
+                raise RuntimeError(f'Workspace {str(barscan_workspace)}: {run_error}')
+            bar_positions.append(bar_position)
 
     # Serve bar positions and workspaces, one at a time
     for bar_position, barscan_workspace in zip(bar_positions, barscan_workspaces):

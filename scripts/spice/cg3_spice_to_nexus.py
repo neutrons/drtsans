@@ -60,7 +60,8 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number):
         'detector_trans_Readback': ('detector_trans', 'mm'),  # same
         'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
         'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
-        'ww_rot_Readback': ('det_west_wing_rot', 'degrees')   # degrees -> deg
+        'ww_rot_Readback': ('det_west_wing_rot', 'degrees'),   # degrees -> deg
+        'dcal_Readback': ('dcal', 'mm'),  # required by pixel calibration
     }
 
     # init convert

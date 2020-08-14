@@ -12,7 +12,7 @@ from drtsans.mono.gpsans import (apply_calibrations, apply_mask, calculate_appar
                                  calculate_barscan_calibration, plot_detector)
 from drtsans.pixel_calibration import Table
 from drtsans.tubecollection import TubeCollection
-from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+import sys
 
 
 # template CG2 nexus file for IDF
@@ -44,27 +44,26 @@ def generate_pixel_map_legacy():
     flood_exp = 280
     flood_scan = 4
     flood_pt = 1
+
     # -------------------------------------------------------------------------------------------------------
-
-    # Convert files
+    # From the routine, locate all the converted event NeXus file
     # -------------------------------------------------------------------------------------------------------
-    bar_scan_dir = os.path.join(root_dir, f'IPTS-{ipts}/exp{exp_number}/Datafiles')
-    bar_scan_files = dict()   # key = pt number, value = SPICE file name
-    for pt_number in range(first_pt, last_pt + 1):
-        # form the file name
-        bar_scan_file = 'CG2_exp{}_scan{:04}_{:04}.xml'.format(exp_number, scan_number, pt_number)
-        bar_scan_file = os.path.join(bar_scan_dir, bar_scan_file)
-        assert os.path.exists(bar_scan_file), f'Bar scan file {bar_scan_file} does not exist'
-        bar_scan_files[pt_number] = bar_scan_file
-
-    # flood file
-    flood_file_dir = os.path.join(root_dir, f'IPTS-{flood_ipts}/exp{flood_exp}/Datafiles')
-    flood_spice = 'CG2_exp{}_scan{:04}_{:04}.xml'.format(flood_exp, flood_scan, flood_pt)
-    flood_spice = os.path.join(flood_file_dir, flood_spice)
-
-    # Init convert
-    converter = EventNexusConverter('CG2', 'CG2')
-    converter.load_idf(template_event_nexus)
+    # bar_scan_dir = os.path.join(root_dir, f'IPTS-{ipts}/exp{exp_number}/Datafiles')
+    # bar_scan_files = dict()   # key = pt number, value = SPICE file name
+    # for pt_number in range(first_pt, last_pt + 1):
+    #     # form the file name
+    #     bar_scan_file = 'CG2_exp{}_scan{:04}_{:04}.xml'.format(exp_number, scan_number, pt_number)
+    #     bar_scan_file = os.path.join(bar_scan_dir, bar_scan_file)
+    #     assert os.path.exists(bar_scan_file), f'Bar scan file {bar_scan_file} does not exist'
+    #     bar_scan_files[pt_number] = bar_scan_file
+    #
+    # # flood file
+    # flood_file_dir = os.path.join(root_dir, f'IPTS-{flood_ipts}/exp{flood_exp}/Datafiles')
+    # flood_spice = 'CG2_exp{}_scan{:04}_{:04}.xml'.format(flood_exp, flood_scan, flood_pt)
+    # flood_spice = os.path.join(flood_file_dir, flood_spice)
+    # assert os.path.exists(flood_)
+    #
+    #
 
     # Convert from SPICE xml to event Nexus
     ipts_directory = f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp_number}/'
@@ -72,25 +71,28 @@ def generate_pixel_map_legacy():
         os.mkdir(ipts_directory)
 
     data_files = dict()
-    for pt_number, spice_file in bar_scan_files.items():
+    err_msg = ''
+    for pt_number in range(first_pt, last_pt + 1):   # bar_scan_files.items():
         event_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(exp_number, scan_number, pt_number)
         event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
-        if os.path.exists(event_nexus_name):
-            print(f'{spice_file} has been converted to {event_nexus_name} already')
+        if not os.path.exists(event_nexus_name):
+            err_msg += f'Pt {pt_number} has been not been converted to {event_nexus_name} yet\n'
         else:
-            print(f'Converting {spice_file} to {event_nexus_name}')
-            converter.load_sans_xml(spice_file)
-            converter.generate_event_nexus(event_nexus_name, 48)
-        data_files[pt_number] = event_nexus_name
+            data_files[pt_number] = event_nexus_name
     # END-FOR
+    if len(err_msg) > 0:
+        print(f'[ERROR] {err_msg}')
+        sys.exit(-1)
 
     # convert flood file
     # TODO: refactor convert XML to event Nexus for all files
-    event_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(flood_exp, flood_scan, flood_pt)
-    event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
-    converter.load_sans_xml(flood_spice)
-    converter.generate_event_nexus(event_nexus_name, 48)
-    flood_nexus_name = event_nexus_name
+    flood_ipts_directory = f'/HFIR/CG2/IPTS-{flood_ipts}/shared/Exp{exp_number}/'
+    if os.path.exists(flood_ipts_directory) is False:
+        os.mkdir(flood_ipts_directory)
+    flood_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(flood_exp, flood_scan, flood_pt)
+    flood_nexus_name = os.path.join(ipts_directory, flood_nexus_name)
+    if not os.path.exists(flood_nexus_name):
+        sys.exit(-1)
     # -------------------------------------------------------------------------------------------------------
 
     save_dir_root = f'/HFIR/CG2/IPTS-{ipts}/shared/pixel_calibration'
@@ -175,8 +177,6 @@ def generate_pixel_map_legacy():
     plot_workspace(middle_workspace_calibrated, axes_mode='xy', prefix='after_calibration')  # calibrated
     plt.show()
 
-    return
-
     print('#####\n\nSaving the calibration')
     # Notice we overwrite the already saved calibration, which will happen if we run this notebook more than once.
 
@@ -199,16 +199,14 @@ def generate_pixel_map_legacy():
                        database=database_file)
 
     print('#####\n\nCompare before and after applying the calibration')
-    plot_workspace('flood_workspace', axes_mode='xy')
-    plot_workspace('flood_workspace_calibrated', axes_mode='xy')
-    plt.show()
+    plot_workspace('flood_workspace', axes_mode='xy', prefix='step1_')
+    plot_workspace('flood_workspace_calibrated', axes_mode='xy', prefix='step1_')
 
     print('#####\n\nCalculating the Tube Width Calibration')
-    # Flood file
-    # flood_file = f'/HFIR/CG2/IPTS-{ipts}/nexus/CG2_11425.nxs.h5'
+
     # Mask file containing the detector ID's comprising the beam center.
     # mask_file = f'/HFIR/CG2/IPTS-{ipts}/shared/pixel_flood_mask.nxs'
-    mask_file = f'/HFIR/CG2/shared/pixel_flood_mask.nxs'
+    mask_file = 'testdata/mask_pixel_map.nxs'
 
     apply_mask('flood_workspace', mask=mask_file)
     start_time = time.time()
@@ -227,8 +225,7 @@ def generate_pixel_map_legacy():
     print('#####\n\nApply the barscan and tube width calibration to the flood run')
     apply_calibrations('flood_workspace', output_workspace='flood_workspace_calibrated',
                        database=database_file)
-    plot_workspace('flood_workspace_calibrated', axes_mode='xy')
-    plt.show()
+    plot_workspace('flood_workspace_calibrated', axes_mode='xy', prefix='step2_')
 
     print('#####\n\nPlot the linear densities of the tubes before and after calibration.',
           'Suppresion of the oslillating intensities indicates the tube-width calibration is correct')
@@ -243,15 +240,14 @@ def generate_pixel_map_legacy():
     plot_histograms('linear_densities',
                     legend=['no calibration', 'calibrated'],
                     xlabel='Tube Index', ylabel='Intensity', linewidths=[3, 1])
-    plt.show()
 
     print('#####\n\nTest applying the just-saved barcan and tube-with calibrations to the flood run')
     LoadEventNexus(Filename=flood_nexus_name, OutputWorkspace='workspace')
     HFIRSANS2Wavelength(InputWorkspace='flood_run', OutputWorkspace='workspace')
     print('Plot before and after applying the calibration')
-    plot_workspace('workspace', axes_mode='xy')
+    plot_workspace('workspace', axes_mode='xy', prefix='last_verification_flood_raw')
     apply_calibrations('workspace', database=database_file)
-    plot_workspace('workspace', axes_mode='xy')
+    plot_workspace('workspace', axes_mode='xy', prefix='last_verification_flood_cal')
     plt.show()
 
 

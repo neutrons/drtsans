@@ -14,15 +14,15 @@ from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-# INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
 INSTRUMENT = 'CG2'  # Main
 
-# Input Flood Runs
-FLOOD_RUNS = 11423, 11425, 11427  # Single value integer or a list or tuple
+IPTS = 828
+EXPERIMENT = 280
 
-# CG3: Main
-# FLOOD_RUNS = 4829
-# BIO-SANS detector
+# Input Flood Runs
+FLOOD_RUNS = (23, 1), (31, 1), (35, 1)  # Single tuple of a list of tuples.  Each tuple is (Scan, Pt)
+
+# CG2
 WING_DETECTOR = False  # this is main detector
 
 # About Masks
@@ -36,7 +36,7 @@ BEAM_CENTER_MASKS = None
 DARK_CURRENT_RUNS = None  # No mask, no solid angle
 
 # Transmission run
-TRANSMISSION_REFERENCE_RUNS = None  # GG3 main
+TRANSMISSION_REFERENCE_RUNS = (23, 1), (27, ), (26, 1)  # Single tuple of a list of tuples.  Each tuple is (Scan, Pt)
 # Transmission flood run
 TRANSMISSION_FLOOD_RUNS = None
 
@@ -53,7 +53,7 @@ WING_DET_MASK_ANGLE = 57.05
 # - flood runs
 # - beam center runs
 # - transmission runs
-PIXEL_CALIBRATION = False
+PIXEL_CALIBRATION = True
 
 # Corrections
 SOLID_ANGLE_CORRECTION = True

@@ -81,9 +81,8 @@ exp = 280
 # scan = 4
 # pt = 1
 
-for scan, pt in [(24, 1),
-                 (28, 1),
-                 (20, 1)]:
+for scan, pt in [(26, 1),
+                 (27, 1)]:
     convert_spice_to_nexus(ipts, exp, scan, pt, output_dir=f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp}')
 
 # END

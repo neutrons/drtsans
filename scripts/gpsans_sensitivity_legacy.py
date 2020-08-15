@@ -77,9 +77,9 @@ BEAM_CENTER_MASKS = None
 DARK_CURRENT_RUNS = None  # No mask, no solid angle
 
 # Transmission run
-TRANSMISSION_REFERENCE_RUNS = (23, 1), (27, ), (26, 1)  # Single tuple of a list of tuples.  Each tuple is (Scan, Pt)
+TRANSMISSION_REFERENCE_RUNS = (23, 1), (27, 1), (26, 1)  # Single tuple of a list of tuples.  Each tuple is (Scan, Pt)
 # Transmission flood run
-TRANSMISSION_FLOOD_RUNS = None
+TRANSMISSION_FLOOD_RUNS = (23, 1), (31, 1), (35, 1)
 
 # Default mask to detector
 UNIVERSAL_MASK = None  # 'Mask.XML'
@@ -128,7 +128,8 @@ if INSTRUMENT not in ['CG2', 'CG3', 'EQSANS']:
 
 preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR)
 # Load flood runs
-preparer.set_flood_runs(FLOOD_RUNS)
+flood_runs = locate_cg2_spice_nexus(IPTS, EXPERIMENT, FLOOD_RUNS, SPICE_NEXUS_SUBDIR)
+preparer.set_flood_runs(flood_runs)
 
 # Process beam center runs
 if DIRECT_BEAM_RUNS is not None:
@@ -148,8 +149,13 @@ else:
 
 # Transmission
 if TRANSMISSION_REFERENCE_RUNS is not None:
-    preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
-                                         transmission_reference_run=TRANSMISSION_REFERENCE_RUNS,
+    transmission_flood_runs = locate_cg2_spice_nexus(IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUNS,
+                                                     SPICE_NEXUS_SUBDIR)
+    transmission_reference_runs = locate_cg2_spice_nexus(IPTS, EXPERIMENT, TRANSMISSION_REFERENCE_RUNS,
+                                                         SPICE_NEXUS_SUBDIR)
+
+    preparer.set_transmission_correction(transmission_flood_runs=transmission_flood_runs,
+                                         transmission_reference_run=transmission_reference_runs,
                                          beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 

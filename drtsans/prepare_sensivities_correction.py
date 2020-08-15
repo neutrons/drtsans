@@ -374,7 +374,12 @@ class PrepareSensitivityCorrection(object):
 
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
-        flood_ws = prepare_data(data='{}_{}'.format(self._instrument, flood_run),  # self._flood_runs[index]),
+        if isinstance(flood_run, int):
+            flood_run = '{}_{}'.format(self._instrument, flood_run)
+        else:
+            # check file existence
+            assert os.path.exists(flood_run)
+        flood_ws = prepare_data(data=flood_run,  # self._flood_runs[index]),
                                 pixel_calibration=self._apply_calibration,
                                 mask=self._default_mask,
                                 btp=self._extra_mask_dict,
@@ -598,7 +603,14 @@ class PrepareSensitivityCorrection(object):
         instrument_name = {CG2: 'GPSANS',
                            CG3: 'BIOSANS',
                            EQSANS: 'EQSANS_'}[self._instrument]
-        parent_ws = LoadEventNexus(Filename='{}{}'.format(instrument_name, parent_flood_run),
+        if isinstance(parent_flood_run, int):
+            event_nexus = '{}{}'.format(instrument_name, parent_flood_run)
+        else:
+            # must be a nexus file already
+            event_nexus = parent_flood_run
+            assert os.path.exists(event_nexus)
+
+        parent_ws = LoadEventNexus(Filename=event_nexus,
                                    MetaDataOnly=True)
 
         # Create new sensitivity workspace

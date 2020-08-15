@@ -651,6 +651,7 @@ class PrepareSensitivityCorrection(object):
         else:
             # Direct beam run is specified
             beam_center_run = self._direct_beam_center_runs[index]
+        beam_center_run = '{}_{}'.format(self._instrument, beam_center_run)
 
         # Prepare data
         # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector
@@ -671,7 +672,8 @@ class PrepareSensitivityCorrection(object):
             # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
             flux_method = 'monitor'
 
-        beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
+        # FIXME - data shall be more flexible here for beam center run path
+        beam_center_workspace = prepare_data(data=beam_center_run,
                                              pixel_calibration=self._apply_calibration,
                                              center_x=0.,  # force to not to center
                                              center_y=0.,

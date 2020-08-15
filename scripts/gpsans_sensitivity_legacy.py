@@ -27,7 +27,7 @@ WING_DETECTOR = False  # this is main detector
 
 # About Masks
 # CG3 Main:
-DIRECT_BEAM_RUNS = 11424, 11426, 11428
+DIRECT_BEAM_RUNS = (24, 1), (28, 1), (20, 1)
 # Beam center size
 MASK_BEAM_CENTER_RADIUS = 140  # mm
 BEAM_CENTER_MASKS = None

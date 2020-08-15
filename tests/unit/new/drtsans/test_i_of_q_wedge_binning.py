@@ -28,7 +28,7 @@ def test_1d_bin_log_wedge_no_wt():
     """
     # Define Q range
     q_min = 0.001  # center min
-    q_max = 0.010  # center max
+    q_max = 0.007890  # center max
     step_per_decade = 10  # 10 steps per decade
 
     min_wedge_angle = -45.
@@ -54,13 +54,13 @@ def test_1d_bin_log_wedge_no_wt():
     binned_iq = bin_intensity_into_q1d(test_i_q1d, log_bins, bin_method=BinningMethod.NOWEIGHT)
 
     # Verification
-    # bin index = 8, bin center = 0.005586, bin edges = (0.00631, 0.007033)
-    assert binned_iq.intensity[8] == pytest.approx(63.5, abs=1E-10)
-    assert binned_iq.error[8] == pytest.approx(2.817357, abs=1E-5)
-    assert binned_iq.delta_mod_q[8] == pytest.approx(0.01153, abs=1E-4), 'Q resolution (Q[7] = {}) is ' \
-                                                                         'incorrect comparing to {}.' \
-                                                                         ''.format(binned_iq.delta_mod_q[7],
-                                                                                   0.0115)
+    # bin index = 7, bin center = 0.005586, bin edges = (0.00631, 0.007033)
+    assert binned_iq.intensity[7] == pytest.approx(70.0, abs=1E-10)
+    assert binned_iq.error[7] == pytest.approx(3.741657387, abs=1E-5)
+    assert binned_iq.delta_mod_q[7] == pytest.approx(0.011460, abs=1E-4), 'Q resolution (Q[7] = {}) is ' \
+                                                                          'incorrect comparing to {}.' \
+                                                                          ''.format(binned_iq.delta_mod_q[7],
+                                                                                    0.0115)
 
 
 if __name__ == '__main__':

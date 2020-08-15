@@ -9,15 +9,56 @@
 
 """
 import sys
+import os
 import warnings
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+
+def locate_cg2_spice_nexus(ipts_number, exp_number, runs, spice_nexus_sub):
+    """Convert SPICE file information to previously converted NeXus path
+
+    Parameters
+    ----------
+    runs: tuple
+        tuple of 2-tuple as (scan, pt)
+
+    Returns
+    -------
+    ~list
+        list of converted-spice Nexus file path
+
+    """
+    # Create directory for NeXus file generated
+    nexus_dir = os.path.join('/HFIR/CG2/', f'IPTS-{ipts_number}')
+    nexus_dir = os.path.join(nexus_dir, os.path.join('shared', spice_nexus_sub))
+    nexus_dir = os.path.join(nexus_dir, f'Exp{exp_number}')
+    assert os.path.exists(nexus_dir), f'Converted NeXus directory {nexus_dir} cannot be found'
+
+    # Create standard file name
+    nexus_run_list = list()
+    err_msg = ''
+    for scan_num, pt_num in runs:
+        nexus_name = f'CG2_{exp_number:03}{scan_num:04}{pt_num:04}.nxs.h5'
+        nexus_path = os.path.join(nexus_dir, nexus_name)
+        if not os.path.exists(nexus_path):
+            err_msg += f'Scan {scan_num} Pt {pt_num} does not have converted Nexus {nexus_path}\n'
+        else:
+            nexus_run_list.append(nexus_path)
+
+    # report error and raise exception
+    if len(err_msg) > 0:
+        raise RuntimeError(f'IPTS {ipts_number} Exp {exp_number} do not have all the SPICE converted\n{err_msg}')
+
+    return nexus_run_list
+
+
 INSTRUMENT = 'CG2'  # Main
 
 IPTS = 828
 EXPERIMENT = 280
+SPICE_NEXUS_SUBDIR = ''
 
 # Input Flood Runs
 FLOOD_RUNS = (23, 1), (31, 1), (35, 1)  # Single tuple of a list of tuples.  Each tuple is (Scan, Pt)
@@ -26,7 +67,7 @@ FLOOD_RUNS = (23, 1), (31, 1), (35, 1)  # Single tuple of a list of tuples.  Eac
 WING_DETECTOR = False  # this is main detector
 
 # About Masks
-# CG3 Main:
+# aka beam center runs
 DIRECT_BEAM_RUNS = (24, 1), (28, 1), (20, 1)
 # Beam center size
 MASK_BEAM_CENTER_RADIUS = 140  # mm
@@ -55,7 +96,7 @@ WING_DET_MASK_ANGLE = 57.05
 # - transmission runs
 
 # Pixel calibration: False/True (default database)/user specified calibration database
-PIXEL_CALIBRATION = '/HFIR/CG2/shared/whatever.json'
+PIXEL_CALIBRATION = '/HFIR/CG2/IPTS-828/shared/pixel_calibration/runs_1_111/pixel_calibration.json'
 
 # Corrections
 SOLID_ANGLE_CORRECTION = True
@@ -91,7 +132,8 @@ preparer.set_flood_runs(FLOOD_RUNS)
 
 # Process beam center runs
 if DIRECT_BEAM_RUNS is not None:
-    preparer.set_direct_beam_runs(DIRECT_BEAM_RUNS)
+    beam_center_runs = locate_cg2_spice_nexus(IPTS, EXPERIMENT, DIRECT_BEAM_RUNS, SPICE_NEXUS_SUBDIR)
+    preparer.set_direct_beam_runs(beam_center_runs)
 
 # Set extra masks
 preparer.set_masks(UNIVERSAL_MASK, MASKED_PIXELS,
@@ -123,3 +165,5 @@ preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
 # Run
 preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE)
+
+

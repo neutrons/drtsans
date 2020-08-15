@@ -12,6 +12,7 @@ https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
+import os
 from mantid.simpleapi import SaveNexusProcessed, MaskAngle, Integration, MaskDetectors, LoadEventNexus,\
     CreateWorkspace
 from mantid.api import mtd
@@ -651,7 +652,12 @@ class PrepareSensitivityCorrection(object):
         else:
             # Direct beam run is specified
             beam_center_run = self._direct_beam_center_runs[index]
-        beam_center_run = '{}_{}'.format(self._instrument, beam_center_run)
+        if isinstance(beam_center_run, str):
+            # beam center run shall be a file path
+            assert os.path.exists(beam_center_run), f'Bean center run {beam_center_run} cannot be found'
+        else:
+            # run number (integer)
+            beam_center_run = '{}_{}'.format(self._instrument, beam_center_run)
 
         # Prepare data
         # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector

@@ -329,7 +329,7 @@ class PrepareSensitivityCorrection(object):
         """
         self._theta_dep_correction = flag
 
-    def _prepare_flood_data(self, index, beam_center, dark_current_run):
+    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run):
         """Prepare flood data including
         (1) load
         (2) mask: default, pixels
@@ -340,7 +340,8 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        index
+        flood_run: int, str
+            flood run number of flood file path
         beam_center
         dark_current_run
 
@@ -373,7 +374,7 @@ class PrepareSensitivityCorrection(object):
 
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
-        flood_ws = prepare_data(data='{}_{}'.format(self._instrument, self._flood_runs[index]),
+        flood_ws = prepare_data(data='{}_{}'.format(self._instrument, flood_run),  # self._flood_runs[index]),
                                 pixel_calibration=self._apply_calibration,
                                 mask=self._default_mask,
                                 btp=self._extra_mask_dict,
@@ -501,7 +502,8 @@ class PrepareSensitivityCorrection(object):
         # Load and process flood data with (1) mask (2) center detector and (3) solid angle correction
         flood_workspaces = list()
         for i in range(num_workspaces_set):
-            flood_ws_i = self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i])
+            flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i],
+                                                  self._dark_current_runs[i])
             flood_workspaces.append(flood_ws_i)
 
         # Retrieve masked detectors

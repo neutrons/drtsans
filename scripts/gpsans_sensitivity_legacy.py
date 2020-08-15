@@ -53,7 +53,9 @@ WING_DET_MASK_ANGLE = 57.05
 # - flood runs
 # - beam center runs
 # - transmission runs
-PIXEL_CALIBRATION = True
+
+# Pixel calibration: False/True (default database)/user specified calibration database
+PIXEL_CALIBRATION = '/HFIR/CG2/shared/whatever.json'
 
 # Corrections
 SOLID_ANGLE_CORRECTION = True

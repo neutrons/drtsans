@@ -155,8 +155,8 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        apply_calibration : bool
-            Flag for applying the pixel calibration.
+        apply_calibration : bool, str
+            Flag for applying the pixel calibration. No calibration (False), Default (True), Calibration file (str)
         """
         self._apply_calibration = apply_calibration
 

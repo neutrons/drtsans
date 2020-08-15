@@ -372,8 +372,10 @@ def prepare_data(data,
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
-    pixel_calibration: bool
+    pixel_calibration: bool, str
         Adjust pixel heights and widths according to barscan and tube-width calibrations.
+        Options are (1) No calibration (False), (2) default calibration file (True)
+                    (3) user specified calibration file (str)
     mask_detector: str
         Name of an instrument component to mask
     detector_offset: float

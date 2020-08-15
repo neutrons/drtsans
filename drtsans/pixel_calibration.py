@@ -736,7 +736,7 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
         Input workspace whose pixels are to be calibrated.
-    database: str
+    database: str, None
         Path to JSON file containing metadata for different past calibrations. If :py:obj:`None`,
         the default database is used. Currently, these are the default files:
         - BIOSANS, '/HFIR/CG3/shared/calibration/pixel_calibration.json',

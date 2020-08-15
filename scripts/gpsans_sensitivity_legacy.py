@@ -165,5 +165,3 @@ preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
 # Run
 preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE)
-
-

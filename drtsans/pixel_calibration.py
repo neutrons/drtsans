@@ -1413,7 +1413,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
         Load pixel positions and heights from the pixel-calibrations database appropriate to ```input_workspace```. If
         :py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
     db_file: str, None
-        database file.  None for default.
+        database file (json format).  None will load the default database for the selected instrument.
 
     Returns
     -------

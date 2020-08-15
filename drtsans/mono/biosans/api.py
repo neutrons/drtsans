@@ -786,7 +786,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
     bin1d_type = reduction_config["1DQbinType"]
     log_binning = (reduction_config["QbinType"] == 'log')
-    even_decades = reduction_config["useLogQBinsEvenDecade"]  # default set in the schema
+    # FIXME - NO MORE USE OF Even_Decades
+    # even_decades = reduction_config["useLogQBinsEvenDecade"]  # default set in the schema
     decade_on_center = reduction_config["useLogQBinsDecadeCenter"]  # default set in the schema
 
     nbins_main = reduction_config["numMainQBins"]
@@ -955,7 +956,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                n1dbins=nbins_main, n1dbins_per_decade=nbins_main_per_decade,
                                                decade_on_center=decade_on_center,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
-                                               even_decade=even_decades, qmin=qmin_main, qmax=qmax_main,
+                                               qmin=qmin_main, qmax=qmax_main,
                                                annular_angle_bin=annular_bin, wedges=wedges,
                                                symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
@@ -965,7 +966,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                n1dbins=nbins_wing, n1dbins_per_decade=nbins_wing_per_decade,
                                                decade_on_center=decade_on_center,
                                                bin1d_type=bin1d_type, log_scale=log_binning,
-                                               even_decade=even_decades, qmin=qmin_wing, qmax=qmax_wing,
+                                               qmin=qmin_wing, qmax=qmax_wing,
                                                annular_angle_bin=annular_bin, wedges=wedges,
                                                symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)

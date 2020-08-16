@@ -37,7 +37,7 @@ def test_no_overwrite(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200815/test1/')
 
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path, title='Raw (no overwriting)', prefix='test1')
@@ -70,7 +70,7 @@ def test_overwrite_both_minor(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1a/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200815/test1a/')
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='SampleToSi -> 61 mm, SampleDetectorDistance -> 6.9 meter',
@@ -174,7 +174,7 @@ def test_overwrite_sample_to_detector(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2', 'insect1hTime_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test3/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200815/test3/')
     # Verify
     verify_reduction_results(sample_names, output_dir, gold_path,
                              title='SampleDetectorDistance -> 14 meter',
@@ -376,8 +376,10 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
             else:
                 flag = 'Wing_detector'
             plt.cla()
-            plt.plot(vec_q_a, vec_i_a, color='red', label='{} Corrected'.format(flag))
-            plt.plot(vec_q_b, vec_i_b, color='black', label='{} Before being corrected'.format(flag))
+            plt.plot(vec_q_a, vec_i_a, color='red',
+                     label='{} Test Data.     Q in {:.5f}, {:.5f}'.format(flag, vec_q_a[0], vec_q_a[-1]))
+            plt.plot(vec_q_b, vec_i_b, color='black',
+                     label='{} Expected Data. Q in {:.5f}, {:.5f}'.format(flag, vec_q_b[0], vec_q_b[-1]))
             plt.yscale('log')
             plt.title(title)
             plt.legend()

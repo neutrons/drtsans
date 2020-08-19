@@ -154,8 +154,12 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     tuple
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     '''
+    # Export information for Q
+    data_q_vec = np.sqrt(data.qx**2 + data.qy**2)
+    logger.notice(f'Raw I(Q). Q range: {data_q_vec.min()}, {data_q_vec.max()}')
     # the bonus two steps is to get the end-point in the array
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
+    logger.notice(f'1D Q bins: {q_bins}')
 
     # create azimuthal binning BinningParams takes number of steps
     azimuthal_offset = 0.5 * azimuthal_delta

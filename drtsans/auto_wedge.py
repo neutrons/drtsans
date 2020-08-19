@@ -154,6 +154,8 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     tuple
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     '''
+    import h5py
+
     # Export information for Q
     data_q_vec = np.sqrt(data.qx**2 + data.qy**2)
     logger.notice(f'Raw I(Q). Q range: {data_q_vec.min()}, {data_q_vec.max()}')
@@ -167,6 +169,8 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
                                       bins=int(360. / azimuthal_delta))
     # create the I(azimuthal) for each q-ring
     data_of_q_rings = []
+    # debugging output file
+    debug_h5 = h5py.File('q-rings.h5', 'w')
     for qmin_ring, qmax_ring in zip(q_bins[:-1], q_bins[1:]):
         # bin into I(azimuthal)
         I_azimuthal = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring,
@@ -189,8 +193,17 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
 
         I_azimuthal = IQmod(intensity=intensity_new, error=error_new, mod_q=mod_q_new)
 
+        # write file
+        ring_group = debug_h5.create_group(f'ring {len(data_of_q_rings):03}')
+        ring_group.create_dataset('2theta', data=mod_q_new)
+        ring_group.create_dataset('intensity', data=intensity_new)
+        ring_group.create_dataset('error', data=intensity_new)
+
         # append to the list of spectra
         data_of_q_rings.append(I_azimuthal)
+
+    # close file
+    debug_h5.close()
 
     # return intensity, error, azimuthal_bins, q_bins TODO REMOVE
     return q_bins, data_of_q_rings
@@ -463,6 +476,7 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
     index = 0
     used_index = list()
     unfit_message = ''
+    fitted_peaks_message = ''
 
     for spectrum, q_center in zip(azimuthal_rings, q_centers):
         index += 1
@@ -472,9 +486,10 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
             newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ['f1', 'f2']]
 
             if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(newlyFittedPeaks[1][0][0]):
-                unfit_message += f'spectrum {index}: failed to fit peaks due to NaN in fit result\n'
+                unfit_message += f'spectrum {index-1}: failed to fit peaks due to NaN in fit result\n'
                 continue
-
+            else:
+                fitted_peaks_message += f'spectrum {index-1}: Fitted peaks: {newlyFittedPeaks}\m'
             for i in range(len(peakResults)):
                 peakResults[i].append(newlyFittedPeaks[i])
             q_centers_used.append(q_center)
@@ -501,6 +516,7 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
         center_list.append(center)
         fwhm_list.append(fwhm)
 
-    logger.notice(f'Fitted peak centers: {center_list}\nFWHMs              : {fwhm_list}')
+    logger.notice(f'Fitted peak centers:\n{fitted_peaks_message}\n')
+    logger.notice(f'Summed peak centers: {center_list}\nFWHMs              : {fwhm_list}')
 
     return center_list, fwhm_list

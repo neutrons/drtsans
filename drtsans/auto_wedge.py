@@ -489,7 +489,7 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
                 unfit_message += f'spectrum {index-1}: failed to fit peaks due to NaN in fit result\n'
                 continue
             else:
-                fitted_peaks_message += f'spectrum {index-1}: Fitted peaks: {newlyFittedPeaks}\m'
+                fitted_peaks_message += f'spectrum {index-1}: Fitted peaks: {newlyFittedPeaks}\n'
             for i in range(len(peakResults)):
                 peakResults[i].append(newlyFittedPeaks[i])
             q_centers_used.append(q_center)

@@ -790,7 +790,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     bin1d_type = reduction_config["1DQbinType"]
     log_binning = reduction_config["QbinType"] == 'log'
     # FIXME - NO MORE EVENT DECADES: even_decades = reduction_config.get("LogQBinsEvenDecade", False)
-    decade_on_center = reduction_config.get("LogQBinsDecadeCenter", False)
+    decade_on_center = reduction_config.get("useLogQBinsDecadeCenter", False)
+    print(f'LOGBIN api decade on center = {decade_on_center}')
     nbins_main = reduction_config.get("numQBins")
     nbins_main_per_decade = reduction_config.get("LogQBinsPerDecade")
     outputFilename = reduction_input["outputFileName"]

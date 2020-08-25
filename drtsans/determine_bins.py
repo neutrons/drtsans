@@ -80,6 +80,8 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
                            'specified simultaneously.  One and only one of them must be specified.')
     # only allow either n_bins or n_bins_per_decade
 
+    print(f'LOGBIN input x range: {x_min}, {x_max}, decade on center = {decade_on_center}')
+
     # Calculate Q min, number of total bins and number of steps
     if n_bins_per_decade is not None:
         # user specifies number of bins per decade
@@ -95,6 +97,7 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
 
         # calculate number of bins
         n_bins = _calculate_n_bins(x_ref, x_max, n_step, n_bins_per_decade)
+        print(f'LOGBIN n_bins = {n_bins}')
     else:
         # user specifies number of total bins
 
@@ -107,7 +110,7 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
         # calculate bin step size
         # Equation 11.33
         n_step = 10**((np.log10(x_max / x_ref)) / (n_bins - 1))
-        print(f'n_steps = {n_step}')
+        print(f'LOGBIN n_steps = {n_step}')
 
     # Calculate kay
     kay = (n_step - 1) / (n_step + 1)
@@ -117,6 +120,8 @@ def determine_1d_log_bins_new(x_min, x_max, decade_on_center,
     bin_centers = np.arange(n_bins).astype('float64')
     # Equation 11.34: Q_k = Q_ref * 10^(k * delta L)
     bin_centers = x_ref * n_step**bin_centers
+
+    print(f'LOGBIN x_ref = {x_ref}, centers: {bin_centers}')
 
     # Calculate bin edges (aka boundaries)
     # Equation 11.35
@@ -206,6 +211,7 @@ def determine_1d_log_bins_deprecated(x_min, x_max, n_bins_per_decade=None, n_bin
         Bins including bin centers and bin edges
 
     """
+    raise NotImplementedError('Deprecated')
     # Calculate C min and max on decade and contain X min and X max in the range
     # From Chapter 11 of the master document
     if even_decade:

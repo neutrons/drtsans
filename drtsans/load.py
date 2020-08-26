@@ -63,8 +63,10 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
-    pixel_calibration: bool
-        Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
+    pixel_calibration: bool, str
+        Adjust pixel heights and widths according to bar-scan and tube-width calibrations. Options are
+        (1) No calibration (2) Using default calibration file (True) and
+        (3) User specified calibration file (str)
     detector_offset: float
         Additional translation of the detector along the Z-axis, in mm. Positive
         moves the detector downstream.
@@ -101,8 +103,13 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
             kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
-            if pixel_calibration is True:
-                apply_calibrations(output_workspace)
+            if pixel_calibration is not False:
+                # pixel calibration is specified as not False
+                if isinstance(pixel_calibration, str):
+                    calib_file = pixel_calibration
+                else:
+                    calib_file = None
+                apply_calibrations(output_workspace, database=calib_file)
 
     # insert monitor counts for monochromatic instruments
     if is_mono:

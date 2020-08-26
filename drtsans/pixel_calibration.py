@@ -718,6 +718,7 @@ def load_calibration(input_workspace, caltype, component='detector1', database=N
     ~drtsans.pixel_calibration.Table
     """
     enum_instrument = instrument_enum_name(input_workspace)
+
     if database is None:
         database = database_file[enum_instrument]  # default database name
     return Table.load(database, caltype, str(enum_instrument), component, day_stamp(input_workspace),
@@ -735,7 +736,7 @@ def apply_calibrations(input_workspace, database=None, calibrations=[cal.name fo
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
         Input workspace whose pixels are to be calibrated.
-    database: str
+    database: str, None
         Path to JSON file containing metadata for different past calibrations. If :py:obj:`None`,
         the default database is used. Currently, these are the default files:
         - BIOSANS, '/HFIR/CG3/shared/calibration/pixel_calibration.json',
@@ -1109,8 +1110,15 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log='dcal_Readback
                 barscan_workspaces.append(barscan_workspace)
         else:  # barscan_dataset is a set of workspaces
             barscan_workspaces = barscan_dataset
-        bar_positions = [SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
-                         for barscan_workspace in barscan_workspaces]
+        # bar_positions = [SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
+        #                  for barscan_workspace in barscan_workspaces]
+        bar_positions = list()
+        for barscan_workspace in barscan_workspaces:
+            try:
+                bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, 'mm')
+            except RuntimeError as run_error:
+                raise RuntimeError(f'Workspace {str(barscan_workspace)}: {run_error}')
+            bar_positions.append(bar_position)
 
     # Serve bar positions and workspaces, one at a time
     for bar_position, barscan_workspace in zip(bar_positions, barscan_workspaces):
@@ -1380,7 +1388,8 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         y[(residuals > large_residual) & (y != INCORRECT_PIXEL_ASSIGNMENT)] = INCORRECT_PIXEL_ASSIGNMENT
 
 
-def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True):
+def calculate_apparent_tube_width(flood_input, component='detector1', load_barscan_calibration=True,
+                                  db_file=None):
     r"""
     Determine the tube width most efficient for detecting neutrons. An effective tube (or pixel) diameter is
     determined for tubes in the front panel, and likewise for the tubes in the back panel.
@@ -1403,9 +1412,11 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
     load_barscan_calibration: bool
         Load pixel positions and heights from the pixel-calibrations database appropriate to ```input_workspace```. If
         :py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
+    db_file: str, None
+        database file (json format).  None will load the default database for the selected instrument.
+        Otherwise the combination load_barscan_calibration=True, db_file=None may come across as some data
+        contradictory
 
-    Returns
-    -------
     Returns
     -------
     dict
@@ -1438,7 +1449,7 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
 
     # Update pixel positions and heights with the appropriate calibration, if so requested.
     if load_barscan_calibration is True:
-        calibration = load_calibration(input_workspace, 'BARSCAN', component=component)
+        calibration = load_calibration(input_workspace, 'BARSCAN', component=component, database=db_file)
         calibration.apply(integrated_intensities)
 
     # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated

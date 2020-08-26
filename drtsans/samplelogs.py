@@ -170,4 +170,4 @@ class SampleLogs(object):
                 error_msg += " [%s]" % self[log_key].units
                 raise RuntimeError(error_msg)
             return np.average(self[log_key].value)
-        raise RuntimeError("Could not find %s in logs" % log_key)
+        raise RuntimeError(f'Could not find {log_key} with unit {unit} in logs: {self.keys()}')

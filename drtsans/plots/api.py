@@ -353,5 +353,6 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
         [getattr(axis, prop)(value) for prop, value in axis_properties.items()]
         fig.colorbar(image, ax=axis)
     fig.tight_layout()
+
     if filename is not None:
         _saveFile(fig, filename, backend)

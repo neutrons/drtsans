@@ -12,6 +12,7 @@ https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
 https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
+import os
 from mantid.simpleapi import SaveNexusProcessed, MaskAngle, Integration, MaskDetectors, LoadEventNexus,\
     CreateWorkspace
 from mantid.api import mtd
@@ -155,8 +156,8 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        apply_calibration : bool
-            Flag for applying the pixel calibration.
+        apply_calibration : bool, str
+            Flag for applying the pixel calibration. No calibration (False), Default (True), Calibration file (str)
         """
         self._apply_calibration = apply_calibration
 
@@ -328,7 +329,7 @@ class PrepareSensitivityCorrection(object):
         """
         self._theta_dep_correction = flag
 
-    def _prepare_flood_data(self, index, beam_center, dark_current_run):
+    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run):
         """Prepare flood data including
         (1) load
         (2) mask: default, pixels
@@ -339,7 +340,8 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        index
+        flood_run: int, str
+            flood run number of flood file path
         beam_center
         dark_current_run
 
@@ -372,7 +374,12 @@ class PrepareSensitivityCorrection(object):
 
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
-        flood_ws = prepare_data(data='{}_{}'.format(self._instrument, self._flood_runs[index]),
+        if isinstance(flood_run, int):
+            flood_run = '{}_{}'.format(self._instrument, flood_run)
+        else:
+            # check file existence
+            assert os.path.exists(flood_run)
+        flood_ws = prepare_data(data=flood_run,  # self._flood_runs[index]),
                                 pixel_calibration=self._apply_calibration,
                                 mask=self._default_mask,
                                 btp=self._extra_mask_dict,
@@ -500,7 +507,8 @@ class PrepareSensitivityCorrection(object):
         # Load and process flood data with (1) mask (2) center detector and (3) solid angle correction
         flood_workspaces = list()
         for i in range(num_workspaces_set):
-            flood_ws_i = self._prepare_flood_data(i, beam_centers[i], self._dark_current_runs[i])
+            flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i],
+                                                  self._dark_current_runs[i])
             flood_workspaces.append(flood_ws_i)
 
         # Retrieve masked detectors
@@ -595,7 +603,14 @@ class PrepareSensitivityCorrection(object):
         instrument_name = {CG2: 'GPSANS',
                            CG3: 'BIOSANS',
                            EQSANS: 'EQSANS_'}[self._instrument]
-        parent_ws = LoadEventNexus(Filename='{}{}'.format(instrument_name, parent_flood_run),
+        if isinstance(parent_flood_run, int):
+            event_nexus = '{}{}'.format(instrument_name, parent_flood_run)
+        else:
+            # must be a nexus file already
+            event_nexus = parent_flood_run
+            assert os.path.exists(event_nexus)
+
+        parent_ws = LoadEventNexus(Filename=event_nexus,
                                    MetaDataOnly=True)
 
         # Create new sensitivity workspace
@@ -651,6 +666,12 @@ class PrepareSensitivityCorrection(object):
         else:
             # Direct beam run is specified
             beam_center_run = self._direct_beam_center_runs[index]
+        if isinstance(beam_center_run, str):
+            # beam center run shall be a file path
+            assert os.path.exists(beam_center_run), f'Bean center run {beam_center_run} cannot be found'
+        else:
+            # run number (integer)
+            beam_center_run = '{}_{}'.format(self._instrument, beam_center_run)
 
         # Prepare data
         # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector
@@ -671,7 +692,8 @@ class PrepareSensitivityCorrection(object):
             # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
             flux_method = 'monitor'
 
-        beam_center_workspace = prepare_data(data='{}_{}'.format(self._instrument, beam_center_run),
+        # FIXME - data shall be more flexible here for beam center run path
+        beam_center_workspace = prepare_data(data=beam_center_run,
                                              pixel_calibration=self._apply_calibration,
                                              center_x=0.,  # force to not to center
                                              center_y=0.,

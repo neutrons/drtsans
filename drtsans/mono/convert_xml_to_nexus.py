@@ -51,6 +51,9 @@ class EventNexusConverter(ABC):
         self._run_start = None
         self._run_stop = None
 
+        # run number
+        self._run_number = None
+
     def generate_event_nexus(self, target_nexus):
         """Generate event NeXus properly
 
@@ -95,6 +98,9 @@ class EventNexusConverter(ABC):
         for das_log in self._das_logs.values():
             event_nexus_writer.set_meta_data(das_log)
 
+        # set fake run number
+        event_nexus_writer.set_run_number(self._run_number)
+
         # Write file
         event_nexus_writer.generate_event_nexus(target_nexus, self._run_start, self._run_stop, self._monitor_counts)
 
@@ -107,14 +113,14 @@ class EventNexusConverter(ABC):
             name of SANS XML file
         prefix: str
             prefix for output workspace name
-        das_log_map: ~dict, None
+        das_log_map: ~dict
             meta data map between event NeXus and SPICE
 
         Returns
         -------
 
         """
-        spice_log_dict = self._retrieve_meta_data(xml_file_name, das_log_map)
+        spice_log_dict, pt_number = self._retrieve_meta_data(xml_file_name, das_log_map)
         self._das_logs = self.convert_log_units(spice_log_dict)
 
         # output workspace name
@@ -136,6 +142,8 @@ class EventNexusConverter(ABC):
         # get run start time: force to a new time
         self._run_start = sans_ws.run().getProperty('run_start').value
         self._run_stop = sans_ws.run().getProperty('end_time').value
+
+        self._run_number = pt_number
 
     def load_idf(self, template_nexus_file):
         """Load IDF content from a template NeXus file
@@ -180,8 +188,16 @@ class EventNexusConverter(ABC):
         das_log_values = dict()
         for nexus_log_name, spice_tuple in das_spice_log_map.items():
             # read value from XML node
-            spice_log_name, default_unit = spice_tuple
-            value, unit = spice_reader.get_node_value(spice_log_name, float)
+            # FIXME - this is a temporary solution in order to work with both new and old
+            # FIXME - meta data map
+            spice_log_name = spice_tuple[0]
+            default_unit = spice_tuple[1]
+            if len(spice_tuple) >= 3:
+                data_type = spice_tuple[2]
+            else:
+                # default
+                data_type = float
+            value, unit = spice_reader.get_node_value(spice_log_name, data_type)
 
             # set default
             if unit is None:
@@ -194,10 +210,17 @@ class EventNexusConverter(ABC):
 
             das_log_values[nexus_log_name] = value, unit
 
+        # Get pt number
+        try:
+            pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
+        except KeyError as key_err:
+            # some spice file may not have Scan_Point_Number
+            pt_number = key_err
+
         # Close file
         spice_reader.close()
 
-        return das_log_values
+        return das_log_values, pt_number
 
     @staticmethod
     def convert_log_units(spice_log_dict):

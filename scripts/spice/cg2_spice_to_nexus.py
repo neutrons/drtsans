@@ -6,7 +6,7 @@ from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 TEMPLATE_EVENT_NEXUS = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5'
 
 
-def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number):
+def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number, output_dir=None):
     """ Convert one SPICE to NeXus
 
     Parameters
@@ -35,8 +35,9 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number):
     template_nexus_file = TEMPLATE_EVENT_NEXUS
     assert os.path.exists(template_nexus_file), f'Template NeXus file {template_nexus_file} cannot be located'
 
-    # Specify the output directory
-    output_dir = f'/HFIR/CG2/IPTS-{ipts_number}/shared/spice_nexus'
+    # Specify the default output directory
+    if output_dir is None:
+        output_dir = f'/HFIR/CG2/IPTS-{ipts_number}/shared/spice_nexus'
     if not os.path.exists(output_dir):
         raise RuntimeError(f'Output NeXus directory {output_dir} does not exist.'
                            f'Create directory {output_dir} and grand access to all IPTS users')
@@ -55,6 +56,7 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number):
                    'detector_trans_Readback': ('detector_trans', 'mm'),  # same
                    'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
                    'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+                   'dcal_Readback': ('dcal', 'mm'),  # required by pixel calibration
                    'attenuator': ('attenuator_pos', 'mm')  # special
                    }
 
@@ -76,7 +78,11 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number):
 # set
 ipts = 828
 exp = 280
-scan = 4
-pt = 1
+# scan = 4
+# pt = 1
 
-convert_spice_to_nexus(ipts, exp, scan, pt)
+for scan, pt in [(26, 1),
+                 (27, 1)]:
+    convert_spice_to_nexus(ipts, exp, scan, pt, output_dir=f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp}')
+
+# END

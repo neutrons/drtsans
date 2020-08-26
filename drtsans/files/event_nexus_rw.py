@@ -294,6 +294,28 @@ class EventNeXusWriter(object):
 
         self._entry_node.set_child(target_monitor_node)
 
+    def set_run_number(self, run_number):
+        """Set run number if required
+
+        Parameters
+        ----------
+        run_number: int
+            run number
+
+        Returns
+        -------
+
+        """
+        # Set up the list
+        entry_value_tuple = ('/entry/run_number', run_number)
+
+        # Init regular DataSetNode and set value
+        child_node = DataSetNode(entry_value_tuple[0])
+        # need to convert to
+        child_node.set_value(np.array([np.string_(f'{entry_value_tuple[1]}')]))
+        # Link as the child of entry
+        self._entry_node.set_child(child_node)
+
     def generate_event_nexus(self, nexus_name, start_time, stop_time, monitor_counts):
         """Generate an event Nexus file from scratch
         Parameters

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from drtsans.iq import determine_1d_linear_bins
-from drtsans.determine_bins import determine_1d_log_bins_new
+from drtsans.determine_bins import determine_1d_log_bins
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import get_gold_2d_linear_bins, get_gold_1d_log_bins
 
 
@@ -32,7 +32,7 @@ def no_more_supported_test_log_bins_backward_compatible():
     q_max = 0.010  # Edge
     step_per_decade = 10  # 10 steps per decade
 
-    log_bins = determine_1d_log_bins_new(q_min, q_max, True, step_per_decade)
+    log_bins = determine_1d_log_bins(q_min, q_max, True, step_per_decade)
     gold_edges, gold_centers = get_gold_1d_log_bins()
     np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
     np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.E-4)
@@ -116,8 +116,8 @@ def test_example1():
     n_bins_per_decade = 10
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins_new(q_min, q_max, decade_on_center=True,
-                                          n_bins_per_decade=n_bins_per_decade)
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=True,
+                                      n_bins_per_decade=n_bins_per_decade)
 
     # verify bin center
     np.testing.assert_allclose(test_bins.centers, expected_log_bin_example1[:, 1], rtol=1e-7, atol=1e-6)
@@ -167,8 +167,8 @@ def test_example2():
     n_bins_per_decade = 10
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins_new(q_min, q_max, decade_on_center=False,
-                                          n_bins_per_decade=n_bins_per_decade)
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False,
+                                      n_bins_per_decade=n_bins_per_decade)
 
     # verify bin center
     np.testing.assert_allclose(test_bins.centers, expected_log_bin_example2[:, 1], rtol=1e-7, atol=1e-6)
@@ -234,9 +234,9 @@ def test_example3():
     n_bins = 30
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins_new(q_min, q_max, decade_on_center=False,
-                                          n_bins_per_decade=None,
-                                          n_bins=n_bins)
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False,
+                                      n_bins_per_decade=None,
+                                      n_bins=n_bins)
 
     # verify bin center
     np.testing.assert_allclose(test_bins.centers, expected_log_bin_example3[:, 1], rtol=1e-7, atol=1e-6)
@@ -302,9 +302,9 @@ def test_example4():
     n_bins = 30
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins_new(q_min, q_max, decade_on_center=False,
-                                          n_bins_per_decade=None,
-                                          n_bins=n_bins)
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False,
+                                      n_bins_per_decade=None,
+                                      n_bins=n_bins)
 
     # verify bin center
     np.testing.assert_allclose(test_bins.centers, expected_log_bin_example4[:, 1], rtol=1e-7, atol=1e-6)
@@ -363,8 +363,8 @@ def test_example5():
     n_bins_per_decade = 10
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins_new(q_min, q_max, decade_on_center=False,
-                                          n_bins_per_decade=n_bins_per_decade)
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False,
+                                      n_bins_per_decade=n_bins_per_decade)
 
     # verify bin center
     np.testing.assert_allclose(test_bins.centers, expected_log_bin_example5[:, 1], rtol=1e-7, atol=1e-6)
@@ -387,8 +387,8 @@ def test_issue599():
     logqmax = np.log10(q_max)
     logqmin = delta*np.floor(logqmin/delta)
     expected_values = 10**np.arange(logqmin, logqmax + delta * .999999, delta)
-    test_bin = determine_1d_log_bins_new(q_min, q_max, n_bins_per_decade=n_bins_per_decade,
-                                         decade_on_center=True)
+    test_bin = determine_1d_log_bins(q_min, q_max, n_bins_per_decade=n_bins_per_decade,
+                                     decade_on_center=True)
 
     # verify that the Q min and Q max are in first and last bin
     assert test_bin.edges[0] < q_min < test_bin.edges[1]

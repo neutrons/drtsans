@@ -791,7 +791,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     log_binning = reduction_config["QbinType"] == 'log'
     # FIXME - NO MORE EVENT DECADES: even_decades = reduction_config.get("LogQBinsEvenDecade", False)
     decade_on_center = reduction_config.get("useLogQBinsDecadeCenter", False)
-    print(f'LOGBIN api decade on center = {decade_on_center}')
     nbins_main = reduction_config.get("numQBins")
     nbins_main_per_decade = reduction_config.get("LogQBinsPerDecade")
     outputFilename = reduction_input["outputFileName"]
@@ -819,7 +818,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         symmetric_wedges = False
 
     xc, yc = find_beam_center(loaded_ws.center)
-    print("Center  =", xc, yc)
+    print(f"Find beam center  = {xc}, {yc}")
 
     # process the center if using it in absolute scaling
     if absolute_scale_method == 'direct_beam':
@@ -860,7 +859,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                           output_workspace=bkgd_trans_ws_name)
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
-        print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+        print(f'Background transmission = {bkgd_trans_ws.extractY()[0, 0]}')
         background_transmission_dict = {'value': bkgd_trans_ws.extractY(),
                                         'error': bkgd_trans_ws.extractE()}
     else:
@@ -879,7 +878,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                             output_workspace=sample_trans_ws_name)
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
-        print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
+        print(f'Sample transmission = {sample_trans_ws.extractY()[0, 0]}')
         sample_transmission_dict = {'value': sample_trans_ws.extractY(),
                                     'error': sample_trans_ws.extractE()}
     else:

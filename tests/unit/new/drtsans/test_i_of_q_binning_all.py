@@ -1,6 +1,6 @@
 import numpy as np
 from drtsans.dataobjects import IQmod, IQazimuthal
-from drtsans.iq import bin_all, determine_1d_log_bins_new
+from drtsans.iq import bin_all, determine_1d_log_bins
 import pytest
 
 
@@ -90,7 +90,7 @@ def test_bin_modq():
                                  annular_angle_bin=1., wedges=None,
                                  error_weighted=False)
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins_new(1., 4., decade_on_center=False, n_bins=4).centers
+    expected_q = determine_1d_log_bins(1., 4., decade_on_center=False, n_bins=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
 
     # test log scale: decade on center, qmin and qmax are not given
@@ -101,7 +101,7 @@ def test_bin_modq():
                                  annular_angle_bin=1., wedges=None,
                                  error_weighted=False)
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins_new(1., 4.,  decade_on_center=True, n_bins_per_decade=4).centers
+    expected_q = determine_1d_log_bins(1., 4., decade_on_center=True, n_bins_per_decade=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
     expected_intensity = np.array([(1.+16)/2, np.nan, (32+17.)/2])
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
@@ -114,7 +114,7 @@ def test_bin_modq():
                                  annular_angle_bin=1., wedges=None,
                                  error_weighted=False)
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins_new(2., 10., decade_on_center=False, n_bins=4).centers
+    expected_q = determine_1d_log_bins(2., 10., decade_on_center=False, n_bins=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
     expected_intensity = np.array([np.nan, (32+17.)/2, np.nan, np.nan])
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)

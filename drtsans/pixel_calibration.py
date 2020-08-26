@@ -1414,6 +1414,8 @@ def calculate_apparent_tube_width(flood_input, component='detector1', load_barsc
         :py:obj:`False`, then the pixel positions and heigths will be those of ```input_workspace```.
     db_file: str, None
         database file (json format).  None will load the default database for the selected instrument.
+        Otherwise the combination load_barscan_calibration=True, db_file=None may come across as some data
+        contradictory
 
     Returns
     -------

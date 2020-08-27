@@ -5,7 +5,7 @@ from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
 from enum import Enum
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
-from drtsans.determine_bins import determine_1d_linear_bins, determine_1d_log_bins, BinningParams
+from drtsans.determine_bins import determine_1d_log_bins, determine_1d_linear_bins, BinningParams
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -131,7 +131,7 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
 def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             n1dbins_per_decade=None, bin1d_type='scalar',
             log_scale=False, decade_on_center=False,
-            even_decade=False, qmin=None, qmax=None,
+            qmin=None, qmax=None,
             annular_angle_bin=1., wedges=None, symmetric_wedges=True,
             error_weighted=False):
     r"""Do all 1D and 2D binning for a configuration or detector
@@ -158,8 +158,6 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         if True, 1D scalar or wedge binning will be logarithmic. Ignored for anything else
     decade_on_center: bool
         Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
-    even_decade: bool
-        Flag to have even decade for minimum and maximum value in the generated bins
     qmin: float
         minimum 1D q
     qmax: float
@@ -231,11 +229,11 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
         if log_scale:
+            # log bins
             bins_1d = determine_1d_log_bins(qmin, qmax,
                                             n_bins_per_decade=n1dbins_per_decade,
                                             n_bins=n1dbins,
-                                            decade_on_center=decade_on_center,
-                                            even_decade=even_decade)
+                                            decade_on_center=decade_on_center)
             for ub1d in unbinned_1d:
                 # The filter is needed for logarithmic binning so that
                 # the qmin and qmax are correctly taken into account
@@ -247,7 +245,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                       ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method))
         else:
-            bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
+            # linear bins
+            bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
             for ub1d in unbinned_1d:
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
     return binned_q2d, binned_q1d_list
@@ -429,7 +428,6 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
 
     # select binning method
     # the methods call the independent axis "Q", but are generic to whatever values are passed in
-    do_1d_binning = None  # reference to function that was selected
     if method == BinningMethod.NOWEIGHT:
         # no weight binning
         do_1d_binning = _do_1d_no_weight_binning

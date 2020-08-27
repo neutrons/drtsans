@@ -81,12 +81,13 @@ def test_1d_bin_log_no_wt():
 
     """
     # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
-    q_min = 0.001  # Edge
-    q_max = 0.010  # Edge
+    q_min = 0.001  # center
+    q_max = 0.010  # center
     num_steps_per_10 = 10  # 10 steps per decade
 
     # Verify bin edges and bin center
-    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10, even_decade=True)
+    log_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False,
+                                     n_bins_per_decade=num_steps_per_10)
     gold_edges, gold_centers = get_gold_1d_log_bins()
 
     np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)
@@ -95,21 +96,18 @@ def test_1d_bin_log_no_wt():
     # Get Q1D data
     intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
 
-    # Binned I(Q) no-weight
-    # binned_iq = _do_1d_no_weight_binning(scalar_q_array, scalar_dq_array, intensities, sigmas,
-    #                                      log_bins.centers, log_bins.edges)
-
     # Test the high level method
     test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
     binned_iq = bin_intensity_into_q1d(test_iq, log_bins, BinningMethod.NOWEIGHT)
 
     # Verify: 2 I(Q) in bin: Q(3, 2, 3.1), Q(3, 2, 3.2)
-    # I(0.0022) = 70.00000
-    assert binned_iq.intensity[3] == pytest.approx(70.00000, abs=1.E-12), 'intensity'
+    # I(0.0025) between (0.00222397, 0.00279981)
+    # (previously) I(0.0022) = 70.00000
+    assert binned_iq.intensity[4] == pytest.approx(74.333333333333333, abs=1.E-12), 'intensity'
     # dI(0.0022) = 5.9160797831
-    assert binned_iq.error[3] == pytest.approx(5.9160797831, abs=1.E-12), 'error'
+    assert binned_iq.error[4] == pytest.approx(3.51978534699048, abs=1.E-12), 'error'
     # sigma_Q(0.0022) = 1.135E-02
-    assert binned_iq.delta_mod_q[3] == pytest.approx(1.135E-02, abs=2.E-5), \
+    assert binned_iq.delta_mod_q[4] == pytest.approx(1.154E-2, abs=2.E-5), \
         'Log binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
 
 

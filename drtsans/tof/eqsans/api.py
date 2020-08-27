@@ -567,7 +567,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     nybins_main = nxbins_main = reduction_config["numQxQyBins"]
     bin1d_type = reduction_config["1DQbinType"]
     log_binning = reduction_config["QbinType"] == 'log'
-    even_decades = reduction_config["useLogQBinsEvenDecade"]
+    # FIXME - NO MORE EVENT DECADES even_decades = reduction_config["useLogQBinsEvenDecade"]
     decade_on_center = reduction_config["useLogQBinsDecadeCenter"]
     nbins_main = reduction_config["numQBins"]
     nbins_main_per_decade = reduction_config["LogQBinsPerDecade"]
@@ -745,7 +745,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                    n1dbins_per_decade=nbins_main_per_decade,
                                                    decade_on_center=decade_on_center,
                                                    bin1d_type=bin1d_type, log_scale=log_binning,
-                                                   even_decade=even_decades, qmin=qmin, qmax=qmax,
+                                                   qmin=qmin, qmax=qmax,
                                                    annular_angle_bin=annular_bin, wedges=wedges,
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)

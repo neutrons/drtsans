@@ -321,7 +321,7 @@ def test_reduction(reference_dir, cleanfile):
 
     # Get result files
     sample_names = ['csmb_ecoli1h_n2']
-    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200714/test1/')
+    gold_path = os.path.join(reference_dir.new.biosans, 'overwrite_gold_20200815/test1/')
 
     # Verify
     try:

@@ -54,7 +54,7 @@ def _create_iq():
     num_steps_per_10 = 10  # 10 steps per decade
 
     # Verify bin edges and bin center
-    log_bins = determine_1d_log_bins(q_min, q_max, num_steps_per_10)
+    log_bins = determine_1d_log_bins(q_min, q_max, True, num_steps_per_10)
     gold_edges, gold_centers = get_gold_1d_log_bins()
 
     np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.E-4)

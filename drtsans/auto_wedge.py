@@ -345,8 +345,6 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     tuple
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     '''
-    import h5py
-
     # Export information for Q
     data_q_vec = np.sqrt(data.qx**2 + data.qy**2)
     logger.notice(f'Raw I(Q). Q range: {data_q_vec.min()}, {data_q_vec.max()}')

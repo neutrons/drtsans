@@ -5,7 +5,8 @@ from datetime import datetime
 import numpy as np
 import os
 
-from mantid.simpleapi import mtd, MaskDetectors
+from mantid.simpleapi import mtd, MaskDetectors, logger
+
 
 import drtsans
 from drtsans import getWedgeSelection
@@ -939,6 +940,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         iq1d_main_in = biosans.convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
         iq2d_main_in = biosans.convert_to_q(processed_data_main, mode='azimuthal',  **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
+            logger.notice(f'Auto wedge options: {autoWedgeOpts}')
+            autoWedgeOpts['debug_dir'] = output_dir
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
             print('found wedge angles:')
             peak_wedge, back_wedge = wedges

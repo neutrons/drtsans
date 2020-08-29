@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
@@ -118,7 +119,7 @@ def _calculate_function(fit_functions, vec_x):
     return vec_y
 
 
-def _plot_fit_results(rings, peak_fit_dict):
+def _plot_fit_results(rings, peak_fit_dict, output_dir):
     """Plot original data and fit result
 
     Parameters
@@ -127,6 +128,8 @@ def _plot_fit_results(rings, peak_fit_dict):
         List of I(Qx, Qy) in rings
     peak_fit_dict: ~dict
         dictionary containing all the peak fitting result
+    output_dir: str
+        full path of the output directory
 
     Returns
     -------
@@ -151,10 +154,10 @@ def _plot_fit_results(rings, peak_fit_dict):
         plt.cla()
         plt.plot(ring.mod_q, ring.intensity, label='observed', color='black')
         plt.plot(ring.mod_q, model_y, label='fitted', color='red')
-        plt.savefig(f'ring_{index:01}.png')
+        plt.savefig(os.path.join(output_dir, f'ring_{index:01}.png'))
 
 
-def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict):
+def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
     """write annular binned I(Qx, Qy) and intensity rings to hdf5 for further review
 
     Parameters
@@ -164,6 +167,8 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict):
         List of I(Qx, Qy) in rings
     peak_fit_dict: ~dict
         dictionary containing all the peak fitting result
+    output_dir: str
+        full path of the output directory
 
     Returns
     -------
@@ -179,7 +184,7 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict):
                                               BinningMethod.NOWEIGHT)
 
     # open
-    debug_h5 = h5py.File('annular_i_q.h5', 'w')
+    debug_h5 = h5py.File(os.path.join(output_dir, 'auto_wedge_fit.h5'), 'w')
     # define h5py string type
     h5_string_type = h5py.string_dtype(encoding='ascii')
 
@@ -241,7 +246,7 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict):
 
 
 def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width=0.25, background_width=1.5,
-                      signal_to_noise_min=2.):
+                      signal_to_noise_min=2., debug_dir='/tmp/'):
     '''
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
     output of this is intended to be used in :py:func:`~drtsans.iq.select_i_of_q_by_wedge`.
@@ -265,6 +270,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
         to be within when determining the final range for azimuthal binning.
     signal_to_noise_min: float
         Minimum signal to noise ratio for the data to be considered "fittable"
+    debug_dir: str
+        Full path of the output directory for debugging output files
 
     Results
     =======
@@ -282,8 +289,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
 
     # Export fitting result
     _export_to_h5(iq2d=data2d, rings=azimuthal_rings, azimuthal_delta=azimuthal_delta,
-                  peak_fit_dict=fit_dict)
-    _plot_fit_results(azimuthal_rings, fit_dict)
+                  peak_fit_dict=fit_dict, output_dir=debug_dir)
+    _plot_fit_results(azimuthal_rings, fit_dict, debug_dir)
 
     # verify that the results didn't predict wedges larger than half of the data
     if np.any(np.array(fwhm_vec) > 360./2):

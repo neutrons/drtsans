@@ -141,9 +141,12 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir):
             # bad fit
             continue
 
-        # construct function
+        # construct function from estimated
         fit_function_str = peak_fit_dict[index]['fit_function']
         fit_function_set = _create_fit_function(fit_function_str)
+        # calculate estimated peaks
+        estimated_y = _calculate_function(fit_function_set, ring.mod_q)
+
         for param_name in peak_fit_dict[index]:
             if param_name not in ['fit_function', 'error', 'used']:
                 # parameter value is recorded as tuple as value and error
@@ -154,6 +157,7 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir):
         plt.cla()
         plt.plot(ring.mod_q, ring.intensity, label='observed', color='black')
         plt.plot(ring.mod_q, model_y, label='fitted', color='red')
+        plt.plot(ring.mod_q, estimated_y, label='estimated', color='blue')
         plt.savefig(os.path.join(output_dir, f'ring_{index:01}.png'))
 
 

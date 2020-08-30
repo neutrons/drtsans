@@ -390,10 +390,12 @@ def test_fitting():
     '''Test that the fitting generates reasonable results for fitting the peaks'''
     q, azimuthal_rings = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    center_list, fwhm_list = _fitQAndAzimuthal(azimuthal_rings, q,
-                                               signal_to_noise_min=2.0,
-                                               azimuthal_start=110.,
-                                               maxchisq=1000.)
+    ring_fit_tuple = _fitQAndAzimuthal(azimuthal_rings, q,
+                                       signal_to_noise_min=2.0,
+                                       azimuthal_start=110.,
+                                       maxchisq=1000.)
+    center_list = ring_fit_tuple[0]
+    fwhm_list = ring_fit_tuple[1]
 
     assert center_list[0] == pytest.approx(180., abs=3.)
     assert center_list[1] == pytest.approx(360., abs=4.)

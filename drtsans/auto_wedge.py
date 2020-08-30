@@ -1,13 +1,15 @@
 import numpy as np
+import os
 from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 from drtsans.settings import unique_workspace_dundername
 # https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
-from mantid.simpleapi import DeleteWorkspace, logger
+from mantid.simpleapi import DeleteWorkspace, logger, Gaussian, FlatBackground
 # https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html
 from mantid.simpleapi import Fit
 import h5py
+from matplotlib import pyplot as plt
 
 __all__ = ['getWedgeSelection']
 
@@ -15,8 +17,151 @@ __all__ = ['getWedgeSelection']
 # https://docs.mantidproject.org/nightly/fitting/fitfunctions/Gaussian.html
 SIGMA_TO_FWHM = 2. * np.sqrt(2. * np.log(2.))
 
+MANTID_FUNCTION_MAP = {Gaussian().name: Gaussian, FlatBackground().name: FlatBackground}
 
-def _debug_output(iq2d, rings, azimuthal_delta):
+
+def _create_fit_function(combo_function_str):
+    """Create fit function from a Mantid combo function string
+
+    An example:
+    name=FlatBackground,A0=5894.8246694221725;name=Gaussian,Height=16626.818784787953,
+    PeakCentre=100.43905821664455,Sigma=5.917594016360494;name=Gaussian,Height=18517.052761733517,
+    PeakCentre=304.6715713990027,Sigma=36.943377164429435
+
+    Parameters
+    ----------
+    combo_function_str: str
+        function string
+
+    Returns
+    -------
+    ~list
+        list of Mantid IFunction in order of
+
+    """
+    # split to multiple functions
+    single_function_str_list = combo_function_str.split(';')
+    single_functions = list()
+
+    # convert to function
+    for single_func in single_function_str_list:
+        # split with ','
+        params = single_func.split(',')
+        # create function
+        func_name = params[0].split('=')[1]
+        func_i = MANTID_FUNCTION_MAP[func_name]()
+        # start to set parameters
+        for value_index in range(1, len(params)):
+            # split in PARAM_NAME=PARAM_VALUE style
+            param_list = params[value_index].split('=')
+            param_name_i = param_list[0]
+            param_value_i = float(param_list[1])
+            func_i.__setattr__(param_name_i, param_value_i)
+        # END-FOR
+        single_functions.append(func_i)
+
+    return single_functions
+
+
+def _set_function_param_value(functions, param_name, param_value):
+    """set function parameter value from the result of a combo function
+
+    Parameters
+    ----------
+    functions: ~list
+        list of functions
+    param_name: str
+        function parameter name may have 2 forms: PARAM_NAME or fI.PARAM_NAME, where I is an integer
+    param_value: float
+        parameter value
+
+    Returns
+    -------
+    None
+
+    """
+    # Check parameter name
+    if '.' in param_name:
+        terms = param_name.split('.')
+        function_index = int(terms[0].split('f')[-1])
+        param_name = terms[1]
+    else:
+        function_index = 0
+
+    # set
+    functions[function_index].__setattr__(param_name, param_value)
+
+
+def _calculate_function(fit_functions, vec_x):
+    """Calculate a function (set)
+
+    Parameters
+    ----------
+    fit_functions: ~list
+        List of fit function
+    vec_x: numpy.ndarray
+        1D array for X values
+
+    Returns
+    -------
+    numpy.ndarray
+        1D array for calculated function values
+
+    """
+    # Create the combo function from a list of functions
+    combo_function = fit_functions[0]
+    for f_i in range(1, len(fit_functions)):
+        combo_function += fit_functions[f_i]
+
+    # Call the create
+    vec_y = combo_function.__call__(vec_x)
+
+    return vec_y
+
+
+def _plot_fit_results(rings, peak_fit_dict, output_dir):
+    """Plot original data and fit result
+
+    Parameters
+    ----------
+    rings:  ~list
+        List of I(Qx, Qy) in rings
+    peak_fit_dict: ~dict
+        dictionary containing all the peak fitting result
+    output_dir: str
+        full path of the output directory
+
+    Returns
+    -------
+
+    """
+    for index, ring in enumerate(rings):
+        # add fitting related information to hdf file
+        if peak_fit_dict[index]['error'] is not None:
+            # bad fit
+            continue
+
+        # construct function from estimated
+        fit_function_str = peak_fit_dict[index]['fit_function']
+        fit_function_set = _create_fit_function(fit_function_str)
+        # calculate estimated peaks
+        estimated_y = _calculate_function(fit_function_set, ring.mod_q)
+
+        for param_name in peak_fit_dict[index]:
+            if param_name not in ['fit_function', 'error', 'used']:
+                # parameter value is recorded as tuple as value and error
+                _set_function_param_value(fit_function_set, param_name, peak_fit_dict[index][param_name][0])
+
+        # calculate
+        model_y = _calculate_function(fit_function_set, ring.mod_q)
+        plt.cla()
+        plt.plot(ring.mod_q, ring.intensity, label='observed', color='black')
+        plt.plot(ring.mod_q, model_y, label='fitted', color='red')
+        plt.plot(ring.mod_q, estimated_y, label='estimated', color='blue')
+        plt.savefig(os.path.join(output_dir, f'ring_{index:01}.png'))
+
+
+def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
     """write annular binned I(Qx, Qy) and intensity rings to hdf5 for further review
 
     Parameters
@@ -24,6 +169,10 @@ def _debug_output(iq2d, rings, azimuthal_delta):
     iq2d:  ~drtsans.dataobjects.Azimuthal
     rings: ~list
         List of I(Qx, Qy) in rings
+    peak_fit_dict: ~dict
+        dictionary containing all the peak fitting result
+    output_dir: str
+        full path of the output directory
 
     Returns
     -------
@@ -39,24 +188,69 @@ def _debug_output(iq2d, rings, azimuthal_delta):
                                               BinningMethod.NOWEIGHT)
 
     # open
-    debug_h5 = h5py.File('annular_i_q.h5', 'w')
+    debug_h5 = h5py.File(os.path.join(output_dir, 'auto_wedge_fit.h5'), 'w')
+    # define h5py string type
+    h5_string_type = h5py.string_dtype(encoding='ascii')
+
+    # create 3 groups for result
+    ring_group = debug_h5.create_group('rings')
+    fit_group = debug_h5.create_group('good fit')
+    nofit_group = debug_h5.create_group('no fit')
 
     # write full range
-    group = debug_h5.create_group('full range')
+    group = ring_group.create_group('full range')
     group.create_dataset('q', data=full_range_annular.mod_q)
     group.create_dataset('intensity', data=full_range_annular.intensity)
 
+    # write out for each ring
+    func_param_dict = dict()
+
     for index, ring in enumerate(rings):
-        group = debug_h5.create_group(f'slice {index}')
+        # add data to hdf file
+        group = ring_group.create_group(f'ring {index}')
         group.create_dataset('q', data=ring.mod_q)
         group.create_dataset('intensity', data=ring.intensity)
+
+        # add fitting related information to hdf file
+        if peak_fit_dict[index]['error'] is None:
+            # good fit
+            group = fit_group.create_group(f'ring {index}')
+            for param_name in peak_fit_dict[index]:
+                # ignore non function parameter
+                if param_name in ['fit_function', 'error', 'used']:
+                    continue
+
+                # create sub dictionary if it does not exist
+                if param_name not in func_param_dict:
+                    func_param_dict[param_name] = list()
+
+                # add value to dictionary from fit result dictionary
+                param_value, param_error = peak_fit_dict[index][param_name]
+                func_param_dict[param_name].append([index, param_value, param_error])
+        else:
+            # no fit
+            group = nofit_group.create_group(f'ring {index}')
+            # error message
+            string_data_set = group.create_dataset('error', (1,), dtype=h5_string_type)
+            string_data_set[0] = peak_fit_dict[index]['error']
+
+        # fit function
+        if 'fit_function' in peak_fit_dict[index]:
+            function_data_set = group.create_dataset('function', (1,), dtype=h5_string_type)
+            function_data_set[0] = peak_fit_dict[index]['fit_function']
+
+    # add peak fitting result
+    for param_name in func_param_dict:
+        # form data set
+        data_set = np.array(func_param_dict[param_name])
+        fit_group.create_dataset(param_name, data=data_set)
 
     # close
     debug_h5.close()
 
 
 def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width=0.25, background_width=1.5,
-                      signal_to_noise_min=2.):
+                      signal_to_noise_min=2., debug_dir='/tmp/'):
     '''
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
     output of this is intended to be used in :py:func:`~drtsans.iq.select_i_of_q_by_wedge`.
@@ -80,6 +274,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
         to be within when determining the final range for azimuthal binning.
     signal_to_noise_min: float
         Minimum signal to noise ratio for the data to be considered "fittable"
+    debug_dir: str
+        Full path of the output directory for debugging output files
 
     Results
     =======
@@ -90,9 +286,15 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
                                              azimuthal_delta=azimuthal_delta)
 
-    center_vec, fwhm_vec = _fitQAndAzimuthal(azimuthal_rings, q_bins=q,
-                                             signal_to_noise_min=signal_to_noise_min, azimuthal_start=110.,
-                                             maxchisq=1000.)
+    fit_results_tuple = _fitQAndAzimuthal(azimuthal_rings, q_bins=q,
+                                          signal_to_noise_min=signal_to_noise_min, azimuthal_start=110.,
+                                          maxchisq=1000.)
+    center_vec, fwhm_vec, fit_dict = fit_results_tuple
+
+    # Export fitting result
+    _export_to_h5(iq2d=data2d, rings=azimuthal_rings, azimuthal_delta=azimuthal_delta,
+                  peak_fit_dict=fit_dict, output_dir=debug_dir)
+    _plot_fit_results(azimuthal_rings, fit_dict, debug_dir)
 
     # verify that the results didn't predict wedges larger than half of the data
     if np.any(np.array(fwhm_vec) > 360./2):
@@ -154,8 +356,12 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     tuple
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     '''
+    # Export information for Q
+    data_q_vec = np.sqrt(data.qx**2 + data.qy**2)
+    logger.notice(f'Raw I(Q). Q range: {data_q_vec.min()}, {data_q_vec.max()}')
     # the bonus two steps is to get the end-point in the array
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
+    logger.notice(f'1D Q bins: {q_bins}')
 
     # create azimuthal binning BinningParams takes number of steps
     azimuthal_offset = 0.5 * azimuthal_delta
@@ -163,6 +369,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
                                       bins=int(360. / azimuthal_delta))
     # create the I(azimuthal) for each q-ring
     data_of_q_rings = []
+    # debugging output file
     for qmin_ring, qmax_ring in zip(q_bins[:-1], q_bins[1:]):
         # bin into I(azimuthal)
         I_azimuthal = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring,
@@ -188,7 +395,6 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
         # append to the list of spectra
         data_of_q_rings.append(I_azimuthal)
 
-    # return intensity, error, azimuthal_bins, q_bins TODO REMOVE
     return q_bins, data_of_q_rings
 
 
@@ -254,32 +460,30 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     return max_value, mean, sigma
 
 
-def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start):
-    '''Extract the peak fit parameters for the data. This is done by observing where 2 maxima are in the
+def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbose=True):
+    """Extract the peak fit parameters for the data. This is done by observing where 2 maxima are in the
     spectrum then fitting for the peak parameters. This makes the assumption that the two peaks are 180deg
     apart.
 
     Parameters
-    ==========
-    intensity: numpy.ndarray
-        Array of intensities for the q_value
-    error: numpy.ndarray
-        Array of uncertainties for the q_value
-    azimuthal_bins: numpy.ndarray
-        Array of azimuthal angles bin boundaries
-    q_value_start: float
-        Label for Q value being used. This is used for improving error messages
+    ----------
+    spectrum:
+    q_value: float
+        center (of q_min and q_max) for given annular binned Q-ring
     signal_to_noise_min: float
         Minimum signal to noise ratio for the data to be considered "fittable"
     azimuthal_start: float
         First position to look for peaks around
+    verbose: bool
+        Flag to output fitting information
 
-    Results
-    =======
+    Returns
+    -------
     dict
         dict[name] = (value, error) where all of the fit parameters are converted.
         f0 is background, then f1...fn are the fitted peaks
-    '''
+
+    """
     # define a default window size based on the number of peaks the function supports
     # currently only two peaks that are approximately 180deg apart is supported
     NUM_PEAK = 2
@@ -328,12 +532,13 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start):
 
     # fit the positions of the two suspected peaks
     fit_workspace_prefix = unique_workspace_dundername()
+    fit_function = ';'.join(function)
     try:
         fitresult = Fit(Function=';'.join(function), InputWorkspace=q_azimuthal_workspace, Output=fit_workspace_prefix,
                         StartX=spectrum.mod_q.min() + 90., EndX=spectrum.mod_q.min() + 90. + 360.,
                         OutputParametersOnly=True, IgnoreInvalidData=True)
     except RuntimeError as e:
-        raise RuntimeError('Failed to fit Q={}'.format(q_value)) from e
+        raise RuntimeError('Failed to fit Q={} with fit function {}'.format(q_value), fit_function) from e
     finally:
         DeleteWorkspace(q_azimuthal_workspace)
 
@@ -341,9 +546,10 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start):
         raise RuntimeError('Failed to fit Q={}'.format(q_value))
 
     # convert the table into a dict[name] = (value, error)
-    result = {}
+    result = {'fit_function': fit_function}
     for i in range(fitresult.OutputParameters.rowCount()):
         row = fitresult.OutputParameters.row(i)
+        print(f'[DEBUG-TEST] row: {row} of type {type(row)}')
         name = row['Name']
         if name.startswith('Cost function'):
             name = 'chisq'
@@ -352,6 +558,9 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start):
     # delete fit results
     for label in ['_Parameters', '_NormalisedCovarianceMatrix']:
         DeleteWorkspace(Workspace=fit_workspace_prefix + label)
+
+    if verbose:
+        print(f'Fit result: {result}')
 
     return result
 
@@ -378,7 +587,7 @@ def _toPositionAndFWHM(fitresult, peak_label, maxchisq):
     center = center[0], 1. / center[1]
     fwhm = fwhm[0], 1. / fwhm[1]
 
-    return (center, fwhm)
+    return center, fwhm
 
 
 def _weighted_position_and_width(peaks):
@@ -419,7 +628,8 @@ def _weighted_position_and_width(peaks):
         raise RuntimeError('Cannot determine fitted positions from zero weights') from e
 
 
-def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_start, maxchisq):
+def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_start, maxchisq,
+                      verbose=True):
     '''Find the peaks in the azimuthal spectra, then combine them into
     two composite centers and fwhm. This is currently coded to only
     look for two peaks.
@@ -440,11 +650,13 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
         First position to look for peaks around
     maxchisq: float
         The maximum chisq value for a fit result to be used in calculating the composite peak
+    verbose: bool
+        Flag to turn on fitting information output
 
     Results
     =======
-    list, list
-        The first list is the peak centers, the second is the peak fwhm
+    list, list, dict
+        The first list is the peak centers, the second is the peak fwhm, the third is a dictionary for fit result
     '''
     if len(azimuthal_rings) != len(q_bins) - 1:
         raise RuntimeError('must supply q-bin boundaries')
@@ -456,33 +668,52 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
     peakResults = [[], []]
     q_centers_used = []
 
-    index = 0
+    index = -1  # ring index: set to -1 due to too many 'continue' in the loop
     used_index = list()
     unfit_message = ''
+    fitted_peaks_message = ''
+    fit_result_dict = dict()
 
     for spectrum, q_center in zip(azimuthal_rings, q_centers):
+        # increase the index number
         index += 1
+        # init dict
+        fit_result_dict[index] = dict()
         try:
             fitresult = _fitSpectrum(spectrum, q_center,
-                                     signal_to_noise_min=signal_to_noise_min, azimuthal_start=azimuthal_start)
+                                     signal_to_noise_min=signal_to_noise_min, azimuthal_start=azimuthal_start,
+                                     verbose=verbose)
             newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ['f1', 'f2']]
 
-            if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(newlyFittedPeaks[1][0][0]):
-                unfit_message += f'spectrum {index}: failed to fit peaks due to NaN in fit result\n'
-                continue
+            # record the fit result
+            fit_result_dict[index] = fitresult
 
+            if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(newlyFittedPeaks[1][0][0]):
+                error_reason = f'spectrum {index}: failed to fit peaks due to NaN in fit result\n'
+                unfit_message += error_reason
+                fit_result_dict[index]['error'] = error_reason
+                continue
+            else:
+                fitted_peaks_message += f'spectrum {index-1}: Fitted peaks: {newlyFittedPeaks}\n'
             for i in range(len(peakResults)):
                 peakResults[i].append(newlyFittedPeaks[i])
             q_centers_used.append(q_center)
-            used_index.append(index - 1)
+            used_index.append(index)
         except RuntimeError as e:
-            unfit_message += 'spectrum {}: Not using information from Q-slice ({}A):'.format(index, q_center)
-            unfit_message += f'Encountered runtime error: {e}\n'  # don't worry about it
+            error_reason = 'spectrum {}: Not using information from Q-slice ({}A):'.format(index, q_center)
+            error_reason += f'Encountered runtime error: {e}\n'  # don't worry about it
+            unfit_message += error_reason
+            fit_result_dict[index]['error'] = error_reason
             continue
         except ValueError as val_err:
             # in case user specifies a range containing no Q values
-            unfit_message += f'Spectrum {index}: unable to fit peaks due to {val_err}\n'
+            error_reason = f'Spectrum {index}: unable to fit peaks due to {val_err}\n'
+            unfit_message += error_reason
+            fit_result_dict[index]['error'] = error_reason
             continue
+        else:
+            # this ring is used
+            fit_result_dict[index]['error'] = None
 
     logger.notice(f'Q-rings used to determine overall wedges: {q_centers_used}')
     logger.information(f'used annular binning index: {used_index}')
@@ -497,6 +728,7 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
         center_list.append(center)
         fwhm_list.append(fwhm)
 
-    logger.notice(f'Fitted peak centers: {center_list}\nFWHMs              : {fwhm_list}')
+    logger.notice(f'Fitted peak centers:\n{fitted_peaks_message}\n')
+    logger.notice(f'Summed peak centers: {center_list}\nFWHMs              : {fwhm_list}')
 
-    return center_list, fwhm_list
+    return center_list, fwhm_list, fit_result_dict

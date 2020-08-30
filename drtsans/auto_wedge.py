@@ -422,7 +422,7 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     # Look for the highest point in a section of the data. This is an iterative approach that starts with a window
     # centered at `azimuthal_start`, the repeats until the maximum within the window doesn't move more than 1deg.
     azimuthal_new = azimuthal_start  # where to search around
-    azimuthal_last = azimuthal_start  # last known value
+    # azimuthal_last = azimuthal_start  # last known value
     while True:
         # determine new windows staying at least 90.deg inside the edges
         window_min = np.max((azimuthal_new - window_half_width, azimuthal.min() + 90.))
@@ -442,11 +442,14 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
         # stop searching if the value hasn't changed by less than one degree
         if abs(azimuthal_new - azimuthal_last) < 1.:
             break
+    # output
+    print(f'[WEDGE FIT] azimuthal: {azimuthal_new}, {azimuthal_last} with '
+          f'left and right as {left_index}, {right_index}')
 
     # now use the first two moments of the data within the window to give an improved center position (first moment)
     # and width (derived from second moment)
 
-    # the position of the center of the peak is the first momement of the data. "mean" can be thought of as the
+    # the position of the center of the peak is the first moment of the data. "mean" can be thought of as the
     # center of mass of the peak in azimuthal angle.
     mean = np.sum(intensity[left_index: right_index] * azimuthal[left_index: right_index]) \
         / np.sum(intensity[left_index: right_index])
@@ -488,6 +491,7 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
     # currently only two peaks that are approximately 180deg apart is supported
     NUM_PEAK = 2
     WINDOW_SIZE = 0.6 * (360. / NUM_PEAK)
+    print(f'[WEDGE] Fixed window size = {WINDOW_SIZE} from factor {0.6} Number of peaks = {NUM_PEAK}')
 
     # filter out the nans
     mask = np.logical_not(np.isnan(spectrum.intensity))

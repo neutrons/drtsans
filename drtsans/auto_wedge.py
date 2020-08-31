@@ -377,7 +377,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
 
         # Create a copy of the arrays with the 360->540deg region repeated
         # ignore - delta_mod_q wavelength
-        mod_q_new = determine_1d_linear_bins(x_min=0., x_max=540.+azimuthal_delta,
+        mod_q_new = determine_1d_linear_bins(x_min=0., x_max=540. + azimuthal_delta,
                                              bins=1 + int(540. / azimuthal_delta)).centers
         num_orig_bins = I_azimuthal.mod_q.size
         num_repeated_bins = mod_q_new.size - num_orig_bins

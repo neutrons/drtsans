@@ -489,9 +489,10 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
     """
     # define a default window size based on the number of peaks the function supports
     # currently only two peaks that are approximately 180deg apart is supported
-    NUM_PEAK = 2
-    WINDOW_SIZE = 0.6 * (360. / NUM_PEAK)
-    print(f'[WEDGE] Fixed window size = {WINDOW_SIZE} from factor {0.6} Number of peaks = {NUM_PEAK}')
+    NUM_PEAK =2
+    window_factor = 0.1  # deault is 0.6 about 108 degree with 2 peaks
+    WINDOW_SIZE = window_factor * (360. / NUM_PEAK)
+    print(f'[WEDGE] Fixed window size = {WINDOW_SIZE} from factor {window_factor} Number of peaks = {NUM_PEAK}')
 
     # filter out the nans
     mask = np.logical_not(np.isnan(spectrum.intensity))
@@ -522,13 +523,14 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
                                                                      window_half_width=WINDOW_SIZE)
     function.append(gaussian_str.format(intensity_peak-background, azimuthal_first, sigma))
 
-    # assume the other peak is 360 / NUM_PEAK degrees away
-    azimuthal_start = azimuthal_first + (360. / NUM_PEAK)
-    intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(spectrum.intensity[mask],
-                                                                      spectrum.mod_q[mask],
-                                                                      azimuthal_start=azimuthal_start,
-                                                                      window_half_width=WINDOW_SIZE)
-    function.append(gaussian_str.format(intensity_peak-background, azimuthal_second, sigma))
+    for peak_index in range(1, NUM_PEAK):
+        # assume the other peak is 360 / NUM_PEAK degrees away
+        azimuthal_start = azimuthal_first + (360. / NUM_PEAK * peak_index)
+        intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(spectrum.intensity[mask],
+                                                                          spectrum.mod_q[mask],
+                                                                          azimuthal_start=azimuthal_start,
+                                                                          window_half_width=WINDOW_SIZE)
+        function.append(gaussian_str.format(intensity_peak-background, azimuthal_second, sigma))
 
     # create workspace version of data
     # this includes the nans so `Fit` has to be told to ignore them

@@ -393,7 +393,8 @@ def test_fitting():
     ring_fit_tuple = _fitQAndAzimuthal(azimuthal_rings, q,
                                        signal_to_noise_min=2.0,
                                        azimuthal_start=110.,
-                                       maxchisq=1000.)
+                                       maxchisq=1000.,
+                                       peak_search_window_size_factor=0.6)
     center_list = ring_fit_tuple[0]
     fwhm_list = ring_fit_tuple[1]
 

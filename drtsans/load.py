@@ -311,8 +311,6 @@ def load_and_split(run, data_dir=None, output_workspace=None, output_suffix='',
                          TimeInterval=time_interval,
                          LogName=log_name,
                          LogValueInterval=log_value_interval)
-    infows = mtd['_info']
-    print(f'splitter info: {infows}')
 
     # Filter data
     FilterEvents(InputWorkspace=str(ws),

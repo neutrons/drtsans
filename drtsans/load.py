@@ -311,6 +311,8 @@ def load_and_split(run, data_dir=None, output_workspace=None, output_suffix='',
                          TimeInterval=time_interval,
                          LogName=log_name,
                          LogValueInterval=log_value_interval)
+    infows = mtd['_info']
+    print(f'splitter info: {infows}')
 
     # Filter data
     FilterEvents(InputWorkspace=str(ws),
@@ -340,6 +342,22 @@ def load_and_split(run, data_dir=None, output_workspace=None, output_suffix='',
             SampleLogs(mtd[output_workspace].getItem(n)).insert('monitor',
                                                                 mtd[output_workspace+'_monitors']
                                                                 .getItem(n).getNumberEvents())
+
+    # Add metadata for each slice with details
+    split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
+
+    # for n in range(mtd[output_workspace].getNumberOfEntries()):
+    print(f'WorkspaceGroup methods: {dir(mtd[output_workspace])}')
+    print(f'{output_workspace}')
+    for split_ws in split_ws_list:
+          # split_ws = mtd[output_workspace].getItem(n)
+          print(f'Split workspace {n}: {str(split_ws)}')
+          print(f'workspace type: {type(split_ws)}')
+          print(f'nuber of events = {split_ws.getNumberEvents()}')
+          num_events = split_ws.getNumberEvents()
+          if num_events == 0:
+              mtd[output_workspace].remove(str(split_ws))
+          print(f'{output_workspace}')
 
     # Add metadata for each slice with details
     for n in range(mtd[output_workspace].getNumberOfEntries()):

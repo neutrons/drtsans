@@ -489,8 +489,8 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
     """
     # define a default window size based on the number of peaks the function supports
     # currently only two peaks that are approximately 180deg apart is supported
-    NUM_PEAK =2
-    window_factor = 0.1  # deault is 0.6 about 108 degree with 2 peaks
+    NUM_PEAK = 2
+    window_factor = 0.6  # default is 0.6 about 108 degree with 2 peaks .. for strong anisotropic: 0.1
     WINDOW_SIZE = window_factor * (360. / NUM_PEAK)
     print(f'[WEDGE] Fixed window size = {WINDOW_SIZE} from factor {window_factor} Number of peaks = {NUM_PEAK}')
 

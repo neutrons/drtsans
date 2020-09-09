@@ -5,7 +5,7 @@ import mantid
 from mantid.simpleapi import mtd
 from mantid.simpleapi import LoadEventNexus, MergeRuns, GenerateEventsFilter, FilterEvents
 from mantid.simpleapi import AddSampleLogMultiple
-
+from mantid.kernel import logger
 from drtsans.geometry import translate_detector_by_z, translate_sample_by_z, translate_source_by_z
 from drtsans.instruments import extract_run_number, instrument_enum_name, InstrumentEnumName, is_time_of_flight
 from drtsans.path import abspath, registered_workspace, exists as path_exists
@@ -320,6 +320,14 @@ def load_and_split(run, data_dir=None, output_workspace=None, output_suffix='',
                  FilterByPulseTime=True,
                  GroupWorkspaces=True,
                  OutputWorkspaceIndexedFrom1=True)
+
+    # Remove empty workspaces from event filtering
+    split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
+    for split_ws in split_ws_list:
+        num_events = split_ws.getNumberEvents()
+        if num_events == 0:
+            logger.notice(f'Remove empty sliced workspace {str(split_ws)}')
+            mtd[output_workspace].remove(str(split_ws))
 
     if monitors:
         # Filter monitors

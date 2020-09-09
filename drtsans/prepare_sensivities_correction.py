@@ -16,6 +16,7 @@ import os
 from mantid.simpleapi import SaveNexusProcessed, MaskAngle, Integration, MaskDetectors, LoadEventNexus,\
     CreateWorkspace
 from mantid.api import mtd
+from mantid.kernel import logger
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmask_utils.py
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
@@ -329,7 +330,7 @@ class PrepareSensitivityCorrection(object):
         """
         self._theta_dep_correction = flag
 
-    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run):
+    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run, enforce_use_nexus_idf):
         """Prepare flood data including
         (1) load
         (2) mask: default, pixels
@@ -344,7 +345,8 @@ class PrepareSensitivityCorrection(object):
             flood run number of flood file path
         beam_center
         dark_current_run
-
+        enforce_use_nexus_idf: bool
+            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
         Returns
         -------
 
@@ -388,6 +390,7 @@ class PrepareSensitivityCorrection(object):
                                 dark_current=dark_current_run,
                                 flux_method=flux_method,
                                 solid_angle=self._solid_angle_correction,
+                                enforce_use_nexus_idf=enforce_use_nexus_idf,
                                 **instrument_specific_param_dict)
 
         # Integration all the wavelength for EQSANS
@@ -471,7 +474,8 @@ class PrepareSensitivityCorrection(object):
 
         return flood_workspace
 
-    def execute(self, use_moving_detector_method, min_threshold, max_threshold, output_nexus_name):
+    def execute(self, use_moving_detector_method, min_threshold, max_threshold, output_nexus_name,
+                enforce_use_nexus_idf=False):
         """Main workflow method to calculate sensitivities correction
 
         Parameters
@@ -484,6 +488,8 @@ class PrepareSensitivityCorrection(object):
             maximum threshold of normalized count for GOOD pixels
         output_nexus_name : str
             path to the output processed NeXus file
+        enforce_use_nexus_idf: bool
+            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
 
         Returns
         -------
@@ -496,9 +502,9 @@ class PrepareSensitivityCorrection(object):
         # Load beam center runs and calculate beam centers
         beam_centers = list()
         for i in range(num_workspaces_set):
-            beam_center_i = self._calculate_beam_center(i)
+            beam_center_i = self._calculate_beam_center(i, enforce_use_nexus_idf)
             beam_centers.append(beam_center_i)
-            print('[DEBUG] Beam center ({}-th) = {}'.format(i, beam_center_i))
+            logger.notice('Calculated beam center ({}-th) = {}'.format(i, beam_center_i))
 
         # Set default value to dark current runs
         if self._dark_current_runs is None:
@@ -508,7 +514,7 @@ class PrepareSensitivityCorrection(object):
         flood_workspaces = list()
         for i in range(num_workspaces_set):
             flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i],
-                                                  self._dark_current_runs[i])
+                                                  self._dark_current_runs[i], enforce_use_nexus_idf)
             flood_workspaces.append(flood_ws_i)
 
         # Retrieve masked detectors
@@ -530,18 +536,19 @@ class PrepareSensitivityCorrection(object):
                 flood_workspaces[i] = self._apply_transmission_correction(flood_workspaces[i],
                                                                           self._transmission_reference_runs[i],
                                                                           self._transmission_flood_runs[i],
-                                                                          beam_centers[i])
+                                                                          beam_centers[i],
+                                                                          enforce_use_nexus_idf)
 
         # Set the masked pixels' counts to nan and -infinity
         for i in range(num_workspaces_set):
             flood_workspaces[i] = self._set_mask_value(flood_workspaces[i], bad_pixels_list[i],
                                                        use_moving_detector_method)
 
-        print('Preparation of data is over....')
-        print('{}: Number of infinities = {}'.format(str(flood_workspaces[0]),
-                                                     len(np.where(np.isinf(flood_workspaces[0].extractY()))[0])))
-        print('{}: Number of NaNs       = {}'.format(str(flood_workspaces[0]),
-                                                     len(np.where(np.isnan(flood_workspaces[0].extractY()))[0])))
+        info = 'Preparation of data is over....\n'
+        for fws in flood_workspaces:
+            info += f'{str(fws)}: Number of infinities = {len(np.where(np.isinf(fws.extractY()))[0])},' \
+                    f'Number of NaNs = {len(np.where(np.isnan(fws.extractY()))[0])}\n'
+        logger.notice(info)
 
         # Decide algorithm to prepare sensitivities
         if self._instrument in [CG2, CG3] and use_moving_detector_method is True:
@@ -638,7 +645,7 @@ class PrepareSensitivityCorrection(object):
         # Save
         SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
 
-    def _calculate_beam_center(self, index):
+    def _calculate_beam_center(self, index, enforce_use_nexus_idf):
         """Find beam centers for all flood runs
 
         Beam center run shall be
@@ -649,7 +656,8 @@ class PrepareSensitivityCorrection(object):
         ----------
         index : int
             beam center run index mapped to flood run
-
+        enforce_use_nexus_idf: bool
+            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
         Returns
         -------
         ~tuple
@@ -703,6 +711,7 @@ class PrepareSensitivityCorrection(object):
                                              solid_angle=False,
                                              output_workspace='BC_{}_{}'.format(self._instrument,
                                                                                 beam_center_run),
+                                             enforce_use_nexus_idf=enforce_use_nexus_idf,
                                              **instrument_specific_param_dict)
         # Mask angle for CG3: apply mask on angle
         if self._instrument == CG3 and self._wing_det_mask_angle is not None:
@@ -765,7 +774,7 @@ class PrepareSensitivityCorrection(object):
         return masked_flood_ws
 
     def _apply_transmission_correction(self, flood_ws, transmission_beam_run, transmission_flood_run,
-                                       beam_center):
+                                       beam_center, enforce_use_nexus_idf):
         """Calculate and pply transmission correction
 
         Parameters
@@ -779,6 +788,8 @@ class PrepareSensitivityCorrection(object):
             run number for transmission flood run
         beam_center : ~tuple
             detector center
+        enforce_use_nexus_idf: bool
+            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
         Returns
         -------
         MatrixWorkspace
@@ -804,6 +815,7 @@ class PrepareSensitivityCorrection(object):
                                               center_y=beam_center[1],
                                               output_workspace='TRANS_{}_{}'.format(self._instrument,
                                                                                     transmission_beam_run),
+                                              enforce_use_nexus_idf=enforce_use_nexus_idf,
                                               **instrument_specific_param_dict)
         # Apply mask
         if self._instrument == CG3:
@@ -822,6 +834,7 @@ class PrepareSensitivityCorrection(object):
                                              center_y=beam_center[1],
                                              output_workspace='TRANS_{}_{}'.format(self._instrument,
                                                                                    transmission_flood_run),
+                                             enforce_use_nexus_idf=enforce_use_nexus_idf,
                                              **instrument_specific_param_dict)
         # Apply mask
         if self._instrument == CG3:

@@ -101,8 +101,17 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         # load the data into the appropriate workspace
         with amend_config({'default.instrument': str(instrument_unique_name)}, data_dir=data_dir):
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
-            kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
+            # decide the value of LoadNexusInstrumentXML
+            # if not specified, determine by overwrite_instrument
+            if 'LoadNexusInstrumentXML' not in kwargs:
+                kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
+
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+
+            ws = mtd[output_workspace]
+            print(f'[DEBUG] LoadNexusInstrumentXML = {kwargs["LoadNexusInstrumentXML"]}:'
+                  f'{filename} pixel 0 position = {ws.getDetector(0).getPos()}')
+
             if pixel_calibration is not False:
                 # pixel calibration is specified as not False
                 if isinstance(pixel_calibration, str):

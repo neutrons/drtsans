@@ -438,10 +438,17 @@ def prepare_data(data,
     if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
         raise RuntimeError('gpsans.api.prepare_data does not work with detector_offset or sample_offset')
 
+    # Load data and enforce to use nexus IDF
+    if 'enforce_use_nexus_idf' in kwargs:
+        enforce_use_nexus_idf = kwargs['enforce_use_nexus_idf']
+    else:
+        enforce_use_nexus_idf = False
+
     # GPSANS: detector offset is fixed to 0. Only detector sample distance is essential.
     #         So one offset is sufficient
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     pixel_calibration=pixel_calibration, detector_offset=0, sample_offset=sample_offset)
+                     pixel_calibration=pixel_calibration, detector_offset=0, sample_offset=sample_offset,
+                     LoadNexusInstrumentXML=enforce_use_nexus_idf)
 
     # Reset the offset
     sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,
@@ -555,7 +562,8 @@ def prepare_data_workspaces(data,
     ~mantid.dataobjects.Workspace2D
         Reference to the processed workspace
     """
-    assert data, 'Input workspace is None!'
+    if not data:
+        raise RuntimeError('Input workspace of prepare data cannot be None!')
 
     if not output_workspace:
         output_workspace = str(data)

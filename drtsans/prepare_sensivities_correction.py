@@ -381,6 +381,8 @@ class PrepareSensitivityCorrection(object):
         else:
             # check file existence
             assert os.path.exists(flood_run)
+
+        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         flood_ws = prepare_data(data=flood_run,  # self._flood_runs[index]),
                                 pixel_calibration=self._apply_calibration,
                                 mask=self._default_mask,
@@ -390,7 +392,6 @@ class PrepareSensitivityCorrection(object):
                                 dark_current=dark_current_run,
                                 flux_method=flux_method,
                                 solid_angle=self._solid_angle_correction,
-                                enforce_use_nexus_idf=enforce_use_nexus_idf,
                                 **instrument_specific_param_dict)
 
         # Integration all the wavelength for EQSANS
@@ -701,6 +702,7 @@ class PrepareSensitivityCorrection(object):
             flux_method = 'monitor'
 
         # FIXME - data shall be more flexible here for beam center run path
+        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         beam_center_workspace = prepare_data(data=beam_center_run,
                                              pixel_calibration=self._apply_calibration,
                                              center_x=0.,  # force to not to center
@@ -711,7 +713,6 @@ class PrepareSensitivityCorrection(object):
                                              solid_angle=False,
                                              output_workspace='BC_{}_{}'.format(self._instrument,
                                                                                 beam_center_run),
-                                             enforce_use_nexus_idf=enforce_use_nexus_idf,
                                              **instrument_specific_param_dict)
         # Mask angle for CG3: apply mask on angle
         if self._instrument == CG3 and self._wing_det_mask_angle is not None:
@@ -806,6 +807,7 @@ class PrepareSensitivityCorrection(object):
             instrument_specific_param_dict['overwrite_instrument'] = False
 
         # Load, mask default and pixels, and normalize
+        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_beam_run),
                                               pixel_calibration=self._apply_calibration,
                                               mask=self._default_mask, btp=self._extra_mask_dict,
@@ -815,7 +817,6 @@ class PrepareSensitivityCorrection(object):
                                               center_y=beam_center[1],
                                               output_workspace='TRANS_{}_{}'.format(self._instrument,
                                                                                     transmission_beam_run),
-                                              enforce_use_nexus_idf=enforce_use_nexus_idf,
                                               **instrument_specific_param_dict)
         # Apply mask
         if self._instrument == CG3:
@@ -825,6 +826,7 @@ class PrepareSensitivityCorrection(object):
                       Angle="TwoTheta")
 
         # Load, mask default and pixels, normalize
+        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
                                              pixel_calibration=self._apply_calibration,
                                              mask=self._default_mask, btp=self._extra_mask_dict,
@@ -834,7 +836,6 @@ class PrepareSensitivityCorrection(object):
                                              center_y=beam_center[1],
                                              output_workspace='TRANS_{}_{}'.format(self._instrument,
                                                                                    transmission_flood_run),
-                                             enforce_use_nexus_idf=enforce_use_nexus_idf,
                                              **instrument_specific_param_dict)
         # Apply mask
         if self._instrument == CG3:

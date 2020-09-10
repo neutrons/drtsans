@@ -108,10 +108,6 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
-            ws = mtd[output_workspace]
-            print(f'[DEBUG] LoadNexusInstrumentXML = {kwargs["LoadNexusInstrumentXML"]}:'
-                  f'{filename} pixel 0 position = {ws.getDetector(0).getPos()}')
-
             if pixel_calibration is not False:
                 # pixel calibration is specified as not False
                 if isinstance(pixel_calibration, str):

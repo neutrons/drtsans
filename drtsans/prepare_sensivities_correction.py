@@ -382,7 +382,9 @@ class PrepareSensitivityCorrection(object):
             # check file existence
             assert os.path.exists(flood_run)
 
-        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
+        # prepare data
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         flood_ws = prepare_data(data=flood_run,  # self._flood_runs[index]),
                                 pixel_calibration=self._apply_calibration,
                                 mask=self._default_mask,
@@ -702,7 +704,8 @@ class PrepareSensitivityCorrection(object):
             flux_method = 'monitor'
 
         # FIXME - data shall be more flexible here for beam center run path
-        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         beam_center_workspace = prepare_data(data=beam_center_run,
                                              pixel_calibration=self._apply_calibration,
                                              center_x=0.,  # force to not to center
@@ -807,7 +810,8 @@ class PrepareSensitivityCorrection(object):
             instrument_specific_param_dict['overwrite_instrument'] = False
 
         # Load, mask default and pixels, and normalize
-        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_beam_run),
                                               pixel_calibration=self._apply_calibration,
                                               mask=self._default_mask, btp=self._extra_mask_dict,
@@ -826,7 +830,8 @@ class PrepareSensitivityCorrection(object):
                       Angle="TwoTheta")
 
         # Load, mask default and pixels, normalize
-        instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
         transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
                                              pixel_calibration=self._apply_calibration,
                                              mask=self._default_mask, btp=self._extra_mask_dict,

@@ -250,7 +250,7 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
 
 
 def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width=0.25, background_width=1.5,
-                      signal_to_noise_min=2., debug_dir='/tmp/'):
+                      signal_to_noise_min=2., peak_search_window_size_factor=0.6, debug_dir='/tmp/'):
     '''
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
     output of this is intended to be used in :py:func:`~drtsans.iq.select_i_of_q_by_wedge`.
@@ -274,6 +274,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
         to be within when determining the final range for azimuthal binning.
     signal_to_noise_min: float
         Minimum signal to noise ratio for the data to be considered "fittable"
+    peak_search_window_size_factor: float
+        Factor of 360 / (num peaks) to construct the search range for wedge peak
     debug_dir: str
         Full path of the output directory for debugging output files
 
@@ -288,7 +290,8 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
 
     fit_results_tuple = _fitQAndAzimuthal(azimuthal_rings, q_bins=q,
                                           signal_to_noise_min=signal_to_noise_min, azimuthal_start=110.,
-                                          maxchisq=1000.)
+                                          maxchisq=1000.,
+                                          peak_search_window_size_factor=peak_search_window_size_factor)
     center_vec, fwhm_vec, fit_dict = fit_results_tuple
 
     # Export fitting result
@@ -377,7 +380,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
 
         # Create a copy of the arrays with the 360->540deg region repeated
         # ignore - delta_mod_q wavelength
-        mod_q_new = determine_1d_linear_bins(x_min=0., x_max=540.+azimuthal_delta,
+        mod_q_new = determine_1d_linear_bins(x_min=0., x_max=540. + azimuthal_delta,
                                              bins=1 + int(540. / azimuthal_delta)).centers
         num_orig_bins = I_azimuthal.mod_q.size
         num_repeated_bins = mod_q_new.size - num_orig_bins
@@ -422,7 +425,7 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     # Look for the highest point in a section of the data. This is an iterative approach that starts with a window
     # centered at `azimuthal_start`, the repeats until the maximum within the window doesn't move more than 1deg.
     azimuthal_new = azimuthal_start  # where to search around
-    azimuthal_last = azimuthal_start  # last known value
+    # azimuthal_last = azimuthal_start  # last known value
     while True:
         # determine new windows staying at least 90.deg inside the edges
         window_min = np.max((azimuthal_new - window_half_width, azimuthal.min() + 90.))
@@ -442,11 +445,14 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
         # stop searching if the value hasn't changed by less than one degree
         if abs(azimuthal_new - azimuthal_last) < 1.:
             break
+    # output
+    print(f'[WEDGE FIT] azimuthal: {azimuthal_new}, {azimuthal_last} with '
+          f'left and right as {left_index}, {right_index}')
 
     # now use the first two moments of the data within the window to give an improved center position (first moment)
     # and width (derived from second moment)
 
-    # the position of the center of the peak is the first momement of the data. "mean" can be thought of as the
+    # the position of the center of the peak is the first moment of the data. "mean" can be thought of as the
     # center of mass of the peak in azimuthal angle.
     mean = np.sum(intensity[left_index: right_index] * azimuthal[left_index: right_index]) \
         / np.sum(intensity[left_index: right_index])
@@ -460,7 +466,8 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
     return max_value, mean, sigma
 
 
-def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbose=True):
+def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, peak_search_window_size_factor,
+                 verbose=True):
     """Extract the peak fit parameters for the data. This is done by observing where 2 maxima are in the
     spectrum then fitting for the peak parameters. This makes the assumption that the two peaks are 180deg
     apart.
@@ -474,6 +481,8 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
         Minimum signal to noise ratio for the data to be considered "fittable"
     azimuthal_start: float
         First position to look for peaks around
+    peak_search_window_size_factor: float
+        Factor of 360 / (num peaks) to construct the search range for wedge peak
     verbose: bool
         Flag to output fitting information
 
@@ -487,7 +496,10 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
     # define a default window size based on the number of peaks the function supports
     # currently only two peaks that are approximately 180deg apart is supported
     NUM_PEAK = 2
-    WINDOW_SIZE = 0.6 * (360. / NUM_PEAK)
+    # window_factor = 0.6  # default is 0.6 about 108 degree with 2 peaks .. for strong anisotropic: 0.1
+    peak_search_window_size = peak_search_window_size_factor * (360. / NUM_PEAK)
+    print(f'[WEDGE] Fixed window size = {peak_search_window_size}'
+          f'from factor {peak_search_window_size_factor} Number of peaks = {NUM_PEAK}')
 
     # filter out the nans
     mask = np.logical_not(np.isnan(spectrum.intensity))
@@ -515,16 +527,17 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
     intensity_peak, azimuthal_first, sigma = _estimatePeakParameters(spectrum.intensity[mask],
                                                                      spectrum.mod_q[mask],
                                                                      azimuthal_start=azimuthal_start,
-                                                                     window_half_width=WINDOW_SIZE)
+                                                                     window_half_width=peak_search_window_size)
     function.append(gaussian_str.format(intensity_peak-background, azimuthal_first, sigma))
 
-    # assume the other peak is 360 / NUM_PEAK degrees away
-    azimuthal_start = azimuthal_first + (360. / NUM_PEAK)
-    intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(spectrum.intensity[mask],
-                                                                      spectrum.mod_q[mask],
-                                                                      azimuthal_start=azimuthal_start,
-                                                                      window_half_width=WINDOW_SIZE)
-    function.append(gaussian_str.format(intensity_peak-background, azimuthal_second, sigma))
+    for peak_index in range(1, NUM_PEAK):
+        # assume the other peak is 360 / NUM_PEAK degrees away
+        azimuthal_start = azimuthal_first + (360. / NUM_PEAK * peak_index)
+        intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(spectrum.intensity[mask],
+                                                                          spectrum.mod_q[mask],
+                                                                          azimuthal_start=azimuthal_start,
+                                                                          window_half_width=peak_search_window_size)
+        function.append(gaussian_str.format(intensity_peak-background, azimuthal_second, sigma))
 
     # create workspace version of data
     # this includes the nans so `Fit` has to be told to ignore them
@@ -534,7 +547,8 @@ def _fitSpectrum(spectrum, q_value, signal_to_noise_min, azimuthal_start, verbos
     fit_workspace_prefix = unique_workspace_dundername()
     fit_function = ';'.join(function)
     try:
-        fitresult = Fit(Function=';'.join(function), InputWorkspace=q_azimuthal_workspace, Output=fit_workspace_prefix,
+        fitresult = Fit(Function=';'.join(function), InputWorkspace=q_azimuthal_workspace,
+                        Output=fit_workspace_prefix,
                         StartX=spectrum.mod_q.min() + 90., EndX=spectrum.mod_q.min() + 90. + 360.,
                         OutputParametersOnly=True, IgnoreInvalidData=True)
     except RuntimeError as e:
@@ -629,7 +643,7 @@ def _weighted_position_and_width(peaks):
 
 
 def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_start, maxchisq,
-                      verbose=True):
+                      peak_search_window_size_factor, verbose=True):
     '''Find the peaks in the azimuthal spectra, then combine them into
     two composite centers and fwhm. This is currently coded to only
     look for two peaks.
@@ -650,6 +664,8 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
         First position to look for peaks around
     maxchisq: float
         The maximum chisq value for a fit result to be used in calculating the composite peak
+    peak_search_window_size_factor: float
+        Factor of 360 / (num peaks) to construct the search range for wedge peak
     verbose: bool
         Flag to turn on fitting information output
 
@@ -682,6 +698,7 @@ def _fitQAndAzimuthal(azimuthal_rings, q_bins, signal_to_noise_min, azimuthal_st
         try:
             fitresult = _fitSpectrum(spectrum, q_center,
                                      signal_to_noise_min=signal_to_noise_min, azimuthal_start=azimuthal_start,
+                                     peak_search_window_size_factor=peak_search_window_size_factor,
                                      verbose=verbose)
             newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ['f1', 'f2']]
 

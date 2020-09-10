@@ -89,6 +89,7 @@
         "autoWedgePeakWidth":        {"$ref":  "common.json#/configuration/autoWedgePeakWidth", "default":  0.25},
         "autoWedgeBackgroundWidth":  {"$ref":  "common.json#/configuration/autoWedgeBackgroundWidth", "default": 1.5},
         "autoWedgeSignalToNoiseMin": {"$ref":  "common.json#/configuration/autoWedgeSignalToNoiseMin", "default": 2.0},
+        "autoWedgePeakSearchWindowSizeFactor": {"$ref":  "common.json#/configuration/autoWedgePeakSearchWindowSizeFactor", "default":  0.6},
         "AnnularAngleBin":           {"$ref":  "common.json#/configuration/AnnularAngleBin", "default":  1.0},
 
         "Qmin":              {"$ref":  "common.json#/configuration/Qmin"},

@@ -816,9 +816,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                          'azimuthal_delta': reduction_config['autoWedgeAzimuthalDelta'],
                          'peak_width': reduction_config['autoWedgePeakWidth'],
                          'background_width': reduction_config['autoWedgeBackgroundWidth'],
-                         'signal_to_noise_min': reduction_config['autoWedgeSignalToNoiseMin']}
+                         'signal_to_noise_min': reduction_config['autoWedgeSignalToNoiseMin'],
+                         "peak_search_window_size_factor": reduction_config['autoWedgePeakSearchWindowSizeFactor']}
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
+        print(f'[DEBUG] wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
     xc, yc = find_beam_center(loaded_ws.center)
     print(f"Find beam center  = {xc}, {yc}")

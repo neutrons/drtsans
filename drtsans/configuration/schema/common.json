@@ -383,7 +383,7 @@
     "autoWedgeQdelta": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "description": "Q step for automatic wedge fitting"
-},
+    },
     "autoWedgeAzimuthalDelta": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "description": "Azimuthal angle step for automatic wedge fitting"
@@ -399,6 +399,10 @@
     "autoWedgeSignalToNoiseMin": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "description": "Minimum signal to noise ratio for the data to be considered fittable in automatic wedge detection"
+    },
+    "autoWedgePeakSearchWindowSizeFactor": {
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
+      "description": "Window size to search peak.  Real size = 360 / num_peaks * autoWedgeWindowSize"
     },
     "AnnularAngleBin": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",

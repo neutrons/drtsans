@@ -1,6 +1,6 @@
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/gpsans/prepare_sensitivity.py
-from drtsans.sensitivity_correction_moving_detectors import prepare_sensitivity
+from drtsans.sensitivity_correction_moving_detectors import prepare_sensitivity, _mask_zero_count_pixel
 import pytest
 
 # This test implements issue #205 to verify
@@ -149,6 +149,46 @@ def test_prepare_moving_det_sensitivity():
                                equal_nan=True, verbose=True)
 
     return
+
+
+def test_mask_zero_pixels():
+    """Test the method to mask pixels with zero counts
+
+    Returns
+    -------
+
+    """
+    # generate a (3 x 8) matrix
+    test_data_matrix = np.arange(24).astype('float').reshape((3, 8))
+    test_sigma_matrix = np.sqrt(test_data_matrix)
+
+    # set some values to zero
+    test_data_matrix[0, 3] = 0.
+    test_data_matrix[1, 5] = 0.
+    test_data_matrix[2, 6] = 0.
+
+    test_sigma_matrix[0, 3] = 1.
+    test_sigma_matrix[1, 5] = 1.
+    test_sigma_matrix[2, 6] = 1.
+
+    data_sum = np.sum(test_data_matrix)
+    sigma_sum = np.sum(test_sigma_matrix)
+
+    # mask
+    _mask_zero_count_pixel(test_data_matrix, test_sigma_matrix)
+
+    # verify
+    assert test_data_matrix.shape == (3, 8) and test_sigma_matrix.shape == (3, 8), 'Data shape changed'
+
+    # No zero
+    assert test_data_matrix[np.isfinite(test_data_matrix)].min() > 0.5, 'Minimum value is not zero'
+
+    # 4 NaN
+    assert len(np.where(np.isnan(test_data_matrix))[0]) == 4, 'There shall be 4 NaNs'
+
+    # Sum are same
+    assert np.nansum(test_data_matrix) == data_sum
+    assert np.nansum(test_sigma_matrix) == sigma_sum - 3
 
 
 if __name__ == "__main__":

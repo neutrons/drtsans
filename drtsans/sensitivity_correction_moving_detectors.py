@@ -46,6 +46,9 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, th
         sensitivities, sensitivities error
 
     """
+    # There might some zero-count pixels in the flood data, they shall be masked
+    _mask_zero_count_pixel(flood_data_matrix, flood_sigma_matrix)
+
     # normalize the flood field data by monitor: Normalization is removed from this algorithm to integration
     # inputs: (N, M) array; outputs: (N, M) array
     # flood_data_matrix, flood_sigma_matrix = _normalize_by_monitor(flood_data_matrix, flood_sigma_matrix,
@@ -70,6 +73,33 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, th
     sensitivities, sensitivities_error, sens_avg, sigma_sens_avg = _normalize_sensitivities(raw_sensitivities,
                                                                                             raw_sensitivities_error)
     return sensitivities, sensitivities_error
+
+
+def _mask_zero_count_pixel(flood_data_matrix, flood_sigma_matrix):
+    """Mask out pixels/elements in the flood data to NaN.
+    Because these zero count is not considered by the equations to calculate weighted average.
+
+    The value will be modified in place to the numpy arrays
+
+    Parameters
+    ----------
+    flood_data_matrix: numpy.ndarray
+            normalized flood data
+    flood_sigma_matrix: numpy.ndarray
+            normalized flood data's error
+
+    Returns
+    -------
+
+    """
+    # get the zero count elments
+    zero_count_elements = flood_data_matrix < 1E-12
+
+    # set to NaN
+    flood_data_matrix[zero_count_elements] = np.nan
+    flood_sigma_matrix[zero_count_elements] = np.nan
+
+    return
 
 
 def _calculate_weighted_average_with_error(normalized_data, normalized_error):

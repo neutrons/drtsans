@@ -43,7 +43,7 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number, outp
                            f'Create directory {output_dir} and grand access to all IPTS users')
 
     # output file name
-    out_nexus_file = os.path.join(output_dir, f'CG2_{exp_number}{scan_number:04}{pt_number:04}.nxs.h5')
+    out_nexus_file = os.path.join(output_dir, f'CG2_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5')
     out_nexus_file = os.path.join(output_dir, out_nexus_file)
 
     # Load meta data and convert to NeXus format
@@ -78,11 +78,10 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number, outp
 # set
 ipts = 828
 exp = 280
-# scan = 4
-# pt = 1
 
-for scan, pt in [(26, 1),
-                 (27, 1)]:
+# Porasil B
+for scan in [12, 31, 27, 35, 20]:
+    pt = 1
     convert_spice_to_nexus(ipts, exp, scan, pt, output_dir=f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp}')
 
 # END

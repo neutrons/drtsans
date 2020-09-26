@@ -80,7 +80,8 @@ ipts = 828
 exp = 280
 
 # Porasil B
-for scan in [12, 31, 27, 35, 20]:
+# [12, 31, 27, 35, 20, 9, 26, 28, 34]:
+for scan in [10]:
     pt = 1
     convert_spice_to_nexus(ipts, exp, scan, pt, output_dir=f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp}')
 

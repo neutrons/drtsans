@@ -6,7 +6,7 @@ from drtsans.mono.spice_xml_parser import SpiceXMLParser
 from drtsans.files.event_nexus_rw import DasLog, EventNeXusWriter, TofHistogram
 import h5py
 from mantid.simpleapi import LoadHFIRSANS
-from mantid.simpleapi import mtd   # logger
+from mantid.simpleapi import mtd, logger
 import abc
 from abc import ABC
 
@@ -128,8 +128,8 @@ class EventNexusConverter(ABC):
         sans_ws_name = f'{prefix}{sans_ws_name}'
 
         # load
-        LoadHFIRSANS(Filename=xml_file_name,
-                     OutputWorkspace=sans_ws_name)
+        logger.notice(f'Load {xml_file_name}')
+        LoadHFIRSANS(Filename=xml_file_name, OutputWorkspace=sans_ws_name)
 
         # get counts and reshape to (N, )
         sans_ws = mtd[sans_ws_name]

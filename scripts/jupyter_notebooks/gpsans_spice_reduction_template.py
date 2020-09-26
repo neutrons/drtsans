@@ -70,7 +70,7 @@ common_configuration = {
     "configuration": {
         "outputDir": output_directory,
         "darkFileName": dark_file_name,
-        "sensitivityFileName": "/HFIR/CG2/shared/drt_sensitivity/sens_fc488_bar.nxs",
+        "sensitivityFileName": '/HFIR/CG2/shared/drt_sensitivity/sens_fc488_bar.nxs',
         "DBScalingBeamRadius": 40,
         "sampleApertureSize": 8,
         "mmRadiusForTransmission": 40,

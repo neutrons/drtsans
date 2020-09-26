@@ -17,13 +17,19 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 def locate_cg2_spice_nexus(ipts_number, exp_number, runs, spice_nexus_sub):
-    """Convert SPICE file information to previously converted NeXus path
+    """
+    Convert SPICE file information to previously converted NeXus path
 
     Parameters
     ----------
-    runs: tuple
-        tuple of 2-tuple as (scan, pt)
-
+    ipts_number: int
+        IPTS number
+    exp_number: int
+        Experiment number
+    runs: int
+        Run number
+    spice_nexus_sub: str
+        sub directory name
     Returns
     -------
     ~list
@@ -112,11 +118,15 @@ MOVING_DETECTORS = True
 MIN_THRESHOLD = 0.5
 MAX_THRESHOLD = 2.0
 
-# Output
-FILE_SURFIX = 'c488_nobar'
-SENSITIVITY_FILE = '/HFIR/{}/shared/drt_sensitivity/sens_f{}.nxs'.format(INSTRUMENT, FILE_SURFIX)
-
 # --------------  END OF USER INPUTS --------------
+
+# Output
+if PIXEL_CALIBRATION:
+    FILE_SUFFIX = 'c488_bar'
+else:
+    FILE_SUFFIX = 'c488_nobar'
+
+SENSITIVITY_FILE = '/HFIR/{}/shared/drt_sensitivity/sens_f{}.nxs'.format(INSTRUMENT, FILE_SUFFIX)
 
 # --------------  DO NOT CHANGE ANY CODE BELOW THIS LINE.  THANKS! --------------------------
 
@@ -171,3 +181,4 @@ preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
 # Run
 preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE)
+print(f'Successfully prepared sensitivities file: {SENSITIVITY_FILE}')

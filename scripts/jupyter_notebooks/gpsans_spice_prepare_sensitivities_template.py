@@ -102,7 +102,8 @@ WING_DET_MASK_ANGLE = 57.05
 # - transmission runs
 
 # Pixel calibration: False/True (default database)/user specified calibration database
-PIXEL_CALIBRATION = '/HFIR/CG2/IPTS-828/shared/pixel_calibration/runs_1_111/pixel_calibration.json'
+# PIXEL_CALIBRATION = '/HFIR/CG2/IPTS-828/shared/pixel_calibration/runs_1_111/pixel_calibration.json'
+PIXEL_CALIBRATION = None
 
 # Corrections
 SOLID_ANGLE_CORRECTION = True
@@ -122,9 +123,9 @@ MAX_THRESHOLD = 2.0
 
 # Output
 if PIXEL_CALIBRATION:
-    FILE_SUFFIX = 'c488_bar'
+    FILE_SUFFIX = 'spice282_bar'
 else:
-    FILE_SUFFIX = 'c488_nobar'
+    FILE_SUFFIX = 'spice282_nobar'
 
 SENSITIVITY_FILE = '/HFIR/{}/shared/drt_sensitivity/sens_f{}.nxs'.format(INSTRUMENT, FILE_SUFFIX)
 
@@ -174,11 +175,13 @@ if DARK_CURRENT_RUNS is not None:
     preparer.set_dark_current_runs(DARK_CURRENT_RUNS)
 
 # Pixel calibration
-preparer.set_pixel_calibration_flag(PIXEL_CALIBRATION)
+if PIXEL_CALIBRATION:
+    preparer.set_pixel_calibration_flag(PIXEL_CALIBRATION)
 
 # Solid angle
 preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
 # Run
-preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE)
+preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE, enforce_use_nexus_idf=True,
+                 debug_mode=True)
 print(f'Successfully prepared sensitivities file: {SENSITIVITY_FILE}')

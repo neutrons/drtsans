@@ -60,6 +60,8 @@ beam_center = map_to_nexus(ipts_number, exp_number, beam_center)
 block_beam = map_to_nexus(ipts_number, exp_number, [block_beam])[0]
 # --- END OF NO TOUCH ZONE ---
 
+# sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_fc488_from_nexus.nxs'
+sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_CG2_spice_bar.nxs'
 see_full_json = True  # To display full configuration json (True/False)
 use_log_2d_binning = False
 use_log_1d = True
@@ -70,7 +72,7 @@ common_configuration = {
     "configuration": {
         "outputDir": output_directory,
         "darkFileName": dark_file_name,
-        "sensitivityFileName": '/HFIR/CG2/shared/drt_sensitivity/sens_fc488_bar.nxs',
+        "sensitivityFileName": sensitivity_file,
         "DBScalingBeamRadius": 40,
         "sampleApertureSize": 8,
         "mmRadiusForTransmission": 40,

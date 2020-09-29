@@ -4,7 +4,7 @@ Module for algorithms to prepare sensitivity for instrument with moving detector
 import numpy as np
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import CreateWorkspace, logger
 
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
@@ -94,6 +94,8 @@ def _mask_zero_count_pixel(flood_data_matrix, flood_sigma_matrix):
     """
     # get the zero count elments
     zero_count_elements = flood_data_matrix < 1E-12
+    logger.notice(f'Input flood runs: total {len(np.where(zero_count_elements)[0])} are '
+                  f'masked')
 
     # set to NaN
     flood_data_matrix[zero_count_elements] = np.nan

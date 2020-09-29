@@ -1,3 +1,4 @@
+# noqa: E402
 # This notebook is a template for reducing GPSANS legacy data with drtsans
 # It is a 1-sample 1-configuration reduction
 
@@ -95,7 +96,7 @@ common_configuration = {
         "Qmax": 0.0035,
         "useSubpixels": True,
         "subpixelsX": 5,
-        "subpixelsY": 5,        
+        "subpixelsY": 5,
         "useTimeSlice": False,
         "useLogSlice": False,
         "logSliceName": "",

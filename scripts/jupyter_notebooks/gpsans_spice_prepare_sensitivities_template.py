@@ -83,7 +83,7 @@ if PIXEL_CALIBRATION is None:
     FILE_SURFIX += '_nobar'
 else:
     FILE_SURFIX += '_bar'
-SENSITIVITY_FILE = os.path.join('/HFIR/CG2/shared/drt_sensitivity/', f'sens_{INSTRUMENT}_{FILE_SURFIX}.nxs')
+SENSITIVITY_FILE = os.path.join('/HFIR/CG2/shared/drt_sensitivity/', f'sens_gpsans_{FILE_SURFIX}.nxs')
 
 # --------------  DO NOT CHANGE ANY CODE BELOW THIS LINE.  THANKS! --------------------------
 

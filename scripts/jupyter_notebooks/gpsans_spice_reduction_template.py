@@ -1,4 +1,3 @@
-# noqa: E402
 # This notebook is a template for reducing GPSANS legacy data with drtsans
 # It is a 1-sample 1-configuration reduction
 
@@ -105,15 +104,15 @@ common_configuration = {
 }
 
 # Never touch!  drtsans specific
-import warnings
+import warnings  # noqa E402
 warnings.filterwarnings('ignore')
-import os
-import json
+import os  # noqa E402
+import json  # noqa E402
 # jupyter only:from pprint import pprint as pretty_print
-import time
+import time # noqa E402
 from drtsans.mono.gpsans import (load_all_files, reduce_single_configuration, plot_reduction_output,
-                                 reduction_parameters, update_reduction_parameters)
-from matplotlib.colors import LogNorm
+                                 reduction_parameters, update_reduction_parameters) # noqa E402
+from matplotlib.colors import LogNorm # noqa E402
 # jupyter only:% matplotlib
 # jupyter only:inline
 

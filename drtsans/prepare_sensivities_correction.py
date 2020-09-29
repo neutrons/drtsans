@@ -478,7 +478,7 @@ class PrepareSensitivityCorrection(object):
         return flood_workspace
 
     def execute(self, use_moving_detector_method, min_threshold, max_threshold, output_nexus_name,
-                enforce_use_nexus_idf=False):
+                enforce_use_nexus_idf=False, debug_mode=False):
         """Main workflow method to calculate sensitivities correction
 
         Parameters
@@ -493,6 +493,8 @@ class PrepareSensitivityCorrection(object):
             path to the output processed NeXus file
         enforce_use_nexus_idf: bool
             flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
+        debug_mode: bool
+            flag for debugging mode
 
         Returns
         -------
@@ -553,8 +555,17 @@ class PrepareSensitivityCorrection(object):
                     f'Number of NaNs = {len(np.where(np.isnan(fws.extractY()))[0])}\n'
         logger.notice(info)
 
+        # Debug output
+        if debug_mode:
+            for flood_ws in flood_workspaces:
+                SaveNexusProcessed(InputWorkspace=flood_ws, Filename=f'{str(flood_ws)}_flood.nxs')
+
         # Decide algorithm to prepare sensitivities
         if self._instrument in [CG2, CG3] and use_moving_detector_method is True:
+            if debug_mode:
+                # nan.sum all the input flood runs to check the coverage of summed counts
+                self.sum_input_runs(flood_workspaces)
+
             # Prepare by using moving detector algorithm
             calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[MOVING_DETECTORS]
 
@@ -856,8 +867,10 @@ class PrepareSensitivityCorrection(object):
         transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
         average_zero_angle = np.mean(transmission_corr_ws.readY(0))
         average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
-        print("\tTransmission Coefficient is....{:.3f} +/- {:.3f}"
-              "".format(average_zero_angle, average_zero_angle_error))
+        logger.notice(f'Transmission Coefficient is....{average_zero_angle:.3f} +/- '
+                      f'{average_zero_angle_error:.3f}.'
+                      f'Transmission flood {str(transmission_flood_ws)} and '
+                      f'transmission {str(transmission_workspace)}')
 
         # Apply calculated transmission
         apply_transmission_correction = APPLY_TRANSMISSION[self._instrument]
@@ -865,6 +878,37 @@ class PrepareSensitivityCorrection(object):
                                                  theta_dependent=self._theta_dep_correction)
 
         return flood_ws
+
+    @staticmethod
+    def sum_input_runs(flood_workspaces):
+        """Do NaN sum to all input flood workspaces
+
+        Parameters
+        ----------
+        flood_workspaces
+
+        Returns
+        -------
+
+        """
+        from mantid.simpleapi import CloneWorkspace
+
+        # Do NaN sum
+        y_list = [ws.extractY() for ws in flood_workspaces]
+        y_matrix = np.array(y_list)
+        print(f'DEBUG... Y matrix shape = {y_matrix.shape}')
+
+        nan_sum_matrix = np.nansum(y_matrix, axis=0)
+        print(f'DEBUG... nan summed Y shape = {nan_sum_matrix.shape}')
+
+        # clone a workspace
+        cloned = CloneWorkspace(InputWorkspace=flood_workspaces[0], OutputWorkspace='FloodSum')
+
+        for iws in range(cloned.getNumberHistograms()):
+            cloned.dataY(iws)[0] = nan_sum_matrix[iws][0]
+
+        # output
+        SaveNexusProcessed(InputWorkspace=cloned, Filename='SummedFlood.nxs')
 
 
 def debug_output(workspace, output_file):

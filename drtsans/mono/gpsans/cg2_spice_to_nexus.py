@@ -1,9 +1,10 @@
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
+import os
 
 
 class CG2EventNexusConvert(EventNexusConverter):
     """
-
+    SPICE to NeXus converter
     """
     def __init__(self):
         """
@@ -44,3 +45,81 @@ class CG2EventNexusConvert(EventNexusConverter):
         end_pid = start_pid + 1023
 
         return start_pid, end_pid
+
+
+def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number,
+                           template_nexus, output_dir=None, spice_dir=None):
+    """ Convert one SPICE to NeXus
+
+    Parameters
+    ----------
+    ipts_number: int
+        IPTS
+    exp_number: int
+        experiment number
+    scan_number: int
+        scan
+    pt_number: int
+        pt
+    template_nexus: str
+        path to a GPSANS nED event Nexus file especially for IDF
+    output_dir: None or str
+        output directory of the converted data
+    spice_dir: None or str
+        data file directory for SPICE file.  None using default
+
+    Returns
+    -------
+    str
+        generated event Nexus file
+
+    """
+    # Set the SPICE dir
+    if spice_dir is None:
+        # Build the default path to the SPICE files
+        spice_dir = f'/HFIR/CG2/IPTS-{ipts_number}/exp{exp_number}/Datafiles'
+    # verify path
+    assert os.path.exists(spice_dir), f'SPICE data directory {spice_dir} cannot be found'
+    spice_data_file = os.path.join(spice_dir,
+                                   f'CG2_exp{exp_number}_scan{scan_number:04}_{pt_number:04}.xml')
+    assert os.path.exists(spice_data_file), f'SPICE file {spice_data_file} cannot be located'
+
+    # Template Nexus file
+    template_nexus_file = template_nexus
+    assert os.path.exists(template_nexus_file), f'Template NeXus file {template_nexus_file} cannot be located'
+
+    # Specify the default output directory
+    if output_dir is None:
+        output_dir = f'/HFIR/CG2/IPTS-{ipts_number}/shared/spice_nexus'
+    if not os.path.exists(output_dir):
+        raise RuntimeError(f'Output NeXus directory {output_dir} does not exist.'
+                           f'Create directory {output_dir} and grand access to all IPTS users')
+
+    # output file name
+    out_nexus_file = os.path.join(output_dir, f'CG2_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5')
+    out_nexus_file = os.path.join(output_dir, out_nexus_file)
+
+    # Load meta data and convert to NeXus format
+    das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same
+                   'sample_detector_distance': ('sdd', 'm'),  # same
+                   'wavelength': ('lambda', 'angstroms'),  # angstroms -> A
+                   'wavelength_spread': ('dlambda', 'fraction'),  # fraction -> None
+                   'source_aperture_diameter': ('source_aperture_size', 'mm'),  # same
+                   'sample_aperture_diameter': ('sample_aperture_size', 'mm'),  # same
+                   'detector_trans_Readback': ('detector_trans', 'mm'),  # same
+                   'source_distance': ('source_distance', 'm'),  # same. source-aperture-sample-aperture
+                   'beamtrap_diameter': ('beamtrap_diameter', 'mm'),  # not there
+                   'dcal_Readback': ('dcal', 'mm'),  # required by pixel calibration
+                   'attenuator': ('attenuator_pos', 'mm')  # special
+                   }
+
+    # init converter
+    converter = CG2EventNexusConvert()
+    # load instrument definition (IDF)
+    converter.load_idf(template_nexus_file)
+    # load SPICE (xml file)
+    converter.load_sans_xml(spice_data_file, das_log_map)
+    # generate event nexus
+    converter.generate_event_nexus(out_nexus_file)
+
+    return out_nexus_file

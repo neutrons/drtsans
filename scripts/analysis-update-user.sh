@@ -1,10 +1,10 @@
 #! /bin/bash
 set -expu
 
-NDAV_USER='xv6'
-NDAV_USER_ID='29091'
-NDAV_GROUP='scse_priv'
-NDAV_GROUP_ID='55781'
+NDAV_USER='jbq'
+NDAV_USER_ID='11226'
+NDAV_GROUP='sns_ndav_team'
+NDAV_GROUP_ID='52321'
 PIP_DIR='/SNS/software/miniconda2/envs/sans'
 
 groupadd -g "${NDAV_GROUP_ID}" "${NDAV_GROUP}"

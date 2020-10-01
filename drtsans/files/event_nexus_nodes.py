@@ -336,20 +336,28 @@ class DasLogNode(drtsans.files.hdf5_rw.GroupNode):
         -------
 
         """
-        average_value = self._log_values.mean()
-        average_value_error = self._log_values.std()
-        min_value = np.min(self._log_values)
-        max_value = np.max(self._log_values)
-
-        for child_name, child_value in [('average_value', [average_value]),
-                                        ('average_value_error', [average_value_error]),
-                                        ('maximum_value', [max_value]),
-                                        ('minimum_value', [min_value]),
-                                        ('value', self._log_values)]:
-            child_node = DataSetNode(name=self._create_child_name(child_name))
-            child_node.set_value(np.array(child_value))
+        if any([isinstance(me, str) for me in self._log_values]):
+            # string type log requires no calcualtion
+            child_node = DataSetNode(name=self._create_child_name('value'))
+            child_node.set_value(self._log_values)
             child_node.add_attributes({'units': self._log_unit})
             self.set_child(child_node)
+        else:
+            # value type log requires some calculation
+            average_value = self._log_values.mean()
+            average_value_error = self._log_values.std()
+            min_value = np.min(self._log_values)
+            max_value = np.max(self._log_values)
+
+            for child_name, child_value in [('average_value', [average_value]),
+                                            ('average_value_error', [average_value_error]),
+                                            ('maximum_value', [max_value]),
+                                            ('minimum_value', [min_value]),
+                                            ('value', self._log_values)]:
+                child_node = DataSetNode(name=self._create_child_name(child_name))
+                child_node.set_value(np.array(child_value))
+                child_node.add_attributes({'units': self._log_unit})
+                self.set_child(child_node)
 
     def set_device_info(self, device_id, device_name, target):
         """Set node for device related information

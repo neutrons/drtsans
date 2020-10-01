@@ -10,6 +10,7 @@ CG3:CS:SampleToSi:
   - mm
 cycle_number:
   - Cycle_Number
+  - ""
 dcal_Readback:
   - dcal
   - mm
@@ -19,14 +20,18 @@ detector_trans_Readback:
 duration:
   - time
   - sec
-end_time:
-  - End_Time
+# end_time:
+#   - end_time
+#   - text
 experiment_identifier:
   - IPTS_number
-Filename:
-# Add prefix of file path missing in XML filename 
-# e.g. /HFIR/CG3/IPTS-19701/shared/Exp525/CG3_052500600001.nxs.h5
-  - filename
+  - ""
+  - str
+# Filename:
+# # Add prefix of file path missing in XML filename 
+# # e.g. /HFIR/CG3/IPTS-19701/shared/Exp525/CG3_052500600001.nxs.h5
+#   - filename
+#   - text
 flange_det_dist_Readback:
   - flange_det_dist
   - m
@@ -37,13 +42,18 @@ flange_det_dist_Readback:
 #   - Scan_Point_Number
 run_title:
   - Scan_Title
+  - ''
+  - str
 sample_aperture_diameter:
   - sample_aperture_size
   - mm
 sample_changer_name:
   - Sample_Changer
-sample_changer_pos:
-  - Sample_Changer_Position
+  - ""
+  - str
+# sample_changer_pos:
+#   - Sample_Changer_Position
+#   - ""
 sample_detector_distance:
   - sdd
   - m
@@ -60,9 +70,10 @@ source_distance:
 # same AS source-aperture-sample-aperture
   - source_distance
   - m
-start_time:
-# same for run_start
-  - Start_Time
+# start_time:
+# # same for run_start
+#   - start_time
+#   - text
 wavelength:
 # same for LambdaReq
   - lambda  # same as wavelength in the header section

@@ -55,4 +55,4 @@ def verify_result(test_nexus, raw_spice):
 
 
 if __name__ == '__main__':
-    pytest.main(__file__)
+    pytest.main([__file__])

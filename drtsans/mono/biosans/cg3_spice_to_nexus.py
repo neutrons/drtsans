@@ -126,7 +126,7 @@ def convert_spice_to_nexus(
     ), f"Template NeXus file {template_nexus} cannot be located"
     assert os.path.exists(
         output_dir
-    ), f"Output NeXus directory {output_dir} does not exist.\nCreate directory {output_dir} and grand access to all IPTS users"
+    ), f"Output directory {output_dir} doesn't exist. Create one and give access for all IPTS uers."
 
     # output file name
     out_nexus_file = os.path.join(

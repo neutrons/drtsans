@@ -12,8 +12,8 @@ def test_convert_spice(reference_dir, cleanfile):
     """
     # Set file
     ipts = 17241
-    exp = 318
-    scan_pt_list = [(217, 1)]
+    exp = 327
+    scan_pt_list = [(66, 1)]
 
     # Create output directory
     output_dir = mkdtemp(prefix='cg3spiceconverter')
@@ -24,7 +24,7 @@ def test_convert_spice(reference_dir, cleanfile):
     nexus_files = list()
     for scan_num, pt_num in scan_pt_list:
         fake_nexus = convert_spice_to_nexus(ipts, exp, scan_num, pt_num, temp_event_nexus,
-                                            output_dir=output_dir, spice_dir=reference_dir.new.gpsans)
+                                            output_dir=output_dir, spice_dir=reference_dir.new.biosans)
         nexus_files.append(fake_nexus)
 
     # Verify result

@@ -94,6 +94,15 @@ class SpiceXMLParser(object):
             value, unit
 
         """
+        value_type = value_type if type(value_type) is type else {
+            "str": str,
+            "string": str,
+            "float": float,
+            "double": float,
+            "int": int,
+            "integer": int,
+        }[value_type.lower()]
+
         if node_name == 'attenuator':
             # Attenuator is special
             value, units = self._read_attenuator()

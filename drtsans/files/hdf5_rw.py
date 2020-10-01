@@ -478,6 +478,18 @@ class DataSetNode(HDFNode):
 
         """
         # Generate current entry and set the data
-        curr_entry = parent_entry.create_dataset(self._name, data=self._value)
+        if self._value.ndim < 1:
+            curr_entry = parent_entry.create_dataset(self._name, data=self._value)
+        else:        
+            if any([isinstance(me, str) for me in self._value]):
+                self._value = "_".join(self._value)
+                dt = h5py.special_dtype(vlen=bytes)
+                curr_entry = parent_entry.create_dataset(
+                    self._name, 
+                    data=self._value,
+                    dtype=dt,  # use h5py.string_dtype(encoding='utf-8') once h5py > 2.10.x
+                )
+            else:
+                curr_entry = parent_entry.create_dataset(self._name, data=self._value)
 
         self.write_attributes(curr_entry)

@@ -16,29 +16,42 @@ def test_convert_spice(reference_dir, cleanfile):
     scan_pt_list = [(66, 1)]
 
     # Create output directory
-    output_dir = mkdtemp(prefix='cg3spiceconverter')
+    output_dir = mkdtemp(prefix="cg3spiceconverter")
     cleanfile(output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    temp_event_nexus = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_5705.nxs.h5'
+    temp_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
     nexus_files = list()
     for scan_num, pt_num in scan_pt_list:
-        fake_nexus = convert_spice_to_nexus(ipts, exp, scan_num, pt_num, temp_event_nexus,
-                                            output_dir=output_dir, spice_dir=reference_dir.new.biosans)
+        fake_nexus = convert_spice_to_nexus(
+            ipts,
+            exp,
+            scan_num,
+            pt_num,
+            temp_event_nexus,
+            output_dir=output_dir,
+            spice_dir=reference_dir.new.biosans,
+        )
         nexus_files.append(fake_nexus)
 
     # Verify result
-    raw_spice = os.path.join(reference_dir.new.biosans, f'BioSANS_exp318_scan0217_0001.xml')
+    raw_spice = os.path.join(
+        reference_dir.new.biosans, f"BioSANS_exp318_scan0217_0001.xml"
+    )
     verify_result(nexus_files[0], raw_spice)
 
 
 def verify_result(test_nexus, raw_spice):
     # Load data
-    test_ws = LoadEventNexus(Filename=test_nexus, OutputWorkspace='test2', NumberOfBins=1)
-    raw_ws = LoadHFIRSANS(Filename=raw_spice, OutputWorkspace='raw')
+    test_ws = LoadEventNexus(
+        Filename=test_nexus, OutputWorkspace="test2", NumberOfBins=1
+    )
+    raw_ws = LoadHFIRSANS(Filename=raw_spice, OutputWorkspace="raw")
 
     # Compare counts
-    assert test_ws.getNumberHistograms() + 2 == raw_ws.getNumberHistograms(), 'Spectra number unmatched'
+    assert (
+        test_ws.getNumberHistograms() + 2 == raw_ws.getNumberHistograms()
+    ), "Spectra number unmatched"
 
     # Compare counts
     raw_y = raw_ws.extractY().flatten()
@@ -54,5 +67,5 @@ def verify_result(test_nexus, raw_spice):
     return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

@@ -94,7 +94,7 @@ class EventNexusConverter(ABC):
             # create TofHistogram instance
             start_pid, end_pid = self.get_pid_range(bank_id)
             pix_ids = np.arange(start_pid, end_pid + 1)
-            counts = self._detector_counts[start_pid : end_pid + 1]
+            counts = self._detector_counts[start_pid:end_pid + 1]
             counts = counts.astype("int64")
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
 

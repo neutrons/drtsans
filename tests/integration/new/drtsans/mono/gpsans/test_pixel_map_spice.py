@@ -1,8 +1,9 @@
 import pytest
 import os
 import numpy as np
+import time
 from tempfile import mkdtemp
-from drtsans.mono.bar_scan_pixel_calibration import generate_pixel_map_legacy
+from drtsans.mono.bar_scan_pixel_calibration import generate_spice_pixel_map
 from mantid.simpleapi import LoadNexusProcessed
 
 
@@ -18,15 +19,8 @@ def test_pixel_calibration(reference_dir, cleanfile):
 
     """
     # Set and clean output
-    test_output_dir = '/tmp/test_barscan/'
-    # TODO cleanfile(test_output_dir)
-
-    # template CG2 nexus file for IDF
-    TEMPLATE_EVENT_NEXUS = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5'
-
-    # Set template event nexus
-    template_event_nexus = TEMPLATE_EVENT_NEXUS
-    assert os.path.exists(template_event_nexus), f'Template nexus {template_event_nexus} cannot be found.'
+    test_output_dir = mkdtemp('test_bar_scan')
+    cleanfile(test_output_dir)
 
     # First and last pt for the barscan: Set by user
     # -------------------------------------------------------------------------------------------------------
@@ -36,7 +30,7 @@ def test_pixel_calibration(reference_dir, cleanfile):
     exp_number = 280
     scan_number = 5
     first_pt = 1
-    last_pt = 111
+    last_pt = 12
 
     flood_ipts = 828
     flood_exp = 280
@@ -44,20 +38,37 @@ def test_pixel_calibration(reference_dir, cleanfile):
     flood_pt = 1
 
     # Calculate pixel calibration file
-    test_calib_nexus = generate_pixel_map_legacy(ipts, exp_number, scan_number, range(first_pt, last_pt + 1),
-                                                 flood_ipts, flood_exp, flood_scan, flood_pt,
-                                                 root_dir, template_event_nexus,
-                                                 test_output_dir)
-    print(f'Calibraton file {test_calib_nexus} of type {type(test_calib_nexus)}')
-    assert os.path.exists(test_calib_nexus)
+    calibration_results = generate_spice_pixel_map(ipts, exp_number, scan_number, range(first_pt, last_pt + 1),
+                                                   flood_ipts, flood_exp, flood_scan, flood_pt,
+                                                   root_dir, test_output_dir)
+    calibration_table_file = None
+    for index, returned in enumerate(calibration_results):
+        if index == 0:
+            bar_scan_dataset = returned
+            assert len(bar_scan_dataset) == last_pt - first_pt + 1
+            time.sleep(1)
+        elif index == 1:
+            calibration_stage0 = returned
+            time.sleep(1)
+            assert calibration_stage0.state_flag == 1
+        elif index == 2:
+            calibration_stage1, flood_ws_name = returned
+            assert calibration_stage1.state_flag == 2
+        elif index == 3:
+            calibration_table_file = returned
+        else:
+            raise RuntimeError(f'Index = {index} is not defined')
+
+    print(f'Calibraton file {calibration_table_file} of type {type(calibration_table_file)}')
+    assert os.path.exists(calibration_table_file)
 
     # Get expected data file
     expected_calib_nexus = os.path.join(reference_dir.new.gpsans,
-                                        'calibrations/CG2_Pixel_Calibration_Expected_111.nxs')
+                                        f'calibrations/CG2_Pixel_Calibration_Expected_{last_pt - first_pt + 1}.nxs')
     assert os.path.exists(expected_calib_nexus), f'Gold result (file) {expected_calib_nexus} cannot be found.'
 
     # Compare 2 NeXus file
-    compare_pixel_calibration_files(test_calib_nexus, expected_calib_nexus)
+    compare_pixel_calibration_files(calibration_table_file, expected_calib_nexus)
 
 
 def compare_pixel_calibration_files(test_file_name, gold_file_name):

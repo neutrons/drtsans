@@ -96,6 +96,7 @@ def generate_pixel_map_legacy():
     # -------------------------------------------------------------------------------------------------------
 
     save_dir_root = f'/HFIR/CG2/IPTS-{ipts}/shared/pixel_calibration'
+    save_dir_root = '/tmp/test_barscan/'
     if not os.path.exists(save_dir_root):
         os.mkdir(save_dir_root)
 
@@ -249,6 +250,8 @@ def generate_pixel_map_legacy():
     apply_calibrations('workspace', database=database_file)
     plot_workspace('workspace', axes_mode='xy', prefix='last_verification_flood_cal')
     plt.show()
+
+    return test_table_file
 
 
 def plot_histograms(input_workspace, legend=[], xlabel='X-axis', ylabel='Y-axis', title='', linewidths=[]):

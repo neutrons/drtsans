@@ -220,7 +220,19 @@ class EventNexusConverter(ABC):
             pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
         except KeyError as key_err:
             # some spice file may not have Scan_Point_Number
-            pt_number = key_err
+            print(key_err)
+            print("Trying to construct one using exp#_scan#_scanPt#")
+            tmp = []
+            for lb in ['Experiment_number', 'Scan_Number', 'Scan_Point_Number']:
+                try:
+                    num, _ = spice_reader.get_node_value(lb, int)
+                except KeyError as key_err:
+                    print(key_err)
+                    print(f"Forcing {lb} to 1")
+                    num = 1
+                tmp.append(num)
+            # stich to form a pt_number
+            pt_number = "_".join([str(me).zfill(4) for me in tmp])
 
         # Close file
         spice_reader.close()

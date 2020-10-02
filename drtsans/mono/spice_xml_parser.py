@@ -8,6 +8,7 @@ class SpiceXMLParser(object):
     """
     Class to parse SPICE SANS data file in XML format
     """
+
     def __init__(self, spice_xml_name):
         """
 
@@ -20,7 +21,7 @@ class SpiceXMLParser(object):
         self._spice_name = spice_xml_name
 
         # open the file
-        self._xml_file = open(spice_xml_name, 'r')
+        self._xml_file = open(spice_xml_name, "r")
         # parse
         self._xml_root = ElementTree.parse(self._xml_file).getroot()
 
@@ -50,11 +51,13 @@ class SpiceXMLParser(object):
 
         """
         # Most of the node in SPICE XML file are in 2nd level
-        xml_node_list = self._xml_root.findall(f'.//{node_name}')
+        xml_node_list = self._xml_root.findall(f".//{node_name}")
 
         # Only allow unique solution
         if len(xml_node_list) == 0:
-            raise KeyError(f'SPICE file {self._spice_name}: XML node {node_name} does not exist.')
+            raise KeyError(
+                f"SPICE file {self._spice_name}: XML node {node_name} does not exist."
+            )
 
         # Check required attributes
         if required_attribs is not None:
@@ -74,7 +77,7 @@ class SpiceXMLParser(object):
 
         # check whether it is unique solution
         if len(xml_node_list) > 1:
-            raise RuntimeError(f'XML node {node_name} is not unique')
+            raise RuntimeError(f"XML node {node_name} is not unique")
 
         return xml_node_list[0]
 
@@ -94,16 +97,20 @@ class SpiceXMLParser(object):
             value, unit
 
         """
-        value_type = value_type if type(value_type) is type else {
-            "str": str,
-            "string": str,
-            "float": float,
-            "double": float,
-            "int": int,
-            "integer": int,
-        }[value_type.lower()]
+        value_type = (
+            value_type
+            if type(value_type) is type
+            else {
+                "str": str,
+                "string": str,
+                "float": float,
+                "double": float,
+                "int": int,
+                "integer": int,
+            }[value_type.lower()]
+        )
 
-        if node_name == 'attenuator':
+        if node_name == "attenuator":
             # Attenuator is special
             value, units = self._read_attenuator()
 
@@ -116,8 +123,8 @@ class SpiceXMLParser(object):
             str_value = xml_node.text
 
             # Get unit
-            if 'units' in xml_node.attrib:
-                units = xml_node.attrib['units']
+            if "units" in xml_node.attrib:
+                units = xml_node.attrib["units"]
             else:
                 units = None
 
@@ -133,9 +140,9 @@ class SpiceXMLParser(object):
 
         """
         # get attenuator position node
-        xml_node = self.get_xml_node('attenuator_pos', required_attribs={'pos': 'open'})
+        xml_node = self.get_xml_node("attenuator_pos", required_attribs={"pos": "open"})
 
         value = float(xml_node.text)
-        unit = xml_node.attrib['units']
+        unit = xml_node.attrib["units"]
 
         return value, unit

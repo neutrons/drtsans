@@ -21,14 +21,40 @@ def test_pixel_calibration(reference_dir, cleanfile):
     test_output_dir = '/tmp/test_barscan/'
     # TODO cleanfile(test_output_dir)
 
-    expected_calib_nexus = os.path.join(reference_dir.new.gpsans,
-                                        'calibrations/CG2_Pixel_Calibration_Expected_111.nxs')
-    assert os.path.exists(expected_calib_nexus)
-    # test_calib_nexus = os.path.join(test_output_dir, 'runs_1_111/tables/Test_CG2_Pixel_Calibration.nxs')
+    # template CG2 nexus file for IDF
+    TEMPLATE_EVENT_NEXUS = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5'
 
-    test_calib_nexus = generate_pixel_map_legacy()
+    # Set template event nexus
+    template_event_nexus = TEMPLATE_EVENT_NEXUS
+    assert os.path.exists(template_event_nexus), f'Template nexus {template_event_nexus} cannot be found.'
+
+    # First and last pt for the barscan: Set by user
+    # -------------------------------------------------------------------------------------------------------
+    # IPTS 828 Exp 280.  (/HFIR/CG2/IPTS-828/exp280/Datafiles)
+    root_dir = '/HFIR/CG2/'
+    ipts = 828
+    exp_number = 280
+    scan_number = 5
+    first_pt = 1
+    last_pt = 111
+
+    flood_ipts = 828
+    flood_exp = 280
+    flood_scan = 4
+    flood_pt = 1
+
+    # Calculate pixel calibration file
+    test_calib_nexus = generate_pixel_map_legacy(ipts, exp_number, scan_number, range(first_pt, last_pt + 1),
+                                                 flood_ipts, flood_exp, flood_scan, flood_pt,
+                                                 root_dir, template_event_nexus,
+                                                 test_output_dir)
     print(f'Calibraton file {test_calib_nexus} of type {type(test_calib_nexus)}')
     assert os.path.exists(test_calib_nexus)
+
+    # Get expected data file
+    expected_calib_nexus = os.path.join(reference_dir.new.gpsans,
+                                        'calibrations/CG2_Pixel_Calibration_Expected_111.nxs')
+    assert os.path.exists(expected_calib_nexus), f'Gold result (file) {expected_calib_nexus} cannot be found.'
 
     # Compare 2 NeXus file
     compare_pixel_calibration_files(test_calib_nexus, expected_calib_nexus)

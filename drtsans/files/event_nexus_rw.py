@@ -5,6 +5,7 @@ from drtsans.files.hdf5_rw import DataSetNode
 from drtsans.files.event_nexus_nodes import InstrumentNode, BankNode, MonitorNode, DasLogNode, DasLogsCollectionNode
 import h5py
 import dateutil
+from mantid.simpleapi import logger
 
 
 __all__ = ['TofHistogram', 'NexusEvents', 'EventNeXusWriter', 'generate_events_from_histogram',
@@ -405,6 +406,11 @@ def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, mi
     # number of events per pulse
     num_pulses = event_time_zero_array.shape[0]
     num_events_per_pulse = monitor_counts // num_pulses
+    if num_events_per_pulse < 1:
+        logger.warning("num_events_per_pulse = monitor_counts // num_pulses")
+        logger.warning(f"\t={monitor_counts}//{num_pulses}=0")
+        logger.warning("forcing num_events_per_pulse to 1")
+        num_events_per_pulse = 1
 
     # Time of flight array
     # number of pulses with regular value or more value

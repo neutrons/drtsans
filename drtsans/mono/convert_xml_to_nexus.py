@@ -153,9 +153,7 @@ class EventNexusConverter(ABC):
         # monitor counts cannot be zero since we need it as the denominator during
         # normalization.
         if abs(self._monitor_counts) < 1e-6:
-            raise ValueError(
-                f"Incorrect zero count for monitor, XML might be corrupted"
-            )
+            logger.warning("current XML contains: monitor_count=0")
 
         # get run start time: force to a new time
         self._run_start = sans_ws.run().getProperty("run_start").value

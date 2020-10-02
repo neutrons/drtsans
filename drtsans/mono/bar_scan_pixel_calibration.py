@@ -1,17 +1,14 @@
 from copy import deepcopy
-from matplotlib import pyplot as plt
 import numpy as np
 import os
 import time
 # Mantid imports
-from mantid.api import mtd
 from mantid.simpleapi import (CreateWorkspace, DeleteWorkspaces, LoadEventNexus, LoadNexus,
                               HFIRSANS2Wavelength, SaveNexus)
 # drtsans imports
 from drtsans.mono.gpsans import (apply_calibrations, apply_mask, calculate_apparent_tube_width,
                                  calculate_barscan_calibration)
 from drtsans.pixel_calibration import Table
-from drtsans.tubecollection import TubeCollection
 import sys
 
 
@@ -38,16 +35,31 @@ def locate_bar_scan_files(ipts_number, exp_number, scan_number, pt_numbers, root
     return data_files
 
 
-def locate_flood_file(flood_ipts_number, flood_exp_number, flood_scan_number, flood_pt_number, root_dir):
-    # convert flood file
-    # TODO: refactor convert XML to event Nexus for all files
-    flood_ipts_directory = f'/HFIR/CG2/IPTS-{flood_ipts_number}/shared/Exp{flood_exp_number}/'
+def locate_flood_file(ipts_number, exp_number, scan_number, pt_number, root_dir='/HFIR/CG2'):
+    """Locate flood Nexus file
+
+    Parameters
+    ----------
+    ipts_number
+    exp_number
+    scan_number
+    pt_number
+    root_dir
+
+    Returns
+    -------
+    str
+        flood Nexus file path
+
+    """
+    flood_ipts_directory = os.path.join(root_dir, f'IPTS-{ipts_number}/shared/Exp{exp_number}/')
+
     if os.path.exists(flood_ipts_directory) is False:
         os.mkdir(flood_ipts_directory)
-    flood_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(flood_exp_number, flood_scan_number, flood_pt_number)
+    flood_nexus_name = 'CG2_{:04}{:04}{:04}.nxs.h5'.format(exp_number, scan_number, pt_number)
     flood_nexus_name = os.path.join(flood_ipts_directory, flood_nexus_name)
     if not os.path.exists(flood_nexus_name):
-        sys.exit(-1)
+        raise RuntimeError(f'Flood Nexus file {flood_nexus_name} does not exist')
 
     return flood_nexus_name
 
@@ -82,27 +94,41 @@ def generate_intermediate_files(bar_scan_files, save_dir):
 
 
 def generate_pixel_map(bar_scan_files, flood_file, save_dir_root, database_file_base,
+                       calib_name_base='CG2_Pixel_Calibration',
                        mask_file='testdata/mask_pixel_map.nxs'):
     """Generate pixel calibration map from bar scan
+
+
+    # Mask file containing the detector ID's comprising the beam center.
+    # mask_file = f'/HFIR/CG2/IPTS-{ipts}/shared/pixel_flood_mask.nxs'
+
+    Parameters
+    ----------
+    bar_scan_files
+    flood_file
+    save_dir_root
+    database_file_base
+    calib_name_base: str
+        Base name for calibration file
+    mask_file
 
     Returns
     -------
     generator
-        bar scan data set, calibration (step 1),
+        (bar scan data set, flood), calibration (step 1),
 
     """
     # Check output directory
     if not os.path.exists(save_dir_root):
         os.mkdir(save_dir_root)
     save_dir = os.path.join(save_dir_root, f'{len(bar_scan_files)}_runs')
-    print(f'save to {save_dir}')
     if not os.path.exists(save_dir):
         os.makedirs(save_dir, exist_ok=True)
 
     # Create intermediate files
     barscan_dataset = generate_intermediate_files(bar_scan_files, save_dir)
     # return bar scan data set
-    yield barscan_dataset
+    yield barscan_dataset, flood_file
 
     print('#####\n\nCalculating the barscan calibration with the default formula. This takes ~10 minutes')
     start_time = time.time()
@@ -113,36 +139,31 @@ def generate_pixel_map(bar_scan_files, flood_file, save_dir_root, database_file_
 
     print('####\n\nRemoving the Bar Tilt and Centering the Detector')
     calibration = untilt_and_center(calibration)
-    # return first calibration
-    calibration.state_flag = 1
-    yield calibration  # calibration step 1
 
     print('#####\n\nSaving the calibration .. May overwrite already saved calibration')
     # Notice we overwrite the already saved calibration, which will happen if we run this notebook more than once.
 
     # table file name (find out)
     database_file = os.path.join(save_dir, database_file_base)
-    print(f'Database file {database_file}')
+    print(f'[INFO] Database file {database_file}: Exist = {os.path.exists(database_file)}')
     cal_dir = os.path.join(os.path.dirname(database_file), 'tables')  # directory where to save the table file
     os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if already exists
-    test_table_file = os.path.join(cal_dir, 'Test_CG2_Pixel_Calibration' + '.nxs')
+    calibration_table_nexus = os.path.join(cal_dir, f'{calib_name_base}.nxs')
+
     # save
-    calibration.save(overwrite=True, database=database_file, tablefile=test_table_file)
+    calibration.save(overwrite=True, database=database_file, tablefile=calibration_table_nexus)
+
+    # return first calibration
+    calibration.state_flag = 1
+    yield calibration, database_file  # calibration step 1
 
     print('#####\n\napply the calibration to the flood run as a test')
     flood_ws_name = 'flood_run'
     LoadEventNexus(Filename=flood_file, OutputWorkspace=flood_ws_name)
     HFIRSANS2Wavelength(InputWorkspace=flood_ws_name, OutputWorkspace=flood_ws_name)
-    if False:
-        calibrated_flood_ws_name = f'{flood_ws_name}_calibrated'
-        apply_calibrations(flood_ws_name, calibrations='BARSCAN', output_workspace=calibrated_flood_ws_name,
-                           database=database_file)
 
+    # calculate tube width calibration
     print('#####\n\nCalculating the Tube Width Calibration')
-
-    # Mask file containing the detector ID's comprising the beam center.
-    # mask_file = f'/HFIR/CG2/IPTS-{ipts}/shared/pixel_flood_mask.nxs'
-
     apply_mask(flood_ws_name, mask=mask_file)
     start_time = time.time()
     calibration = calculate_apparent_tube_width(flood_ws_name, load_barscan_calibration=True,
@@ -152,16 +173,19 @@ def generate_pixel_map(bar_scan_files, flood_file, save_dir_root, database_file_
     print('#####\n\nSaving the Tube Width calibration')
     # Notice we overwrite the already saved calibration, which will happen if we run this notebook more than once.
     # calibration.save(overwrite=True)
-    calibration.save(overwrite=True, database=database_file, tablefile=test_table_file)
+    calibration.save(overwrite=True, database=database_file, tablefile=calibration_table_nexus)
     calibration.state_flag = 2
     yield calibration, flood_ws_name  # calibration 2
 
-    yield test_table_file
+    # Final output
+    print(f'[INFO] Save to {save_dir}: {calibration_table_nexus}')
+
+    yield calibration_table_nexus
 
 
 def generate_spice_pixel_map(ipts_number, exp_number, scan_number, pt_numbers,
                              flood_ipts_number, flood_exp_number, flood_scan_number, flood_pt_number,
-                             root_dir, save_dir_root):
+                             root_dir, save_dir_root, mask_file):
     bar_scan_files = locate_bar_scan_files(ipts_number, exp_number, scan_number, pt_numbers, root_dir)
     flood_file = locate_flood_file(flood_ipts_number, flood_exp_number, flood_scan_number, flood_pt_number, root_dir)
 
@@ -171,79 +195,7 @@ def generate_spice_pixel_map(ipts_number, exp_number, scan_number, pt_numbers,
 
     database_file_base = os.path.basename(database_file_dict['CG2'])
 
-    return generate_pixel_map(bar_scan_files, flood_file, save_dir_root, database_file_base)
-
-
-def plot_histograms(input_workspace, legend=[], xlabel='X-axis', ylabel='Y-axis', title='', linewidths=[]):
-    r"""Line plot for the histograms of a workspace"""
-    workspace = mtd[str(input_workspace)]
-    number_histograms = workspace.getNumberHistograms()
-    if len(legend) != number_histograms:
-        legend = [str(i) for i in range(number_histograms)]
-    if len(linewidths) != number_histograms:
-        linewidths = [1] * number_histograms
-    fig, ax = plt.subplots(subplot_kw={'projection': 'mantid'})
-    for workspace_index in range(number_histograms):
-        ax.plot(workspace, wkspIndex=workspace_index, label=legend[workspace_index],
-                linewidth=linewidths[workspace_index])
-    ax.legend()
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.tick_params(axis='x', direction='in')
-    ax.tick_params(axis='y', direction='out')
-    ax.grid(True)
-    fig.show()
-
-
-def linear_density(workspace):
-    r"""
-    Tube total intensity per non-masked pixel and per unit length of tube width
-
-    Integrate the total intensity per tube and divide by the number of non-masked pixels in the tube,
-    and by the tube width. Front end tubes collect more intentity than the back tubes.
-    Similarly, front end tubes have a larger apparent tube width than back tubes.
-    The ratio of total intensity to width should be similar for front and end tubes after the calibration.
-    """
-    collection = TubeCollection(workspace, 'detector1').sorted(view='fbfb')
-    intensities = np.array([np.sum(tube.readY) for tube in collection])
-    widths = np.array([tube.width for tube in collection])
-    number_pixels_not_masked = np.array([np.sum(~tube.isMasked) for tube in collection])
-    return list(intensities / (number_pixels_not_masked * widths))
-
-
-def report_tilt(pixel_positions):
-    r"""
-    Variation in the position of the top and bottom pixels as a function of tube index.
-    We perform a linear regression of this variation.
-    """
-    # Create a 2D array of pixel heights, dimensions are (number_tubes x pixels_in_tube)
-    pixel_in_tube_count = 256
-    tube_count = int(len(pixel_positions) / pixel_in_tube_count)
-    positions = np.array(pixel_positions).reshape((tube_count, pixel_in_tube_count))
-
-    def fit(tube_tip_positions):
-        r"""This function will fit the bottom or top pixels against the tube index"""
-        tube_indexes = np.arange(tube_count)  # heights as function of tube index
-        coeffs = np.polyfit(tube_indexes, tube_tip_positions, 1)
-        fitted = np.poly1d(coeffs)(tube_indexes)  # fitted positions of the tube tip
-        return coeffs, fitted
-
-    for location, tip_positions in (['top', positions[:, -1]], ['bottom', positions[:, 0]]):
-        coeffs, fitted = fit(tip_positions)  # fit against tube index
-        # Plot the raw positions and the fitted positions
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1)
-        ax.plot(np.arange(tube_count), tip_positions)
-        ax.plot(np.arange(tube_count), fitted)
-        ax.set_title(f'{location} pixels')
-        # Print a few representative properties of the tilt
-        print(location, ' pixels:')
-        print(f'    slope = {1000 * coeffs[0]:.3f} mili-meters / tube')
-        print(
-            f'    position difference between last and first tube = {1000 * (fitted[-1] - fitted[0]):.3f} mili-meters')
-        # save figure
-        plt.savefig(f'{location}.png')
+    return generate_pixel_map(bar_scan_files, flood_file, save_dir_root, database_file_base, mask_file=mask_file)
 
 
 def untilt_and_center(a_calibration):
@@ -313,4 +265,3 @@ def untilt_and_center(a_calibration):
                           positions=positions_new.ravel(),
                           heights=heights_new.ravel())
     return recalibration
-

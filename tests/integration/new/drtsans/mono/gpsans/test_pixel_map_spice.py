@@ -25,7 +25,7 @@ def test_pixel_calibration(reference_dir, cleanfile):
     # First and last pt for the barscan: Set by user
     # -------------------------------------------------------------------------------------------------------
     # IPTS 828 Exp 280.  (/HFIR/CG2/IPTS-828/exp280/Datafiles)
-    root_dir = '/HFIR/CG2/'
+    root_dir = os.path.join(reference_dir.new.gpsans, 'calibrations')
     ipts = 828
     exp_number = 280
     scan_number = 5
@@ -37,18 +37,21 @@ def test_pixel_calibration(reference_dir, cleanfile):
     flood_scan = 4
     flood_pt = 1
 
+    mask_file = os.path.join(reference_dir.new.gpsans, 'calibrations/mask_pixel_map.nxs')
+    assert os.path.exists(mask_file), f'Mask file {mask_file} does not exist'
+
     # Calculate pixel calibration file
     calibration_results = generate_spice_pixel_map(ipts, exp_number, scan_number, range(first_pt, last_pt + 1),
                                                    flood_ipts, flood_exp, flood_scan, flood_pt,
-                                                   root_dir, test_output_dir)
+                                                   root_dir, test_output_dir, mask_file)
     calibration_table_file = None
     for index, returned in enumerate(calibration_results):
         if index == 0:
-            bar_scan_dataset = returned
+            bar_scan_dataset, flood_file = returned
             assert len(bar_scan_dataset) == last_pt - first_pt + 1
             time.sleep(1)
         elif index == 1:
-            calibration_stage0 = returned
+            calibration_stage0, db_file = returned
             time.sleep(1)
             assert calibration_stage0.state_flag == 1
         elif index == 2:

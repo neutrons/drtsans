@@ -3,8 +3,7 @@ import numpy as np
 import os
 # Mantid imports
 from mantid.api import mtd
-from mantid.simpleapi import (CreateWorkspace, DeleteWorkspaces, LoadEventNexus, LoadNexus,
-                              HFIRSANS2Wavelength, SaveNexus)
+from mantid.simpleapi import (CreateWorkspace, LoadEventNexus, LoadNexus, HFIRSANS2Wavelength)
 # drtsans imports
 from drtsans.mono.gpsans import (apply_calibrations, plot_detector)
 from drtsans.mono.bar_scan_pixel_calibration import generate_spice_pixel_map

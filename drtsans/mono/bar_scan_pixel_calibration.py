@@ -3,10 +3,9 @@ import numpy as np
 import os
 import time
 # Mantid imports
-from mantid.simpleapi import (CreateWorkspace, DeleteWorkspaces, LoadEventNexus, LoadNexus,
-                              HFIRSANS2Wavelength, SaveNexus)
+from mantid.simpleapi import (DeleteWorkspaces, LoadEventNexus, HFIRSANS2Wavelength, SaveNexus)
 # drtsans imports
-from drtsans.mono.gpsans import (apply_calibrations, apply_mask, calculate_apparent_tube_width,
+from drtsans.mono.gpsans import (apply_mask, calculate_apparent_tube_width,
                                  calculate_barscan_calibration)
 from drtsans.pixel_calibration import Table
 import sys

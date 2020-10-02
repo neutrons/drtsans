@@ -232,7 +232,7 @@ class EventNexusConverter(ABC):
                     num = 1
                 tmp.append(num)
             # stich to form a pt_number
-            pt_number = "_".join([str(me).zfill(4) for me in tmp])
+            pt_number = "".join([str(me).zfill(4) for me in tmp])
 
         # Close file
         spice_reader.close()

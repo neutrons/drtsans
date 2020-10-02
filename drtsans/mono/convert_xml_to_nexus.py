@@ -12,16 +12,19 @@ from abc import ABC
 
 
 # SPICE NeXus meta data unit name conversion.  Note that the units are same but with difference names.
-SPICE_NEXUS_UNIT_NAME_MAP = {'wavelength': 'A',
-                             'wavelength_spread': None,
-                             'ww_rot_Readback': 'deg',
-                             'attenuator': None}
+SPICE_NEXUS_UNIT_NAME_MAP = {
+    "wavelength": "A",
+    "wavelength_spread": None,
+    "ww_rot_Readback": "deg",
+    "attenuator": None,
+}
 
 
 class EventNexusConverter(ABC):
     """
     Class to provide service to convert to event NeXus from various input
     """
+
     def __init__(self, beam_line, instrument_name, num_banks):
         """
 
@@ -41,7 +44,9 @@ class EventNexusConverter(ABC):
         self._idf_content = None
 
         # counts
-        self._detector_counts = None   # 1D array ranging from PID 0 (aka workspace index 0)
+        self._detector_counts = (
+            None  # 1D array ranging from PID 0 (aka workspace index 0)
+        )
         self._monitor_counts = None
 
         # sample logs
@@ -73,22 +78,24 @@ class EventNexusConverter(ABC):
 
         # Set constants
         pulse_duration = 0.1  # second
-        tof_min = 1000.
-        tof_max = 20000.
+        tof_min = 1000.0
+        tof_max = 20000.0
 
         # Generate event nexus writer
-        event_nexus_writer = EventNeXusWriter(beam_line=self._beam_line, instrument_name=self._instrument_name)
+        event_nexus_writer = EventNeXusWriter(
+            beam_line=self._beam_line, instrument_name=self._instrument_name
+        )
 
         # set instrument
-        event_nexus_writer.set_instrument_info(num_banks,  self._idf_content)
+        event_nexus_writer.set_instrument_info(num_banks, self._idf_content)
 
         # set counts
         for bank_id in range(1, num_banks + 1):
             # create TofHistogram instance
             start_pid, end_pid = self.get_pid_range(bank_id)
             pix_ids = np.arange(start_pid, end_pid + 1)
-            counts = self._detector_counts[start_pid:end_pid + 1]
-            counts = counts.astype('int64')
+            counts = self._detector_counts[start_pid : end_pid + 1]
+            counts = counts.astype("int64")
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
 
             # set to writer
@@ -102,9 +109,11 @@ class EventNexusConverter(ABC):
         event_nexus_writer.set_run_number(self._run_number)
 
         # Write file
-        event_nexus_writer.generate_event_nexus(target_nexus, self._run_start, self._run_stop, self._monitor_counts)
+        event_nexus_writer.generate_event_nexus(
+            target_nexus, self._run_start, self._run_stop, self._monitor_counts
+        )
 
-    def load_sans_xml(self, xml_file_name, das_log_map, prefix=''):
+    def load_sans_xml(self, xml_file_name, das_log_map, prefix=""):
         """Load data and meta data from legacy SANS XML data file
 
         Parameters
@@ -124,29 +133,33 @@ class EventNexusConverter(ABC):
         self._das_logs = self.convert_log_units(spice_log_dict)
 
         # output workspace name
-        sans_ws_name = os.path.basename(xml_file_name).split('.xml')[0]
-        sans_ws_name = f'{prefix}{sans_ws_name}'
+        sans_ws_name = os.path.basename(xml_file_name).split(".xml")[0]
+        sans_ws_name = f"{prefix}{sans_ws_name}"
 
         # load
-        logger.notice(f'Load {xml_file_name}')
+        logger.notice(f"Load {xml_file_name}")
         LoadHFIRSANS(Filename=xml_file_name, OutputWorkspace=sans_ws_name)
 
         # get counts and reshape to (N, )
         sans_ws = mtd[sans_ws_name]
-        counts = sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
+        counts = (
+            sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
+        )
 
         self._detector_counts = counts[2:]
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
-        #NOTE: 
+        # NOTE:
         # monitor counts cannot be zero since we need it as the denominator during
         # normalization.
         if abs(self._monitor_counts) < 1e-6:
-            raise ValueError(f"Incorrect zero count for monitor, XML might be corrupted")
+            raise ValueError(
+                f"Incorrect zero count for monitor, XML might be corrupted"
+            )
 
         # get run start time: force to a new time
-        self._run_start = sans_ws.run().getProperty('run_start').value
-        self._run_stop = sans_ws.run().getProperty('end_time').value
+        self._run_start = sans_ws.run().getProperty("run_start").value
+        self._run_stop = sans_ws.run().getProperty("end_time").value
 
         self._run_number = pt_number
 
@@ -162,9 +175,11 @@ class EventNexusConverter(ABC):
 
         """
         # Import source
-        source_nexus_h5 = h5py.File(template_nexus_file, 'r')
+        source_nexus_h5 = h5py.File(template_nexus_file, "r")
         # IDF in XML
-        self._idf_content = source_nexus_h5['entry']['instrument']['instrument_xml']['data'][0]
+        self._idf_content = source_nexus_h5["entry"]["instrument"]["instrument_xml"][
+            "data"
+        ][0]
         # Close
         source_nexus_h5.close()
 
@@ -210,8 +225,10 @@ class EventNexusConverter(ABC):
             else:
                 # check unit
                 if unit != default_unit:
-                    raise RuntimeError(f'SPICE log {spice_log_name} has unit {unit} different from '
-                                       f'expected {default_unit}')
+                    raise RuntimeError(
+                        f"SPICE log {spice_log_name} has unit {unit} different from "
+                        f"expected {default_unit}"
+                    )
 
             das_log_values[nexus_log_name] = value, unit
 
@@ -219,23 +236,23 @@ class EventNexusConverter(ABC):
         # NOTE: the image path contains some information we can use for sanity check
         _expn, _scnn, _scpn = 0, 0, 0
         try:
-            imgpath, _ = spice_reader.get_node_value('ImagePath', str)
+            imgpath, _ = spice_reader.get_node_value("ImagePath", str)
             tmp = imgpath.split(".")[0].split("_")[1:]
         except KeyError as key_err:
             print(key_err)
             imgpath = ""
             tmp = []
-        
+
         if len(tmp) == 3:
-            _expn = int(tmp[0].replace("exp",""))
-            _scnn = int(tmp[1].replace("scan",""))
-            _scpn = int(tmp[2].replace("scan",""))
+            _expn = int(tmp[0].replace("exp", ""))
+            _scnn = int(tmp[1].replace("scan", ""))
+            _scpn = int(tmp[2].replace("scan", ""))
         _pt_parts = [_expn, _scnn, _scpn]
 
         if "bio" in imgpath.lower():
             print("Possible BioSANS data found")
             print("run_number = exp#scan#scanPt#")
-            lbs = ['Experiment_number', 'Scan_Number', 'Scan_Point_Number']
+            lbs = ["Experiment_number", "Scan_Number", "Scan_Point_Number"]
             for i, lb in enumerate(lbs):
                 try:
                     _pt_parts[i], _ = spice_reader.get_node_value(lb, int)
@@ -247,7 +264,7 @@ class EventNexusConverter(ABC):
         else:
             # Default method to handle non BioSANS type SPICE data
             try:
-                pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
+                pt_number, unit = spice_reader.get_node_value("Scan_Point_Number", int)
             except KeyError as key_err:
                 pt_number = key_err
 
@@ -282,7 +299,13 @@ class EventNexusConverter(ABC):
                 log_unit = SPICE_NEXUS_UNIT_NAME_MAP[nexus_das_log_name]
 
             # form das log
-            nexus_das_log = DasLog(nexus_das_log_name, np.array([0.]), np.array([log_value]), log_unit, None)
+            nexus_das_log = DasLog(
+                nexus_das_log_name,
+                np.array([0.0]),
+                np.array([log_value]),
+                log_unit,
+                None,
+            )
             # add
             nexus_log_dict[nexus_das_log_name] = nexus_das_log
 
@@ -303,4 +326,4 @@ class EventNexusConverter(ABC):
             start PID, end PID (assuming PID are consecutive in a bank and end PID is inclusive)
 
         """
-        raise RuntimeError('Class method EventNexusConverter.get_pid_range is abstract')
+        raise RuntimeError("Class method EventNexusConverter.get_pid_range is abstract")

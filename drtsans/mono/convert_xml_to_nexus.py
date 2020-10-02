@@ -203,6 +203,21 @@ class EventNexusConverter(ABC):
         # Load SPICE file
         spice_reader = SpiceXMLParser(spice_file_name)
 
+        # Mandatory key list
+        # NOTE: Missing node listed in this list will leads to error in processing.
+        #       Early failure is enfored for missing entry in this list
+        mandatory_das_logs = [
+            "CG3:CS:SampleToSi",
+            "sample_detector_distance",
+            "wavelength",
+            "wavelength_spread",
+            "source_aperture_diameter",
+            "sample_aperture_diameter",
+            "detector_trans_Readback",
+            "ww_rot_Readback",
+            "source_aperture_sample_aperture_distance",
+            ]
+
         das_log_values = dict()
         for nexus_log_name, spice_tuple in das_spice_log_map.items():
             # read value from XML node
@@ -213,22 +228,32 @@ class EventNexusConverter(ABC):
             if len(spice_tuple) >= 3:
                 data_type = spice_tuple[2]
             else:
-                # default
-                data_type = float
-            value, unit = spice_reader.get_node_value(spice_log_name, data_type)
+                data_type = float   # default
+            # try to query the value from XML tree
+            try:
+                value, unit = spice_reader.get_node_value(spice_log_name, data_type)
+            except KeyError as key_err:
+                if nexus_log_name in mandatory_das_logs:
+                    raise ValueError(f"!Aborting: Cannot find mandaory node {nexus_log_name}")
+                else:
+                    logger.warning(str(key_err))
+                    logger.warning(f"skipping {nexus_log_name}")
+                    value = None
+                    unit = None
+            
+            if value is not None:
+                # set default
+                if unit is None:
+                    unit = default_unit
+                else:
+                    # check unit
+                    if unit != default_unit:
+                        raise RuntimeError(
+                            f"SPICE log {spice_log_name} has unit {unit} different from "
+                            f"expected {default_unit}"
+                        )
 
-            # set default
-            if unit is None:
-                unit = default_unit
-            else:
-                # check unit
-                if unit != default_unit:
-                    raise RuntimeError(
-                        f"SPICE log {spice_log_name} has unit {unit} different from "
-                        f"expected {default_unit}"
-                    )
-
-            das_log_values[nexus_log_name] = value, unit
+                das_log_values[nexus_log_name] = value, unit
 
         # Get pt number
         # NOTE: the image path contains some information we can use for sanity check
@@ -237,7 +262,7 @@ class EventNexusConverter(ABC):
             imgpath, _ = spice_reader.get_node_value("ImagePath", str)
             tmp = imgpath.split(".")[0].split("_")[1:]
         except KeyError as key_err:
-            print(key_err)
+            logger.warning(str(key_err))
             imgpath = ""
             tmp = []
 
@@ -248,15 +273,15 @@ class EventNexusConverter(ABC):
         _pt_parts = [_expn, _scnn, _scpn]
 
         if "bio" in imgpath.lower():
-            print("Possible BioSANS data found")
-            print("run_number = exp#scan#scanPt#")
+            logger.notice("Possible BioSANS data found")
+            logger.notice("run_number = exp#scan#scanPt#")
             lbs = ["Experiment_number", "Scan_Number", "Scan_Point_Number"]
             for i, lb in enumerate(lbs):
                 try:
                     _pt_parts[i], _ = spice_reader.get_node_value(lb, int)
                 except KeyError as key_err:
-                    print(key_err)
-                    print(f"Defaulting {lb} to 0")
+                    logger.warning(str(key_err))
+                    logger.warning(f"Defaulting {lb} to {_pt_parts[i]}")
             # stich to form a pt_number
             pt_number = "".join([str(me).zfill(4) for me in _pt_parts])
         else:

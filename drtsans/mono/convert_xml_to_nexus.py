@@ -216,23 +216,40 @@ class EventNexusConverter(ABC):
             das_log_values[nexus_log_name] = value, unit
 
         # Get pt number
+        # NOTE: the image path contains some information we can use for sanity check
+        _expn, _scnn, _scpn = 0, 0, 0
         try:
-            pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
+            imgpath, _ = spice_reader.get_node_value('ImagePath', str)
+            tmp = imgpath.split(".")[0].split("_")[1:]
         except KeyError as key_err:
-            # some spice file may not have Scan_Point_Number
             print(key_err)
-            print("Trying to construct one using exp#_scan#_scanPt#")
+            imgpath = ""
             tmp = []
-            for lb in ['Experiment_number', 'Scan_Number', 'Scan_Point_Number']:
+        
+        if len(tmp) == 3:
+            _expn = int(tmp[0].replace("exp",""))
+            _scnn = int(tmp[1].replace("scan",""))
+            _scpn = int(tmp[2].replace("scan",""))
+        _pt_parts = [_expn, _scnn, _scpn]
+
+        if "bio" in imgpath.lower():
+            print("Possible BioSANS data found")
+            print("run_number = exp#scan#scanPt#")
+            lbs = ['Experiment_number', 'Scan_Number', 'Scan_Point_Number']
+            for i, lb in enumerate(lbs):
                 try:
-                    num, _ = spice_reader.get_node_value(lb, int)
+                    _pt_parts[i], _ = spice_reader.get_node_value(lb, int)
                 except KeyError as key_err:
                     print(key_err)
-                    print(f"Forcing {lb} to 1")
-                    num = 1
-                tmp.append(num)
+                    print(f"Defaulting {lb} to 0")
             # stich to form a pt_number
-            pt_number = "".join([str(me).zfill(4) for me in tmp])
+            pt_number = "".join([str(me).zfill(4) for me in _pt_parts])
+        else:
+            # Default method to handle non BioSANS type SPICE data
+            try:
+                pt_number, unit = spice_reader.get_node_value('Scan_Point_Number', int)
+            except KeyError as key_err:
+                pt_number = key_err
 
         # Close file
         spice_reader.close()

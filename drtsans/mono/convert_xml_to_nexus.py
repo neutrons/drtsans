@@ -138,6 +138,11 @@ class EventNexusConverter(ABC):
         self._detector_counts = counts[2:]
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
+        #NOTE: 
+        # monitor counts cannot be zero since we need it as the denominator during
+        # normalization.
+        if abs(self._monitor_counts) < 1e-6:
+            raise ValueError(f"Incorrect zero count for monitor, XML might be corrupted")
 
         # get run start time: force to a new time
         self._run_start = sans_ws.run().getProperty('run_start').value

@@ -94,7 +94,7 @@ class EventNexusConverter(ABC):
             # create TofHistogram instance
             start_pid, end_pid = self.get_pid_range(bank_id)
             pix_ids = np.arange(start_pid, end_pid + 1)
-            counts = self._detector_counts[start_pid:end_pid + 1]
+            counts = self._detector_counts[start_pid : end_pid + 1]
             counts = counts.astype("int64")
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
 
@@ -216,7 +216,7 @@ class EventNexusConverter(ABC):
             "detector_trans_Readback",
             "ww_rot_Readback",
             "source_aperture_sample_aperture_distance",
-            ]
+        ]
 
         das_log_values = dict()
         for nexus_log_name, spice_tuple in das_spice_log_map.items():
@@ -228,19 +228,21 @@ class EventNexusConverter(ABC):
             if len(spice_tuple) >= 3:
                 data_type = spice_tuple[2]
             else:
-                data_type = float   # default
+                data_type = float  # default
             # try to query the value from XML tree
             try:
                 value, unit = spice_reader.get_node_value(spice_log_name, data_type)
             except KeyError as key_err:
                 if nexus_log_name in mandatory_das_logs:
-                    raise ValueError(f"!Aborting: Cannot find mandaory node {nexus_log_name}")
+                    raise ValueError(
+                        f"!Aborting: Cannot find mandaory node {nexus_log_name}"
+                    )
                 else:
                     logger.warning(str(key_err))
                     logger.warning(f"skipping {nexus_log_name}")
                     value = None
                     unit = None
-            
+
             if value is not None:
                 # set default
                 if unit is None:

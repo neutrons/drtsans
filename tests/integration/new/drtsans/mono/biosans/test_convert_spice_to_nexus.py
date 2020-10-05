@@ -12,8 +12,8 @@ def test_convert_spice(reference_dir, cleanfile):
     """
     # Set file
     ipts = 17241
-    exp = 327
-    scan_pt_list = [(66, 1)]
+    exp = 402
+    scan_pt_list = [(6, 1)]
 
     # Create output directory
     output_dir = mkdtemp(prefix="cg3spiceconverter")
@@ -36,7 +36,7 @@ def test_convert_spice(reference_dir, cleanfile):
 
     # Verify result
     raw_spice = os.path.join(
-        reference_dir.new.biosans, f"BioSANS_exp318_scan0217_0001.xml"
+        reference_dir.new.biosans, f"BioSANS_exp402_scan0006_0001.xml"
     )
     verify_result(nexus_files[0], raw_spice)
 
@@ -63,8 +63,6 @@ def verify_result(test_nexus, raw_spice):
         nexus_det_pos = test_ws.getDetector(iws).getPos()
         spice_det_pos = raw_ws.getDetector(iws + 2).getPos()
         np.testing.assert_allclose(nexus_det_pos, spice_det_pos)
-
-    return
 
 
 if __name__ == "__main__":

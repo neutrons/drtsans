@@ -18,7 +18,12 @@ class CG3EventNexusConvert(EventNexusConverter):
 
         work for 88 banks
         """
-        super(CG3EventNexusConvert, self).__init__("CG3", "CG3", 88)
+        super(CG3EventNexusConvert, self).__init__("CG3", "CG3", self.num_banks)
+    
+    @property
+    def num_banks(self):
+        """For BioSANS (CG3), the total number of banks is a fixed value: 88"""
+        return 88
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
@@ -39,7 +44,7 @@ class CG3EventNexusConvert(EventNexusConverter):
         # in this method.  DO NOT TOUCH!!!
 
         # Check input valid
-        if bank_id < 1 or bank_id > 88:
+        if bank_id < 1 or bank_id > self.num_banks:
             raise RuntimeError(
                 f"CG3 (BioSANS) has 88 banks indexed from 1 to 88. "
                 f"Bank {bank_id} is out of range."

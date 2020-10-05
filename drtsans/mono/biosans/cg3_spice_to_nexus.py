@@ -19,7 +19,7 @@ class CG3EventNexusConvert(EventNexusConverter):
         work for 88 banks
         """
         super(CG3EventNexusConvert, self).__init__("CG3", "CG3", self.num_banks)
-    
+
     @property
     def num_banks(self):
         """For BioSANS (CG3), the total number of banks is a fixed value: 88"""

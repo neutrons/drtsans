@@ -59,7 +59,7 @@ def verify_result(test_nexus, raw_spice):
     np.testing.assert_allclose(raw_y[2:], test_y)
 
     # Compare geometry
-    # rtol is reduced to pass the test
+    # atol is reduced to pass the test
     # 1. the issue does not come from the convertor, but rather
     #    the data inconsistency bewteen Mantid IDL and local
     #    in file cache
@@ -69,7 +69,7 @@ def verify_result(test_nexus, raw_spice):
     for iws in range(0, test_ws.getNumberHistograms(), 20):
         nexus_det_pos = test_ws.getDetector(iws).getPos()
         spice_det_pos = raw_ws.getDetector(iws + 2).getPos()
-        np.testing.assert_allclose(nexus_det_pos, spice_det_pos, rtol=0.1)
+        np.testing.assert_allclose(nexus_det_pos, spice_det_pos, atol=0.1)
 
 
 if __name__ == "__main__":

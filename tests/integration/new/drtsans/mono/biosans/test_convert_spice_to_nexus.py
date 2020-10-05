@@ -54,6 +54,11 @@ def verify_result(test_nexus, raw_spice):
     ), "Spectra number unmatched"
 
     # Compare counts
+    # NOTE:
+    #   In NeXus, the first two spectra are monitor counts, hence we need
+    #   to compare
+    #   - nexus_spectrum[2:]
+    #   - reference_spectrum[:] 
     raw_y = raw_ws.extractY().flatten()
     test_y = test_ws.extractY().flatten()
     np.testing.assert_allclose(raw_y[2:], test_y)

@@ -20,7 +20,7 @@ def prepare_spice_sensitivities_correction(flood_spice_runs: List[SpiceRun],
                                            output_dir: Union[str, None],
                                            file_suffix: str = 'spice',
                                            pixel_calibration_file: Union[str, None] = None,
-                                           solid_angle_correction: bool = True):
+                                           solid_angle_correction: bool = True) -> str:
     """
 
     Parameters
@@ -61,7 +61,7 @@ def prepare_spice_sensitivities_correction(flood_spice_runs: List[SpiceRun],
         file_suffix += '_nobar'
     else:
         file_suffix += '_bar'
-    sen_file_name = os.path.join(output_dir, f'sens_gpsans_{file_suffix}.nxs')
+    sens_file_name = os.path.join(output_dir, f'sens_gpsans_{file_suffix}.nxs')
 
     # Create the sensitivity preparation correction workflow object
     preparer = PrepareSensitivityCorrection(MY_BEAM_LINE, is_wing_detector=False)
@@ -97,12 +97,17 @@ def prepare_spice_sensitivities_correction(flood_spice_runs: List[SpiceRun],
     preparer.set_solid_angle_correction_flag(solid_angle_correction)
 
     # Run: since it is for SPICE file, it is enforced to use IDF from NeXus
-    preparer.execute(moving_detectors_methods, min_count_threshold, max_count_threshold, sen_file_name,
-                     enforce_use_nexus_idf=True)
+    try:
+        preparer.execute(moving_detectors_methods, min_count_threshold, max_count_threshold, sens_file_name,
+                         enforce_use_nexus_idf=True)
+    except FileNotFoundError as file_error:
+        raise file_error
 
     # Information
-    print(f'Generated sensitivity file: {sen_file_name}')
+    print(f'Generated sensitivity file: {sens_file_name}')
     # Load and print out some information
-    with h5py.File(sen_file_name) as sens:
+    with h5py.File(sens_file_name) as sens:
         sens_values = sens['mantid_workspace_1']['workspace']['values'][()]
         print(f'Number of NaNs = {len(np.where(np.isnan(sens_values))[0])}')
+
+    return sens_file_name

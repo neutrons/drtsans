@@ -372,7 +372,7 @@ class DasLogNode(drtsans.files.hdf5_rw.GroupNode):
 
         """
         if any([isinstance(me, str) for me in self._log_values]):
-            # string type log requires no calcualtion
+            # string type log requires no calculation
             child_node = DataSetNode(name=self._create_child_name("value"))
             child_node.set_value(self._log_values)
             child_node.add_attributes({"units": self._log_unit})

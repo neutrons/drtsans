@@ -28,7 +28,7 @@ def test_sensitivities_with_bar(reference_dir, cleanfile):
 
     # Pixel calibration
     # PIXEL_CALIBRATION = None
-    pixel_calib_file = os.path.join(reference_dir.new.gpsans, 'calibrations/pixel_calibration_gold_sens.nxs')
+    pixel_calib_file = os.path.join(reference_dir.new.gpsans, 'calibrations/pixel_calibration_gold_sens.json')
 
     # Corrections
     do_solid_angle_correction = True

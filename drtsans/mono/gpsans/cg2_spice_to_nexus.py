@@ -78,6 +78,7 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number,
     if spice_dir is None:
         # Build the default path to the SPICE files
         spice_dir = f'/HFIR/CG2/IPTS-{ipts_number}/exp{exp_number}/Datafiles'
+    print(f'[INFO] SPICE file will be read from to directory {spice_dir}')
     # verify path
     assert os.path.exists(spice_dir), f'SPICE data directory {spice_dir} cannot be found'
     spice_data_file = os.path.join(spice_dir,
@@ -96,8 +97,9 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number,
                            f'Create directory {output_dir} and grand access to all IPTS users')
 
     # output file name
-    out_nexus_file = os.path.join(output_dir, f'CG2_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5')
+    out_nexus_file = os.path.join(f'Exp{exp_number}', f'CG2_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5')
     out_nexus_file = os.path.join(output_dir, out_nexus_file)
+    print(f'[INFO] NeXus file will be written to {out_nexus_file}')
 
     # Load meta data and convert to NeXus format
     das_log_map = {'CG2:CS:SampleToSi': ('sample_to_flange', 'mm'),  # same

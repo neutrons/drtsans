@@ -110,6 +110,7 @@ def test_reduction_spice(reference_dir, cleanfile):
 
     """
     CG2 = 'CG2'
+    nexus_dir = os.path.join(reference_dir.new.gpsans, 'Exp280')
 
     # Set output (temp) directory
     output_directory = tempfile.mkdtemp(prefix='spice_reduction')
@@ -135,7 +136,7 @@ def test_reduction_spice(reference_dir, cleanfile):
 
     # STAFF INPUT
     use_mask_file = True
-    mask_file_name = f'/HFIR/CG2/IPTS-{ipts_number}/shared/pixel_calibration/mask_pixel_map.nxs'
+    mask_file_name = os.path.join(reference_dir.new.gpsans, 'calibrations/mask_pixel_map.nxs')
     use_dark_file = False
     dark_file_name = ""
     block_beam = (9, 1)
@@ -145,14 +146,14 @@ def test_reduction_spice(reference_dir, cleanfile):
     wedge_min_angles = None
     wedge_max_angles = None
 
-    # sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_fc488_from_nexus.nxs'
-    sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_CG2_spice_bar.nxs'
+    # sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_CG2_spice_bar.nxs'
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
     use_log_2d_binning = False
     use_log_1d = True
     common_configuration = {
         "iptsNumber": ipts_number,
-        "emptyTransmission": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, empty_trans)},
-        "beamCenter": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, beam_center)},
+        "emptyTransmission": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, empty_trans, nexus_dir)},
+        "beamCenter": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, beam_center, nexus_dir)},
         "configuration": {
             "outputDir": output_directory,
             "darkFileName": dark_file_name,
@@ -190,14 +191,13 @@ def test_reduction_spice(reference_dir, cleanfile):
     # Never touch!  drtsans specific
 
     # convert SPICE to Nexus
-    samples = map_to_nexus(CG2, ipts_number, exp_number, samples)
-    samples_trans = map_to_nexus(CG2, ipts_number, exp_number, samples_trans)
-    bkgd = map_to_nexus(CG2, ipts_number, exp_number, bkgd)
-    bkgd_trans = map_to_nexus(CG2, ipts_number, exp_number, bkgd_trans)
+    samples = map_to_nexus(CG2, ipts_number, exp_number, samples, nexus_dir)
+    samples_trans = map_to_nexus(CG2, ipts_number, exp_number, samples_trans, nexus_dir)
+    bkgd = map_to_nexus(CG2, ipts_number, exp_number, bkgd, nexus_dir)
+    bkgd_trans = map_to_nexus(CG2, ipts_number, exp_number, bkgd_trans, nexus_dir)
 
     import warnings
     warnings.filterwarnings('ignore')
-    import os
     import json
     # jupyter only:from pprint import pprint as pretty_print
     from drtsans.mono.gpsans import (load_all_files, reduce_single_configuration, plot_reduction_output,
@@ -241,7 +241,7 @@ def test_reduction_spice(reference_dir, cleanfile):
                 "Qmin": q_range[0],
                 "Qmax": q_range[1],
                 "useMaskBackTubes": use_mask_back_tubes,
-                "blockedBeamRunNumber": map_to_nexus(CG2, ipts_number, exp_number, [block_beam])[0],
+                "blockedBeamRunNumber": map_to_nexus(CG2, ipts_number, exp_number, [block_beam], nexus_dir)[0],
                 "maskFileName": mask_file_name,
                 "darkFileName": dark_file_name,
             }

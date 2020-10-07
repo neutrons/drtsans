@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import os
 from drtsans.mono.spice_data import map_to_nexus
-from drtsans.files.log_h5_reader import verify_reduction_results
+from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 
 
 def test_reduction_spice(reference_dir, cleanfile):
@@ -164,7 +164,7 @@ def test_reduction_spice(reference_dir, cleanfile):
 
         # verify
         expected_data_dir = os.path.join(reference_dir.new.gpsans, 'reduced_exp280')
-        verify_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
+        verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
 
 
 if __name__ == '__main__':

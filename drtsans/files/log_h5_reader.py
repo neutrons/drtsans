@@ -2,11 +2,11 @@ import h5py
 import numpy as np
 import os
 
-__all__ = ['verify_reduction_results']
+__all__ = ['verify_cg2_reduction_results']
 
 
 def get_iq1d(log_file_name):
-    """Get I(Q) from output SANS log file
+    """Get I(Q) from output GP-SANS log file
 
     Parameters
     ----------
@@ -41,7 +41,7 @@ def get_iq1d(log_file_name):
 
 
 def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
-    """Compare I(Q) from reduced file and gold file
+    """Compare I(Q) from reduced file and gold file for GPSANS
 
     Parameters
     ----------
@@ -78,8 +78,8 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
         raise assert_err
 
 
-def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
-    """
+def verify_cg2_reduction_results(sample_names, output_dir, gold_path, title, prefix):
+    """Verify reduction result for GPSANS
 
     Parameters
     ----------

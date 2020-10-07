@@ -3,7 +3,7 @@ import pytest
 from tempfile import mkdtemp
 import time
 import os
-from drtsans.files.log_h5_reader import verify_reduction_results
+from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 
 from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
                                  reduction_parameters, update_reduction_parameters)
@@ -212,8 +212,8 @@ def test_no_overwrite(reference_dir, cleanfile):
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test1/')
 
     # Verify results
-    verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Raw (No Overwriting)',  prefix='CG2MetaRaw')
+    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
+                                 title='Raw (No Overwriting)', prefix='CG2MetaRaw')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -269,8 +269,8 @@ def test_overwrite_sample2si(reference_dir, cleanfile):
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test2/')
-    verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
+    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
+                                 title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -329,9 +329,9 @@ def test_overwrite_sdd(reference_dir, cleanfile):
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test3/')
-    verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Overwrite DetectorSampleDistance to 40 meter',
-                             prefix='CG2MetaSDD')
+    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
+                                 title='Overwrite DetectorSampleDistance to 40 meter',
+                                 prefix='CG2MetaSDD')
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -392,9 +392,9 @@ def test_overwrite_both(reference_dir, cleanfile):
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test4/')
-    verify_reduction_results(sample_names, output_dir, gold_path,
-                             title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
-                             prefix='CG2MetaBoth')
+    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
+                                 title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
+                                 prefix='CG2MetaBoth')
 
 
 if __name__ == '__main__':

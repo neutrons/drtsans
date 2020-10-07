@@ -1,6 +1,4 @@
 # Integration test for overwriting instrument geometry related meta data for GP-SANS
-import h5py
-import numpy as np
 import pytest
 from tempfile import mkdtemp
 import time

@@ -91,13 +91,13 @@ def convert_spice_to_nexus(ipts_number, exp_number, scan_number, pt_number,
 
     # Specify the default output directory
     if output_dir is None:
-        output_dir = f'/HFIR/CG2/IPTS-{ipts_number}/shared/spice_nexus'
+        output_dir = f'/HFIR/CG2/IPTS-{ipts_number}/shared/spice_nexus/Exp{exp_number}'
     if not os.path.exists(output_dir):
         raise RuntimeError(f'Output NeXus directory {output_dir} does not exist.'
                            f'Create directory {output_dir} and grand access to all IPTS users')
 
     # output file name
-    out_nexus_file = os.path.join(f'Exp{exp_number}', f'CG2_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5')
+    out_nexus_file = f'CG2_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5'
     out_nexus_file = os.path.join(output_dir, out_nexus_file)
     print(f'[INFO] NeXus file will be written to {out_nexus_file}')
 

@@ -1,74 +1,74 @@
 # This notebook is a template for reducing GPSANS legacy data with drtsans
 # It is a 1-sample 1-configuration reduction
+# ----------------------  HEADER: NO TOUCH  ------------------------------
+from drtsans.mono.spice_data import map_to_nexus
+# Never touch!  drtsans specific
+import warnings  # noqa E402
+warnings.filterwarnings('ignore')
+import os  # noqa E402
+import json  # noqa E402
+# jupyter only:from pprint import pprint as pretty_print
+import time # noqa E402
+from drtsans.mono.gpsans import (load_all_files, reduce_single_configuration, plot_reduction_output,
+                                 reduction_parameters, update_reduction_parameters) # noqa E402
+from matplotlib.colors import LogNorm # noqa E402
+# jupyter only:% matplotlib
+# jupyter only:inline
+# ----------------------  HEADER: END      ------------------------------
 
 # USER INPUT
+CG2 = 'CG2'
 ipts_number = 828
 exp_number = 280
 
-# Note:
 # Default directory for converted SPICE data files is /HFIR/CG2/IPTS-828/shared/Exp280/
 # Here is the convention for a SPICE with an example
 # Exp = 280, Scan = 5, Pt = 29: CG2_028000050029.nxs.h5
+output_directory = f'/HFIR/{CG2}/IPTS-{ipts_number}/shared/reduced/Exp{exp_number}/'
 
-output_directory = f'/HFIR/CG2/IPTS-{ipts_number}/shared/reduced/Exp{exp_number}/'
-
+# Sample
 samples = [(35, 1)]
 samples_trans = [(27, 1)]
 sample_thick = ['0.1']
-sample_names = ['Porasil B']
+sample_names = ['Porasil_B']
+# Background
 bkgd = [(34, 1)]
 bkgd_trans = [(26, 1)]
-
+# Transmission/empty beam
 empty_trans = [(28, 1)]
+# Beam center
 beam_center = [(20, 1)]
 
 # q range to use to clean 1D curve of each configuration
 q_range = [None, None]
 
 # STAFF INPUT
+# Block beam
+block_beam = (9, 1)
+
+# Others: mask, dark file, ...
 use_mask_file = True
-mask_file_name = f'/HFIR/CG2/IPTS-{ipts_number}/shared/pixel_calibration/mask_pixel_map.nxs'
+mask_file_name = f'/HFIR/{CG2}/IPTS-{ipts_number}/shared/pixel_calibration/mask_pixel_map.nxs'
 use_dark_file = False
 dark_file_name = ""
-block_beam = (9, 1)
 use_mask_back_tubes = False
+
+# Wave length
 wavelength = None
 wavelength_spread = None
+
+# Wedge
 wedge_min_angles = None
 wedge_max_angles = None
 
-
-# Convert from SPICE naming system to converted Nexus files
-# DO NOT TOUCH
-def map_to_nexus(ipts, exp, scan_pt_list):
-    import os
-    nexus_list = list()
-    for scan, pt in scan_pt_list:
-        nexus_file = f'/HFIR/CG2/IPTS-{ipts}/shared/Exp{exp}/CG2_{exp:04}{scan:04}{pt:04}.nxs.h5'
-        if os.path.exists(nexus_file) is False:
-            print(f'WARNING: Scan {scan} Pt {pt}: event Nexus {nexus_file} does not exist.')
-        nexus_list.append(nexus_file)
-    return nexus_list
-
-
-samples = map_to_nexus(ipts_number, exp_number, samples)
-samples_trans = map_to_nexus(ipts_number, exp_number, samples_trans)
-bkgd = map_to_nexus(ipts_number, exp_number, bkgd)
-bkgd_trans = map_to_nexus(ipts_number, exp_number, bkgd_trans)
-empty_trans = map_to_nexus(ipts_number, exp_number, empty_trans)
-beam_center = map_to_nexus(ipts_number, exp_number, beam_center)
-block_beam = map_to_nexus(ipts_number, exp_number, [block_beam])[0]
-# --- END OF NO TOUCH ZONE ---
-
-# sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_fc488_from_nexus.nxs'
 sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_CG2_spice_bar.nxs'
 see_full_json = True  # To display full configuration json (True/False)
 use_log_2d_binning = False
 use_log_1d = True
 common_configuration = {
     "iptsNumber": ipts_number,
-    "emptyTransmission": {"runNumber": empty_trans},
-    "beamCenter": {"runNumber": beam_center},
+    "emptyTransmission": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, empty_trans)},
+    "beamCenter": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, beam_center)},
     "configuration": {
         "outputDir": output_directory,
         "darkFileName": dark_file_name,
@@ -86,7 +86,6 @@ common_configuration = {
         "useLogQBinsEvenDecade": False,
         "wavelength": wavelength,
         "wavelengthSpread": wavelength_spread,
-        "blockedBeamRunNumber": block_beam,
         "maskFileName": mask_file_name,
         'WedgeMinAngles': wedge_min_angles,
         'WedgeMaxAngles': wedge_max_angles,
@@ -103,18 +102,13 @@ common_configuration = {
     }
 }
 
-# Never touch!  drtsans specific
-import warnings  # noqa E402
-warnings.filterwarnings('ignore')
-import os  # noqa E402
-import json  # noqa E402
-# jupyter only:from pprint import pprint as pretty_print
-import time # noqa E402
-from drtsans.mono.gpsans import (load_all_files, reduce_single_configuration, plot_reduction_output,
-                                 reduction_parameters, update_reduction_parameters) # noqa E402
-from matplotlib.colors import LogNorm # noqa E402
-# jupyter only:% matplotlib
-# jupyter only:inline
+# ------------------- Never touch!  drtsans specific -----------------------------
+
+# convert SPICE to Nexus
+samples = map_to_nexus(CG2, ipts_number, exp_number, samples)
+samples_trans = map_to_nexus(CG2, ipts_number, exp_number, samples_trans)
+bkgd = map_to_nexus(CG2, ipts_number, exp_number, bkgd)
+bkgd_trans = map_to_nexus(CG2, ipts_number, exp_number, bkgd_trans)
 
 if not use_mask_file:
     mask_file_name = ""
@@ -155,7 +149,7 @@ for i in range(len(samples)):
             "Qmin": q_range[0],
             "Qmax": q_range[1],
             "useMaskBackTubes": use_mask_back_tubes,
-            "blockedBeamRunNumber": block_beam,
+            "blockedBeamRunNumber": map_to_nexus(CG2, ipts_number, exp_number, [block_beam])[0],
             "maskFileName": mask_file_name,
             "darkFileName": dark_file_name,
         }
@@ -168,7 +162,7 @@ for i in range(len(samples)):
     # We validated the parameters when we updated them. Otherwise you can invoke the validation like this:
     # reduction_input = validate_reduction_parameters(reduction_input)
 
-    loaded = load_all_files(reduction_input, path=f'/HFIR/CG2/IPTS-{ipts_number}/shared/Exp{exp_number}')
+    loaded = load_all_files(reduction_input, path=f'/HFIR/{CG2}/IPTS-{ipts_number}/shared/Exp{exp_number}')
     out = reduce_single_configuration(loaded, reduction_input)
     plot_reduction_output(out, reduction_input, loglog=use_log_1d, imshow_kwargs=log_flag)
 

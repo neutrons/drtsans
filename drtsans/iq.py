@@ -133,7 +133,9 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             n1dbins_per_decade=None, bin1d_type='scalar',
             log_scale=False, decade_on_center=False,
             qmin=None, qmax=None,
-            annular_angle_bin=1., wedges=None, symmetric_wedges=True,
+            annular_angle_bin=1.,
+            wedges: List[Any] = None,
+            symmetric_wedges: bool = True,
             error_weighted=False):
     r"""Do all 1D and 2D binning for a configuration or detector
 
@@ -219,7 +221,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             unbinned_1d = [i_modq]
         elif bin1d_type == 'wedge':
             # select Q's by wedge angles
-            unbinned_1d = bin_into_wedges()
+            unbinned_1d = bin_into_wedges(i_qxqy, wedges, symmetric_wedges)
         else:
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
@@ -271,6 +273,12 @@ def bin_into_wedges(i_qxqy,
             wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
         elif isinstance(wedge, list):
             # auto wedge, each element is a list of wedges
+            if len(wedges) > 1 and symmetric_wedges:
+                # Note: auto wedge shall not have a pair of wedges sent to this method
+                # It is worth to discuss how to work with auto/manual wedge with symmetric/asymmetric combination
+                # by unified data structure
+                raise NotImplementedError('It is a new use case for wedges determined automatically '
+                                          'with symmetric wedge option is still on')
             wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
         else:
             raise TypeError(f'Wedges {wedges} of type {type(wedges)} is not supported')

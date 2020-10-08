@@ -500,5 +500,32 @@ def test_real_data_biosans(reference_dir):
     os.remove(filename)
 
 
+def test_real_data_biosans_manual(reference_dir):
+    MSamp_fn = os.path.join(reference_dir.new.biosans, 'CG3_127_5532_mBSub.h5')
+    MBuff_fn = os.path.join(reference_dir.new.biosans, 'CG3_127_5562_mBSub.h5')
+
+    ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace='sample', LoadHistory=False)
+    ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace='Main_buffer', LoadHistory=False)
+    ws_ms -= ws_mb  # subtract the buffer
+    ws_mb.delete()
+
+    # convert to I(qx,qy)
+    q1d_data = biosans.convert_to_q(ws_ms, mode='scalar')
+    q2d_data = biosans.convert_to_q(ws_ms, mode='azimuthal')
+    ws_ms.delete()
+
+    # calculate the wedge angles to use
+    wedge_angles = [(60., 120)]
+
+    # test bin_all
+    nbins = 100.
+    iq2d_rebinned, iq1d_rebinned = bin_all(q2d_data, q1d_data, nxbins=nbins, nybins=nbins, n1dbins=nbins,
+                                           bin1d_type='wedge',
+                                           wedges=wedge_angles,
+                                           symmetric_wedges=False,
+                                           error_weighted=False)
+    assert len(iq1d_rebinned) == 1, 'Expect exactly 1 output 1d spectra for manual wedge'
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

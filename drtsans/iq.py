@@ -3,6 +3,7 @@
 from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
     q_azimuthal_to_q_modulo, concatenate
 from enum import Enum
+from typing import List, Any
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
 from drtsans.determine_bins import determine_1d_log_bins, determine_1d_linear_bins, BinningParams
@@ -217,14 +218,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         if bin1d_type == 'scalar':
             unbinned_1d = [i_modq]
         elif bin1d_type == 'wedge':
-            unbinned_1d = []
-            for wedge in wedges:
-                if len(wedge) > 2 and not symmetric_wedges:
-                    raise NotImplementedError('Do not know how to combine more than 2 wedges (found {}) in '
-                                              'non-symmetric mode'.format(len(wedge)))
-                wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
-                wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, wa[0], wa[1]) for wa in wedge_angles]
-                unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))
+            # select Q's by wedge angles
+            unbinned_1d = bin_into_wedges()
         else:
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
@@ -250,6 +245,49 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             for ub1d in unbinned_1d:
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
     return binned_q2d, binned_q1d_list
+
+
+def bin_into_wedges(i_qxqy,
+                    wedges: List[Any],
+                    symmetric_wedges: bool) -> List[Any]:
+    """
+
+    Parameters
+    ----------
+    i_qxqy
+    wedges
+    symmetric_wedges
+
+    Returns
+    -------
+    list
+        list of ~drtsans.dataobjects.IQmod
+
+    """
+    unbinned_1d = []
+    for wedge in wedges:
+        if isinstance(wedge, tuple):
+            # manual wedge, each element is a wedge
+            wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
+        elif isinstance(wedge, list):
+            # auto wedge, each element is a list of wedges
+            wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
+        else:
+            raise TypeError(f'Wedges {wedges} of type {type(wedges)} is not supported')
+
+        # if len(wedge) > 2 and not symmetric_wedges:
+        #     raise NotImplementedError('Do not know how to combine more than 2 wedges (found {}) in '
+        #                               'non-symmetric mode'.format(len(wedge)))
+        # wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
+
+        # select I(Q) by wedge angles
+        wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, min_angle, max_angle)
+                        for min_angle, max_angle in wedge_angles]
+
+        # concatenate selected I(Q)
+        unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))
+
+    return unbinned_1d
 
 
 def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT):

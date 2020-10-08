@@ -92,7 +92,9 @@ def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
     return [(min_angle, 270.1), (-90.1, max_angle)]
 
 
-def get_wedges(min_angle, max_angle, symmetric_wedges=True) -> List[Tuple[float, float]]:
+def get_wedges(min_angle: float,
+               max_angle: float,
+               symmetric_wedges=True) -> List[Tuple[float, float]]:
     """
     Helper function to return all wedges defined by the min_angle and max_angle,
     including the wedge offset by 180 degrees
@@ -100,7 +102,9 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True) -> List[Tuple[float,
     Parameters
     ----------
     min_angle: float
+        lower boundary of the wedge angle in degree
     max_angle: float
+        upper boundary of the wedge angle in degree
     symmetric_wedges: bool
         Add the wedge offset by 180 degrees if True
 
@@ -127,10 +131,7 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True) -> List[Tuple[float,
     else:
         # in this case min_angle and max_angle are actually two wedges
         # that should be summed together
-        raise NotImplementedError('this use case is disabled')
-        # wedges = []
-        # wedges.extend(valid_wedge(*min_angle))
-        # wedges.extend(valid_wedge(*max_angle))
+        raise NotImplementedError('use case to have min_angle and max_angle as 2-tuple is disabled')
 
     return wedges
 

@@ -1,7 +1,8 @@
-# Test drtsans.auto_wedge
+# Test drtsans.auto_wedge and other related wedge methods
 import pytest
 import numpy as np
 from drtsans.auto_wedge import _create_fit_function, _set_function_param_value, _calculate_function
+from drtsans.iq import get_wedges, valid_wedge
 from mantid.simpleapi import FlatBackground, Gaussian
 
 
@@ -82,5 +83,22 @@ def test_calculate_functions():
     assert vec_y[95] == pytest.approx(90., 1E-6)
 
 
+def test_calculate_valid_wedge():
+    """ Test method to transform any wedge to valid wedge angles
+    """
+    # regular: (10, 30)
+    min_angle, max_angle = valid_wedge(10., 30.)
+    assert min_angle == 10. and max_angle == 30.
+
+
+def test_get_wedge():
+    """Test method to get wedge with and without symmetric option
+    """
+    # regular (10, 30)
+    wedges = get_wedges(10., 30., symmetric_wedges=False)
+    assert isinstance(wedges, list) and len(wedges) == 1
+    assert wedges[0] == 10., 30.
+
+
 if __name__ == '__main__':
-    pytest.main(__file__)
+    pytest.main([__file__])

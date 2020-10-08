@@ -13,9 +13,8 @@ case "$1" in
             ;;
 esac
 
-set +eu
 export PATH=/SNS/software/miniconda2/bin:$PATH
-conda activate ${CONDA_ENV}
+source activate ${CONDA_ENV}
 conda install -q -y -c mantid/label/nightly mantid-framework
 pip install /opt/sans-backend
 

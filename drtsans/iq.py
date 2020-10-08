@@ -3,7 +3,7 @@
 from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
     q_azimuthal_to_q_modulo, concatenate
 from enum import Enum
-from typing import List, Any
+from typing import List, Any, Tuple
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
 from drtsans.determine_bins import determine_1d_log_bins, determine_1d_linear_bins, BinningParams
@@ -57,7 +57,7 @@ def check_iq_for_binning(i_of_q):
         raise RuntimeError('Input I(Q) for binning does not meet assumption:\n{}'.format(error_message))
 
 
-def valid_wedge(min_angle, max_angle):
+def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
     """
     Helper function to validate wedge. It checks that the values  are in the [-90,270) range and
     that the wedge angle is less than 180 degrees
@@ -69,7 +69,7 @@ def valid_wedge(min_angle, max_angle):
 
     Returns
     -------
-    list
+    ~list
         (min_angle, max_angle) tuple. If min_angle < 270 and max_angle > -90
         the function returns two wedges [(min_angle,270.1),(-90.1,max_angle)]
     """
@@ -92,7 +92,7 @@ def valid_wedge(min_angle, max_angle):
     return [(min_angle, 270.1), (-90.1, max_angle)]
 
 
-def get_wedges(min_angle, max_angle, symmetric_wedges=True):
+def get_wedges(min_angle, max_angle, symmetric_wedges=True) -> List[Tuple[float, float]]:
     """
     Helper function to return all wedges defined by the min_angle and max_angle,
     including the wedge offset by 180 degrees
@@ -119,12 +119,18 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
         if opp_max >= 270.:
             opp_max -= 360
         wedges.extend(valid_wedge(opp_min, opp_max))
+    elif isinstance(min_angle, (float, int)):
+        # also a tuple for a single wedge (min angle, max angle)
+        # but not symmetric
+        wedges = valid_wedge(min_angle, max_angle)
+
     else:
         # in this case min_angle and max_angle are actually two wedges
         # that should be summed together
-        wedges = []
-        wedges.extend(valid_wedge(*min_angle))
-        wedges.extend(valid_wedge(*max_angle))
+        raise NotImplementedError('this use case is disabled')
+        # wedges = []
+        # wedges.extend(valid_wedge(*min_angle))
+        # wedges.extend(valid_wedge(*max_angle))
 
     return wedges
 
@@ -279,7 +285,8 @@ def bin_into_wedges(i_qxqy,
                 # by unified data structure
                 raise NotImplementedError('It is a new use case for wedges determined automatically '
                                           'with symmetric wedge option is still on')
-            wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
+            wedge_angles = get_wedges(wedge[0][0], wedge[0][1], symmetric_wedges)
+            wedge_angles.extend(get_wedges(wedge[1][0], wedge[1][1], symmetric_wedges))
         else:
             raise TypeError(f'Wedges {wedges} of type {type(wedges)} is not supported')
 

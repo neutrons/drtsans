@@ -87,8 +87,25 @@ def test_calculate_valid_wedge():
     """ Test method to transform any wedge to valid wedge angles
     """
     # regular: (10, 30)
-    min_angle, max_angle = valid_wedge(10., 30.)
+    validated_wedges = valid_wedge(10., 30.)
+    min_angle, max_angle = validated_wedges[0]
     assert min_angle == 10. and max_angle == 30.
+
+    # wedge falls out of region
+    with pytest.raises(ValueError):
+        valid_wedge(300., 318.)
+    with pytest.raises(ValueError):
+        valid_wedge(40., 40.)
+    with pytest.raises(ValueError):
+        valid_wedge(219., 40.)
+    with pytest.raises(ValueError):
+        valid_wedge(40., 221.)
+
+    # split wedge angle
+    validated_wedges = valid_wedge(220., -60.)
+    assert isinstance(validated_wedges, list) and len(validated_wedges) == 2
+    assert validated_wedges[0] == (220., 270.1)
+    assert validated_wedges[1] == (-90.1, -60.)
 
 
 def test_get_wedge():
@@ -97,7 +114,20 @@ def test_get_wedge():
     # regular (10, 30)
     wedges = get_wedges(10., 30., symmetric_wedges=False)
     assert isinstance(wedges, list) and len(wedges) == 1
-    assert wedges[0] == 10., 30.
+    assert wedges[0] == (10., 30.)
+
+    # regular (10, 30) with symmetric wedges
+    wedges = get_wedges(10., 30., symmetric_wedges=True)
+    assert isinstance(wedges, list) and len(wedges) == 2
+    assert wedges[0] == (10., 30.)
+    assert wedges[1] == (190., 210.)
+
+    # 90 degree with symmetric wedges
+    wedges = get_wedges(85., 95., symmetric_wedges=True)
+    assert isinstance(wedges, list) and len(wedges) == 3
+    assert wedges[0] == (85., 95.)
+    assert wedges[1] == (265., 270.1)
+    assert wedges[2] == (-90.1, -85.)
 
 
 if __name__ == '__main__':

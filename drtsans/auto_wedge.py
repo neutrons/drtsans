@@ -1,5 +1,6 @@
 import numpy as np
 import os
+from typing import List, Tuple
 from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
@@ -249,8 +250,10 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
     debug_h5.close()
 
 
-def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width=0.25, background_width=1.5,
-                      signal_to_noise_min=2., peak_search_window_size_factor=0.6, debug_dir='/tmp/'):
+def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta,
+                      peak_width=0.25, background_width=1.5,
+                      signal_to_noise_min=2., peak_search_window_size_factor=0.6,
+                      debug_dir='/tmp/') -> List[List[Tuple[float, float]]]:
     '''
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
     output of this is intended to be used in :py:func:`~drtsans.iq.select_i_of_q_by_wedge`.
@@ -282,7 +285,9 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     Results
     =======
     ~list
-      list containing 2 2-tuples as ``[((peak1_min, peak1_max), (peak2_min, peak2_max)), ((..., ...), (..., ...))]``
+      list containing 2 lists each contains 2 2-tuples
+      as ``[[(peak1_min, peak1_max), (peak2_min, peak2_max)], [(..., ...), (..., ...)]]``
+
     '''
     # Bin azimuthal
     q, azimuthal_rings = _binInQAndAzimuthal(data2d, q_min=q_min, q_max=q_max, q_delta=q_delta,
@@ -333,7 +338,7 @@ def getWedgeSelection(data2d, q_min, q_delta, q_max, azimuthal_delta, peak_width
     raw_wedges = list(zip(min_vec, max_vec))
     summing_wedges = []
     for i in range(len(raw_wedges) // 2):  # iterate over half the list
-        summing_wedges.append((raw_wedges[i], raw_wedges[i+2]))
+        summing_wedges.append([raw_wedges[i], raw_wedges[i+2]])
 
     return summing_wedges
 

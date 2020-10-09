@@ -3,6 +3,7 @@
 from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
     q_azimuthal_to_q_modulo, concatenate
 from enum import Enum
+from typing import List, Any, Tuple
 import numpy as np
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
 from drtsans.determine_bins import determine_1d_log_bins, determine_1d_linear_bins, BinningParams
@@ -56,7 +57,7 @@ def check_iq_for_binning(i_of_q):
         raise RuntimeError('Input I(Q) for binning does not meet assumption:\n{}'.format(error_message))
 
 
-def valid_wedge(min_angle, max_angle):
+def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
     """
     Helper function to validate wedge. It checks that the values  are in the [-90,270) range and
     that the wedge angle is less than 180 degrees
@@ -68,7 +69,7 @@ def valid_wedge(min_angle, max_angle):
 
     Returns
     -------
-    list
+    ~list
         (min_angle, max_angle) tuple. If min_angle < 270 and max_angle > -90
         the function returns two wedges [(min_angle,270.1),(-90.1,max_angle)]
     """
@@ -91,7 +92,9 @@ def valid_wedge(min_angle, max_angle):
     return [(min_angle, 270.1), (-90.1, max_angle)]
 
 
-def get_wedges(min_angle, max_angle, symmetric_wedges=True):
+def get_wedges(min_angle: float,
+               max_angle: float,
+               symmetric_wedges=True) -> List[Tuple[float, float]]:
     """
     Helper function to return all wedges defined by the min_angle and max_angle,
     including the wedge offset by 180 degrees
@@ -99,13 +102,15 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
     Parameters
     ----------
     min_angle: float
+        lower boundary of the wedge angle in degree
     max_angle: float
+        upper boundary of the wedge angle in degree
     symmetric_wedges: bool
         Add the wedge offset by 180 degrees if True
 
     Returns
     -------
-    list
+    ~list
         (min_angle, max_angle) tuples.
     """
     if symmetric_wedges:
@@ -118,12 +123,15 @@ def get_wedges(min_angle, max_angle, symmetric_wedges=True):
         if opp_max >= 270.:
             opp_max -= 360
         wedges.extend(valid_wedge(opp_min, opp_max))
+    elif isinstance(min_angle, (float, int)):
+        # also a tuple for a single wedge (min angle, max angle)
+        # but not symmetric
+        wedges = valid_wedge(min_angle, max_angle)
+
     else:
         # in this case min_angle and max_angle are actually two wedges
         # that should be summed together
-        wedges = []
-        wedges.extend(valid_wedge(*min_angle))
-        wedges.extend(valid_wedge(*max_angle))
+        raise NotImplementedError('use case to have min_angle and max_angle as 2-tuple is disabled')
 
     return wedges
 
@@ -132,7 +140,9 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             n1dbins_per_decade=None, bin1d_type='scalar',
             log_scale=False, decade_on_center=False,
             qmin=None, qmax=None,
-            annular_angle_bin=1., wedges=None, symmetric_wedges=True,
+            annular_angle_bin=1.,
+            wedges: List[Any] = None,
+            symmetric_wedges: bool = True,
             error_weighted=False):
     r"""Do all 1D and 2D binning for a configuration or detector
 
@@ -217,14 +227,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         if bin1d_type == 'scalar':
             unbinned_1d = [i_modq]
         elif bin1d_type == 'wedge':
-            unbinned_1d = []
-            for wedge in wedges:
-                if len(wedge) > 2 and not symmetric_wedges:
-                    raise NotImplementedError('Do not know how to combine more than 2 wedges (found {}) in '
-                                              'non-symmetric mode'.format(len(wedge)))
-                wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
-                wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, wa[0], wa[1]) for wa in wedge_angles]
-                unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))
+            # select Q's by wedge angles
+            unbinned_1d = bin_into_wedges(i_qxqy, wedges, symmetric_wedges)
         else:
             raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
 
@@ -250,6 +254,86 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             for ub1d in unbinned_1d:
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
     return binned_q2d, binned_q1d_list
+
+
+def bin_into_wedges(i_qxqy,
+                    wedges: List[Any],
+                    symmetric_wedges: bool) -> List[Any]:
+    """
+
+    Parameters
+    ----------
+    i_qxqy
+    wedges
+    symmetric_wedges
+
+    Returns
+    -------
+    list
+        list of ~drtsans.dataobjects.IQmod
+
+    """
+    unbinned_1d = list()
+
+    # Group is an element of the list
+    # Each group is a list of 2-tuples, each is for an individual wedge
+    validated_wedge_angles_groups = validate_wedges_groups(wedges, symmetric_wedges)
+
+    # Bin!
+    for wedge_angles in validated_wedge_angles_groups:
+        # select I(Q) by wedge angles
+        wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, min_angle, max_angle)
+                        for min_angle, max_angle in wedge_angles]
+
+        # concatenate selected I(Q)
+        unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))
+
+    return unbinned_1d
+
+
+def validate_wedges_groups(wedges, symmetric_wedges) -> List[List[Tuple[float, float]]]:
+    """Validate a list of wedges groups
+
+    Parameters
+    ----------
+    wedges: ~list
+        List of wedges group.  Each wedge group is either a list of 2-tuples or a 2-tuple.  Each 2-tuple is a wedge
+    symmetric_wedges: bool
+        Flag to include all the symmetric wedges of the given wedges to output
+
+    Returns
+    -------
+    ~list
+        List of wedges group.  Each wedge group is a list of 2-tuples.  Each 2-tupel is a wedge
+
+    """
+    validated_wedge_angles_groups = list()
+
+    for wedge in wedges:
+        # For a given wedge group, it can be a single wedge or a list of wedges
+        if isinstance(wedge, tuple):
+            # manual wedge: each wedge group contains 1 and only 1 wedge.
+            min_wedge_angle, max_wedge_angle = wedge
+            wedge_angles = get_wedges(min_wedge_angle, max_wedge_angle, symmetric_wedges)
+        elif isinstance(wedge, list):
+            # auto wedge: each wedge group contain 2 wedges
+            if len(wedges) != 2 or symmetric_wedges:
+                # Note: auto wedge shall not have a pair of wedges sent to this method
+                # It is worth to discuss how to work with auto/manual wedge with symmetric/asymmetric combination
+                # by unified data structure
+                raise NotImplementedError(f'Unsupported scenario for automated wedge: number of wedges {len(wedges)}'
+                                          f' is not equal to 2.  And/or symmetric wedge option {symmetric_wedges} '
+                                          f'cannot be True.')
+            wedge_angles = get_wedges(wedge[0][0], wedge[0][1], symmetric_wedges)
+            wedge_angles.extend(get_wedges(wedge[1][0], wedge[1][1], symmetric_wedges))
+        else:
+            # supported wedge group type
+            raise TypeError(f'Wedge group {wedges} of type {type(wedges)} is not supported')
+
+        # add the corrected wedge angles
+        validated_wedge_angles_groups.append(wedge_angles)
+
+    return validated_wedge_angles_groups
 
 
 def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT):

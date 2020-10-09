@@ -1,6 +1,7 @@
 from enum import Enum
 import json
 import numpy as np
+from typing import List, Any, Dict
 import matplotlib
 import warnings
 warnings.simplefilter('ignore', UserWarning)
@@ -169,16 +170,18 @@ def plot_IQmod(workspaces, filename, loglog=True, backend='d3',
 
 
 def plot_IQazimuthal(workspace, filename, backend='d3',
-                     qmin=None, qmax=None,
-                     wedges=None, symmetric_wedges=True,
+                     qmin: float = None,
+                     qmax: float = None,
+                     wedges: List[Any] = None,
+                     symmetric_wedges: bool = True,
                      mask_alpha=0.6,
-                     imshow_kwargs={}, **kwargs):
+                     imshow_kwargs: Dict = {}, **kwargs):
     '''Save a plot representative of the supplied workspace
 
     Parameters
     ----------
     workspace: ~drtsans.dataobjects.IQazimuthal
-        The workspace to plot. This assumes the data is binned on a constant grid.
+        The workspace (i.e., I(Qx, Qy)) to plot. This assumes the data is binned on a constant grid.
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
@@ -186,7 +189,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
         minimum 1D Q for plotting selection area
     qmax: float
         maximum 1D Q for plotting selection area
-    wedges: list
+    wedges: ~list or None
         list of tuples (angle_min, angle_max) for the wedges. Select wedges to plot.
         Both numbers have to be in the [-90,270) range. It will add the wedge offset
         by 180 degrees dependent on ``symmetric_wedges``
@@ -196,9 +199,9 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
         Opacity for for selection area
     backend: Backend
         Which backend to save the file using
-    imshow_kwargs: dict
+    imshow_kwargs: ~dict
         Optional arguments to :py:obj:`matplotlib.axes.Axes.imshow` e.g. ``{"norm": LogNorm()}``
-    kwargs: dict
+    kwargs: ~dict
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
     '''
     backend = Backend.getMode(backend)

@@ -273,40 +273,14 @@ def bin_into_wedges(i_qxqy,
         list of ~drtsans.dataobjects.IQmod
 
     """
-    unbinned_1d = []
+    unbinned_1d = list()
 
     # Group is an element of the list
     # Each group is a list of 2-tuples, each is for an individual wedge
     validated_wedge_angles_groups = validate_wedges_groups(wedges, symmetric_wedges)
 
-    # for wedge in wedges:
-    #     if isinstance(wedge, tuple):
-    #         # manual wedge, each element is a wedge
-    #         wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
-    #     elif isinstance(wedge, list):
-    #         # auto wedge, each element is a list of wedges
-    #         if len(wedges) > 1 and symmetric_wedges:
-    #             # Note: auto wedge shall not have a pair of wedges sent to this method
-    #             # It is worth to discuss how to work with auto/manual wedge with symmetric/asymmetric combination
-    #             # by unified data structure
-    #             raise NotImplementedError('It is a new use case for wedges determined automatically '
-    #                                       'with symmetric wedge option is still on')
-    #         wedge_angles = get_wedges(wedge[0][0], wedge[0][1], symmetric_wedges)
-    #         wedge_angles.extend(get_wedges(wedge[1][0], wedge[1][1], symmetric_wedges))
-    #     else:
-    #         raise TypeError(f'Wedges {wedges} of type {type(wedges)} is not supported')
-    #
-    #     # add the corrected wedge angles
-    #     validated_wedge_angles_groups.append(wedge_angles)
-    #
-    #     # if len(wedge) > 2 and not symmetric_wedges:
-    #     #     raise NotImplementedError('Do not know how to combine more than 2 wedges (found {}) in '
-    #     #                               'non-symmetric mode'.format(len(wedge)))
-    #     # wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
-
     # Bin!
     for wedge_angles in validated_wedge_angles_groups:
-
         # select I(Q) by wedge angles
         wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, min_angle, max_angle)
                         for min_angle, max_angle in wedge_angles]
@@ -317,25 +291,44 @@ def bin_into_wedges(i_qxqy,
     return unbinned_1d
 
 
-def validate_wedges_groups(wedges, symmetric_wedges):
+def validate_wedges_groups(wedges, symmetric_wedges) -> List[List[Tuple[float, float]]]:
+    """Validate a list of wedges groups
+
+    Parameters
+    ----------
+    wedges: ~list
+        List of wedges group.  Each wedge group is either a list of 2-tuples or a 2-tuple.  Each 2-tuple is a wedge
+    symmetric_wedges: bool
+        Flag to include all the symmetric wedges of the given wedges to output
+
+    Returns
+    -------
+    ~list
+        List of wedges group.  Each wedge group is a list of 2-tuples.  Each 2-tupel is a wedge
+
+    """
     validated_wedge_angles_groups = list()
 
     for wedge in wedges:
+        # For a given wedge group, it can be a single wedge or a list of wedges
         if isinstance(wedge, tuple):
-            # manual wedge, each element is a wedge
-            wedge_angles = get_wedges(wedge[0], wedge[1], symmetric_wedges)
+            # manual wedge: each wedge group contains 1 and only 1 wedge.
+            min_wedge_angle, max_wedge_angle = wedge
+            wedge_angles = get_wedges(min_wedge_angle, max_wedge_angle, symmetric_wedges)
         elif isinstance(wedge, list):
-            # auto wedge, each element is a list of wedges
-            if len(wedges) > 1 and symmetric_wedges:
+            # auto wedge: each wedge group contain 2 wedges
+            if len(wedges) != 2 or symmetric_wedges:
                 # Note: auto wedge shall not have a pair of wedges sent to this method
                 # It is worth to discuss how to work with auto/manual wedge with symmetric/asymmetric combination
                 # by unified data structure
-                raise NotImplementedError('It is a new use case for wedges determined automatically '
-                                          'with symmetric wedge option is still on')
+                raise NotImplementedError(f'Unsupported scenario for automated wedge: number of wedges {len(wedges)}'
+                                          f' is not equal to 2.  And/or symmetric wedge option {symmetric_wedges} '
+                                          f'cannot be True.')
             wedge_angles = get_wedges(wedge[0][0], wedge[0][1], symmetric_wedges)
             wedge_angles.extend(get_wedges(wedge[1][0], wedge[1][1], symmetric_wedges))
         else:
-            raise TypeError(f'Wedges {wedges} of type {type(wedges)} is not supported')
+            # supported wedge group type
+            raise TypeError(f'Wedge group {wedges} of type {type(wedges)} is not supported')
 
         # add the corrected wedge angles
         validated_wedge_angles_groups.append(wedge_angles)

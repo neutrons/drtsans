@@ -129,7 +129,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if reduction_config["wavelengthStep"] is not None:
         # account for wavelengthStepType
         step_type = 1
-        if load_params["wavelengthStepType"] == "constant Delta lambda/lambda":
+        if reduction_config["wavelengthStepType"] == "constant Delta lambda/lambda":
             step_type = -1
         load_params['bin_width'] = step_type * reduction_config["wavelengthStep"]
     load_params['monitors'] = reduction_config["normalization"] == "Monitor"

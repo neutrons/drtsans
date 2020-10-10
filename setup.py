@@ -41,6 +41,7 @@ setup(name="drtsans",
       scripts=scripts,
       package_dir={},
       package_data={'drtsans': ['configuration/schema/*.json']},
+      include_package_data=True,
       install_requires=install_requires,
       setup_requires=['pytest-runner'],
       tests_require=test_requires

@@ -71,13 +71,13 @@ class CG3EventNexusConvert(EventNexusConverter):
 
 
 def convert_spice_to_nexus(
-    ipts_number,
-    exp_number,
-    scan_number,
-    pt_number,
-    template_nexus,
-    output_dir=None,
-    spice_dir=None,
+    ipts_number: int,
+    exp_number: int,
+    scan_number: int,
+    pt_number: int,
+    template_nexus: str,
+    output_dir: str = None,
+    spice_dir: str = None,
 ):
     """
     Description
@@ -109,14 +109,14 @@ def convert_spice_to_nexus(
     """
     # path processing
     spice_dir = (
-        f"/HFIR/CG2/IPTS-{ipts_number}/exp{exp_number}/Datafiles"
+        f"/HFIR/CG3/IPTS-{ipts_number}/exp{exp_number}/Datafiles"
         if spice_dir is None
         else spice_dir
     )
     spice_data = f"BioSANS_exp{exp_number}_scan{scan_number:04}_{pt_number:04}.xml"
     spice_data = os.path.join(spice_dir, spice_data)
     output_dir = (
-        f"/HFIR/CG2/IPTS-{ipts_number}/shared/spice_nexus"
+        f"/HFIR/CG3/IPTS-{ipts_number}/shared/spice_nexus"
         if output_dir is None
         else output_dir
     )
@@ -129,9 +129,14 @@ def convert_spice_to_nexus(
     assert os.path.exists(
         template_nexus
     ), f"Template NeXus file {template_nexus} cannot be located"
-    assert os.path.exists(
-        output_dir
-    ), f"Output directory {output_dir} doesn't exist. Create one and give access for all IPTS uers."
+
+    # Check output directory exist.  If not, create it
+    if not os.path.exists(output_dir):
+        try:
+            os.mkdir(output_dir)
+        except (OSError, IOError) as dir_err:
+            raise RuntimeError(f"Output directory {output_dir} doesn't exist."
+                               f"Unable to create {output_dir} due to {dir_err}")
 
     # output file name
     out_nexus_file = os.path.join(

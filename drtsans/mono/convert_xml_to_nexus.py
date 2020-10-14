@@ -5,6 +5,7 @@ import numpy as np
 from drtsans.mono.spice_xml_parser import SpiceXMLParser
 from drtsans.files.event_nexus_rw import DasLog, EventNeXusWriter, TofHistogram
 import h5py
+from typing import List
 from mantid.simpleapi import LoadHFIRSANS
 from mantid.simpleapi import mtd, logger
 import abc
@@ -58,6 +59,18 @@ class EventNexusConverter(ABC):
 
         # run number
         self._run_number = None
+
+    @property
+    def detector_counts(self):
+        """Get detector counts
+
+        Returns
+        -------
+        ~numpy.array
+            detector counts
+
+        """
+        return self._detector_counts[:]
 
     def generate_event_nexus(self, target_nexus):
         """Generate event NeXus properly
@@ -173,7 +186,10 @@ class EventNexusConverter(ABC):
 
         """
         # Import source
-        source_nexus_h5 = h5py.File(template_nexus_file, "r")
+        try:
+            source_nexus_h5 = h5py.File(template_nexus_file, "r")
+        except OSError as os_err:
+            raise RuntimeError(f'Unable to load {template_nexus_file} due to {os_err}')
         # IDF in XML
         self._idf_content = source_nexus_h5["entry"]["instrument"]["instrument_xml"][
             "data"
@@ -182,6 +198,28 @@ class EventNexusConverter(ABC):
         source_nexus_h5.close()
 
         return
+
+    def mask_detector_pixels(self, pixel_index_list: List[int]):
+        """Mask detector pixels by set the counts to zero
+
+        Parameters
+        ----------
+        pixel_index_list: ~list
+            list of integers as detector ID (starting from 0 and same as workspace index) of detector pixels
+            to make out
+
+        """
+        # Sanity check
+        if self._detector_counts is None:
+            raise RuntimeError('Detector counts array has not been set up yet.  Load data first')
+
+        # Set masked pixels
+        for pid in pixel_index_list:
+            try:
+                self._detector_counts[pid] = 0
+            except IndexError as index_error:
+                raise RuntimeError(f'Pixel ID {pid} is out of range {self._detector_counts.shape}. '
+                                   f'FYI: {index_error}')
 
     @staticmethod
     def _retrieve_meta_data(spice_file_name, das_spice_log_map):

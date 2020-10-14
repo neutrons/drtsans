@@ -54,6 +54,7 @@ def test_wavelength_step(reference_dir, cleanfile):
     # Create output directory
     with tempfile.TemporaryDirectory() as test_dir:
         input_config['configuration']['outputDir'] = test_dir
+        input_config['dataDirectories'] = test_dir
         loaded = load_all_files(input_config)
         reduce_single_configuration(loaded, input_config)
         assert os.path.isfile(f'{test_dir}/test_wavelength_step.nxs')

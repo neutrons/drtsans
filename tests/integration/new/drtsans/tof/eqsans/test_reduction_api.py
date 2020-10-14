@@ -10,6 +10,7 @@ from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,
 def test_wavelength_step(reference_dir, cleanfile):
 
     configuration = {
+        'instrumentName': 'EQSANS',
         'iptsNumber': 26015,
         'sample': {
             'runNumber': 115363,

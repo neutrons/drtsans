@@ -9,14 +9,6 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import CG3EventNexusConvert
 
 def test_cg2_pid_range(reference_dir):
     """Test PID range
-
-    Parameters
-    ----------
-    reference_dir
-
-    Returns
-    -------
-
     """
     # Load test event NeXus file
     test_nexus = os.path.join(reference_dir.new.gpsans, 'CG2_9177.nxs.h5')
@@ -41,16 +33,8 @@ def test_cg2_pid_range(reference_dir):
         CG2EventNexusConvert().get_pid_range(49)
 
 
-def test_cg3__pid_range(reference_dir):
+def test_cg3_pid_range(reference_dir):
     """Test PID range
-
-    Parameters
-    ----------
-    reference_dir
-
-    Returns
-    -------
-
     """
     # Load test event NeXus file
     test_nexus = os.path.join(reference_dir.new.biosans, 'CG3_5705.nxs.h5')
@@ -76,6 +60,31 @@ def test_cg3__pid_range(reference_dir):
         CG3EventNexusConvert().get_pid_range(0)
     with pytest.raises(RuntimeError):
         CG3EventNexusConvert().get_pid_range(89)
+
+
+def test_mask_detector(reference_dir):
+    """Test mask detector
+    """
+    # Load data
+    test_spice = os.path.join(reference_dir.new.biosans, "BioSANS_exp549_scan0010_0001.xml")
+    assert os.path.exists(test_spice)
+
+    # Init CG3 convert
+    cg3_converter = CG3EventNexusConvert()
+    cg3_converter.load_sans_xml(test_spice, das_log_map=dict())
+
+    # Get detector counts
+    det_counts = cg3_converter.detector_counts.copy()
+    print(det_counts[22345], det_counts[70911])
+
+    # Mask
+    cg3_converter.mask_detector_pixels([22345, 70911])
+    masked_counts = cg3_converter.detector_counts
+
+    # Verify
+    diff_counts = det_counts - masked_counts
+    assert diff_counts[22345] == 2
+    assert diff_counts[70911] == 1635
 
 
 if __name__ == '__main__':

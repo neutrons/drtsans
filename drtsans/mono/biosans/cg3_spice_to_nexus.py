@@ -2,6 +2,7 @@
 
 import os
 import yaml
+from typing import List
 from drtsans.mono.convert_xml_to_nexus import EventNeXusWriter
 from drtsans.files.event_nexus_rw import parse_event_nexus
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
@@ -76,6 +77,7 @@ def convert_spice_to_nexus(
     scan_number: int,
     pt_number: int,
     template_nexus: str,
+    masked_detector_pixels: List[int] = list(),
     output_dir: str = None,
     spice_dir: str = None,
 ):
@@ -94,6 +96,8 @@ def convert_spice_to_nexus(
         scan
     pt_number: int
         pt
+    masked_detector_pixels: ~list
+        List of pixels (mantid workspace indexes) to mask
     template_nexus: str
         path to a GPSANS nED event Nexus file especially for IDF
     output_dir: None or str
@@ -157,6 +161,8 @@ def convert_spice_to_nexus(
     converter.load_idf(template_nexus)
     # load SPICE (xml file)
     converter.load_sans_xml(spice_data, das_log_map)
+    # mask detector
+    converter.mask_detector_pixels(masked_detector_pixels)
     # generate event nexus
     converter.generate_event_nexus(out_nexus_file)
 

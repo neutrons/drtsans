@@ -29,6 +29,7 @@ def test_convert_spice(reference_dir, cleanfile):
             scan_num,
             pt_num,
             temp_event_nexus,
+            masked_detector_pixels=[70911],
             output_dir=output_dir,
             spice_dir=reference_dir.new.biosans,
         )
@@ -38,10 +39,10 @@ def test_convert_spice(reference_dir, cleanfile):
     raw_spice = os.path.join(
         reference_dir.new.biosans, f"BioSANS_exp402_scan0006_0001.xml"
     )
-    verify_result(nexus_files[0], raw_spice)
+    verify_result(nexus_files[0], raw_spice, [70911])
 
 
-def verify_result(test_nexus, raw_spice):
+def verify_result(test_nexus, raw_spice, masked_pixels):
     # Load data
     test_ws = LoadEventNexus(
         Filename=test_nexus, OutputWorkspace="test2", NumberOfBins=1
@@ -61,6 +62,13 @@ def verify_result(test_nexus, raw_spice):
     #   - reference_spectrum[:]
     raw_y = raw_ws.extractY().flatten()
     test_y = test_ws.extractY().flatten()
+
+    # check masked pixels
+    for pid in masked_pixels:
+        assert test_y[masked_pixels] == 0
+        # reset back to original count
+        test_y[masked_pixels] = raw_y[2 + pid]
+    # check the rest pixels' counts
     np.testing.assert_allclose(raw_y[2:], test_y)
 
     # Compare geometry

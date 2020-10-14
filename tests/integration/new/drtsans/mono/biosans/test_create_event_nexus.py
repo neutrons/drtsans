@@ -18,15 +18,6 @@ from matplotlib import pyplot as plt
 
 def test_convert_spice_to_nexus(reference_dir, cleanfile):
     """Test to convert SPICE to NeXus
-
-    Parameters
-    ----------
-    reference_dir
-    cleanfile
-
-    Returns
-    -------
-
     """
     # Specify the test data
     spice_data_file = os.path.join(reference_dir.new.biosans, 'BioSANS_exp327_scan0014_0001.xml')
@@ -64,7 +55,6 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     # the same value as template event Nexus file
     # CG3_5705.nxs.h5: ww_rot_Readback = 3.19938537 degrees
     # BioSANS_exp327_scan0014_0001: det_west_wing_rot = 3.20174 degrees
-    print(converter._das_logs['ww_rot_Readback'])
     ww_rot = converter._das_logs['ww_rot_Readback']
     spice_ww_rot = ww_rot.values
     assert spice_ww_rot == pytest.approx(3.20174, 1E-5)

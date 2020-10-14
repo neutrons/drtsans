@@ -48,13 +48,12 @@ def test_wavelength_step(reference_dir, cleanfile):
         }
     }
 
-    # validate and clean configuration
-    input_config = validate_reduction_parameters(configuration)
-
     # Create output directory
     with tempfile.TemporaryDirectory() as test_dir:
-        input_config['configuration']['outputDir'] = test_dir
-        input_config['dataDirectories'] = test_dir
+        configuration['configuration']['outputDir'] = test_dir
+        configuration['dataDirectories'] = test_dir
+        # validate and clean configuration
+        input_config = validate_reduction_parameters(configuration)
         loaded = load_all_files(input_config)
         reduce_single_configuration(loaded, input_config)
         assert os.path.isfile(f'{test_dir}/test_wavelength_step.nxs')

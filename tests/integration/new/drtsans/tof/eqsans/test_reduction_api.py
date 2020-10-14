@@ -1,7 +1,7 @@
 import pytest
 import os
 import tempfile
-from drtsans.tof.eqsans import validate_reduction_parameters
+from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,plot_reduction_output)  # noqa E402
 
 
@@ -53,7 +53,7 @@ def test_wavelength_step(reference_dir, cleanfile):
         configuration['configuration']['outputDir'] = test_dir
         configuration['dataDirectories'] = test_dir
         # validate and clean configuration
-        input_config = validate_reduction_parameters(configuration)
+        input_config = reduction_parameters(configuration)
         loaded = load_all_files(input_config)
         reduce_single_configuration(loaded, input_config)
         assert os.path.isfile(f'{test_dir}/test_wavelength_step.nxs')

@@ -26,6 +26,7 @@ from drtsans.sensitivity_correction_moving_detectors import calculate_sensitivit
     calculate_sensitivity_correction_moving
 from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction as \
     calculate_sensitivity_correction_patch
+from mantid.simpleapi import SaveNexusProcessed
 
 # Constants
 CG2 = 'CG2'
@@ -215,6 +216,8 @@ class PrepareSensitivityCorrection(object):
         else:
             self._dark_current_runs = list(dark_current_runs)
 
+        print(f'[....... DEBUG ] Dark current: {self._dark_current_runs}')
+
     def set_direct_beam_runs(self, direct_beam_runs):
         """Set direct beam runs
 
@@ -282,7 +285,7 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
-    def set_transmission_correction(self, transmission_flood_runs, transmission_reference_run,
+    def set_transmission_correction(self, transmission_flood_runs, transmission_reference_runs,
                                     beam_trap_factor=2):
         """Set transmission beam run and transmission flood runs
 
@@ -290,7 +293,7 @@ class PrepareSensitivityCorrection(object):
         ----------
         transmission_flood_runs : int or tuple or list
             transmission flood runs
-        transmission_reference_run : int or tuple or list
+        transmission_reference_runs : int or tuple or list
             transmission reference runs
         beam_trap_factor : float, int
             factor to beam trap size for masking angle
@@ -299,19 +302,51 @@ class PrepareSensitivityCorrection(object):
         -------
 
         """
+        def format_run_or_runs(run_s):
+            """Format input run or runs to list of run or file names
+
+            Parameters
+            ----------
+            run_s: int or str or ~list
+                a run, a NeXus file name, or a list of runs
+
+            Returns
+            -------
+            ~list
+
+            """
+            if isinstance(run_s, int):
+                # an integer as run number
+                run_list = [run_s]
+            elif isinstance(run_s, str) and os.path.exists(run_s):
+                # a string as a file name
+                run_list = [run_s]
+            else:
+                # a sequence, tuple or list
+                run_list = list(run_s)
+
+            return run_list
+
         # Only BIO SANS use transmission correction
         if self._instrument != CG3:
             return
 
-        if isinstance(transmission_reference_run, int):
-            self._transmission_reference_runs = [transmission_reference_run]
-        else:
-            self._transmission_reference_runs = list(transmission_reference_run)
+        # transmission reference
+        self._transmission_reference_runs = format_run_or_runs(transmission_reference_runs)
 
-        if isinstance(transmission_flood_runs, int):
-            self._transmission_flood_runs = [transmission_flood_runs]
-        else:
-            self._transmission_flood_runs = list(transmission_flood_runs)
+        # transmission flood
+        self._transmission_flood_runs = format_run_or_runs(transmission_flood_runs)
+
+        # if isinstance(transmission_reference_run, int):
+        #     # a run number
+        #     self._transmission_reference_runs = [transmission_reference_run]
+        # else:
+        #     self._transmission_reference_runs = list(transmission_reference_run)
+        #
+        # if isinstance(transmission_flood_runs, int):
+        #     self._transmission_flood_runs = [transmission_flood_runs]
+        # else:
+        #     self._transmission_flood_runs = list(transmission_flood_runs)
 
         # Set the beam trap factor for transmission reference and flood run to mask angle
         self._biosans_beam_trap_factor = beam_trap_factor
@@ -372,7 +407,12 @@ class PrepareSensitivityCorrection(object):
 
         # Determine dark current: None or INSTRUMENT_RUN
         if dark_current_run is not None:
-            dark_current_run = '{}_{}'.format(self._instrument, dark_current_run)
+            if isinstance(dark_current_run, str) and os.path.exists(dark_current_run):
+                # dark current run (given) is a data file: do nothing
+                pass
+            else:
+                # dark current is a run number either as an integer or a string cast from integer
+                dark_current_run = '{}_{}'.format(self._instrument, dark_current_run)
 
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
@@ -449,9 +489,15 @@ class PrepareSensitivityCorrection(object):
         # pixels' uncertainties are zero, which is different from other pixels
         total_mask_array = flood_workspace.extractE() < 1E-6
 
+        # DEBUG ONLY
+        print(f'[......DB] Flood workspace (to save): {flood_workspace}')
+        SaveNexusProcessed(InputWorkspace=flood_workspace, Filename=f'flood_workspace.nxs')
+        # ----------
+
         # Loop through each detector pixel to check its masking state to determine whether its value shall be
         # set to NaN, -infinity or not changed (i.e., for pixels without mask)
         num_spec = flood_workspace.getNumberHistograms()
+        problematic_pixels = list()
         for i in range(num_spec):
             if total_mask_array[i][0] and use_moving_detector_method:
                 # Moving detector algorithm.  Any masked detector pixel is set to NaN
@@ -469,8 +515,13 @@ class PrepareSensitivityCorrection(object):
                 flood_workspace.dataE(i)[0] = np.NINF
             elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Logic error: impossible case
-                raise RuntimeError('Impossible case')
+                problematic_pixels.append(i)
         # END-FOR
+
+        # Array
+        if len(problematic_pixels) > 0:
+            raise RuntimeError(f'Impossible case: pixels {problematic_pixels} has local detector mask is on, '
+                               f'but total mask is off')
 
         print('Number of infinities = {}'.format(len(np.where(np.isinf(flood_workspace.extractY()))[0])))
         print('Number of NaNs       = {}'.format(len(np.where(np.isnan(flood_workspace.extractY()))[0])))
@@ -509,7 +560,7 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             beam_center_i = self._calculate_beam_center(i, enforce_use_nexus_idf)
             beam_centers.append(beam_center_i)
-            logger.notice('Calculated beam center ({}-th) = {}'.format(i, beam_center_i))
+            logger.notice('................  Calculated beam center ({}-th) = {}'.format(i, beam_center_i))
 
         # Set default value to dark current runs
         if self._dark_current_runs is None:
@@ -520,6 +571,8 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i],
                                                   self._dark_current_runs[i], enforce_use_nexus_idf)
+            logger.notice(f'............. .. Load {i}-th flood run {self._flood_runs[i]} to '
+                          f'{flood_ws_i}')
             flood_workspaces.append(flood_ws_i)
 
         # Retrieve masked detectors
@@ -795,11 +848,10 @@ class PrepareSensitivityCorrection(object):
         Parameters
         ----------
         flood_ws : MarixWorkspace
-            Flood run workspace to
-            transmission correct workspace
-        transmission_beam_run : int
+            Flood run workspace to transmission correct workspace
+        transmission_beam_run : int or str
             run number for transmission beam run
-        transmission_flood_run : int
+        transmission_flood_run : int or str
             run number for transmission flood run
         beam_center : ~tuple
             detector center
@@ -823,7 +875,17 @@ class PrepareSensitivityCorrection(object):
         # Load, mask default and pixels, and normalize
         if self._instrument in [CG2, CG3]:
             instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
-        transmission_workspace = prepare_data(data='{}_{}'.format(self._instrument, transmission_beam_run),
+
+        print(f'[...... DEBUG] Transmission beam run: {transmission_beam_run}.')
+        if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
+            sans_data = transmission_beam_run
+        elif isinstance(transmission_beam_run, str) and transmission_beam_run.isdigit() or isinstance(transmission_beam_run, int):
+            sans_data = '{}_{}'.format(self._instrument, transmission_beam_run)
+        else:
+            raise TypeError(f'Transmission run {transmission_beam_run} of type {type(transmission_beam_run)} '
+                            f'is not supported to load a NeXus run from it')
+
+        transmission_workspace = prepare_data(data=sans_data,
                                               pixel_calibration=self._apply_calibration,
                                               mask=self._default_mask, btp=self._extra_mask_dict,
                                               flux_method='monitor',
@@ -840,10 +902,17 @@ class PrepareSensitivityCorrection(object):
                       MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
                       Angle="TwoTheta")
 
-        # Load, mask default and pixels, normalize
+        # Load, mask default and pixels, normalize transmission flood run
         if self._instrument in [CG2, CG3]:
             instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
-        transmission_flood_ws = prepare_data(data='{}_{}'.format(self._instrument, transmission_flood_run),
+
+        if not os.path.exists(transmission_flood_run):
+            # given run number: form to CG3_XXX
+            mtd_trans_run = '{}_{}'.format(self._instrument, transmission_flood_run)
+        else:
+            # already a file path
+            mtd_trans_run = transmission_flood_run
+        transmission_flood_ws = prepare_data(data=mtd_trans_run,
                                              pixel_calibration=self._apply_calibration,
                                              mask=self._default_mask, btp=self._extra_mask_dict,
                                              flux_method='monitor',
@@ -867,7 +936,7 @@ class PrepareSensitivityCorrection(object):
         transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
         average_zero_angle = np.mean(transmission_corr_ws.readY(0))
         average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
-        logger.notice(f'Transmission Coefficient is....{average_zero_angle:.3f} +/- '
+        logger.notice(f'........... Transmission Coefficient is....{average_zero_angle:.3f} +/- '
                       f'{average_zero_angle_error:.3f}.'
                       f'Transmission flood {str(transmission_flood_ws)} and '
                       f'transmission {str(transmission_workspace)}')

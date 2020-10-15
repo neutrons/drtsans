@@ -84,6 +84,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
         Reference to the events workspace
     """
     instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
+    print(f'[....... DEBUG] run: {run} --> extract run number!')
     run_number = extract_run_number(run) if isinstance(run, str) else ''
     filename = run if path_exists(run) else '{}{}'.format(instrument_unique_name, run_number)
 

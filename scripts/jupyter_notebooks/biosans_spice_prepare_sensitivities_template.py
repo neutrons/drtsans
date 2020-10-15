@@ -114,8 +114,8 @@ def main():
     if open_beam_transmission is not None:
         preparer.set_transmission_correction(transmission_flood_runs=[transmission_flood_run.unique_nexus_name(None,
                                                                                                                True)],
-                                             transmission_reference_run=open_beam_transmission.unique_nexus_name(None,
-                                                                                                                 True),
+                                             transmission_reference_runs=open_beam_transmission.unique_nexus_name(None,
+                                                                                                                  True),
                                              beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
         preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 

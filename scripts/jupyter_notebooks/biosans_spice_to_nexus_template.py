@@ -22,11 +22,19 @@ TEMPLATE_EVENT_NEXUS = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/
 # ----------------------------------------------------------------------------------
 from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus  # noqa: E401
 
+
+bad_pixels = [70911]
 nexus_names = set()
+
+# Output directory between standard and drtsans integration test
+if False:
+    nexus_dir = f'/HFIR/CG3/IPTS-{ipts}/shared/Exp{exp}'  # standard converted nexus
+else:
+    nexus_dir = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/'  # reference dir
 for scan_num, pt_num in scan_pt_list:
     nexus = convert_spice_to_nexus(ipts, exp, scan_num, pt_num, TEMPLATE_EVENT_NEXUS,
-                                   masked_detector_pixels=[70911],
-                                   output_dir=f'/HFIR/CG3/IPTS-{ipts}/shared/Exp{exp}')
+                                   masked_detector_pixels=bad_pixels,
+                                   output_dir=nexus_dir)
     nexus_names.add(nexus)
 
 # Check

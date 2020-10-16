@@ -7,7 +7,7 @@ from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason="Required test data not available")
-def test_wavelength_step(reference_dir, cleanfile):
+def test_wavelength_step():
 
     configuration = {
         'instrumentName': 'EQSANS',

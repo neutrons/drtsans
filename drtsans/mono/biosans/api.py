@@ -1176,9 +1176,17 @@ def prepare_data(data,
     if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
         raise RuntimeError('biosans.api.prepare_data does not work with detector_offset or sample_offset')
 
+    # Load data and enforce to use nexus IDF
+    if 'enforce_use_nexus_idf' in kwargs:
+        enforce_use_nexus_idf = kwargs['enforce_use_nexus_idf']
+    else:
+        enforce_use_nexus_idf = False
+
     # Load event without moving detector and sample after loading NeXus and instrument
+    logger.notice(f'...... About to loading {data} to {output_workspace}')
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.)
+                     pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.,
+                     LoadNexusInstrumentXML=enforce_use_nexus_idf)
 
     # Reset the offset
     sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,
@@ -1204,7 +1212,9 @@ def prepare_data(data,
         if mtd.doesExist(str(dark_current)):
             dark_ws = mtd[str(dark_current)]
         else:
-            dark_ws = load_events(dark_current, overwrite_instrument=True)
+            # load dark current
+            dark_ws = load_events(dark_current, overwrite_instrument=True,
+                                  LoadNexusInstrumentXML=enforce_use_nexus_idf)
             dark_ws = transform_to_wavelength(dark_ws)
             dark_ws = set_init_uncertainties(dark_ws)
         subtract_dark_current(ws_name, dark_ws)

@@ -105,7 +105,7 @@ else:
 # Transmission
 if TRANSMISSION_REFERENCE_RUNS is not None:
     preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
-                                         transmission_reference_run=TRANSMISSION_REFERENCE_RUNS,
+                                         transmission_reference_runs=TRANSMISSION_REFERENCE_RUNS,
                                          beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 

@@ -9,10 +9,11 @@ from mantid.simpleapi import LoadNexusProcessed
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-@pytest.mark.skipif(not os.path.exists('/HFIR/CG3/IPTS-17241/exp549/Datafiles'),
-                    reason="Job is too large to run on build server")
+@pytest.mark.skipif(True, reason="Job is too large to run on build server")
 def test_main_detector(reference_dir, cleanfile):
     """Test case for CG3 main detector
+
+    This test is skipped
 
     Flood for main detector at 7m and wing detector at 12.2°-
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0009_0001.xml
@@ -23,10 +24,6 @@ def test_main_detector(reference_dir, cleanfile):
     Dark Current for all configurations above -
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
-    if not os.path.exists('/HFIR/CG3/IPTS-17241/exp549/Datafiles'):
-        pytest.skip('Job is too large to run on build server')
-    print(f'/HFIR/CG3/IPTS-17241/exp549/Datafiles/ is accessible. Continue test_main_detector')
-
     # output testing directory
     output_dir = mkdtemp()
     cleanfile(output_dir)

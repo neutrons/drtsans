@@ -26,7 +26,6 @@ from drtsans.sensitivity_correction_moving_detectors import calculate_sensitivit
     calculate_sensitivity_correction_moving
 from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction as \
     calculate_sensitivity_correction_patch
-from mantid.simpleapi import SaveNexusProcessed
 
 # Constants
 CG2 = 'CG2'
@@ -876,10 +875,10 @@ class PrepareSensitivityCorrection(object):
         if self._instrument in [CG2, CG3]:
             instrument_specific_param_dict['enforce_use_nexus_idf'] = enforce_use_nexus_idf
 
-        print(f'[...... DEBUG] Transmission beam run: {transmission_beam_run}.')
         if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
             sans_data = transmission_beam_run
-        elif isinstance(transmission_beam_run, str) and transmission_beam_run.isdigit() or isinstance(transmission_beam_run, int):
+        elif isinstance(transmission_beam_run, str) and transmission_beam_run.isdigit() or \
+                isinstance(transmission_beam_run, int):
             sans_data = '{}_{}'.format(self._instrument, transmission_beam_run)
         else:
             raise TypeError(f'Transmission run {transmission_beam_run} of type {type(transmission_beam_run)} '

@@ -2,7 +2,6 @@ import os
 import warnings
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.mono.biosans.prepare_sensitivities_correction import prepare_spice_sensitivities_correction
-from mantid.simpleapi import LoadNexusProcessed
 warnings.simplefilter(action="ignore", category=FutureWarning)
 CG3 = 'CG3'  # Main
 

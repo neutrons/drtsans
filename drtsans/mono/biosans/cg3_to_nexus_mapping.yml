@@ -17,9 +17,6 @@ dcal_Readback:
 detector_trans_Readback:
   - detector_trans
   - mm
-duration:
-  - time
-  - sec
 experiment_identifier:
   - IPTS_number
   - ""

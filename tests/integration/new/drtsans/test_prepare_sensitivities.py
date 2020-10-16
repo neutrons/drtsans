@@ -168,7 +168,7 @@ def test_cg3_main_prepare_sensitivities():
 
     # Transmission
     preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
-                                         transmission_reference_run=TRANSMISSION_RUNS,
+                                         transmission_reference_runs=TRANSMISSION_RUNS,
                                          beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 
@@ -254,7 +254,7 @@ def test_cg3_wing_prepare_sensitivities():
 
     # Transmission
     preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
-                                         transmission_reference_run=TRANSMISSION_RUNS,
+                                         transmission_reference_runs=TRANSMISSION_RUNS,
                                          beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 

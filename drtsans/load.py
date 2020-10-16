@@ -106,6 +106,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
             if 'LoadNexusInstrumentXML' not in kwargs:
                 kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
 
+            logger.notice(f'Loading {filename} to {output_workspace}')
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
             if pixel_calibration is not False:

@@ -21,7 +21,11 @@ def test_main_detector(reference_dir, cleanfile):
     Dark Current for all configurations above -
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
+    # output testing directory
     output_dir = mkdtemp()
+    cleanfile(output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
     CG3 = 'CG3'  # Main
 
@@ -39,7 +43,6 @@ def test_main_detector(reference_dir, cleanfile):
     DIRECT_BEAM_RUN = None
     # Beam center size
     MASK_BEAM_CENTER_RADIUS = 65  # mm
-    # BEAM_CENTER_MASKS = None
 
     # Dark current
     DARK_CURRENT_RUN = (22, 1)
@@ -63,9 +66,6 @@ def test_main_detector(reference_dir, cleanfile):
     # Flag to do dependent correction with transmission correction
     THETA_DEPENDENT_CORRECTION = True
 
-    # # If it is GPSANS or BIOSANS there could be 2 options to calculate detector efficiencies
-    # MOVING_DETECTORS = False
-
     # THRESHOLD
     MIN_THRESHOLD = 0.5
     MAX_THRESHOLD = 2.0
@@ -73,8 +73,6 @@ def test_main_detector(reference_dir, cleanfile):
     # Output
     FILE_SURFIX = 'wing' if WING_DETECTOR else 'main'
     SENSITIVITY_FILE = os.path.join(output_dir, f'{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs')
-
-    # --------------  END OF USER INPUTS --------------
 
     # Convert SPICE file to NeXus file
     flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, FLOOD_RUN[0], FLOOD_RUN[1])
@@ -102,7 +100,7 @@ def test_main_detector(reference_dir, cleanfile):
     verify_results(SENSITIVITY_FILE, gold_sens_file)
 
 
-def test_wing_detector(reference_dir):
+def test_wing_detector(reference_dir, cleanfile):
     """Test case for CG3 wing detector
 
     Flood for wing detector at 1.4° -
@@ -114,7 +112,11 @@ def test_wing_detector(reference_dir):
     Dark Current for all configurations above -
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
-    output_dir = os.getcwd()
+    # output testing directory
+    output_dir = mkdtemp()
+    cleanfile(output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
     CG3 = 'CG3'  # Main
 
@@ -132,8 +134,6 @@ def test_wing_detector(reference_dir):
     DIRECT_BEAM_RUN = None
     # Beam center size
     MASK_BEAM_CENTER_RADIUS = 65  # mm
-    # BEAM_CENTER_MASKS = None
-
 
     # Transmission empty beam
     OPEN_BEAM_TRANSMISSION = (16, 1)
@@ -157,9 +157,6 @@ def test_wing_detector(reference_dir):
     # Flag to do dependent correction with transmission correction
     THETA_DEPENDENT_CORRECTION = True
 
-    # # If it is GPSANS or BIOSANS there could be 2 options to calculate detector efficiencies
-    # MOVING_DETECTORS = False
-
     # THRESHOLD
     MIN_THRESHOLD = 0.5
     MAX_THRESHOLD = 2.0
@@ -167,8 +164,6 @@ def test_wing_detector(reference_dir):
     # Output
     FILE_SURFIX = 'wing' if WING_DETECTOR else 'main'
     SENSITIVITY_FILE = os.path.join(output_dir, f'{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs')
-
-    # --------------  END OF USER INPUTS --------------
 
     # Convert SPICE file to NeXus file
     flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, FLOOD_RUN[0], FLOOD_RUN[1])

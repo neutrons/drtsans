@@ -431,7 +431,7 @@
         },
         "wavelengthStepType": {
           "type": "string",
-          "description": "Unused flag for constant lambda or constant Delta lambda/lambda"
+          "description": "Flag for constant lambda or constant Delta lambda/lambda"
         },
         "wavelengthStep": {
           "type": ["string","number"],

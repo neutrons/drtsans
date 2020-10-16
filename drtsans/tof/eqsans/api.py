@@ -127,7 +127,11 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     load_params['low_tof_clip'] = reduction_config["cutTOFmin"]
     load_params['high_tof_clip'] = reduction_config["cutTOFmax"]
     if reduction_config["wavelengthStep"] is not None:
-        load_params['bin_width'] = reduction_config["wavelengthStep"]
+        # account for wavelengthStepType
+        step_type = 1
+        if reduction_config["wavelengthStepType"] == "constant Delta lambda/lambda":
+            step_type = -1
+        load_params['bin_width'] = step_type * reduction_config["wavelengthStep"]
     load_params['monitors'] = reduction_config["normalization"] == "Monitor"
 
     # FIXME the issues with the monitor on EQSANS has been fixed. Enable normalization by monitor (issue #538)

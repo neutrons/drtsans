@@ -241,7 +241,7 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        default_mask : mask file path, ~mantid.api.MaskWorkspace, :py:obj:`list`, None
+        default_mask : str or ~mantid.api.MaskWorkspace or :py:obj:`list` or None
             Mask to be applied. If :py:obj:`list`, it is a list of
             detector ID's. If `None`, it is expected that `maskbtp` is not empty.
             mask file name

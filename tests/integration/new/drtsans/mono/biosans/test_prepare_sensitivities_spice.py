@@ -93,10 +93,38 @@ def test_main_detector(reference_dir):
     dark_current_run = SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0],
                                 DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
 
+    prepare_spice_sensitivities_correction(WING_DETECTOR, flood_run,
+                                           direct_beam_run, dark_current_run,
+                                           SOLID_ANGLE_CORRECTION,
+                                           transmission_flood_run, open_beam_transmission, BEAM_TRAP_SIZE_FACTOR,
+                                           THETA_DEPENDENT_CORRECTION,
+                                           UNIVERSAL_MASK, MASKED_PIXELS, MASK_BEAM_CENTER_RADIUS,
+                                           MAIN_DET_MASK_ANGLE, WING_DET_MASK_ANGLE,
+                                           MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
+                                           nexus_dir=reference_dir.new.biosans)
+
+    # Verify
+    gold_sens_file = os.path.join(reference_dir.new.biosans, 'CG3_sens_main_exp549_scan9.nxs')
+    assert os.path.exists(gold_sens_file)
+    verify_results(SENSITIVITY_FILE, gold_sens_file)
+
+
+def prepare_spice_sensitivities_correction(WING_DETECTOR, flood_run,
+                                           direct_beam_run, dark_current_run,
+                                           SOLID_ANGLE_CORRECTION,
+                                           transmission_flood_run, open_beam_transmission, BEAM_TRAP_SIZE_FACTOR,
+                                           THETA_DEPENDENT_CORRECTION,
+                                           UNIVERSAL_MASK, MASKED_PIXELS, MASK_BEAM_CENTER_RADIUS,
+                                           MAIN_DET_MASK_ANGLE, WING_DET_MASK_ANGLE,
+                                           MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
+                                           nexus_dir=None):
+
+    CG3 = 'CG3'
+
     # Set up sensitivities preparation configurations
     preparer = PrepareSensitivityCorrection(CG3, WING_DETECTOR)
     # Load flood runs
-    preparer.set_flood_runs([flood_run.unique_nexus_name(reference_dir.new.biosans, True)])
+    preparer.set_flood_runs([flood_run.unique_nexus_name(nexus_dir, True)])
 
     # Process beam center runs
     if direct_beam_run is not None:
@@ -113,8 +141,8 @@ def test_main_detector(reference_dir):
 
     # Transmission
     if open_beam_transmission is not None:
-        trans_flood_file = transmission_flood_run.unique_nexus_name(reference_dir.new.biosans, True)
-        trans_ref_file = open_beam_transmission.unique_nexus_name(reference_dir.new.biosans, True)
+        trans_flood_file = transmission_flood_run.unique_nexus_name(nexus_dir, True)
+        trans_ref_file = open_beam_transmission.unique_nexus_name(nexus_dir, True)
         preparer.set_transmission_correction(transmission_flood_runs=[trans_flood_file],
                                              transmission_reference_runs=[trans_ref_file],
                                              beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
@@ -122,7 +150,7 @@ def test_main_detector(reference_dir):
 
     # Dark runs
     if dark_current_run is not None:
-        dark_curr_file = dark_current_run.unique_nexus_name(reference_dir.new.biosans, True)
+        dark_curr_file = dark_current_run.unique_nexus_name(nexus_dir, True)
         preparer.set_dark_current_runs([dark_curr_file])
 
     preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
@@ -131,11 +159,6 @@ def test_main_detector(reference_dir):
     MOVING_DETECTORS = False
     preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
                      enforce_use_nexus_idf=True, debug_mode=True)
-
-    # Verify
-    gold_sens_file = os.path.join(reference_dir.new.biosans, 'CG3_sens_main_exp549_scan9.nxs')
-    assert os.path.exists(gold_sens_file)
-    verify_results(SENSITIVITY_FILE, gold_sens_file)
 
     return
 
@@ -221,44 +244,54 @@ def test_wing_detector(reference_dir):
     dark_current_run = SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0],
                                 DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
 
-    # Set up sensitivities preparation configurations
-    preparer = PrepareSensitivityCorrection(CG3, WING_DETECTOR)
-    # Load flood runs
-    preparer.set_flood_runs([flood_run.unique_nexus_name(None, True)])
+    # # Set up sensitivities preparation configurations
+    # preparer = PrepareSensitivityCorrection(CG3, WING_DETECTOR)
+    # # Load flood runs
+    # preparer.set_flood_runs([flood_run.unique_nexus_name(None, True)])
+    #
+    # # Process beam center runs
+    # if direct_beam_run is not None:
+    #     preparer.set_direct_beam_runs([direct_beam_run.unique_nexus_name(None, True)])
+    #
+    # # Set extra masks
+    # preparer.set_masks(UNIVERSAL_MASK, MASKED_PIXELS,
+    #                    wing_det_mask_angle=WING_DET_MASK_ANGLE,
+    #                    main_det_mask_angle=MAIN_DET_MASK_ANGLE)
+    #
+    # # Set beam center radius
+    # if MASK_BEAM_CENTER_RADIUS is not None:
+    #     preparer.set_beam_center_radius(MASK_BEAM_CENTER_RADIUS)
+    #
+    # # Transmission
+    # if open_beam_transmission is not None:
+    #     preparer.set_transmission_correction(transmission_flood_runs=[transmission_flood_run.unique_nexus_name(None,
+    #                                                                                                            True)],
+    #                                          transmission_reference_runs=open_beam_transmission.unique_nexus_name(None,
+    #                                                                                                               True),
+    #                                          beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
+    #     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
+    #
+    # # Dark runs
+    # if dark_current_run is not None:
+    #     preparer.set_dark_current_runs([dark_current_run.unique_nexus_name(None, True)])
+    #
+    # preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
+    #
+    # # Run
+    # print('Flag1')
+    # MOVING_DETECTORS = False
+    # preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
+    #                  enforce_use_nexus_idf=True, debug_mode=True)
 
-    # Process beam center runs
-    if direct_beam_run is not None:
-        preparer.set_direct_beam_runs([direct_beam_run.unique_nexus_name(None, True)])
-
-    # Set extra masks
-    preparer.set_masks(UNIVERSAL_MASK, MASKED_PIXELS,
-                       wing_det_mask_angle=WING_DET_MASK_ANGLE,
-                       main_det_mask_angle=MAIN_DET_MASK_ANGLE)
-
-    # Set beam center radius
-    if MASK_BEAM_CENTER_RADIUS is not None:
-        preparer.set_beam_center_radius(MASK_BEAM_CENTER_RADIUS)
-
-    # Transmission
-    if open_beam_transmission is not None:
-        preparer.set_transmission_correction(transmission_flood_runs=[transmission_flood_run.unique_nexus_name(None,
-                                                                                                               True)],
-                                             transmission_reference_runs=open_beam_transmission.unique_nexus_name(None,
-                                                                                                                  True),
-                                             beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
-        preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
-
-    # Dark runs
-    if dark_current_run is not None:
-        preparer.set_dark_current_runs([dark_current_run.unique_nexus_name(None, True)])
-
-    preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
-
-    # Run
-    print('Flag1')
-    MOVING_DETECTORS = False
-    preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
-                     enforce_use_nexus_idf=True, debug_mode=True)
+    prepare_spice_sensitivities_correction(WING_DETECTOR, flood_run,
+                                           direct_beam_run, dark_current_run,
+                                           SOLID_ANGLE_CORRECTION,
+                                           transmission_flood_run, open_beam_transmission, BEAM_TRAP_SIZE_FACTOR,
+                                           THETA_DEPENDENT_CORRECTION,
+                                           UNIVERSAL_MASK, MASKED_PIXELS, MASK_BEAM_CENTER_RADIUS,
+                                           MAIN_DET_MASK_ANGLE, WING_DET_MASK_ANGLE,
+                                           MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
+                                           nexus_dir=reference_dir.new.biosans)
 
     # Verify
     gold_sens_file = os.path.join(reference_dir.new.biosans, 'CG3_sens_wing_exp549_scan20.nxs')

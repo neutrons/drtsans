@@ -9,6 +9,8 @@ from mantid.simpleapi import LoadNexusProcessed
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
+@pytest.mark.skipif(not os.path.exists('/HFIR/CG3/IPTS-17241/exp549/Datafiles'),
+                    reason="Job is too large to run on build server")
 def test_main_detector(reference_dir, cleanfile):
     """Test case for CG3 main detector
 

@@ -203,10 +203,6 @@ def pixel_centers(input_workspace, indexes, shape=None):
     r"""
     Coordinates for the center of one or more pixel detectors. It is assumed that all pixels have the same shape.
 
-    This function can handle the special case of cylinder pixels, when a call to
-    ~mantid.geometry.componentInfo.position or ~mantd.geometry.detectorInfo.position returns the position
-    for the center of the bottom base of the pixel, instead of the position of the pixel center.
-
     Parameters
     ----------
     input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
@@ -214,26 +210,19 @@ def pixel_centers(input_workspace, indexes, shape=None):
         one index or a list of component info indexes, or detector info indexes, but not workspace indexes or
         spectrum info indexes.
     shape: str
-        Shape of the pixel. One of ('cylinder', 'rectangular'). If :py:obj:`None`, then ```source_info```
-        the shape will be determined for the first pixel, and assumed it's the same for the rest.
+        vestigial argument, retained for backward compatiblity
 
     Returns
     -------
     numpy.ndarray
         Coordinates for each pixel detector
     """
+    # NOTE: All pixel positions are defined within IDF with respect to the lab reference frame.
+    #       The current IDF for CG2 defines all pixels by their center, which is directly readin
+    #       by Mantid upon data loading.
     component_info = mtd[str(input_workspace)].componentInfo()
-    if isinstance(indexes, int):
-        indexes = [indexes, ]
-    if shape is None:
-        shape_xml = component_info.shape(indexes[0]).getShapeXML()
-        shape = 'cylinder' if 'cylinder' in shape_xml else 'rectangular'
+    indexes = [indexes, ] if isinstance(indexes, int) else indexes
     positions = np.array([unpack_v3d(component_info.position, i) for i in indexes])
-    if shape == 'cylinder':
-        # shift along the vertical axis by half the nominal pixel height
-        translation = np.array([0.0, component_info.shape(indexes[0]).getBoundingBox().width().Y() / 2, 0.0])
-        positions += translation
-    # no code for rectangular, since componentInfo.position does return the center pixel
     return positions
 
 

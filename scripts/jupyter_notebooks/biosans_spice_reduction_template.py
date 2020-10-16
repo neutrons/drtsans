@@ -1,206 +1,276 @@
+# Modified from Volker's RC488_IPTS24666_VolkerTemplate.py
 
-# coding: utf-8
+"""
+Sample - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0217_0001.xml (Scattering/Transmission)
+Empty Beam - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0220_0001.xml (For Transmission)
+Beam Center - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0220_0001.xml (Transmission Measurement)
+Dark - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0044_0001.xml (for both main and wing detectors)
+"""
 
-# # Quick q reduction
+# IPTS and experiment
+IPTS_Number = 17240
+EXPERIMENT_NUMBER = 318
 
-# Import Libraries
+# Non-TimeSlice Single Configuration-
+sample_identifier = ''                    # DO NOT CHANGE IF Non-TimeSlice Experiments
+sample_names = ['Spice_318_217']   # DO NOT LEAVE BLANK
+sample_thick = ['0.1']               # Do not repeat if sample for ALL samples
+samples = [(217, 1)]       # Enter the list of runs for 'samples'
+samples_trans = samples               # Enter its own list if different from 'samples' list
+backgrounds = [None]                 # Do not repeat multiple times if SAME for ALL samples
+backgrounds_trans = backgrounds           # Enter its own list if different from 'backgrounds' list
+
+# Change if reducing a subset of 'samples' list
+start_index = 1                     # Default start index is 1; DO NOT START FROM 'ZERO'
+end_index = len(samples)          # Default is 'len(samples)'
+
+# Setup once at the beginning of the experiment
+User3LetInitial = 'whoever'                 # 3-Letter initials that identifies you in the output directory
+overWrite = True                  # Option to overwrite existing data or create another folder (Default is 'False')
+
+# ## Instrument Scientist or Local contact input below (And Expert Users) 
+
+# Advanced Settings for Data Reduction--
+#Buffer clearing frequency
+clearBuffer  = False
+refreshCycle           = 25                    # loops... depending on the activities.
+
+#Common setting for all options
+scalefac               = "4.05e-9"
+beam_center            = '6378'
+empty_trans            = '6379'
+dark_mfname            = 'CG3_6402.nxs.h5'    
+dark_wfname            = 'CG3_6402.nxs.h5'    
+sens_mfname            = '/HFIR/CG3/shared/Cycle488/Sens_f6368m4p0_bsSVP.nxs'
+sens_wfname            = '/HFIR/CG3/shared/Cycle488/Sens_f6380w1p4_bsSVP.nxs'
+
+#Plotting range--
+q_range_main           = [0.003, 0.045]        # Q-range for isotropic data
+q_range_wing           = [0.03, 0.9]
+OL_range               = [0.0325, 0.0425]
+
+#Miscellaneous settings--
+base_output_directory  = '/HFIR/CG3/IPTS-'+IPTS_Number+'/shared/'+User3LetInitial+'/'
+scaling_beam_radius    = None
+flexible_pixelsizes    = True                  # 'True'- if use barscan/flood information for flexible pixel sizes, else 'False'
+                                               # Make sure the barscan used sensitivity file used above if 'True'
+
+#Plotting Options--
+Plot_type              = 'scalar'              # 'scalar' for isotropic and 'wedge' for anisotropic (manual or auto)
+Plot_binning           = 'log'                 # 'log' or 'linear' Q-binning
+#LINEAR BINNING
+Lin1DQbins_Main        = ""                    # No. of bins for linear binning of 1D Main Detector, Default is 100; If per decade is used default is ''
+Lin1DQbins_Wing        = ""                    # No. of bins for linear binning of 1D Wing Detector, Default is 100; If per decade is used default is ''
+Lin2DQxy_Main          = 100                   # No. of bins for linear binning of 2D Main Detector, Default is 100
+Lin2DQxy_Wing          = 100                   # No. of bins for linear binning of 2D Main Detector, Default is 100
+#LOGARITHMIC BINNING
+LogQbinsPerDecade_Main = 25                    # No. of bins per decade of 1D Main Detector, Default is 33
+LogQbinsPerDecade_Wing = 25                    # No. of bins per decade of 1D Main Detector, Default is 33
+
+
+#If time Slicing--
+timeSliceExpt          = False                 # 'True' if time slice experiment, else 'False'
+timeSliceDuration      = 60                    # Units - seconds and irrelevant if above is 'False'
+
+#ANISOTROPIC DATA REDUCTION--
+#Wedge_0... 
+q_range_main_wedge0    = [0.003, 0.0425]       # Q-range for anisotropic data -- wedge0 
+q_range_wing_wedge0    = [0.02, 0.45]
+OL_range_wedge0        = [0.025, 0.04]
+
+#Wedge_1... 
+q_range_main_wedge1    = [0.003, 0.0425]       # Q-range for anisotropic data -- wedge1
+q_range_wing_wedge1    = [0.03, 0.45]
+OL_range_wedge1        = [0.03, 0.04]
+
+#If Manual Wedges--
+wedge_min_angles       = None                  # If AUTOWEDGE reduction type 'None'; Irrelevant for ISOTROPIC [Wedge0_min,Wedge1_min]
+wedge_max_angles       = None                  # If AUTOWEDGE reduction type 'None'; Irrelevant for ISOTROPIC [Wedge0_max,Wedge1_max] 
+
+#If automatic determination of wedge angles-- (To determine Wedges-TDW)
+Qmin_TDW               = 0.003                 # Minimum Q of the Main Detector
+Qmax_TDW               = 0.04                  # Maximum Q of the Main Detector
+Qdelta_TDW             = 0.01                  # Q step-size (or annual ring widths); Default is 0.01. Too fine will fail autodetection.
+PeakWidth_TDW          = 0.5                   # Wedge0 opening angle based of peak width (Default is 0.5--- 50%)
+AziDelta_TDW           = 1.0                   # Azimuthal Angle, Phi step-size
+BkgWidth_TDW           = 1.0                   # Wedge1 opening angle based of peak width (Default is 1.5--- 150%)
+MinSigtoNoise_TDW      = 2.0                   # The intensity ratio between peak and background to detect a peak (Default is 2.0)
+
+
+# ## Body of Reduction - DO NOT CHANGE....
+
+# In[13]:
+
+
+from mantid.simpleapi import mtd
+if clearBuffer:
+    mtd.clear()
+
+import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
+
+import json
+get_ipython().run_line_magic('matplotlib', 'inline')
+import os
+from pprint import pprint as pretty_print
+import time
+
+from drtsans.mono.biosans import (load_all_files, reduce_single_configuration, plot_reduction_output,
+                                  reduction_parameters, update_reduction_parameters, validate_reduction_parameters)
+from drtsans import stitch
+from drtsans.plots import plot_IQmod
+from drtsans.dataobjects import save_iqmod
+
+# reduction parameters common to all the reduction runs to be carried out in this notebook
+common_configuration = {
+    "iptsNumber": IPTS_Number,
+    "beamCenter": {"runNumber": beam_center},
+    "emptyTransmission": {"runNumber": empty_trans},
+    "configuration": {
+        "outputDir": base_output_directory,
+        "darkMainFileName": dark_mfname,   
+        "darkWingFileName": dark_wfname,   
+        "sensitivityMainFileName": sens_mfname,
+        "sensitivityWingFileName": sens_wfname,
+        "defaultMask": [{'Pixel': '1-18,239-256'}, {'Bank': '18-24,42-48'}, {'Bank':'49','Tube':'1'}],
+        'StandardAbsoluteScale': scalefac,
+        "DBScalingBeamRadius": scaling_beam_radius,
+        "mmRadiusForTransmission": "",
+        "absoluteScaleMethod":"standard",
+        "numMainQBins": Lin1DQbins_Main,
+        "numWingQBins": Lin1DQbins_Wing,
+        "numMainQxQyBins": Lin2DQxy_Main,
+        "numWingQxQyBins": Lin2DQxy_Wing,
+        "1DQbinType": Plot_type,
+        "QbinType": Plot_binning,
+        "LogQBinsPerDecadeMain": LogQbinsPerDecade_Main,
+        "LogQBinsPerDecadeWing": LogQbinsPerDecade_Wing,
+        "useLogQBinsDecadeCenter": False,
+        "useLogQBinsEvenDecade": False,
+        "sampleApertureSize": 14,
+        "QminMain": q_range_main[0],
+        "QmaxMain": q_range_main[1],
+        "QminWing": q_range_wing[0],
+        "QmaxWing": q_range_wing[1],
+        "overlapStitchQmin": OL_range[0],
+        "overlapStitchQmax": OL_range[1],
+        "usePixelCalibration": flexible_pixelsizes,
+        "useTimeSlice": timeSliceExpt,
+        "timeSliceInterval": timeSliceDuration,
+        "WedgeMinAngles": wedge_min_angles,
+        "WedgeMaxAngles": wedge_max_angles,
+        "autoWedgeQmin": Qmin_TDW,
+        "autoWedgeQmax": Qmax_TDW,
+        "autoWedgeQdelta": Qdelta_TDW,
+        "autoWedgePeakWidth": PeakWidth_TDW,
+        "autoWedgeAzimuthalDelta": AziDelta_TDW,
+        "autoWedgeBackgroundWidth": BkgWidth_TDW,
+        "autoWedgeSignalToNoiseMin": MinSigtoNoise_TDW,
+        "wedge1QminMain": q_range_main_wedge0[0],
+        "wedge1QmaxMain": q_range_main_wedge0[1],
+        "wedge1QminWing": q_range_wing_wedge0[0],
+        "wedge1QmaxWing": q_range_wing_wedge0[1],
+        "wedge1overlapStitchQmin": OL_range_wedge0[0],
+        "wedge1overlapStitchQmax": OL_range_wedge0[1],
+        "wedge2QminMain": q_range_main_wedge1[0],
+        "wedge2QmaxMain": q_range_main_wedge1[1],
+        "wedge2QminWing": q_range_wing_wedge1[0],
+        "wedge2QmaxWing": q_range_wing_wedge1[1],
+        "wedge2overlapStitchQmin": OL_range_wedge1[0],
+        "wedge2overlapStitchQmax": OL_range_wedge1[1],
+    }
+}
+common_configuration_full = reduction_parameters(common_configuration, 'BIOSANS', validate=False)
+#pretty_print(common_configuration_full)
+
+if len(backgrounds) == 1 and len(samples) > len(backgrounds):
+    backgrounds = backgrounds*len(samples)
+if len(backgrounds_trans) == 1 and len(samples_trans) > len(backgrounds_trans):
+    backgrounds_trans = backgrounds_trans*len(samples_trans)
+if len(sample_thick) == 1 and len(samples) > len(sample_thick):
+    sample_thick = sample_thick*len(samples)
+    
+# Checking if output directory exists, if it doesn't, creates the folder
+# Also, if do not overwrite, then makes sure the directory does not exists.
+output_dir = base_output_directory
+if not overWrite:
+    suffix = 0
+    while os.path.exists(output_dir):
+        output_dir = base_output_directory[0,len(base_output_directory)-2]+"_"+str(suffix)+"/"
+        suffix += 1
+
+if not timeSliceExpt and sample_identifier is not '':
+    if sample_identifier is not '':
+        output_dir = base_output_directory+str(sample_identifier)+"/"        
+        change_outputdir = {
+            'configuration': {
+                'outputDir': output_dir,
+            },
+        }
+        common_configuration_full = update_reduction_parameters(common_configuration_full,
+                                                                change_outputdir,
+                                                                validate=False)
+    for subfolder in ['1D','2D']:
+        output_folder=os.path.join(output_dir,subfolder)
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+    
+start_time = time.time()
+for i in range(start_index-1,end_index):
+    
+    start_time_loop = time.time()
+    if timeSliceExpt:
+        output_dir = base_output_directory+"timeslice/t"+str(timeSliceDuration)+"/"+sample_names[i]+"/"        
+        timeslice_outputdir = {
+            'configuration': {
+                'outputDir': output_dir,
+            },
+        }
+        common_configuration_full = update_reduction_parameters(common_configuration_full,
+                                                                timeslice_outputdir,
+                                                                validate=False)
+        for subfolder in ['1D','2D']:
+            output_folder=os.path.join(output_dir,subfolder)
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)        
+
+    print("Reducing...",samples[i],":",sample_names[i],'\n')
+    run_data = {
+        'sample': {
+            'runNumber': samples[i],
+            'thickness': sample_thick[i],
+            'transmission': {'runNumber': samples_trans[i]}
+        },
+        'background': {
+            'runNumber': backgrounds[i],
+            'transmission': {'runNumber': backgrounds_trans[i]}
+        },
+        'outputFileName': f'r{samples[i]}_{sample_names[i]}',
+    }
+
+    # Update our common settings with the particulars of the current reduction
+    reduction_input = update_reduction_parameters(common_configuration_full,
+                                                        run_data,
+                                                        validate=True)
+    #pretty_print(reduction_input)    
+    reduction_input['configuration']['WedgeMinAngles'] = wedge_min_angles
+    reduction_input['configuration']['WedgeMaxAngles'] = wedge_max_angles
+    loaded = load_all_files(reduction_input)
+    out = reduce_single_configuration(loaded,reduction_input)
+    plot_reduction_output(out, reduction_input)
+
+    print('\nloop_'+str(i+1)+": ",time.time()-start_time_loop)
+    
+    if np.remainder(i,refreshCycle)==0 and i > 0:
+        mtd.clear()
+            
+print('Total Time : ',time.time()-start_time)
+
 
 # In[2]:
 
 
-from mantid.simpleapi import *
-import numpy as np
-from drtsans.mono import gpsans as sans 
-from drtsans.mono.gpsans import attenuation_factor
-from drtsans.mono.absolute_units import empty_beam_scaling
-import drtsans
-from drtsans.mask_utils import apply_mask, load_mask
-from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
-from drtsans.mono.gpsans import convert_to_q
-from drtsans.iq import BinningMethod, BinningParams, determine_1d_linear_bins  # noqa E402
-from drtsans.api import subtract_background
-from drtsans.iq import bin_all
-from drtsans.plots import plot_IQmod, plot_IQazimuthal
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-from matplotlib.colors import LogNorm
-from matplotlib.backends.backend_pdf import PdfPages
-
-
-# Set up bkgd, center, flood data to be used.
-# Note:  This notebook only works on one configuration at a time
-
-# In[3]:
-
-
-# Empty cell changer 
-ipts=26004
-Bkgd=[]#low_q 12102 #midq 12099
-centers=[13078] #low q 12102 #midq 12100
-sample=[13078]# low q 12077 #midq 12011
-thickness=0.1
-nbins=100
-linear_binning=False
-output_dir = f'/HFIR/CG2/shared/UserAcceptance/LDS_center/straight_through/masking'
-flood_file='/HFIR/CG2/shared/drt_sensitivity/sens_c489_bar.nxs'
-sample_temp='p1'
-for subfolder in ['1D','2D']:
-    output_folder=os.path.join(output_dir,subfolder)
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-image_args={'vmin':0}
-
-
-# Next allows users to see a quick 2D images for debugging or quality check. Users might want to play with title (last line)
-
-# In[62]:
-
-
-def show_instr(ws, detector='main'):
-    pixel_size_x=0.55
-    pixel_size_y=0.45
-    if detector == 'main':
-        npix = 192
-    elif detector == 'wing':
-        npix = 160
-    else:
-        npix = 192 + 160
-    data=ws.extractY().reshape(-1,8,256).T
-    data2=data[:,[0,4,1,5,2,6,3,7],:]
-    data2=data2.transpose().reshape(-1,256)
-    Z=np.ma.masked_where(data2<1,data2)
- #   Z=data2
-
-    x=np.arange(npix)
-    y=np.arange(256)
-    Z = np.log(np.transpose(Z))
-#    Z=np.transpose(Z)
-    scale=20
-    plt.figure(figsize=(pixel_size_x*npix/scale, pixel_size_y*256/scale))
-#    plt.pcolor(Z[:, :npix],vmin=-1e3,vmax=3e4)
-    plt.pcolor(Z[:, :npix])
-    plt.colorbar()
- #   plt.title("Field {} T".format(meta_data))
-  #  filename=os.path.join(output_dir,f'figure_{runs}_2D.png')
- #   fig.savefig(filename)
-
-
-# In[34]:
-
-
-#defining 2D Gaussian fititng functions
-
-def Gaussian2D(x1, x2, amp, wid1, wid2, cen1, cen2):
-    if wid1<=0:
-        print('wid1 =',wid1)
-    if wid2<=0:
-        print('wid2 =',wid2)
-    val = (amp/(np.sqrt(2*np.pi)*np.sqrt(wid1*wid2))) * np.exp(-((x1-cen1)**2/(2*wid1**2)+(x2-cen2)**2/(2*wid2**2)))
-    return val
-
-def _buildModel(self, **kwargs):
-    model = lmfit.Model(self._function, independent_vars=["x1", "x2"],
-                        param_names=["amp", "wid", "cen1", "cen2"])
-    return model
-
-def fit(self, data, freeX, **kwargs):
-    freeX = np.asarray(freeX, float)
-    model = self._buildModel(**kwargs)
-    params = self._generateModelParams(model, **kwargs)
-
-    model.fit(data, x1=freeX[0], x2=freeX[1], params=params)
-
-
-# Find beam center for main detector
-
-# In[86]:
-
-
-import lmfit
-
-#loading beam center data
-center_filename = f"/HFIR/CG2/IPTS-{ipts}/nexus/CG2_{centers[0]}.nxs.h5"
-ws=sans.load_events(center_filename,output_workspace='ws_center', pixel_calibration=True)
-#LoadInstrument(ws, InstrumentName='CG2', RewriteSpectraMap=False)
-ws=sans.transform_to_wavelength(ws)
-ws=drtsans.process_uncertainties.set_init_uncertainties(ws) 
-#MaskAngle(ws, MinAngle=0.2)
-sans.solid_angle_correction(ws)
-drtsans.apply_sensitivity_correction(ws,flood_file,min_threshold=0.5,max_threshold=1.5)
-MaskBTP(ws,Pixel="1-70,186-256")
-xc, yc = sans.find_beam_center(ws) #I use COM to help give good starting position for 2D Gaussian but it works with giving it 0,0
-
-print(xc,yc)
-show_instr(ws,'main')
-#fitting 2D gaussian to center data
-x=[]
-y=[]
-intes=[]
-intes_err=[]
-keep=[]
-si=ws.spectrumInfo()
-for spectrum_number in range(ws.getNumberHistograms()):
-    pos=si.position(spectrum_number)
-    is_masked=si.isMasked(spectrum_number)
-    x.append(pos.X())
-    y.append(pos.Y())
-    keep.append(not is_masked and  np.isfinite(ws.readY(spectrum_number)[0]))
-    intes.append(ws.readY(spectrum_number)[0])
-    intes_err.append(ws.readE(spectrum_number)[0])
-    
-x=np.array(x)
-y=np.array(y)
-intes=np.array(intes)
-intes_err=np.array(intes_err)
-
-x=x[keep]
-y=y[keep]
-intes=intes[keep]
-intes_err=intes_err[keep]
-
-
-
-ws2=ws.clone() # used for seeing if 2D Gaussian model gives good data before fitting (not needed for implementation) but good for testing
-idx=np.arange(ws.getNumberHistograms())
-idx=idx[keep]
-
-#for i,j in enumerate(idx):
- #   ws2.setY(int(j),np.array([model[i]]))
-
-show_instr(ws2)
-
-#absolute scaling
-sans.center_detector(ws,xc,yc)
-scale_factor, scale_factor_error = attenuation_factor(ws)
-
-
-
-# In[89]:
-
-
-
-model = lmfit.Model(Gaussian2D, independent_vars=["x1", "x2"],
-                        param_names=["amp", "wid1","wid2", "cen1", "cen2"])
-
-params=lmfit.Parameters()
-params.add("amp",value=ws.extractY().max())
-params.add('wid1',value=0.01,min=0.005)#width in x
-params.add('wid2',value=0.01,min=1e-10)#width in y
-params.add('cen1',value=0)
-params.add('cen2',value=0)
-results=model.fit(intes, x1=x, x2=y,weights=1/intes_err, params=params)
-
-print(results.fit_report())
-
-fitted=model.eval(results.params,x1=x,x2=y)
-
-
-for i,j in enumerate(idx):
-    ws2.setY(int(j),np.array([fitted[i]]))
-ws3=ws.clone()
-
-for i,j in enumerate(idx):
-    ws3.setY(int(j),np.array([intes[i]]))
-show_instr(ws2) #fitted results in 2D form
-show_instr(ws3) #data array
+from mantid import mtd
+mtd.getObjectNames()
 

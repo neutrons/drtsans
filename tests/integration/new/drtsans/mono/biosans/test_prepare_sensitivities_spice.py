@@ -23,6 +23,10 @@ def test_main_detector(reference_dir, cleanfile):
     Dark Current for all configurations above -
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
+    if not os.path.exists('/HFIR/CG3/IPTS-17241/exp549/Datafiles'):
+        pytest.skip('Job is too large to run on build server')
+    print(f'/HFIR/CG3/IPTS-17241/exp549/Datafiles/ is accessible. Continue test_main_detector')
+
     # output testing directory
     output_dir = mkdtemp()
     cleanfile(output_dir)

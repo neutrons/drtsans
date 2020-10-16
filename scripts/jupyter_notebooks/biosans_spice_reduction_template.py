@@ -28,7 +28,7 @@ end_index = len(samples)          # Default is 'len(samples)'
 User3LetInitial = 'whoever'                 # 3-Letter initials that identifies you in the output directory
 overWrite = True                  # Option to overwrite existing data or create another folder (Default is 'False')
 
-# ## Instrument Scientist or Local contact input below (And Expert Users) 
+# ## Instrument Scientist or Local contact input below (And Expert Users)
 
 # Advanced Settings for Data Reduction--
 # Buffer clearing frequency
@@ -87,7 +87,7 @@ OL_range_wedge1 = [0.03, 0.04]
 
 # If Manual Wedges--
 wedge_min_angles = None  # If AUTOWEDGE reduction type 'None'; Irrelevant for ISOTROPIC [Wedge0_min,Wedge1_min]
-wedge_max_angles = None  # If AUTOWEDGE reduction type 'None'; Irrelevant for ISOTROPIC [Wedge0_max,Wedge1_max] 
+wedge_max_angles = None  # If AUTOWEDGE reduction type 'None'; Irrelevant for ISOTROPIC [Wedge0_max,Wedge1_max]
 
 # If automatic determination of wedge angles-- (To determine Wedges-TDW)
 Qmin_TDW = 0.003  # Minimum Q of the Main Detector
@@ -121,8 +121,8 @@ common_configuration = {
     "emptyTransmission": {"runNumber": empty_trans},
     "configuration": {
         "outputDir": base_output_directory,
-        "darkMainFileName": dark_mfname,   
-        "darkWingFileName": dark_wfname,   
+        "darkMainFileName": dark_mfname,
+        "darkWingFileName": dark_wfname,
         "sensitivityMainFileName": sens_mfname,
         "sensitivityWingFileName": sens_wfname,
         "defaultMask": [{'Pixel': '1-18,239-256'}, {'Bank': '18-24,42-48'}, {'Bank': '49', 'Tube': '1'}],
@@ -183,7 +183,7 @@ if len(backgrounds_trans) == 1 and len(samples_trans) > len(backgrounds_trans):
     backgrounds_trans = backgrounds_trans*len(samples_trans)
 if len(sample_thick) == 1 and len(samples) > len(sample_thick):
     sample_thick = sample_thick*len(samples)
-    
+
 # Checking if output directory exists, if it doesn't, creates the folder
 # Also, if do not overwrite, then makes sure the directory does not exists.
 output_dir = base_output_directory
@@ -195,7 +195,7 @@ if not overWrite:
 
 if not timeSliceExpt and sample_identifier is not '':
     if sample_identifier is not '':
-        output_dir = base_output_directory+str(sample_identifier)+"/"        
+        output_dir = base_output_directory+str(sample_identifier)+"/"
         change_outputdir = {
             'configuration': {
                 'outputDir': output_dir,
@@ -208,12 +208,12 @@ if not timeSliceExpt and sample_identifier is not '':
         output_folder = os.path.join(output_dir, subfolder)
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
-    
+ 
 start_time = time.time()
 for i in range(start_index-1, end_index):
     start_time_loop = time.time()
     if timeSliceExpt:
-        output_dir = base_output_directory+"timeslice/t"+str(timeSliceDuration)+"/"+sample_names[i]+"/"        
+        output_dir = base_output_directory+"timeslice/t"+str(timeSliceDuration)+"/"+sample_names[i]+"/"
         timeslice_outputdir = {
             'configuration': {
                 'outputDir': output_dir,
@@ -225,7 +225,7 @@ for i in range(start_index-1, end_index):
         for subfolder in ['1D', '2D']:
             output_folder = os.path.join(output_dir, subfolder)
             if not os.path.exists(output_folder):
-                os.makedirs(output_folder)        
+                os.makedirs(output_folder)
 
     print("Reducing...", samples[i], ":", sample_names[i], '\n')
     run_data = {

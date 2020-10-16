@@ -1183,7 +1183,6 @@ def prepare_data(data,
         enforce_use_nexus_idf = False
 
     # Load event without moving detector and sample after loading NeXus and instrument
-    logger.notice(f'...... About to loading {data} to {output_workspace}')
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
                      pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.,
                      LoadNexusInstrumentXML=enforce_use_nexus_idf)

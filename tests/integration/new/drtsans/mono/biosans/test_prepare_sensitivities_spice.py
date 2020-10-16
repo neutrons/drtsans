@@ -96,7 +96,7 @@ def test_main_detector(reference_dir):
     # Set up sensitivities preparation configurations
     preparer = PrepareSensitivityCorrection(CG3, WING_DETECTOR)
     # Load flood runs
-    preparer.set_flood_runs([flood_run.unique_nexus_name(None, True)])
+    preparer.set_flood_runs([flood_run.unique_nexus_name(reference_dir.new.biosans, True)])
 
     # Process beam center runs
     if direct_beam_run is not None:
@@ -113,16 +113,17 @@ def test_main_detector(reference_dir):
 
     # Transmission
     if open_beam_transmission is not None:
-        preparer.set_transmission_correction(transmission_flood_runs=[transmission_flood_run.unique_nexus_name(None,
-                                                                                                               True)],
-                                             transmission_reference_runs=open_beam_transmission.unique_nexus_name(None,
-                                                                                                                  True),
+        trans_flood_file = transmission_flood_run.unique_nexus_name(reference_dir.new.biosans, True)
+        trans_ref_file = open_beam_transmission.unique_nexus_name(reference_dir.new.biosans, True)
+        preparer.set_transmission_correction(transmission_flood_runs=[trans_flood_file],
+                                             transmission_reference_runs=[trans_ref_file],
                                              beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
         preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 
     # Dark runs
     if dark_current_run is not None:
-        preparer.set_dark_current_runs([dark_current_run.unique_nexus_name(None, True)])
+        dark_curr_file = dark_current_run.unique_nexus_name(reference_dir.new.biosans, True)
+        preparer.set_dark_current_runs([dark_curr_file])
 
     preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 

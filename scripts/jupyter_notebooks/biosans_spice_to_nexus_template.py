@@ -34,7 +34,7 @@ bad_pixels = [70911]
 nexus_names = set()
 
 # Output directory between standard and drtsans integration test
-if False:
+if True:
     nexus_dir = f'/HFIR/CG3/IPTS-{ipts}/shared/Exp{exp}'  # standard converted nexus
 else:
     nexus_dir = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/'  # reference dir

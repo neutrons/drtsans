@@ -110,6 +110,18 @@ warnings.filterwarnings('ignore')
 # get_ipython().run_line_magic('matplotlib', 'inline')
 import os  # noqa: E401
 import time  # noqa: E401
+from drtsans.mono.spice_data import SpiceRun, map_to_nexus  # noqa: E401
+
+# Convert SPICE scan-pt tuple to NeXus files
+CG3 = 'CG3'
+samples = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples, nexus_dir=None)
+samples_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples_trans, nexus_dir=None)
+backgrounds = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds, nexus_dir=None)
+backgrounds_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds_trans, nexus_dir=None)
+beam_center = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [beam_center], nexus_dir=None)[0]
+empty_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [empty_trans], nexus_dir=None)[0]
+dark_mfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_mfname], nexus_dir=None)[0]
+dark_wfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_wfname], nexus_dir=None)[0]
 
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration, plot_reduction_output,
                                   reduction_parameters, update_reduction_parameters)  # noqa: E401
@@ -209,7 +221,9 @@ if not timeSliceExpt and sample_identifier is not '':
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
 
+
 start_time = time.time()
+# Loop for samples
 for i in range(start_index-1, end_index):
     start_time_loop = time.time()
     if timeSliceExpt:

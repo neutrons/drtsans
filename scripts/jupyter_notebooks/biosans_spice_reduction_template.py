@@ -260,7 +260,12 @@ for i in range(start_index-1, end_index):
     # pretty_print(reduction_input)
     reduction_input['configuration']['WedgeMinAngles'] = wedge_min_angles
     reduction_input['configuration']['WedgeMaxAngles'] = wedge_max_angles
+
+    # Load all files
+    # TODO/FIXME - need to add an option to load with IDF in NeXus
     loaded = load_all_files(reduction_input)
+
+    # Reduced from workspaces loaded from NeXus files
     out = reduce_single_configuration(loaded, reduction_input)
     plot_reduction_output(out, reduction_input)
 

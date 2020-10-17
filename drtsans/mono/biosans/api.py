@@ -63,6 +63,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     -------
 
     """
+    # TODO/FIXME - need to a parameter in function arguments to load IDF from NeXus file as an option
     reduction_config = reduction_input['configuration']  # a handy shorcut to the configuration parameters dictionary
 
     instrument_name = reduction_input['instrumentName']

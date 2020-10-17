@@ -215,7 +215,6 @@ class PrepareSensitivityCorrection(object):
         else:
             self._dark_current_runs = list(dark_current_runs)
 
-
     def set_direct_beam_runs(self, direct_beam_runs):
         """Set direct beam runs
 

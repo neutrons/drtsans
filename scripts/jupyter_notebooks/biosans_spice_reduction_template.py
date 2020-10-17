@@ -208,7 +208,7 @@ if not timeSliceExpt and sample_identifier is not '':
         output_folder = os.path.join(output_dir, subfolder)
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
- 
+
 start_time = time.time()
 for i in range(start_index-1, end_index):
     start_time_loop = time.time()

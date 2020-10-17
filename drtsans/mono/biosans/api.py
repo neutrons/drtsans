@@ -48,7 +48,7 @@ SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None, path=None):
+def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf=False):
     """load all required files at the beginning, and transform them to histograms
 
     Parameters
@@ -103,6 +103,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
+    # load nexus idf
+    if use_nexus_idf:
+        load_params['LoadNexusInstrumentXML'] = use_nexus_idf
 
     # Adjust pixel heights and widths
     load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)

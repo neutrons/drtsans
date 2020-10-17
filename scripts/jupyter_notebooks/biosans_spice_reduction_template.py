@@ -110,7 +110,7 @@ warnings.filterwarnings('ignore')
 # get_ipython().run_line_magic('matplotlib', 'inline')
 import os  # noqa: E401
 import time  # noqa: E401
-from drtsans.mono.spice_data import SpiceRun, map_to_nexus  # noqa: E401
+from drtsans.mono.spice_data import map_to_nexus  # noqa: E401
 
 # Convert SPICE scan-pt tuple to NeXus files
 CG3 = 'CG3'

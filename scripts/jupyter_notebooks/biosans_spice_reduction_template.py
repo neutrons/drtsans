@@ -241,7 +241,6 @@ for i in range(start_index-1, end_index):
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
-    print(".........[ DEBUG ....] Reducing...", samples[i], ":", sample_names[i], '\n')
     if isinstance(samples[i], str) and os.path.exists(samples[i]):
         # a full path to NeXus is given
         part1 = os.path.basename(samples[i]).split('.')[0]

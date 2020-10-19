@@ -1,5 +1,5 @@
 # Module containing multiple classes to work with SPICE data
-from typing import NamedTuple, List, Tuple
+from typing import NamedTuple, List, Tuple, Union
 import os
 # Functions exposed to the general user (public) API
 
@@ -112,7 +112,7 @@ class SpiceRun(NamedTuple):
 def map_to_nexus(beam_line: str,
                  ipts_number: int,
                  exp_number: int,
-                 scan_pt_list: List[Tuple[int, int]],
+                 scan_pt_list: List[Union[Tuple[int, int], None]],
                  nexus_dir: str = None):
     """Map SPICE information to converted NeXus file path
 
@@ -136,9 +136,13 @@ def map_to_nexus(beam_line: str,
 
     """
     nexus_list = list()
-    for scan, pt in scan_pt_list:
-        nexus_file = SpiceRun(beam_line, ipts_number, exp_number,
-                              scan, pt).unique_nexus_name(nexus_dir, raise_if_not_exist=True)
+    for scan_pt in scan_pt_list:
+        if scan_pt is None:
+            nexus_file = None
+        else:
+            scan, pt = scan_pt
+            nexus_file = SpiceRun(beam_line, ipts_number, exp_number,
+                                  scan, pt).unique_nexus_name(nexus_dir, raise_if_not_exist=True)
         nexus_list.append(nexus_file)
 
     return nexus_list

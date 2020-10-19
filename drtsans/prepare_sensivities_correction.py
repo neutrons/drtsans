@@ -215,8 +215,6 @@ class PrepareSensitivityCorrection(object):
         else:
             self._dark_current_runs = list(dark_current_runs)
 
-        print(f'[....... DEBUG ] Dark current: {self._dark_current_runs}')
-
     def set_direct_beam_runs(self, direct_beam_runs):
         """Set direct beam runs
 
@@ -488,11 +486,6 @@ class PrepareSensitivityCorrection(object):
         # pixels' uncertainties are zero, which is different from other pixels
         total_mask_array = flood_workspace.extractE() < 1E-6
 
-        # DEBUG ONLY
-        print(f'[......DB] Flood workspace (to save): {flood_workspace}')
-        SaveNexusProcessed(InputWorkspace=flood_workspace, Filename=f'flood_workspace.nxs')
-        # ----------
-
         # Loop through each detector pixel to check its masking state to determine whether its value shall be
         # set to NaN, -infinity or not changed (i.e., for pixels without mask)
         num_spec = flood_workspace.getNumberHistograms()
@@ -559,7 +552,7 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             beam_center_i = self._calculate_beam_center(i, enforce_use_nexus_idf)
             beam_centers.append(beam_center_i)
-            logger.notice('................  Calculated beam center ({}-th) = {}'.format(i, beam_center_i))
+            logger.notice('Calculated beam center ({}-th) = {}'.format(i, beam_center_i))
 
         # Set default value to dark current runs
         if self._dark_current_runs is None:
@@ -570,7 +563,7 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i],
                                                   self._dark_current_runs[i], enforce_use_nexus_idf)
-            logger.notice(f'............. .. Load {i}-th flood run {self._flood_runs[i]} to '
+            logger.notice(f'Load {i}-th flood run {self._flood_runs[i]} to '
                           f'{flood_ws_i}')
             flood_workspaces.append(flood_ws_i)
 
@@ -601,7 +594,7 @@ class PrepareSensitivityCorrection(object):
             flood_workspaces[i] = self._set_mask_value(flood_workspaces[i], bad_pixels_list[i],
                                                        use_moving_detector_method)
 
-        info = 'Preparation of data is over....\n'
+        info = 'Preparation of data is over.\n'
         for fws in flood_workspaces:
             info += f'{str(fws)}: Number of infinities = {len(np.where(np.isinf(fws.extractY()))[0])},' \
                     f'Number of NaNs = {len(np.where(np.isnan(fws.extractY()))[0])}\n'
@@ -935,7 +928,7 @@ class PrepareSensitivityCorrection(object):
         transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
         average_zero_angle = np.mean(transmission_corr_ws.readY(0))
         average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
-        logger.notice(f'........... Transmission Coefficient is....{average_zero_angle:.3f} +/- '
+        logger.notice(f'Transmission Coefficient is {average_zero_angle:.3f} +/- '
                       f'{average_zero_angle_error:.3f}.'
                       f'Transmission flood {str(transmission_flood_ws)} and '
                       f'transmission {str(transmission_workspace)}')
@@ -964,10 +957,8 @@ class PrepareSensitivityCorrection(object):
         # Do NaN sum
         y_list = [ws.extractY() for ws in flood_workspaces]
         y_matrix = np.array(y_list)
-        print(f'DEBUG... Y matrix shape = {y_matrix.shape}')
 
         nan_sum_matrix = np.nansum(y_matrix, axis=0)
-        print(f'DEBUG... nan summed Y shape = {nan_sum_matrix.shape}')
 
         # clone a workspace
         cloned = CloneWorkspace(InputWorkspace=flood_workspaces[0], OutputWorkspace='FloodSum')

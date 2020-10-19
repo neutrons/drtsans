@@ -48,7 +48,7 @@ SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None, path=None):
+def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf=False):
     """load all required files at the beginning, and transform them to histograms
 
     Parameters
@@ -63,6 +63,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     -------
 
     """
+    # TODO/FIXME - need to a parameter in function arguments to load IDF from NeXus file as an option
     reduction_config = reduction_input['configuration']  # a handy shorcut to the configuration parameters dictionary
 
     instrument_name = reduction_input['instrumentName']
@@ -102,6 +103,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
+    # load nexus idf
+    if use_nexus_idf:
+        load_params['LoadNexusInstrumentXML'] = use_nexus_idf
 
     # Adjust pixel heights and widths
     load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
@@ -974,6 +978,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
 
+        # create output directories
+        create_output_dir(output_dir)
+
         # save ASCII files
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.dat')
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
@@ -1183,7 +1190,6 @@ def prepare_data(data,
         enforce_use_nexus_idf = False
 
     # Load event without moving detector and sample after loading NeXus and instrument
-    logger.notice(f'...... About to loading {data} to {output_workspace}')
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
                      pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.,
                      LoadNexusInstrumentXML=enforce_use_nexus_idf)
@@ -1247,3 +1253,17 @@ def prepare_data(data,
                   smearing_pixel_size_x, smearing_pixel_size_y)
 
     return mtd[ws_name]
+
+
+def create_output_dir(output_dir):
+    # output root
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    # 1D and 2D
+    for sub_dir in ['1D', '2D']:
+        n_d_dir = os.path.join(output_dir, sub_dir)
+        if not os.path.exists(n_d_dir):
+            os.mkdir(n_d_dir)
+
+    return

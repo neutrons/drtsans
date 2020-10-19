@@ -7,9 +7,16 @@
 # Set SPICE files information
 # The following example is for sensitivities preparation
 
-ipts = 17241
-exp = 549
-scan_pt_list = zip([9, 10, 20, 16, 22], [1] * 5)
+"""
+Sample - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0217_0001.xml (Scattering/Transmission)
+Empty Beam - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0220_0001.xml (For Transmission)
+Beam Center - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0220_0001.xml (Transmission Measurement)
+Dark - /HFIR/CG3/IPTS-17240/exp318/Datafiles/BioSANS_exp318_scan0044_0001.xml (for both main and wing detectors)
+"""
+
+ipts = 17240
+exp = 318
+scan_pt_list = zip([44, 220, 217], [1] * 3)
 
 # ----------------------------------------------------------------------------------
 # TRY NOT TO TOUCH THIS PART
@@ -27,7 +34,7 @@ bad_pixels = [70911]
 nexus_names = set()
 
 # Output directory between standard and drtsans integration test
-if False:
+if True:
     nexus_dir = f'/HFIR/CG3/IPTS-{ipts}/shared/Exp{exp}'  # standard converted nexus
 else:
     nexus_dir = '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/'  # reference dir

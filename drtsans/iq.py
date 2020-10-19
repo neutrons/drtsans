@@ -41,13 +41,16 @@ def check_iq_for_binning(i_of_q):
 
     # Check intensity
     if np.where(np.isnan(i_of_q.intensity))[0].size > 0:
-        error_message += 'Intensity has NaN: {}\n'.format(np.where(np.isnan(i_of_q.intensity))[0])
+        error_message += 'Intensity has {} NaNs: {}\n'.format(len(np.where(np.isnan(i_of_q.intensity))[0]),
+                                                              np.where(np.isnan(i_of_q.intensity))[0])
     if np.where(np.isinf(i_of_q.intensity))[0].size > 0:
-        error_message += 'Intensity has Inf: {}\n'.format(np.where(np.isnan(i_of_q.intensity))[0])
+        error_message += 'Intensity has {} Infinities: {}\n'.format(len(np.where(np.isnan(i_of_q.intensity))[0]),
+                                                                    np.where(np.isnan(i_of_q.intensity))[0])
 
     # Check error
     if np.where(np.isnan(i_of_q.error))[0].size > 0:
-        error_message += 'Intensity error has NaN: {}\n'.format(np.where(np.isnan(i_of_q.error))[0])
+        error_message += 'Intensity error has {} NaNs: {}\n'.format(len(np.where(np.isnan(i_of_q.error))[0]),
+                                                                    np.where(np.isnan(i_of_q.error))[0])
     if np.where(np.isinf(i_of_q.error))[0].size > 0:
         error_message += 'Intensity error has Inf: {}\n'.format(np.where(np.isnan(i_of_q.error))[0])
     if np.where(np.abs(i_of_q.error) < 1E-20)[0].size > 0:

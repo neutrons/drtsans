@@ -241,7 +241,14 @@ for i in range(start_index-1, end_index):
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
-    print("Reducing...", samples[i], ":", sample_names[i], '\n')
+    print(".........[ DEBUG ....] Reducing...", samples[i], ":", sample_names[i], '\n')
+    if isinstance(samples[i], str) and os.path.exists(samples[i]):
+        # a full path to NeXus is given
+        part1 = os.path.basename(samples[i]).split('.')[0]
+    else:
+        part1 = samples[i]
+    output_file_name = f'r{part1}_{sample_names[i]}'
+
     run_data = {
         'sample': {
             'runNumber': samples[i],
@@ -252,7 +259,7 @@ for i in range(start_index-1, end_index):
             'runNumber': backgrounds[i],
             'transmission': {'runNumber': backgrounds_trans[i]}
         },
-        'outputFileName': f'r{samples[i]}_{sample_names[i]}',
+        'outputFileName': output_file_name,
     }
 
     # Update our common settings with the particulars of the current reduction
@@ -262,8 +269,7 @@ for i in range(start_index-1, end_index):
     reduction_input['configuration']['WedgeMaxAngles'] = wedge_max_angles
 
     # Load all files
-    # TODO/FIXME - need to add an option to load with IDF in NeXus
-    loaded = load_all_files(reduction_input)
+    loaded = load_all_files(reduction_input, use_nexus_idf=True)
 
     # Reduced from workspaces loaded from NeXus files
     out = reduce_single_configuration(loaded, reduction_input)

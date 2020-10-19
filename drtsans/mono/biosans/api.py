@@ -978,6 +978,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                symmetric_wedges=symmetric_wedges,
                                                error_weighted=weighted_errors)
 
+        # create output directories
+        create_output_dir(output_dir)
+
         # save ASCII files
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.dat')
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
@@ -1250,3 +1253,17 @@ def prepare_data(data,
                   smearing_pixel_size_x, smearing_pixel_size_y)
 
     return mtd[ws_name]
+
+
+def create_output_dir(output_dir):
+    # output root
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    # 1D and 2D
+    for sub_dir in ['1D', '2D']:
+        n_d_dir = os.path.join(output_dir, sub_dir)
+        if not os.path.exists(n_d_dir):
+            os.mkdir(n_d_dir)
+
+    return

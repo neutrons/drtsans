@@ -72,6 +72,11 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
         plt.legend()
         plt.title(title)
         plt.yscale('log')
+        # defaults and set outut png file name
+        if prefix is None:
+            prefix = 'compare'
+        if test_log_file is None:
+            test_log_file = 'iq'
         out_name = prefix + '_' + os.path.basename(test_log_file).split('.')[0] + '.png'
         plt.savefig(out_name)
 

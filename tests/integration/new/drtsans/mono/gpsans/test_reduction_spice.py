@@ -8,7 +8,7 @@ from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 """ Test data information
 
                     scan/pt    SDD         detector trans
-sample          
+sample
 background
 sample trans
 background trans

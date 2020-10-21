@@ -617,10 +617,10 @@ def prepare_data_workspaces(data,
 
     # Sensitivity
     if sensitivity_workspace is not None:
-        output_workspace = apply_sensitivity_correction(output_workspace_name,
-                                                        sensitivity_workspace=sensitivity_workspace)
+        apply_sensitivity_correction(output_workspace_name,
+                                     sensitivity_workspace=sensitivity_workspace)
 
-    return output_workspace
+    return mtd[output_workspace_name]
 
 
 def process_single_configuration(sample_ws_raw,

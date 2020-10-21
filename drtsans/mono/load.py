@@ -1,6 +1,6 @@
 import os
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
-from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd
+from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd, SaveNexusProcessed
 from mantid.kernel import logger
 # the generic version is feature complete for monochromatic data
 from drtsans.load import load_events, sum_data
@@ -153,6 +153,11 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
     # Load NeXus file(s)
     if len(run) == 1:
         # if only one run just load and transform to wavelength and return workspace
+        # TODO - if the one run is a file path: use the base name of file without file type
+        # if isinstance(run[0], str) and os.path.exists(run[0]):
+        #     output_workspace = os.path.basename(run[0]).split('.')[0]
+
+        print(f'...........DEBUG: run {run} load event args: {kwargs}')
         ws = load_events(run=run[0],
                          data_dir=data_dir,
                          output_workspace=output_workspace,
@@ -249,13 +254,15 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     """
     # Information output before
     logs = SampleLogs(ws)
-    logger.information('[META-GEOM  Init] Sample to detector distance = {} (calculated) /{} (meta) meter'
-                       ''.format(sample_detector_distance(ws, search_logs=False),
-                                 sample_detector_distance(ws, search_logs=True)))
-    logger.information('[META-GEOM      ] SampleToSi = {} m'
-                       ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm') * 1E-3))
-    logger.information('[META-GEOM      ] Overwrite Values = {}, {}'
-                       ''.format(sample_si_window_overwrite_value, sample_detector_distance_overwrite_value))
+
+    # record some raw (prior to any processing) geometry information
+    prior_geom_info = f'{ws}: \n' \
+                      f'Prior to any geometry correction:\n' \
+                      f'Sample to detector distance = {sample_detector_distance(ws, search_logs=False)}' \
+                      f'(calculated)  vs {sample_detector_distance(ws, search_logs=True)} (meta) mm.\n' \
+                      f' SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")} mm\n' \
+                      f'Overwrite Values = {sample_si_window_overwrite_value}, ' \
+                      f'{sample_detector_distance_overwrite_value}\n'
 
     # Calculate sample and detector offsets for moving
     sample_offset, detector_offset = \
@@ -264,8 +271,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                                    zero_sample_offset_sample_si_distance=si_window_to_nominal_distance,
                                    overwrite_sample_si_distance=sample_si_window_overwrite_value,
                                    overwrite_sample_detector_distance=sample_detector_distance_overwrite_value)
-    logger.information('[META-GEOM  INFO] Sample offset = {}, Detector offset = {}'
-                       ''.format(sample_offset, detector_offset))
+    # log
+    prior_geom_info += 'Sample offset = {}, Detector offset = {}\n'.format(sample_offset, detector_offset)
 
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
@@ -273,14 +280,38 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                          si_window_to_nominal_distance=si_window_to_nominal_distance)
 
     # Check current instrument setup and meta data (sample logs)
-    logs = SampleLogs(ws)
-    logger.information('[META-GEOM Final] Sample to detector distance = {} (calculated) /{} (meta) meter'
-                       ''.format(sample_detector_distance(ws, search_logs=False),
-                                 sample_detector_distance(ws, search_logs=True)))
-    logger.information('[META-GEOM      ] Sample position = {}'
-                       ''.format(ws.getInstrument().getSample().getPos()))
-    logger.information('[META-GEOM      ] SampleToSi = {} mm (From Log)'
-                       ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
+    logger.notice('{} Sample to detector distance = {} (calculated) vs {} (meta) mm'
+                  ''.format(str(ws), sample_detector_distance(ws, search_logs=False),
+                            sample_detector_distance(ws, search_logs=True)))
+
+    # Verification
+    if sample_detector_distance_overwrite_value is None and sample_si_window_overwrite_value is None:
+        das_sdd = sample_detector_distance(ws, search_logs=True)
+        calculated_sdd = sample_detector_distance(ws, search_logs=False)
+
+        if abs(das_sdd - calculated_sdd)/das_sdd > 1E-6:
+            logs = SampleLogs(ws)
+            prior_geom_info += f'Result from geometry operation:\n' \
+                               f'Sample position = {ws.getInstrument().getSample().getPos()}\n' \
+                               f'SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")}' \
+                               f'mm (From Log)\n'
+            # add detector information
+            prior_geom_info += f'Detector[0] pos = {ws.getDetector(0).getPos()}\n'
+
+            # form error message
+            error_msg = f'{str(ws)}: DAS SDD = {das_sdd} != ' \
+                        f'Calculated SDD = {calculated_sdd}.' \
+                        f'Error = {abs(das_sdd - calculated_sdd)/das_sdd} > 1E-6.  FYI\n' \
+                        f'{prior_geom_info}\n' \
+                        f'Failed workspace is saved to mono_sans_run_geometry_error.nxs'
+
+            logger.error(error_msg)
+
+            # Save workspace for further investigation
+            SaveNexusProcessed(InputWorkspace=ws, Filename='mono_sans_run_geometry_error.nxs',
+                               Title=f'from workspace {str(ws)}')
+
+            # raise RuntimeError(error_msg)
 
     return ws
 

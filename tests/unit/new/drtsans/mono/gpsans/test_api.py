@@ -73,7 +73,7 @@ def test_prepare_data_workspaces_simple(generic_workspace):
     assert history.getAlgorithm(2).name() == "CloneWorkspace"
 
     # the ws name should change to what is set
-    output2 = prepare_data_workspaces(ws, output_workspace="foobar", solid_angle=False)
+    output2 = prepare_data_workspaces(ws, output_workspace_name="foobar", solid_angle=False)
     assert output2.name() == "foobar"
 
 

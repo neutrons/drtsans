@@ -506,7 +506,8 @@ def prepare_data(data,
                                    mask_btp=btp,
                                    solid_angle=solid_angle,
                                    sensitivity_workspace=sensitivity_workspace,
-                                   output_workspace_name=output_workspace)
+                                   output_workspace_name=output_workspace,
+                                   debug=False)
 
 
 def prepare_data_workspaces(data,
@@ -562,6 +563,8 @@ def prepare_data_workspaces(data,
         overrides the sensitivity_filename if both are provided.
     output_workspace_name: str
         The output workspace name. If None will create data.name()+output_suffix
+    debug: bool
+        Flag for debugging output
 
     Returns
     -------
@@ -601,8 +604,8 @@ def prepare_data_workspaces(data,
         logger.notice(f'mask panel: {mask_panel}\n'
                       f'mask ws   : {str(mask_ws)}\n'
                       f'mask btp  : {mask_btp}')
-    if debug and mask_ws is not None:
-        SaveNexusProcessed(InputWorkspace=mask_ws, Filename=f'{output_workspace_name}_{str(mask_ws)}.nxs')
+        if mask_ws is not None:
+            SaveNexusProcessed(InputWorkspace=mask_ws, Filename=f'{output_workspace_name}_{str(mask_ws)}.nxs')
 
     apply_mask(output_workspace_name, panel=mask_panel, mask=mask_ws, **mask_btp)
     if debug:
@@ -742,7 +745,7 @@ def process_single_configuration(sample_ws_raw,
 
     # process sample
     sample_ws = prepare_data_workspaces(sample_ws_raw,
-                                        output_workspace_name=output_workspace, debug=True,
+                                        output_workspace_name=output_workspace, debug=debug,
                                         **prepare_data_conf)
 
     if debug:

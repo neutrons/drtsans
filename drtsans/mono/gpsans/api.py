@@ -11,7 +11,7 @@ from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.plots import plot_IQmod, plot_IQazimuthal
+from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans.reductionlog import savereductionlog
 from drtsans.solid_angle import solid_angle_correction
 from drtsans.beam_finder import center_detector, find_beam_center
@@ -35,7 +35,6 @@ from drtsans.load import move_instrument
 from drtsans.path import allow_overwrite
 from drtsans.mono.meta_data import parse_json_meta_data
 import drtsans.mono.meta_data as meta_data
-from drtsans.plots.api import plot_detector, plot_IQazimuthal
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration',

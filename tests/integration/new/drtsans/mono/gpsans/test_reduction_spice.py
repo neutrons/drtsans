@@ -1,7 +1,6 @@
 import pytest
 import tempfile
 import os
-from drtsans.mono.spice_data import map_to_nexus
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 from drtsans.mono.gpsans.reduce_spice import reduce_gpsans_nexus
 import warnings
@@ -35,7 +34,6 @@ def test_reduction_spice(reference_dir, cleanfile):
     Test reduction from SPICE-converted Nexus file
 
     """
-    CG2 = 'CG2'
     nexus_dir = os.path.join(reference_dir.new.gpsans, 'Exp280')
 
     # Set output (temp) directory
@@ -77,8 +75,8 @@ def test_reduction_spice(reference_dir, cleanfile):
     use_log_1d = True
     common_configuration = {
         "iptsNumber": ipts_number,
-        "emptyTransmission": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, empty_trans, nexus_dir)},
-        "beamCenter": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, beam_center, nexus_dir)},
+        "emptyTransmission": {"runNumber": empty_trans},
+        "beamCenter": {"runNumber": beam_center},
         "configuration": {
             "outputDir": output_directory,
             "darkFileName": dark_file_name,
@@ -116,6 +114,7 @@ def test_reduction_spice(reference_dir, cleanfile):
     # Reduce
     output_dir = reduce_gpsans_nexus(ipts_number, exp_number, samples, sample_thick, sample_names,
                                      bkgd, samples_trans, bkgd_trans, block_beam,
+                                     empty_trans, beam_center,
                                      nexus_dir,
                                      mask_file_name=mask_file_name if use_mask_file else '',
                                      dark_file_name=dark_file_name if use_dark_file else '',
@@ -127,14 +126,13 @@ def test_reduction_spice(reference_dir, cleanfile):
 
     # verify
     expected_data_dir = os.path.join(reference_dir.new.gpsans, 'spice_reduction/exp280_normal_bin')
-    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
+    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix='')
 
 
 def test_reduction_spice_subpixel(reference_dir, cleanfile):
     """
     Test reduction from SPICE-converted Nexus file
     """
-    CG2 = 'CG2'
     nexus_dir = os.path.join(reference_dir.new.gpsans, 'Exp280')
 
     # Set output (temp) directory
@@ -148,7 +146,7 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
     # single sample
     samples = [(35, 1)]
     samples_trans = [(27, 1)]
-    sample_thick = ['0.1']
+    sample_thick = [0.1]
     sample_names = ['Porasil_B']
     bkgd = [(34, 1)]
     bkgd_trans = [(26, 1)]
@@ -177,8 +175,8 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
     use_log_1d = True
     common_configuration = {
         "iptsNumber": ipts_number,
-        "emptyTransmission": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, empty_trans, nexus_dir)},
-        "beamCenter": {"runNumber": map_to_nexus(CG2, ipts_number, exp_number, beam_center, nexus_dir)},
+        "emptyTransmission": {"runNumber": empty_trans},
+        "beamCenter": {"runNumber": beam_center},
         "configuration": {
             "outputDir": output_directory,
             "darkFileName": dark_file_name,
@@ -216,6 +214,7 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
     # Reduce
     output_dir = reduce_gpsans_nexus(ipts_number, exp_number, samples, sample_thick, sample_names,
                                      bkgd, samples_trans, bkgd_trans, block_beam,
+                                     empty_trans, beam_center,
                                      nexus_dir,
                                      mask_file_name=mask_file_name if use_mask_file else '',
                                      dark_file_name=dark_file_name if use_dark_file else '',
@@ -227,7 +226,7 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
 
     # verify
     expected_data_dir = os.path.join(reference_dir.new.gpsans, 'spice_reduction/exp280_subpixel_bin/')
-    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
+    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix='')
 
 
 if __name__ == '__main__':

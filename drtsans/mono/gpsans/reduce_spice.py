@@ -18,9 +18,11 @@ def reduce_gpsans_nexus(ipts_number: int,
                         samples_trans: List[Tuple[int, int]],
                         bkgd_trans: List[Tuple[int, int]],
                         block_beam: Tuple[int, int],
+                        empty_trans: List[Tuple[int, int]],
+                        beam_center: List[Tuple[int, int]],
                         nexus_dir: str,
-                        mask_file_name: Union[str, None],
-                        dark_file_name: Union[str, None],
+                        mask_file_name: str,  # '' for no mask file
+                        dark_file_name: str,  # '' for no dark file
                         use_log_1d: bool,
                         use_log_2d_binning: bool,
                         common_configuration: Any,
@@ -37,10 +39,15 @@ def reduce_gpsans_nexus(ipts_number: int,
     bkgd_trans = map_to_nexus(CG2, ipts_number, exp_number, bkgd_trans, nexus_dir)
     block_beam = map_to_nexus(CG2, ipts_number, exp_number, [block_beam], nexus_dir)[0]
 
-    if mask_file_name is None:
-        mask_file_name = ""
-    if dark_file_name is None:
-        dark_file_name = ""
+    # empty transmission
+    empty_trans = map_to_nexus(CG2, ipts_number, exp_number, empty_trans, nexus_dir)
+    common_configuration["emptyTransmission"]["runNumber"] = empty_trans
+    # beam center
+    beam_center = map_to_nexus(CG2, ipts_number, exp_number, beam_center, nexus_dir)
+    common_configuration["beamCenter"]["runNumber"] = beam_center
+    # mask file and dark file to "" if not specified
+    mask_file_name = "" if mask_file_name is None else mask_file_name
+    dark_file_name = "" if dark_file_name is None else dark_file_name
 
     if use_log_2d_binning:
         log_flag = {"norm": LogNorm()}

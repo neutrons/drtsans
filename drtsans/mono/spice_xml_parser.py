@@ -4,6 +4,7 @@ Module contains class and method to parse SPICE SANS XML file for DAS sample log
 from xml.etree import ElementTree
 import numpy as np
 
+
 class SpiceXMLParser(object):
     """
     Class to parse SPICE SANS data file in XML format

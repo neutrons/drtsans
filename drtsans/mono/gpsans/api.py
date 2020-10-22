@@ -3,7 +3,7 @@ import copy
 from datetime import datetime
 import os
 from collections import namedtuple
-
+from matplotlib.colors import LogNorm
 from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed
 
 from drtsans import getWedgeSelection
@@ -35,6 +35,7 @@ from drtsans.load import move_instrument
 from drtsans.path import allow_overwrite
 from drtsans.mono.meta_data import parse_json_meta_data
 import drtsans.mono.meta_data as meta_data
+from drtsans.plots.api import plot_detector, plot_IQazimuthal
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration',
@@ -46,7 +47,8 @@ SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf: bool = False):
+def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf: bool = False,
+                   debug_output: bool = False):
     """load all required files at the beginning, and transform them to histograms
 
     Parameters
@@ -58,6 +60,8 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
         Path to search the NeXus file
     use_nexus_idf: bool
         Flag to use IDF inside NeXus file.  True for SPICE data
+    debug_output: bool
+        Flag to save out internal result
 
     Returns
     -------
@@ -342,6 +346,17 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
     raw_bkg_trans_ws = mtd[f'{prefix}_{instrument_name}_{bkgd_trans}_raw_histo'] if bkgd_trans else None
     sensitivity_ws = mtd[sensitivity_ws_name] if sensitivity_ws_name else None
 
+    # Plot
+    if debug_output:
+        for raw_sample in raw_sample_ws_list:
+            plot_detector(input_workspace=str(raw_sample), filename=form_output_name(raw_sample),
+                          backend='mpl')
+        for ws in [raw_bkgd_ws, raw_center_ws, raw_empty_ws, raw_sample_trans_ws,
+                   raw_bkg_trans_ws, raw_blocked_ws, dark_current]:
+            if ws is not None:
+                plot_detector(input_workspace=str(ws), filename=form_output_name(ws),
+                              backend='mpl')
+
     return dict(sample=raw_sample_ws_list,
                 background=raw_bkgd_ws,
                 center=raw_center_ws,
@@ -623,6 +638,11 @@ def prepare_data_workspaces(data,
         apply_sensitivity_correction(output_workspace_name,
                                      sensitivity_workspace=sensitivity_workspace)
 
+    if debug:
+        out_ws = mtd[output_workspace_name]
+        plot_detector(input_workspace=str(out_ws), filename=f'prepared{form_output_name(out_ws)}', backend='mpl',
+                      imshow_kwargs={'norm': LogNorm(vmin=1)})
+
     return mtd[output_workspace_name]
 
 
@@ -739,6 +759,7 @@ def process_single_configuration(sample_ws_raw,
         if not registered_workspace(blocked_ws_name):
             blocked_ws = prepare_data_workspaces(blocked_ws_raw,
                                                  output_workspace_name=blocked_ws_name,
+                                                 debug=debug,
                                                  **prepare_data_conf)
         else:
             blocked_ws = mtd[blocked_ws_name]
@@ -819,10 +840,19 @@ def process_single_configuration(sample_ws_raw,
     else:
         sample_ws *= absolute_scale
 
+    # Final debug output
+    if debug:
+        plot_detector(input_workspace=str(output_workspace),
+                      filename=f'final_processed_{form_output_name(output_workspace)}',
+                      backend='mpl',
+                      imshow_kwargs={'norm': LogNorm(vmin=1)})
+        SaveNexusProcessed(InputWorkspace=output_workspace,
+                           Filename=f'final_processed_{form_output_name(output_workspace)}.nxs')
+
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True, debug_output=False):
     reduction_config = reduction_input['configuration']
 
     flux_method = reduction_config["normalization"]
@@ -887,7 +917,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                       center_y=yc,
                                                       solid_angle=False,
                                                       sensitivity_workspace=loaded_ws.sensitivity,
-                                                      output_workspace_name=processed_center_ws_name)
+                                                      output_workspace_name=processed_center_ws_name,
+                                                      debug=debug_output)
     else:
         processed_center_ws = None
 
@@ -970,7 +1001,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                            empty_beam_ws=processed_center_ws,
                                                            beam_radius=beam_radius,
                                                            absolute_scale=absolute_scale,
-                                                           keep_processed_workspaces=False)
+                                                           keep_processed_workspaces=False,
+                                                           debug=debug_output)
         # binning
         subpixel_kwargs = dict()
         if reduction_config['useSubpixels'] is True:
@@ -1055,6 +1087,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     allow_overwrite(os.path.join(reduction_config["outputDir"], '2D'))
 
     return output
+
+
+def form_output_name(workspace):
+    workspace_name = str(workspace)
+    file_name = workspace_name.split('/')[-1].split('.')[0]
+    return f'{file_name}.png'
 
 
 def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):

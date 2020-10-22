@@ -1,41 +1,45 @@
 import pytest
 import tempfile
 import os
-from typing import List, Tuple, Union, Any
 from drtsans.mono.spice_data import map_to_nexus
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
+from drtsans.mono.gpsans.reduce_spice import reduce_gpsans_nexus
+import warnings
+warnings.filterwarnings('ignore')
 
 """ Test data information
 
-                    scan/pt    SDD         detector trans
-sample
-background
-sample trans
-background trans
-empty trans
-beam center
-block beam
+Data files
+----------
+                    scan/pt     SDD         detector trans
+sample              35          1152.0      0.999998
+background          34          1152.0      0.999998
+sample trans        27          10852.0     0.999998
+background trans    26          10852.0     0.999998
+empty trans         28          10852.0     0.999998
+beam center         20          1152.0      0.999998
+block beam           9          1000.0      399.999962
 
 other files
-- sensitivities
+-----------
+- sensitivities: reference_dir/new/gpsans/calibrations/sens_CG2_spice_bar.nxs
+    from GPSANS SPICE data from sensitivities test
 
-- mask
-
+- mask: reference_dir/new/gpsans/calibrations/mask_pixel_map.nxs
+        JUST FOR DEMO PURPOSE
 """
 
-CG2 = 'CG2'
 
-
-def inprogress_test_reduction_spice(reference_dir, cleanfile):
+def test_reduction_spice(reference_dir, cleanfile):
     """
     Test reduction from SPICE-converted Nexus file
 
     """
-    #  pytest.skip("TODO: need to update reference file without using subpixel binning")
+    CG2 = 'CG2'
     nexus_dir = os.path.join(reference_dir.new.gpsans, 'Exp280')
 
     # Set output (temp) directory
-    output_directory = tempfile.mkdtemp(prefix='spice_reduction')
+    output_directory = tempfile.mkdtemp(prefix='cg2_spice_reduction')
     cleanfile(output_directory)
 
     # USER INPUT
@@ -68,7 +72,6 @@ def inprogress_test_reduction_spice(reference_dir, cleanfile):
     wedge_min_angles = None
     wedge_max_angles = None
 
-    # sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_CG2_spice_bar.nxs'
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
     use_log_2d_binning = False
     use_log_1d = True
@@ -119,121 +122,23 @@ def inprogress_test_reduction_spice(reference_dir, cleanfile):
                                      use_log_1d=use_log_1d,
                                      use_log_2d_binning=use_log_2d_binning,
                                      common_configuration=common_configuration,
-                                     q_range=q_range, use_mask_back_tubes=use_mask_back_tubes)
-    assert output_dir
+                                     q_range=q_range, use_mask_back_tubes=use_mask_back_tubes,
+                                     debug_output=False)
 
     # verify
-    # expected_data_dir = os.path.join(reference_dir.new.gpsans, 'reduced_exp280')
-    # verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
+    expected_data_dir = os.path.join(reference_dir.new.gpsans, 'spice_reduction/exp280_normal_bin')
+    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
 
 
-def reduce_gpsans_nexus(ipts_number: int,
-                        exp_number: int,
-                        samples: List[Tuple[int, int]],
-                        sample_thick: List[float],
-                        sample_names: List[str],
-                        bkgd: List[Tuple[int, int]],
-                        samples_trans: List[Tuple[int, int]],
-                        bkgd_trans: List[Tuple[int, int]],
-                        block_beam: Tuple[int, int],
-                        nexus_dir: str,
-                        mask_file_name: Union[str, None],
-                        dark_file_name: Union[str, None],
-                        use_log_1d: bool,
-                        use_log_2d_binning: bool,
-                        common_configuration: Any,
-                        q_range: Union[List[Union[None, int]], Tuple[Union[int, None], Union[int, None]]],
-                        use_mask_back_tubes: bool):
-
-    # Never touch!  drtsans specific
-
-    # convert SPICE to Nexus
-    samples = map_to_nexus(CG2, ipts_number, exp_number, samples, nexus_dir)
-    samples_trans = map_to_nexus(CG2, ipts_number, exp_number, samples_trans, nexus_dir)
-    bkgd = map_to_nexus(CG2, ipts_number, exp_number, bkgd, nexus_dir)
-    bkgd_trans = map_to_nexus(CG2, ipts_number, exp_number, bkgd_trans, nexus_dir)
-    block_beam = map_to_nexus(CG2, ipts_number, exp_number, [block_beam], nexus_dir)[0]
-
-    import warnings
-    warnings.filterwarnings('ignore')
-    import json
-    # jupyter only:from pprint import pprint as pretty_print
-    from drtsans.mono.gpsans import (load_all_files, reduce_single_configuration, plot_reduction_output,
-                                     reduction_parameters, update_reduction_parameters)
-    from matplotlib.colors import LogNorm
-
-    if mask_file_name is None:
-        mask_file_name = ""
-    if dark_file_name is None:
-        dark_file_name = ""
-
-    if use_log_2d_binning:
-        log_flag = {"norm": LogNorm()}
-    else:
-        log_flag = {'vmin': 0, 'vmax': 100}
-
-    # Add on the other reduction parameters with their default values (most will be empty)
-    common_configuration_full = reduction_parameters(common_configuration, 'GPSANS', validate=False)
-
-    # Create output directory
-    output_dir = common_configuration_full['configuration']['outputDir']
-    for subfolder in ['1D', '2D']:
-        output_folder = os.path.join(output_dir, subfolder)
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-
-    for i in range(len(samples)):
-        # Settings particular to each reduction session
-        run_data = {
-            'sample': {
-                'runNumber': samples[i],
-                'thickness': sample_thick[i],
-                'transmission': {'runNumber': samples_trans[i]}
-            },
-            'background': {
-                'runNumber': bkgd[i],
-                'transmission': {'runNumber': bkgd_trans[i]}
-            },
-            'outputFileName': sample_names[i],
-            'configuration': {
-                "Qmin": q_range[0],
-                "Qmax": q_range[1],
-                "useMaskBackTubes": use_mask_back_tubes,
-                "blockedBeamRunNumber": block_beam,
-                "maskFileName": mask_file_name,
-                "darkFileName": dark_file_name,
-            }
-        }
-
-        # Update our common settings with the particulars of the current reduction
-        reduction_input = update_reduction_parameters(common_configuration_full, run_data, validate=True)
-
-        # Begin reduction. Be sure to validate the parameters before.
-        loaded = load_all_files(reduction_input, path=f'/HFIR/CG2/IPTS-{ipts_number}/shared/Exp{exp_number}',
-                                use_nexus_idf=True)
-        out = reduce_single_configuration(loaded, reduction_input)
-        plot_reduction_output(out, reduction_input, loglog=use_log_1d, imshow_kwargs=log_flag)
-
-        # Save the reduction parameters of each reduction session to a JSON file
-        output_dir = reduction_input['configuration']['outputDir']
-        output_json_file = os.path.join(output_dir, f'{sample_names[i]}.json')  # full path to the JSON file
-        with open(output_json_file, 'w') as file_handle:
-            json.dump(reduction_input, file_handle, indent=2)
-
-        return output_dir
-
-
-def failed_test_reduction_spice_subpixel(reference_dir, cleanfile):
+def test_reduction_spice_subpixel(reference_dir, cleanfile):
     """
     Test reduction from SPICE-converted Nexus file
-
     """
-    #  pytest.skip("TODO: need to update reference file without using subpixel binning")
     CG2 = 'CG2'
     nexus_dir = os.path.join(reference_dir.new.gpsans, 'Exp280')
 
     # Set output (temp) directory
-    output_directory = tempfile.mkdtemp(prefix='spice_reduction')
+    output_directory = tempfile.mkdtemp(prefix='cg2_spice_reduction_subpixel')
     cleanfile(output_directory)
 
     # USER INPUT
@@ -308,82 +213,21 @@ def failed_test_reduction_spice_subpixel(reference_dir, cleanfile):
         }
     }
 
-    # Never touch!  drtsans specific
+    # Reduce
+    output_dir = reduce_gpsans_nexus(ipts_number, exp_number, samples, sample_thick, sample_names,
+                                     bkgd, samples_trans, bkgd_trans, block_beam,
+                                     nexus_dir,
+                                     mask_file_name=mask_file_name if use_mask_file else '',
+                                     dark_file_name=dark_file_name if use_dark_file else '',
+                                     use_log_1d=use_log_1d,
+                                     use_log_2d_binning=use_log_2d_binning,
+                                     common_configuration=common_configuration,
+                                     q_range=q_range, use_mask_back_tubes=use_mask_back_tubes,
+                                     debug_output=False)
 
-    # convert SPICE to Nexus
-    samples = map_to_nexus(CG2, ipts_number, exp_number, samples, nexus_dir)
-    samples_trans = map_to_nexus(CG2, ipts_number, exp_number, samples_trans, nexus_dir)
-    bkgd = map_to_nexus(CG2, ipts_number, exp_number, bkgd, nexus_dir)
-    bkgd_trans = map_to_nexus(CG2, ipts_number, exp_number, bkgd_trans, nexus_dir)
-
-    import warnings
-    warnings.filterwarnings('ignore')
-    import json
-    # jupyter only:from pprint import pprint as pretty_print
-    from drtsans.mono.gpsans import (load_all_files, reduce_single_configuration, plot_reduction_output,
-                                     reduction_parameters, update_reduction_parameters)
-    from matplotlib.colors import LogNorm
-
-    if not use_mask_file:
-        mask_file_name = ""
-    if not use_dark_file:
-        dark_file_name = ""
-
-    if use_log_2d_binning:
-        log_flag = {"norm": LogNorm()}
-    else:
-        log_flag = {'vmin': 0, 'vmax': 100}
-
-    # Add on the other reduction parameters with their default values (most will be empty)
-    common_configuration_full = reduction_parameters(common_configuration, 'GPSANS', validate=False)
-
-    # Create output directory
-    output_dir = common_configuration_full['configuration']['outputDir']
-    for subfolder in ['1D', '2D']:
-        output_folder = os.path.join(output_dir, subfolder)
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-
-    for i in range(len(samples)):
-        # Settings particular to each reduction session
-        run_data = {
-            'sample': {
-                'runNumber': samples[i],
-                'thickness': sample_thick[i],
-                'transmission': {'runNumber': samples_trans[i]}
-            },
-            'background': {
-                'runNumber': bkgd[i],
-                'transmission': {'runNumber': bkgd_trans[i]}
-            },
-            'outputFileName': sample_names[i],
-            'configuration': {
-                "Qmin": q_range[0],
-                "Qmax": q_range[1],
-                "useMaskBackTubes": use_mask_back_tubes,
-                "blockedBeamRunNumber": map_to_nexus(CG2, ipts_number, exp_number, [block_beam], nexus_dir)[0],
-                "maskFileName": mask_file_name,
-                "darkFileName": dark_file_name,
-            }
-        }
-
-        # Update our common settings with the particulars of the current reduction
-        reduction_input = update_reduction_parameters(common_configuration_full, run_data, validate=True)
-
-        # Begin reduction. Be sure to validate the parameters before.
-        loaded = load_all_files(reduction_input, path=f'/HFIR/CG2/IPTS-{ipts_number}/shared/Exp{exp_number}')
-        out = reduce_single_configuration(loaded, reduction_input)
-        plot_reduction_output(out, reduction_input, loglog=use_log_1d, imshow_kwargs=log_flag)
-
-        # Save the reduction parameters of each reduction session to a JSON file
-        output_dir = reduction_input['configuration']['outputDir']
-        output_json_file = os.path.join(output_dir, f'{sample_names[i]}.json')  # full path to the JSON file
-        with open(output_json_file, 'w') as file_handle:
-            json.dump(reduction_input, file_handle, indent=2)
-
-        # verify
-        expected_data_dir = os.path.join(reference_dir.new.gpsans, 'reduced_exp280')
-        verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
+    # verify
+    expected_data_dir = os.path.join(reference_dir.new.gpsans, 'spice_reduction/exp280_subpixel_bin/')
+    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix=None)
 
 
 if __name__ == '__main__':

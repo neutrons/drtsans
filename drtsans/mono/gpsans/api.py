@@ -3,15 +3,15 @@ import copy
 from datetime import datetime
 import os
 from collections import namedtuple
-
-from mantid.simpleapi import mtd, MaskDetectors, logger
+from matplotlib.colors import LogNorm
+from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed
 
 from drtsans import getWedgeSelection
 from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.plots import plot_IQmod, plot_IQazimuthal
+from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans.reductionlog import savereductionlog
 from drtsans.solid_angle import solid_angle_correction
 from drtsans.beam_finder import center_detector, find_beam_center
@@ -46,7 +46,8 @@ SAMPLE_SI_META_NAME = 'CG2:CS:SampleToSi'
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None, path=None):
+def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf: bool = False,
+                   debug_output: bool = False):
     """load all required files at the beginning, and transform them to histograms
 
     Parameters
@@ -56,6 +57,10 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     load_params
     path : str or None
         Path to search the NeXus file
+    use_nexus_idf: bool
+        Flag to use IDF inside NeXus file.  True for SPICE data
+    debug_output: bool
+        Flag to save out internal result
 
     Returns
     -------
@@ -96,6 +101,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
+    # load nexus idf
+    if use_nexus_idf:
+        load_params['LoadNexusInstrumentXML'] = use_nexus_idf
 
     # Adjust pixel heights and widths
     load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
@@ -163,7 +171,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
         if not registered_workspace(ws_name):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
-            print(f"Loading filename {filename}")
+            logger.notice(f"Loading filename {filename} to slice")
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]
                 logslicename = logsliceinterval = None
@@ -206,7 +214,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
             filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
-            print(f"Loading filename {filename}")
+            logger.notice(f"Loading filename {filename} to {ws_name}")
             load_events_and_histogram(filename, output_workspace=ws_name,
                                       sample_to_si_name=SAMPLE_SI_META_NAME,
                                       si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
@@ -242,7 +250,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
-                print(f"Loading filename {filename}")
+                logger.notice(f"Loading {run_type} filename {filename} to {ws_name}")
                 load_events_and_histogram(filename, output_workspace=ws_name,
                                           sample_to_si_name=SAMPLE_SI_META_NAME,
                                           si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
@@ -272,7 +280,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
         ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
         if not registered_workspace(ws_name):
             # load dark current file
-            print(f"Loading filename {dark_current_file}")
+            logger(f"Loading dark current file {dark_current_file} to {ws_name}")
             # identify to use exact given path to NeXus or use OnCat instead
             temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
             if os.path.exists(temp_name):
@@ -311,7 +319,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     if flood_file:
         sensitivity_ws_name = f'{prefix}_sensitivity'
         if not registered_workspace(sensitivity_ws_name):
-            print(f"Loading filename {flood_file}")
+            logger.notice(f"Loading flood file {flood_file} to {sensitivity_ws_name}")
             load_sensitivity_workspace(flood_file, output_workspace=sensitivity_ws_name)
 
     mask_ws = None
@@ -319,7 +327,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     if custom_mask_file is not None:
         mask_ws_name = f'{prefix}_mask'
         if not registered_workspace(mask_ws_name):
-            print(f"Loading filename {custom_mask_file}")
+            logger.notice(f"Loading user mask file {custom_mask_file} to {mask_ws_name}")
             mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
         else:
             mask_ws = mtd[mask_ws_name]
@@ -336,6 +344,17 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     raw_sample_trans_ws = mtd[f'{prefix}_{instrument_name}_{sample_trans}_raw_histo'] if sample_trans else None
     raw_bkg_trans_ws = mtd[f'{prefix}_{instrument_name}_{bkgd_trans}_raw_histo'] if bkgd_trans else None
     sensitivity_ws = mtd[sensitivity_ws_name] if sensitivity_ws_name else None
+
+    # Plot
+    if debug_output:
+        for raw_sample in raw_sample_ws_list:
+            plot_detector(input_workspace=str(raw_sample), filename=form_output_name(raw_sample),
+                          backend='mpl')
+        for ws in [raw_bkgd_ws, raw_center_ws, raw_empty_ws, raw_sample_trans_ws,
+                   raw_bkg_trans_ws, raw_blocked_ws, dark_current]:
+            if ws is not None:
+                plot_detector(input_workspace=str(ws), filename=form_output_name(ws),
+                              backend='mpl')
 
     return dict(sample=raw_sample_ws_list,
                 background=raw_bkgd_ws,
@@ -501,19 +520,21 @@ def prepare_data(data,
                                    mask_btp=btp,
                                    solid_angle=solid_angle,
                                    sensitivity_workspace=sensitivity_workspace,
-                                   output_workspace=output_workspace)
+                                   output_workspace_name=output_workspace,
+                                   debug=False)
 
 
 def prepare_data_workspaces(data,
                             center_x=None, center_y=None,
                             dark_current=None,
-                            flux_method=None,    # normalization (time/monitor)
-                            mask_ws=None,        # apply a custom mask from workspace
-                            mask_panel=None,     # mask back or front panel
-                            mask_btp=None,       # mask bank/tube/pixel
+                            flux_method=None,  # normalization (time/monitor)
+                            mask_ws=None,  # apply a custom mask from workspace
+                            mask_panel=None,  # mask back or front panel
+                            mask_btp=None,  # mask bank/tube/pixel
                             solid_angle=True,
                             sensitivity_workspace=None,
-                            output_workspace=None):
+                            output_workspace_name=None,
+                            debug=False):
     r"""
     Given a " raw"data workspace, this function provides the following:
 
@@ -554,8 +575,10 @@ def prepare_data_workspaces(data,
     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
-    output_workspace: str
+    output_workspace_name: str
         The output workspace name. If None will create data.name()+output_suffix
+    debug: bool
+        Flag for debugging output
 
     Returns
     -------
@@ -565,40 +588,61 @@ def prepare_data_workspaces(data,
     if not data:
         raise RuntimeError('Input workspace of prepare data cannot be None!')
 
-    if not output_workspace:
-        output_workspace = str(data)
-        output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
+    if not output_workspace_name:
+        output_workspace_name = str(data)
+        output_workspace_name = output_workspace_name.replace('_raw_histo', '') + '_processed_histo'
 
-    mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
+    mtd[str(data)].clone(OutputWorkspace=output_workspace_name)  # name gets into workspace
 
     if center_x is not None and center_y is not None:
-        center_detector(output_workspace, center_x=center_x, center_y=center_y)
+        center_detector(output_workspace_name, center_x=center_x, center_y=center_y)
+
+    if debug:
+        SaveNexusProcessed(InputWorkspace=output_workspace_name, Filename=f'{output_workspace_name}_after_center.nxs')
 
     # Dark current
     if dark_current is not None:
-        subtract_dark_current(output_workspace, dark_current)
+        subtract_dark_current(output_workspace_name, dark_current)
 
     # Normalization
     if str(flux_method).lower() == 'monitor':
-        normalize_by_monitor(output_workspace)
+        normalize_by_monitor(output_workspace_name)
     elif str(flux_method).lower() == 'time':
-        normalize_by_time(output_workspace)
+        normalize_by_time(output_workspace_name)
 
     # Additional masks
     if mask_btp is None:
         mask_btp = dict()
-    apply_mask(output_workspace, panel=mask_panel, mask=mask_ws, **mask_btp)
+    if debug:
+        # output masking information
+        logger.notice(f'mask panel: {mask_panel}\n'
+                      f'mask ws   : {str(mask_ws)}\n'
+                      f'mask btp  : {mask_btp}')
+        if mask_ws is not None:
+            SaveNexusProcessed(InputWorkspace=mask_ws, Filename=f'{output_workspace_name}_{str(mask_ws)}.nxs')
+
+    apply_mask(output_workspace_name, panel=mask_panel, mask=mask_ws, **mask_btp)
+    if debug:
+        SaveNexusProcessed(InputWorkspace=output_workspace_name, Filename=f'{output_workspace_name}_after_mask.nxs')
 
     # Solid angle
     if solid_angle:
-        solid_angle_correction(output_workspace)
+        solid_angle_correction(output_workspace_name)
+
+    if debug:
+        SaveNexusProcessed(InputWorkspace=output_workspace_name, Filename=f'{output_workspace_name}_before_sens.nxs')
 
     # Sensitivity
     if sensitivity_workspace is not None:
-        apply_sensitivity_correction(output_workspace,
+        apply_sensitivity_correction(output_workspace_name,
                                      sensitivity_workspace=sensitivity_workspace)
 
-    return mtd[output_workspace]
+    if debug:
+        out_ws = mtd[output_workspace_name]
+        plot_detector(input_workspace=str(out_ws), filename=f'prepared{form_output_name(out_ws)}', backend='mpl',
+                      imshow_kwargs={'norm': LogNorm(vmin=1)})
+
+    return mtd[output_workspace_name]
 
 
 def process_single_configuration(sample_ws_raw,
@@ -625,7 +669,8 @@ def process_single_configuration(sample_ws_raw,
                                  empty_beam_ws=None,
                                  beam_radius=None,
                                  absolute_scale=1.,
-                                 keep_processed_workspaces=True):
+                                 keep_processed_workspaces=True,
+                                 debug=False):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
@@ -682,14 +727,19 @@ def process_single_configuration(sample_ws_raw,
         absolute scaling value for standard method
     keep_processed_workspaces: bool
         flag to keep the processed blocked beam and background workspaces
+    debug: bool
+        flag to do some debugging output
 
     Returns
     -------
     ~mantid.dataobjects.Workspace2D
         Reference to the processed workspace
     """
+    if debug:
+        SaveNexusProcessed(InputWorkspace=sample_ws_raw, Filename='sample_raw', Title='Raw')
+
     if not output_workspace:
-        output_workspace = output_suffix + '_sample'
+        output_workspace = output_suffix + '_sample.nxs'
 
     # create a common configuration for prepare data
     prepare_data_conf = {'center_x': center_x,
@@ -707,17 +757,29 @@ def process_single_configuration(sample_ws_raw,
         blocked_ws_name = output_suffix + '_blocked'
         if not registered_workspace(blocked_ws_name):
             blocked_ws = prepare_data_workspaces(blocked_ws_raw,
-                                                 output_workspace=blocked_ws_name,
+                                                 output_workspace_name=blocked_ws_name,
+                                                 debug=debug,
                                                  **prepare_data_conf)
         else:
             blocked_ws = mtd[blocked_ws_name]
 
     # process sample
     sample_ws = prepare_data_workspaces(sample_ws_raw,
-                                        output_workspace=output_workspace,
+                                        output_workspace_name=output_workspace, debug=debug,
                                         **prepare_data_conf)
+
+    if debug:
+        SaveNexusProcessed(InputWorkspace=sample_ws, Filename='sample_prepared.nxs',
+                           Title=f'Prepared Data Workspace: From {str(sample_ws_raw)} to {str(sample_ws)}')
+
+    # raise NotImplementedError('DEBUG STOP')
+
     if blocked_ws_raw:
         sample_ws = subtract_background(sample_ws, blocked_ws)
+        if debug:
+            SaveNexusProcessed(InputWorkspace=sample_ws, Filename='sample_block_subtracted',
+                               Title='Block run subtracted')
+
     # apply transmission to the sample
     if sample_trans_ws or sample_trans_value:
         sample_ws = apply_transmission_correction(sample_ws,
@@ -725,13 +787,16 @@ def process_single_configuration(sample_ws_raw,
                                                   trans_value=sample_trans_value,
                                                   theta_dependent=theta_deppendent_transmission,
                                                   output_workspace=output_workspace)
+        if debug:
+            SaveNexusProcessed(InputWorkspace=sample_ws, Filename='sample_trans_correction',
+                               Title='Transmission corrected')
 
     # process background, if not already processed
     if bkg_ws_raw:
         bkgd_ws_name = output_suffix + '_background'
         if not registered_workspace(bkgd_ws_name):
             bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
-                                              output_workspace=bkgd_ws_name,
+                                              output_workspace_name=bkgd_ws_name,
                                               **prepare_data_conf)
             if blocked_ws_raw:
                 bkgd_ws = subtract_background(bkgd_ws, blocked_ws)
@@ -764,20 +829,29 @@ def process_single_configuration(sample_ws_raw,
             raise ValueError(f"Could not find empty beam {str(empty_beam_ws)}")
 
         ac, ace = attenuation_factor(empty)
-        sample_ws = empty_beam_scaling(sample_ws,
-                                       empty,
-                                       beam_radius=beam_radius,
-                                       unit='mm',
-                                       attenuator_coefficient=ac,
-                                       attenuator_error=ace,
-                                       output_workspace=output_workspace)
+        empty_beam_scaling(sample_ws,
+                           empty,
+                           beam_radius=beam_radius,
+                           unit='mm',
+                           attenuator_coefficient=ac,
+                           attenuator_error=ace,
+                           output_workspace=output_workspace)
     else:
         sample_ws *= absolute_scale
+
+    # Final debug output
+    if debug:
+        plot_detector(input_workspace=str(output_workspace),
+                      filename=f'final_processed_{form_output_name(output_workspace)}',
+                      backend='mpl',
+                      imshow_kwargs={'norm': LogNorm(vmin=1)})
+        SaveNexusProcessed(InputWorkspace=output_workspace,
+                           Filename=f'final_processed_{form_output_name(output_workspace)}.nxs')
 
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True, debug_output=False):
     reduction_config = reduction_input['configuration']
 
     flux_method = reduction_config["normalization"]
@@ -828,10 +902,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                          "peak_search_window_size_factor": reduction_config['autoWedgePeakSearchWindowSizeFactor']}
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
-        print(f'[DEBUG] wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
+        logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
     xc, yc = find_beam_center(loaded_ws.center)
-    print(f"Find beam center  = {xc}, {yc}")
+    logger.notice(f"Find beam center = {xc}, {yc}")
 
     # process the center if using it in absolute scaling
     if absolute_scale_method == 'direct_beam':
@@ -842,7 +916,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                       center_y=yc,
                                                       solid_angle=False,
                                                       sensitivity_workspace=loaded_ws.sensitivity,
-                                                      output_workspace=processed_center_ws_name)
+                                                      output_workspace_name=processed_center_ws_name,
+                                                      debug=debug_output)
     else:
         processed_center_ws = None
 
@@ -855,7 +930,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                  center_y=yc,
                                                  solid_angle=False,
                                                  sensitivity_workspace=loaded_ws.sensitivity,
-                                                 output_workspace=empty_trans_ws_name)
+                                                 output_workspace_name=empty_trans_ws_name)
     else:
         empty_trans_ws = None
 
@@ -869,10 +944,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                           center_y=yc,
                                                           solid_angle=False,
                                                           sensitivity_workspace=loaded_ws.sensitivity,
-                                                          output_workspace=bkgd_trans_ws_name)
+                                                          output_workspace_name=bkgd_trans_ws_name)
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
-        print(f'Background transmission = {bkgd_trans_ws.extractY()[0, 0]}')
+        logger.notice(f'Background transmission = {bkgd_trans_ws.extractY()[0, 0]}')
         background_transmission_dict = {'value': bkgd_trans_ws.extractY(),
                                         'error': bkgd_trans_ws.extractE()}
     else:
@@ -888,10 +963,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                             center_y=yc,
                                                             solid_angle=False,
                                                             sensitivity_workspace=loaded_ws.sensitivity,
-                                                            output_workspace=sample_trans_ws_name)
+                                                            output_workspace_name=sample_trans_ws_name)
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
-        print(f'Sample transmission = {sample_trans_ws.extractY()[0, 0]}')
+        logger.notice(f'Sample transmission = {sample_trans_ws.extractY()[0, 0]}')
         sample_transmission_dict = {'value': sample_trans_ws.extractY(),
                                     'error': sample_trans_ws.extractE()}
     else:
@@ -925,7 +1000,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                            empty_beam_ws=processed_center_ws,
                                                            beam_radius=beam_radius,
                                                            absolute_scale=absolute_scale,
-                                                           keep_processed_workspaces=False)
+                                                           keep_processed_workspaces=False,
+                                                           debug=debug_output)
         # binning
         subpixel_kwargs = dict()
         if reduction_config['useSubpixels'] is True:
@@ -1010,6 +1086,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     allow_overwrite(os.path.join(reduction_config["outputDir"], '2D'))
 
     return output
+
+
+def form_output_name(workspace):
+    workspace_name = str(workspace)
+    file_name = workspace_name.split('/')[-1].split('.')[0]
+    return f'{file_name}.png'
 
 
 def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):

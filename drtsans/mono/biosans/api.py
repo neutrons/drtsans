@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 from mantid.simpleapi import mtd, MaskDetectors, logger
-
+from matplotlib.colors import LogNorm
 
 import drtsans
 from drtsans import getWedgeSelection
@@ -15,7 +15,7 @@ from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_w
 from drtsans.instruments import extract_run_number
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy
-from drtsans.plots import plot_IQmod, plot_IQazimuthal
+from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans import subtract_background
 from drtsans.reductionlog import savereductionlog
 from drtsans.mono import biosans
@@ -48,7 +48,7 @@ SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf=False):
+def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf=False, debug_output=False):
     """load all required files at the beginning, and transform them to histograms
 
     Parameters
@@ -58,13 +58,13 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
     load_params
     path: str or None
         Path to search the NeXus file
-
-    Returns
-    -------
+    use_nexus_idf: bool
+        Flag to enforce to use IDF from NeXus file.  It must be true for SPICE-converted NeXus
+    debug_output: bool
+        Flag to save internal data for debugging
 
     """
-    # TODO/FIXME - need to a parameter in function arguments to load IDF from NeXus file as an option
-    reduction_config = reduction_input['configuration']  # a handy shorcut to the configuration parameters dictionary
+    reduction_config = reduction_input['configuration']  # a handy shortcut to the configuration parameters dictionary
 
     instrument_name = reduction_input['instrumentName']
     ipts = reduction_input['iptsNumber']
@@ -204,10 +204,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
                                                   'units': samplelogs[logslicename].units,
                                                   'name': logslicename}
     else:
+        # Load raw without slicing
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
+            # if sample is not an absolute path to nexus file, convert it to the absolute path
             filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
-            print(f"Loading filename {filename}")
+            logger.notice(f"Loading filename {filename} from sample {sample}")
             biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                               sample_to_si_name=SAMPLE_SI_META_NAME,
                                               si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
@@ -322,7 +324,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
             mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
         else:
             mask_ws = mtd[mask_ws_name]
-    print('Done loading')
 
     if registered_workspace(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'):
         raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group']
@@ -337,6 +338,16 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
     raw_bkg_trans_ws = mtd[f'{prefix}_{instrument_name}_{bkgd_trans}_raw_histo'] if bkgd_trans else None
     sensitivity_main_ws = mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
     sensitivity_wing_ws = mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
+
+    if debug_output:
+        for raw_sample in raw_sample_ws_list:
+            plot_detector(input_workspace=str(raw_sample), filename=form_output_name(raw_sample),
+                          backend='mpl')
+        for ws in [raw_bkgd_ws, raw_center_ws, raw_empty_ws, raw_sample_trans_ws,
+                   raw_bkg_trans_ws, raw_blocked_ws, dark_current_main, dark_current_wing]:
+            if ws is not None:
+                plot_detector(input_workspace=str(ws), filename=form_output_name(ws),
+                              backend='mpl',  imshow_kwargs={'norm': LogNorm(vmin=1)})
 
     return dict(sample=raw_sample_ws_list,
                 background=raw_bkgd_ws,
@@ -765,7 +776,7 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
     allow_overwrite(os.path.join(output_dir, '2D'))
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True, debug_output=False):
     reduction_config = reduction_input["configuration"]
 
     flux_method = reduction_config["normalization"]
@@ -828,7 +839,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         symmetric_wedges = False
 
     xc, yc, yw = biosans.find_beam_center(loaded_ws.center)
-    print("Center  =", xc, yc, yw)
+    logger.notice(f'Find beam center  = {xc}, {yc}, {yw}')
 
     # empty beam transmission workspace
     if loaded_ws.empty is not None:
@@ -842,6 +853,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                  solid_angle=False,
                                                  sensitivity_workspace=loaded_ws.sensitivity_main,
                                                  output_workspace=empty_trans_ws_name)
+        if debug_output:
+            plot_detector(empty_trans_ws, form_output_name(empty_trans_ws), backend='mpl',
+                          imshow_kwargs={'norm': LogNorm(vmin=1)})
     else:
         empty_trans_ws = None
 
@@ -859,7 +873,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                           output_workspace=bkgd_trans_ws_name)
         bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
                                                radius=transmission_radius, radius_unit="mm")
-        print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+        logger.notice(f'Background transmission = {bkgd_trans_ws.extractY()[0, 0]}')
+
+        if debug_output:
+            plot_detector(bkgd_trans_ws_processed, form_output_name(bkgd_trans_ws_processed), backend='mpl',
+                          imshow_kwargs={'norm': LogNorm(vmin=1)})
+
     else:
         bkgd_trans_ws = None
 
@@ -877,7 +896,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                             output_workspace=sample_trans_ws_name)
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
-        print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
+        logger.notice(f'Sample transmission = {sample_trans_ws.extractY()[0, 0]}')
+
+        if debug_output:
+            plot_detector(sample_trans_ws_processed, form_output_name(sample_trans_ws_processed),
+                          backend='mpl',  imshow_kwargs={'norm': LogNorm(vmin=1)})
+
     else:
         sample_trans_ws = None
 
@@ -936,6 +960,21 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                                        beam_radius=beam_radius,
                                                                        absolute_scale=absolute_scale,
                                                                        keep_processed_workspaces=False)
+
+        if debug_output:
+            from mantid.simpleapi import SaveNexusProcessed
+            main_name = f'{form_output_name(processed_data_main).split(".")[0]}.nxs'
+            wing_name = f'{form_output_name(processed_data_wing).split(".")[0]}.nxs'
+            SaveNexusProcessed(InputWorkspace=processed_data_main, Filename=main_name)
+            SaveNexusProcessed(InputWorkspace=processed_data_wing, Filename=wing_name)
+            plot_detector(processed_data_main, form_output_name(processed_data_main),
+                          backend='mpl')  # imshow_kwargs={'norm': LogNorm(vmin=1)})
+            # FIXME - using LogNorm option results in exception from matplotlib as some negative value detected
+            plot_detector(processed_data_wing, form_output_name(processed_data_wing),
+                          backend='mpl')  # , imshow_kwargs={'norm': LogNorm(vmin=1)})
+
+        logger.notice(f'Transmission (main detector): {trans_main}')
+        logger.notice(f'Transmission (wing detector): {trans_wing}')
 
         # binning
         subpixel_kwargs = dict()
@@ -1267,3 +1306,9 @@ def create_output_dir(output_dir):
             os.mkdir(n_d_dir)
 
     return
+
+
+def form_output_name(workspace):
+    workspace_name = str(workspace)
+    file_name = workspace_name.split('/')[-1].split('.')[0]
+    return f'{file_name}.png'

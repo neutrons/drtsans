@@ -169,7 +169,7 @@ def abspaths(runnumbers, instrument='', ipts='', directory=None, search_archive=
     str
         Comma separated list of all of the full paths
     '''
-    # this could be written differentely to call ONCAT directly with all of the missing runnumbers
+    # this could be written differently to call ONCAT directly with all of the missing run numbers
     # once guessing the path didn't work
     filenames = []
     for runnumber in runnumbers.split(','):

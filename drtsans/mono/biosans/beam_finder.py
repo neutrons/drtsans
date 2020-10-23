@@ -1,6 +1,7 @@
 from scipy import constants
 import numpy as np
 import drtsans.beam_finder as bf
+from typing import Tuple
 from mantid import mtd
 from mantid.kernel import logger
 from drtsans.samplelogs import SampleLogs
@@ -78,7 +79,7 @@ def _beam_center_gravitational_drop(ws, beam_center_y, sample_det_cent_main_dete
 
 def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={}, centering_options={},
                      sample_det_cent_main_detector=None, sample_det_cent_wing_detector=None,
-                     solid_angle_method='VerticalTube'):
+                     solid_angle_method='VerticalTube') -> Tuple[float, float, float]:
     """Finds the beam center in a 2D SANS data set.
     This is based on (and uses) :func:`drtsans.find_beam_center`
 

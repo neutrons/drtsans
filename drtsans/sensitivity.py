@@ -47,6 +47,7 @@ def load_sensitivity_workspace(sensitivity_filename, output_workspace):
 
     return mtd[output_workspace]
 
+
 # flake8: noqa: C901
 def apply_sensitivity_correction(input_workspace, sensitivity_filename=None,
                                  sensitivity_workspace=None,

@@ -30,7 +30,6 @@ def test_gaussian_fit():
     MaskBTP(ws, Pixel="1-70,186-256")
     # I use COM to help give good starting position for 2D Gaussian but it works with giving it 0,0
     xc, yc = sans.find_beam_center(ws)
-
     print(xc, yc)
 
     # fitting 2D gaussian to center data
@@ -66,8 +65,8 @@ def test_gaussian_fit():
     params.add('sigma_x', value=0.01, min=1.e-10)  # width in x
     params.add('sigma_y', value=0.01, min=1.e-10)  # width in y
     params.add('theta', value=0.1, min=0., max=np.pi)
-    params.add('x0', value=xc)
-    params.add('y0', value=yc)
+    params.add('x0', value=0.)
+    params.add('y0', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
 
     print(results.fit_report())

@@ -34,34 +34,25 @@ def test_gaussian_fit():
     print(xc,yc)
 
     #fitting 2D gaussian to center data
-    x=[]
-    y=[]
-    intes=[]
-    intes_err=[]
-    keep=[]
-    si=ws.spectrumInfo()
-    for i,it in enumerate(si):
-        pos=si.position(i)
-        is_masked=si.isMasked(i)
-        x.append(pos.X())
-        y.append(pos.Y())
-        keep.append(not is_masked and np.isfinite(ws.readY(i)[0]))
-        intes.append(ws.readY(i)[0])
-        intes_err.append(ws.readE(i)[0])
-    
-    x=np.array(x)
-    y=np.array(y)
-    intes=np.array(intes)
-    intes_err=np.array(intes_err)
+    ws_size = ws.getNumberHistograms()
+    x = np.empty(ws_size)
+    y = np.empty(ws_size)
+    intes = np.empty(ws_size)
+    intes_err = np.empty(ws_size)
+    keep = np.empty(ws_size,dtype=np.bool_)
 
+    for i,si in enumerate(ws.spectrumInfo()):
+        pos = si.position
+        x[i] = pos.X()
+        y[i] = pos.Y()
+        keep[i] = not si.isMasked and np.isfinite(ws.readY(i)[0])
+        intes[i] = ws.readY(i)[0]
+        intes_err[i] = ws.readE(i)[0]
+    
     x=x[keep]
     y=y[keep]
     intes=intes[keep]
     intes_err=intes_err[keep]
-
-    ws2=ws.clone() # used for seeing if 2D Gaussian model gives good data before fitting (not needed for implementation) but good for testing
-    idx=np.arange(ws.getNumberHistograms())
-    idx=idx[keep]
 
     #absolute scaling
     sans.center_detector(ws,xc,yc)
@@ -75,20 +66,15 @@ def test_gaussian_fit():
     params.add('sigma_x',value=0.01,min=1.e-10)#width in x
     params.add('sigma_y',value=0.01,min=1.e-10)#width in y
     params.add('theta',value=0.1, min=0., max=np.pi)
-    params.add('x0',value=0.)
-    params.add('y0',value=0.)
-    results=model.fit(intes, x1=x, y1=y,weights=1/intes_err, params=params)
+    params.add('x0',value=xc)
+    params.add('y0',value=yc)
+    results=model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
 
     print(results.fit_report())
 
     fitted=model.eval(results.params,x1=x,y1=y)
+    assert False
 
-    for i,j in enumerate(idx):
-        ws2.setY(int(j),np.array([fitted[i]]))
-    ws3=ws.clone()
-
-    for i,j in enumerate(idx):
-        ws3.setY(int(j),np.array([intes[i]]))
 
 if __name__ == '__main__':
     pytest.main([__file__])

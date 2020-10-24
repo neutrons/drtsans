@@ -29,9 +29,9 @@ def test_spice_reduction(reference_dir, cleanfile):
     backgrounds = [None]  # Do not repeat multiple times if SAME for ALL samples
     backgrounds_trans = backgrounds  # Enter its own list if different from 'backgrounds' list
 
-    # Change if reducing a subset of 'samples' list
-    start_index = 1  # Default start index is 1; DO NOT START FROM 'ZERO'
-    end_index = len(samples)  # Default is 'len(samples)'
+    # # Change if reducing a subset of 'samples' list
+    # start_index = 1  # Default start index is 1; DO NOT START FROM 'ZERO'
+    # end_index = len(samples)  # Default is 'len(samples)'
 
     # Setup once at the beginning of the experiment
     overWrite = True  # Option to overwrite existing data or create another folder (Default is 'False')
@@ -81,10 +81,6 @@ def test_spice_reduction(reference_dir, cleanfile):
     LogQbinsPerDecade_Main = 25  # No. of bins per decade of 1D Main Detector, Default is 33
     LogQbinsPerDecade_Wing = 25  # No. of bins per decade of 1D Main Detector, Default is 33
 
-    # If time Slicing--
-    timeSliceExpt = False  # 'True' if time slice experiment, else 'False'
-    timeSliceDuration = 60  # Units - seconds and irrelevant if above is 'False'
-
     # ANISOTROPIC DATA REDUCTION--
     # Wedge_0...
     q_range_main_wedge0 = [0.003, 0.0425]  # Q-range for anisotropic data -- wedge0
@@ -109,11 +105,53 @@ def test_spice_reduction(reference_dir, cleanfile):
     BkgWidth_TDW = 1.0  # Wedge1 opening angle based of peak width (Default is 1.5--- 150%)
     MinSigtoNoise_TDW = 2.0  # The intensity ratio between peak and background to detect a peak (Default is 2.0)
 
+    if clearBuffer:
+        clear_buffer()
+
+    # Reduce data
+    test_log_files = reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
+                                          samples, backgrounds, samples_trans, backgrounds_trans, empty_trans,
+                                          beam_center,
+                                          sample_thick, sample_identifier, overWrite,
+                                          dark_mfname, dark_wfname,
+                                          base_output_directory, sens_mfname, sens_wfname,
+                                          scalefac, scaling_beam_radius, Lin1DQbins_Main, Lin1DQbins_Wing,
+                                          Lin2DQxy_Main, Lin2DQxy_Wing, Plot_type, Plot_binning,
+                                          LogQbinsPerDecade_Main, LogQbinsPerDecade_Wing, q_range_main, q_range_wing,
+                                          OL_range, flexible_pixelsizes, wedge_min_angles, wedge_max_angles, Qmin_TDW,
+                                          Qmax_TDW,
+                                          Qdelta_TDW, PeakWidth_TDW, AziDelta_TDW, BkgWidth_TDW, MinSigtoNoise_TDW,
+                                          q_range_main_wedge0, q_range_wing_wedge0, OL_range_wedge0,
+                                          q_range_main_wedge1, q_range_wing_wedge1, OL_range_wedge1, refreshCycle)
+
+    # Verify result
+    gold_file = os.path.join(reference_dir.new.biosans,
+                             'spice_reduction_gold/rCG3_031802200001_Spice_318_217_reduction_log.hdf')
+
+    verify_reduction_results(sample_names, test_log_files, [gold_file], title='SPICE reduction test',
+                             prefix='')
+
+
+def clear_buffer():
     # Body of Reduction - DO NOT CHANGE....
     from mantid.simpleapi import mtd  # noqa: E401
-    if clearBuffer:
-        mtd.clear()
+    mtd.clear()
 
+
+def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
+                         samples, backgrounds, samples_trans, backgrounds_trans, empty_trans,
+                         beam_center,
+                         sample_thick, sample_identifier, overWrite,
+                         dark_mfname, dark_wfname,
+                         base_output_directory, sens_mfname, sens_wfname,
+                         scalefac, scaling_beam_radius, Lin1DQbins_Main, Lin1DQbins_Wing,
+                         Lin2DQxy_Main, Lin2DQxy_Wing, Plot_type, Plot_binning,
+                         LogQbinsPerDecade_Main, LogQbinsPerDecade_Wing, q_range_main, q_range_wing,
+                         OL_range,    flexible_pixelsizes, wedge_min_angles, wedge_max_angles, Qmin_TDW, Qmax_TDW,
+                         Qdelta_TDW, PeakWidth_TDW, AziDelta_TDW, BkgWidth_TDW, MinSigtoNoise_TDW,
+                         q_range_main_wedge0, q_range_wing_wedge0, OL_range_wedge0,
+                         q_range_main_wedge1, q_range_wing_wedge1, OL_range_wedge1, refreshCycle
+                         ):
     import numpy as np  # noqa: E401
     import warnings  # noqa: E401
     warnings.filterwarnings('ignore')
@@ -170,8 +208,8 @@ def test_spice_reduction(reference_dir, cleanfile):
             "overlapStitchQmin": OL_range[0],
             "overlapStitchQmax": OL_range[1],
             "usePixelCalibration": flexible_pixelsizes,
-            "useTimeSlice": timeSliceExpt,
-            "timeSliceInterval": timeSliceDuration,
+            "useTimeSlice": False,
+            "timeSliceInterval": 60,
             "WedgeMinAngles": wedge_min_angles,
             "WedgeMaxAngles": wedge_max_angles,
             "autoWedgeQmin": Qmin_TDW,
@@ -215,7 +253,7 @@ def test_spice_reduction(reference_dir, cleanfile):
             output_dir = base_output_directory[0, len(base_output_directory) - 2] + "_" + str(suffix) + "/"
             suffix += 1
 
-    if not timeSliceExpt and sample_identifier is not '':
+    if sample_identifier is not '':
         if sample_identifier is not '':
             output_dir = base_output_directory + str(sample_identifier) + "/"
             change_outputdir = {
@@ -233,22 +271,8 @@ def test_spice_reduction(reference_dir, cleanfile):
 
     start_time = time.time()
     # Loop for samples
-    for i in range(start_index - 1, end_index):
+    for i, sample_name in enumerate(sample_names):
         start_time_loop = time.time()
-        if timeSliceExpt:
-            output_dir = base_output_directory + "timeslice/t" + str(timeSliceDuration) + "/" + sample_names[i] + "/"
-            timeslice_outputdir = {
-                'configuration': {
-                    'outputDir': output_dir,
-                },
-            }
-            common_configuration_full = update_reduction_parameters(common_configuration_full,
-                                                                    timeslice_outputdir,
-                                                                    validate=False)
-            for subfolder in ['1D', '2D']:
-                output_folder = os.path.join(output_dir, subfolder)
-                if not os.path.exists(output_folder):
-                    os.makedirs(output_folder)
 
         # form base output file name
         if isinstance(samples[i], str) and os.path.exists(samples[i]):
@@ -288,21 +312,17 @@ def test_spice_reduction(reference_dir, cleanfile):
         print('\nloop_' + str(i + 1) + ": ", time.time() - start_time_loop)
 
         if np.remainder(i, refreshCycle) == 0 and i > 0:
-            mtd.clear()
+            # mtd.clear()
+            clear_buffer()
 
     print('Total Time : ', time.time() - start_time)
-
-    # Verify result
-    gold_file = os.path.join(reference_dir.new.biosans,
-                             'spice_reduction_gold/rCG3_031802200001_Spice_318_217_reduction_log.hdf')
 
     def generate_output_log_file(output_directory, file_base_name, file_suffix):
         filename = os.path.join(output_directory,  f'{file_base_name}_reduction_log{file_suffix}.hdf')
         return filename
 
     # samples shall be list of file names
-    print(samples)
-    test_log_file = None
+    test_log_files = list()
     for i_s, sample in enumerate(samples):
 
         if isinstance(samples[i_s], str) and os.path.exists(samples[i_s]):
@@ -312,12 +332,12 @@ def test_spice_reduction(reference_dir, cleanfile):
             part1 = samples[i_s]
         output_file_name = f'r{part1}_{sample_names[i_s]}'
 
-        test_log_file = generate_output_log_file(output_dir, output_file_name, '')
+        test_log_file = generate_output_log_file(base_output_directory, output_file_name, '')
         print(test_log_file)
-        assert os.path.exists(test_log_file)
+        assert os.path.exists(test_log_file), f'Output log file {test_log_file} cannot be found.'
+        test_log_files.append(test_log_file)
 
-    verify_reduction_results(sample_names, [test_log_file], [gold_file], title='SPICE reduction test',
-                             prefix='')
+    return test_log_files
 
 
 def verify_reduction_results(sample_names, test_log_files, gold_files, title, prefix):

@@ -1096,6 +1096,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     # save reduction log
 
     filename = os.path.join(reduction_config["outputDir"], outputFilename + f'_reduction_log{output_suffix}.hdf')
+    #
+    # raise RuntimeError(f'Output file name = {filename}, Path = {reduction_config["outputDir"]},'
+    #                    f'Basename = {outputFilename}, Output suffix = {output_suffix}')
+
     starttime = datetime.now().isoformat()
     # try:
     #     pythonfile = __file__

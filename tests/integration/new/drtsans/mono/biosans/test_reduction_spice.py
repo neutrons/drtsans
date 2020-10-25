@@ -125,7 +125,8 @@ def test_spice_reduction(reference_dir, cleanfile):
                                           Qmax_TDW,
                                           Qdelta_TDW, PeakWidth_TDW, AziDelta_TDW, BkgWidth_TDW, MinSigtoNoise_TDW,
                                           q_range_main_wedge0, q_range_wing_wedge0, OL_range_wedge0,
-                                          q_range_main_wedge1, q_range_wing_wedge1, OL_range_wedge1, refreshCycle)
+                                          q_range_main_wedge1, q_range_wing_wedge1, OL_range_wedge1, refreshCycle,
+                                          nexus_dir=os.path.join(reference_dir.new.biosans, 'Exp318'))
 
     # Verify result
     gold_file = os.path.join(reference_dir.new.biosans,

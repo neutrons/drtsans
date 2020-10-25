@@ -19,8 +19,8 @@ def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
                          OL_range,    flexible_pixelsizes, wedge_min_angles, wedge_max_angles, Qmin_TDW, Qmax_TDW,
                          Qdelta_TDW, PeakWidth_TDW, AziDelta_TDW, BkgWidth_TDW, MinSigtoNoise_TDW,
                          q_range_main_wedge0, q_range_wing_wedge0, OL_range_wedge0,
-                         q_range_main_wedge1, q_range_wing_wedge1, OL_range_wedge1, refreshCycle
-                         ):
+                         q_range_main_wedge1, q_range_wing_wedge1, OL_range_wedge1, refreshCycle,
+                         nexus_dir=None):
     import numpy as np  # noqa: E401
     import warnings  # noqa: E401
     warnings.filterwarnings('ignore')
@@ -31,14 +31,14 @@ def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
 
     # Convert SPICE scan-pt tuple to NeXus files
     CG3 = 'CG3'
-    samples = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples, nexus_dir=None)
-    samples_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples_trans, nexus_dir=None)
-    backgrounds = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds, nexus_dir=None)
-    backgrounds_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds_trans, nexus_dir=None)
-    beam_center = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [beam_center], nexus_dir=None)[0]
-    empty_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [empty_trans], nexus_dir=None)[0]
-    dark_mfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_mfname], nexus_dir=None)[0]
-    dark_wfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_wfname], nexus_dir=None)[0]
+    samples = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples, nexus_dir=nexus_dir)
+    samples_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples_trans, nexus_dir=nexus_dir)
+    backgrounds = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds, nexus_dir=nexus_dir)
+    backgrounds_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds_trans, nexus_dir=nexus_dir)
+    beam_center = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [beam_center], nexus_dir=nexus_dir)[0]
+    empty_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [empty_trans], nexus_dir=nexus_dir)[0]
+    dark_mfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_mfname], nexus_dir=nexus_dir)[0]
+    dark_wfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_wfname], nexus_dir=nexus_dir)[0]
 
     from drtsans.mono.biosans import (load_all_files, reduce_single_configuration, plot_reduction_output,
                                       reduction_parameters, update_reduction_parameters)  # noqa: E401

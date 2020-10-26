@@ -67,5 +67,6 @@ def test_gaussian_fit():
 
     print(results.fit_report())
 
+
 if __name__ == '__main__':
     pytest.main([__file__])

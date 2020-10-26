@@ -113,7 +113,7 @@ def map_to_nexus(beam_line: str,
                  ipts_number: int,
                  exp_number: int,
                  scan_pt_list: List[Union[Tuple[int, int], None]],
-                 nexus_dir: str = None):
+                 nexus_dir: str = None) -> List[str]:
     """Map SPICE information to converted NeXus file path
 
     Parameters
@@ -131,7 +131,7 @@ def map_to_nexus(beam_line: str,
 
     Returns
     -------
-    list
+    ~list
         list of Nexus files with the same order with scan-pt
 
     """

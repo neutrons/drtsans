@@ -35,7 +35,7 @@ def panel_names(input_query):
     return detector_names
 
 
-def detector_name(ipt):
+def main_detector_name(ipt):
     r"""
     Name of the main detector array
 
@@ -75,7 +75,7 @@ def main_detector_panel(source):
     -------
     ~mantid.geometry.CompAssembly
     """
-    return get_instrument(source).getComponentByName(detector_name(source))
+    return get_instrument(source).getComponentByName(main_detector_name(source))
 
 
 def bank_workspace_index_range(input_workspace, component=''):
@@ -451,7 +451,7 @@ def sample_detector_distance(source, unit='mm', log_key=None,
 
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
-    det = instrument.getComponentByName(detector_name(source))
+    det = instrument.getComponentByName(main_detector_name(source))
     return det.getDistance(instrument.getSample()) * m2units[unit]
 
 
@@ -745,7 +745,7 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
         if detector_z_log in sample_logs:
             translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in millimeters
             # Has the detector already been translated by this quantity?
-            main_detector_array = detector_name(input_workspace)
+            main_detector_array = main_detector_name(input_workspace)
             _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
             if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one millimeter
                 z = translation_from_log
@@ -754,9 +754,9 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
         update_log = True
         if (not relative) or (z != 0.):
             logger.debug('Moving detector along Z = {}  is relative = {} to component {}'
-                         ''.format(z, relative, detector_name(input_workspace)))
+                         ''.format(z, relative, main_detector_name(input_workspace)))
 
-            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
+            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=main_detector_name(input_workspace),
                                     RelativePosition=relative)
 
     # update the appropriate log

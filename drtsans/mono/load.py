@@ -256,7 +256,12 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     logs = SampleLogs(ws)
 
     # Get original sample detector distance
-    das_sdd = sample_detector_distance(ws, search_logs=True)
+    if sample_detector_distance_overwrite_value is None:
+        # respect the das-recorded SDD
+        das_sdd = sample_detector_distance(ws, search_logs=True, unit='mm')
+    else:
+        # sample overwrite value: input is meter
+        das_sdd = sample_detector_distance_overwrite_value * 1000
 
     # record some raw (prior to any processing) geometry information
     prior_geom_info = f'{ws}: \n' \
@@ -288,9 +293,11 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                             sample_detector_distance(ws, search_logs=True)))
 
     # Verification
-    calculated_sdd = sample_detector_distance(ws, search_logs=False)
+    calculated_sdd = sample_detector_distance(ws, search_logs=False, unit='mm')
 
-    if abs(das_sdd - calculated_sdd) / das_sdd > 1E-6:
+    # FIXME - absolute 0.01 mm is not a criteria restrict enough: 10E-2 mm will fail the test
+    criteria_mm = 1E-2
+    if abs(das_sdd - calculated_sdd) > criteria_mm:  # absolute difference: 0.02 mm.  not good!
         logs = SampleLogs(ws)
         prior_geom_info += f'Result from geometry operation:\n' \
                            f'Sample position = {ws.getInstrument().getSample().getPos()}\n' \
@@ -299,11 +306,16 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
         # add detector information
         prior_geom_info += f'Detector[0] pos = {ws.getDetector(0).getPos()}\n'
 
+        shift_det_x = ws.getRun().getProperty('detector_trans_Readback').value
+        shift_det_x_unit = ws.getRun().getProperty('detector_trans_Readback').units
+        prior_geom_info += f'Detector translation X-axis = {shift_det_x} ({shift_det_x_unit})\n'
+
         # form error message
-        error_msg = f'{str(ws)}: DAS SDD = {das_sdd} != ' \
-                    f'Calculated SDD = {calculated_sdd}.' \
-                    f'Error = {abs(das_sdd - calculated_sdd) / das_sdd} > 1E-6.  FYI\n' \
-                    f'{prior_geom_info}\n' \
+        error_msg = f'{str(ws)}: DAS SDD = {das_sdd} (mm), ' \
+                    f'Overwrite SDD = {sample_detector_distance_overwrite_value}, ' \
+                    f'Calculated SDD = {calculated_sdd} (mm).' \
+                    f'Error = {abs(das_sdd - calculated_sdd)} > {criteria_mm}.\n' \
+                    f'FYI:\n {prior_geom_info}\n' \
                     f'Failed workspace is saved to mono_sans_run_geometry_error.nxs'
 
         logger.error(error_msg)

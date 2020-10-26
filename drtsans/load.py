@@ -153,15 +153,26 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
     else:
         # For TOF (i.e., EQSANS), still translate sample and detector as usual
-        das_log_sdd = sample_detector_distance(output_workspace, search_logs=True, forbid_calculation=True)
+        try:
+            # get DAS recorded SDD
+            das_sdd = sample_detector_distance(output_workspace, search_logs=True, forbid_calculation=True)
+        except RuntimeError as run_err:
+            # it may  not exist
+            if 'Unable to find any meta data related to SDD' in str(run_err):
+                # it is fine if das recorded SDD does not exist
+                das_sdd = None
+            else:
+                raise run_err
 
         translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
         translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
         translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
         real_sdd = sample_detector_distance(output_workspace, search_logs=False)
-        assert das_log_sdd == real_sdd, f'EQSANS: required SDD = {das_log_sdd},' \
-                                        f'calculated SDD after moving {real_sdd}'
+        logger.notice(f'EQSANS workspace {str(output_workspace)} SDD is equal to {real_sdd}')
+
+        if das_sdd is not None:
+            assert real_sdd == das_sdd, f'EQSANS DAS SDD = {das_sdd}, Real SDD = {real_sdd}'
 
     return mtd[output_workspace]
 

@@ -70,7 +70,6 @@ def test_gaussian_fit():
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
 
     print(results.fit_report())
-    assert False
 
 
 if __name__ == '__main__':

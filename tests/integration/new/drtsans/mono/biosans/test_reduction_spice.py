@@ -1,8 +1,9 @@
 import pytest
-import os
 from tempfile import mkdtemp
 import h5py
 import numpy as np
+from drtsans.mono.biosans.reduce_spice import reduce_biosans_nexus, clear_buffer  # noqa: E401
+import os
 
 
 def test_spice_reduction(reference_dir, cleanfile):
@@ -102,10 +103,6 @@ def test_spice_reduction(reference_dir, cleanfile):
     AziDelta_TDW = 1.0  # Azimuthal Angle, Phi step-size
     BkgWidth_TDW = 1.0  # Wedge1 opening angle based of peak width (Default is 1.5--- 150%)
     MinSigtoNoise_TDW = 2.0  # The intensity ratio between peak and background to detect a peak (Default is 2.0)
-
-    # Import
-    from drtsans.mono.biosans.reduce_spice import reduce_biosans_nexus, clear_buffer  # noqa: E401
-    import os
 
     if clearBuffer:
         clear_buffer()

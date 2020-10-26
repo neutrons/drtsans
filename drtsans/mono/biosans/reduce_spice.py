@@ -1,72 +1,111 @@
 import os
+from typing import List, Tuple, Union
+import numpy as np
+import time
+from mantid.simpleapi import mtd
+from drtsans.mono.spice_data import map_to_nexus
+from drtsans.mono.biosans import (load_all_files, reduce_single_configuration, plot_reduction_output,
+                                  reduction_parameters, update_reduction_parameters)
+import warnings
+warnings.filterwarnings('ignore')
+
+CG3 = 'CG3'
 
 
 def clear_buffer():
-    # Body of Reduction - DO NOT CHANGE....
-    from mantid.simpleapi import mtd  # noqa: E401
+    """Clear memory buffer: clear mantid workspaces
+    """
     mtd.clear()
 
 
-def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
-                         samples, backgrounds, samples_trans, backgrounds_trans, empty_trans,
-                         beam_center,
-                         sample_thick, sample_identifier, overWrite,
-                         dark_mfname, dark_wfname,
-                         base_output_directory, sens_mfname, sens_wfname,
-                         scalefac, scaling_beam_radius, Lin1DQbins_Main, Lin1DQbins_Wing,
-                         Lin2DQxy_Main, Lin2DQxy_Wing, Plot_type, Plot_binning,
-                         LogQbinsPerDecade_Main, LogQbinsPerDecade_Wing, q_range_main, q_range_wing,
-                         OL_range,    flexible_pixelsizes, wedge_min_angles, wedge_max_angles, Qmin_TDW, Qmax_TDW,
-                         Qdelta_TDW, PeakWidth_TDW, AziDelta_TDW, BkgWidth_TDW, MinSigtoNoise_TDW,
-                         q_range_main_wedge0, q_range_wing_wedge0, OL_range_wedge0,
-                         q_range_main_wedge1, q_range_wing_wedge1, OL_range_wedge1, refreshCycle,
-                         nexus_dir=None):
-    import numpy as np  # noqa: E401
-    import warnings  # noqa: E401
-    warnings.filterwarnings('ignore')
-
-    # get_ipython().run_line_magic('matplotlib', 'inline')
-    import time  # noqa: E401
-    from drtsans.mono.spice_data import map_to_nexus  # noqa: E401
+def reduce_biosans_nexus(ipts_number: int,
+                         experiment_number: int,
+                         sample_names: List[str],
+                         sample_runs: List[Tuple[int, int]],
+                         background_runs: List[Union[None, Tuple[int, int]]],
+                         sample_transmission_runs: List[Tuple[int, int]],
+                         background_transmission_runs: List[Union[None, Tuple[int, int]]],
+                         empty_transmission_run: Tuple[int, int],
+                         beam_center_runs: Tuple[int, int],
+                         sample_thickness_list: List[Union[str, float]],
+                         sample_identifier: str,
+                         overwrite_reduced_data: bool,
+                         main_detector_dark_run: Tuple[int, int],
+                         wing_detector_dark_run: Tuple[int, int],
+                         base_output_directory: str,
+                         main_detector_sensitivities_file: str,
+                         wing_detector_sensitivities_file: str,
+                         scale_factor: Union[float, str, None],
+                         scaling_beam_radius: Union[float, str, None],
+                         number_linear_q1d_bins_main_detector: Union[int, str],
+                         number_linear_q1d_bins_wing_detector: Union[int, str],
+                         number_linear_q2d_bins_main_detector: Union[int, str],
+                         number_linear_q2d_bins_wing_detector: Union[int, str],
+                         plot_type: str,
+                         plot_binning: str,
+                         number_log_bins_per_decade_main_detector: int,
+                         number_log_bins_per_decade_wing_detector: int,
+                         q_range_main: Union[List[float], Tuple[float, float]],
+                         q_range_wing: Union[List[float], Tuple[float, float]],
+                         overlap_stitch_range: Union[List[float], Tuple[float, float]],
+                         flexible_pixel_sizes: bool,
+                         wedge_min_angles: Union[List[float], None],
+                         wedge_max_angles: Union[List[float], None],
+                         auto_wedge_qmin: float,
+                         auto_wedge_qmax: float,
+                         auto_wedge_delta_q: float,
+                         auto_wedge_peak_width: float,
+                         auto_wedge_delta_azimuthal_angle: float,
+                         auto_wedge_background_width: float,
+                         auto_wedge_minimum_signal_to_noise_ratio: float,
+                         q_range_main_wedge0: Union[Tuple[float, float], List[float]],
+                         q_range_wing_wedge0: Union[Tuple[float, float], List[float]],
+                         OL_range_wedge0: Union[Tuple[float, float], List[float]],
+                         q_range_main_wedge1: Union[Tuple[float, float], List[float]],
+                         q_range_wing_wedge1: Union[Tuple[float, float], List[float]],
+                         OL_range_wedge1: Union[Tuple[float, float], List[float]],
+                         refresh_cycle: int,
+                         nexus_dir: Union[str, None]):
 
     # Convert SPICE scan-pt tuple to NeXus files
-    CG3 = 'CG3'
-    samples = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples, nexus_dir=nexus_dir)
-    samples_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, samples_trans, nexus_dir=nexus_dir)
-    backgrounds = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds, nexus_dir=nexus_dir)
-    backgrounds_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, backgrounds_trans, nexus_dir=nexus_dir)
-    beam_center = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [beam_center], nexus_dir=nexus_dir)[0]
-    empty_trans = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [empty_trans], nexus_dir=nexus_dir)[0]
-    dark_mfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_mfname], nexus_dir=nexus_dir)[0]
-    dark_wfname = map_to_nexus(CG3, IPTS_Number, EXPERIMENT_NUMBER, [dark_wfname], nexus_dir=nexus_dir)[0]
-
-    from drtsans.mono.biosans import (load_all_files, reduce_single_configuration, plot_reduction_output,
-                                      reduction_parameters, update_reduction_parameters)  # noqa: E401
+    sample_runs = map_to_nexus(CG3, ipts_number, experiment_number, sample_runs, nexus_dir=nexus_dir)
+    sample_transmission_runs = map_to_nexus(CG3, ipts_number, experiment_number, sample_transmission_runs,
+                                            nexus_dir=nexus_dir)
+    background_runs = map_to_nexus(CG3, ipts_number, experiment_number, background_runs, nexus_dir=nexus_dir)
+    background_transmission_runs = map_to_nexus(CG3, ipts_number, experiment_number, background_transmission_runs,
+                                                nexus_dir=nexus_dir)
+    beam_center_runs = map_to_nexus(CG3, ipts_number, experiment_number, [beam_center_runs], nexus_dir=nexus_dir)[0]
+    empty_transmission_run = map_to_nexus(CG3, ipts_number, experiment_number, [empty_transmission_run],
+                                          nexus_dir=nexus_dir)[0]
+    main_detector_dark_run = map_to_nexus(CG3, ipts_number, experiment_number, [main_detector_dark_run],
+                                          nexus_dir=nexus_dir)[0]
+    wing_detector_dark_run = map_to_nexus(CG3, ipts_number, experiment_number, [wing_detector_dark_run],
+                                          nexus_dir=nexus_dir)[0]
 
     # reduction parameters common to all the reduction runs to be carried out in this notebook
     common_configuration = {
-        "iptsNumber": IPTS_Number,
-        "beamCenter": {"runNumber": beam_center},
-        "emptyTransmission": {"runNumber": empty_trans},
+        "iptsNumber": ipts_number,
+        "beamCenter": {"runNumber": beam_center_runs},
+        "emptyTransmission": {"runNumber": empty_transmission_run},
         "configuration": {
             "outputDir": base_output_directory,
-            "darkMainFileName": dark_mfname,
-            "darkWingFileName": dark_wfname,
-            "sensitivityMainFileName": sens_mfname,
-            "sensitivityWingFileName": sens_wfname,
+            "darkMainFileName": main_detector_dark_run,
+            "darkWingFileName": wing_detector_dark_run,
+            "sensitivityMainFileName": main_detector_sensitivities_file,
+            "sensitivityWingFileName": wing_detector_sensitivities_file,
             "defaultMask": [{'Pixel': '1-18,239-256'}, {'Bank': '18-24,42-48'}, {'Bank': '49', 'Tube': '1'}],
-            'StandardAbsoluteScale': scalefac,
+            'StandardAbsoluteScale': scale_factor,
             "DBScalingBeamRadius": scaling_beam_radius,
             "mmRadiusForTransmission": "",
             "absoluteScaleMethod": "standard",
-            "numMainQBins": Lin1DQbins_Main,
-            "numWingQBins": Lin1DQbins_Wing,
-            "numMainQxQyBins": Lin2DQxy_Main,
-            "numWingQxQyBins": Lin2DQxy_Wing,
-            "1DQbinType": Plot_type,
-            "QbinType": Plot_binning,
-            "LogQBinsPerDecadeMain": LogQbinsPerDecade_Main,
-            "LogQBinsPerDecadeWing": LogQbinsPerDecade_Wing,
+            "numMainQBins": number_linear_q1d_bins_main_detector,
+            "numWingQBins": number_linear_q1d_bins_wing_detector,
+            "numMainQxQyBins": number_linear_q2d_bins_main_detector,
+            "numWingQxQyBins": number_linear_q2d_bins_wing_detector,
+            "1DQbinType": plot_type,
+            "QbinType": plot_binning,
+            "LogQBinsPerDecadeMain": number_log_bins_per_decade_main_detector,
+            "LogQBinsPerDecadeWing": number_log_bins_per_decade_wing_detector,
             "useLogQBinsDecadeCenter": False,
             "useLogQBinsEvenDecade": False,
             "sampleApertureSize": 14,
@@ -74,20 +113,20 @@ def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
             "QmaxMain": q_range_main[1],
             "QminWing": q_range_wing[0],
             "QmaxWing": q_range_wing[1],
-            "overlapStitchQmin": OL_range[0],
-            "overlapStitchQmax": OL_range[1],
-            "usePixelCalibration": flexible_pixelsizes,
+            "overlapStitchQmin": overlap_stitch_range[0],
+            "overlapStitchQmax": overlap_stitch_range[1],
+            "usePixelCalibration": flexible_pixel_sizes,
             "useTimeSlice": False,
             "timeSliceInterval": 60,
             "WedgeMinAngles": wedge_min_angles,
             "WedgeMaxAngles": wedge_max_angles,
-            "autoWedgeQmin": Qmin_TDW,
-            "autoWedgeQmax": Qmax_TDW,
-            "autoWedgeQdelta": Qdelta_TDW,
-            "autoWedgePeakWidth": PeakWidth_TDW,
-            "autoWedgeAzimuthalDelta": AziDelta_TDW,
-            "autoWedgeBackgroundWidth": BkgWidth_TDW,
-            "autoWedgeSignalToNoiseMin": MinSigtoNoise_TDW,
+            "autoWedgeQmin": auto_wedge_qmin,
+            "autoWedgeQmax": auto_wedge_qmax,
+            "autoWedgeQdelta": auto_wedge_delta_q,
+            "autoWedgePeakWidth": auto_wedge_peak_width,
+            "autoWedgeAzimuthalDelta": auto_wedge_delta_azimuthal_angle,
+            "autoWedgeBackgroundWidth": auto_wedge_background_width,
+            "autoWedgeSignalToNoiseMin": auto_wedge_minimum_signal_to_noise_ratio,
             "wedge1QminMain": q_range_main_wedge0[0],
             "wedge1QmaxMain": q_range_main_wedge0[1],
             "wedge1QminWing": q_range_wing_wedge0[0],
@@ -106,17 +145,17 @@ def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
     common_configuration_full = reduction_parameters(common_configuration, 'BIOSANS', validate=False)
     # pretty_print(common_configuration_full)
 
-    if len(backgrounds) == 1 and len(samples) > len(backgrounds):
-        backgrounds = backgrounds * len(samples)
-    if len(backgrounds_trans) == 1 and len(samples_trans) > len(backgrounds_trans):
-        backgrounds_trans = backgrounds_trans * len(samples_trans)
-    if len(sample_thick) == 1 and len(samples) > len(sample_thick):
-        sample_thick = sample_thick * len(samples)
+    if len(background_runs) == 1 and len(sample_runs) > len(background_runs):
+        background_runs = background_runs * len(sample_runs)
+    if len(background_transmission_runs) == 1 and len(sample_transmission_runs) > len(background_transmission_runs):
+        background_transmission_runs = background_transmission_runs * len(sample_transmission_runs)
+    if len(sample_thickness_list) == 1 and len(sample_runs) > len(sample_thickness_list):
+        sample_thickness_list = sample_thickness_list * len(sample_runs)
 
     # Checking if output directory exists, if it doesn't, creates the folder
     # Also, if do not overwrite, then makes sure the directory does not exists.
     output_dir = base_output_directory
-    if not overWrite:
+    if not overwrite_reduced_data:
         suffix = 0
         while os.path.exists(output_dir):
             output_dir = base_output_directory[0, len(base_output_directory) - 2] + "_" + str(suffix) + "/"
@@ -144,22 +183,22 @@ def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
         start_time_loop = time.time()
 
         # form base output file name
-        if isinstance(samples[i], str) and os.path.exists(samples[i]):
+        if isinstance(sample_runs[i], str) and os.path.exists(sample_runs[i]):
             # a full path to NeXus is given
-            part1 = os.path.basename(samples[i]).split('.')[0]
+            part1 = os.path.basename(sample_runs[i]).split('.')[0]
         else:
-            part1 = samples[i]
+            part1 = sample_runs[i]
         output_file_name = f'r{part1}_{sample_names[i]}'
 
         run_data = {
             'sample': {
-                'runNumber': samples[i],
-                'thickness': sample_thick[i],
-                'transmission': {'runNumber': samples_trans[i]}
+                'runNumber': sample_runs[i],
+                'thickness': sample_thickness_list[i],
+                'transmission': {'runNumber': sample_transmission_runs[i]}
             },
             'background': {
-                'runNumber': backgrounds[i],
-                'transmission': {'runNumber': backgrounds_trans[i]}
+                'runNumber': background_runs[i],
+                'transmission': {'runNumber': background_transmission_runs[i]}
             },
             'outputFileName': output_file_name,
         }
@@ -180,7 +219,7 @@ def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
 
         print('\nloop_' + str(i + 1) + ": ", time.time() - start_time_loop)
 
-        if np.remainder(i, refreshCycle) == 0 and i > 0:
+        if np.remainder(i, refresh_cycle) == 0 and i > 0:
             # mtd.clear()
             clear_buffer()
 
@@ -192,13 +231,13 @@ def reduce_biosans_nexus(IPTS_Number, EXPERIMENT_NUMBER, sample_names,
 
     # samples shall be list of file names
     test_log_files = list()
-    for i_s, sample in enumerate(samples):
+    for i_s, sample in enumerate(sample_runs):
 
-        if isinstance(samples[i_s], str) and os.path.exists(samples[i_s]):
+        if isinstance(sample_runs[i_s], str) and os.path.exists(sample_runs[i_s]):
             # a full path to NeXus is given
-            part1 = os.path.basename(samples[i_s]).split('.')[0]
+            part1 = os.path.basename(sample_runs[i_s]).split('.')[0]
         else:
-            part1 = samples[i_s]
+            part1 = sample_runs[i_s]
         output_file_name = f'r{part1}_{sample_names[i_s]}'
 
         test_log_file = generate_output_log_file(base_output_directory, output_file_name, '')

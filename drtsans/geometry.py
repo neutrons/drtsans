@@ -408,7 +408,7 @@ def search_source_sample_distance_meta_name(source, specified_meta_name):
 def sample_detector_distance(source, unit='mm', log_key=None,
                              search_logs=True, forbid_calculation=False):
     r"""
-    Return the distance from the sample to the detector bank
+    Return the distance from the sample to the main detector bank plane
 
     The function checks the logs for the distance, otherwise returns the
     minimum distance between the sample and the detectors of the bank
@@ -452,7 +452,12 @@ def sample_detector_distance(source, unit='mm', log_key=None,
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
     det = instrument.getComponentByName(main_detector_name(source))
-    return det.getDistance(instrument.getSample()) * m2units[unit]
+
+    det_pos = det.getPos()
+    sample_pos = instrument.getSample().getPos()
+    sample_det_plane_distance = abs(det_pos.Z() - sample_pos.Z())
+
+    return sample_det_plane_distance * m2units[unit]
 
 
 def search_sample_detector_distance_meta_name(source, specified_meta_name):

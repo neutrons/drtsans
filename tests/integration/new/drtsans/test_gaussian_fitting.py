@@ -17,6 +17,7 @@ def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     val = amplitude * np.exp(-(a*(x1-x0)**2 + 2.*b*(x1-x0)*(y1-y0) + c*(y1-y0)**2))
     return val
 
+
 @pytest.mark.skipif(not os.path.exists('/HFIR/CG2/IPTS-26004/nexus/CG2_13078.nxs.h5'))
 def test_gaussian_fit():
     flood_file = '/HFIR/CG2/shared/drt_sensitivity/sens_c489_bar.nxs'

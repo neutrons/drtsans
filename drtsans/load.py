@@ -136,13 +136,14 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     translate_source_by_z(output_workspace, z=None, relative=False)
 
     # FIXME (485) - This shall be modified accordingly
+    from drtsans.geometry import sample_detector_distance
+
     if is_mono:
         # HFIR-SANS: use new method
         # --- Debug Exception Section
         out_ws = mtd[str(output_workspace)]
         mantid.logger.debug('Before translate source and sample')
         mantid.logger.debug('Sample position = {}'.format(out_ws.getInstrument().getSample().getPos()))
-        from drtsans.geometry import sample_detector_distance
         mantid.logger.debug('SDD = {} (meta) and {} (calculated)'
                             ''.format(sample_detector_distance(output_workspace, search_logs=True),
                                       sample_detector_distance(output_workspace, search_logs=False)))
@@ -152,9 +153,15 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
 
     else:
         # For TOF (i.e., EQSANS), still translate sample and detector as usual
+        das_log_sdd = sample_detector_distance(output_workspace, search_logs=True, forbid_calculation=True)
+
         translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
         translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
         translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
+
+        real_sdd = sample_detector_distance(output_workspace, search_logs=False)
+        assert das_log_sdd == real_sdd, f'EQSANS: required SDD = {das_log_sdd},' \
+                                        f'calculated SDD after moving {real_sdd}'
 
     return mtd[output_workspace]
 

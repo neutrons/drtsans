@@ -255,6 +255,9 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     # Information output before
     logs = SampleLogs(ws)
 
+    # Get original sample detector distance
+    das_sdd = sample_detector_distance(ws, search_logs=True)
+
     # record some raw (prior to any processing) geometry information
     prior_geom_info = f'{ws}: \n' \
                       f'Prior to any geometry correction:\n' \
@@ -285,33 +288,31 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                             sample_detector_distance(ws, search_logs=True)))
 
     # Verification
-    if sample_detector_distance_overwrite_value is None and sample_si_window_overwrite_value is None:
-        das_sdd = sample_detector_distance(ws, search_logs=True)
-        calculated_sdd = sample_detector_distance(ws, search_logs=False)
+    calculated_sdd = sample_detector_distance(ws, search_logs=False)
 
-        if abs(das_sdd - calculated_sdd)/das_sdd > 1E-6:
-            logs = SampleLogs(ws)
-            prior_geom_info += f'Result from geometry operation:\n' \
-                               f'Sample position = {ws.getInstrument().getSample().getPos()}\n' \
-                               f'SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")}' \
-                               f'mm (From Log)\n'
-            # add detector information
-            prior_geom_info += f'Detector[0] pos = {ws.getDetector(0).getPos()}\n'
+    if abs(das_sdd - calculated_sdd) / das_sdd > 1E-6:
+        logs = SampleLogs(ws)
+        prior_geom_info += f'Result from geometry operation:\n' \
+                           f'Sample position = {ws.getInstrument().getSample().getPos()}\n' \
+                           f'SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")}' \
+                           f'mm (From Log)\n'
+        # add detector information
+        prior_geom_info += f'Detector[0] pos = {ws.getDetector(0).getPos()}\n'
 
-            # form error message
-            error_msg = f'{str(ws)}: DAS SDD = {das_sdd} != ' \
-                        f'Calculated SDD = {calculated_sdd}.' \
-                        f'Error = {abs(das_sdd - calculated_sdd)/das_sdd} > 1E-6.  FYI\n' \
-                        f'{prior_geom_info}\n' \
-                        f'Failed workspace is saved to mono_sans_run_geometry_error.nxs'
+        # form error message
+        error_msg = f'{str(ws)}: DAS SDD = {das_sdd} != ' \
+                    f'Calculated SDD = {calculated_sdd}.' \
+                    f'Error = {abs(das_sdd - calculated_sdd) / das_sdd} > 1E-6.  FYI\n' \
+                    f'{prior_geom_info}\n' \
+                    f'Failed workspace is saved to mono_sans_run_geometry_error.nxs'
 
-            logger.error(error_msg)
+        logger.error(error_msg)
 
-            # Save workspace for further investigation
-            SaveNexusProcessed(InputWorkspace=ws, Filename='mono_sans_run_geometry_error.nxs',
-                               Title=f'from workspace {str(ws)}')
+        # Save workspace for further investigation
+        SaveNexusProcessed(InputWorkspace=ws, Filename='mono_sans_run_geometry_error.nxs',
+                           Title=f'from workspace {str(ws)}')
 
-            # raise RuntimeError(error_msg)
+        raise RuntimeError(error_msg)
 
     return ws
 

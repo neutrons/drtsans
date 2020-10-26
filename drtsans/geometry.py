@@ -406,7 +406,7 @@ def search_source_sample_distance_meta_name(source, specified_meta_name):
 
 
 def sample_detector_distance(source, unit='mm', log_key=None,
-                             search_logs=True):
+                             search_logs=True, forbid_calculation=False):
     r"""
     Return the distance from the sample to the detector bank
 
@@ -439,7 +439,8 @@ def sample_detector_distance(source, unit='mm', log_key=None,
         meta_info_list = search_sample_detector_distance_meta_name(source, log_key)
         if len(meta_info_list) == 0:
             # No meta data found: Use instrument information to get distance
-            pass
+            if forbid_calculation:
+                raise RuntimeError('Unable to find any meta data related to SDD')
         else:
             # Calculate from log value considering unit
             # In case there are more than 1 log is found, it is assumed that all of them shall have the same

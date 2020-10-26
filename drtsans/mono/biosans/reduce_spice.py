@@ -183,12 +183,7 @@ def reduce_biosans_nexus(ipts_number: int,
         start_time_loop = time.time()
 
         # form base output file name
-        if isinstance(sample_runs[i], str) and os.path.exists(sample_runs[i]):
-            # a full path to NeXus is given
-            part1 = os.path.basename(sample_runs[i]).split('.')[0]
-        else:
-            part1 = sample_runs[i]
-        output_file_name = f'r{part1}_{sample_names[i]}'
+        output_file_name = generate_output_base_name(sample_runs[i], sample_names[i])
 
         run_data = {
             'sample': {
@@ -225,24 +220,36 @@ def reduce_biosans_nexus(ipts_number: int,
 
     print('Total Time : ', time.time() - start_time)
 
-    def generate_output_log_file(output_directory, file_base_name, file_suffix):
-        filename = os.path.join(output_directory,  f'{file_base_name}_reduction_log{file_suffix}.hdf')
-        return filename
-
     # samples shall be list of file names
     test_log_files = list()
     for i_s, sample in enumerate(sample_runs):
-
-        if isinstance(sample_runs[i_s], str) and os.path.exists(sample_runs[i_s]):
-            # a full path to NeXus is given
-            part1 = os.path.basename(sample_runs[i_s]).split('.')[0]
-        else:
-            part1 = sample_runs[i_s]
-        output_file_name = f'r{part1}_{sample_names[i_s]}'
-
+        output_file_name = generate_output_base_name(sample, sample_names[i_s])
         test_log_file = generate_output_log_file(base_output_directory, output_file_name, '')
-        print(test_log_file)
         assert os.path.exists(test_log_file), f'Output log file {test_log_file} cannot be found.'
         test_log_files.append(test_log_file)
 
     return test_log_files
+
+
+def generate_output_base_name(sample_run_i: Union[str, int],
+                              sample_name_i: str) -> str:
+    """Generate base name for output files according to sample run (Nexus file or run number)
+    and sample name
+    """
+    if isinstance(sample_run_i, str) and os.path.exists(sample_run_i):
+        # a full path to NeXus is given
+        part_1 = os.path.basename(sample_run_i).split('.')[0]
+    else:
+        part_1 = sample_run_i
+    output_file_name_base = f'r{part_1}_{sample_name_i}'
+
+    return output_file_name_base
+
+
+def generate_output_log_file(output_directory: str,
+                             file_base_name: str,
+                             file_suffix: str) -> str:
+    """ Generate output log file name as the standard drtsans/biosans convention
+    """
+    filename = os.path.join(output_directory,  f'{file_base_name}_reduction_log{file_suffix}.hdf')
+    return filename

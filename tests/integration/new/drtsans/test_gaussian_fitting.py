@@ -28,9 +28,6 @@ def test_gaussian_fit():
     sans.solid_angle_correction(ws)
     drtsans.apply_sensitivity_correction(ws, flood_file, min_threshold=0.5, max_threshold=1.5)
     MaskBTP(ws, Pixel="1-70,186-256")
-    # I use COM to help give good starting position for 2D Gaussian but it works with giving it 0,0
-    xc, yc = sans.find_beam_center(ws)
-    print(xc, yc)
 
     # fitting 2D gaussian to center data
     ws_size = ws.getNumberHistograms()
@@ -54,7 +51,6 @@ def test_gaussian_fit():
     intes_err = intes_err[keep]
 
     # absolute scaling
-    sans.center_detector(ws, xc, yc)
     scale_factor, scale_factor_error = attenuation_factor(ws)
 
     model = lmfit.Model(Gaussian2D, independent_vars=["x1", "y1"],
@@ -70,7 +66,6 @@ def test_gaussian_fit():
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
 
     print(results.fit_report())
-
 
 if __name__ == '__main__':
     pytest.main([__file__])

@@ -4,6 +4,7 @@ from mantid.kernel import logger
 # https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
 from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
+from typing import Union
 
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unpack_v3d, namedtuplefy
@@ -405,8 +406,11 @@ def search_source_sample_distance_meta_name(source, specified_meta_name):
     return _search_meta_data(source, log_keys, specified_meta_name)
 
 
-def sample_detector_distance(source, unit='mm', log_key=None,
-                             search_logs=True, forbid_calculation=False):
+def sample_detector_distance(source,
+                             unit: str = 'mm',
+                             log_key: Union[str, None] = None,
+                             search_logs: bool = True,
+                             forbid_calculation: bool = False) -> float:
     r"""
     Return the distance from the sample to the main detector bank plane
 

@@ -1,7 +1,6 @@
 from mantid.simpleapi import MaskBTP
 import numpy as np
 from drtsans.mono import gpsans as sans
-from drtsans.mono.gpsans import attenuation_factor
 import drtsans
 import lmfit
 import pytest
@@ -52,9 +51,6 @@ def test_gaussian_fit():
     y = y[keep]
     intes = intes[keep]
     intes_err = intes_err[keep]
-
-    # absolute scaling
-    scale_factor, scale_factor_error = attenuation_factor(ws)
 
     model = lmfit.Model(Gaussian2D, independent_vars=["x1", "y1"],
                         param_names=["amp", "sigma_x", "sigma_y", "theta", "x0", "y0"])

@@ -255,13 +255,31 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     # Information output before
     logs = SampleLogs(ws)
 
+    print(f'...... +++++++++++ ....... OvSaSiW = {sample_si_window_overwrite_value}, '
+          f'OvSSD = {sample_detector_distance_overwrite_value}')
+
+    # Input verification
+    das_sdd = sample_detector_distance(ws, search_logs=True, unit='mm', forbid_calculation=True)
+    real_sdd = sample_detector_distance(ws, search_logs=False, unit='mm')
+    if abs(das_sdd - real_sdd)/das_sdd > 1E-7:
+        raise RuntimeError(f'Workspace {str(ws)}: after loading and initial setup, DAS SDD ({das_sdd})'
+                           f'is not equal to calculated/real SDD ({real_sdd}) by proportion as '
+                           f'{abs(das_sdd - real_sdd)/das_sdd}')
+
     # Get original sample detector distance
     if sample_detector_distance_overwrite_value is None:
         # respect the das-recorded SDD
-        das_sdd = sample_detector_distance(ws, search_logs=True, unit='mm')
+        expected_sdd = sample_detector_distance(ws, search_logs=True, unit='mm')
+        if sample_si_window_overwrite_value is not None:
+            das_sample_si_distance = ws.getRun().getProperty(sample_to_si_window_name).value.mean() * 1E-3  # meter
+            print(f'...... +++++++++++ ...... DAS SaSiW = {das_sample_si_distance}')
+            shift = sample_si_window_overwrite_value - das_sample_si_distance  # meter
+            expected_sdd += shift * 1E3
+        print(f'...... +++++++++++ ...... Expected SDD = {expected_sdd}')
+
     else:
         # sample overwrite value: input is meter
-        das_sdd = sample_detector_distance_overwrite_value * 1000
+        expected_sdd = sample_detector_distance_overwrite_value * 1000
 
     # record some raw (prior to any processing) geometry information
     prior_geom_info = f'{ws}: \n' \
@@ -296,8 +314,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     calculated_sdd = sample_detector_distance(ws, search_logs=False, unit='mm')
 
     # FIXME - absolute 0.01 mm is not a criteria restrict enough: 10E-2 mm will fail the test
-    criteria_mm = 1E-2
-    if abs(das_sdd - calculated_sdd) > criteria_mm:  # absolute difference: 0.02 mm.  not good!
+    criteria_mm = 1E-3
+    if abs(expected_sdd - calculated_sdd) > criteria_mm:  # absolute difference: 0.02 mm.  not good!
         logs = SampleLogs(ws)
         prior_geom_info += f'Result from geometry operation:\n' \
                            f'Sample position = {ws.getInstrument().getSample().getPos()}\n' \
@@ -305,16 +323,18 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                            f'mm (From Log)\n'
         # add detector information
         prior_geom_info += f'Detector[0] pos = {ws.getDetector(0).getPos()}\n'
+        prior_geom_info += f'Detector[{192 * 256 - 1}] = {ws.getDetector(192 * 256 - 1).getPos()}'
 
         shift_det_x = ws.getRun().getProperty('detector_trans_Readback').value
         shift_det_x_unit = ws.getRun().getProperty('detector_trans_Readback').units
         prior_geom_info += f'Detector translation X-axis = {shift_det_x} ({shift_det_x_unit})\n'
 
         # form error message
-        error_msg = f'{str(ws)}: DAS SDD = {das_sdd} (mm), ' \
+        error_msg = f'Error: ws = {str(ws)}:\n' \
+                    f'Expected SDD = {expected_sdd} (mm), ' \
                     f'Overwrite SDD = {sample_detector_distance_overwrite_value}, ' \
                     f'Calculated SDD = {calculated_sdd} (mm).' \
-                    f'Error = {abs(das_sdd - calculated_sdd)} > {criteria_mm}.\n' \
+                    f'Error = {abs(expected_sdd - calculated_sdd)} > {criteria_mm}.\n' \
                     f'FYI:\n {prior_geom_info}\n' \
                     f'Failed workspace is saved to mono_sans_run_geometry_error.nxs'
 

@@ -425,6 +425,8 @@ def sample_detector_distance(source, unit='mm', log_key=None,
         log keys
     search_logs: bool
         Report the value found in the logs.
+    forbid_calculation: bool
+        Flag to raise an exception if it is required to get SDD from meta data but no associated meta data is found
 
     Returns
     -------
@@ -453,6 +455,7 @@ def sample_detector_distance(source, unit='mm', log_key=None,
     instrument = get_instrument(source)
     det = instrument.getComponentByName(main_detector_name(source))
 
+    # Mantid instrument uses 'meter' only
     det_pos = det.getPos()
     sample_pos = instrument.getSample().getPos()
     sample_det_plane_distance = abs(det_pos.Z() - sample_pos.Z())

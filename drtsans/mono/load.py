@@ -345,6 +345,10 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                            Title=f'from workspace {str(ws)}')
 
         raise RuntimeError(error_msg)
+    else:
+        shift_det_x = ws.getRun().getProperty('detector_trans_Readback').value
+        shift_det_x_unit = ws.getRun().getProperty('detector_trans_Readback').units
+        print(f'... +++ ... Detector translation X-axis = {shift_det_x} ({shift_det_x_unit})\n')
 
     return ws
 

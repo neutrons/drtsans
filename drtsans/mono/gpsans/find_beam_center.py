@@ -1,11 +1,6 @@
-from mantid.simpleapi import MaskBTP
 import numpy as np
-from drtsans.mono import gpsans as sans
-import drtsans
 import lmfit
-import pytest
-import os
-
+import json
 
 # defining 2D Gaussian fitting functions
 def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
@@ -17,20 +12,7 @@ def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     return val
 
 
-@pytest.mark.skipif(not os.path.exists('/HFIR/CG2/IPTS-26004/nexus/CG2_13078.nxs.h5'),
-                    reason="Required data is not available")
-def test_gaussian_fit():
-    flood_file = '/HFIR/CG2/shared/drt_sensitivity/sens_c489_bar.nxs'
-    # Find beam center for main detector
-    # loading beam center data
-    center_filename = "/HFIR/CG2/IPTS-26004/nexus/CG2_13078.nxs.h5"
-    ws = sans.load_events(center_filename, output_workspace='ws_center', pixel_calibration=True)
-    ws = sans.transform_to_wavelength(ws)
-    ws = drtsans.process_uncertainties.set_init_uncertainties(ws)
-    sans.solid_angle_correction(ws)
-    drtsans.apply_sensitivity_correction(ws, flood_file, min_threshold=0.5, max_threshold=1.5)
-    MaskBTP(ws, Pixel="1-70,186-256")
-
+def find_beam_center_gaussian(ws):
     # fitting 2D gaussian to center data
     ws_size = ws.getNumberHistograms()
     x = np.empty(ws_size)
@@ -62,11 +44,8 @@ def test_gaussian_fit():
     params.add('theta', value=0.1, min=0., max=np.pi)
     params.add('x0', value=0.)
     params.add('y0', value=0.)
+    json_params = params.dumps()
+    parsed = json.loads(json_params)
+    print(json.dumps(parsed, indent=4, sort_keys=True))
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    print(results.fit_report())
-    x0, y0 = sans.find_beam_center_gaussian(ws)
-    print(x0,y0)
-    assert False
-
-if __name__ == '__main__':
-    pytest.main([__file__])
+    return results.params['x0'].value,results.params['y0'].value

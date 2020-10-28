@@ -41,8 +41,7 @@ def get_iq1d(log_file_name):
     return vec_q, vec_i
 
 
-def compare_reduced_iq(test_log_file, gold_log_file, title: str,
-                       base_name: str = ''):
+def compare_reduced_iq(test_log_file, gold_log_file, title: str, prefix: str):
     """Compare I(Q) from reduced file and gold file for GPSANS
 
     Parameters
@@ -53,8 +52,8 @@ def compare_reduced_iq(test_log_file, gold_log_file, title: str,
         log file for expected result
     title: str
         title of output figure
-    base_name: str
-        base name (prefix) of output file
+    prefix: str
+        prefix to all the generated output file
     """
     # Get the main data
     test_q_vec, test_intensity_vec = get_iq1d(test_log_file)
@@ -75,7 +74,7 @@ def compare_reduced_iq(test_log_file, gold_log_file, title: str,
 
     # Output error message
     if test_exception:
-        base_name = os.path.basename(test_log_file).split(".")[0]
+        base_name = f'{prefix}{os.path.basename(test_log_file).split(".")[0]}'
         report_difference((test_q_vec, test_intensity_vec), (gold_q_vec, gold_intensity_vec), title,
                           diff_q, base_name)
 
@@ -168,7 +167,7 @@ def verify_cg2_reduction_results(sample_names, output_dir, gold_path, title, pre
     title: str
         title of output figure
     prefix: str
-        prefix for output png file
+        prefix for output png file in order not to confusing various error outputs
 
     """
     unmatched_errors = ''

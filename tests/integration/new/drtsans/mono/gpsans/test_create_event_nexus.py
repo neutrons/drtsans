@@ -139,7 +139,7 @@ def test_reduction(reference_dir, cleanfile):
 
     # Verify results
     verify_cg2_reduction_results(sample_names, output_dir, gold_path,
-                                 title='Raw (No Overwriting)', prefix='CG2MetaRaw')
+                                 title='Raw (No Overwriting)', prefix='CG2MetaRaw_')
 
 
 def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path, sample_trans_path,

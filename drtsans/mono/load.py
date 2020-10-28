@@ -391,6 +391,8 @@ def load_and_split(run,
         Delta of log value to be sliced into from min log value and max log value.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
+    monitors: bool
+        flag to load monitors
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 

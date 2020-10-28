@@ -153,11 +153,6 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
     # Load NeXus file(s)
     if len(run) == 1:
         # if only one run just load and transform to wavelength and return workspace
-        # TODO - if the one run is a file path: use the base name of file without file type
-        # if isinstance(run[0], str) and os.path.exists(run[0]):
-        #     output_workspace = os.path.basename(run[0]).split('.')[0]
-
-        print(f'...........DEBUG: run {run} load event args: {kwargs}')
         ws = load_events(run=run[0],
                          data_dir=data_dir,
                          output_workspace=output_workspace,
@@ -255,10 +250,7 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     # Information output before
     logs = SampleLogs(ws)
 
-    print(f'...... +++++++++++ ....... OvSaSiW = {sample_si_window_overwrite_value}, '
-          f'OvSSD = {sample_detector_distance_overwrite_value}')
-
-    # Input verification
+    # Input verification: DAS record SDD must be same as calculated SDD
     das_sdd = sample_detector_distance(ws, search_logs=True, unit='mm', forbid_calculation=True)
     real_sdd = sample_detector_distance(ws, search_logs=False, unit='mm')
     if abs(das_sdd - real_sdd)/das_sdd > 1E-7:
@@ -266,16 +258,14 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                            f'is not equal to calculated/real SDD ({real_sdd}) by proportion as '
                            f'{abs(das_sdd - real_sdd)/das_sdd}')
 
-    # Get original sample detector distance
+    # Get original sample detector distance: find expected SDD for further verification
     if sample_detector_distance_overwrite_value is None:
         # respect the das-recorded SDD
         expected_sdd = sample_detector_distance(ws, search_logs=True, unit='mm')
         if sample_si_window_overwrite_value is not None:
             das_sample_si_distance = ws.getRun().getProperty(sample_to_si_window_name).value.mean() * 1E-3  # meter
-            print(f'...... +++++++++++ ...... DAS SaSiW = {das_sample_si_distance}')
             shift = sample_si_window_overwrite_value - das_sample_si_distance  # meter
             expected_sdd += shift * 1E3
-        print(f'...... +++++++++++ ...... Expected SDD = {expected_sdd}')
 
     else:
         # sample overwrite value: input is meter
@@ -345,10 +335,6 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                            Title=f'from workspace {str(ws)}')
 
         raise RuntimeError(error_msg)
-    else:
-        shift_det_x = ws.getRun().getProperty('detector_trans_Readback').value
-        shift_det_x_unit = ws.getRun().getProperty('detector_trans_Readback').units
-        print(f'... +++ ... Detector translation X-axis = {shift_det_x} ({shift_det_x_unit})\n')
 
     return ws
 

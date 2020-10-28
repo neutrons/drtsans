@@ -230,7 +230,7 @@ def test_overwrite_sdd(reference_dir, cleanfile):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test3/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_20201027/test3/')
     verify_cg2_reduction_results(sample_names, output_dir, gold_path,
                                  title='Overwrite DetectorSampleDistance to 40 meter',
                                  prefix='CG2MetaSDD')
@@ -293,7 +293,7 @@ def test_overwrite_both(reference_dir, cleanfile):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test4/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_20201027/test4/')
     verify_cg2_reduction_results(sample_names, output_dir, gold_path,
                                  title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
                                  prefix='CG2MetaBoth')

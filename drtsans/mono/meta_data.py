@@ -330,8 +330,8 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
     detector_offset = sample_offset
 
     # Get sample detector distance by calculation from instrument geometry directly
-    sample_det_distance = sample_detector_distance(workspace, unit='m')
-    logger.notice('[META] EPICS Sample detector distance = {} (calculated)'.format(sample_det_distance))
+    real_sample_det_distance = sample_detector_distance(workspace, unit='m', search_logs=False)
+    logger.notice('[META] EPICS Sample detector distance = {} (calculated)'.format(real_sample_det_distance))
 
     # With overwriting distance(s)
     if overwrite_sample_si_distance is not None or overwrite_sample_detector_distance is not None:
@@ -347,7 +347,7 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
                           'Original SampleOffset = {}'
                           ''.format(sample_to_si, overwrite_sample_si_distance, sample_offset))
             sample_offset += overwrite_offset
-            sample_det_distance -= overwrite_offset
+            real_sample_det_distance -= overwrite_offset
             sample_to_si = overwrite_offset
 
         if overwrite_sample_detector_distance is not None:
@@ -355,13 +355,13 @@ def get_sample_detector_offset(workspace, sample_si_meta_name, zero_sample_offse
             # make the sample-detector-distance to the overwriting value
             # Move instrument_component detector1 relatively
             # [0, 0, sample_detector_distance_overwrite - sample_detector_distance_nexus]
-            overwrite_offset = overwrite_sample_detector_distance - sample_det_distance
+            overwrite_offset = overwrite_sample_detector_distance - real_sample_det_distance
             detector_offset += overwrite_offset
-            sample_det_distance += overwrite_offset
+            real_sample_det_distance += overwrite_offset
     # END-IF
 
     logger.notice('[META FINAL] Sample offset = {}, Detector offset = {}, Sample-detector-distance = {}, '
                   'Sample-Si-window-distance = {}'
-                  ''.format(sample_offset, detector_offset, sample_det_distance, sample_to_si))
+                  ''.format(sample_offset, detector_offset, real_sample_det_distance, sample_to_si))
 
     return sample_offset, detector_offset

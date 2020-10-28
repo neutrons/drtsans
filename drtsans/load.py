@@ -94,6 +94,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     # determine if this is a monochromatic measurement
     is_mono = not is_time_of_flight(instrument_unique_name)
 
+    # retrieve or load workspace
     if reuse_workspace and mtd.doesExist(output_workspace):
         # if it exists skip loading
         return mtd[output_workspace]
@@ -109,6 +110,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
             logger.notice(f'Loading {filename} to {output_workspace}')
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
+            # FIXME - what is the difference from: pixel_calibration is True?
             if pixel_calibration is not False:
                 # pixel calibration is specified as not False
                 if isinstance(pixel_calibration, str):
@@ -136,25 +138,39 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     translate_source_by_z(output_workspace, z=None, relative=False)
 
     # FIXME (485) - This shall be modified accordingly
+    from drtsans.geometry import sample_detector_distance
     if is_mono:
         # HFIR-SANS: use new method
-        # --- Debug Exception Section
         out_ws = mtd[str(output_workspace)]
-        mantid.logger.debug('Before translate source and sample')
-        mantid.logger.debug('Sample position = {}'.format(out_ws.getInstrument().getSample().getPos()))
-        from drtsans.geometry import sample_detector_distance
-        mantid.logger.debug('SDD = {} (meta) and {} (calculated)'
-                            ''.format(sample_detector_distance(output_workspace, search_logs=True),
-                                      sample_detector_distance(output_workspace, search_logs=False)))
-        # --- END
-
+        logger.notice(f'Before translate source and sample:\n'
+                      f'Sample position = {out_ws.getInstrument().getSample().getPos()}\n'
+                      f'DAS SDD = '
+                      f'{sample_detector_distance(output_workspace, search_logs=True, forbid_calculation=True)}\n'
+                      f'Calculated SDD =  {sample_detector_distance(output_workspace, search_logs=False)}')
         # Determine detector and sample offset from meta data afterwards
 
     else:
         # For TOF (i.e., EQSANS), still translate sample and detector as usual
+        try:
+            # get DAS recorded SDD
+            das_sdd = sample_detector_distance(output_workspace, search_logs=True, forbid_calculation=True)
+        except RuntimeError as run_err:
+            # it may  not exist
+            if 'Unable to find any meta data related to SDD' in str(run_err):
+                # it is fine if das recorded SDD does not exist
+                das_sdd = None
+            else:
+                raise run_err
+
         translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
         translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
         translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
+
+        real_sdd = sample_detector_distance(output_workspace, search_logs=False)
+        logger.notice(f'EQSANS workspace {str(output_workspace)} SDD is equal to {real_sdd}')
+
+        if das_sdd is not None:
+            assert real_sdd == das_sdd, f'EQSANS DAS SDD = {das_sdd}, Calculated SDD = {real_sdd}'
 
     return mtd[output_workspace]
 

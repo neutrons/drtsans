@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import os
+from matplotlib import pyplot as plt
 
 __all__ = ['verify_cg2_reduction_results']
 
@@ -40,47 +41,117 @@ def get_iq1d(log_file_name):
     return vec_q, vec_i
 
 
-def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
+def compare_reduced_iq(test_log_file, gold_log_file, title: str,
+                       base_name: str = ''):
     """Compare I(Q) from reduced file and gold file for GPSANS
 
     Parameters
     ----------
-    test_log_file
-    gold_log_file
+    test_log_file: str
+        log file from test
+    gold_log_file: str
+        log file for expected result
     title: str
         title of output figure
-    prefix: str
-        prefix of output file
-
-    Returns
-    -------
-
+    base_name: str
+        base name (prefix) of output file
     """
-    # Plot main
+    # Get the main data
     test_q_vec, test_intensity_vec = get_iq1d(test_log_file)
     gold_q_vec, gold_intensity_vec = get_iq1d(gold_log_file)
 
     # Verify result
-    try:
-        np.testing.assert_allclose(test_q_vec, test_q_vec, atol=1E-4)
-        np.testing.assert_allclose(test_intensity_vec, gold_intensity_vec, atol=1E-7)
-    except AssertionError as assert_err:
-        from matplotlib import pyplot as plt
-        plt.cla()
-        plt.plot(test_q_vec, test_intensity_vec, color='red', label='Corrected')
-        plt.plot(gold_q_vec, gold_intensity_vec, color='black', label='Before being corrected')
-        plt.legend()
-        plt.title(title)
-        plt.yscale('log')
-        # defaults and set outut png file name
-        if prefix is None:
-            prefix = 'compare'
-        if test_log_file is None:
-            test_log_file = 'iq'
-        out_name = prefix + '_' + os.path.basename(test_log_file).split('.')[0] + '.png'
-        plt.savefig(out_name)
+    test_exception = None
+    diff_q = False
+    for vec_name, test_vec, gold_vec, abs_tol in [('q', test_q_vec, gold_q_vec, 1E-4),
+                                                  ('intensity', test_intensity_vec,  gold_intensity_vec, 1E-7)]:
+        try:
+            np.testing.assert_allclose(test_vec, gold_vec, atol=abs_tol)
+        except AssertionError as assert_err:
+            test_exception = assert_err
+            if vec_name == 'q':
+                diff_q = True
+            break
 
-        raise assert_err
+    # Output error message
+    if test_exception:
+        base_name = os.path.basename(test_log_file).split(".")[0]
+        report_difference((test_q_vec, test_intensity_vec), (gold_q_vec, gold_intensity_vec), title,
+                          diff_q, base_name)
+
+    if test_exception:
+        raise test_exception
+
+
+def report_difference(test_data, gold_data,
+                      title: str,
+                      is_q_diff: bool,
+                      base_file_name: str):
+    test_q_vec, test_intensity_vec = test_data
+    gold_q_vec, gold_intensity_vec = gold_data
+
+    # plot I(Q)
+    png_name = f'{base_file_name}_compare_iq.png'
+    plot_data([(test_q_vec, test_intensity_vec, 'red', 'Test I(Q)'),
+               (gold_q_vec, gold_intensity_vec, 'black', 'Gold I(Q)')],
+              'log', title, png_name)
+
+    # plot difference of I(Q)
+    if is_q_diff:
+        # different Q
+        png_name = f'{base_file_name}_diff_q.png'
+        if test_q_vec.shape == gold_q_vec.shape:
+            # same Q shape
+            diff_q_array = test_q_vec - gold_q_vec
+            plot_data([(np.arange(diff_q_array.shape[0]), diff_q_array, 'red', 'diff(Q)')],
+                      None, 'Difference in Q', png_name)
+        else:
+            # different Q shape
+            plot_data([(np.arange(test_q_vec.shape[0]), test_q_vec, 'red', 'Q (test)'),
+                       (np.arange(gold_q_vec.shape[0]), gold_q_vec, 'black', 'Q (expected)')],
+                      None, 'Difference in Q', png_name)
+    else:
+        # different I(Q)
+        diff_iq_array = test_intensity_vec - gold_intensity_vec
+        png_name = f'{base_file_name}_diff_iq.png'
+        plot_data([(test_q_vec, diff_iq_array, 'red', 'I(Q)_test - I(Q)_gold')],
+                  None, 'Difference in I(Q)', png_name)
+
+
+def plot_data(plot_info_list, y_scale, title, fig_name):
+
+    # clear the canvas
+    plt.cla()
+
+    # plot
+    for x_array, y_array, color, label in plot_info_list:
+        plt.plot(x_array, y_array, color=color, label=label)
+
+    # other setup
+    plt.legend()
+    plt.title(title)
+    # scale
+    if y_scale is not None:
+        plt.yscale(y_scale)
+
+    plt.savefig(fig_name)
+
+    return
+    #
+    # # Plot I(Q)
+    # plt.cla()
+    # plt.plot(test_q_vec, test_intensity_vec, color='red', label='Test I(Q)')
+    # plt.plot(gold_q_vec, gold_intensity_vec, color='black', label='Gold I(Q)')
+    # plt.legend()
+    # plt.title(title)
+    # plt.yscale('log')
+    # # defaults and set outut png file name
+    # if base_name is None:
+    #     base_name = 'compare'
+    # if test_log_file is None:
+    #     test_log_file = 'iq'
+    # out_name = base_name + '_' + os.path.basename(test_log_file).split('.')[0] + '.png'
+    # plt.savefig(out_name)
 
 
 def verify_cg2_reduction_results(sample_names, output_dir, gold_path, title, prefix):

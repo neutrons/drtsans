@@ -41,8 +41,7 @@ def get_iq1d(log_file_name):
     return vec_q, vec_i
 
 
-def compare_reduced_iq(test_log_file, gold_log_file, title: str,
-                       base_name: str = ''):
+def compare_reduced_iq(test_log_file, gold_log_file, title: str):
     """Compare I(Q) from reduced file and gold file for GPSANS
 
     Parameters
@@ -53,8 +52,6 @@ def compare_reduced_iq(test_log_file, gold_log_file, title: str,
         log file for expected result
     title: str
         title of output figure
-    base_name: str
-        base name (prefix) of output file
     """
     # Get the main data
     test_q_vec, test_intensity_vec = get_iq1d(test_log_file)

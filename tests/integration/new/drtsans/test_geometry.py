@@ -3,7 +3,7 @@ import os
 from os.path import join as path_join
 from mantid.simpleapi import LoadEventNexus
 from drtsans.settings import unique_workspace_dundername
-from drtsans.mono.geometry import beam_radius, sample_detector_distance
+from drtsans.geometry import sample_detector_distance
 
 
 def test_translated_gpsans(reference_dir):

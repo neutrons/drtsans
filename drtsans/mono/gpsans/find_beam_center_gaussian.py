@@ -3,7 +3,7 @@ import lmfit
 import json
 
 # defining 2D Gaussian fitting functions
-def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
+def _Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     a = np.cos(theta)**2/(2.*sigma_x**2) + np.sin(theta)**2/(2.*sigma_y**2)
     b = -np.sin(2.*theta)/(4.*sigma_x**2) + np.sin(2.*theta)/(4.*sigma_y**2)
     c = np.sin(theta)**2/(2.*sigma_x**2) + np.cos(theta)**2/(2.*sigma_y**2)
@@ -12,7 +12,7 @@ def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     return val
 
 
-def find_beam_center_gaussian(ws):
+def find_beam_center_gaussian(ws, parameters={}):
     # fitting 2D gaussian to center data
     ws_size = ws.getNumberHistograms()
     x = np.empty(ws_size)
@@ -34,18 +34,24 @@ def find_beam_center_gaussian(ws):
     intes = intes[keep]
     intes_err = intes_err[keep]
 
-    model = lmfit.Model(Gaussian2D, independent_vars=["x1", "y1"],
+    model = lmfit.Model(_Gaussian2D, independent_vars=["x1", "y1"],
                         param_names=["amp", "sigma_x", "sigma_y", "theta", "x0", "y0"])
 
     params = lmfit.Parameters()
-    params.add("amp", value=ws.extractY().max())
-    params.add('sigma_x', value=0.01, min=1.e-10)  # width in x
-    params.add('sigma_y', value=0.01, min=1.e-10)  # width in y
-    params.add('theta', value=0.1, min=0., max=np.pi)
-    params.add('x0', value=0.)
-    params.add('y0', value=0.)
-    json_params = params.dumps()
-    parsed = json.loads(json_params)
-    print(json.dumps(parsed, indent=4, sort_keys=True))
+    for key, value in parameters.items():
+        params.add(key, **value)
+
+    if 'amp' not in params:
+        params.add("amp", value=ws.extractY().max())
+    if 'sigma_x' not in params:
+        params.add('sigma_x', value=0.01, min=np.finfo(float).eps)  # width in x
+    if 'sigma_y' not in params:
+        params.add('sigma_y', value=0.01, min=np.finfo(float).eps)  # width in y
+    if 'theta' not in params:
+        params.add('theta', value=0.10, min=-np.pi/2., max=np.pi/2.)
+    if 'x0' not in params:
+        params.add('x0', value=0.)
+    if 'y0' not in params:
+        params.add('y0', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    return results.params['x0'].value,results.params['y0'].value
+    return results.params['x0'].value, results.params['y0'].value

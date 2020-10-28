@@ -35,12 +35,12 @@ from drtsans.load import move_instrument
 from drtsans.path import allow_overwrite
 from drtsans.mono.meta_data import parse_json_meta_data
 import drtsans.mono.meta_data as meta_data
-from drtsans.mono.gpsans.find_beam_center import find_beam_center_gaussian
+from drtsans.mono.gpsans.find_beam_center_gaussian import find_beam_center_gaussian
 
 
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration',
-           'load_all_files', 'plot_reduction_output', 'reduce_single_configuration','find_beam_center_gaussian']
+           'load_all_files', 'plot_reduction_output', 'reduce_single_configuration']
 
 
 SI_WINDOW_NOMINAL_DISTANCE_METER = 0.0  # meter, (i.e., 0. mm)

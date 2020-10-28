@@ -5,7 +5,7 @@ import drtsans
 import lmfit
 import pytest
 import os
-
+from drtsans.mono.gpsans.find_beam_center_gaussian import find_beam_center_gaussian
 
 # defining 2D Gaussian fitting functions
 def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
@@ -64,9 +64,9 @@ def test_gaussian_fit():
     params.add('y0', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
     print(results.fit_report())
-    x0, y0 = sans.find_beam_center_gaussian(ws)
+    x0, y0 = find_beam_center_gaussian(ws)
     print(x0,y0)
-    assert False
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

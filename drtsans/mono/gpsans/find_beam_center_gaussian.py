@@ -14,6 +14,27 @@ def _Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
 
 def find_beam_center_gaussian(ws, parameters={}):
     # fitting 2D gaussian to center data
+    '''Fitting 2D gaussian to workspace for finding the beam center.
+
+    Parameters
+    ----------
+    ws:  str,  ~mantid.api.MatrixWorkspace
+        Input workspace
+    parameters: dict
+        Fitting parameters passed onto lmfit. Defaults include
+        'amp', value=ws.extractY().max())
+        'sigma_x'=0.01, min=np.finfo(float).eps
+        'sigma_y'=0.01, min=np.finfo(float).eps 
+        'theta'= 0., min=-np.pi/2., max=np.pi/2.
+        'x0' = 0.
+        'y0' = 0.
+
+    Returns
+    -------
+    tuple
+        (X, Y) coordinates of the beam center (units in meters).
+    '''
+    ws = mtd[str(ws)]
     ws_size = ws.getNumberHistograms()
     x = np.empty(ws_size)
     y = np.empty(ws_size)

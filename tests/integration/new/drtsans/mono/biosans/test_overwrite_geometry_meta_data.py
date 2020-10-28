@@ -150,7 +150,9 @@ def skip_test_overwrite_sample_to_si(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_sample_to_detector(reference_dir, cleanfile):
+# Test is skipped because it occasionally crashes gw0 on drt-sans pipeline.
+# There is no readable information from build server that can be retrieved.
+def crash_gw0_test_overwrite_sample_to_detector(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance.
 
     - Overwrite DetectorToSample (distance) to 14 meter

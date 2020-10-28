@@ -73,7 +73,7 @@ def test_gaussian_fit():
 
     params['theta'].vary = False
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    x0, y0 = find_beam_center_gaussian(ws,{'theta': {'value': 0.0, 'vary': False}})
+    x0, y0 = find_beam_center_gaussian(ws, {'theta': {'value': 0.0, 'vary': False}})
     assert x0 == pytest.approx(results.params['x0'].value)
     assert y0 == pytest.approx(results.params['y0'].value)
 

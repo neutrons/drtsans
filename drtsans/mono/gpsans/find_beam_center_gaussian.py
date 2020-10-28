@@ -42,13 +42,13 @@ def find_beam_center_gaussian(ws, parameters={}):
         params.add(key, **value)
 
     if 'amp' not in params:
-        params.add("amp", value=ws.extractY().max())
+        params.add('amp', value=ws.extractY().max())
     if 'sigma_x' not in params:
         params.add('sigma_x', value=0.01, min=np.finfo(float).eps)  # width in x
     if 'sigma_y' not in params:
         params.add('sigma_y', value=0.01, min=np.finfo(float).eps)  # width in y
     if 'theta' not in params:
-        params.add('theta', value=0.10, min=-np.pi/2., max=np.pi/2.)
+        params.add('theta', value=0., min=-np.pi/2., max=np.pi/2.)
     if 'x0' not in params:
         params.add('x0', value=0.)
     if 'y0' not in params:

@@ -57,16 +57,25 @@ def test_gaussian_fit():
                         param_names=["amp", "sigma_x", "sigma_y", "theta", "x0", "y0"])
 
     params = lmfit.Parameters()
-    params.add("amp", value=ws.extractY().max())
-    params.add('sigma_x', value=0.01, min=1.e-10)  # width in x
-    params.add('sigma_y', value=0.01, min=1.e-10)  # width in y
-    params.add('theta', value=0.1, min=0., max=np.pi)
+    params.add('amp', value=ws.extractY().max())
+    params.add('sigma_x', value=0.01, min=np.finfo(float).eps)  # width in x
+    params.add('sigma_y', value=0.01, min=np.finfo(float).eps)  # width in y
+    params.add('theta', value=0.0, min=-np.pi/2., max=np.pi/2)
     params.add('x0', value=0.)
     params.add('y0', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    print(results.fit_report())
+
     x0, y0 = find_beam_center_gaussian(ws)
     print(x0, y0)
+    print(results.params['x0'].value, results.params['y0'].value)
+    assert x0 == pytest.approx(results.params['x0'].value)
+    assert y0 == pytest.approx(results.params['y0'].value)
+
+    params['theta'].vary = False
+    results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
+    x0, y0 = find_beam_center_gaussian(ws,{'theta': {'value': 0.0, 'vary': False}})
+    assert x0 == pytest.approx(results.params['x0'].value)
+    assert y0 == pytest.approx(results.params['y0'].value)
 
 
 if __name__ == '__main__':

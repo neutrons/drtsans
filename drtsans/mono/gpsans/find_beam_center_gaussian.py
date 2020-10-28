@@ -1,6 +1,6 @@
 import numpy as np
 import lmfit
-import json
+
 
 # defining 2D Gaussian fitting functions
 def _Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):

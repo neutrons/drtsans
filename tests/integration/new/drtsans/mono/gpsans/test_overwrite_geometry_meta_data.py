@@ -195,6 +195,8 @@ def test_overwrite_sdd(reference_dir, cleanfile):
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     output_dir = mkdtemp(prefix='meta_overwrite_test3')
     cleanfile(output_dir)
+
+    # Set up reduction
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},

@@ -170,12 +170,15 @@
       },
       "method": {
         "type": "string",
-        "description": "Method to calculate the beam center. Available methods are: center_of_mass, gaussian",
+        "description": "Method to calculate the beam center. Available methods are: center_of_mass and gaussian.",
         "examples": ["center_of_mass", "gaussian"]
-      }
+      },
+      "centering_options" {
+        "type": "object",
+        "description": "Arguments to be passed on to the centering method."
     },
     "minProperties": 1,
-    "maxProperties": 2,
+    "maxProperties": 3,
     "required": ["runNumber"]
   },
   "emptyTransmission": {

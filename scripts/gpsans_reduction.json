@@ -23,7 +23,8 @@
     "value": ""
   },
   "beamCenter": {
-    "runNumber": "8953"
+    "runNumber": "8953",
+    "method": "gaussian"
   },
   "outputFileName": "CG2_8944",
   "configuration": {

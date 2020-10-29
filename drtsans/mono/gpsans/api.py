@@ -906,7 +906,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         symmetric_wedges = False
         logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
-    xc, yc = find_beam_center(loaded_ws.center, method=centering_method)
+    xc, yc = find_beam_center(loaded_ws.center, method=centering_method, centering_options=centering_options)
     logger.notice(f"Find beam center = {xc}, {yc}")
 
     # process the center if using it in absolute scaling

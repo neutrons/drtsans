@@ -40,7 +40,7 @@ def _find_beam_center_gaussian(ws, parameters={}):
         Fitting parameters passed onto lmfit. Defaults include
         'amp', value=ws.extractY().max())
         'sigma_x'=0.01, min=np.finfo(float).eps
-        'sigma_y'=0.01, min=np.finfo(float).eps 
+        'sigma_y'=0.01, min=np.finfo(float).eps
         'theta'= 0., min=-np.pi/2., max=np.pi/2.
         'x0' = 0.
         'y0' = 0.

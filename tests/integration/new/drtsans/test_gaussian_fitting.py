@@ -6,6 +6,7 @@ import lmfit
 import pytest
 import os
 
+
 # defining 2D Gaussian fitting functions
 def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     a = np.cos(theta)**2/(2.*sigma_x**2) + np.sin(theta)**2/(2.*sigma_y**2)

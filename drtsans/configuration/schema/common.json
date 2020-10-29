@@ -169,12 +169,12 @@
         "examples": ["12345", 12345]
       },
       "method": {
-        "type": "string",
+        "type": ["string", "null"],
         "description": "Method to calculate the beam center. Available methods are: center_of_mass and gaussian.",
         "examples": ["center_of_mass", "gaussian"]
       },
       "centering_options": {
-        "type": "object",
+        "type": ["object","null"]
         "description": "Arguments to be passed on to the centering method.",
         "properties": {
           "theta": {

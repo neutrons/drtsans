@@ -67,7 +67,32 @@
                 {"type": "null"},
                 {"type": "array", "items": {"type": "number", "ExclusiveMinimum": 0}}],
       "preferredType": "[float]"
-    }
+    },
+      "lmfitParameter" : {
+        "type": "object",
+        "additionalProperties": {
+          "value": {
+            "type": "number",
+            "descriptions": "Numerical Parameter value."
+          },
+          "vary": {
+            "type": "boolean",
+            "description": "Whether the Parameter is varied during a fit."
+          },
+          "min": {
+            "type": "number",
+            "description": "Lower bound for value."
+          },
+          "max": {
+            "type": "number",
+            "description": "Upper bound for value."
+          },
+          "expr": {
+            "type": "string",
+            "description": "Mathematical expression used to constrain the value during the fit."
+          }
+        }
+     }
   },
 
   "schemaStamp": {
@@ -178,31 +203,24 @@
       "centering_options": {
         "type": ["object"],
         "description": "Arguments to be passed on to the centering method.",
-        "properties": {
+        "additionalProperties": {
+          "amp": {
+            "$ref": "common.json#/definitions/lmfitParameter"
+          },
+          "sigma_x": {
+            "$ref": "common.json#/definitions/lmfitParameter"
+          },
+          "sigma_y": {
+            "$ref": "common.json#/definitions/lmfitParameter"
+          },
           "theta": {
-            "type": "object",
-            "additionalProperties": {
-              "value": {
-                "type": "number",
-                "descriptions": "Numerical Parameter value."
-              },
-              "vary": {
-                "type": "boolean",
-                "description": "Whether the Parameter is varied during a fit."
-              },
-              "min": {
-                "type": "number",
-                "description": "Lower bound for value."
-              },
-              "max": {
-                "type": "number",
-                "description": "Upper bound for value."
-              },
-              "expr": {
-                "type": "string",
-                "description": "Mathematical expression used to constrain the value during the fit."
-              }
-            }
+            "$ref": "common.json#/definitions/lmfitParameter"
+          },
+          "x0": {
+            "$ref": "common.json#/definitions/lmfitParameter"
+          },
+          "y0": {
+            "$ref": "common.json#/definitions/lmfitParameter"
           }
         }
       }

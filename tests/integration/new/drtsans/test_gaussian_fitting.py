@@ -64,7 +64,7 @@ def test_gaussian_fit():
     params.add('y0', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
 
-    x0, y0 = sans.find_beam_center(ws, method='gaussian')
+    x0, y0 = sans.find_beam_center(ws, method='gaussian', solid_angle_method=None)
     print(x0, y0)
     print(results.params['x0'].value, results.params['y0'].value)
     assert x0 == pytest.approx(results.params['x0'].value)
@@ -72,7 +72,7 @@ def test_gaussian_fit():
 
     params['theta'].vary = False
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    x0, y0 = sans.find_beam_center(ws, method='gaussian', centering_option={'theta': {'value': 0.0, 'vary': False}})
+    x0, y0 = sans.find_beam_center(ws, method='gaussian', centering_options={'theta': {'value': 0.0, 'vary': False}}, solid_angle_method=None)
     assert x0 == pytest.approx(results.params['x0'].value)
     assert y0 == pytest.approx(results.params['y0'].value)
 

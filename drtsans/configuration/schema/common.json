@@ -178,13 +178,13 @@
         "description": "Arguments to be passed on to the centering method.",
         "properties": {
           "theta": {
-            "type": "object",
+            "type": ["object","null"],
             "properties": {
               "value": {
-                "type": "number"
+                "type": ["number","null"]
                },
               "vary": {
-                "type": "boolean"
+                "type": ["boolean","null"]
               }
             }
           }

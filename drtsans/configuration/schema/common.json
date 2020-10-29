@@ -181,10 +181,24 @@
             "type": ["object","null"],
             "properties": {
               "value": {
-                "type": ["number","null"]
-               },
+                "type": ["number","null"],
+                "descriptions": "Numerical Parameter value."
+              },
               "vary": {
-                "type": ["boolean","null"]
+                "type": ["boolean","null"],
+                "description": "Whether the Parameter is varied during a fit."
+              },
+              "min": {
+                "type": ["number","null"],
+                "description": "Lower bound for value."
+              },
+              "max": {
+                "type": ["number","null"],
+                "description": "Upper bound for value."
+              },
+              "expr": {
+                "type": ["string","null"],
+                "description": "Mathematical expression used to constrain the value during the fit."
               }
             }
           }

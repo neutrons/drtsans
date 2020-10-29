@@ -138,7 +138,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
         solid_angle_correction(flat_ws, detector_type=solid_angle_method)
 
     # find center of mass position
-    if method == 'center of mass':
+    if method == 'center_of_mass':
         center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)
     else:  # method == 'gaussian':
         center = _find_beam_center_gaussian(flat_ws, centering_options)

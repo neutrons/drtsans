@@ -35,7 +35,6 @@ from drtsans.load import move_instrument
 from drtsans.path import allow_overwrite
 from drtsans.mono.meta_data import parse_json_meta_data
 import drtsans.mono.meta_data as meta_data
-# from drtsans.mono.gpsans.find_beam_center_gaussian import find_beam_center_gaussian
 
 
 # Functions exposed to the general user (public) API

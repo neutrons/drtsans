@@ -5,8 +5,6 @@ import drtsans
 import lmfit
 import pytest
 import os
-from drtsans.mono.gpsans.find_beam_center_gaussian import find_beam_center_gaussian
-
 
 # defining 2D Gaussian fitting functions
 def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
@@ -65,7 +63,7 @@ def test_gaussian_fit():
     params.add('y0', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
 
-    x0, y0 = find_beam_center_gaussian(ws)
+    x0, y0 = sans.find_beam_center(ws, method='gaussian')
     print(x0, y0)
     print(results.params['x0'].value, results.params['y0'].value)
     assert x0 == pytest.approx(results.params['x0'].value)
@@ -73,7 +71,7 @@ def test_gaussian_fit():
 
     params['theta'].vary = False
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    x0, y0 = find_beam_center_gaussian(ws, {'theta': {'value': 0.0, 'vary': False}})
+    x0, y0 = sans.find_beam_center(ws, method='gaussian', centering_option={'theta': {'value': 0.0, 'vary': False}})
     assert x0 == pytest.approx(results.params['x0'].value)
     assert y0 == pytest.approx(results.params['y0'].value)
 

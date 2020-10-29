@@ -167,37 +167,39 @@
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
         "description": "The run number(s) for the beam center calculation. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
-      },
+      }
+    },
+    "additionalProperties": {
       "method": {
-        "type": ["string", "null"],
+        "type": "string",
         "description": "Method to calculate the beam center. Available methods are: center_of_mass and gaussian.",
         "examples": ["center_of_mass", "gaussian"]
       },
       "centering_options": {
-        "type": ["object", "null"],
+        "type": ["object"],
         "description": "Arguments to be passed on to the centering method.",
         "properties": {
           "theta": {
-            "type": ["object","null"],
-            "properties": {
+            "type": "object",
+            "additionalProperties": {
               "value": {
-                "type": ["number","null"],
+                "type": "number",
                 "descriptions": "Numerical Parameter value."
               },
               "vary": {
-                "type": ["boolean","null"],
+                "type": "boolean",
                 "description": "Whether the Parameter is varied during a fit."
               },
               "min": {
-                "type": ["number","null"],
+                "type": "number",
                 "description": "Lower bound for value."
               },
               "max": {
-                "type": ["number","null"],
+                "type": "number",
                 "description": "Upper bound for value."
               },
               "expr": {
-                "type": ["string","null"],
+                "type": "string",
                 "description": "Mathematical expression used to constrain the value during the fit."
               }
             }

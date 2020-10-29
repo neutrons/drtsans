@@ -886,8 +886,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
     wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
-    centering_method = reduction_input["beamCenter"]["method"]
-    centering_options = reduction_input["beamCenter"]["centering_options"]
 
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
@@ -907,10 +905,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
     fbc_options = {}
-    if centering_method:
-        fbc_options["method"] = centering_method
-    if centering_options:
-        fbc_options["centering_options"] = centering_options
+    if 'method' in reduction_input["beamCenter"].keys():
+        fbc_options["method"] = reduction_input['beamCenter']['method']
+    if 'centering_options' in reduction_input["beamCenter"].keys():
+        fbc_options["centering_options"] = reduction_input['beamCenter']['centering_options']
     xc, yc = find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center = {xc}, {yc}")
 

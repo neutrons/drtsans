@@ -174,7 +174,7 @@
         "examples": ["center_of_mass", "gaussian"]
       },
       "centering_options": {
-        "type": ["object","null"]
+        "type": ["object", "null"],
         "description": "Arguments to be passed on to the centering method.",
         "properties": {
           "theta": {

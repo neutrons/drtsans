@@ -174,6 +174,7 @@
         "examples": ["center_of_mass", "gaussian"]
       }
     },
+    "minProperties", 1,
     "maxProperties": 2,
     "required": ["runNumber"]
   },

@@ -886,7 +886,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
     wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
-    centering_method = reduction_config["beamCenter"]["method"]
+    centering_method = reduction_input["beamCenter"]["method"]
+    centering_options = reduction_input["beamCenter"]["centering_options"]
 
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}

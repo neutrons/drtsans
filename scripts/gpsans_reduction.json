@@ -24,7 +24,13 @@
   },
   "beamCenter": {
     "runNumber": "8953",
-    "method": "gaussian"
+    "method": "gaussian",
+    "centering_options": {
+      "theta": {
+        "value": 0.0, 
+        "vary": false
+      }
+    } 
   },
   "outputFileName": "CG2_8944",
   "configuration": {

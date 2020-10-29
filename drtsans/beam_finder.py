@@ -140,7 +140,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     # find center of mass position
     if method == 'center of mass':
         center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)
-    elif method == 'gaussian':
+    else: # method == 'gaussian':
         center = _find_beam_center_gaussian(flat_ws, centering_options)
     logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(*center))
     DeleteWorkspace(flat_ws)

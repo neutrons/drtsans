@@ -36,7 +36,6 @@ from drtsans.path import allow_overwrite
 from drtsans.mono.meta_data import parse_json_meta_data
 import drtsans.mono.meta_data as meta_data
 
-
 # Functions exposed to the general user (public) API
 __all__ = ['prepare_data', 'prepare_data_workspaces', 'process_single_configuration',
            'load_all_files', 'plot_reduction_output', 'reduce_single_configuration']

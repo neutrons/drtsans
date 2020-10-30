@@ -167,6 +167,7 @@ def plot_IQmod(workspaces, filename, loglog=True, backend='d3',
         plt.setp(ax, **kwargs)
 
     _saveFile(fig, filename, backend)
+    plt.close(fig)
 
 
 def plot_IQazimuthal(workspace, filename, backend='d3',
@@ -291,6 +292,7 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
         plt.setp(ax, **kwargs)
 
     _saveFile(fig, filename, backend)
+    plt.close(fig)
 
 
 def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-pixel',
@@ -359,3 +361,4 @@ def plot_detector(input_workspace, filename=None, backend='d3', axes_mode='tube-
 
     if filename is not None:
         _saveFile(fig, filename, backend)
+    plt.close(fig)

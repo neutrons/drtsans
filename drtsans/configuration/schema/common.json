@@ -252,7 +252,7 @@
           },
           "BeamRadius": {
             "$ref": "common.json#/definitions/safeStringPositiveFloat",
-            "description": "Radius of the beam area, in meters, used the exclude the beam when calculating the center of mass of the scattering pattern.""
+            "description": "Radius of the beam area, in meters, used the exclude the beam when calculating the center of mass of the scattering pattern."
           }
         }
       }

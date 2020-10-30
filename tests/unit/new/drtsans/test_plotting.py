@@ -6,6 +6,7 @@ import os
 import pytest
 import matplotlib.pyplot as plt
 
+
 def fileCheckAndRemove(filename, remove=True):
     '''Convienience function for doing simple checs that the file was created.
     The ``remove`` option is available to make debugging new tests easier.'''

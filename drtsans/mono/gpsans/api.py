@@ -1139,7 +1139,7 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             plot_IQmod([out.I1D_main[j]], filename, loglog=loglog,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
             plt.clf()
-    plt.close()    
+    plt.close()
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, '1D'))
     allow_overwrite(os.path.join(output_dir, '2D'))

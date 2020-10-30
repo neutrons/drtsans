@@ -6,6 +6,7 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 import pytest
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
 from drtsans.dataobjects import IQazimuthal, IQmod
 from drtsans.determine_bins import determine_1d_linear_bins

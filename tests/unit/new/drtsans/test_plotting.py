@@ -4,7 +4,7 @@ from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
 import numpy as np
 import os
 import pytest
-
+import matplotlib.pyplot as plt
 
 def fileCheckAndRemove(filename, remove=True):
     '''Convienience function for doing simple checs that the file was created.
@@ -25,7 +25,7 @@ def test_IQmod(backend, filename):
     e = np.zeros(50) + .1
     data = IQmod(intensity=np.sin(x), error=e, mod_q=x)
     plot_IQmod([data], filename=filename, backend=backend)
-
+    plt.close()
     fileCheckAndRemove(filename)
 
 
@@ -41,6 +41,7 @@ def test_IQmod_multi(backend, filename):
     data2 = IQmod(intensity=np.cos(x), error=e, mod_q=x)
 
     plot_IQmod([data1, data2], filename=filename, backend=backend)
+    plt.close()
     fileCheckAndRemove(filename)
 
 
@@ -60,6 +61,7 @@ def test_IQazimuthal_1d(backend, filename):
     data = IQazimuthal(intensity=data, error=error, qx=x, qy=y)
 
     plot_IQazimuthal(data, filename=filename, backend=backend)
+    plt.close()
     fileCheckAndRemove(filename)
 
 
@@ -77,6 +79,7 @@ def test_IQazimuthal_2d(backend, filename):
     data = IQazimuthal(intensity=data, error=error, qx=x, qy=y)
 
     plot_IQazimuthal(data, filename=filename, backend=backend)
+    plt.close()
     fileCheckAndRemove(filename, False)
 
 
@@ -95,6 +98,7 @@ def test_IQazimuthal_2d_selections(backend, filename):
 
     plot_IQazimuthal(data, filename=filename, backend=backend,
                      qmin=0., qmax=2., wedges=((-45., 45.),))
+    plt.close()
     fileCheckAndRemove(filename, False)
 
 
@@ -106,6 +110,7 @@ def test_detector(backend, filename):
     '''Test plotting in detector space from a mantid workspace'''
     workspace = LoadEmptyInstrument(InstrumentName='CG3')  # this will load monitors as well
     plot_detector(workspace, filename, backend)
+    plt.close()
     fileCheckAndRemove(filename, False)
 
 
@@ -115,6 +120,7 @@ def test_xaxis_direction(reference_dir):
     workspace = LoadNexus(os.path.join(reference_dir.new.sans, 'plots', 'wing_detector.nxs'))
     filename = 'test_xaxis_direction.png'
     plot_detector(workspace, filename=filename, backend='mpl', panel_name='wing_detector', axes_mode='xy')
+    plt.close()
     fileCheckAndRemove(filename, remove=True)
 
 

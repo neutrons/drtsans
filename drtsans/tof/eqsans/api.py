@@ -3,6 +3,7 @@ from collections import namedtuple
 import copy
 from datetime import datetime
 import os
+import matplotlib.pyplot as plt
 
 from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
@@ -839,7 +840,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
                          imshow_kwargs=imshow_kwargs, title='Main',
                          wedges=wedges, symmetric_wedges=symmetric_wedges,
                          qmin=qmin, qmax=qmax)
-
+        plt.clf()
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -847,7 +848,8 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{add_suffix}_Iq.png')
             plot_IQmod([out.I1D_main[j]], filename, loglog=True,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
-
+            plt.clf()
+    plt.close()
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)
 

@@ -3,6 +3,7 @@ import copy
 from datetime import datetime
 import os
 from collections import namedtuple
+import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed
 
@@ -1129,6 +1130,7 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
                          imshow_kwargs=imshow_kwargs, title='Main',
                          wedges=wedges, symmetric_wedges=symmetric_wedges,
                          qmin=qmin, qmax=qmax)
+        plt.clf()
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -1136,7 +1138,8 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             filename = os.path.join(output_dir, '1D', f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
             plot_IQmod([out.I1D_main[j]], filename, loglog=loglog,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
-
+            plt.clf()
+    plt.close()    
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, '1D'))
     allow_overwrite(os.path.join(output_dir, '2D'))

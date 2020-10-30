@@ -38,12 +38,12 @@ def _find_beam_center_gaussian(ws, parameters={}):
         Input workspace
     parameters: dict
         Fitting parameters passed onto lmfit. Defaults include
-        'amp', value=ws.extractY().max())
-        'sigma_x'=0.01, min=np.finfo(float).eps
-        'sigma_y'=0.01, min=np.finfo(float).eps
-        'theta'= 0., min=-np.pi/2., max=np.pi/2.
-        'CenterX' = 0.
-        'CenterY' = 0.
+        'amp', Amplitude of the Gaussian function. Default: ws.extractY().max()
+        'sigma_x', X spead of the Gaussian function. Default: 0.01
+        'sigma_y', Y spead of the Gaussian function. Default: 0.01
+        'theta', Clockwise rotation angle of Gaussian function. Default: 0.
+        'CenterX', Estimate for the beam center in X [m]. Default: 0.
+        'CenterY', Estimate for the beam center in Y [m]. Default: 0.
 
     Returns
     -------

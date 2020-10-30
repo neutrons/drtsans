@@ -45,8 +45,7 @@
                 {"type": "number", "exclusiveMinimum": 0}],
       "preferredType": "float"
     },
-    "
-            "type": "number",safeStringPositiveFloatNotNone": {
+    "safeStringPositiveFloatNotNone": {
       "anyOf": [{"type": "string", "minLength": 1, "pattern": "^$|^[0-9]*.[0-9]*$"},
                 {"type": "number", "exclusiveMinimum": 0}],
       "preferredType": "float"

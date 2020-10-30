@@ -221,11 +221,11 @@
             "$ref": "common.json#/definitions/lmfitParameter",
             "description": "Clockwise rotation angle of Gaussian function. Default: 0"
           },
-          "x0": {
+          "CenterX": {
             "$ref": "common.json#/definitions/lmfitParameter",
             "description": "Estimate for the beam center in X [m]. Default: 0"
           },
-          "y0": {
+          "CenterY": {
             "$ref": "common.json#/definitions/lmfitParameter",
             "description": "Estimate for the beam center in Y [m]. Default: 0"
           }

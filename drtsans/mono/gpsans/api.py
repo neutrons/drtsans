@@ -908,14 +908,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     if 'method' in reduction_input["beamCenter"].keys():
         method = reduction_input['beamCenter']['method']
         fbc_options['method'] = method
-        if method == 'gaussian' and
-            'gaussian_centering_options' in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] =
-                    reduction_input['beamCenter']['gaussian_centering_options']
-        else if method == 'center_of_mass' and
-            'com_centering_options' in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] =
-                    reduction_input['beamCenter']['com_centering_options']
+        if method == 'gaussian':
+            if 'gaussian_centering_options' in reduction_input["beamCenter"].keys():
+                fbc_options["centering_options"] = reduction_input['beamCenter']['gaussian_centering_options']
+        else if method == 'center_of_mass':
+            if 'com_centering_options' in reduction_input["beamCenter"].keys():
+                fbc_options["centering_options"] = reduction_input['beamCenter']['com_centering_options']
     xc, yc = find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center = {xc}, {yc}")
 

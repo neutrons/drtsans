@@ -15,7 +15,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans.reductionlog import savereductionlog
 from drtsans.solid_angle import solid_angle_correction
-from drtsans.beam_finder import center_detector, find_beam_center
+from drtsans.beam_finder import center_detector, find_beam_center, fbc_options_json
 from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.mono.load import (load_events, transform_to_wavelength, load_events_and_histogram, load_and_split,
                                set_init_uncertainties)
@@ -905,16 +905,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         symmetric_wedges = False
         logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
-    fbc_options = {}
-    if 'method' in reduction_input["beamCenter"].keys():
-        method = reduction_input['beamCenter']['method']
-        fbc_options['method'] = method
-        if method == 'gaussian':
-            if 'gaussian_centering_options' in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] = reduction_input['beamCenter']['gaussian_centering_options']
-        elif method == 'center_of_mass':
-            if 'com_centering_options' in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] = reduction_input['beamCenter']['com_centering_options']
+    fbc_options = fbc_options_json(reduction_input)
     xc, yc = find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center = {xc}, {yc}")
 

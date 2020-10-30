@@ -17,7 +17,7 @@ from drtsans.save_2d import save_nist_dat, save_nexus  # noqa E402
 from drtsans.transmission import apply_transmission_correction  # noqa E402
 from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
-from drtsans.beam_finder import find_beam_center  # noqa E402
+from drtsans.beam_finder import find_beam_center, fbc_options_json  # noqa E402
 from drtsans.instruments import extract_run_number  # noqa E402
 from drtsans.path import abspath, abspaths, registered_workspace  # noqa E402
 from drtsans.tof.eqsans.load import load_events, load_events_and_histogram, load_and_split  # noqa E402
@@ -104,7 +104,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                         output_workspace=center_ws_name)
             if reduction_config["useDefaultMask"]:
                 apply_mask(center_ws_name, mask=default_mask)
-        center_x, center_y = find_beam_center(center_ws_name)
+        fbc_options = fbc_options_json(reduction_input)
+        center_x, center_y = find_beam_center(center_ws_name, **fbc_options)
         logger.notice(f"calculated center ({center_x}, {center_y})")
         print(f"calculated center ({center_x}, {center_y})")
         beam_center_type = 'calculated'

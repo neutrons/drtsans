@@ -15,7 +15,7 @@ import numpy as np
 import lmfit
 
 
-__all__ = ['center_detector', 'find_beam_center']  # exports to the drtsans namespace
+__all__ = ['center_detector', 'find_beam_center', 'fbc_options_json']  # exports to the drtsans namespace
 
 
 # defining 2D Gaussian fitting functions
@@ -92,6 +92,20 @@ def _find_beam_center_gaussian(ws, parameters={}):
         params.add('CenterY', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
     return results.params['CenterX'].value, results.params['CenterY'].value
+
+
+def fbc_options_json(reduction_input):
+    fbc_options = {}
+    if 'method' in reduction_input["beamCenter"].keys():
+        method = reduction_input['beamCenter']['method']
+        fbc_options['method'] = method
+        if method == 'gaussian':
+            if 'gaussian_centering_options' in reduction_input["beamCenter"].keys():
+                fbc_options["centering_options"] = reduction_input['beamCenter']['gaussian_centering_options']
+        elif method == 'center_of_mass':
+            if 'com_centering_options' in reduction_input["beamCenter"].keys():
+                fbc_options["centering_options"] = reduction_input['beamCenter']['com_centering_options']
+    return fbc_options
 
 
 def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_options={},

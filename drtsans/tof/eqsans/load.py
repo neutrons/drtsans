@@ -148,8 +148,8 @@ def load_events(run, pixel_calibration=False, detector_offset=0., sample_offset=
 def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., sample_offset=0., path_to_pixel=True,
                               data_dir=None, output_workspace=None, output_suffix='',
                               bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
-                              center_x=None, center_y=None, mask=None, monitors=False,
-                              keep_events=True,
+                              center_x=None, center_y=None, centering_method='center_of_mass', centering_options={},
+                              mask=None, monitors=False, keep_events=True,
                               **kwargs):
     r"""Load events from one or more NeXus files with initial corrections
     for geometry, time-of-flight and beam center. Convert to
@@ -201,6 +201,12 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
         Move the center of the detector to this X-coordinate. If :py:obj:`None`, the
         detector will be moved such that the X-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
+    centering_method: str
+        Method to calculate the beam center. Available methods are:
+        - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`
+        - 'gaussian', 2D Gaussian fit to beam center data
+    centering_options: dict
+        Arguments to be passed on to the centering method.
     mask: mask file path, MaskWorkspace, list
         Additional mask to be applied. If `list`, it is a list of
         detector ID's.
@@ -245,7 +251,7 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                          **kwargs)
 
         if center_x is None or center_y is None:
-            center_x, center_y = find_beam_center(ws, mask=mask)
+            center_x, center_y = find_beam_center(ws, mask=mask, method=centering_method, centering_options=centering_options)
         center_detector(ws, center_x=center_x, center_y=center_y)  # operates in-place
 
         ws = transform_to_wavelength(ws, bin_width=bin_width,
@@ -288,7 +294,8 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                         output_suffix=output_suffix,
                         **kwargs)
             if center_x is None or center_y is None:
-                center_x, center_y = find_beam_center(temp_workspace_name, mask=mask)
+                center_x, center_y = find_beam_center(temp_workspace_name, mask=mask,
+                                                      method=centering_method, centering_options=centering_options)
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
             transform_to_wavelength(temp_workspace_name,
                                     bin_width=bin_width,
@@ -326,8 +333,8 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                    data_dir=None, output_workspace=None, output_suffix='',
                    overwrite_instrument=True, pixel_calibration=False,
                    bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
-                   center_x=None, center_y=None, mask=None, monitors=False,
-                   keep_events=True,
+                   center_x=None, center_y=None, centering_method='center_of_mass',
+                   centering_options={}, mask=None, monitors=False, keep_events=True,
                    time_interval=None, log_name=None, log_value_interval=None,
                    reuse_workspace=False, **kwargs):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
@@ -340,7 +347,12 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
         Examples: ``CG3_55555``, ``CG355555`` or file path.
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
-
+    centering_method: str
+        Method to calculate the beam center. Available methods are:
+        - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`
+        - 'gaussian', 2D Gaussian fit to beam center data
+    centering_options: dict
+        Arguments to be passed on to the centering method.
     Returns
     -------
     WorkspaceGroup
@@ -362,7 +374,7 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
         # Correct TOF for emission time
         correct_emission_time(_w)
         if center_x is None or center_y is None:
-            center_x, center_y = find_beam_center(_w, mask=mask)
+            center_x, center_y = find_beam_center(_w, mask=mask, method=centering_method, centering_options=centering_options)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
 
         transform_to_wavelength(_w, bin_width=bin_width,

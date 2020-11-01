@@ -46,6 +46,8 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     # Check whether the test shall be skipped
     if not os.path.exists('/SNS/EQSANS/IPTS-24648/nexus/EQSANS_111030.nxs.h5'):
         pytest.skip('Test files cannot be accessed.')
+    if not os.path.exists('/SNS/EQSANS/IPTS-24648/nexus/EQSANS_111042.nxs.h5'):
+        pytest.skip('Test files cannot be accessed.')
 
     # Input Flood Runs
     FLOOD_RUNS = 111030

@@ -2,7 +2,7 @@
 
 import os
 import yaml
-from typing import List
+from typing import List, Union
 from drtsans.mono.convert_xml_to_nexus import EventNeXusWriter
 from drtsans.files.event_nexus_rw import parse_event_nexus
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
@@ -80,6 +80,7 @@ def convert_spice_to_nexus(
     masked_detector_pixels: List[int] = list(),
     output_dir: str = None,
     spice_dir: str = None,
+    spice_data: str = Union[None, str]
 ):
     """
     Description
@@ -104,6 +105,8 @@ def convert_spice_to_nexus(
         output directory of the converted data
     spice_dir: None or str
         data file directory for SPICE file.  None using default
+    spice_data: None or str
+        full data file.  It is specified, there is no need to construct SPICE file name anymore
 
     Returns
     -------
@@ -111,24 +114,30 @@ def convert_spice_to_nexus(
         generated event Nexus file
 
     """
-    # path processing
-    spice_dir = (
-        f"/HFIR/CG3/IPTS-{ipts_number}/exp{exp_number}/Datafiles"
-        if spice_dir is None
-        else spice_dir
-    )
-    spice_data = f"BioSANS_exp{exp_number}_scan{scan_number:04}_{pt_number:04}.xml"
-    spice_data = os.path.join(spice_dir, spice_data)
-    output_dir = (
-        f"/HFIR/CG3/IPTS-{ipts_number}/shared/spice_nexus"
-        if output_dir is None
-        else output_dir
-    )
+    if spice_dir is not None:
+        # construct SPICE file from IPTS, experiment and etc.
+        # path processing
+        spice_dir = (
+            f"/HFIR/CG3/IPTS-{ipts_number}/exp{exp_number}/Datafiles"
+            if spice_dir is None
+            else spice_dir
+        )
 
-    # Input (Path&File) validation
-    assert os.path.exists(
-        spice_dir
-    ), f"SPICE data directory {spice_dir} cannot be found"
+        # construct  SPICE
+        spice_data = f"BioSANS_exp{exp_number}_scan{scan_number:04}_{pt_number:04}.xml"
+        spice_data = os.path.join(spice_dir, spice_data)
+        output_dir = (
+            f"/HFIR/CG3/IPTS-{ipts_number}/shared/spice_nexus"
+            if output_dir is None
+            else output_dir
+        )
+
+        # Input (Path&File) validation
+        assert os.path.exists(
+            spice_dir
+        ), f"SPICE data directory {spice_dir} cannot be found"
+
+    # check SPICE file
     assert os.path.exists(spice_data), f"SPICE file {spice_data} cannot be located"
     assert os.path.exists(
         template_nexus

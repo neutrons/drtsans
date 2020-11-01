@@ -90,7 +90,7 @@ def _find_beam_center_gaussian(ws, parameters={}):
         params.add('CenterX', value=0.)
     if 'CenterY' not in params:
         params.add('CenterY', value=0.)
-    results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
+    results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params, nan_policy='omit')
     return results.params['CenterX'].value, results.params['CenterY'].value
 
 

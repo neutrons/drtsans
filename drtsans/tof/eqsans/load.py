@@ -251,7 +251,8 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                          **kwargs)
 
         if center_x is None or center_y is None:
-            center_x, center_y = find_beam_center(ws, mask=mask, method=centering_method, centering_options=centering_options)
+            center_x, center_y = find_beam_center(ws, mask=mask, method=centering_method,
+                                                  centering_options=centering_options)
         center_detector(ws, center_x=center_x, center_y=center_y)  # operates in-place
 
         ws = transform_to_wavelength(ws, bin_width=bin_width,
@@ -374,7 +375,8 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
         # Correct TOF for emission time
         correct_emission_time(_w)
         if center_x is None or center_y is None:
-            center_x, center_y = find_beam_center(_w, mask=mask, method=centering_method, centering_options=centering_options)
+            center_x, center_y = find_beam_center(_w, mask=mask, method=centering_method,
+                                                  centering_options=centering_options)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
 
         transform_to_wavelength(_w, bin_width=bin_width,

@@ -9,8 +9,7 @@ from os.path import exists as os_exists
 from tempfile import gettempdir, NamedTemporaryFile
 
 # arbitrarily selected IPTS to see if the mount is in place
-HAVE_EQSANS_MOUNT = os_exists('/SNS/EQSANS/IPTS-23732/nexus') and
-                    os_exists('/SNS/EQSANS/IPTS-19800/nexus')
+HAVE_EQSANS_MOUNT = os_exists('/SNS/EQSANS/IPTS-23732/nexus') and os_exists('/SNS/EQSANS/IPTS-19800/nexus')
 
 SEARCH_ON = {}
 SEARCH_OFF = {'datasearch.searcharchive': 'off'}

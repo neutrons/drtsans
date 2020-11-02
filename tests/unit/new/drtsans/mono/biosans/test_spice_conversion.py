@@ -1,7 +1,7 @@
 import pytest
 import os
 import numpy as np
-from mantid.simpleapi import LoadHFIRSANS, mtd
+from mantid.simpleapi import LoadHFIRSANS
 
 
 def test_benchmark_spice(reference_dir):
@@ -80,7 +80,6 @@ def test_benchmark_spice(reference_dir):
 
     # counts
     assert np.allclose(np.array(count_list), np.arange(1, 160 + 1) * 1000)
-
 
 
 if __name__ == '__main__':

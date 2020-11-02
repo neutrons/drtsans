@@ -159,7 +159,9 @@ class EventNexusConverter(ABC):
             sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
         )
 
-        self._detector_counts = counts[2:]
+        # detector counts
+        self._detector_counts = self._map_detector_counts(counts)
+        # monitor counts
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
         # NOTE:
@@ -173,6 +175,10 @@ class EventNexusConverter(ABC):
         self._run_stop = sans_ws.run().getProperty("end_time").value
 
         self._run_number = pt_number
+
+    @staticmethod
+    def _map_detector_counts(counts):
+        return counts[2:]
 
     def load_idf(self, template_nexus_file):
         """Load IDF content from a template NeXus file

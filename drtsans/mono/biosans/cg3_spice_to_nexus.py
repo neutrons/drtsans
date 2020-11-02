@@ -26,6 +26,10 @@ class CG3EventNexusConvert(EventNexusConverter):
         """For BioSANS (CG3), the total number of banks is a fixed value: 88"""
         return 88
 
+    @staticmethod
+    def _map_detector_counts(counts):
+        return counts[2:]
+
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
 

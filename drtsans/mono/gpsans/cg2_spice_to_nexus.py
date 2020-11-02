@@ -14,6 +14,10 @@ class CG2EventNexusConvert(EventNexusConverter):
         """
         super(CG2EventNexusConvert, self).__init__('CG2', 'CG2', 48)
 
+    @staticmethod
+    def _map_detector_counts(counts):
+        return counts[2:]
+
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
 

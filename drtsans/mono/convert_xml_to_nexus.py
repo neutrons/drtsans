@@ -2,7 +2,6 @@
 # CG2's data file in XML format to event Nexus
 import os
 import numpy as np
-from typing import Dict, Any
 from drtsans.mono.spice_xml_parser import SpiceXMLParser
 from drtsans.files.event_nexus_rw import DasLog, EventNeXusWriter, TofHistogram
 import h5py

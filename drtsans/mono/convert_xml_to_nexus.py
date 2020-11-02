@@ -2,6 +2,7 @@
 # CG2's data file in XML format to event Nexus
 import os
 import numpy as np
+from typing import Dict, Any
 from drtsans.mono.spice_xml_parser import SpiceXMLParser
 from drtsans.files.event_nexus_rw import DasLog, EventNeXusWriter, TofHistogram
 import h5py
@@ -48,6 +49,8 @@ class EventNexusConverter(ABC):
         self._detector_counts = (
             None  # 1D array ranging from PID 0 (aka workspace index 0)
         )
+        self._bank_pid_dict = dict()
+        self._bank_counts_dict = dict()
         self._monitor_counts = None
 
         # sample logs
@@ -105,10 +108,14 @@ class EventNexusConverter(ABC):
         # set counts
         for bank_id in range(1, num_banks + 1):
             # create TofHistogram instance
-            start_pid, end_pid = self.get_pid_range(bank_id)
-            pix_ids = np.arange(start_pid, end_pid + 1)
-            counts = self._detector_counts[start_pid:end_pid + 1]
-            counts = counts.astype("int64")
+            # start_pid, end_pid = self.get_pid_range(bank_id)
+            # pix_ids = np.arange(start_pid, end_pid + 1)
+            # counts = self._detector_counts[start_pid:end_pid + 1]
+            # counts = counts.astype("int64")
+            pix_ids = self._bank_pid_dict[bank_id]
+            counts = self._bank_counts_dict[bank_id]
+            assert pix_ids is not None
+            assert counts is not None
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
 
             # set to writer
@@ -160,7 +167,7 @@ class EventNexusConverter(ABC):
         )
 
         # detector counts
-        self._detector_counts = self._map_detector_counts(counts)
+        self._map_detector_counts(counts)
         # monitor counts
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
@@ -176,9 +183,9 @@ class EventNexusConverter(ABC):
 
         self._run_number = pt_number
 
-    @staticmethod
-    def _map_detector_counts(counts):
-        return counts[2:]
+    def _map_detector_counts(self, counts):
+        # self._detector_counts = counts[2:]
+        raise RuntimeError('This is virtual')
 
     def load_idf(self, template_nexus_file):
         """Load IDF content from a template NeXus file

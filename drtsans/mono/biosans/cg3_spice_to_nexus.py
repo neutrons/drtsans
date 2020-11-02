@@ -2,6 +2,7 @@
 
 import os
 import yaml
+import numpy as np
 from typing import List, Union
 from drtsans.mono.convert_xml_to_nexus import EventNeXusWriter
 from drtsans.files.event_nexus_rw import parse_event_nexus
@@ -26,9 +27,19 @@ class CG3EventNexusConvert(EventNexusConverter):
         """For BioSANS (CG3), the total number of banks is a fixed value: 88"""
         return 88
 
-    @staticmethod
-    def _map_detector_counts(counts):
-        return counts[2:]
+    def _map_detector_counts(self, counts):
+        self._detector_counts = counts[2:]
+
+        # map to bank
+        for bank_id in range(1, self._num_banks + 1):
+            # create TofHistogram instance
+            start_pid, end_pid = self.get_pid_range(bank_id)
+            pix_ids = np.arange(start_pid, end_pid + 1)
+            counts = self._detector_counts[start_pid:end_pid + 1]
+            counts = counts.astype("int64")
+
+            self._bank_pid_dict[bank_id] = pix_ids
+            self._bank_counts_dict[bank_id] = counts
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation

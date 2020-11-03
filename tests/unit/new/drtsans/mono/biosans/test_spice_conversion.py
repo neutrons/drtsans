@@ -181,8 +181,6 @@ def test_spice_conversion(reference_dir, cleanfile):
     expected_counts = np.arange(1, 160 + 1) * 1000
     np.testing.assert_allclose(test_counts, expected_counts)
 
-    assert 1 == 4
-
 
 if __name__ == '__main__':
     pytest.main([__file__])

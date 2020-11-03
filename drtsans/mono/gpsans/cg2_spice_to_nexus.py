@@ -15,7 +15,7 @@ class CG2EventNexusConvert(EventNexusConverter):
         """
         super(CG2EventNexusConvert, self).__init__('CG2', 'CG2', 48)
 
-    def _map_detector_counts(self, counts):
+    def _map_detector_and_counts(self, counts):
         self._detector_counts = counts[2:]
 
         # map to bank

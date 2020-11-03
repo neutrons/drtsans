@@ -166,7 +166,7 @@ class EventNexusConverter(ABC):
         )
 
         # detector counts
-        self._map_detector_counts(counts)
+        self._map_detector_and_counts(counts)
         # monitor counts
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
@@ -182,7 +182,7 @@ class EventNexusConverter(ABC):
 
         self._run_number = pt_number
 
-    def _map_detector_counts(self, counts):
+    def _map_detector_and_counts(self, counts):
         # self._detector_counts = counts[2:]
         raise RuntimeError('This is virtual')
 

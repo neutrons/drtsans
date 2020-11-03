@@ -45,7 +45,7 @@ class EventNexusConverter(ABC):
         self._idf_content = None
 
         # counts
-        self._detector_counts = (
+        self._spice_detector_counts = (
             None  # 1D array ranging from PID 0 (aka workspace index 0)
         )
         self._bank_pid_dict = dict()
@@ -72,7 +72,7 @@ class EventNexusConverter(ABC):
             detector counts
 
         """
-        return self._detector_counts[:]
+        return self._spice_detector_counts[:]
 
     def generate_event_nexus(self, target_nexus):
         """Generate event NeXus properly
@@ -89,6 +89,10 @@ class EventNexusConverter(ABC):
         -------
 
         """
+        #  Map detector counts from SPICE to detector counts/bank/detector ID of NeXus
+        # detector counts
+        self._map_detector_and_counts()
+
         num_banks = self._num_banks
 
         # Set constants
@@ -165,11 +169,14 @@ class EventNexusConverter(ABC):
             sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
         )
 
-        # detector counts
-        self._map_detector_and_counts(counts)
         # monitor counts
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
+        print(f'Monitor count = {monitor_counts}')
+
+        # get detector counts and convert to int 64
+        self._spice_detector_counts = counts[2:].astype("int64")
+
         # NOTE:
         # monitor counts cannot be zero since we need it as the denominator during
         # normalization.
@@ -182,7 +189,7 @@ class EventNexusConverter(ABC):
 
         self._run_number = pt_number
 
-    def _map_detector_and_counts(self, counts):
+    def _map_detector_and_counts(self):
         # self._detector_counts = counts[2:]
         raise RuntimeError('This is virtual')
 
@@ -211,26 +218,25 @@ class EventNexusConverter(ABC):
 
         return
 
-    def mask_detector_pixels(self, pixel_index_list: List[int]):
-        """Mask detector pixels by set the counts to zero
+    def mask_spice_detector_pixels(self, pixel_index_list: List[int]):
+        """Mask detector pixels with SPICE counts by set the counts to zero
 
         Parameters
         ----------
         pixel_index_list: ~list
-            list of integers as detector ID (starting from 0 and same as workspace index) of detector pixels
-            to make out
+            list of integers as workspace index detector pixels
 
         """
         # Sanity check
-        if self._detector_counts is None:
+        if self._spice_detector_counts is None:
             raise RuntimeError('Detector counts array has not been set up yet.  Load data first')
 
         # Set masked pixels
         for pid in pixel_index_list:
             try:
-                self._detector_counts[pid] = 0
+                self._spice_detector_counts[pid] = 0
             except IndexError as index_error:
-                raise RuntimeError(f'Pixel ID {pid} is out of range {self._detector_counts.shape}. '
+                raise RuntimeError(f'Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. '
                                    f'FYI: {index_error}')
 
     @staticmethod

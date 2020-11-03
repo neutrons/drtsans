@@ -27,19 +27,95 @@ class CG3EventNexusConvert(EventNexusConverter):
         """For BioSANS (CG3), the total number of banks is a fixed value: 88"""
         return 88
 
-    def _map_detector_counts(self, counts):
-        self._detector_counts = counts[2:]
+    def _map_detector_and_counts(self, counts_array: np.ndarray):
+        """Map detector counts and pixel IDs from SPICE-era IDF to NeXus-era IDF
 
-        # map to bank
-        for bank_id in range(1, self._num_banks + 1):
+        SPICE: pixel ID is consecutive from lower left corner of detector, up to the top and then from the next tube
+        as
+
+        255  511   ...
+        .    ...   ...
+        .    ...   ...
+        1    257   ...
+        0    256   512 ....
+        ----------------------------------------
+        tube0   tube1   tube2   ...
+
+        NeXus: in each bank, the pixel IDs start with 4 front tubes and then 4 back tubes as
+
+        255  1279   ...
+        .    ...    ...
+        .    ...    ...
+        1    1025   257
+        0    1024   256  ....
+        ---------------------------
+        bank1  bank 25   bank 2  bank 26 ......
+
+        and the front 4 tubes are in one bank and the back 4 tubes are in another bank
+
+        Therefore, the algorithm shall re-assign the counts to tubes
+
+        Parameters
+        ----------
+        counts_array: np.ndarray
+            counts array
+
+        Returns
+        -------
+
+        """
+        self._detector_counts = counts_array[2:]
+
+        # map SPICE tube to NeXus bank/tube
+        num_pixel_per_tube = 256
+
+
+
+
+
+        print(f'number of banks = {self._num_banks}')
+        for spice_bank_id in range(0, self._num_banks):
+            # set: the nexus bank ID is starting from 1, front from 1 and back from 24
+            if spice_bank_id < 48:
+                # main detector
+                nexus_bank_id = spice_bank_id // 2 + 24 * (spice_bank_id % 2) + 1
+            else:
+                nexus_bank_id = 48 + (spice_bank_id - 48) // 2 + 20 * ((spice_bank_id - 48) % 2) + 1
+
             # create TofHistogram instance
-            start_pid, end_pid = self.get_pid_range(bank_id)
-            pix_ids = np.arange(start_pid, end_pid + 1)
-            counts = self._detector_counts[start_pid:end_pid + 1]
-            counts = counts.astype("int64")
+            start_pid, end_pid = self.get_pid_range(nexus_bank_id)
+            print(f'\nNeXus Bank {nexus_bank_id}: PID range = {start_pid}:{end_pid}')
 
-            self._bank_pid_dict[bank_id] = pix_ids
-            self._bank_counts_dict[bank_id] = counts
+            # assign to tubes: pixel ID shall be ordered according to SPICE workspace indexes
+            pix_ids = np.arange(start_pid, end_pid + 1)
+
+            # mao the counts
+            bank_counts = np.ndarray(shape=pix_ids.shape, dtype='float')
+
+            # even bank (front) and odd bank (back) to form an 8 pack (containing 2 banks)
+            eight_pack_start_tube_index = spice_bank_id // 2 * 2
+            tube_shift = spice_bank_id % 2  # even or odd
+
+            for bank_tube_index in range(4):
+                # nexus and spice tube mapping
+                spice_tube_index = eight_pack_start_tube_index * 4 + bank_tube_index * 2 + tube_shift
+                print(f'Bank {spice_bank_id}: nexus tube {spice_bank_id * 4 + bank_tube_index} map to {spice_tube_index}')
+                # get spice pixel ID range
+                spice_start_pid = spice_tube_index * num_pixel_per_tube
+                spice_end_pid = spice_start_pid + num_pixel_per_tube
+                # in-bank count array range
+                curr_start_index = bank_tube_index * num_pixel_per_tube
+                curr_end_index = (bank_tube_index + 1) * num_pixel_per_tube
+                # map counts
+                print(f'{curr_start_index}:{curr_end_index} <--- {spice_start_pid}:{spice_end_pid}')
+                bank_counts[curr_start_index:curr_end_index] = self._detector_counts[spice_start_pid:spice_end_pid]
+
+            # bank_counts = self._detector_counts[start_pid:end_pid + 1]
+            # convert
+            bank_counts = bank_counts.astype("int64")
+
+            self._bank_pid_dict[nexus_bank_id] = pix_ids
+            self._bank_counts_dict[nexus_bank_id] = bank_counts
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation

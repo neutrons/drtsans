@@ -85,7 +85,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
     """
     instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
     run_number = extract_run_number(run) if isinstance(run, str) else ''
-    filename = run if path_exists(run) else '{}{}'.format(instrument_unique_name, run_number)
+    filename = run if path_exists(run) else '{}_{}'.format(instrument_unique_name, run_number)
 
     # create default name for output workspace
     if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
@@ -108,6 +108,7 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
                 kwargs['LoadNexusInstrumentXML'] = not overwrite_instrument
 
             logger.notice(f'Loading {filename} to {output_workspace}')
+            filename = str(abspath(filename))
             LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
             # FIXME - what is the difference from: pixel_calibration is True?

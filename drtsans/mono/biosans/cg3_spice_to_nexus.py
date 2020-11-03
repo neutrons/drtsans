@@ -27,7 +27,7 @@ class CG3EventNexusConvert(EventNexusConverter):
         """For BioSANS (CG3), the total number of banks is a fixed value: 88"""
         return 88
 
-    def _map_detector_and_counts(self, counts_array: np.ndarray):
+    def _map_detector_and_counts(self):
         """Map detector counts and pixel IDs from SPICE-era IDF to NeXus-era IDF
 
         SPICE: pixel ID is consecutive from lower left corner of detector, up to the top and then from the next tube
@@ -64,58 +64,103 @@ class CG3EventNexusConvert(EventNexusConverter):
         -------
 
         """
-        self._detector_counts = counts_array[2:]
-
         # map SPICE tube to NeXus bank/tube
+        # TODO - make these into constants and do a sanity check for any data
         num_pixel_per_tube = 256
+        num_main_8packs = 192 // 8
+        num_wing_8packs = 160 // 8
+        num_tubes = self._num_banks * 4
+        # sanity_check()
 
-
-
-
-
-        print(f'number of banks = {self._num_banks}')
-        for spice_bank_id in range(0, self._num_banks):
-            # set: the nexus bank ID is starting from 1, front from 1 and back from 24
-            if spice_bank_id < 48:
-                # main detector
-                nexus_bank_id = spice_bank_id // 2 + 24 * (spice_bank_id % 2) + 1
-            else:
-                nexus_bank_id = 48 + (spice_bank_id - 48) // 2 + 20 * ((spice_bank_id - 48) % 2) + 1
-
-            # create TofHistogram instance
+        # initialize the output
+        for nexus_bank_id in range(1, 1 + self._num_banks):
+            # NeXus PID range for each bank
             start_pid, end_pid = self.get_pid_range(nexus_bank_id)
-            print(f'\nNeXus Bank {nexus_bank_id}: PID range = {start_pid}:{end_pid}')
-
             # assign to tubes: pixel ID shall be ordered according to SPICE workspace indexes
             pix_ids = np.arange(start_pid, end_pid + 1)
-
-            # mao the counts
-            bank_counts = np.ndarray(shape=pix_ids.shape, dtype='float')
-
-            # even bank (front) and odd bank (back) to form an 8 pack (containing 2 banks)
-            eight_pack_start_tube_index = spice_bank_id // 2 * 2
-            tube_shift = spice_bank_id % 2  # even or odd
-
-            for bank_tube_index in range(4):
-                # nexus and spice tube mapping
-                spice_tube_index = eight_pack_start_tube_index * 4 + bank_tube_index * 2 + tube_shift
-                print(f'Bank {spice_bank_id}: nexus tube {spice_bank_id * 4 + bank_tube_index} map to {spice_tube_index}')
-                # get spice pixel ID range
-                spice_start_pid = spice_tube_index * num_pixel_per_tube
-                spice_end_pid = spice_start_pid + num_pixel_per_tube
-                # in-bank count array range
-                curr_start_index = bank_tube_index * num_pixel_per_tube
-                curr_end_index = (bank_tube_index + 1) * num_pixel_per_tube
-                # map counts
-                print(f'{curr_start_index}:{curr_end_index} <--- {spice_start_pid}:{spice_end_pid}')
-                bank_counts[curr_start_index:curr_end_index] = self._detector_counts[spice_start_pid:spice_end_pid]
-
-            # bank_counts = self._detector_counts[start_pid:end_pid + 1]
-            # convert
-            bank_counts = bank_counts.astype("int64")
-
+            # initialize dictionary items for PID and counts
             self._bank_pid_dict[nexus_bank_id] = pix_ids
-            self._bank_counts_dict[nexus_bank_id] = bank_counts
+            self._bank_counts_dict[nexus_bank_id] = np.zeros_like(pix_ids)
+            print(f'NeXus Bank {nexus_bank_id}: PID range = {start_pid}:{end_pid}')
+
+        # map from SPICE tubes to Nexus bank/tube
+        for tube_group in range(num_main_8packs + num_wing_8packs):
+            # each 8 pack/tube group has 2 banks: bank shift is for the front bank in the 8 pack's shift from
+            # first bank
+            if tube_group < num_main_8packs:
+                group_bank_shift = tube_group
+            else:
+                group_bank_shift = tube_group + num_main_8packs
+            print(f'Bank shift for 8 pack group {tube_group} = {group_bank_shift}')
+
+            for tube_index in range(8):
+                # event tube: front panel
+                # odd tube: back panel shift another half detector (i.e., 1/2 banks in detector or number of 8 packs)
+                tube_bank_shift = tube_index % 2
+
+                # consider main and wing
+                if tube_group < num_main_8packs:
+                    # main
+                    bank_id = group_bank_shift + tube_bank_shift * num_main_8packs
+                else:
+                    # wing
+                    bank_id = group_bank_shift + tube_bank_shift * num_wing_8packs
+                bank_id += 1   # Nexus bank ID starts from 1
+
+                # spice tube index
+                spice_tube_index = tube_group * 8 + tube_index
+                bank_tube_index = tube_index // 2
+                print(f'SPICE tube {spice_tube_index} --> Bank {bank_id} Tube {bank_tube_index}')
+
+                # map counts to
+                spice_count_start_index = spice_tube_index * num_pixel_per_tube
+                bank_count_start_index = bank_tube_index * num_pixel_per_tube
+                print(f'SPICE ws-index starts {spice_count_start_index}   ..... Local starts {bank_count_start_index}   ..... Check shift 127:  {self._spice_detector_counts[spice_count_start_index + 127]}')
+                self._bank_counts_dict[bank_id][bank_count_start_index:bank_count_start_index + num_pixel_per_tube] = self._spice_detector_counts[spice_count_start_index:spice_count_start_index + num_pixel_per_tube]
+
+        # print(f'number of banks = {self._num_banks}')
+        # for spice_bank_id in range(0, self._num_banks):
+        #     # set: the nexus bank ID is starting from 1, front from 1 and back from 24
+        #     if spice_bank_id < 48:
+        #         # main detector
+        #         nexus_bank_id = spice_bank_id // 2 + 24 * (spice_bank_id % 2) + 1
+        #     else:
+        #         nexus_bank_id = 48 + (spice_bank_id - 48) // 2 + 20 * ((spice_bank_id - 48) % 2) + 1
+        #
+        #     # create TofHistogram instance
+        #     start_pid, end_pid = self.get_pid_range(nexus_bank_id)
+        #     print(f'\nNeXus Bank {nexus_bank_id}: PID range = {start_pid}:{end_pid}')
+        #
+        #     # assign to tubes: pixel ID shall be ordered according to SPICE workspace indexes
+        #     pix_ids = np.arange(start_pid, end_pid + 1)
+        #
+        #     # mao the counts
+        #     bank_counts = np.ndarray(shape=pix_ids.shape, dtype='float')
+        #
+        #     # even bank (front) and odd bank (back) to form an 8 pack (containing 2 banks)
+        #     eight_pack_start_tube_index = spice_bank_id // 2 * 2
+        #     tube_shift = spice_bank_id % 2  # even or odd
+        #
+        #     for bank_tube_index in range(4):
+        #         # nexus and spice tube mapping
+        #         spice_tube_index = eight_pack_start_tube_index * 4 + bank_tube_index * 2 + tube_shift
+        #         print(f'Bank {spice_bank_id}: nexus tube {spice_bank_id * 4 + bank_tube_index} map to {spice_tube_index}')
+        #         # get spice pixel ID range
+        #         spice_start_pid = spice_tube_index * num_pixel_per_tube
+        #         spice_end_pid = spice_start_pid + num_pixel_per_tube
+        #         # in-bank count array range
+        #         curr_start_index = bank_tube_index * num_pixel_per_tube
+        #         curr_end_index = (bank_tube_index + 1) * num_pixel_per_tube
+        #         # map counts
+        #         print(f'{curr_start_index}:{curr_end_index} <--- {spice_start_pid}:{spice_end_pid}')
+        #         bank_counts[curr_start_index:curr_end_index] = self._detector_counts[spice_start_pid:spice_end_pid]
+        #
+        #     # bank_counts = self._detector_counts[start_pid:end_pid + 1]
+        #     # convert
+        #     bank_counts = bank_counts.astype("int64")
+        #
+        #     self._bank_pid_dict[nexus_bank_id] = pix_ids
+        #     self._bank_counts_dict[nexus_bank_id] = bank_counts
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
@@ -262,7 +307,7 @@ def convert_spice_to_nexus(
     # load SPICE (xml file)
     converter.load_sans_xml(spice_data, das_log_map)
     # mask detector
-    converter.mask_detector_pixels(masked_detector_pixels)
+    converter.mask_spice_detector_pixels(masked_detector_pixels)
     # generate event nexus
     converter.generate_event_nexus(out_nexus_file)
 

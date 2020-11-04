@@ -19,11 +19,11 @@ __all__ = ['center_detector', 'find_beam_center', 'fbc_options_json']  # exports
 
 
 def _results_to_dict(params):
-    results = {}
+    fit_results = {}
     for key in params:
         value = params[key]
-        results[key] = {'value': value.value, 'stderr': value.stderr, 'vary': value.vary}
-    return results
+        fit_results[key] = {'value': value.value, 'stderr': value.stderr, 'vary': value.vary}
+    return fit_results
 
 
 # defining 2D Gaussian fitting functions
@@ -99,7 +99,8 @@ def _find_beam_center_gaussian(ws, parameters={}):
     if 'CenterY' not in params:
         params.add('CenterY', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params, nan_policy='omit')
-    return results.params['CenterX'].value, results.params['CenterY'].value, _results_to_dict(results.params)
+    fit_params = results.params
+    return fit_params['CenterX'].value, fit_params['CenterY'].value, _results_to_dict(fit_params)
 
 
 def fbc_options_json(reduction_input):
@@ -163,12 +164,12 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     if method == 'center_of_mass':
         center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)
         x, y = center
-        results = {}
+        fit_results = {}
     else:  # method == 'gaussian':
-        x, y, results = _find_beam_center_gaussian(flat_ws, centering_options)
+        x, y, fit_results = _find_beam_center_gaussian(flat_ws, centering_options)
     logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(x, y))
     DeleteWorkspace(flat_ws)
-    return x, y, results
+    return x, y, fit_results
 
 
 def center_detector(input_workspace, center_x, center_y, component='detector1'):

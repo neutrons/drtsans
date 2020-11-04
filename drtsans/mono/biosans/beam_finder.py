@@ -111,7 +111,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     ws = mtd[str(input_workspace)]
 
     # find the center on the main detector
-    center_x, center_y = bf.find_beam_center(ws, method, mask,
+    center_x, center_y, fit_results = bf.find_beam_center(ws, method, mask,
                                              mask_options=mask_options, centering_options=centering_options,
                                              solid_angle_method=solid_angle_method)
 
@@ -132,7 +132,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
 
     logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}.".format(
         center_x, center_y, center_y_wing))
-    return center_x, center_y, center_y_wing
+    return center_x, center_y, center_y_wing, fit_results
 
 
 def center_detector(input_workspace, center_x, center_y, center_y_wing):

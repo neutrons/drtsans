@@ -906,7 +906,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
     fbc_options = fbc_options_json(reduction_input)
-    xc, yc = find_beam_center(loaded_ws.center, **fbc_options)
+    xc, yc, fit_results = find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center = {xc}, {yc}")
 
     # process the center if using it in absolute scaling
@@ -1066,6 +1066,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     reductionparams = {'data': copy.deepcopy(reduction_input)}
     specialparameters = {'beam_center': {'x': xc,
                                          'y': yc},
+                         'fit_results': fit_results,
                          'sample_transmission': sample_transmission_dict,
                          'background_transmission': background_transmission_dict,
                          }

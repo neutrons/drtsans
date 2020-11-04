@@ -843,7 +843,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         symmetric_wedges = False
 
     fbc_options = biosans.fbc_options_json(reduction_input)
-    xc, yc, yw = biosans.find_beam_center(loaded_ws.center, **fbc_options)
+    xc, yc, yw, fit_results = biosans.find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f'Find beam center  = {xc}, {yc}, {yw}')
 
     # empty beam transmission workspace
@@ -1112,6 +1112,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     #     pythonfile = "Launched from notebook"
     reductionparams = {'data': copy.deepcopy(reduction_input)}
     specialparameters = {'beam_center': {'x': xc, 'y': yc, 'y_wing': yw},
+                         'fit results': fit_results,
                          'sample_transmission': {'main': trans_main['sample'],
                                                  'wing': trans_wing['sample']},
                          'background_transmission': {'main': trans_main['background'],

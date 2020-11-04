@@ -45,9 +45,11 @@ class EventNexusConverter(ABC):
         self._idf_content = None
 
         # counts
-        self._detector_counts = (
+        self._spice_detector_counts = (
             None  # 1D array ranging from PID 0 (aka workspace index 0)
         )
+        self._bank_pid_dict = dict()
+        self._bank_counts_dict = dict()
         self._monitor_counts = None
 
         # sample logs
@@ -70,7 +72,7 @@ class EventNexusConverter(ABC):
             detector counts
 
         """
-        return self._detector_counts[:]
+        return self._spice_detector_counts[:]
 
     def generate_event_nexus(self, target_nexus):
         """Generate event NeXus properly
@@ -87,6 +89,10 @@ class EventNexusConverter(ABC):
         -------
 
         """
+        #  Map detector counts from SPICE to detector counts/bank/detector ID of NeXus
+        # detector counts
+        self._map_detector_and_counts()
+
         num_banks = self._num_banks
 
         # Set constants
@@ -105,10 +111,14 @@ class EventNexusConverter(ABC):
         # set counts
         for bank_id in range(1, num_banks + 1):
             # create TofHistogram instance
-            start_pid, end_pid = self.get_pid_range(bank_id)
-            pix_ids = np.arange(start_pid, end_pid + 1)
-            counts = self._detector_counts[start_pid:end_pid + 1]
-            counts = counts.astype("int64")
+            # start_pid, end_pid = self.get_pid_range(bank_id)
+            # pix_ids = np.arange(start_pid, end_pid + 1)
+            # counts = self._detector_counts[start_pid:end_pid + 1]
+            # counts = counts.astype("int64")
+            pix_ids = self._bank_pid_dict[bank_id]
+            counts = self._bank_counts_dict[bank_id]
+            assert pix_ids is not None
+            assert counts is not None
             histogram = TofHistogram(pix_ids, counts, pulse_duration, tof_min, tof_max)
 
             # set to writer
@@ -159,9 +169,13 @@ class EventNexusConverter(ABC):
             sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
         )
 
-        self._detector_counts = counts[2:]
+        # monitor counts
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
+
+        # get detector counts and convert to int 64
+        self._spice_detector_counts = counts[2:].astype("int64")
+
         # NOTE:
         # monitor counts cannot be zero since we need it as the denominator during
         # normalization.
@@ -173,6 +187,10 @@ class EventNexusConverter(ABC):
         self._run_stop = sans_ws.run().getProperty("end_time").value
 
         self._run_number = pt_number
+
+    def _map_detector_and_counts(self):
+        # self._detector_counts = counts[2:]
+        raise RuntimeError('This is virtual')
 
     def load_idf(self, template_nexus_file):
         """Load IDF content from a template NeXus file
@@ -199,26 +217,25 @@ class EventNexusConverter(ABC):
 
         return
 
-    def mask_detector_pixels(self, pixel_index_list: List[int]):
-        """Mask detector pixels by set the counts to zero
+    def mask_spice_detector_pixels(self, pixel_index_list: List[int]):
+        """Mask detector pixels with SPICE counts by set the counts to zero
 
         Parameters
         ----------
         pixel_index_list: ~list
-            list of integers as detector ID (starting from 0 and same as workspace index) of detector pixels
-            to make out
+            list of integers as workspace index detector pixels
 
         """
         # Sanity check
-        if self._detector_counts is None:
+        if self._spice_detector_counts is None:
             raise RuntimeError('Detector counts array has not been set up yet.  Load data first')
 
         # Set masked pixels
         for pid in pixel_index_list:
             try:
-                self._detector_counts[pid] = 0
+                self._spice_detector_counts[pid] = 0
             except IndexError as index_error:
-                raise RuntimeError(f'Pixel ID {pid} is out of range {self._detector_counts.shape}. '
+                raise RuntimeError(f'Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. '
                                    f'FYI: {index_error}')
 
     @staticmethod

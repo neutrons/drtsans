@@ -127,7 +127,6 @@ def abspath(path, instrument='', ipts='', directory=None, search_archive=True):
 
     # get all of the options from FileFinder and convert them to an absolute
     # path in case any weren't already
-    message_archive = ''
     try:
         config = {'default.instrument': instrument, 'datasearch.searcharchive': 'hfir, sns'}
         if bool(search_archive) is False:

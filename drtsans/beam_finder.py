@@ -21,7 +21,7 @@ __all__ = ['center_detector', 'find_beam_center', 'fbc_options_json']  # exports
 def _results_to_dict(params):
     results = {}
     for key in params:
-        value = params[key] 
+        value = params[key]
         results[key] = {'value': value.value, 'stderr': value.stderr, 'vary': value.vary}
     return results
 
@@ -144,7 +144,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     Returns
     -------
     tuple
-        (X, Y) coordinates of the beam center (units in meters).
+        (X, Y, results) coordinates of the beam center (units in meters), dictionary of special parameters
     """
     if method not in ['center_of_mass', 'gaussian']:
         raise NotImplementedError()  # (f'{method} is not implemented')
@@ -162,14 +162,13 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     # find center of mass position
     if method == 'center_of_mass':
         center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)
-        x = center[0]
-        y = center[1]
+        x, y = center
         results = {}
     else:  # method == 'gaussian':
         x, y, results = _find_beam_center_gaussian(flat_ws, centering_options)
-    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(x,y))
+    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(x, y))
     DeleteWorkspace(flat_ws)
-    return x,y,results
+    return x, y, results
 
 
 def center_detector(input_workspace, center_x, center_y, component='detector1'):

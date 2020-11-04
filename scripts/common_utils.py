@@ -1,7 +1,7 @@
 """ Common utility functions for all SANS """
 import os
 import numpy as np
-
+import matplotlib.pyplot as plt
 import drtsans  # noqa E402
 import mantid.simpleapi as msapi  # noqa E402
 from drtsans.iq import BinningMethod, determine_1d_linear_bins, determine_1d_log_bins  # noqa E402
@@ -101,8 +101,10 @@ def get_Iq(q_data, output_dir, output_file, label='', linear_binning=True, weigh
 
     filename = os.path.join(output_dir, output_file + label + '_Iq.png')
     plot_IQmod([iq_output], filename, backend='mpl')
+    plt.clf()
     filename = os.path.join(output_dir, output_file + label + '_Iq.json')
     plot_IQmod([iq_output], filename, backend='d3')
+    plt.close()
     return iq_output
 
 
@@ -129,7 +131,9 @@ def get_Iqxqy(q_data, output_dir, output_file, label='', weighting=False, nbins=
 
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.png')
     plot_IQazimuthal(iq_output, filename, backend='mpl')
+    plt.clf()
     filename = os.path.join(output_dir, output_file + label + '_Iqxqy.json')
     plot_IQazimuthal(iq_output, filename, backend='d3')
+    plt.close()
 
     return iq_output

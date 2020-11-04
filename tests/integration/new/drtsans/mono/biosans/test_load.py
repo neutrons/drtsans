@@ -36,7 +36,7 @@ def test_load_all_files(reference_dir):
     backgrounds = ['5715']
     backgrounds_trans = backgrounds
 
-    # chekcing if output directory exists, if it doesn't, creates the folder
+    # checking if output directory exists, if it doesn't, creates the folder
     reduction_input["configuration"]["outputDir"] = output_dir
 
     reduction_input["sample"]["runNumber"] = samples[0]

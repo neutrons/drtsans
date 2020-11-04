@@ -58,6 +58,28 @@ def test_wavelength_step():
         reduce_single_configuration(loaded, input_config)
         assert os.path.isfile(f'{test_dir}/test_wavelength_step.nxs')
 
+    with tempfile.TemporaryDirectory() as test_dir:
+        configuration['configuration']['outputDir'] = test_dir
+        configuration['dataDirectories'] = test_dir
+        # validate and clean configuration
+        input_config = reduction_parameters(configuration)
+        input_config['beamCenter']['method'] = 'center_of_mass'
+        input_config['beamCenter']['com_centering_options'] = {'CenterX': 0., 'CenterY': 0., 'Tolerance': 0.00125}
+        loaded = load_all_files(input_config)
+        reduce_single_configuration(loaded, input_config)
+        assert os.path.isfile(f'{test_dir}/test_wavelength_step.nxs')
+
+    with tempfile.TemporaryDirectory() as test_dir:
+        configuration['configuration']['outputDir'] = test_dir
+        configuration['dataDirectories'] = test_dir
+        # validate and clean configuration
+        input_config = reduction_parameters(configuration)
+        input_config['beamCenter']['method'] = 'gaussian'
+        input_config['beamCenter']['gaussian_centering_options'] = {'theta': {'value': 0.0, 'vary': False}}
+        loaded = load_all_files(input_config)
+        reduce_single_configuration(loaded, input_config)
+        assert os.path.isfile(f'{test_dir}/test_wavelength_step.nxs')
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

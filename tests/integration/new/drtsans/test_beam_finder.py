@@ -1,7 +1,7 @@
 import pytest
 from pytest import approx
 import re
-from drtsans.beam_finder import center_detector, find_beam_center
+from drtsans.beam_finder import center_detector, find_beam_center, fbc_options_json
 from drtsans.sensitivity import apply_sensitivity_correction
 # https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
@@ -259,6 +259,27 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
     x_cen, y_cen = find_beam_center(sensitivity_corrected_counts, solid_angle_method='GenericShape')
     assert x_cen*1000 == approx(27.41, abs=0.9)
     assert y_cen*1000 == approx(22.5, abs=0.9)
+
+
+def test_fbc_options_json():
+    reduction_input = {'beamCenter': {'method': 'center_of_mass'}}
+    fbc_options = fbc_options_json(reduction_input)
+    assert len(fbc_options) == 1
+    assert fbc_options['method'] == 'center_of_mass'
+    reduction_input = {'beamCenter': {'method': 'center_of_mass', 'com_centering_options': {'CenterX': 0.}}}
+    fbc_options = fbc_options_json(reduction_input)
+    assert len(fbc_options) == 2
+    assert fbc_options['method'] == 'center_of_mass'
+    assert fbc_options['centering_options'] == {'CenterX': 0.}
+    reduction_input = {'beamCenter': {'method': 'gaussian'}}
+    fbc_options = fbc_options_json(reduction_input)
+    assert len(fbc_options) == 1
+    assert fbc_options['method'] == 'gaussian'
+    reduction_input = {'beamCenter': {'method': 'gaussian', 'gaussian_centering_options': {'CenterX': {'val': 0.}}}}
+    fbc_options = fbc_options_json(reduction_input)
+    assert len(fbc_options) == 2
+    assert fbc_options['method'] == 'gaussian'
+    assert fbc_options['centering_options'] == {'CenterX': {'val': 0.}}
 
 
 if __name__ == '__main__':

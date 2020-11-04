@@ -134,7 +134,7 @@ def plot_data(plot_info_list, y_scale, title, fig_name):
         plt.yscale(y_scale)
 
     plt.savefig(fig_name)
-
+    plt.close()
     return
     #
     # # Plot I(Q)

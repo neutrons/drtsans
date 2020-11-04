@@ -3,6 +3,7 @@ import copy
 from datetime import datetime
 import os
 from collections import namedtuple
+import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed
 
@@ -14,7 +15,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans.reductionlog import savereductionlog
 from drtsans.solid_angle import solid_angle_correction
-from drtsans.beam_finder import center_detector, find_beam_center
+from drtsans.beam_finder import center_detector, find_beam_center, fbc_options_json
 from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.mono.load import (load_events, transform_to_wavelength, load_events_and_histogram, load_and_split,
                                set_init_uncertainties)
@@ -904,7 +905,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         symmetric_wedges = False
         logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
-    xc, yc = find_beam_center(loaded_ws.center)
+    fbc_options = fbc_options_json(reduction_input)
+    xc, yc = find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center = {xc}, {yc}")
 
     # process the center if using it in absolute scaling
@@ -1119,6 +1121,7 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
                          imshow_kwargs=imshow_kwargs, title='Main',
                          wedges=wedges, symmetric_wedges=symmetric_wedges,
                          qmin=qmin, qmax=qmax)
+        plt.clf()
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -1126,7 +1129,8 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             filename = os.path.join(output_dir, '1D', f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
             plot_IQmod([out.I1D_main[j]], filename, loglog=loglog,
                        backend='mpl', errorbar_kwargs={'label': 'main'})
-
+            plt.clf()
+    plt.close()
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, '1D'))
     allow_overwrite(os.path.join(output_dir, '2D'))

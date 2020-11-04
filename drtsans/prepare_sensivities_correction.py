@@ -190,7 +190,7 @@ class PrepareSensitivityCorrection(object):
 
         """
         # Process flood runs
-        if isinstance(flood_runs, int):
+        if isinstance(flood_runs, (int, str)):
             self._flood_runs = [flood_runs]
         else:
             self._flood_runs = list(flood_runs)
@@ -210,7 +210,7 @@ class PrepareSensitivityCorrection(object):
         """
         if dark_current_runs is None:
             self._dark_current_runs = None
-        elif isinstance(dark_current_runs, int):
+        elif isinstance(dark_current_runs, (int, str)):
             self._dark_current_runs = [dark_current_runs]
         else:
             self._dark_current_runs = list(dark_current_runs)
@@ -226,7 +226,7 @@ class PrepareSensitivityCorrection(object):
         -------
 
         """
-        if isinstance(direct_beam_runs, int):
+        if isinstance(direct_beam_runs, (int, str)):
             # defined as a single value
             self._direct_beam_center_runs = [direct_beam_runs]
         else:

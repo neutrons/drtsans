@@ -85,8 +85,8 @@ def test_exists_with_archivesearch(hint, found, reference_dir):
 
 
 @pytest.mark.parametrize('hint, found',
-                         [('EQSANS_106026', False),
-                          ('EQSANS106027', False),
+                         [('EQSANS_106026', True),
+                          ('EQSANS106028', False),
                           ('EQSANS_88974.nxs.h5', True)])
 def test_exists_without_archivesearch(hint, found, reference_dir):
     with amend_config(SEARCH_OFF, data_dir=reference_dir.new.eqsans):

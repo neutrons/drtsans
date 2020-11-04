@@ -112,8 +112,9 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
 
     # find the center on the main detector
     center_x, center_y, fit_results = bf.find_beam_center(ws, method, mask,
-                                             mask_options=mask_options, centering_options=centering_options,
-                                             solid_angle_method=solid_angle_method)
+                                                          mask_options=mask_options,
+                                                          centering_options=centering_options,
+                                                          solid_angle_method=solid_angle_method)
 
     # get the distance to center of the main and wing detectors
     if sample_det_cent_main_detector is None or sample_det_cent_main_detector == 0.:

@@ -9,8 +9,8 @@ import json
 import h5py
 from drtsans.mono.biosans import (load_all_files, reduce_single_configuration,
                                   reduction_parameters, validate_reduction_parameters)
-from mantid.simpleapi import LoadEventNexus, Rebin, ConvertToMatrixWorkspace, mtd, LoadHFIRSANS
-from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus, CG3EventNexusConvert
+from mantid.simpleapi import LoadEventNexus, Rebin
+from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
 from tempfile import mkdtemp
 from matplotlib import pyplot as plt
 

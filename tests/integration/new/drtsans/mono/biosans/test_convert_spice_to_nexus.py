@@ -45,7 +45,8 @@ def test_convert_spice(reference_dir, cleanfile):
 def verify_result(test_nexus, raw_spice, masked_pixels):
     # Load data
     test_ws = LoadEventNexus(
-        Filename=test_nexus, OutputWorkspace="test2", NumberOfBins=1
+        Filename=test_nexus, OutputWorkspace="test2", NumberOfBins=1,
+        LoadNexusInstrumentXML=True
     )
     raw_ws = LoadHFIRSANS(Filename=raw_spice, OutputWorkspace="raw")
 
@@ -69,20 +70,11 @@ def verify_result(test_nexus, raw_spice, masked_pixels):
         # reset back to original count
         test_y[masked_pixels] = raw_y[2 + pid]
     # check the rest pixels' counts
-    np.testing.assert_allclose(raw_y[2:], test_y)
-
-    # Compare geometry
-    # atol is reduced to pass the test
-    # 1. the issue does not come from the convertor, but rather
-    #    the data inconsistency bewteen Mantid IDL and local
-    #    in file cache
-    # 2. the geometry data queried here is not being used
-    #    in data reduction, therefore has no impact on
-    #    the final workflow
-    for iws in range(0, test_ws.getNumberHistograms(), 20):
-        nexus_det_pos = test_ws.getDetector(iws).getPos()
-        spice_det_pos = raw_ws.getDetector(iws + 2).getPos()
-        np.testing.assert_allclose(nexus_det_pos, spice_det_pos, atol=0.1)
+    # spice spectra v nexus spectra
+    # tube 1 <--> tube 1 (first tube in the front)
+    # tube 2 <--> tube 5 (first tube in the back)
+    np.testing.assert_allclose(raw_y[2:256+2], test_y[:256])
+    np.testing.assert_allclose(raw_y[256+2:512+2], test_y[4*256:5*256])
 
 
 if __name__ == "__main__":

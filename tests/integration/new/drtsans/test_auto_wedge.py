@@ -6,6 +6,7 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 import pytest
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
 from drtsans.dataobjects import IQazimuthal, IQmod
 from drtsans.determine_bins import determine_1d_linear_bins
@@ -494,7 +495,7 @@ def test_real_data_biosans(reference_dir):
     plot_IQazimuthal(q2d_data, filename, backend='mpl', wedges=wedge_angles, symmetric_wedges=False,
                      imshow_kwargs={'norm': LogNorm()})
     print('saved image to', filename)
-
+    plt.close()
     # verify the plot was created and remove the file
     assert os.path.exists(filename), '"{}" does not exist'.format(filename)
     os.remove(filename)

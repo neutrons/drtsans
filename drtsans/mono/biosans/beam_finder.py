@@ -1,12 +1,13 @@
 from scipy import constants
 import numpy as np
 import drtsans.beam_finder as bf
+from drtsans.beam_finder import fbc_options_json
 from typing import Tuple
 from mantid import mtd
 from mantid.kernel import logger
 from drtsans.samplelogs import SampleLogs
 
-__all__ = ['center_detector', 'find_beam_center']
+__all__ = ['center_detector', 'find_beam_center', 'fbc_options_json']
 
 
 def _calculate_neutron_drop(path_length, wavelength):

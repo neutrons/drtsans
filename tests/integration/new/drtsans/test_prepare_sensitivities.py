@@ -48,16 +48,16 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
         pytest.skip('Test files cannot be accessed.')
 
     # Input Flood Runs
-    FLOOD_RUNS = 111030
+    FLOOD_RUNS = os.path.join(reference_dir.new.eqsans, 'EQSANS_111030.nxs.h5')
 
     # Beam center
-    DIRECT_BEAM_RUNS = 111042
+    DIRECT_BEAM_RUNS = os.path.join(reference_dir.new.eqsans, 'EQSANS_111042.nxs.h5')  # 111042
 
     # Beam center size
     MASK_BEAM_CENTER_RADIUS = 65  # mm
 
-    # Dark current
-    DARK_CURRENT_RUNS = 108764  # No mask, no solid angle
+    # Dark current: No mask, no solid angle
+    DARK_CURRENT_RUNS = os.path.join(reference_dir.new.eqsans, 'EQSANS_108764.nxs.h5')  # 108764
 
     MASKED_PIXELS = '1-18,239-256'
 

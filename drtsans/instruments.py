@@ -142,7 +142,7 @@ def extract_run_number(input_query):
     """
     try:
         # see if `input_query` is an integer
-        return int(input_query)
+        run_number = int(input_query)
     except ValueError:
         # name of the file without path
         run_number = os.path.basename(input_query)
@@ -155,7 +155,8 @@ def extract_run_number(input_query):
         if '_' in run_number:
             run_number = run_number.split('_')[1]
         # convert to an integer
-        return int(run_number)
+
+    return int(run_number)
 
 
 def is_time_of_flight(input_query):

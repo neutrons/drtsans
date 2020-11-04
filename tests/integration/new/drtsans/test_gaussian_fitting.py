@@ -65,11 +65,10 @@ def test_gaussian_fit():
     params['theta'].vary = False
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
 
-    x0, y0, fit_results = sans.find_beam_center(ws, method='gaussian', centering_options={'theta': 
+    x0, y0, fit_results = sans.find_beam_center(ws, method='gaussian', centering_options={'theta':
                                                 {'value': np.pi/2., 'vary': False}}, solid_angle_method=None)
     assert x0 == pytest.approx(results.params['x0'].value)
     assert y0 == pytest.approx(results.params['y0'].value)
-    print(results) 
     assert fit_results['amp']['value'] == pytest.approx(1360213201120.7859)
     assert fit_results['sigma_x']['value'] == pytest.approx(0.010603256092469593)
     assert fit_results['sigma_y']['value'] == pytest.approx(0.0075169568226793881)
@@ -77,8 +76,8 @@ def test_gaussian_fit():
 
     params['theta'].value = 0.0
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    x0, y0, fit_results = sans.find_beam_center(ws, method='gaussian', centering_options={'theta': {'value': 0.0, 'vary': False}},
-                                                solid_angle_method=None)
+    x0, y0, fit_results = sans.find_beam_center(ws, method='gaussian', centering_options={'theta':
+                                                {'value': 0.0, 'vary': False}}, solid_angle_method=None)
     assert x0 == pytest.approx(results.params['x0'].value)
     assert y0 == pytest.approx(results.params['y0'].value)
 
@@ -86,6 +85,7 @@ def test_gaussian_fit():
     assert fit_results['sigma_x']['value'] == pytest.approx(0.0075169573198825557)
     assert fit_results['sigma_y']['value'] == pytest.approx(0.010603256114750437)
     assert fit_results['theta']['value'] == pytest.approx(0.0)
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

@@ -75,7 +75,6 @@ def test_mask_detector(reference_dir):
 
     # Get detector counts
     det_counts = cg3_converter.detector_counts.copy()
-    print(det_counts[22345], det_counts[70911])
 
     # Mask
     cg3_converter.mask_spice_detector_pixels([22345, 70911])

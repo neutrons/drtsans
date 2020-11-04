@@ -172,7 +172,6 @@ class EventNexusConverter(ABC):
         # monitor counts
         monitor_counts = int(counts[0])
         self._monitor_counts = monitor_counts
-        print(f'Monitor count = {monitor_counts}')
 
         # get detector counts and convert to int 64
         self._spice_detector_counts = counts[2:].astype("int64")

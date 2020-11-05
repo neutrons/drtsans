@@ -22,7 +22,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     #
     # Find the beam center
     #
-    assert find_beam_center(ws) == approx((0.02651957,  0.01804375, {}), abs=1e-04)
+    assert find_beam_center(ws)[:-1] == approx((0.02651957,  0.01804375), abs=1e-04)
     #
     # Find the beam center with a mask workspace
     #

@@ -296,7 +296,7 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                         **kwargs)
             if center_x is None or center_y is None:
                 center_x, center_y, _ = find_beam_center(temp_workspace_name, mask=mask,
-                                                      method=centering_method, centering_options=centering_options)
+                                                         method=centering_method, centering_options=centering_options)
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
             transform_to_wavelength(temp_workspace_name,
                                     bin_width=bin_width,

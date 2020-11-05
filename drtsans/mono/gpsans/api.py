@@ -281,7 +281,7 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
         ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
         if not registered_workspace(ws_name):
             # load dark current file
-            logger(f"Loading dark current file {dark_current_file} to {ws_name}")
+            logger.notice(f"Loading dark current file {dark_current_file} to {ws_name}")
             # identify to use exact given path to NeXus or use OnCat instead
             temp_name = os.path.join(path, '{}_{}.nxs.h5'.format(instrument_name, run_number))
             if os.path.exists(temp_name):

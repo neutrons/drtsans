@@ -55,7 +55,7 @@ def test_beam_finder_excel(generic_workspace):
 
     # run the function to calculate the beam center
     x, y, y_gravity, _ = beam_finder.find_beam_center(ws, sample_det_cent_main_detector=15.5,
-                                                   sample_det_cent_wing_detector=1.13)
+                                                      sample_det_cent_wing_detector=1.13)
 
     # within .1mm
     assert x == pytest.approx(0.5331, abs=0.0001)
@@ -101,7 +101,7 @@ def test_beam_finder_excel2(generic_workspace):
 
     # run the function to calculate the beam center
     x, y, y_gravity, _ = beam_finder.find_beam_center(ws, sample_det_cent_main_detector=15.5,
-                                                   sample_det_cent_wing_detector=1.13)
+                                                      sample_det_cent_wing_detector=1.13)
 
     # within .1mm
     assert x == pytest.approx(0.0131, abs=0.0001)

@@ -122,7 +122,7 @@ def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, w
     beam_center = find_beam_center(reference_workspace,
                                    centering_options={'BeamRadius': data.radius, 'Tolerance': 0.1 * data.radius})
     center_detector(reference_workspace, *beam_center[:-1])
-    center_detector(sample_workspace, *beam_center[:-1)
+    center_detector(sample_workspace, *beam_center[:-1])
 
     # Calculate raw (no fitting) transmission at zero angle using drtsans
     transmission = calculate_transmission(sample_workspace, reference_workspace,

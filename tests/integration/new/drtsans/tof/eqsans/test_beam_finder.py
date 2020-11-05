@@ -27,10 +27,10 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     # Find the beam center with a mask workspace
     #
     apply_mask(ws, Tube=eqsans_p['tubes_to_mask'])
-    x0, y0 = find_beam_center(ws)
+    x0, y0, _ = find_beam_center(ws)
     mask_ws = ExtractMask(ws, OutputWorkspace=uwd()).OutputWorkspace
     ClearMaskFlag(ws)
-    assert find_beam_center(ws, mask=mask_ws) == approx((x0, y0, {}))
+    assert find_beam_center(ws, mask=mask_ws)[:-1] == approx((x0, y0))
     #
     # Find the beam center with a mask file
     #
@@ -45,7 +45,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     # should be (0, 0) now.
     #
     center_detector(ws, center_x=x0, center_y=y0)
-    assert find_beam_center(ws) == pytest.approx((0, 0, {}), abs=1e-04)
+    assert find_beam_center(ws)[:-1] == pytest.approx((0, 0), abs=1e-04)
 
 
 if __name__ == '__main__':

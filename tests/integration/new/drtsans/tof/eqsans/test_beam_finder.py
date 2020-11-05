@@ -22,15 +22,15 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     #
     # Find the beam center
     #
-    assert find_beam_center(ws) == approx((0.02651957,  0.01804375), abs=1e-04)
+    assert find_beam_center(ws)[:-1] == approx((0.02651957,  0.01804375), abs=1e-04)
     #
     # Find the beam center with a mask workspace
     #
     apply_mask(ws, Tube=eqsans_p['tubes_to_mask'])
-    x0, y0 = find_beam_center(ws)
+    x0, y0, _ = find_beam_center(ws)
     mask_ws = ExtractMask(ws, OutputWorkspace=uwd()).OutputWorkspace
     ClearMaskFlag(ws)
-    assert find_beam_center(ws, mask=mask_ws) == approx((x0, y0))
+    assert find_beam_center(ws, mask=mask_ws)[:-1] == approx((x0, y0))
     #
     # Find the beam center with a mask file
     #
@@ -38,14 +38,14 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     with NamedTemporaryFile(delete=True, suffix='.xml') as f:
         SaveMask(InputWorkspace=mask_ws, OutputFile=f.name)
         xy = find_beam_center(ws, mask=f.name)
-        assert xy == approx((x0, y0), abs=1e-04)
+        assert xy[:-1] == approx((x0, y0), abs=1e-04)
     #
     # Let's move the beam center to the intersection point between the Z-axis
     # and the detector. The new (x, y) coordinates for the beam center
     # should be (0, 0) now.
     #
     center_detector(ws, center_x=x0, center_y=y0)
-    assert find_beam_center(ws) == pytest.approx((0, 0), abs=1e-04)
+    assert find_beam_center(ws)[:-1] == pytest.approx((0, 0), abs=1e-04)
 
 
 if __name__ == '__main__':

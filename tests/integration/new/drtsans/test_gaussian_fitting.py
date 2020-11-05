@@ -59,23 +59,32 @@ def test_gaussian_fit():
     params.add('amp', value=ws.extractY().max())
     params.add('sigma_x', value=0.01, min=np.finfo(float).eps)  # width in x
     params.add('sigma_y', value=0.01, min=np.finfo(float).eps)  # width in y
-    params.add('theta', value=0.0, min=-np.pi/2., max=np.pi/2)
+    params.add('theta', value=np.pi/2)
     params.add('x0', value=0.)
     params.add('y0', value=0.)
-    results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-
-    x0, y0 = sans.find_beam_center(ws, method='gaussian', solid_angle_method=None)
-    print(x0, y0)
-    print(results.params['x0'].value, results.params['y0'].value)
-    assert x0 == pytest.approx(results.params['x0'].value)
-    assert y0 == pytest.approx(results.params['y0'].value)
-
     params['theta'].vary = False
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
-    x0, y0 = sans.find_beam_center(ws, method='gaussian', centering_options={'theta': {'value': 0.0, 'vary': False}},
-                                   solid_angle_method=None)
+
+    x0, y0, fit_results = sans.find_beam_center(ws, method='gaussian', centering_options={'theta':
+                                                {'value': np.pi/2., 'vary': False}}, solid_angle_method=None)
     assert x0 == pytest.approx(results.params['x0'].value)
     assert y0 == pytest.approx(results.params['y0'].value)
+    assert fit_results['amp']['value'] == pytest.approx(1360213201120.7859)
+    assert fit_results['sigma_x']['value'] == pytest.approx(0.010603256092469593)
+    assert fit_results['sigma_y']['value'] == pytest.approx(0.0075169568226793881)
+    assert fit_results['theta']['value'] == pytest.approx(np.pi/2.)
+
+    params['theta'].value = 0.0
+    results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params)
+    x0, y0, fit_results = sans.find_beam_center(ws, method='gaussian', centering_options={'theta':
+                                                {'value': 0.0, 'vary': False}}, solid_angle_method=None)
+    assert x0 == pytest.approx(results.params['x0'].value)
+    assert y0 == pytest.approx(results.params['y0'].value)
+
+    assert fit_results['amp']['value'] == pytest.approx(1360213155118.811)
+    assert fit_results['sigma_x']['value'] == pytest.approx(0.0075169573198825557)
+    assert fit_results['sigma_y']['value'] == pytest.approx(0.010603256114750437)
+    assert fit_results['theta']['value'] == pytest.approx(0.0)
 
 
 if __name__ == '__main__':

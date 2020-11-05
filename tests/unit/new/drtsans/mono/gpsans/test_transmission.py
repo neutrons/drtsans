@@ -28,7 +28,7 @@ def dataset_center(gpsans_full_dataset):
     Finds the beamcenter and places the instrument in the right position.
     '''
     __beamcenter = LoadHFIRSANS(Filename=gpsans_full_dataset['beamcenter'])
-    x, y = find_beam_center(__beamcenter)
+    x, y, _ = find_beam_center(__beamcenter)
     return x, y
 
 

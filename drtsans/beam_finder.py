@@ -18,6 +18,14 @@ import lmfit
 __all__ = ['center_detector', 'find_beam_center', 'fbc_options_json']  # exports to the drtsans namespace
 
 
+def _results_to_dict(params):
+    fit_results = {}
+    for key in params:
+        value = params[key]
+        fit_results[key] = {'value': value.value, 'stderr': value.stderr, 'vary': value.vary}
+    return fit_results
+
+
 # defining 2D Gaussian fitting functions
 def _Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, CenterX, CenterY):
     a = np.cos(theta)**2/(2.*sigma_x**2) + np.sin(theta)**2/(2.*sigma_y**2)
@@ -91,7 +99,8 @@ def _find_beam_center_gaussian(ws, parameters={}):
     if 'CenterY' not in params:
         params.add('CenterY', value=0.)
     results = model.fit(intes, x1=x, y1=y, weights=1./intes_err, params=params, nan_policy='omit')
-    return results.params['CenterX'].value, results.params['CenterY'].value
+    fit_params = results.params
+    return fit_params['CenterX'].value, fit_params['CenterY'].value, _results_to_dict(fit_params)
 
 
 def fbc_options_json(reduction_input):
@@ -136,7 +145,7 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     Returns
     -------
     tuple
-        (X, Y) coordinates of the beam center (units in meters).
+        (X, Y, results) coordinates of the beam center (units in meters), dictionary of special parameters
     """
     if method not in ['center_of_mass', 'gaussian']:
         raise NotImplementedError()  # (f'{method} is not implemented')
@@ -154,11 +163,13 @@ def find_beam_center(input_workspace, method='center_of_mass', mask=None, mask_o
     # find center of mass position
     if method == 'center_of_mass':
         center = FindCenterOfMassPosition(InputWorkspace=flat_ws, **centering_options)
+        x, y = center
+        fit_results = {}
     else:  # method == 'gaussian':
-        center = _find_beam_center_gaussian(flat_ws, centering_options)
-    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(*center))
+        x, y, fit_results = _find_beam_center_gaussian(flat_ws, centering_options)
+    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(x, y))
     DeleteWorkspace(flat_ws)
-    return center
+    return x, y, fit_results
 
 
 def center_detector(input_workspace, center_x, center_y, component='detector1'):

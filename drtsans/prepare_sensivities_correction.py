@@ -784,7 +784,7 @@ class PrepareSensitivityCorrection(object):
         find_beam_center = FIND_BEAM_CENTER[self._instrument]
         beam_center = find_beam_center(beam_center_workspace)
 
-        return beam_center
+        return beam_center[:-1]
 
     def _mask_beam_center(self, flood_ws, beam_center):
         """Mask beam center

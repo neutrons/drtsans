@@ -114,7 +114,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")
         beam_center_type = 'default'
-    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x, 'y': center_y}
+    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x, 'y': center_y, 'fit_results': fit_results}
 
     if load_params is None:
         load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
@@ -792,7 +792,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     specialparameters = {'beam_center': {'x': beam_center_dict['x'],
                                          'y': beam_center_dict['y'],
                                          'type': beam_center_dict['type']},
-                         'fit_results': fit_results,
+                         'fit_results': beam_center_dict['fit_results'],
                          'sample_transmission': sample_transmission_dict,
                          'sample_transmission_raw': sample_transmission_raw_dict,
                          'background_transmission': background_transmission_dict,

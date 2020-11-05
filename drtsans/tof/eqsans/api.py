@@ -114,7 +114,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")
         beam_center_type = 'default'
-    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x, 'y': center_y, 'fit_results': fit_results}
+    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
+                                      'y': center_y, 'fit_results': fit_results}
 
     if load_params is None:
         load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)

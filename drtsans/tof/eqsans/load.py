@@ -376,7 +376,7 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
         correct_emission_time(_w)
         if center_x is None or center_y is None:
             center_x, center_y, _ = find_beam_center(_w, mask=mask, method=centering_method,
-                                                  centering_options=centering_options)
+                                                     centering_options=centering_options)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
 
         transform_to_wavelength(_w, bin_width=bin_width,

@@ -253,7 +253,7 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     # Input verification: DAS record SDD must be same as calculated SDD
     das_sdd = sample_detector_distance(ws, search_logs=True, unit='mm', forbid_calculation=True)
     real_sdd = sample_detector_distance(ws, search_logs=False, unit='mm')
-    if abs(das_sdd - real_sdd)/das_sdd > 1E-6:
+    if abs(das_sdd - real_sdd) > 1.:
         raise RuntimeError(f'Workspace {str(ws)}: after loading and initial setup, DAS SDD ({das_sdd})'
                            f'is not equal to calculated/real SDD ({real_sdd}) by proportion as '
                            f'{abs(das_sdd - real_sdd)/das_sdd}')

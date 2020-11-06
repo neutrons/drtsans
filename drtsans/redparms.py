@@ -687,8 +687,14 @@ class ReductionParameters:
             try:
                 schema_value = schema['properties'][name]  # schema dictionary associated to parameter_value
             except KeyError as key_err:
-                errmsg = 'Available properties: {}'.format(schema['properties'].keys())
-                raise KeyError(errmsg + '.  ' + str(key_err))
+                try:
+                    schema_value = schema['additionalProperties'][name]
+                except KeyError as key_err:
+                    properties_keys = schema['properties'].keys()
+                    if 'additionalProperties' in schema.keys():
+                        properties_keys.extend(schema['properties'].keys())
+                    errmsg = 'Available properties: {}'.format(properties_keys)
+                    raise KeyError(errmsg + '.  ' + str(key_err))
             if isinstance(parameter_value, dict) is True:
                 # recursive call for nested dictionaries. We pass references to the child dictionaries
                 # for the schema and the reduction parameters

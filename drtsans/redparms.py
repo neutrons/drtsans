@@ -692,7 +692,7 @@ class ReductionParameters:
                 except KeyError as key_err:
                     properties_keys = schema['properties'].keys()
                     if 'additionalProperties' in schema.keys():
-                        properties_keys.extend(schema['properties'].keys())
+                        properties_keys.extend(schema['additionalProperties'].keys())
                     errmsg = 'Available properties: {}'.format(properties_keys)
                     raise KeyError(errmsg + '.  ' + str(key_err))
             if isinstance(parameter_value, dict) is True:

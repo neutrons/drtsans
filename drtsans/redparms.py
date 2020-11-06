@@ -686,7 +686,7 @@ class ReductionParameters:
         for name, parameter_value in list(parameters.items()):
             try:
                 schema_value = schema['properties'][name]  # schema dictionary associated to parameter_value
-            except KeyError as key_err:
+            except KeyError:
                 try:
                     schema_value = schema['additionalProperties'][name]
                 except KeyError as key_err:

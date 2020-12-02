@@ -7,7 +7,6 @@
 -->
 
 
-
 As a \<*role or type of user*\> I want to \< *take some action or achieve some goal*\> so that \<*some reason, e.g. I get this benefit*\>
 =======================================================================
 

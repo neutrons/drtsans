@@ -1,24 +1,14 @@
 <!-- 
 	task.md
-	Version 2.0
+	Version 1.0
 	This is a GitLab Issue description template to be used as a unit of work for implementing a user story
 	
-	*Note: The title should be either: 
-		- Implement Story: <analysis technique> #<user story number>
-		- Clear descriptive title
+	*Note: The title should be: Implement Story: <analysis technique> #<user story number>
 -->
 
 
-Related Tasks:
---------------
-| **Parent** | **Children** | **Related** | **Blocks** | **Depends On** |
-|------------|--------------|-------------|------------|----------------|
-|            |              |             |            |                |
-
-
-Description:
-------------
-
+Link to Story: *\<story url\>*
+=====================================================================================
 
 List of Tasks:
 ---------------
@@ -35,8 +25,12 @@ List of Tasks:
 * [ ]  Submit Pull Request
 * [ ]  Report Completion During Status Meeting
 
-<!-- *Note: Adjust task details as necessary* -->
-
+<!-- *Note: Adjust task time estimate, labels, and iteration* -->
+/estimate 24h
+/spend 10m
 /label ~"IssueType::Task"
-/label ~"State::5-Accepted"
-/milestone %Backlog
+/label ~"State::1-Draft"
+/label ~"Dev:Physics"
+/label ~"Instrument::SNS:BL9"
+/label ~"diffraction"
+/milestone %"Iteration 2020-09-28"

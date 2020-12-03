@@ -1,23 +1,19 @@
 <!-- 
 	task.md
-	Version 2.0
+	Version 2.1
 	This is a GitLab Issue description template to be used as a unit of work for implementing a user story
 	
-	*Note: The title should be either: 
-		- Implement Story: <analysis technique> #<user story number>
-		- Clear descriptive title
+	Note: The Task title should be either: 
+		- [Task] Imp Story <technique acronym> #<user story number>: <clear descriptive title>
+			- Technique acronyms: SCD, PD, IM, REF, SANS, ED, DGSTAS, IGS, SE
+
+		- [Task] Defect <technique acronym> #<defect number>: <clear descriptive title>
+
+		- PLEASE USE THE TECHNIQUE ACRONYM TO SAVE SPACE
 -->
 
-
-Related Tasks:
---------------
-| **Parent** | **Children** | **Related** | **Blocks** | **Depends On** |
-|------------|--------------|-------------|------------|----------------|
-|            |              |             |            |                |
-
-
 Description:
-------------
+===========
 
 
 List of Tasks:
@@ -35,7 +31,13 @@ List of Tasks:
 * [ ]  Submit Pull Request
 * [ ]  Report Completion During Status Meeting
 
-<!-- *Note: Adjust task details as necessary* -->
+<!-- Note: Adjust task details as necessary
+     Note: Use the GitLab Related relationship for related Tasks
+           Use the GitLab Blocked By / Blocks relationship for blocked Tasks
+		   Use the GitLab Blocked By / Blocks for relationships with Stories and Defects
+	 Note: The default milestone will override a manually set milestone.  
+	       Remove default milestone if setting manually
+-->
 
 /label ~"IssueType::Task"
 /label ~"State::5-Accepted"

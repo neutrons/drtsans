@@ -3,6 +3,7 @@ import pytest
 import tempfile
 
 from drtsans.dataobjects import concatenate, IQazimuthal, IQmod, load_iqmod, save_iqmod, testing
+from drtsans.dataobjects import verify_same_q_bins
 from tests.conftest import assert_wksp_equal
 
 
@@ -134,6 +135,43 @@ def test_save_load_iqmod():
     assert line0.strip() == "# NANs have been skipped"
     column_names = line1.split()
     assert column_names == ['mod_q', 'intensity', 'error']
+
+
+def test_verify_same_bins():
+    """Test method verify_same_q_bins
+    """
+    # Test IQmod without wavelength
+    iq1d0 = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    iq1d1 = IQmod([4, 9, 3], [4, 5, 6], [7, 8, 9])
+    assert verify_same_q_bins(iq1d0, iq1d1)
+
+    iq1d0 = IQmod([1, 2, 3], [4, 5.5, 6], [7, 8.8, 9])
+    iq1d1 = IQmod([4, 9, 3], [4, 5, 6], [7, 8, 9])
+    assert verify_same_q_bins(iq1d0, iq1d1) is False
+
+    # Test IQmod with wavelength
+    iq1d0 = IQmod([1, 2, 3, 4, 6, 6], [4, 5, 6, 4, 5, 6], [7, 8, 9, 7, 8, 9], wavelength=[10, 10, 10, 11, 11, 11])
+    iq1d1 = IQmod([4, 9, 3, 8, 7, 6], [4, 5, 6, 4, 5, 6], [7, 8, 9, 7, 8, 9], wavelength=[10, 10, 10, 11, 11, 11])
+    assert verify_same_q_bins(iq1d0, iq1d1)
+
+    # Test IQmod with wavelength
+    iq1d0 = IQmod([1, 2, 3, 4, 6, 6], [4, 5, 6, 4, 5, 6], [7, 8, 9, 7, 8, 9],
+                  wavelength=[10.1, 10.1, 10.1, 11, 11, 11])
+    iq1d1 = IQmod([4, 9, 3, 8, 7, 6], [4, 5, 6, 4, 5, 6], [7, 8, 9, 7, 8, 9], wavelength=[10, 10, 10, 11, 11, 11])
+    assert verify_same_q_bins(iq1d0, iq1d1) is False
+
+    # Test 2D
+    iq2d0 = IQazimuthal([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15], [16, 17, 18], [19, 20, 21])
+    iq2d1 = IQazimuthal([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15], [16, 17, 18], [19, 20, 21])
+    assert verify_same_q_bins(iq2d0, iq2d1)
+
+    iq2d0 = IQazimuthal([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12.2], [13, 14, 15], [16, 17, 18], [19, 20, 21])
+    iq2d1 = IQazimuthal([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15], [16, 17, 18], [19, 20, 21])
+    assert verify_same_q_bins(iq2d0, iq2d1) is False
+
+    # Expect failure
+    with pytest.raises(RuntimeError):
+        verify_same_q_bins(iq1d0, iq2d0)
 
 
 def test_save_load_iqmod_dq():

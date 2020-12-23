@@ -3,14 +3,14 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
 
 from drtsans.dataobjects import IQmod, IQazimuthal
-from drtsans.dataobjects import verify_same_q1d
+from drtsans.dataobjects import verify_same_q_bins
 import numpy as np
 
 
 def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
 
     # check i_of_q and ref_i_of_q shall have same binning
-    if not verify_same_q1d(i_of_q, ref_i_of_q):
+    if not verify_same_q_bins(i_of_q, ref_i_of_q):
         raise RuntimeError('blabla')
 
     # Determine q_min and q_max  that exist in all I(q, lambda) for the fitting (minimization) process

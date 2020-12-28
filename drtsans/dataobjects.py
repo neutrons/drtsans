@@ -8,7 +8,7 @@ from mantid.simpleapi import mtd, CreateWorkspace
 
 from drtsans.settings import unique_workspace_dundername as uwd
 
-__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal']
+__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal', 'verify_same_q_bins']
 
 
 class DataType(Enum):

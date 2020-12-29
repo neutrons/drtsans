@@ -2,6 +2,7 @@
 # wavelength dependent inelastic incoherent scattering correction
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
 from drtsans.dataobjects import verify_same_q_bins
+from drtsans.dataobjects import IQmod
 import numpy as np
 
 
@@ -18,12 +19,19 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
     q_min, q_max = determine_common_mod_q_range(i_of_q)
 
     # Find scale factor K(lambda) , that minimizes sum_q |refI(q, lambda_ref) - K(lambda) refI(q, lambda)|^2
-    scale_factor_k_vec = calculate_scale_factor(ref_i_of_q, q_min, q_max)
+    array_tuples = calculate_scale_factor(ref_i_of_q, q_min, q_max)
+    scale_factor_k_vec = array_tuples[0]
+    delta_k_vec = array_tuples[1]
+    p_factor_vec = array_tuples[2]
+    s_factor_vec = array_tuples[3]
+    unique_wl_vec = array_tuples[4]
+    ref_wl_vec = array_tuples[5]
 
     # Normalize input I(q, lambda)
-    i_of_q = normalize_intensity(i_of_q, scale_factor_k_vec)
+    i_of_q = normalize_intensity(i_of_q, scale_factor_k_vec, delta_k_vec,
+                                 p_factor_vec, s_factor_vec, unique_wl_vec)
 
-    return i_of_q, scale_factor_k_vec, sigma_scale_factor_k_vec
+    return i_of_q, scale_factor_k_vec, delta_k_vec
 
 
 def determine_common_mod_q_range(iqmod):
@@ -87,15 +95,16 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
 
     Returns
     -------
+    tuple
+        K, delta K, P, S, unique Q, reference wavelength I(q) and dI(q)
 
     """
     # FIXME-Question: K is a function of wave length.  In principle, Q2D can result in same value?
 
     # Retrieve unique wave length in ascending order
     unique_wavelength_vec = np.unique(i_of_q.wavelength)
-    assert len(unique_wavelength_vec.shape) == 0
+    assert len(unique_wavelength_vec.shape) == 1
     unique_wavelength_vec.sort()
-    num_wavelength = unique_wavelength_vec.shape[0]
 
     # Retrieve reference wavelength for each q value within q_min and q_max
     ref_q_wl_vec = determine_reference_wavelength_q1d(i_of_q)
@@ -104,7 +113,8 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
     # NOTE TODO : output I'(Q, lambda) will be a complete new i_of_q instance
     i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
                               i_of_q.error])
-    i_q_wl_matrix.transpose()
+    i_q_wl_matrix = i_q_wl_matrix.transpose()
+    print(f'Q-WL-I-Sigma matrix shape = {i_q_wl_matrix.shape}')
 
     # Calculate P(wl), S(wl)
     p_vec = np.zeros_like(unique_wavelength_vec)
@@ -115,15 +125,25 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
     for i_wl, lambda_i in enumerate(unique_wavelength_vec):
         # filter i_q_wl_matrix for certain wavelength
         i_q_matrix = i_q_wl_matrix[i_q_wl_matrix[:, 1] == lambda_i]
+        #
+        print(f'[DEBUG-INFO] wavelength = {lambda_i}, values size = {i_q_matrix.shape}')
+
         # get the index of q_min and q_max
-        # TODO - need to test
-        i_q_min = np.argmin(i_q_matrix[:, 0], q_min)[0]
-        i_q_max = np.argmax(i_q_matrix[:, 0], q_max)[1]
+        i_q_min = np.argmin(np.abs(i_q_matrix[:, 0] - q_min))  # numpy int64
+        assert q_min == i_q_matrix[:, 0][i_q_min]
+        i_q_max = np.argmin(np.abs(i_q_matrix[:, 0] - q_max))
+        assert q_max == i_q_matrix[:, 0][i_q_max]
+
+        # loop over each Q for S(wl) and P(wl)
         for i_q in range(i_q_min, i_q_max+1):
             q_i = i_q_matrix[:, 0][i_q]
-            # FIXME -  A better data structure is required for this and the following is wrong!
-            ref_wl = ref_q_wl_vec[q_i]
-            p_vec[i_wl] += get_intensity(i_of_q, q_i, ref_wl) * i_q_matrix[i_q][2]
+            print(f'Over {i_q}-th Q {q_i}')
+            # acquire index to reference lambda
+            ref_index = np.argmin(np.abs(ref_q_wl_vec[:, 0] - q_i))
+            ref_wl = ref_q_wl_vec[ref_index, 1]
+            i_q_ref_wl = ref_q_wl_vec[ref_index, 2]
+            print(f'  ref index = {ref_index}  reference wl = {ref_wl}  I(q, ref) = {i_q_ref_wl}  I(q, wl) = {i_q_matrix[i_q][2]}')
+            p_vec[i_wl] += i_q_ref_wl * i_q_matrix[i_q][2]
             s_vec[i_wl] += i_q_matrix[i_q][2] * i_q_matrix[i_q][2]
 
         # calculate K(wl)
@@ -132,18 +152,24 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
         # calculate delta K(wl)
         for i_q in range(i_q_min, i_q_max+1):
             q_i = i_q_matrix[:, 0][i_q]
-            ref_wl = ref_q_wl_vec[q_i]
+            # acquire index to reference lambda
+            ref_index = np.argmin(np.abs(ref_q_wl_vec[:, 0] - q_i))
+            i_q_ref_wl = ref_q_wl_vec[ref_index, 2]
+            err_q_ref_wl = ref_q_wl_vec[ref_index, 3]
             # delta I(q, lambda) = delta I^{lambda}(q)
-            term0 = i_q_matrix[i_q][3]
-            # ... ...
-            term1 = (get_intensity(i_of_q, q_i, ref_wl)**2 - 2 * i_q_matrix[q_i][2] * p_vec[i_wl])/s_vec[i_wl]**2
+            term0 = i_q_matrix[i_q, 3]
+            # I(q, ref_wl(q))^2 - 2 * I(q, wl) * P / S**2
+            term1 = i_q_ref_wl**2 - 2 * i_q_matrix[i_q][2] * p_vec[i_wl]/s_vec[i_wl]**2
             # delta I(q, lambda^ref)
-            term2 = get_error(i_of_q, q_i, ref_wl)
+            term2 = err_q_ref_wl
             # I(q, lambda)/S(lambda) = I^{lambda}(q) / S(lambda)
-            term3 = i_q_matrix[q_i][2] / s_vec[q_i]
+            term3 = i_q_matrix[i_q, 2] / s_vec[i_wl]
+            # increment = (t0 * t1)**2 + (t2 * t3)**2
             k_error2_vec[i_wl] += (term0 * term1) ** 2 + (term2 * term3)**2
 
-    return k_vec, k_error2_vec, p_vec, s_vec
+    # END-FOR
+
+    return k_vec, k_error2_vec, p_vec, s_vec, unique_wavelength_vec, ref_q_wl_vec
 
 
 def calculate_scale_factor_mesh_grid(i_of_q, q_min, q_max):
@@ -181,17 +207,17 @@ def determine_reference_wavelength_q1d(i_of_q):
     Returns
     -------
     numpy.ndarray
-        2D array of (Q, wavelength)
+        2D array of (Q, wavelength, intensity, error)
 
     """
     # Construct nd array for Q, I and wavelength
-    combo_matrix = np.array([i_of_q.mod_q, i_of_q.intensity, i_of_q.wavelength])
+    combo_matrix = np.array([i_of_q.mod_q, i_of_q.intensity, i_of_q.wavelength, i_of_q.error])
     combo_matrix = combo_matrix.transpose()  # good for filter and slicing
     # Create a list of unique Q
     unique_q_vec = np.unique(i_of_q.mod_q)
 
     # Init return vector
-    ref_wavelength_vec = np.ndarray(shape=(unique_q_vec.shape[0], 2), dtype='float')
+    ref_wavelength_vec = np.ndarray(shape=(unique_q_vec.shape[0], 4), dtype='float')
 
     # Remove all the I(q, wl) with intensity as nan or infinity:
 
@@ -201,10 +227,12 @@ def determine_reference_wavelength_q1d(i_of_q):
         filtered_combo_matrix = combo_matrix[combo_matrix[:, 0] == q_value]
         filtered_combo_matrix = filtered_combo_matrix[np.isfinite(filtered_combo_matrix[:, 1])]
         # find minimum wavelength and add to output array
-        min_wl = np.min(filtered_combo_matrix[:, 2])
-        # set
+        min_index = np.argmin(filtered_combo_matrix[:, 2])
+        # set values
         ref_wavelength_vec[index][0] = q_value
-        ref_wavelength_vec[index][1] = min_wl
+        ref_wavelength_vec[index][1] = filtered_combo_matrix[:, 2][min_index]
+        ref_wavelength_vec[index][2] = filtered_combo_matrix[:, 1][min_index]
+        ref_wavelength_vec[index][3] = filtered_combo_matrix[:, 3][min_index]
 
     return ref_wavelength_vec
 
@@ -274,33 +302,65 @@ def normalize_intensity(i_of_q, k_vec, k_error_vec, ref_wl_vec, p_vec, s_vec,
 
     """
     # Create a matrix for q, wavelength, intensity and error
-    # NOTE TODO : output I'(Q, lambda) will be a complete new i_of_q instance
+    # output I'(Q, lambda) will be a complete new i_of_q instance
+    if i_of_q.delta_mod_q is None:
+        # create a fake deltaQ for slicing
+        delta_q_vec = i_of_q.mod_q
+        delta_q_none = True
+    else:
+        delta_q_vec = i_of_q.delta_mod_q
+        delta_q_none = False
+
     i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
-                              i_of_q.error])
-    i_q_wl_matrix.transpose()
+                              i_of_q.error, delta_q_vec])
+    i_q_wl_matrix = i_q_wl_matrix.transpose()
+
+    # Init arrays to start
+    new_mod_q = np.ndarray(shape=(0,), dtype=i_q_wl_matrix.dtype)
+    new_q_error = np.ndarray(shape=(0,), dtype=i_q_wl_matrix.dtype)
+    new_wavelength = np.ndarray(shape=(0,), dtype=i_q_wl_matrix.dtype)
+    new_intensity = np.ndarray(shape=(0,), dtype=i_q_wl_matrix.dtype)
+    new_error = np.ndarray(shape=(0,), dtype=i_q_wl_matrix.dtype)
 
     # Output
-
     for i_wl, lambda_i in enumerate(unique_wavelength_vec):
         # filter i_q_wl_matrix for certain wavelength
         i_q_matrix = i_q_wl_matrix[i_q_wl_matrix[:, 1] == lambda_i]
+        print(f'[DEBUG...INFO] number of Q = {i_q_matrix.shape[0]}')
 
         # normalize intensity by K^{lambda} * I^{lambda}(q)
         corrected_intensity_vec = i_q_matrix[:, 2] * k_vec[i_wl]
 
-        # new matrix
-        new_matrix = np.array([corrected_intensity_vec])
+        # normalize error
+        corrected_error_vec = np.zeros_like(corrected_intensity_vec)
+        for i_q in range(i_q_matrix.shape[0]):
+            # t1 = delta I(q, lambda) * P(lambda) / S(lambda)
+            t1 = i_q_matrix[i_q, 3] * p_vec[i_wl] / s_vec[i_wl]
+            # t2 = sum()
+            t2 = 0.
+            # t3 = sum()
+            t3 = 0.
+            for j_q in range(i_q_matrix.shape[0]):
+                # t2: increment = delta I(q_j, wl)^2 * [I(q_j, ref_wl(q_j) * S(wl) - 2 * I(q_j, wl) * P(wl)]^2
+                t2 += i_q_matrix[j_q, 3]**2 * (ref_wl_vec[j_q][2] * s_vec[i_wl]
+                                               - 2 * i_q_matrix[j_q, 2] * p_vec[i_wl])**2
+                # t3: increment = delta I(q_j, ref_wl[q_j])^2 * I(q_j, wl)^2
+                t3 += ref_wl_vec[j_q, 3]**2 * i_q_matrix[j_q, 2]**2
+
+            # error = t1^2 + I(q, wl)^2/S(wl)^4*t2 + I(q, wl)^2/S(wl)^4*t3
+            corrected_error_vec[i_q] = t1**2 + i_q_matrix[i_q, 2]**2 / s_vec[i_wl] * t2\
+                                       + i_q_matrix[i_q, 2]**2 / s_vec[i_wl] * t3
+
+        # update
+        new_mod_q = np.concatenate((new_mod_q, i_q_matrix[:, 0]))
+        new_q_error = np.concatenate((new_q_error, i_q_matrix[:, 4]))
+        new_wavelength = np.concatenate((new_wavelength, i_q_matrix[:, 1]))
+        new_intensity = np.concatenate((new_intensity, corrected_intensity_vec))
+        new_error = np.concatenate((new_error, corrected_error_vec))
 
     # construct a new instance of I(Q)
-    full_matrix = concatenate_matrix(new_matrix)
-    corrected_i_of_q = IQmod(full_matri[0], full_matrix[1], i_of_q.mod_q, i_of_q.delta_q, i_of_q.wavelength)
-    
-    return i_of_q
+    if delta_q_none:
+        new_q_error = None
+    corrected_i_of_q = IQmod(new_intensity, new_error, new_mod_q, new_q_error, new_wavelength)
 
-
-
-
-
-
-
-
+    return corrected_i_of_q

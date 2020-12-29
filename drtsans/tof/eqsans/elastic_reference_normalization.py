@@ -35,7 +35,7 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
 
 
 def determine_common_mod_q_range(iqmod):
-    """Determine the common Q1D range among all the wavelengths such that I(q, lambda) does exist
+    """Determine q_min and q_max  that exist in all wavelength for the fitting (minimization) process.
 
     Detailed requirement:
         Determine q_min and q_max  that exist in all I(q, lambda) for the fitting (minimization) process

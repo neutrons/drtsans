@@ -284,7 +284,7 @@ def determine_reference_wavelength_q2d(i_of_q):
     return ref_wavelength_vec
 
 
-def normalize_intensity(i_of_q, k_vec, k_error_vec, ref_wl_vec, p_vec, s_vec,
+def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
                         unique_wavelength_vec):
     """
 
@@ -292,10 +292,10 @@ def normalize_intensity(i_of_q, k_vec, k_error_vec, ref_wl_vec, p_vec, s_vec,
     ----------
     i_of_q
     k_vec
-    k_error_vec
     ref_wl_vec
     p_vec
     s_vec
+    unique_wavelength_vec
 
     Returns
     -------

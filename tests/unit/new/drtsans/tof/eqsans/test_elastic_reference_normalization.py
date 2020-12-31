@@ -124,7 +124,7 @@ def test_calculate_scale_factor():
     # it is more precise to use expected k vector
     corrected_iqmod = normalize_intensity(test_i_of_q, gold_k_vec,
                                           ref_q_wl_vec, p_vec, s_vec,
-                                          unique_wl_vec)
+                                          unique_wl_vec, q_min, q_max)
 
     # verify: shape
     assert corrected_iqmod
@@ -140,17 +140,30 @@ def test_calculate_scale_factor():
                                test_i_of_q.mod_q.reshape((20, 4)).transpose().flatten())
 
     # verify: corrected intensity
-    gold = gold_intensity_vec.reshape((20, 4)).transpose().flatten()
-    for i in range(80):
-        buf = f'{corrected_iqmod.intensity[i]} -  {gold[i]}'
-        if corrected_iqmod.intensity[i] is not None and gold[i] is not None:
-            buf += f'  = {corrected_iqmod.intensity[i] - gold[i]}'
-        print(buf)
+    # gold = gold_intensity_vec.reshape((20, 4)).transpose().flatten()
+    # for i in range(80):
+    #     buf = f'{corrected_iqmod.intensity[i]} -  {gold[i]}'
+    #     if corrected_iqmod.intensity[i] is not None and gold[i] is not None:
+    #         buf += f'  = {corrected_iqmod.intensity[i] - gold[i]}'
+    #     print(buf)
 
     np.testing.assert_allclose(corrected_iqmod.intensity,
                                gold_intensity_vec.reshape((20, 4)).transpose().flatten(),
                                equal_nan=True,
                                atol=1E-3)
+
+    # verify: corrected intensity error
+    gold_errors = gold_error_vec.reshape((20, 4)).transpose().flatten()
+    for i in range(80):
+        buf = f'{corrected_iqmod.error[i]} -  {gold_errors[i]}'
+        if corrected_iqmod.intensity[i] is not None and gold_errors[i] is not None:
+            buf += f'  = {corrected_iqmod.error[i] - gold_errors[i]}'
+        print(buf)
+
+    np.testing.assert_allclose(corrected_iqmod.error,
+                               gold_errors,
+                               equal_nan=True,
+                               atol=1E-5)
 
 
 def create_configurable_testing_iq1d(num_q, num_wl):

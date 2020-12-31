@@ -94,7 +94,7 @@ def test_calculate_scale_factor():
     # Calculate Qmin and Qmax
     q_min, q_max = determine_common_mod_q_range(test_i_of_q)
     assert q_min == 0.07
-    assert q_max == 0.12
+    assert q_max == 0.11
 
     # Calculate reference wavelength
     ref_q_wl_vec = determine_reference_wavelength_q1d(test_i_of_q)
@@ -103,24 +103,26 @@ def test_calculate_scale_factor():
     np.testing.assert_allclose(vec_q, np.arange(1, 21) * 0.01)
     # wavelength
     vec_wl = ref_q_wl_vec[:, 1]
-    print(vec_wl)
     np.testing.assert_allclose(vec_wl[6:], 3.)
     np.testing.assert_allclose(vec_wl[0:6], np.array([6., 6., 5., 5., 4., 4.]))
 
     # Calculate scale factor
     k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q, q_min, q_max)
 
-    # Verify scale factor
+    # Verify scale factor, P[3] and S[3]
+    # considering numerical precision between original Excel with more effective decimals than the copied version
+    # to python text
     assert k_vec.shape == (4,)
     assert delta_k_vec.shape == (4,)
     np.testing.assert_allclose(k_vec, gold_k_vec, atol=1.E-3)
-    # TODO FIXME - Test K error
-    # ... ...
+    assert p_vec[3] == pytest.approx(1266.145, 0.005)
+    assert s_vec[3] == pytest.approx(1139.531, 0.005)
+    assert delta_k_vec[3] == pytest.approx(0.2063066, abs=0.00002)  # numerical precision difference
 
     # Normalize
     # Due to the numerical precision issue when import data from Excel
     # it is more precise to use expected k vector
-    corrected_iqmod = normalize_intensity(test_i_of_q, gold_k_vec, delta_k_vec,
+    corrected_iqmod = normalize_intensity(test_i_of_q, gold_k_vec,
                                           ref_q_wl_vec, p_vec, s_vec,
                                           unique_wl_vec)
 
@@ -148,7 +150,7 @@ def test_calculate_scale_factor():
     np.testing.assert_allclose(corrected_iqmod.intensity,
                                gold_intensity_vec.reshape((20, 4)).transpose().flatten(),
                                equal_nan=True,
-                               atol=1E-4)
+                               atol=1E-3)
 
 
 def create_configurable_testing_iq1d(num_q, num_wl):
@@ -190,7 +192,7 @@ def create_testing_iq1d():
         12.076, 13.283, 14.491, 10.868,
         8.264, 9.091, 9.917, 7.438,
         5.827, 6.410, 6.993, 5.244,
-        4.217, 4.638, 5.060, 3.795,
+        4.217, 4.638, 5.060, np.nan,
         3.121, 3.433, 3.745, np.nan,
         2.356, 2.592, 2.828, np.nan,
         1.811, 1.992, 2.173, np.nan,
@@ -215,7 +217,7 @@ def create_testing_iq1d():
         3.475, 3.640, 3.807, 3.297,
         2.875, 2.985, 3.149, 2.727,
         2.414, 2.470, 2.644, 2.290,
-        2.053, 2.095, 2.249, 1.948,
+        2.053, 2.095, 2.249, np.nan,
         1.767, 1.772, 1.935, np.nan,
         1.535, 1.522, 1.682, np.nan,
         1.346, 1.322, 1.474, np.nan,
@@ -257,7 +259,7 @@ def create_testing_iq1d():
         12.076, 12.076, 12.076, 12.076,
         8.264, 8.264, 8.264, 8.264,
         5.827, 5.827, 5.827, 5.827,
-        4.217, 4.217, 4.217, 4.217,
+        4.217, 4.217, 4.217, np.nan,
         3.121, 3.121, 3.121, np.nan,
         2.356, 2.356, 2.356, np.nan,
         1.811, 1.811, 1.811, np.nan,
@@ -280,7 +282,7 @@ def create_testing_iq1d():
         3.475, 3.645, 3.513, 3.958,
         2.875, 3.015, 2.875, 3.263,
         2.414, 2.532, 2.374, 2.708,
-        2.053, 2.154, 2.011, 2.302,
+        2.053, 2.154, 2.011, np.nan,
         1.767, 1.853, 1.701, np.nan,
         1.535, 1.610, 1.459, np.nan,
         1.346, 1.411, 1.268, np.nan,

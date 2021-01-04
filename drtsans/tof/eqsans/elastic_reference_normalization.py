@@ -247,7 +247,6 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
     return k_vec, k_error_vec, p_vec, s_vec, unique_wavelength_vec, ref_q_wl_vec
 
 
-
 def calculate_scale_factor_mesh_grid(i_of_q, q_min, q_max):
     """
 
@@ -354,6 +353,8 @@ def determine_reference_wavelength_q1d(i_of_q):
     The reference wavelength of a specific Q or (qx, qy)
     is defined as the shortest wavelength for all the finite I(Q, wavelength) or
     I(qx, qy, wavelength)
+
+    They shall be the same between qmin and qmax
 
     Parameters
     ----------
@@ -589,16 +590,24 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
                 print(f'\tNaN')
                 continue
 
-            # TODO: using original equations to match with Changwoo's result
+            # Using original equations to match with Changwoo's result
 
-            # no correction is to be made if for i_q, lambda_i is same as reference wavelength
-            if lambda_i == ref_wl_vec[i_q, 1]:
+            # On reference wavelength (inside qmin and qmax) and thus no correction
+            if i_wl == 0:
+                # FIXME - need an elegant method to determine minimum wavelength (index)
+                # replace qmin_index <= i_q <= qmax_index and lambda_i == ref_wl_vec[i_q, 1]:
                 corrected_error_vec[i_q] = i_q_matrix[i_q, 3]**2
                 print(f'\tNo correction')
                 continue
 
-            # t1 = [delta I(q, wl)]**2 * [P(wl) / S(wl)]**2
-            t1_sum = (i_q_matrix[i_q, 3] * p_vec[i_wl] / s_vec[i_wl])**2
+            # Term 1
+            if i_q < qmin_index or i_q > qmax_index:
+                # t1 = [delta I(q, wl)]**2 * [P(wl) / S(wl)]**2
+                t1_sum = (i_q_matrix[i_q, 3] * p_vec[i_wl] / s_vec[i_wl])**2
+                inside = False
+            else:
+                t1_sum = 0.
+                inside = True
 
             t2_sum = t3_sum = 0.
             print(f'Q     Y     T2     T3')
@@ -607,6 +616,12 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
                 # calculate Y
                 # Y(q, q', wl) = I(q, wl) * I (q', ref_wl) * S(wl) - I(q, wl) * 2 * I(q', wl) * P(wl)
                 y_value = i_q_matrix[i_q, 2] * ref_wl_vec[j_q, 2] * s_vec[i_wl] - i_q_matrix[i_q, 2] * 2. * i_q_matrix[j_q, 2] * p_vec[i_wl]
+
+                if inside and j_q == i_q:
+                    # inc = delta I_j(wl_i) * (P^2 * S^2 + 2 * P * S * Y_{q, q}) / S4
+                    t1_inc = i_q_matrix[j_q, 3]**2 * (p_vec[i_wl]**2 * s_vec[i_wl]**2 + 2 * p_vec[i_wl] * s_vec[i_wl] * y_value) / s_vec[i_wl]**4
+                    t1_sum += t1_inc
+                    print(f'[{j_q}]  t1 inc = {t1_inc}')
 
                 # calculate t2_i
                 # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
@@ -644,7 +659,9 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
             # corrected_error_vec[i_q] = \
             #     t1**2 + i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**4 * t2 + i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**2 * t3
 
-            print(f'WL = {lambda_i}  Q = {i_q_matrix[i_q, 0]}:  t1 = {t1_sum}, t2 = {t2_sum}, t3 = {t3_sum}')
+            print(f'WL = {lambda_i}  Q = {i_q_matrix[i_q, 0]}. e^2 = {t1_sum + t2_sum + t3_sum}: '
+                  f't1 = {t1_sum}, t2 = {t2_sum}, t3 = {t3_sum}')
+            corrected_error_vec[i_q] = t1_sum + t2_sum + t3_sum
             # print(f'sum = {t1_sum + t2_sum + t3_sum}')
 
             # print(f'error = {corrected_error_vec[i_q]}')
@@ -656,12 +673,6 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
         new_wavelength = np.concatenate((new_wavelength, i_q_matrix[:, 1]))
         new_intensity = np.concatenate((new_intensity, corrected_intensity_vec))
         new_error_sq = np.concatenate((new_error_sq, corrected_error_vec))
-
-        # DEBUG BREAK
-        if i_wl >= 1:
-            raise RuntimeError('DEBUG BREAK AFTER FIRST LAMBDA/wavelength')
-        else:
-            print(f'............. {i_wl}')
 
     # construct a new instance of I(Q)
     if delta_q_none:

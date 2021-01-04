@@ -9,6 +9,42 @@ import numpy as np
 __all__ = ['normalize_by_elastic_reference']
 
 
+def reshape_q_wavelength_matrix(i_of_q):
+    """Reshape I(Q) into a mesh grid of (Q, wavelength) and limit Q into q_min and q_max
+
+    Parameters
+    ----------
+    i_of_q: ~drtsans.dataobjects.IQmod
+        Input I(Q, wavelength) to find common Q range from
+
+    Returns
+    -------
+    tuple
+        wavelength vector, q vector,  intensity (2D), error (2D)
+
+    """
+    # Retrieve unique wave length in ascending order
+    wavelength_vec = np.unique(i_of_q.wavelength)
+    assert len(wavelength_vec.shape) == 1
+    wavelength_vec.sort()
+
+    q_vec = np.unique(i_of_q.mod_q)
+    assert len(q_vec.shape) == 1
+    q_vec.sort()
+
+    # Create a matrix for q, wavelength, intensity and error
+    i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
+                              i_of_q.error])
+    i_q_wl_matrix = i_q_wl_matrix.transpose()
+
+    # Order by wavelength and momentum transfer (Q)
+    i_q_wl_matrix = i_q_wl_matrix[np.lexsort((i_q_wl_matrix[:, 1], i_q_wl_matrix[:, 0]))]
+    print(i_q_wl_matrix.shape)
+    print(i_q_wl_matrix)
+
+    return
+
+
 def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
 
     # check i_of_q and ref_i_of_q shall have same binning
@@ -32,6 +68,31 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
                                  p_factor_vec, s_factor_vec, unique_wl_vec, q_min, q_max)
 
     return i_of_q, scale_factor_k_vec, delta_k_vec
+
+
+def determine_common_mod_q_range_mesh(q_vec, intensity_array):
+    """Determine the common Q1D range among all the wavelengths such that I(q, lambda) does exist.
+
+    This method assumes that I(Q, wavelength) are on mesh grid of Q and wavelength
+
+    Detailed requirement:
+        Determine q_min and q_max  that exist in all I(q, lambda) for the fitting (minimization) process
+
+    Parameters
+    ----------
+    q_vec: numpy.ndarray
+        vector of sorted unique Q
+    intensity_array: numpy.ndarray
+        2D array of intensity.  Each row is of same wavelength
+
+    Returns
+    -------
+    tuple
+        index of qmin and qmax
+
+    """
+
+    return qmin_index, qmax_index
 
 
 def determine_common_mod_q_range(iqmod):
@@ -186,6 +247,7 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
     return k_vec, k_error_vec, p_vec, s_vec, unique_wavelength_vec, ref_q_wl_vec
 
 
+
 def calculate_scale_factor_mesh_grid(i_of_q, q_min, q_max):
     """
 
@@ -203,7 +265,87 @@ def calculate_scale_factor_mesh_grid(i_of_q, q_min, q_max):
     -------
 
     """
-    return [], [], [], []
+    # NOTE: output I'(Q, lambda) will be a complete new i_of_q instance
+
+
+    # Limit the wavelength between qmin and qmax
+    qmin_index = np.argmin(np.abs(unique_wavelength_vec - q_min))
+    qmax_index = np.argmin(np.abs(unique_wavelength_vec - q_max))
+    print(f'Qmin @ {qmin_index}, Qmax @ {qmax_index}')
+
+    reshape_q_wavelength_matrix(i_of_q, q_min, q_max)
+    raise RuntimeError('... ...')
+
+    # print(f'Q-WL-I-Sigma matrix shape = {i_q_wl_matrix.shape}')
+
+    # Calculate P(wl), S(wl)
+    p_vec = np.zeros_like(unique_wavelength_vec)
+    s_vec = np.zeros_like(unique_wavelength_vec)
+    k_vec = np.zeros_like(unique_wavelength_vec)
+    k_error2_vec = np.zeros_like(unique_wavelength_vec)
+
+    for i_wl, lambda_i in enumerate(unique_wavelength_vec):
+        # filter i_q_wl_matrix for certain wavelength
+        i_q_matrix = i_q_wl_matrix[i_q_wl_matrix[:, 1] == lambda_i]
+        # print(f'[DEBUG-INFO] wavelength = {lambda_i}, values size = {i_q_matrix.shape}')
+
+        # get the index of q_min and q_max
+        i_q_min = np.argmin(np.abs(i_q_matrix[:, 0] - q_min))  # numpy int64
+        assert q_min == i_q_matrix[:, 0][i_q_min]
+        i_q_max = np.argmin(np.abs(i_q_matrix[:, 0] - q_max))
+        assert q_max == i_q_matrix[:, 0][i_q_max]
+
+        # loop over each Q for S(wl) and P(wl)
+        for i_q in range(i_q_min, i_q_max+1):
+            q_i = i_q_matrix[:, 0][i_q]
+            # print(f'Over {i_q}-th Q {q_i}')
+            # acquire index to reference lambda
+            ref_index = np.argmin(np.abs(ref_q_wl_vec[:, 0] - q_i))
+            # ref_wl = ref_q_wl_vec[ref_index, 1]
+            i_q_ref_wl = ref_q_wl_vec[ref_index, 2]
+            # print(f'  ref index = {ref_index}  '
+            #       f'reference wl = {ref_wl}  I(q, ref) = {i_q_ref_wl}  I(q, wl) = {i_q_matrix[i_q][2]}')
+            p_vec[i_wl] += i_q_ref_wl * i_q_matrix[i_q][2]
+            # print(f'q-index {i_q}  increment P = {i_q_ref_wl * i_q_matrix[i_q][2]}')
+            s_vec[i_wl] += i_q_matrix[i_q][2] * i_q_matrix[i_q][2]
+
+        # calculate K(wl)
+        k_vec[i_wl] = p_vec[i_wl] / s_vec[i_wl]
+
+        # calculate delta K(wl)
+        for i_q in range(i_q_min, i_q_max+1):
+            q_i = i_q_matrix[:, 0][i_q]
+            # acquire index to reference lambda
+            ref_index = np.argmin(np.abs(ref_q_wl_vec[:, 0] - q_i))
+            i_q_ref_wl = ref_q_wl_vec[ref_index, 2]
+            err_q_ref_wl = ref_q_wl_vec[ref_index, 3]
+            # delta I(q, lambda) = delta I^{lambda}(q)
+            term0 = i_q_matrix[i_q, 3]
+            # I(q, ref_wl(q)) * S(wl) - 2 * I(q, wl) * P(wl) / S(wl)**2
+            term1 = (i_q_ref_wl * s_vec[i_wl] - 2 * i_q_matrix[i_q][2] * p_vec[i_wl])/s_vec[i_wl]**2
+            # delta I(q, lambda^ref)
+            term2 = err_q_ref_wl
+            # I(q, lambda)/S(lambda) = I^{lambda}(q) / S(lambda)
+            term3 = i_q_matrix[i_q, 2] / s_vec[i_wl]
+            # increment = (t0 * t1)**2 + (t2 * t3)**2
+            k_error2_vec[i_wl] += (term0 * term1) ** 2 + (term2 * term3)**2
+
+            # print(f'  error(q, wl)    t0 = {term0}')
+            # print(f'                  t1 = {term1}')
+            # print(f'                        I(Q, refWL) = {i_q_ref_wl}')
+            # print(f'                        S(wl      ) = {s_vec[i_wl]}')
+            # print(f'                        I(Q,    wl) = {i_q_matrix[i_q][2]}')
+            # print(f'                        P(wl      ) = {p_vec[i_wl]}')
+            # print(f'  reference error t2 = {term2}')
+            # print(f'  t3 = {term3}')
+            # print(f'  Increment = {(term0 * term1) ** 2 + (term2 * term3)**2}')
+
+    # END-FOR
+
+    # Get K error vector
+    k_error_vec = np.sqrt(k_error2_vec)
+
+    return k_vec, k_error_vec, p_vec, s_vec, unique_wavelength_vec, ref_q_wl_vec
 
 
 def determine_reference_wavelength_q1d(i_of_q):
@@ -249,6 +391,86 @@ def determine_reference_wavelength_q1d(i_of_q):
         ref_wavelength_vec[index][3] = filtered_combo_matrix[:, 3][min_index]
 
     return ref_wavelength_vec
+
+
+from dataclasses import dataclass
+
+@dataclass
+class ReferenceWavelengths:
+    """
+    Class for keeping track of reference wavelength for each momentum transfer Q (1D)
+    """
+    q_vec: np.ndarray
+    ref_wl_vec: np.ndarray
+    intensity_vec: np.ndarray
+    error_vec: np.ndarray
+
+    def __init__(self, q_values, ref_wavelengths, intensities, errors):
+        """
+
+        Parameters
+        ----------
+        q_values
+        ref_wavelengths
+        intensities
+        errors
+        """
+        self.q_vec = q_values
+        self.ref_wl_vec = ref_wavelengths
+        self.intensity_vec = intensities
+        self.error_vec = errors
+
+
+def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_array, error_array):
+    """Determine the reference wavelength for each Q.
+
+    The reference wavelength of a specific Q or (qx, qy)
+    is defined as the shortest wavelength for all the finite I(Q, wavelength) or
+    I(qx, qy, wavelength)
+
+    Parameters
+    ----------
+    wavelength_vec: numpy.ndarray
+        ...
+    q_vec: numpy.ndarray
+        ...
+    intensity_array: numpy.ndarray
+        ...
+    error_array: numpy.ndarray
+        ...
+
+    Returns
+    -------
+    ReferenceWavelengths
+        Reference wavelengths for each momentum transfer Q and the corresponding intensity and error
+
+    """
+    # Sanity check
+    assert wavelength_vec.shape[0] == intensity_array.shape[1]
+
+    # Get the maximum value of intensity
+    max_intensity = intensity_array[np.isfinite(intensity_array)].max()
+
+    # Replace nan by super max value
+    super_max_val = max_intensity + 3.
+    intensity_array[np.isnan(intensity_array)] = super_max_val
+
+    # Get the minimum index of each wavelength
+    min_index_vec = np.argmin(intensity_array, axis=1)
+    min_wl_vec = wavelength_vec[min_index_vec]
+
+    # Recover nan values for intensities
+    intensity_array[intensity_array > max_intensity + 1.] = np.nan
+
+    # Retrieve minimum wavelength for each
+
+    # Get the position arrays for 2D matrix and then slice the intensity and error
+    where_tuple = (np.arange(q_vec.shape[0]), min_index_vec)
+
+    min_intensity_vec = intensity_array[where_tuple]
+    min_error_vec = intensity_array[where_tuple]
+
+    return ReferenceWavelengths(q_vec, min_wl_vec, min_intensity_vec, min_error_vec)
 
 
 def determine_reference_wavelength_q2d(i_of_q):
@@ -344,7 +566,7 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
     new_intensity = np.ndarray(shape=(0,), dtype=i_q_wl_matrix.dtype)
     new_error_sq = np.ndarray(shape=(0,), dtype=i_q_wl_matrix.dtype)
 
-    # Output
+    # Calculate the normalized intensity error
     for i_wl, lambda_i in enumerate(unique_wavelength_vec):
         # filter i_q_wl_matrix for certain wavelength
         i_q_matrix = i_q_wl_matrix[i_q_wl_matrix[:, 1] == lambda_i]
@@ -367,49 +589,66 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
                 print(f'\tNaN')
                 continue
 
+            # TODO: using original equations to match with Changwoo's result
+
             # no correction is to be made if for i_q, lambda_i is same as reference wavelength
             if lambda_i == ref_wl_vec[i_q, 1]:
                 corrected_error_vec[i_q] = i_q_matrix[i_q, 3]**2
                 print(f'\tNo correction')
                 continue
 
-            # t1 = delta I(q, lambda) * P(lambda) / S(lambda)
-            t1 = i_q_matrix[i_q, 3] * p_vec[i_wl] / s_vec[i_wl]
-            print(f'\tterm1 = {t1}')
+            # t1 = [delta I(q, wl)]**2 * [P(wl) / S(wl)]**2
+            t1_sum = (i_q_matrix[i_q, 3] * p_vec[i_wl] / s_vec[i_wl])**2
 
-            # t2 = sum()
-            t2 = 0.
-            # t3 = sum()
-            t3 = 0.
+            t2_sum = t3_sum = 0.
+            print(f'Q     Y     T2     T3')
             for j_q in range(qmin_index, qmax_index + 1):
-                # TODO - it is better to restrict the range of j_q to q_min and q_max ...
 
-                # t2: increment = delta I(q_j, wl)^2 * [I(q_j, ref_wl(q_j) * S(wl) - 2 * I(q_j, wl) * P(wl)]^2
-                t2_inc = i_q_matrix[j_q, 3]**2 * (ref_wl_vec[j_q][2] * s_vec[i_wl]
-                                                  - 2 * i_q_matrix[j_q, 2] * p_vec[i_wl])**2
-                t2 += t2_inc
+                # calculate Y
+                # Y(q, q', wl) = I(q, wl) * I (q', ref_wl) * S(wl) - I(q, wl) * 2 * I(q', wl) * P(wl)
+                y_value = i_q_matrix[i_q, 2] * ref_wl_vec[j_q, 2] * s_vec[i_wl] - i_q_matrix[i_q, 2] * 2. * i_q_matrix[j_q, 2] * p_vec[i_wl]
 
-                # t3: increment = delta I(q_j, ref_wl[q_j])^2 * I(q_j, wl)^2
-                t3_inc = ref_wl_vec[j_q, 3]**2 * i_q_matrix[j_q, 2]**2
-                t3 += t3_inc
+                # calculate t2_i
+                # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
+                t2_inc = i_q_matrix[j_q, 3]**2 * y_value**2 / s_vec[i_wl]**4
+                t2_sum += t2_inc
 
-                print(f'\t{j_q}: t2 += {t2_inc}, t3 += {t3_inc}')
+                # calculate t3_i
+                # t3: increment = [delta I(q_j, ref_wl[q_j]]^2 * [I(q_j, wl) * I(q, wl)]^2 / S(wl)^2
+                # reference: i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2
+                t3_inc = ref_wl_vec[j_q, 3]**2 * i_q_matrix[j_q, 2]**2 * i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**2
+                t3_sum += t3_inc
 
-            # error = t1^2 + I(q, wl)^2/S(wl)^4*t2 + I(q, wl)^2/S(wl)^4*t3
-            corrected_error_vec[i_q] = \
-                t1**2 + i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**4 * t2 + i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**2 * t3
+                # DEBUG OUTPUT 1: print(f'{i_q_matrix[i_q, 0]}    {y_value}    {t2_inc}    {t3_inc}')
 
-            print(f't1 = {t1**2}')
-            print(f't2 = {i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**4 * t2}')
-            print(f't3 = {i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**2 * t3}')
+            # t1 = i_q_matrix[i_q, 3] * p_vec[i_wl] / s_vec[i_wl]
+            # print(f'\tterm1 = {t1}')
+            #
+            # # t2 = sum()
+            # t2 = 0.
+            # # t3 = sum()
+            # t3 = 0.
+            # for j_q in range(qmin_index, qmax_index + 1):
+            #     # TODO - it is better to restrict the range of j_q to q_min and q_max ...
+            #
+            #     # t2: increment = delta I(q_j, wl)^2 * [I(q_j, ref_wl(q_j) * S(wl) - 2 * I(q_j, wl) * P(wl)]^2
+            #     t2_inc = i_q_matrix[j_q, 3]**2 * (ref_wl_vec[j_q][2] * s_vec[i_wl]
+            #                                       - 2 * i_q_matrix[j_q, 2] * p_vec[i_wl])**2
+            #     t2 += t2_inc
+            #
 
-            t1 = t1 ** 2
-            t2 = i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 4 * t2
-            t3 = i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2 * t3
-            print(f'sum = {t1 + t2 + t3}')
+            #
+            #     print(f'\t{j_q}: t2 += {t2_inc}, t3 += {t3_inc}')
+            #
+            # # error = t1^2 + I(q, wl)^2/S(wl)^4*t2 + I(q, wl)^2/S(wl)^4*t3
+            # corrected_error_vec[i_q] = \
+            #     t1**2 + i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**4 * t2 + i_q_matrix[i_q, 2]**2 / s_vec[i_wl]**2 * t3
 
-            print(f'error = {corrected_error_vec[i_q]}')
-            raise RuntimeError('DEBUG STOP')
+            print(f'WL = {lambda_i}  Q = {i_q_matrix[i_q, 0]}:  t1 = {t1_sum}, t2 = {t2_sum}, t3 = {t3_sum}')
+            # print(f'sum = {t1_sum + t2_sum + t3_sum}')
+
+            # print(f'error = {corrected_error_vec[i_q]}')
+            # raise RuntimeError('DEBUG STOP')
 
         # update
         new_mod_q = np.concatenate((new_mod_q, i_q_matrix[:, 0]))
@@ -419,7 +658,10 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
         new_error_sq = np.concatenate((new_error_sq, corrected_error_vec))
 
         # DEBUG BREAK
-        # raise RuntimeError('DEBUG BREAK AFTER FIRST LAMBDA/wavelength')
+        if i_wl >= 1:
+            raise RuntimeError('DEBUG BREAK AFTER FIRST LAMBDA/wavelength')
+        else:
+            print(f'............. {i_wl}')
 
     # construct a new instance of I(Q)
     if delta_q_none:
@@ -427,3 +669,48 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
     corrected_i_of_q = IQmod(new_intensity, np.sqrt(new_error_sq), new_mod_q, new_q_error, new_wavelength)
 
     return corrected_i_of_q
+
+
+def correct_intensity_error():
+    # correct intensity error: i.e., calcuting new error
+    # for a single I(Q, wl)
+
+    # This is based on cleaned up equations optimized for computation efficiency
+
+    # t1 = delta I(q, lambda) * P(lambda) / S(lambda)
+    t1 = i_q_matrix[i_q, 3] * p_vec[i_wl] / s_vec[i_wl]
+    print(f'\tterm1 = {t1}')
+
+    # t2 = sum()
+    t2 = 0.
+    # t3 = sum()
+    t3 = 0.
+    for j_q in range(qmin_index, qmax_index + 1):
+        # TODO - it is better to restrict the range of j_q to q_min and q_max ...
+
+        # t2: increment = delta I(q_j, wl)^2 * [I(q_j, ref_wl(q_j) * S(wl) - 2 * I(q_j, wl) * P(wl)]^2
+        t2_inc = i_q_matrix[j_q, 3] ** 2 * (ref_wl_vec[j_q][2] * s_vec[i_wl]
+                                            - 2 * i_q_matrix[j_q, 2] * p_vec[i_wl]) ** 2
+        t2 += t2_inc
+
+        # t3: increment = delta I(q_j, ref_wl[q_j])^2 * I(q_j, wl)^2
+        t3_inc = ref_wl_vec[j_q, 3] ** 2 * i_q_matrix[j_q, 2] ** 2
+        t3 += t3_inc
+
+        print(f'\t{j_q}: t2 += {t2_inc}, t3 += {t3_inc}')
+
+    # error = t1^2 + I(q, wl)^2/S(wl)^4*t2 + I(q, wl)^2/S(wl)^4*t3
+    corrected_error_vec[i_q] = \
+        t1 ** 2 + i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 4 * t2 + i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2 * t3
+
+    print(f't1 = {t1 ** 2}')
+    print(f't2 = {i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 4 * t2}')
+    print(f't3 = {i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2 * t3}')
+
+    t1 = t1 ** 2
+    t2 = i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 4 * t2
+    t3 = i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2 * t3
+    summed = t1 + t2 + t3
+    print(f'sum = {t1 + t2 + t3}')
+
+    return summed

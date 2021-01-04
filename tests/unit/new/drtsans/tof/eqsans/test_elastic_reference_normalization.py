@@ -2,11 +2,43 @@ import pytest
 from drtsans.dataobjects import IQmod
 
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_common_mod_q_range
+from drtsans.tof.eqsans.elastic_reference_normalization import determine_common_mod_q_range_mesh
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_reference_wavelength_q1d
-from drtsans.tof.eqsans.elastic_reference_normalization import calculate_scale_factor
+from drtsans.tof.eqsans.elastic_reference_normalization import calculate_scale_factor, calculate_scale_factor_mesh_grid
 from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity
+from drtsans.tof.eqsans.elastic_reference_normalization import reshape_q_wavelength_matrix
 
 import numpy as np
+
+
+def progress_test_reshaped_imodq_2d():
+    """Test the method to reshape I(Q) to 2D  mesh grid:
+    """
+    # Get test data
+    test_data = create_testing_iq1d()
+    i_of_q = test_data[0]
+
+    # Reshape
+    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(i_of_q)
+
+    # Verify shape
+    assert wl_vec.shape == (4, )
+    assert q_vec.shape == (12, )
+    assert i_array.shape == (12, 4)
+    assert error_array.shape == (12, 4)
+
+    # Verify value
+    raise RuntimeError('To Implement')
+
+
+def progress_():
+
+    # Use 2nd set of test case (Changwoo's)
+    minq_index, maxq_index = determine_common_mod_q_range_mesh()
+    assert minq_index == 1
+    assert maxq_index == 3
+
+    assert 1 == 100, 'Need to test determine_common_mod_q_range_mesh()'
 
 
 def test_determine_q_range():
@@ -108,6 +140,9 @@ def test_calculate_scale_factor():
 
     # Calculate scale factor
     k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q, q_min, q_max)
+    # calculate_scale_factor_mesh_grid(test_i_of_q, q_min, q_max)
+    #
+    # assert 1 == 3, 'DEBUG STOP'
 
     # Verify scale factor, P[3] and S[3]
     # considering numerical precision between original Excel with more effective decimals than the copied version

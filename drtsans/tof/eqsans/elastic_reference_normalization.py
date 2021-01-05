@@ -700,28 +700,25 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
             # others
             t2_sum = t3_sum = 0.
 
+            # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
+            t2_sum = np.sum(error_array[qmin_index:qmax_index+1, i_wl]**2 * y_matrix[i_q, qmin_index:qmax_index+1]**2 / s_vec[i_wl]**4)
+
+            t3_sum = np.sum(re_vec[qmin_index:qmax_index+1]**2 * intensity_array[qmin_index:qmax_index+1, i_wl]**2 * intensity_array[i_q, i_wl]**2 / s_vec[i_wl]**2)
+
             for j_q in range(qmin_index, qmax_index + 1):
 
                 y_value = y_matrix[i_q, j_q]
 
-                # if inside and j_q == i_q:
-                #     # inc = delta I_j(wl_i) * (P^2 * S^2 + 2 * P * S * Y_{q, q}) / S4
-                #     t1_inc = error_array[j_q, i_wl]**2 * (p_vec[i_wl]**2 * s_vec[i_wl]**2 + 2 * p_vec[i_wl] * s_vec[i_wl] * y_value) / s_vec[i_wl]**4
-                #     t1_sum += t1_inc
-                #     # print(f'[{j_q}]  t1 inc = {t1_inc}')
-
                 # calculate t2_i
                 # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
-                t2_inc = error_array[j_q, i_wl]**2 * y_value**2 / s_vec[i_wl]**4
-                t2_sum += t2_inc
+                # t2_inc = error_array[j_q, i_wl]**2 * y_value**2 / s_vec[i_wl]**4
+                # t2_sum += t2_inc
 
                 # calculate t3_i
                 # t3: increment = [delta I(q_j, ref_wl[q_j]]^2 * [I(q_j, wl) * I(q, wl)]^2 / S(wl)^2
                 # reference: i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2
-                t3_inc = re_vec[j_q]**2 * intensity_array[j_q, i_wl]**2 * intensity_array[i_q, i_wl]**2 / s_vec[i_wl]**2
-                t3_sum += t3_inc
-
-            print(f't1 = {t1_sum}, t2 = {t2_sum}, t3 = {t3_sum}')
+                # t3_inc = re_vec[j_q]**2 * intensity_array[j_q, i_wl]**2 * intensity_array[i_q, i_wl]**2 / s_vec[i_wl]**2
+                # t3_sum += t3_inc
 
             normalized_error2_array[i_q, i_wl] = t1_sum + t2_sum + t3_sum
 

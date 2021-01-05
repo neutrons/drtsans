@@ -9,6 +9,7 @@ from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensi
 from drtsans.tof.eqsans.elastic_reference_normalization import reshape_q_wavelength_matrix
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_reference_wavelength_q1d_mesh
 from drtsans.tof.eqsans.elastic_reference_normalization import ReferenceWavelengths
+from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity_q1d
 
 import numpy as np
 
@@ -196,6 +197,45 @@ def test_calculate_scale_factor():
 
 
 def test_normalize_i_of_q1d():
+    """Test the refined method to normalize I(Q1D)
+    """
+    # Get testing data and gold data
+    test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
+    # Reshape
+    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(test_i_of_q)
+
+    # Calculate Qmin and Qmax
+    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+
+    # Calculate reference
+    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+                                                        qmin_index, qmax_index)
+
+    # Calculate scale factor
+    mk_vec, mk_error_vec, mp_vec, ms_vec = calculate_scale_factor_mesh_grid(wl_vec, i_array, error_array,
+                                                                            ref_wl_ie, qmin_index, qmax_index)
+
+    # Normalize
+    normalized = normalize_intensity_q1d(wl_vec, q_vec, i_array, error_array,
+                                         ref_wl_ie, gold_k_vec, mp_vec, ms_vec,
+                                         qmin_index, qmax_index)
+    normalized_intensity = normalized[0].flatten()
+    normalized_error = normalized[1].flatten()
+
+    for i in range(80):
+        print(f'{normalized_intensity[i]}   -    {gold_intensity_vec[i]}    =    {normalized_intensity[i] - gold_intensity_vec[i]}')
+
+    np.testing.assert_allclose(normalized_intensity, gold_intensity_vec, rtol=8E-4, equal_nan=True)
+    for i in range(20):
+        print(f'i = {i}')
+        for j in range(4):
+            index = i * 4 + j
+            print(f'{normalized_error[index]}   -   {gold_error_vec[index]}    =   {normalized_error[index] - gold_error_vec[index]}')
+
+    np.testing.assert_allclose(normalized_error, gold_error_vec, rtol=1E-3, equal_nan=True)
+
+
+def test_normalize_i_of_q1d_prototype():
     """Test method to calculate scale factor K(lambda) and error delta K(lambda)
 
     Test data: using data from attached Excel

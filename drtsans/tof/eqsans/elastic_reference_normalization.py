@@ -255,17 +255,6 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
             term3 = i_q_matrix[i_q, 2] / s_vec[i_wl]
             # increment = (t0 * t1)**2 + (t2 * t3)**2
             k_error2_vec[i_wl] += (term0 * term1) ** 2 + (term2 * term3)**2
-
-            # print(f'  error(q, wl)    t0 = {term0}')
-            # print(f'                  t1 = {term1}')
-            # print(f'                        I(Q, refWL) = {i_q_ref_wl}')
-            # print(f'                        S(wl      ) = {s_vec[i_wl]}')
-            # print(f'                        I(Q,    wl) = {i_q_matrix[i_q][2]}')
-            # print(f'                        P(wl      ) = {p_vec[i_wl]}')
-            # print(f'  reference error t2 = {term2}')
-            # print(f'  t3 = {term3}')
-            # print(f'  Increment = {(term0 * term1) ** 2 + (term2 * term3)**2}')
-
     # END-FOR
 
     # Get K error vector
@@ -439,8 +428,8 @@ def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_arr
     min_wl_vec = np.zeros_like(q_vec) + wavelength_vec[0]
 
     # Minimum intensity and error
-    min_intensity_vec = intensity_array[:, 0]
-    min_error_vec = error_array[:, 0]
+    min_intensity_vec = np.copy(intensity_array[:, 0])
+    min_error_vec = np.copy(error_array[:, 0])
 
     # Set the unused defined reference wavelength (outside of qmin and qmax)'s
     # intensity and error to nan
@@ -658,6 +647,96 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
     corrected_i_of_q = IQmod(new_intensity, np.sqrt(new_error_sq), new_mod_q, new_q_error, new_wavelength)
 
     return corrected_i_of_q
+
+
+def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_ints_errs, k_vec, p_vec, s_vec, qmin_index, qmax_index):
+
+    # Sanity check
+    assert wl_vec.shape[0] == intensity_array.shape[1]
+    assert q_vec.shape[0] == error_array.shape[0]
+    assert intensity_array.shape == error_array.shape
+
+    # Normalized intensities
+    normalized_intensity_array = intensity_array * k_vec
+    normalized_error2_array = np.zeros_like(error_array)
+
+    # Lowest wavelength bin does not require normalization as K = 1, i_wl = 0
+    normalized_error2_array[:, 0] = error_array[:, 0]**2
+
+    # Reshape
+    ri_vec = ref_wl_ints_errs.intensity_vec.reshape((q_vec.shape[0], 1))
+    re_vec = ref_wl_ints_errs.error_vec
+
+    # Loop over wavelength
+    num_wl = wl_vec.shape[0]
+    for i_wl in range(1, num_wl):
+
+        print(f'[DEBUG...INFO] P({wl_vec[i_wl]} = {p_vec[i_wl]} S({wl_vec[i_wl]}) = {s_vec[i_wl]}')
+
+        intensity_vec = intensity_array[:, i_wl].reshape((q_vec.shape[0], 1))
+
+        # Calcualte Y: Y_ij = I_i * R_j * s - I_i * 2 * I_j * p
+        y_matrix = intensity_vec * (ri_vec.transpose()) * s_vec[i_wl] - intensity_vec * (intensity_vec.transpose()) * (2 * p_vec[i_wl])
+        # y_matrix[j, :] corresponds to a single q_j/r_j
+        # y_matrix[:, i] corresponds to a single q_j/r_i
+
+        for i_q in range(len(q_vec)):
+
+            if np.isnan(intensity_array[i_q, i_wl]):
+                print(f'q = {q_vec[i_q]}, wl = {wl_vec[i_wl]}:  NaN')
+                normalized_error2_array[i_q, i_wl] = np.nan
+                continue
+            else:
+                print(f'q = {q_vec[i_q]}, wl = {wl_vec[i_wl]}:  ...')
+
+            # Term 1
+            if i_q < qmin_index or i_q > qmax_index:
+                t1_sum = (error_array[i_q, i_wl] * p_vec[i_wl] / s_vec[i_wl])**2
+                inside = False
+            else:
+                t1_sum = error_array[i_q, i_wl]**2 * (p_vec[i_wl]**2 * s_vec[i_wl]**2 + 2 * p_vec[i_wl] * s_vec[i_wl] * y_matrix[i_q, i_q]) / s_vec[i_wl]**4
+                inside = True
+
+            # others
+            t2_sum = t3_sum = 0.
+
+            for j_q in range(qmin_index, qmax_index + 1):
+
+                y_value = y_matrix[i_q, j_q]
+
+                # if inside and j_q == i_q:
+                #     # inc = delta I_j(wl_i) * (P^2 * S^2 + 2 * P * S * Y_{q, q}) / S4
+                #     t1_inc = error_array[j_q, i_wl]**2 * (p_vec[i_wl]**2 * s_vec[i_wl]**2 + 2 * p_vec[i_wl] * s_vec[i_wl] * y_value) / s_vec[i_wl]**4
+                #     t1_sum += t1_inc
+                #     # print(f'[{j_q}]  t1 inc = {t1_inc}')
+
+                # calculate t2_i
+                # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
+                t2_inc = error_array[j_q, i_wl]**2 * y_value**2 / s_vec[i_wl]**4
+                t2_sum += t2_inc
+
+                # calculate t3_i
+                # t3: increment = [delta I(q_j, ref_wl[q_j]]^2 * [I(q_j, wl) * I(q, wl)]^2 / S(wl)^2
+                # reference: i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2
+                t3_inc = re_vec[j_q]**2 * intensity_array[j_q, i_wl]**2 * intensity_array[i_q, i_wl]**2 / s_vec[i_wl]**2
+                t3_sum += t3_inc
+
+            print(f't1 = {t1_sum}, t2 = {t2_sum}, t3 = {t3_sum}')
+
+            normalized_error2_array[i_q, i_wl] = t1_sum + t2_sum + t3_sum
+
+        # print(f'Y shape = {y_matrix.shape}')
+        # for i in range(20):
+        #     buf = ''
+        #     for j in range(20):
+        #         buf += f'{y_matrix[i, j]}    '
+        #     print(buf)
+        #     # print(f'{y_matrix[qmin_index, i]}   ....    {y_matrix[i, qmin_index]}')
+
+
+    return normalized_intensity_array, np.sqrt(normalized_error2_array)
+
+
 
 
 def correct_intensity_error():

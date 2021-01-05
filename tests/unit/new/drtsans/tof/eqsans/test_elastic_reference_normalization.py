@@ -49,14 +49,35 @@ def test_reshaped_imodq_2d():
     assert error_array[16, 1] == 1.028
 
 
-def progress_():
+def test_determine_common_q_range():
+    """Test method to determine q range common to all wavelength
+    """
+    # Get test data
+    test_data = create_testing_iq1d()
+    i_of_q = test_data[0]
 
-    # Use 2nd set of test case (Changwoo's)
-    minq_index, maxq_index = determine_common_mod_q_range_mesh()
-    assert minq_index == 1
-    assert maxq_index == 3
+    # Reshape
+    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(i_of_q)
 
-    assert 1 == 100, 'Need to test determine_common_mod_q_range_mesh()'
+    # Call the general algorithm
+    q_min, q_max = determine_common_mod_q_range(i_of_q)
+
+    # Call the mesh-grid algorithm
+    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+
+    # Verify by comparing results from 2 algorithms
+    assert q_min == q_vec[qmin_index]
+    assert q_max == q_vec[qmax_index]
+
+
+def in_progress_test_determine_reference_wavelength():
+    """blablabla
+
+    Returns
+    -------
+
+    """
+    assert 1 == 1
 
 
 def test_determine_q_range():

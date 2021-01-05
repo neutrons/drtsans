@@ -99,6 +99,25 @@ def determine_common_mod_q_range_mesh(q_vec, intensity_array):
         index of qmin and qmax
 
     """
+    # Find q min
+    qmin_index = None
+    qmax_index = None
+
+    # Sanity check
+    assert q_vec.shape[0] == intensity_array.shape[0], 'Shape mismatch'
+
+    num_q = q_vec.shape[0]
+    for q_index in range(num_q):
+        if len(np.where(np.isnan(intensity_array[q_index]))[0]) == 0:
+            qmin_index = q_index
+            break
+    for q_index in range(num_q - 1, -1, -1):
+        if len(np.where(np.isnan(intensity_array[q_index]))[0]) == 0:
+            qmax_index = q_index
+            break
+
+    if qmin_index is None:
+        raise RuntimeError('Unable to find common q range')
 
     return qmin_index, qmax_index
 

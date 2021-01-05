@@ -169,6 +169,33 @@ def test_determine_reference_wavelength_q1d():
 
 
 def test_calculate_scale_factor():
+    """Test the method to calculate scale factor K(wavelength) and delta K(wavelength)
+    """
+    # Get testing data and gold data
+    test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
+    # Reshape
+    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(test_i_of_q)
+
+    # Calculate Qmin and Qmax
+    q_min, q_max = determine_common_mod_q_range(test_i_of_q)
+    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+
+    # Calculate reference
+    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+                                                        qmin_index, qmax_index)
+
+    # Calculate scale factor
+    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q, q_min, q_max)
+    mk_vec, mk_error_vec, mp_vec, ms_vec = calculate_scale_factor_mesh_grid(wl_vec, i_array, error_array,
+                                                                            ref_wl_ie, qmin_index, qmax_index)
+
+    np.testing.assert_allclose(k_vec, mk_vec)
+    np.testing.assert_allclose(p_vec, mp_vec)
+    np.testing.assert_allclose(s_vec, ms_vec)
+    np.testing.assert_allclose(delta_k_vec, mk_error_vec)
+
+
+def test_normalize_i_of_q1d():
     """Test method to calculate scale factor K(lambda) and error delta K(lambda)
 
     Test data: using data from attached Excel
@@ -193,9 +220,6 @@ def test_calculate_scale_factor():
 
     # Calculate scale factor
     k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q, q_min, q_max)
-    # calculate_scale_factor_mesh_grid(test_i_of_q, q_min, q_max)
-    #
-    # assert 1 == 3, 'DEBUG STOP'
 
     # Verify scale factor, P[3] and S[3]
     # considering numerical precision between original Excel with more effective decimals than the copied version

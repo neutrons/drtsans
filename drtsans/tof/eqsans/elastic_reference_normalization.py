@@ -274,104 +274,62 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
     return k_vec, k_error_vec, p_vec, s_vec, unique_wavelength_vec, ref_q_wl_vec
 
 
-def calculate_scale_factor_mesh_grid(i_of_q, q_min, q_max):
-    """
-
-    Same functionality as calculate_scale_factor but the algorithm is improved
-    as I(Q, mavelength) are in meshgrid
+def calculate_scale_factor_mesh_grid(wl_vec, intensity_array, error_array,
+                                     ref_wl_intensities, qmin_index, qmax_index):
+    """Same functionality as calculate_scale_factor but the algorithm is improved
+    as I(Q, wavelength) are in meshgrid
 
     Parameters
     ----------
-    i_of_q: ~drtsans.dataobjects.IQmod
-        Input I(Q, wavelength) to find common Q range from
-    q_min
-    q_max
+    wl_vec: numpy.array
+        wavelength vector
+    intensity_array: numpy.array
+        intensity 2D array
+    error_array: numpy.array
+        error 2D array
+    ref_wl_intensities: ReferenceWavelengths
+        reference wavelength intensity/error
+    qmin_index: int
+        index of min Q in q vector
+    qmax_index: int
+        index of max Q in q vector
 
     Returns
     -------
-
+    tuple
+        K vector, K error vector, P vector, S vector
     """
-    # NOTE: output I'(Q, lambda) will be a complete new i_of_q instance
-
-
-    # Limit the wavelength between qmin and qmax
-    qmin_index = np.argmin(np.abs(unique_wavelength_vec - q_min))
-    qmax_index = np.argmin(np.abs(unique_wavelength_vec - q_max))
-    print(f'Qmin @ {qmin_index}, Qmax @ {qmax_index}')
-
-    reshape_q_wavelength_matrix(i_of_q, q_min, q_max)
-    raise RuntimeError('... ...')
-
-    # print(f'Q-WL-I-Sigma matrix shape = {i_q_wl_matrix.shape}')
+    # Check input
+    assert wl_vec.shape[0] == intensity_array.shape[1]
 
     # Calculate P(wl), S(wl)
-    p_vec = np.zeros_like(unique_wavelength_vec)
-    s_vec = np.zeros_like(unique_wavelength_vec)
-    k_vec = np.zeros_like(unique_wavelength_vec)
-    k_error2_vec = np.zeros_like(unique_wavelength_vec)
+    p_vec = np.zeros_like(wl_vec)
+    s_vec = np.zeros_like(wl_vec)
+    k_error2_vec = np.zeros_like(wl_vec)
 
-    for i_wl, lambda_i in enumerate(unique_wavelength_vec):
-        # filter i_q_wl_matrix for certain wavelength
-        i_q_matrix = i_q_wl_matrix[i_q_wl_matrix[:, 1] == lambda_i]
-        # print(f'[DEBUG-INFO] wavelength = {lambda_i}, values size = {i_q_matrix.shape}')
+    for i_wl, lambda_i in enumerate(wl_vec):
+        # P(wl) = sum_q I(q, ref_wl) * I(q, wl)
+        p_value = np.sum(ref_wl_intensities.intensity_vec[qmin_index:qmax_index + 1] *
+                         intensity_array[:, i_wl][qmin_index:qmax_index + 1])
+        # S(wl) = sum_q I(q, wl)**2
+        s_value = np.sum(intensity_array[:, i_wl][qmin_index:qmax_index + 1]**2)
 
-        # get the index of q_min and q_max
-        i_q_min = np.argmin(np.abs(i_q_matrix[:, 0] - q_min))  # numpy int64
-        assert q_min == i_q_matrix[:, 0][i_q_min]
-        i_q_max = np.argmin(np.abs(i_q_matrix[:, 0] - q_max))
-        assert q_max == i_q_matrix[:, 0][i_q_max]
+        # assign
+        p_vec[i_wl] = p_value
+        s_vec[i_wl] = s_value
 
-        # loop over each Q for S(wl) and P(wl)
-        for i_q in range(i_q_min, i_q_max+1):
-            q_i = i_q_matrix[:, 0][i_q]
-            # print(f'Over {i_q}-th Q {q_i}')
-            # acquire index to reference lambda
-            ref_index = np.argmin(np.abs(ref_q_wl_vec[:, 0] - q_i))
-            # ref_wl = ref_q_wl_vec[ref_index, 1]
-            i_q_ref_wl = ref_q_wl_vec[ref_index, 2]
-            # print(f'  ref index = {ref_index}  '
-            #       f'reference wl = {ref_wl}  I(q, ref) = {i_q_ref_wl}  I(q, wl) = {i_q_matrix[i_q][2]}')
-            p_vec[i_wl] += i_q_ref_wl * i_q_matrix[i_q][2]
-            # print(f'q-index {i_q}  increment P = {i_q_ref_wl * i_q_matrix[i_q][2]}')
-            s_vec[i_wl] += i_q_matrix[i_q][2] * i_q_matrix[i_q][2]
+        term0 = error_array[:, i_wl][qmin_index:qmax_index+1]
+        term1 = (ref_wl_intensities.intensity_vec[qmin_index:qmax_index+1] * s_value -
+                 2. * intensity_array[:, i_wl][qmin_index:qmax_index+1] * p_value) / s_value**2
+        term2 = ref_wl_intensities.error_vec[qmin_index:qmax_index+1]
+        term3 = intensity_array[:, i_wl][qmin_index:qmax_index+1] / s_value
 
-        # calculate K(wl)
-        k_vec[i_wl] = p_vec[i_wl] / s_vec[i_wl]
+        k_error2_vec[i_wl] = np.sum((term0 * term1)**2 + (term2 * term3)**2)
 
-        # calculate delta K(wl)
-        for i_q in range(i_q_min, i_q_max+1):
-            q_i = i_q_matrix[:, 0][i_q]
-            # acquire index to reference lambda
-            ref_index = np.argmin(np.abs(ref_q_wl_vec[:, 0] - q_i))
-            i_q_ref_wl = ref_q_wl_vec[ref_index, 2]
-            err_q_ref_wl = ref_q_wl_vec[ref_index, 3]
-            # delta I(q, lambda) = delta I^{lambda}(q)
-            term0 = i_q_matrix[i_q, 3]
-            # I(q, ref_wl(q)) * S(wl) - 2 * I(q, wl) * P(wl) / S(wl)**2
-            term1 = (i_q_ref_wl * s_vec[i_wl] - 2 * i_q_matrix[i_q][2] * p_vec[i_wl])/s_vec[i_wl]**2
-            # delta I(q, lambda^ref)
-            term2 = err_q_ref_wl
-            # I(q, lambda)/S(lambda) = I^{lambda}(q) / S(lambda)
-            term3 = i_q_matrix[i_q, 2] / s_vec[i_wl]
-            # increment = (t0 * t1)**2 + (t2 * t3)**2
-            k_error2_vec[i_wl] += (term0 * term1) ** 2 + (term2 * term3)**2
+    # Calculate K
+    k_vec = p_vec / s_vec
 
-            # print(f'  error(q, wl)    t0 = {term0}')
-            # print(f'                  t1 = {term1}')
-            # print(f'                        I(Q, refWL) = {i_q_ref_wl}')
-            # print(f'                        S(wl      ) = {s_vec[i_wl]}')
-            # print(f'                        I(Q,    wl) = {i_q_matrix[i_q][2]}')
-            # print(f'                        P(wl      ) = {p_vec[i_wl]}')
-            # print(f'  reference error t2 = {term2}')
-            # print(f'  t3 = {term3}')
-            # print(f'  Increment = {(term0 * term1) ** 2 + (term2 * term3)**2}')
-
-    # END-FOR
-
-    # Get K error vector
-    k_error_vec = np.sqrt(k_error2_vec)
-
-    return k_vec, k_error_vec, p_vec, s_vec, unique_wavelength_vec, ref_q_wl_vec
+    return k_vec, np.sqrt(k_error2_vec), p_vec, s_vec
 
 
 def determine_reference_wavelength_q1d(i_of_q):

@@ -7,6 +7,8 @@ from drtsans.tof.eqsans.elastic_reference_normalization import determine_referen
 from drtsans.tof.eqsans.elastic_reference_normalization import calculate_scale_factor, calculate_scale_factor_mesh_grid
 from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity
 from drtsans.tof.eqsans.elastic_reference_normalization import reshape_q_wavelength_matrix
+from drtsans.tof.eqsans.elastic_reference_normalization import determine_reference_wavelength_q1d_mesh
+from drtsans.tof.eqsans.elastic_reference_normalization import ReferenceWavelengths
 
 import numpy as np
 
@@ -70,14 +72,26 @@ def test_determine_common_q_range():
     assert q_max == q_vec[qmax_index]
 
 
-def in_progress_test_determine_reference_wavelength():
-    """blablabla
-
-    Returns
-    -------
-
+def test_determine_reference_wavelength():
+    """Test method to determine the reference wavelength's intensity and error
+    for each momentum transfer Q1D
     """
-    assert 1 == 1
+    # Get test data
+    test_data = create_testing_iq1d()
+    i_of_q = test_data[0]
+
+    # Reshape
+    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(i_of_q)
+
+    # Calculate reference wavelength and the related intensities and errors
+    ref_wl_intensities = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+                                                                 qmin_index=6, qmax_index=10)
+
+    # Verify
+    # Must be all at wl = 3.0
+    np.testing.assert_allclose(ref_wl_intensities.ref_wl_vec, np.zeros_like(q_vec) + 3.)
+    np.testing.assert_allclose(ref_wl_intensities.intensity_vec[6:11],
+                               np.array([28.727, 18.262, 12.076, 8.264,  5.827]))
 
 
 def test_determine_q_range():
@@ -237,7 +251,7 @@ def test_calculate_scale_factor():
     np.testing.assert_allclose(corrected_iqmod.error,
                                gold_errors,
                                equal_nan=True,
-                               rtol=1E-4)
+                               rtol=7E-4)
 
 
 def create_configurable_testing_iq1d(num_q, num_wl):

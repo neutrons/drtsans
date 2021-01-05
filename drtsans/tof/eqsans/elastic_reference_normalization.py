@@ -449,7 +449,8 @@ class ReferenceWavelengths:
         self.error_vec = errors
 
 
-def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_array, error_array):
+def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_array, error_array,
+                                            qmin_index, qmax_index):
     """Determine the reference wavelength for each Q.
 
     The reference wavelength of a specific Q or (qx, qy)
@@ -476,27 +477,19 @@ def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_arr
     # Sanity check
     assert wavelength_vec.shape[0] == intensity_array.shape[1]
 
-    # Get the maximum value of intensity
-    max_intensity = intensity_array[np.isfinite(intensity_array)].max()
+    # Minimum wavelength bin is the reference wavelength
+    min_wl_vec = np.zeros_like(q_vec) + wavelength_vec[0]
 
-    # Replace nan by super max value
-    super_max_val = max_intensity + 3.
-    intensity_array[np.isnan(intensity_array)] = super_max_val
+    # Minimum intensity and error
+    min_intensity_vec = intensity_array[:, 0]
+    min_error_vec = error_array[:, 0]
 
-    # Get the minimum index of each wavelength
-    min_index_vec = np.argmin(intensity_array, axis=1)
-    min_wl_vec = wavelength_vec[min_index_vec]
-
-    # Recover nan values for intensities
-    intensity_array[intensity_array > max_intensity + 1.] = np.nan
-
-    # Retrieve minimum wavelength for each
-
-    # Get the position arrays for 2D matrix and then slice the intensity and error
-    where_tuple = (np.arange(q_vec.shape[0]), min_index_vec)
-
-    min_intensity_vec = intensity_array[where_tuple]
-    min_error_vec = intensity_array[where_tuple]
+    # Set the unused defined reference wavelength (outside of qmin and qmax)'s
+    # intensity and error to nan
+    min_intensity_vec[0:qmin_index] = np.nan
+    min_intensity_vec[qmax_index+1:] = np.nan
+    min_error_vec[0:qmin_index] = np.nan
+    min_error_vec[qmax_index+1:] = np.nan
 
     return ReferenceWavelengths(q_vec, min_wl_vec, min_intensity_vec, min_error_vec)
 

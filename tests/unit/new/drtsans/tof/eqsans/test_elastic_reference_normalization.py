@@ -11,7 +11,7 @@ from drtsans.tof.eqsans.elastic_reference_normalization import reshape_q_wavelen
 import numpy as np
 
 
-def progress_test_reshaped_imodq_2d():
+def test_reshaped_imodq_2d():
     """Test the method to reshape I(Q) to 2D  mesh grid:
     """
     # Get test data
@@ -23,12 +23,30 @@ def progress_test_reshaped_imodq_2d():
 
     # Verify shape
     assert wl_vec.shape == (4, )
-    assert q_vec.shape == (12, )
-    assert i_array.shape == (12, 4)
-    assert error_array.shape == (12, 4)
+    assert q_vec.shape == (20, )
+    assert i_array.shape == (20, 4)
+    assert error_array.shape == (20, 4)
 
     # Verify value
-    raise RuntimeError('To Implement')
+    # intensity from q = 0.07 to 0.12
+    gold_intensity_array = np.array([
+        [28.727, 31.600, 34.473, 25.855],
+        [18.262, 20.088, 21.914, 16.435],
+        [12.076, 13.283, 14.491, 10.868],
+        [8.264, 9.091, 9.917, 7.438],
+        [5.827, 6.410, 6.993, 5.244]
+    ])
+    for i_q in range(6, 11):
+        np.testing.assert_allclose(i_array[i_q], gold_intensity_array[i_q - 6])
+    assert i_array[19, 0] == 0.595
+
+    # error for wl = 3
+    wl3_errors = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
+                           5.360, 4.273, 3.475, 2.875, 2.414, 2.053, 1.767,
+                           1.535, 1.346, 1.189, 1.058, 0.947, 0.852, 0.771])
+    np.testing.assert_allclose(error_array[:, 0], wl3_errors, equal_nan=True)
+    assert error_array[0, 3] == 27.273
+    assert error_array[16, 1] == 1.028
 
 
 def progress_():

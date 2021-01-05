@@ -39,10 +39,18 @@ def reshape_q_wavelength_matrix(i_of_q):
 
     # Order by wavelength and momentum transfer (Q)
     i_q_wl_matrix = i_q_wl_matrix[np.lexsort((i_q_wl_matrix[:, 1], i_q_wl_matrix[:, 0]))]
-    print(i_q_wl_matrix.shape)
-    print(i_q_wl_matrix)
 
-    return
+    # Unique wavelength and unique momentum transfer
+    wl_vector = np.unique(i_of_q.wavelength)
+    q_vector = np.unique(i_of_q.mod_q)
+    # verify whether (q, wl) are on mesh grid by checking unique Q and wavelength
+    assert wl_vector.shape[0] * q_vector.shape[0] == i_of_q.intensity.shape[0]
+
+    # Reformat
+    intensity_array = i_q_wl_matrix[:, 2].reshape((q_vector.shape[0], wl_vector.shape[0]))
+    error_array = i_q_wl_matrix[:, 3].reshape((q_vector.shape[0], wl_vector.shape[0]))
+
+    return wl_vector, q_vector, intensity_array, error_array
 
 
 def normalize_by_elastic_reference(i_of_q, ref_i_of_q):

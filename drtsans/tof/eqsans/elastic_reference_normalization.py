@@ -680,20 +680,22 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
         # y_matrix[i, :] corresponds to a single q_i/r_i
         # y_matrix[:, j] corresponds to a single q_j/r_j
 
-        term2_vec = np.array([np.nan] * len(q_vec))
+        # term2_vec = np.array([np.nan] * len(q_vec))
         t2sum_vec = error_array[qmin_index:qmax_index+1, i_wl]**2 * y_matrix[:, qmin_index:qmax_index+1]**2 / s_vec[i_wl]**4
-        print(t2sum_vec.shape)
-        print(t2sum_vec)
+        # print(t2sum_vec.shape)
+        # print(t2sum_vec)
 
+        t3sum_vec = intensity_array[:, i_wl]**2 * np.sum(re_vec[qmin_index:qmax_index+1]**2 * intensity_array[qmin_index:qmax_index+1, i_wl]**2 / s_vec[i_wl]**2)
+        term3_vec = np.array([np.nan] * len(q_vec))
 
         for i_q in range(len(q_vec)):
 
-            if np.isnan(intensity_array[i_q, i_wl]):
-                print(f'q = {q_vec[i_q]}, wl = {wl_vec[i_wl]}:  NaN')
-                normalized_error2_array[i_q, i_wl] = np.nan
-                continue
-            else:
-                print(f'q = {q_vec[i_q]}, wl = {wl_vec[i_wl]}:  ...')
+            # if np.isnan(intensity_array[i_q, i_wl]):
+            #     print(f'q = {q_vec[i_q]}, wl = {wl_vec[i_wl]}:  NaN')
+            #     normalized_error2_array[i_q, i_wl] = np.nan
+            #     continue
+            # else:
+            #     print(f'q = {q_vec[i_q]}, wl = {wl_vec[i_wl]}:  ...')
 
             # Term 1
             if i_q < qmin_index or i_q > qmax_index:
@@ -711,12 +713,13 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
 
             t3_sum = np.sum(re_vec[qmin_index:qmax_index+1]**2 * intensity_array[qmin_index:qmax_index+1, i_wl]**2 * intensity_array[i_q, i_wl]**2 / s_vec[i_wl]**2)
 
-            normalized_error2_array[i_q, i_wl] = t1_sum + t3_sum  # + t2_sum 
+            normalized_error2_array[i_q, i_wl] = t1_sum  # + t3_sum  # + t2_sum 
 
             # term2_vec[i_q] = t2_sum
+            # term3_vec[i_q] = t3_sum
 
         # sum up
-        normalized_error2_array[:, i_wl] += t2sum_vec.sum(axis=1)  # term2_vec
+        normalized_error2_array[:, i_wl] += t2sum_vec.sum(axis=1) + t3sum_vec  # term2_vec
 
         # print(f'Y shape = {y_matrix.shape}')
         # for i in range(20):
@@ -728,6 +731,8 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
 
         # for i_q in range(len(q_vec)):
         #     print(f'{term2_vec[i_q]}      {t2sum_vec.sum(axis=1)[i_q]}')
+        for i_q in range(len(q_vec)):
+            print(f'{term3_vec[i_q]}      {t3sum_vec[i_q]}')
 
         # print(t2sum_vec.sum(axis=1).shape)
         # print(t2sum_vec.sum(axis=0).shape)

@@ -251,7 +251,7 @@ def test_calculate_scale_factor():
     np.testing.assert_allclose(corrected_iqmod.error,
                                gold_errors,
                                equal_nan=True,
-                               rtol=7E-4)
+                               rtol=8E-4)
 
 
 def create_configurable_testing_iq1d(num_q, num_wl):

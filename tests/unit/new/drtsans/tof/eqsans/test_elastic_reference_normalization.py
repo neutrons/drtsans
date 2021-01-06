@@ -182,7 +182,8 @@ def test_calculate_scale_factor():
                                                         qmin_index, qmax_index)
 
     # Calculate scale factor
-    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor_prototype(test_i_of_q, q_min, q_max)
+    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor_prototype(test_i_of_q,
+                                                                                                     q_min, q_max)
     mk_vec, mk_error_vec, mp_vec, ms_vec = calculate_scale_factor_mesh_grid(wl_vec, i_array, error_array,
                                                                             ref_wl_ie, qmin_index, qmax_index)
 

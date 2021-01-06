@@ -345,6 +345,9 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
     ri_vec = ref_wl_ints_errs.intensity_vec.reshape((q_vec.shape[0], 1))
     re_vec = ref_wl_ints_errs.error_vec
 
+    # qmax is included.  need i_qmax to slicing
+    i_qmax = qmax_index + 1
+
     # Loop over wavelength
     num_wl = wl_vec.shape[0]
     for i_wl in range(1, num_wl):
@@ -362,13 +365,13 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
         # Term 2
         # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
         t2sum_vec = \
-            error_array[qmin_index:qmax_index+1, i_wl]**2 * y_matrix[:, qmin_index:qmax_index+1]**2 / s_vec[i_wl]**4
+            error_array[qmin_index:i_qmax, i_wl]**2 * y_matrix[:, qmin_index:i_qmax]**2 / s_vec[i_wl]**4
 
         # Term 3
         # t3 += [delta I(q_j, ref_wl[q_j]]^2 * [I(q_j, wl) * I(q, wl)]^2 / S(wl)^2
         t3sum_vec = \
             intensity_array[:, i_wl]**2 * np.sum(
-                re_vec[qmin_index:qmax_index+1]**2 * intensity_array[qmin_index:qmax_index+1, i_wl]**2 / s_vec[i_wl]**2)
+                re_vec[qmin_index:i_qmax]**2 * intensity_array[qmin_index:i_qmax, i_wl]**2 / s_vec[i_wl]**2)
 
         # term 1
         # outside of qmin and qmax: t1 = [delta I(q, wl)]**2 * [P(wl) / S(wl)]**2

@@ -217,16 +217,7 @@ def test_normalize_i_of_q1d():
     normalized_intensity = normalized[0].flatten()
     normalized_error = normalized[1].flatten()
 
-    for i in range(80):
-        print(f'{normalized_intensity[i]}   -    {gold_intensity_vec[i]}    =    {normalized_intensity[i] - gold_intensity_vec[i]}')
-
     np.testing.assert_allclose(normalized_intensity, gold_intensity_vec, rtol=8E-4, equal_nan=True)
-    for i in range(20):
-        print(f'i = {i}')
-        for j in range(4):
-            index = i * 4 + j
-            print(f'{normalized_error[index]}   -   {gold_error_vec[index]}    =   {normalized_error[index] - gold_error_vec[index]}')
-
     np.testing.assert_allclose(normalized_error, gold_error_vec, rtol=1E-3, equal_nan=True)
 
 
@@ -254,7 +245,8 @@ def test_normalize_i_of_q1d_prototype():
     np.testing.assert_allclose(vec_wl[0:6], np.array([6., 6., 5., 5., 4., 4.]))
 
     # Calculate scale factor
-    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q, q_min, q_max)
+    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q,
+                                                                                           q_min, q_max)
 
     # Verify scale factor, P[3] and S[3]
     # considering numerical precision between original Excel with more effective decimals than the copied version
@@ -736,11 +728,14 @@ def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
 
                 # calculate Y
                 # Y(q, q', wl) = I(q, wl) * I (q', ref_wl) * S(wl) - I(q, wl) * 2 * I(q', wl) * P(wl)
-                y_value = i_q_matrix[i_q, 2] * ref_wl_vec[j_q, 2] * s_vec[i_wl] - i_q_matrix[i_q, 2] * 2. * i_q_matrix[j_q, 2] * p_vec[i_wl]
+                y_value = i_q_matrix[i_q, 2] * ref_wl_vec[j_q, 2] * s_vec[i_wl] - \
+                          i_q_matrix[i_q, 2] * 2. * i_q_matrix[j_q, 2] * p_vec[i_wl]
 
                 if inside and j_q == i_q:
                     # inc = delta I_j(wl_i) * (P^2 * S^2 + 2 * P * S * Y_{q, q}) / S4
-                    t1_inc = i_q_matrix[j_q, 3]**2 * (p_vec[i_wl]**2 * s_vec[i_wl]**2 + 2 * p_vec[i_wl] * s_vec[i_wl] * y_value) / s_vec[i_wl]**4
+                    t1_inc = i_q_matrix[j_q, 3]**2 * \
+                             (p_vec[i_wl]**2 * s_vec[i_wl]**2 + 2 * p_vec[i_wl] * s_vec[i_wl] * y_value) / \
+                             s_vec[i_wl]**4
                     t1_sum += t1_inc
                     print(f'[{j_q}]  t1 inc = {t1_inc}')
 

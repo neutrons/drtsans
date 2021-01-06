@@ -1,7 +1,7 @@
 # Main method in this module implement step 2 of
 # wavelength dependent inelastic incoherent scattering correction
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
-from drtsans.dataobjects import verify_same_q_bins
+from drtsans.dataobjects import verify_same_q_bins, IQmod
 import numpy as np
 from dataclasses import dataclass
 
@@ -46,7 +46,7 @@ def reshape_q_wavelength_matrix(i_of_q):
     Returns
     -------
     tuple
-        wavelength vector, q vector,  intensity (2D), error (2D)
+        wavelength vector, q vector,  intensity (2D), error (2D), dq array (2D) or None
 
     """
     # Retrieve unique wave length in ascending order
@@ -59,8 +59,12 @@ def reshape_q_wavelength_matrix(i_of_q):
     q_vec.sort()
 
     # Create a matrix for q, wavelength, intensity and error
-    i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
-                              i_of_q.error])
+    if i_of_q.delta_mod_q is None:
+        i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
+                                 i_of_q.error])
+    else:
+        i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
+                                 i_of_q.error, i_of_q.delta_mod_q])
     i_q_wl_matrix = i_q_wl_matrix.transpose()
 
     # Order by wavelength and momentum transfer (Q)
@@ -75,8 +79,12 @@ def reshape_q_wavelength_matrix(i_of_q):
     # Reformat
     intensity_array = i_q_wl_matrix[:, 2].reshape((q_vector.shape[0], wl_vector.shape[0]))
     error_array = i_q_wl_matrix[:, 3].reshape((q_vector.shape[0], wl_vector.shape[0]))
+    if i_of_q.delta_mod_q is not None:
+        dq_array = i_q_wl_matrix[:, 4].reshape((q_vector.shape[0], wl_vector.shape[0]))
+    else:
+        dq_array = None
 
-    return wl_vector, q_vector, intensity_array, error_array
+    return wl_vector, q_vector, intensity_array, error_array, dq_array
 
 
 def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
@@ -86,27 +94,55 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
         raise RuntimeError('Input I(Q) and elastic reference I(Q) have different Q and wavelength binning')
 
     # Reshape Q, wavelength, intensities and errors to unique 1D array or 2D array
-    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
+    if i_of_q == ref_i_of_q:
+        ref_i_array, ref_error_array = i_array, error_array
+    else:
+        ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(ref_i_of_q)
 
     # Calculate Qmin and Qmax
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, ref_i_array)
 
     # Calculate reference
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, ref_i_array, ref_error_array,
                                                         qmin_index, qmax_index)
 
     # Calculate scale factor
-    k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(wl_vec, i_array, error_array,
+    k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(wl_vec, ref_i_array, ref_error_array,
                                                                         ref_wl_ie, qmin_index, qmax_index)
 
     # Normalize
+    data_ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+                                                             qmin_index, qmax_index)
     normalized = normalize_intensity_q1d(wl_vec, q_vec, i_array, error_array,
-                                         ref_wl_ie, k_vec, p_vec, s_vec,
+                                         data_ref_wl_ie, k_vec, p_vec, s_vec,
                                          qmin_index, qmax_index)
 
-    # TODO - convert normalized intensities and errors to ImodQ
+    # Convert normalized intensities and errors to IModQ
+    normalized_i_of_q = build_i_of_q1d(wl_vec, q_vec, normalized[0], normalized[1], dq_array)
 
-    return normalized, k_vec, k_error_vec
+    return normalized_i_of_q, k_vec, k_error_vec
+
+
+def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_array):
+    # assume that intensity, error and delta q have the same as (num_q, num_wl)
+    assert intensity_array.shape[0] == q_vector.shape[0] and intensity_array.shape[1] == wl_vector.shape[0]
+
+    # tile wave length
+    wl_array_1d = np.tile(wl_vector, q_vector.shape[0])
+    q_array_1d = np.repeat(q_vector, wl_vector.shape[0])
+
+    # flatten intensity, error and optionally delta q
+    intensity_array = intensity_array.flatten()
+    error_array = error_array.flatten()
+    if delta_q_array:
+        delta_q_array = delta_q_array.flatten()
+
+    return IQmod(intensity=intensity_array,
+                 error=error_array,
+                 mod_q=q_array_1d,
+                 wavelength=wl_array_1d,
+                 delta_mod_q=delta_q_array)
 
 
 def determine_common_mod_q_range_mesh(q_vec, intensity_array):

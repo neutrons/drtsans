@@ -6,6 +6,7 @@ from drtsans.tof.eqsans.elastic_reference_normalization import calculate_scale_f
 from drtsans.tof.eqsans.elastic_reference_normalization import reshape_q_wavelength_matrix
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_reference_wavelength_q1d_mesh
 from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity_q1d
+from drtsans.tof.eqsans.elastic_reference_normalization import normalize_by_elastic_reference
 import numpy as np
 
 
@@ -17,7 +18,7 @@ def test_reshaped_imodq_2d():
     i_of_q = test_data[0]
 
     # Reshape
-    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
 
     # Verify shape
     assert wl_vec.shape == (4, )
@@ -55,7 +56,7 @@ def test_determine_common_q_range():
     i_of_q = test_data[0]
 
     # Reshape
-    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
 
     # Call the general algorithm
     q_min, q_max = determine_common_mod_q_range(i_of_q)
@@ -77,7 +78,7 @@ def test_determine_reference_wavelength():
     i_of_q = test_data[0]
 
     # Reshape
-    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
 
     # Calculate reference wavelength and the related intensities and errors
     ref_wl_intensities = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
@@ -149,7 +150,7 @@ def test_determine_reference_wavelength_q1d():
                        mod_q=vec_q, wavelength=vec_wl)
 
     # Call method to calculate reference
-    test_ref_lambda_vec = determine_reference_wavelength_q1d(test_i_q1d)
+    test_ref_lambda_vec = prototype_determine_reference_wavelength_q1d(test_i_q1d)
 
     # Test: shape... (num Q, 2) as Q and wavelength
     assert test_ref_lambda_vec.shape == (num_q, 4)
@@ -170,7 +171,7 @@ def test_calculate_scale_factor():
     # Get testing data and gold data
     test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
     # Reshape
-    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(test_i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_i_of_q)
 
     # Calculate Qmin and Qmax
     q_min, q_max = determine_common_mod_q_range(test_i_of_q)
@@ -181,7 +182,7 @@ def test_calculate_scale_factor():
                                                         qmin_index, qmax_index)
 
     # Calculate scale factor
-    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q, q_min, q_max)
+    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor_prototype(test_i_of_q, q_min, q_max)
     mk_vec, mk_error_vec, mp_vec, ms_vec = calculate_scale_factor_mesh_grid(wl_vec, i_array, error_array,
                                                                             ref_wl_ie, qmin_index, qmax_index)
 
@@ -191,13 +192,29 @@ def test_calculate_scale_factor():
     np.testing.assert_allclose(delta_k_vec, mk_error_vec)
 
 
+def test_workflow_q1d():
+    """Test method normalize_by_elastic_reference
+    """
+    # Get testing data and gold data
+    test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
+
+    # Normalize
+    normalized_iq1d, k_vec, delta_k_vec = normalize_by_elastic_reference(test_i_of_q, ref_i_of_q=test_i_of_q)
+
+    # Verify
+    np.testing.assert_allclose(normalized_iq1d.mod_q, test_i_of_q.mod_q, rtol=1E-6)
+    np.testing.assert_allclose(normalized_iq1d.wavelength, test_i_of_q.wavelength, rtol=1E-6)
+    np.testing.assert_allclose(normalized_iq1d.intensity, gold_intensity_vec, 1E-3)
+    np.testing.assert_allclose(normalized_iq1d.error, gold_error_vec, 1E-3)
+
+
 def test_normalize_i_of_q1d():
     """Test the refined method to normalize I(Q1D)
     """
     # Get testing data and gold data
     test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
     # Reshape
-    wl_vec, q_vec, i_array, error_array = reshape_q_wavelength_matrix(test_i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_i_of_q)
 
     # Calculate Qmin and Qmax
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
@@ -235,7 +252,7 @@ def test_normalize_i_of_q1d_prototype():
     assert q_max == 0.11
 
     # Calculate reference wavelength
-    ref_q_wl_vec = determine_reference_wavelength_q1d(test_i_of_q)
+    ref_q_wl_vec = prototype_determine_reference_wavelength_q1d(test_i_of_q)
     # vector Q
     vec_q = ref_q_wl_vec[:, 0]
     np.testing.assert_allclose(vec_q, np.arange(1, 21) * 0.01)
@@ -245,8 +262,8 @@ def test_normalize_i_of_q1d_prototype():
     np.testing.assert_allclose(vec_wl[0:6], np.array([6., 6., 5., 5., 4., 4.]))
 
     # Calculate scale factor
-    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor(test_i_of_q,
-                                                                                           q_min, q_max)
+    k_vec, delta_k_vec, p_vec, s_vec, unique_wl_vec, ref_q_wl_vec = calculate_scale_factor_prototype(test_i_of_q,
+                                                                                                     q_min, q_max)
 
     # Verify scale factor, P[3] and S[3]
     # considering numerical precision between original Excel with more effective decimals than the copied version
@@ -261,9 +278,9 @@ def test_normalize_i_of_q1d_prototype():
     # Normalize
     # Due to the numerical precision issue when import data from Excel
     # it is more precise to use expected k vector
-    corrected_iqmod = normalize_intensity(test_i_of_q, gold_k_vec,
-                                          ref_q_wl_vec, p_vec, s_vec,
-                                          unique_wl_vec, q_min, q_max)
+    corrected_iqmod = prototype_normalize_q1d(test_i_of_q, gold_k_vec,
+                                              ref_q_wl_vec, p_vec, s_vec,
+                                              unique_wl_vec, q_min, q_max)
 
     # verify: shape
     assert corrected_iqmod
@@ -277,14 +294,6 @@ def test_normalize_i_of_q1d_prototype():
     # transpose as above
     np.testing.assert_allclose(corrected_iqmod.mod_q,
                                test_i_of_q.mod_q.reshape((20, 4)).transpose().flatten())
-
-    # verify: corrected intensity
-    # gold = gold_intensity_vec.reshape((20, 4)).transpose().flatten()
-    # for i in range(80):
-    #     buf = f'{corrected_iqmod.intensity[i]} -  {gold[i]}'
-    #     if corrected_iqmod.intensity[i] is not None and gold[i] is not None:
-    #         buf += f'  = {corrected_iqmod.intensity[i] - gold[i]}'
-    #     print(buf)
 
     np.testing.assert_allclose(corrected_iqmod.intensity,
                                gold_intensity_vec.reshape((20, 4)).transpose().flatten(),
@@ -497,8 +506,8 @@ def determine_common_mod_q_range(iqmod):
     return np.max(min_q_vec), np.min(max_q_vec)
 
 
-def calculate_scale_factor(i_of_q, q_min, q_max):
-    """
+def calculate_scale_factor_prototype(i_of_q, q_min, q_max):
+    """Prototype to calculate scale factor
 
     Parameters
     ----------
@@ -519,7 +528,7 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
     unique_wavelength_vec.sort()
 
     # Retrieve reference wavelength for each q value within q_min and q_max
-    ref_q_wl_vec = determine_reference_wavelength_q1d(i_of_q)
+    ref_q_wl_vec = prototype_determine_reference_wavelength_q1d(i_of_q)
 
     # Create a matrix for q, wavelength, intensity and error
     # output I'(Q, lambda) will be a complete new i_of_q instance
@@ -587,7 +596,7 @@ def calculate_scale_factor(i_of_q, q_min, q_max):
     return k_vec, k_error_vec, p_vec, s_vec, unique_wavelength_vec, ref_q_wl_vec
 
 
-def determine_reference_wavelength_q1d(i_of_q):
+def prototype_determine_reference_wavelength_q1d(i_of_q):
     """Determine the reference wavelength for each Q.
 
     The reference wavelength of a specific Q or (qx, qy)
@@ -634,9 +643,9 @@ def determine_reference_wavelength_q1d(i_of_q):
     return ref_wavelength_vec
 
 
-def normalize_intensity(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
-                        unique_wavelength_vec, q_min, q_max):
-    """
+def prototype_normalize_q1d(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec,
+                            unique_wavelength_vec, q_min, q_max):
+    """Prototype of normalizing I(Q)
 
     Parameters
     ----------

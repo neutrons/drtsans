@@ -3,21 +3,22 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
 from drtsans.dataobjects import verify_same_q_bins, IQmod
 import numpy as np
-from dataclasses import dataclass
 
 
 __all__ = ['normalize_by_elastic_reference']
 
 
-@dataclass
+# TODO - make it dataclass when python is upgraded to 3.7
+# TODO - @dataclass
 class ReferenceWavelengths:
     """
     Class for keeping track of reference wavelength for each momentum transfer Q (1D)
     """
-    q_vec: np.ndarray
-    ref_wl_vec: np.ndarray
-    intensity_vec: np.ndarray
-    error_vec: np.ndarray
+    # TODO - make the following as definition of dataclass when python is upgraded to 3.7
+    # q_vec: np.ndarray
+    # ref_wl_vec: np.ndarray
+    # intensity_vec: np.ndarray
+    # error_vec: np.ndarray
 
     def __init__(self, q_values, ref_wavelengths, intensities, errors):
         """

@@ -248,7 +248,7 @@ def calculate_scale_factor_mesh_grid(wl_vec, intensity_array, error_array,
 
 
 def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_array, error_array,
-                                            qmin_index, qmax_index):
+                                            qmin_index, qmax_index, min_wl_index=0):
     """Determine the reference wavelength for each Q.
 
     The reference wavelength of a specific Q or (qx, qy)
@@ -277,14 +277,16 @@ def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_arr
 
     """
     # Sanity check
-    assert wavelength_vec.shape[0] == intensity_array.shape[1]
+    print(intensity_array.shape)
+    assert wavelength_vec.shape[0] == intensity_array.shape[1], f'Wavelength dimension = {wavelength_vec.shape} ,' \
+                                                                f'Intensity  dimension = {intensity_array.shape}'
 
     # Minimum wavelength bin is the reference wavelength
-    min_wl_vec = np.zeros_like(q_vec) + wavelength_vec[0]
+    min_wl_vec = np.zeros_like(q_vec) + wavelength_vec[min_wl_index]
 
     # Minimum intensity and error
-    min_intensity_vec = np.copy(intensity_array[:, 0])
-    min_error_vec = np.copy(error_array[:, 0])
+    min_intensity_vec = np.copy(intensity_array[:, min_wl_index])
+    min_error_vec = np.copy(error_array[:, min_wl_index])
 
     # Set the unused defined reference wavelength (outside of qmin and qmax)'s
     # intensity and error to nan

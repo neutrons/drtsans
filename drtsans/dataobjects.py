@@ -8,7 +8,7 @@ from mantid.simpleapi import mtd, CreateWorkspace
 
 from drtsans.settings import unique_workspace_dundername as uwd
 
-__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal']
+__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal', 'verify_same_q_bins']
 
 
 class DataType(Enum):
@@ -124,6 +124,56 @@ def scale_intensity(iq_object, scaling):
     intensity = scaling * iq_object.intensity
     error = scaling * iq_object.error
     return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
+
+
+def verify_same_q_bins(iq0, iq1):
+    """Verify whether 2 I(Q) has the same range of Q
+
+    Parameters
+    ----------
+    iq0: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    iq1: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+
+    Returns
+    -------
+    bool
+        True if they are same
+    """
+    # Same class
+    if iq0.__class__ != iq1.__class__:
+        raise RuntimeError(f'Input I(Q)s are of different type: {type(iq0)} and {type(iq1)}')
+
+    # IQmod
+    if isinstance(iq0, IQmod):
+        # Q1D
+        if iq0.wavelength is None or iq1.wavelength is None:
+            # no wave length
+            q0vec = iq0.mod_q
+            q1vec = iq1.mod_q
+        else:
+            # also comparing the wavelength bins if they do exist
+            q0vec = np.array([iq0.mod_q, iq0.wavelength])
+            q1vec = np.array([iq1.mod_q, iq1.wavelength])
+    elif isinstance(iq0, IQazimuthal) or isinstance(iq0, IQcrystal):
+        # Q2D
+        if iq0.wavelength is None or iq1.wavelength is None:
+            # no wavelength
+            q0vec = np.array([iq0.qx, iq0.qy])
+            q1vec = np.array([iq1.qx, iq1.qy])
+        else:
+            q0vec = np.array([iq0.qx, iq0.qy, iq0.wavelength])
+            q1vec = np.array([iq1.qx, iq1.qy, iq0.wavelength])
+    else:
+        raise RuntimeError(f'I(Q) of type {type(iq0)} is not supported by verify same binning')
+
+    # Verify
+    same = True
+    try:
+        np.testing.assert_allclose(q0vec, q1vec)
+    except AssertionError:
+        same = False
+
+    return same
 
 
 def q_azimuthal_to_q_modulo(Iq):

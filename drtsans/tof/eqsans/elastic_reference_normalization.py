@@ -5,7 +5,7 @@ from drtsans.dataobjects import verify_same_q_bins, IQmod
 import numpy as np
 
 
-__all__ = ['normalize_by_elastic_reference']
+__all__ = ['normalize_by_elastic_reference', 'determine_reference_wavelength_q1d_mesh']
 
 
 # TODO - make it dataclass when python is upgraded to 3.7

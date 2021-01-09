@@ -4,7 +4,62 @@ from drtsans.dataobjects import IQmod
 from drtsans.tof.eqsans.elastic_reference_normalization import reshape_q_wavelength_matrix
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_common_mod_q_range_mesh
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_reference_wavelength_q1d_mesh
+from drtsans.tof.eqsans.incoherence_correction_1d import calculate_b_error_b
 import numpy as np
+
+
+def test_calculate_b_factor():
+    """Test calculate B factor and reference wavelengths by Changwoo's test case
+    """
+    select_min_incoh = False
+
+    # generate testing data
+    test_iq1d = generate_test_data()
+
+    # convert to mesh grid I(Q) and delta I(Q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_iq1d)
+
+    # determine q min and q ma that exists in all I(q, wl) ...
+    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+
+    # test unit method
+    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+                                                        qmin_index, qmax_index, 0)
+    test_b_array = calculate_b_error_b(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index,
+                                       ref_wl_ie, True)
+    # verify
+    np.testing.assert_allclose(test_b_array[0], generate_expected_b_factors())
+
+    # call prototype
+    b_array, ref_wl_ie = calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_min_incoh,
+                                                       qmin_index, qmax_index)
+
+    # verify
+    np.testing.assert_allclose(b_array[0], generate_expected_b_factors())
+    # test delta B by 2 various implementation
+    np.testing.assert_allclose(test_b_array[1], b_array[1])
+
+
+def test_calculate_b_factor_select_min_incoherence():
+    """Test calculate B factor and reference wavelength with option 'select minimum incoherence'
+    """
+    select_min_incoh = True
+
+    # generate testing data
+    test_iq1d = generate_data_select_min_incoherence()
+
+    # convert to mesh grid I(Q) and delta I(Q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_iq1d)
+
+    # determine q min and q ma that exists in all I(q, wl) ...
+    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+
+    b_array, ref_wl_ie = calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_min_incoh,
+                                                       qmin_index, qmax_index)
+
+    # verify
+    assert np.argmin(b_array[0]) == 3
+    assert b_array[0, 3] == 0.
 
 
 def test_incoherence_inelastic_correction():
@@ -22,37 +77,23 @@ def test_incoherence_inelastic_correction():
     # determine q min and q ma that exists in all I(q, wl) ...
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
-    b_array, ref_wl_ie = calculate_b_factors(wl_vec, q_vec, i_array, error_array, select_min_incoh,
-                                             qmin_index, qmax_index)
-    # # determine the reference wavelength
-    # ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
-    #                                                     qmin_index, qmax_index)
-    #
-    # # calculate b(lambda_i)
-    # b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, qmin_index, qmax_index, ref_wl_ie,
-    #                                        calculate_delta_b=not select_min_incoh)
-    # # If JSON parameter “selectMinIncoh” is true
-    # if select_min_incoh:
-    #     # it seems that there is no test case for this
-    #     ref_wl_ie = reselect_reference_wl(b_vector)
-    #     b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, qmin_index, qmax_index, ref_wl_ie,
-    #                                            calculate_delta_b=True)
-    #     # verify
-    #     assert b_array[np.isnan(b_array)] >= 0.
-    # else:
-    #     # set minimum wavelength bin to nan
-    #     if abs(b_array[0, 0]) < 1E-10:
-    #         b_array[0, 0] = np.nan
-    #         b_array[1, 0] = np.nan
+    b_array, ref_wl_ie = calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_min_incoh,
+                                                       qmin_index, qmax_index)
 
     # check
     np.testing.assert_allclose(b_array[0], generate_expected_b_factors(), verbose=True)
 
     # Do correction
-    corrected = correct_intensity_error_prototype(i_array, error_array, b_array[0])
+    corrected = correct_intensity_error_prototype(wl_vec, q_vec, i_array, error_array, b_array[0],
+                                                  qmin_index, qmax_index, ref_wl_ie)
 
     # verify
     corrected_i_array = corrected[0].flatten()
+
+    gold_array = generate_expected_corrected_intensities()
+    for i in range(len(corrected_i_array)):
+        print(f'{i}:  {corrected_i_array[i]}     ...      {gold_array[i]}')
+
     np.testing.assert_allclose(corrected_i_array, generate_expected_corrected_intensities(),
                                verbose=True)
 
@@ -69,8 +110,8 @@ def test_incoherence_inelastic_correction_select_min_incoherence():
     # determine q min and q ma that exists in all I(q, wl) ...
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
-    b_array, ref_wl_ie = calculate_b_factors(wl_vec, q_vec, i_array, error_array, select_min_incoh,
-                                             qmin_index, qmax_index)
+    b_array, ref_wl_ie = calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_min_incoh,
+                                                       qmin_index, qmax_index)
 
     print(b_array)
     print(ref_wl_ie)
@@ -112,7 +153,6 @@ def calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index
     b_array = np.ndarray(shape=(2, len(wl_vec)), dtype='float')
 
     for i_wl in range(len(wl_vec)):
-
         n_q = qmax_index - qmin_index + 1
 
         b_i = 0.
@@ -121,17 +161,16 @@ def calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index
         for j_q in range(qmin_index, qmax_index+1):
             # b = -1/N sum_{q_j} (refI(q_j) - I(q_j, wl)
             b_i += ref_wl_ie.intensity_vec[j_q] - i_array[j_q, i_wl]
-            # delta b^2 = 1/N^2 sum_{q_j} [(ref_delta_I(q_j)^2 + (delta I(q_j, wl)^2]
-            delta_b_i += 1. / n_q**2 * (ref_wl_ie.error_vec[j_q]**2 + error_array[j_q, i_wl]**2)
+
+            if calculate_delta_b:
+                # delta b^2 = 1/N^2 sum_{q_j} [(ref_delta_I(q_j)^2 + (delta I(q_j, wl)^2]
+                delta_b_i += 1. / n_q**2 * (ref_wl_ie.error_vec[j_q]**2 + error_array[j_q, i_wl]**2)
 
         b_array[0, i_wl] = - b_i / n_q
+        if calculate_delta_b:
+            b_array[1, i_wl] = np.sqrt(delta_b_i)
 
-
-
-
-    # # set minimum wavelength bin to nan
-    # if abs(b_vector[0]) < 1E-10:
-    #     b_vector[0] = np.nan
+        print(f'B[{i_wl}] = - {b_i} / {n_q} = {b_array[0, i_wl]},  error = {delta_b_i}')
 
     return b_array
 
@@ -195,7 +234,7 @@ def generate_expected_b_factors():
     # Denoted as TEST1
 
     # Expected B vectors
-    b_factor_vec = np.array([np.nan, -0.03, -0.05, -0.04, -0.01])
+    b_factor_vec = np.array([0., 0.03, 0.05, 0.04, 0.01])
 
     return b_factor_vec
 
@@ -222,8 +261,8 @@ def generate_expected_corrected_intensities():
         np.nan, np.nan, 0.1, 0.1, 0.1,
         np.nan, np.nan, 0.1, 0.1, 0.1,
         np.nan, np.nan, np.nan, 0.1, 0.1,
-        np.nan, np.nan, np.nan, 0.14, 0.11,
-        np.nan, np.nan, np.nan, np.nan, 0.11,
+        np.nan, np.nan, np.nan, 0.1, 0.1,
+        np.nan, np.nan, np.nan, np.nan, 0.1,
     ])
 
     return corrected_intensity_vec
@@ -282,7 +321,7 @@ def generate_data_select_min_incoherence():
     return i_of_q
 
 
-def calculate_b_factors(wl_vec, q_vec, i_array, error_array, select_min_incoherence, qmin_index, qmax_index):
+def calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_min_incoherence, qmin_index, qmax_index):
 
     # determine reference wavelength and calculate b vectors
 
@@ -293,6 +332,7 @@ def calculate_b_factors(wl_vec, q_vec, i_array, error_array, select_min_incohere
     # calculate b(lambda_i) and delta b(lambda_i) if it is final
     b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
                                            calculate_delta_b=not select_min_incoherence)
+    print(f'First round B vector: {b_array[0]}')
 
     # If JSON parameter “selectMinIncoh” is true
     if select_min_incoherence and np.argmin(b_array[0]) > 0:
@@ -300,13 +340,13 @@ def calculate_b_factors(wl_vec, q_vec, i_array, error_array, select_min_incohere
         ref_wl_index = np.argmin(b_array[0])
         print(f'[DEBUG...] re-selected reference wavelength index = {ref_wl_index}')
         # (re)determine the reference wavelengths' intensities and errors
-        ref_wl_ie = determine_reference_wavelength_q1d_mesh(ref_wl_index, wl_vec, q_vec, i_array, error_array,
-                                                            qmin_index, qmax_index)
+        ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+                                                            qmin_index, qmax_index, ref_wl_index)
         # (re)calculate b array
-        b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, qmin_index, qmax_index, ref_wl_ie,
+        b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
                                                calculate_delta_b=True)
         # verify
-        assert b_array[np.isnan(b_array)] >= 0.
+        assert b_array[np.isfinite(b_array)].min() >= -1E-20, f'B array has negative values: {b_array}'
 
     return b_array, ref_wl_ie
 

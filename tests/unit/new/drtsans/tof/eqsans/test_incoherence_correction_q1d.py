@@ -97,9 +97,9 @@ def test_incoherence_inelastic_correction():
     # Verify intensities
     corrected_i_array = corrected_intensities.flatten()
 
-    gold_array = generate_expected_corrected_intensities()
-    for i in range(len(corrected_i_array)):
-        print(f'{i}:  {corrected_i_array[i]}     ...      {gold_array[i]}')
+    # gold_array = generate_expected_corrected_intensities()
+    # for i in range(len(corrected_i_array)):
+    #     print(f'{i}:  {corrected_i_array[i]}     ...      {gold_array[i]}')
 
     np.testing.assert_allclose(corrected_i_array, generate_expected_corrected_intensities(),
                                verbose=True)
@@ -109,6 +109,12 @@ def test_incoherence_inelastic_correction():
                                                   qmin_index, qmax_index, ref_wl_ie)
 
     # Compare results from correct_intensity_error and prototypes
+    # diff = corrected_errors - corrected[1]
+    # for i in range(corrected_errors.shape[0]):
+    #     for j in range(corrected_errors.shape[1]):
+    #         print(f'{i} {j}:  diff = {diff[i, j]:.3f}:   {corrected_errors[i, j]}     ...      '
+    #               f'{corrected[1][i, j]}')
+    # print(f'common q range: {qmin_index}, {qmax_index}')
     np.testing.assert_allclose(corrected_errors, corrected[1])
 
 
@@ -122,19 +128,26 @@ def correct_intensity_error_prototype(wavelength_vec, q_vec, intensity_array, er
     # Correct error
     # correction on error cannot be in place
     corrected_error2_array = np.zeros_like(error_array)
+    n_q = qmax_index + 1 - qmin_index
 
     for i_wl in range(len(wavelength_vec)):
-
-        n_q = qmax_index + 1 - qmin_index
-
         for q_j in range(len(q_vec)):
 
-            # delta I'(j, i) = (delta I(j, i))^2 * (1 - 2/N) + ...
-            error2_j = error_array[q_j, i_wl]**2 * (1 - 2./n_q)
+            if qmin_index <= q_j <= qmax_index:
+                # q_j is within q1...qN:
+                # delta I'(j, i) = (delta I(j, i))^2 * (1 - 2/N) + ...
+                error2_j = error_array[q_j, i_wl]**2 * (1 - 2./n_q)
 
-            for q_k in range(qmin_index, qmax_index+1):
-                # delta I'(j, i) += 1/N^2 [(Ref_delta_I(k))^2 + (delta I(k, i)^2]: i for wl
-                error2_j += 1./n_q**2 * (ref_wl_ie.error_vec[q_k]**2 + error_array[q_k, i_wl]**2)
+                for q_k in range(qmin_index, qmax_index+1):
+                    # delta I'(j, i) += 1/N^2 [(Ref_delta_I(k))^2 + (delta I(k, i)^2]: i for wl
+                    error2_j += 1./n_q**2 * (ref_wl_ie.error_vec[q_k]**2 + error_array[q_k, i_wl]**2)
+            else:
+                # q_j is outside q1...qN
+                # [delta I'(q_j, wl)]^2 = [delta I(q_j, wl)]^2 + ...
+                error2_j = error_array[q_j, i_wl]**2
+                # [delta I'(q_j, wl)]^2 += 1/N^2 sum_{q_k in qmin:qmax+1}[(RefDelta I(q_k))^2 + (delta I(q_k, wl)^2]
+                for q_k in range(qmin_index, qmax_index+1):
+                    error2_j += 1. / n_q**2 * (ref_wl_ie.error_vec[q_k]**2 + error_array[q_k, i_wl]**2)
 
             corrected_error2_array[q_j, i_wl] = error2_j
 

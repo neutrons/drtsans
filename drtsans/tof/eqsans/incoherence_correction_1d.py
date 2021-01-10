@@ -146,16 +146,17 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
     assert b_vector.shape[1] == wavelength_vec.shape[0]
     num_q = q_vec.shape[0]
 
-    # Correct intensity: I'(q, wl_i) = I(q, wl_i) - b(wl_i)
-    corrected_intensities = intensity_array[:, :] - b_vector[0].reshape([num_q, 1])
-
-    # Correct error:
+    # Init data structure
     num_common_q = qmax_index - qmin_index + 1
+    corrected_intensities = np.zeros_like(intensity_array)
     corrected_errors = np.zeros_like(error_array)
 
-    # Loop over wavelength
+    # Loop around wavelength
     for i_wl in range(wavelength_vec.shape[0]):
+        # Correct intensity: I'(q, wl_i) = I(q, wl_i) - b(wl_i)
+        corrected_intensities[:, i_wl] = intensity_array[:, i_wl] - b_vector[0][i_wl]
 
+        # Correct intensity error
         # outside q_min and q_max
         # term1[q_j] = (error[q_j, wl]^2
         term1 = error_array[:, i_wl]**2
@@ -163,7 +164,7 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
         # term2 = 1/N^2 sum_{q_k=q_min:qmax}[RefError(q_k)^2 + error(q_k, wl)^2]
         # term2 is a single value
         term2 = 1. / num_common_q**2 * np.sum(ref_wl_ie.error_vec[qmin_index:qmax_index+1]**2 +
-                                              error_array[qmin_index:qmax_index+1]**2)
+                                              error_array[qmin_index:qmax_index+1, i_wl]**2)
         print(f'Term2 = {term2}')
 
         # make correct term1 for those inside qmin and qmax
@@ -175,6 +176,6 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
         print(f'Term1 shape = {term1.shape}')
 
         # assign to output
-        corrected_errors[:, i_wl] = term1.reshape((num_q, 1))
+        corrected_errors[:, i_wl] = term1
 
     return corrected_intensities, np.sqrt(corrected_errors)

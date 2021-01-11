@@ -1,36 +1,52 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
 # Step 3: Correct wave-dependent incoherence intensity for I(Q, wavelength)
-from drtsans.tof.eqsans.elastic_reference_normalization import determine_reference_wavelength_q1d_mesh
+from drtsans.tof.eqsans.elastic_reference_normalization import (reshape_q_wavelength_matrix,
+                                                                determine_common_mod_q_range_mesh,
+                                                                build_i_of_q1d,
+                                                                determine_reference_wavelength_q1d_mesh)
 import numpy as np
 
 
-def correct_incoherence_inelastic_1d(i_of_q):
-    # This is the envelop method for the complete workflow to correct I(Q1D) counting
-    # wavelength-dependent incoherent inelastic
+__all__ = ['correct_incoherence_inelastic_1d']
 
-    # Verify: q-bins are same for all wavelength bins: meshgrid between Q and wavelength
-    # TODO: based on the requirement as q-bins must be same for all wavelength bins,
-    #       it can be pushed backward to the start of the workflow that Q and wavelength are in mesh grid
 
-    # Determine q_min and q_max  that exist in all wavelength for the fitting (minimization) process.
-    min_q, max_q = determine_common_mod_q_range(i_of_q)
+def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
+    """Correct I(Q1D) accounting wavelength dependant incoherent inelastic scattering
 
-    # Calculate reference wavelength for each Q: shortest wavelength bin
-    ref_wl_matrix = determine_reference_wavelength_q1d(iqmod)
+    This is the envelop method for the complete workflow to correct I(Q1D) accounting
+    wavelength-dependent incoherent inelastic
 
-    # Calculate inelastic incoherent factor: b(lambda)
-    b_factor_vec = calculate_inelastic_incoherent_factor(i_of_q, min_q, max_q)
+    Parameters
+    ----------
+    i_of_q: ~drtsans.dataobjects.IQmod
+        I(Q, wavelength) and error
+    select_minimum_incoherence: bool
+        flag to determine correction B by minimum incoherence
 
-    # Optionally select minimum incoherence ...
-    if select_min_incoh:
-        # re-select minimum incoherence wavelength
-        ref_wl_matrix2 = select_min_incoherence(b_factor_vec, unique_wl)
-        # re-alculate inelastic incoherent factor: b(lambda)
-        b_factor_vec = calculate_inelastic_incoherent_factor(i_of_q, min_q, max_q, ref_wl_matrix2)
-        # check: all b_factor_vec[i_wl] shall be greater than ZERO
-        assert b_factor_vec > 0
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod
+        corrected I(Q, wavelength)
+    """
+    # Convert to mesh grid I(Q) and delta I(Q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
 
-    # Update data for I(Q, wavelength) and delta I(Q, wavelength)
+    # determine q min and q ma that exists in all I(q, wl)
+    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+
+    # calculate B factors and errors
+    b_array, ref_wl_ie = calculate_b_factors(wl_vec, q_vec, i_array, error_array, select_minimum_incoherence,
+                                             qmin_index, qmax_index)
+
+    # correct intensities and errors
+    corrected_intensities, corrected_errors = correct_intensity_error(wl_vec, q_vec, i_array, error_array,
+                                                                      b_array, qmin_index, qmax_index,
+                                                                      ref_wl_ie)
+
+    # construct the output and return
+    corrected_i_of_q = build_i_of_q1d(wl_vec, q_vec, corrected_intensities, corrected_errors, dq_array)
+
+    return corrected_i_of_q
 
 
 def calculate_b_factors(wl_vec, q_vec, intensity_array, error_array,

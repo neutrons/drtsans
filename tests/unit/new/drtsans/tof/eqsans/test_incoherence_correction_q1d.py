@@ -5,7 +5,7 @@ from drtsans.tof.eqsans.elastic_reference_normalization import reshape_q_wavelen
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_common_mod_q_range_mesh
 from drtsans.tof.eqsans.elastic_reference_normalization import determine_reference_wavelength_q1d_mesh
 from drtsans.tof.eqsans.incoherence_correction_1d import calculate_b_error_b, calculate_b_factors
-from drtsans.tof.eqsans.incoherence_correction_1d import correct_intensity_error
+from drtsans.tof.eqsans.incoherence_correction_1d import correct_intensity_error, correct_incoherence_inelastic_1d
 import numpy as np
 
 
@@ -64,14 +64,14 @@ def test_calculate_b_factor_select_min_incoherence():
     assert b_array[0, 3] == 0.
 
     # call prototype to compare with
-    b_array_prototype, ref_wl_ie_p = calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_min_incoh,
-                                                                   qmin_index, qmax_index)
+    b_array_prototype, ref_wl_ie_p = calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array,
+                                                                   select_min_incoh, qmin_index, qmax_index)
     np.testing.assert_allclose(b_array, b_array_prototype)
 
 
 def test_incoherence_inelastic_correction():
-    """
-    (Serving as a prototype)
+    """Test methods to correct I(Q1D) accouting wavelength dependent incoherence
+    inelastic scattering
     """
     select_min_incoh = False
 
@@ -116,6 +116,10 @@ def test_incoherence_inelastic_correction():
     #               f'{corrected[1][i, j]}')
     # print(f'common q range: {qmin_index}, {qmax_index}')
     np.testing.assert_allclose(corrected_errors, corrected[1])
+
+    # Test overall workflow
+    corrected_i_of_q = correct_incoherence_inelastic_1d(test_iq1d, False)
+    np.testing.assert_allclose(corrected_i_of_q.intensity, generate_expected_corrected_intensities())
 
 
 def correct_intensity_error_prototype(wavelength_vec, q_vec, intensity_array, error_array, b_vector,
@@ -216,12 +220,10 @@ def generate_test_data():
     # Q vector
     vec_q = np.arange(1, 21) * 0.01
     vec_q = np.repeat(vec_q, 5)
-    print(f'q: {vec_q.shape}')
 
     # Wavelength vector
     wavelength_vec = np.arange(1, 6) * 1.
     wavelength_vec = np.tile(wavelength_vec, 20)
-    print(f'lambda: {wavelength_vec.shape}')
 
     # Error
     error_vec = np.sqrt(intensity_vec)
@@ -340,7 +342,6 @@ def calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_mi
     # calculate b(lambda_i) and delta b(lambda_i) if it is final
     b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
                                            calculate_delta_b=not select_min_incoherence)
-    print(f'First round B vector: {b_array[0]}')
 
     # If JSON parameter “selectMinIncoh” is true
     if select_min_incoherence and np.argmin(b_array[0]) > 0:
@@ -361,4 +362,3 @@ def calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_mi
 
 if __name__ == '__main__':
     pytest.main([__file__])
-

@@ -89,13 +89,11 @@ def calculate_b_factors(wl_vec, q_vec, intensity_array, error_array,
     # calculate b(lambda_i) and delta b(lambda_i) if it is final
     b_array = calculate_b_error_b(wl_vec, intensity_array, error_array, qmin_index, qmax_index, ref_wl_ie,
                                   calculate_b_error=not select_min_incoherence)
-    print(f'[DEVELOP OUTPUT] First round B vector: {b_array[0]}')
 
     # If JSON parameter “selectMinIncoh” is true
     if select_min_incoherence and np.argmin(b_array[0]) > 0:
         # reselect reference wavelength to the wavelength bin with minimum b
         ref_wl_index = np.argmin(b_array[0])
-        print(f'[DEBUG...] re-selected reference wavelength index = {ref_wl_index}')
         # (re)determine the reference wavelengths' intensities and errors
         ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, intensity_array, error_array,
                                                             qmin_index, qmax_index, ref_wl_index)
@@ -110,19 +108,26 @@ def calculate_b_factors(wl_vec, q_vec, intensity_array, error_array,
 
 def calculate_b_error_b(wl_vec, intensity_array, error_array, qmin_index, qmax_index,
                         ref_wavelengths, calculate_b_error):
-    """
+    """Calculate B factor and its error
 
     Parameters
     ----------
-    wl_vec
-    q_vec
-    intensity_array
-    error_array
-    qmin_index
+    wl_vec: ~numpy.ndarray
+        1D vector of wavelength (in ascending order)
+    q_vec: ~numpy.ndarray
+        1D vector of Q (in ascending order)
+    intensity_array: ~numpy.ndarray
+        2D array of intensities, shape[0] = number of Q, shape[1] = number of wavelength
+    error_array: ~numpy.ndarray
+        2D array of errors, shape[0] = number of Q, shape[1] = number of wavelength
+    qmin_index: int
+        index of common Q min (included)
     qmax_index: int
-        index of maximum common Q (included)
-    ref_wavelengths
-    calculate_b_error
+        index of common Q max (included)
+    ref_wavelengths: ReferenceWavelengths
+        instance of ReferenceWavelengths containing intensities and errors
+    calculate_b_error: bool
+        flag to calculate B factor's error
 
     Returns
     -------
@@ -158,17 +163,27 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
 
     Parameters
     ----------
-    wavelength_vec
-    q_vec
-    intensity_array
-    error_array
-    b_vector
-    qmin_index
-    qmax_index
-    ref_wl_ie
+    wavelength_vec: ~numpy.ndarray
+        1D vector of wavelength (in ascending order)
+    q_vec: ~numpy.ndarray
+        1D vector of Q (in ascending order)
+    intensity_array: ~numpy.ndarray
+        2D array of intensities, shape[0] = number of Q, shape[1] = number of wavelength
+    error_array: ~numpy.ndarray
+        2D array of errors, shape[0] = number of Q, shape[1] = number of wavelength
+    qmin_index: int
+        index of common Q min (included)
+    qmax_index: int
+        index of common Q max (included)
+    ref_wl_ie: ReferenceWavelengths
+        instance of ReferenceWavelengths containing intensities and errors
+    b_vector: ~numpy.ndarray
+        B[wavelength]
 
     Returns
     -------
+    tuple
+        2D arrays for (1) corrected intensities (2) corrected intensity errors
 
     """
 
@@ -197,7 +212,6 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
         # term2 is a single value
         term2 = 1. / num_common_q**2 * np.sum(ref_wl_ie.error_vec[qmin_index:qmax_index+1]**2 +
                                               error_array[qmin_index:qmax_index+1, i_wl]**2)
-        print(f'Term2 = {term2}')
 
         # make correct term1 for those inside qmin and qmax
         # term1[q_j] = (error[q_j, wl]^2 * (1 - 2/N)
@@ -205,7 +219,6 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
 
         # sum
         term1 += term2
-        print(f'Term1 shape = {term1.shape}')
 
         # assign to output
         corrected_errors[:, i_wl] = term1

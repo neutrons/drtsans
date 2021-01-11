@@ -22,14 +22,18 @@ class ReferenceWavelengths:
     # error_vec: np.ndarray
 
     def __init__(self, q_values, ref_wavelengths, intensities, errors):
-        """
+        """Initialization
 
         Parameters
         ----------
-        q_values
-        ref_wavelengths
-        intensities
-        errors
+        q_values: ~numpy.ndarray
+            vector for Q
+        ref_wavelengths: ~numpy.ndarray
+            vector for reference wavelength vector for each Q
+        intensities: ~numpy.ndarray
+            vector for intensities of (Q, reference wavelength)
+        errors: ~numpy.ndarray
+            vector for errors of (Q, reference wavelength)
         """
         self.q_vec = q_values
         self.ref_wl_vec = ref_wavelengths
@@ -90,6 +94,21 @@ def reshape_q_wavelength_matrix(i_of_q):
 
 
 def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
+    """Normalize I(Q1D) by elastic reference run
+
+    Parameters
+    ----------
+    i_of_q: ~drtsans.dataobjects.IQmod
+        Input I(Q, wavelength) to normalize
+    ref_i_of_q: ~drtsans.dataobjects.IQmod
+        Input I(Q, wavelength) as elastic reference run
+
+    Returns
+    -------
+    tuple
+        normalized Q(1D), K vector and delta K vector
+
+    """
 
     # check i_of_q and ref_i_of_q shall have same binning
     if not verify_same_q_bins(i_of_q, ref_i_of_q):
@@ -127,6 +146,29 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
 
 
 def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_array):
+    """From wavelength, Q, intensity, error and delta Q to build I(Q1D)
+
+    This is the reversed operation to method reshape_q_wavelength_matrix
+
+    Parameters
+    ----------
+    wl_vector: ~numpy.ndarray
+        wavelength (1D)
+    q_vector: ~numpy.ndarray
+        Q (1D)
+    intensity_array: ~numpy.ndarray
+        intensities (2D)
+    error_array: ~numpy.ndarray
+        intensity errors (2D)
+    delta_q_array: ~numpy.ndarray
+        delta Q (1D) size = number wavelength * number Q
+
+    Returns
+    -------
+    ~drtsans.dataobjects.IQmod
+        constructed I(Q, wavelength)
+
+    """
     # assume that intensity, error and delta q have the same as (num_q, num_wl)
     assert intensity_array.shape[0] == q_vector.shape[0] and intensity_array.shape[1] == wl_vector.shape[0]
 
@@ -279,7 +321,6 @@ def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_arr
 
     """
     # Sanity check
-    print(intensity_array.shape)
     assert wavelength_vec.shape[0] == intensity_array.shape[1], f'Wavelength dimension = {wavelength_vec.shape} ,' \
                                                                 f'Intensity  dimension = {intensity_array.shape}'
 
@@ -353,19 +394,31 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
 
     Parameters
     ----------
-    wl_vec
-    q_vec
-    intensity_array
-    error_array
-    ref_wl_ints_errs
-    k_vec
-    p_vec
-    s_vec
-    qmin_index
-    qmax_index
+    wl_vec: ~numpy.ndarray
+        1D vector of wavelength (in ascending order)
+    q_vec: ~numpy.ndarray
+        1D vector of Q (in ascending order)
+    intensity_array: ~numpy.ndarray
+        2D array of intensities, shape[0] = number of Q, shape[1] = number of wavelength
+    error_array: ~numpy.ndarray
+        2D array of errors, shape[0] = number of Q, shape[1] = number of wavelength
+    ref_wl_ints_errs: ReferenceWavelengths
+        instance of ReferenceWavelengths containing intensities and errors
+    k_vec: ~numpy.ndarray
+        calculated K vector
+    p_vec: ~numpy.ndarray
+        calculated P vector
+    s_vec: ~numpy.ndarray
+        calculated S vector
+    qmin_index: int
+        index of common Q min (included)
+    qmax_index: int
+        index of common Q max (included)
 
     Returns
     -------
+    tuple
+        normalized I(Q1D), normalized error(Q1D)
 
     """
 

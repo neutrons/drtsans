@@ -97,10 +97,6 @@ def test_incoherence_inelastic_correction():
     # Verify intensities
     corrected_i_array = corrected_intensities.flatten()
 
-    # gold_array = generate_expected_corrected_intensities()
-    # for i in range(len(corrected_i_array)):
-    #     print(f'{i}:  {corrected_i_array[i]}     ...      {gold_array[i]}')
-
     np.testing.assert_allclose(corrected_i_array, generate_expected_corrected_intensities(),
                                verbose=True)
 
@@ -109,12 +105,6 @@ def test_incoherence_inelastic_correction():
                                                   qmin_index, qmax_index, ref_wl_ie)
 
     # Compare results from correct_intensity_error and prototypes
-    # diff = corrected_errors - corrected[1]
-    # for i in range(corrected_errors.shape[0]):
-    #     for j in range(corrected_errors.shape[1]):
-    #         print(f'{i} {j}:  diff = {diff[i, j]:.3f}:   {corrected_errors[i, j]}     ...      '
-    #               f'{corrected[1][i, j]}')
-    # print(f'common q range: {qmin_index}, {qmax_index}')
     np.testing.assert_allclose(corrected_errors, corrected[1])
 
     # Test overall workflow
@@ -158,7 +148,7 @@ def correct_intensity_error_prototype(wavelength_vec, q_vec, intensity_array, er
     return intensity_array, np.sqrt(corrected_error2_array)
 
 
-def calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
+def calculate_b_vector_prototype(wl_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
                                  calculate_delta_b):
 
     # row 0: b(wl)  row1: delta b(wl)
@@ -181,8 +171,6 @@ def calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index
         b_array[0, i_wl] = - b_i / n_q
         if calculate_delta_b:
             b_array[1, i_wl] = np.sqrt(delta_b_i)
-
-        print(f'B[{i_wl}] = - {b_i} / {n_q} = {b_array[0, i_wl]},  error = {delta_b_i}')
 
     return b_array
 
@@ -312,12 +300,10 @@ def generate_data_select_min_incoherence():
     # Q vector
     vec_q = np.arange(1, 21) * 0.01
     vec_q = np.repeat(vec_q, 5)
-    print(f'q: {vec_q.shape}')
 
     # Wavelength vector
     wavelength_vec = np.arange(1, 6) * 1.
     wavelength_vec = np.tile(wavelength_vec, 20)
-    print(f'lambda: {wavelength_vec.shape}')
 
     # Error
     error_vec = np.sqrt(intensity_vec)
@@ -340,19 +326,18 @@ def calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_mi
                                                         qmin_index, qmax_index, 0)
 
     # calculate b(lambda_i) and delta b(lambda_i) if it is final
-    b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
+    b_array = calculate_b_vector_prototype(wl_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
                                            calculate_delta_b=not select_min_incoherence)
 
     # If JSON parameter “selectMinIncoh” is true
     if select_min_incoherence and np.argmin(b_array[0]) > 0:
         # reselect reference wavelength to the wavelength bin with minimum b
         ref_wl_index = np.argmin(b_array[0])
-        print(f'[DEBUG...] re-selected reference wavelength index = {ref_wl_index}')
         # (re)determine the reference wavelengths' intensities and errors
         ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
                                                             qmin_index, qmax_index, ref_wl_index)
         # (re)calculate b array
-        b_array = calculate_b_vector_prototype(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
+        b_array = calculate_b_vector_prototype(wl_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie,
                                                calculate_delta_b=True)
         # verify
         assert b_array[np.isfinite(b_array)].min() >= -1E-20, f'B array has negative values: {b_array}'

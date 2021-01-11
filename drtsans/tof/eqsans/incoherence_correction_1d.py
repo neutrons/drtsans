@@ -52,10 +52,10 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
 def calculate_b_factors(wl_vec, q_vec, intensity_array, error_array,
                         select_min_incoherence, qmin_index, qmax_index):
     """Determine reference wavelength and then calculate B factor, B error factor.
-    
+
     With option select_min_incoherence, reference wavelength will be reselected according to first
     round of calculation of B
-    
+
     Parameters
     ----------
     wl_vec: ~numpy.ndarray
@@ -137,8 +137,8 @@ def calculate_b_error_b(wl_vec, intensity_array, error_array, qmin_index, qmax_i
     # b[wl] = - 1/N sum_{q_k=q_min}^{q_max} [RefI(q_k) - I(q_k, wl)]
     num_q = qmax_index + 1 - qmin_index
     # operation into a (num_q, num_wl) 2D array
-    b_vec = ref_wavelengths.intensity_vec[qmin_index:qmax_index+1].reshape((num_q, 1))\
-            - intensity_array[qmin_index:qmax_index+1, :]
+    b_vec = (ref_wavelengths.intensity_vec[qmin_index:qmax_index+1].reshape((num_q, 1)) -
+             intensity_array[qmin_index:qmax_index+1, :])
     b_factor_array[0] = -1. / num_q * np.sum(b_vec, axis=0)
 
     # Calculate B error (delta B) as an option
@@ -154,13 +154,29 @@ def calculate_b_error_b(wl_vec, intensity_array, error_array, qmin_index, qmax_i
 
 def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array, b_vector,
                             qmin_index, qmax_index, ref_wl_ie):
+    """Correct intensity and error
+
+    Parameters
+    ----------
+    wavelength_vec
+    q_vec
+    intensity_array
+    error_array
+    b_vector
+    qmin_index
+    qmax_index
+    ref_wl_ie
+
+    Returns
+    -------
+
+    """
 
     # Sanity checks
     assert intensity_array.shape == error_array.shape
     assert wavelength_vec.shape[0] == intensity_array.shape[1]
     assert q_vec.shape[0] == error_array.shape[0]
     assert b_vector.shape[1] == wavelength_vec.shape[0]
-    num_q = q_vec.shape[0]
 
     # Init data structure
     num_common_q = qmax_index - qmin_index + 1

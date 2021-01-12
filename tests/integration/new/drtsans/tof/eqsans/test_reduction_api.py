@@ -8,8 +8,9 @@ from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason="Required test data not available")
-def test_wavelength_step():
+def test_wavelength_step(reference_dir):
 
+    # Set up the configuration dict
     configuration = {
         'instrumentName': 'EQSANS',
         'iptsNumber': 26015,
@@ -49,6 +50,11 @@ def test_wavelength_step():
         }
     }
 
+    gold_file_dir = os.path.join(reference_dir.new.eqsans, '')
+    assert os.path.exists(gold_file_dir), f'EQSANS test directory: {gold_file_dir} does not exist'
+    gold_file_dir = os.path.join(reference_dir.new.eqsans, 'test_reduce/gold_data')
+    assert os.path.exists(gold_file_dir), f'EQSANS gold data directory: {gold_file_dir} does not exist'
+
     # Create output directory
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir
@@ -59,16 +65,12 @@ def test_wavelength_step():
         loaded = load_all_files(input_config)
         reduce_single_configuration(loaded, input_config)
         output_file_name = os.path.join(test_dir, 'test_wavelength_step_reg.nxs')
-        assert os.path.isfile(output_file_name), f'File {output_file_name} exists = {os.path.exists(output_file_name)}'
+        assert os.path.isfile(output_file_name), f'Expected output file {output_file_name} does not exists'
 
         # verify_reduced_data
-        gold_file = 'expected_wavelength_step_reg.nxs'
+        gold_file = os.path.join(gold_file_dir, 'expected_wavelength_step_reg.nxs')
         exp_file = output_file_name
-        assert os.path.exists(gold_file)
-        gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace='gold_reg')
-        test_ws = LoadNexusProcessed(Filename=exp_file, OutputWorkspace='test_reg')
-        r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
-        assert r == 'Success!'
+        verify_reduction(exp_file, gold_file, 'reg')
 
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir
@@ -81,17 +83,12 @@ def test_wavelength_step():
         loaded = load_all_files(input_config)
         reduce_single_configuration(loaded, input_config)
         output_file_name = os.path.join(f'{test_dir}', 'test_wavelength_step_com.nxs')
-        assert os.path.isfile(os.path.join(f'{test_dir}', 'test_wavelength_step_com.nxs'))
-        # assert os.path.isfile(f'{test_dir}/test_wavelength_step.nxs')
+        assert os.path.isfile(output_file_name),  f'Expected output file {output_file_name} does not exists'
 
         # verify_reduced_data
-        gold_file = 'expected_wavelength_step_com.nxs'
+        gold_file = os.path.join(gold_file_dir, 'expected_wavelength_step_com.nxs')
         exp_file = output_file_name
-        assert os.path.exists(gold_file)
-        gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace='gold_com')
-        test_ws = LoadNexusProcessed(Filename=exp_file, OutputWorkspace='test_com')
-        r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
-        assert r == 'Success!'
+        verify_reduction(exp_file, gold_file, 'com')
 
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir
@@ -104,16 +101,32 @@ def test_wavelength_step():
         loaded = load_all_files(input_config)
         reduce_single_configuration(loaded, input_config)
         output_file_name = os.path.join(f'{test_dir}', 'test_wavelength_step_gauss.nxs')
-        assert os.path.isfile(output_file_name), f'Output file {output_file_name} does not exist.'
+        assert os.path.isfile(output_file_name), f'Expected output file {output_file_name} does not exist.'
 
         # verify_reduced_data
-        gold_file = 'expected_wavelength_step_gauss.nxs'
+        gold_file = os.path.join(gold_file_dir, 'expected_wavelength_step_gauss.nxs')
         exp_file = output_file_name
-        assert os.path.exists(gold_file)
-        gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace='gold_guass')
-        test_ws = LoadNexusProcessed(Filename=exp_file, OutputWorkspace='test_gauss')
-        r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
-        assert r == 'Success!'
+        verify_reduction(exp_file, gold_file, 'gauss')
+
+
+def verify_reduction(test_file, gold_file, ws_prefix):
+    """Verify reduced result by verified expected result
+
+    Parameters
+    ----------
+    test_file: str
+        NeXus file from test to verify
+    gold_file: str
+        NeXus file containing the expected reduced result to verify against
+    ws_prefix: str
+        prefix for Mantid workspace that the
+
+    """
+    assert os.path.exists(gold_file), f'Gold file {gold_file} cannot be found'
+    gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace=f'{ws_prefix}_gold')
+    test_ws = LoadNexusProcessed(Filename=test_file, OutputWorkspace=f'{ws_prefix}_test')
+    r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
+    assert r == 'Success!', f'Not matched: {r}'
 
 
 if __name__ == '__main__':

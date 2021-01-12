@@ -130,13 +130,16 @@ def verify_reduction(test_file, gold_file, ws_prefix):
     if r != 'Success':
         assert gold_ws.getNumberHistograms() == test_ws.getNumberHistograms(),\
             f'Histograms: {gold_ws.getNumberHistograms()} != {test_ws.getNumberHistograms()}'
-        assert gold_ws.readY(0).shape == test_ws.readY(0),\
-            f'Number of wavelength: {gold_ws.readY(0).shape} != {test_ws.readY(0)}'
-        assert gold_ws.readX(0).shape == test_ws.readX(0),\
-            f'Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0)}'
-        assert np.testing.assert_allclose(gold_ws.extractX(), test_ws.extractX())
-        assert np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY())
-        assert np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE())
+        assert gold_ws.readY(0).shape == test_ws.readY(0).shape,\
+            f'Number of wavelength: {gold_ws.readY(0).shape} != {test_ws.readY(0).shape}'
+        assert gold_ws.readX(0).shape == test_ws.readX(0).shape,\
+            f'Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0).shape}'
+        gold_x_array = gold_ws.extractX()
+        test_x_array =  test_ws.extractX()
+        assert gold_x_array.shape == test_x_array.shape
+        np.testing.assert_allclose(gold_ws.extractX(), test_ws.extractX())
+        np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY())
+        np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE())
 
 
 if __name__ == '__main__':

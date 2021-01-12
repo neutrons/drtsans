@@ -186,7 +186,7 @@
         "AnnularAngleBin", "Qmin", "Qmax", "useErrorWeighting", "smearingPixelSizeX",
         "smearingPixelSizeY", "useSubpixels", "subpixelsX", "subpixelsY", "useSliceIDxAsSuffix",
         "cutTOFmin", "cutTOFmax", "wavelengthStep", "wavelengthStepType", "normalization",
-        "fluxMonitorRatioFile", "beamFluxFileName"]
+        "fluxMonitorRatioFile", "beamFluxFileName", "fitInelasticIncoh", "elasticReference", "selectMinIncoh"]
     }
   },
   "maxProperties": 10,

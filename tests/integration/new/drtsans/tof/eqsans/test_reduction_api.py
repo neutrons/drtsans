@@ -135,7 +135,7 @@ def verify_reduction(test_file, gold_file, ws_prefix):
         assert gold_ws.readX(0).shape == test_ws.readX(0).shape,\
             f'Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0).shape}'
         gold_x_array = gold_ws.extractX()
-        test_x_array =  test_ws.extractX()
+        test_x_array = test_ws.extractX()
         assert gold_x_array.shape == test_x_array.shape
         np.testing.assert_allclose(gold_ws.extractX(), test_ws.extractX())
         np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY())

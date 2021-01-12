@@ -4,6 +4,7 @@ import tempfile
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,plot_reduction_output)  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
+import numpy as np
 
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
@@ -126,7 +127,16 @@ def verify_reduction(test_file, gold_file, ws_prefix):
     gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace=f'{ws_prefix}_gold')
     test_ws = LoadNexusProcessed(Filename=test_file, OutputWorkspace=f'{ws_prefix}_test')
     r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
-    assert r == 'Success!', f'Not matched: {r}'
+    if r != 'Success':
+        assert gold_ws.getNumberHistograms() == test_ws.getNumberHistograms(),\
+            f'Histograms: {gold_ws.getNumberHistograms()} != {test_ws.getNumberHistograms()}'
+        assert gold_ws.readY(0).shape == test_ws.readY(0),\
+            f'Number of wavelength: {gold_ws.readY(0).shape} != {test_ws.readY(0)}'
+        assert gold_ws.readX(0).shape == test_ws.readX(0),\
+            f'Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0)}'
+        assert np.testing.assert_allclose(gold_ws.extractX(), test_ws.extractX())
+        assert np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY())
+        assert np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE())
 
 
 if __name__ == '__main__':

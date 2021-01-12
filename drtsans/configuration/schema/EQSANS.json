@@ -171,7 +171,13 @@
 
         "useSliceIDxAsSuffix": {"type": "boolean", "default": false,
                                 "description": "If True, suffix is the slice index. If False, suffix is a composite (time, custom log values)",
-                                "examples": [true, false]}
+                                "examples": [true, false]},
+        "fitInelasticIncoh": {"type": "boolean", "default": false,
+                              "description": "Enable inelastic incoherent scattering processing"},
+        "elasticReference": {"type": ["string", "number", "null"], "default": null,
+                             "description": "Run number of reference elastic run"},
+        "selectMinIncoh": {"type": "boolean", "default": false,
+                           "description": "use smallest wavelength as reference wavelength"}
       },
       "maxProperties": 59,
       "required": ["outputDir", "useTimeSlice", "timeSliceInterval", "useLogSlice", "logSliceName",

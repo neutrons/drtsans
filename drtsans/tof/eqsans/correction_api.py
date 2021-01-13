@@ -9,10 +9,10 @@ class CorrectionConfiguration:
     A data class/structure to hold the parameters configured to do incoherence/inelastic
     scattering correction
     """
-    def __init__(self):
+    def __init__(self, do_correction=False, select_min_incoherence=False):
 
-        self._do_correction = False
-        self._select_min_incoherence = False
+        self._do_correction = do_correction
+        self._select_min_incoherence = select_min_incoherence
         self._elastic_ref_run_setup = None
 
     @property
@@ -66,4 +66,12 @@ def parse_correction_config(reduction_config):
     CorrectionConfiguration
         incoherence/inelastic scattering correction configuration
     """
-    raise NotImplementedError('Jesse!')
+    run_config = reduction_config['configuration']
+    do_correction = run_config.get('fitInelasticIncoh', False)
+    select_min_incoherence = run_config.get('selectMinIncoh', False)
+    _config = CorrectionConfiguration(do_correction, select_min_incoherence)
+    elastic_ref = run_config.get('elasticReference')
+    if elastic_ref is not None:
+        elastic_ref = ElasticReferenceRunSetup(elastic_ref)
+        _config.set_elastic_reference_run(elastic_ref)
+    return _config

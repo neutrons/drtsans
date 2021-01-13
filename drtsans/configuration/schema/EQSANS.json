@@ -174,7 +174,7 @@
                                 "examples": [true, false]},
         "fitInelasticIncoh": {"type": "boolean", "default": false,
                               "description": "Enable inelastic incoherent scattering processing"},
-        "elasticReference": {"type": ["string", "number", "null"], "default": null,
+        "elasticReference": {"$ref": "common.json#/definitions/runNumberOptionalTypes",
                              "description": "Run number of reference elastic run"},
         "selectMinIncoh": {"type": "boolean", "default": false,
                            "description": "use smallest wavelength as reference wavelength"}

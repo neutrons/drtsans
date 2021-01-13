@@ -12,9 +12,8 @@ from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,
 def test_parse_json():
     """Test the JSON to dictionary
     """
-    # Specify JSON string
-    json_str = """
-    {
+    # Specify JSON input
+    reduction_input = {
         "instrumentName": "EQSANS",
         "iptsNumber": "26015",
         "sample": {
@@ -40,31 +39,30 @@ def test_parse_json():
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
-            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
-            "sensitivityFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/Sensitivity_patched_thinPMMA_2o5m_113514_mantid.nxs",
+            "fluxMonitorRatioFile": ("/SNS/EQSANS/"
+                                     "IPTS-24769/shared/EQSANS_110943.out"),
+            "sensitivityFileName": ("/SNS/EQSANS/"
+                                    "shared/NeXusFiles/EQSANS/"
+                                    "2020A_mp/Sensitivity_patched_thinPMMA_2o5m_113514_mantid.nxs"),
             "numQBins": "100",
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
             "AnnularAngleBin": "5",
-            "useSliceIDxAsSuffix": true,
-            "fitInelasticIncoh": true,
-            "elasticReference": 260159121,
-            "selectMinIncoh": true
+            "useSliceIDxAsSuffix": True,
+            "fitInelasticIncoh": True,
+            "elasticReference": "260159121",
+            "selectMinIncoh": True
         }
     }
-    """
 
-    # Parse
-    reduction_input = json.loads(json_str)
     # Validate
     with pytest.raises(RuntimeError):
         # TODO - expect to fail as elastic reference run 260159121 does not exist
-        _ = reduction_parameters(reduction_input)
+        reduction_parameters(reduction_input)
 
     # Respecify to use a valid run
-    json_str.replace('260159121', '26015')
-    # Parse
-    reduction_input = json.loads(json_str)
+    # json_str.replace('260159121', '26015')
+    reduction_input['configuration']['elasticReference'] = "26015"
     # Defaults and Validate
     input_config = reduction_parameters(reduction_input)
 

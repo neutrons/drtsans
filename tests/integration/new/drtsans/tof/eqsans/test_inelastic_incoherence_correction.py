@@ -1,7 +1,7 @@
 import pytest
 import os
 # import tempfile
-import json
+# import json
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,plot_reduction_output)  # noqa E402
 # from drtsans.tof.eqsans import validate_reduction_parameters

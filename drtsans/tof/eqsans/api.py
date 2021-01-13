@@ -705,12 +705,18 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         # calculate elastic scattering factors from elastic reference run
         elastic_scattering_correction_factor = process_elastic_reference()
 
+        # process background  run too
+        from drtsans.tof.eqsans.correction_api import normalize_background_run()
+        normalize_background_run()
+
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
+
+        if
 
         # process sample workspace
         processed_data_main = process_single_configuration(raw_sample_ws,

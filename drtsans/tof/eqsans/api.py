@@ -468,7 +468,7 @@ def process_single_configuration(sample_ws_raw,
         method to do absolute scaling (standard or direct_beam)
     empty_beam_ws: ~mantid.dataobjects.Workspace2D
         empty beam workspace for absolute scaling
-    beam_radius: float, None
+    beam_radius: float
         beam radius for absolute scaling
     absolute_scale: float
         absolute scaling value for standard method
@@ -548,22 +548,6 @@ def process_single_configuration(sample_ws_raw,
 
 
 def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
-    """Reduce EQSANS data with single configuration
-
-    Parameters
-    ----------
-    loaded_ws: ~namedtuple
-        keys include sample, background, empty, sample_transmission, background_transmission, dark_current,
-        sensitivity, mask
-    reduction_input: dict
-        input reduction configuration
-    prefix
-    skip_nan
-
-    Returns
-    -------
-
-    """
     reduction_config = reduction_input["configuration"]
 
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
@@ -699,16 +683,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     else:
         sample_trans_ws = None
 
-    # Retrieve configuration information for inelastic/incoherence scattering correction
-    incoherence_correction_config = parse_incoherence_correction(reduction_config)
-    if incoherence_correction_config and incoherence_correction_config['elastic_reference']:
-        # calculate elastic scattering factors from elastic reference run
-        elastic_scattering_correction_factor = process_elastic_reference()
-
-        # process background  run too
-        from drtsans.tof.eqsans.correction_api import normalize_background_run()
-        normalize_background_run()
-
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
@@ -716,9 +690,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
-        if
-
-        # process sample workspace
         processed_data_main = process_single_configuration(raw_sample_ws,
                                                            sample_trans_ws=sample_trans_ws,
                                                            sample_trans_value=sample_trans_value,
@@ -741,7 +712,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                            beam_radius=beam_radius,
                                                            absolute_scale=absolute_scale,
                                                            keep_processed_workspaces=False)
-        # Save nexus processed with workspace in unit of wavelength
+        # Save nexus processed
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
         SaveNexus(processed_data_main, Filename=filename)
         # binning
@@ -777,19 +748,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                 fr_log_label = f'frame'
                 fr_label = ""
 
-            if elastic_normalization_factor[wl_frame]:
-                # correct
-                correct_incoherence_inelastic_scattering(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                                         elastic_normalization_factor[wl_frame],
-                                                         nxbins_main, nybins_main, n1dbins=nbins_main,
-                                                         n1dbins_per_decade=nbins_main_per_decade,
-                                                         decade_on_center=decade_on_center,
-                                                         bin1d_type=bin1d_type, log_scale=log_binning,
-                                                         qmin=qmin, qmax=qmax)
-            else:
-                blabla
-
-            # Bin 1D and 2D
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
                                                    n1dbins_per_decade=nbins_main_per_decade,
@@ -897,69 +855,6 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
     plt.close()
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)
-
-
-def process_elastic_reference(loaded_ws, sample_trans, bkgd_trans,
-                              theta_dependent_transmission,
-                              flux,
-                              mask_panel,
-                              solid_angle,
-                              output_suffix,
-                              thickness,
-                              empty_trans_ws,
-                              beam_radius,
-                              absolute_scale):
-
-    processed_data_main = process_single_configuration(loaded_ws.elastic_reference_run,
-                                                       sample_trans_ws=sample_trans.ws, # sample_trans_ws,
-                                                       sample_trans_value=sample_trans.value, # sample_trans_value,
-                                                       bkg_ws_raw=loaded_ws.background,
-                                                       bkg_trans_ws=bkgd_trans.ws,  # bkgd_trans_ws,
-                                                       bkg_trans_value=bkgd_trans.value,  # bkg_trans_value,
-                                                       theta_deppendent_transmission=theta_dependent_transmission,
-                                                       # noqa E502
-                                                       dark_current=loaded_ws.dark_current,
-                                                       flux_method=flux.method,  #  flux_method,
-                                                       flux=flux.flux,  #flux,
-                                                       mask_ws=loaded_ws.mask,
-                                                       mask_panel=mask_panel,
-                                                       solid_angle=solid_angle,
-                                                       sensitivity_workspace=loaded_ws.sensitivity,
-                                                       output_workspace=f'processed_data_main',
-                                                       output_suffix=output_suffix,
-                                                       thickness=thickness,
-                                                       absolute_scale_method=absolute_scale.method,  # absolute_scale_method,
-                                                       absolute_scale=absolute_scale.value,  # absolute_scale,
-                                                       empty_beam_ws=empty_trans_ws,
-                                                       beam_radius=beam_radius,
-                                                       keep_processed_workspaces=False)
-
-    # convert to Q
-    # TODO - subpixel binning option will be supported in future release
-    iq1d_main_in = convert_to_q(processed_data_main, mode='scalar')   # not supported **subpixel_kwargs)
-    iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal')  # not supported **subpixel_kwargs)
-    # split
-    iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
-    iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
-    # bin 1D and 2D by frames
-    for wl_frame in range(n_wl_frames):
-        # bin data
-        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                               nxbins_main, nybins_main, n1dbins=nbins_main,
-                                               n1dbins_per_decade=nbins_main_per_decade,
-                                               decade_on_center=decade_on_center,
-                                               bin1d_type=bin1d_type,
-                                               log_scale=log_binning,
-                                               qmin=qmin, qmax=qmax,
-                                               annular_angle_bin=None,
-                                               wedges=None, 
-                                               symmetric_wedges=None,
-                                               error_weighted=weighted_errors)
-
-        # calculate normalization factor
-        elastic_normalization_factor[wl_frame] = calculate_elastic_reference_factor(iq1d_main_out)
-    else:
-        elastic_normalization_factor[wl_frame] = None
 
 
 def apply_solid_angle_correction(input_workspace):

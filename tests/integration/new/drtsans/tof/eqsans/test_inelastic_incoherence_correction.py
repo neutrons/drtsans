@@ -36,6 +36,7 @@ def test_parse_json():
         },
         "outputFileName": "test_wavelength_step",
         "configuration": {
+            "outputDir": "/path/to/nowhere",
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
@@ -62,13 +63,13 @@ def test_parse_json():
 
     # Respecify to use a valid run
     # json_str.replace('260159121', '26015')
-    reduction_input['configuration']['elasticReference'] = "26015"
+    reduction_input['configuration']['elasticReference'] = "115363"
     # Defaults and Validate
     input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
     assert input_config['configuration'].get('fitInelasticIncoh')
-    assert input_config['configuration'].get('elasticReference') == 26015
+    assert input_config['configuration'].get('elasticReference') == '115363'
     assert input_config['configuration'].get('selectMinIncoh')
 
 

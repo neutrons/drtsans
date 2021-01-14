@@ -146,7 +146,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             annular_angle_bin=1.,
             wedges: List[Any] = None,
             symmetric_wedges: bool = True,
-            error_weighted=False):
+            error_weighted=False,
+            n_wavelength_bin=1):
     r"""Do all 1D and 2D binning for a configuration or detector
 
     Parameters
@@ -185,6 +186,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         It will add the wedge offset by 180 degrees if True
     error_weighted: bool
         if True, the binning is done using the Weighted method
+    n_wavelength_bin: None, int
+        None: keep original wavelength vector.  int: number of wavelength bins.  1 to sum all
 
     Returns
     -------
@@ -195,6 +198,12 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         1, unless the 'wedge' mode is selected, when the length is the number of
         original wedges
     """
+    # Sanity check
+    if n_wavelength_bin is None:
+        raise NotImplementedError(f'Case for n_wavelength_bin = {n_wavelength_bin} has not been implemented')
+    elif n_wavelength_bin > 1:
+        raise NotImplementedError(f'Case for n_wavelength_bin = {n_wavelength_bin} has not been implemented')
+
     method = BinningMethod.NOWEIGHT
     if error_weighted:
         method = BinningMethod.WEIGHTED

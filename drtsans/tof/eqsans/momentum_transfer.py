@@ -235,7 +235,6 @@ def split_by_frame(input_workspace, *args, **kwargs):
 
     Returns
     -------
-
     list
         A list with namedtuples
     """

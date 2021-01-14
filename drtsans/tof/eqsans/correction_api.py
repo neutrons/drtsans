@@ -8,7 +8,9 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (determine_refere
                                                                 calculate_scale_factor_mesh_grid,
                                                                 normalize_intensity_q1d,
                                                                 build_i_of_q1d)
+from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from collections import namedtuple
+from drtsans.iq import bin_all  # noqa E402
 """
 
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -60,6 +62,7 @@ class CorrectionConfiguration:
         self._do_correction = do_correction
         self._select_min_incoherence = select_min_incoherence
         self._elastic_ref_run_setup = None
+        self._sample_thickness = 1  # mm
 
     @property
     def do_correction(self):
@@ -76,6 +79,10 @@ class CorrectionConfiguration:
     @property
     def elastic_reference_run(self):
         return self._elastic_ref_run_setup
+
+    @property
+    def sample_thickness(self):
+        return self._sample_thickness
 
     def set_elastic_reference_run(self, reference_run_setup):
         """Set elastic reference run reduction setup
@@ -133,15 +140,20 @@ def parse_correction_config(reduction_config):
     return _config
 
 
-def process_bin_workspace(raw_ws, transmission, ref_sample_thickness, binning_setup):
+def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
+                          dark_current, flux, mask,
+                          solid_angle, sensitivity_workspace,
+                          sample_thickness, absolute_scale,
+                          binning_setup):
     """Process rar workspace and do the binning with keeping wavelength terms
 
     Parameters
     ----------
     raw_ws
-    transmission
+    transmission: ~tuple
+        transmission workspace, transmission value
     ref_sample_thickness
-    binning_setup
+    binning_setup: ~namedtuple for binnings
 
     Returns
     -------
@@ -149,17 +161,59 @@ def process_bin_workspace(raw_ws, transmission, ref_sample_thickness, binning_se
         list of IQmod, list of IQazimuthal
 
     """
+    # Sanity check
+    assert raw_ws, 'Raw workspace cannot be None'
 
-    ref_trans_ws, ref_trans_value = transmission
-    assert ref_trans_ws
-    assert ref_trans_value
-    assert raw_ws
-    assert ref_sample_thickness
-    assert binning_setup
+    from drtsans.tof.eqsans.reduction_api import process_raw_workspace
+    # Process raw workspace
+    output_workspace = str(raw_ws)
+    output_suffix = 'background_correction'
+    processed_ws = process_raw_workspace(raw_ws, transmission, theta_dependent_transmission,
+                                         dark_current, flux, mask,
+                                         solid_angle, sensitivity_workspace,
+                                         sample_thickness, absolute_scale,
+                                         output_workspace, output_suffix)
 
-    return ['IofQ1D'], ['IofQ2D']
+    # TODO - Shall we delete raw workspace?
+
+    # TODO - Save the processed workspace?
+
+    # No subpixel binning supported
+
+    # convert to Q: Q1D and Q2D
+    iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
+    iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
+    # split to frames
+    iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in)
+    iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in)
+
+    # Binning by frame
+    n_wl_frames = len(iq2d_main_in_fr)
+    q1d_frames = list()
+    q2d_frames = list()
+    for wl_frame in range(n_wl_frames):
+        # binning does not support annular and wedge for correction purpose
+        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
+                                               binning_setup.nxbins_main, binning_setup.nybins_main,
+                                               n1dbins=binning_setup.nbins_main,
+                                               n1dbins_per_decade=binning_setup.nbins_main_per_decade,
+                                               decade_on_center=binning_setup.decade_on_center,
+                                               bin1d_type=binning_setup.bin1d_type,
+                                               log_scale=binning_setup.log_binning,
+                                               qmin=binning_setup.qmin, qmax=binning_setup.qmax,
+                                               # annular_angle_bin=binning_setup.annular_bin,
+                                               # wedges=binning_setup.wedges,
+                                               # symmetric_wedges=symmetric_wedges,
+                                               error_weighted=binning_setup.weighted_errors,
+                                               n_wavelength_bin=None)
+        q1d_frames.append(iq2d_main_out)
+        q2d_frames.append(iq1d_main_out)
+    # END-FOR
+
+    return q1d_frames, q2d_frames
 
 
+# Define named tuple for elastic scattering normalization factor
 NormFactor = namedtuple('NormFactor', 'k k_error p s')
 
 

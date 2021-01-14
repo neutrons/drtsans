@@ -547,7 +547,8 @@ def process_single_configuration(sample_ws_raw,
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True,
+                                no_correction=False):
     reduction_config = reduction_input["configuration"]
 
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
@@ -683,6 +684,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     else:
         sample_trans_ws = None
 
+    # Form binning parameters
+    binning_par_dc = {'nxbins_main': nxbins_main,
+                      'nybins_main': nybins_main,
+                      'n1dbins': nbins_main,
+                      'n1dbins_per_decade': nbins_main_per_decade,
+                      'decade_on_center': decade_on_center,
+                      'bin1d_type': bin1d_type,
+                      'log_scale': log_binning,
+                      'qmin': qmin,
+                      'qmax': qmax}
+    binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
+
+    # TODO FIXME - move the imports to the top of the module
     from drtsans.tof.eqsans.correction_api import (parse_correction_config,
                                                    calculate_elastic_scattering_factor,
                                                    normalize_ws_with_elastic_scattering,
@@ -706,12 +720,23 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         # process, bin and optionally normalize (by elastic scattering) background
         bkgd_iq1d, bkgd_iq2d = process_bin_workspace(loaded_ws.background,
                                                      (loaded_ws.background_transmission, bkg_trans_value),
-                                                     None, None)
-        # normalize
-        if norm_dict:
-            bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
-        # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
-        bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d, incoherence_correction_setup)
+                                                     theta_deppendent_transmission,
+                                                     loaded_ws.dark_current,
+                                                     (flux_method, flux),
+                                                     (loaded_ws.mask_ws, mask_panel, None),
+                                                     solid_angle,
+                                                     loaded_ws.senstivity,
+                                                     incoherence_correction_setup.sample_thickness,
+                                                     absolute_scale,
+                                                     binning_params)
+
+        if no_correction is False:
+            # normalize
+            if norm_dict:
+                bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
+            # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
+            bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
+                                                                      incoherence_correction_setup)
     else:
         norm_dict = None
         bkgd_iq1d = bkgd_iq2d = None
@@ -728,15 +753,28 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             # process data with incoherent/inelastic correction
             sample_1d_fr, sample_2d_fr = process_bin_workspace(raw_sample_ws,
                                                                (sample_trans_ws, sample_trans_value),
-                                                               None, None)
-            # normalize
-            if norm_dict:
-                sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
-                                                                                  sample_2d_fr,
-                                                                                  norm_dict)
-            # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
-            r = correct_acc_incoherence_scattering(sample_1d_fr, sample_2d_fr, incoherence_correction_setup)
-            iq1d_main_in_fr, iq2d_main_in_fr = r
+                                                               theta_deppendent_transmission,
+                                                               loaded_ws.dark_current,
+                                                               (flux_method, flux),
+                                                               (loaded_ws.mask_ws, mask_panel, None),
+                                                               solid_angle,
+                                                               loaded_ws.senstivity,
+                                                               incoherence_correction_setup.sample_thickness,
+                                                               absolute_scale,
+                                                               binning_params)
+
+            if not no_correction:
+                # normalize
+                if norm_dict:
+                    sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
+                                                                                      sample_2d_fr,
+                                                                                      norm_dict)
+                # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
+                r = correct_acc_incoherence_scattering(sample_1d_fr, sample_2d_fr, incoherence_correction_setup)
+                iq1d_main_in_fr, iq2d_main_in_fr = r
+            else:
+                iq1d_main_in_fr = sample_1d_fr
+                iq2d_main_in_fr = sample_2d_fr
 
             # subtract with background
             iq1d_main_in_fr -= bkgd_iq1d

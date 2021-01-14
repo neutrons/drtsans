@@ -82,22 +82,18 @@ def process_background(bkg_ws_raw, output_suffix, prepare_data_conf,
     return bkgd_ws
 
 
-def process_sample_configuration(sample_ws_raw,
-                                 sample_trans_ws=None,
-                                 sample_trans_value=None,
-                                 theta_deppendent_transmission=True,
-                                 dark_current=None,
-                                 flux_method=None,  # normalization (time/monitor/proton charge)
-                                 flux=None,  # file for flux
-                                 mask_ws=None,  # apply a custom mask from workspace
-                                 mask_panel=None,  # mask back or front panel
-                                 mask_btp=None,  # mask bank/tube/pixel
-                                 solid_angle=True,
-                                 sensitivity_workspace=None,
-                                 output_workspace=None,
-                                 output_suffix='',
-                                 thickness=1.,
-                                 absolute_scale=1.):
+def process_raw_workspace(ws_raw,
+                          transmission,
+                          theta_dependent_transmission,
+                          dark_current,
+                          flux,
+                          mask,
+                          solid_angle,
+                          sensitivity_workspace,
+                          thickness=1.,
+                          absolute_scale=1.,
+                          output_workspace=None,
+                          output_suffix=''):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
@@ -158,10 +154,14 @@ def process_sample_configuration(sample_ws_raw,
     if not output_workspace:
         output_workspace = output_suffix + '_sample'
 
+    # expand
+    flux_method, flux_value = flux
+    mask_ws, mask_panel, mask_btp = mask
+
     # create a common configuration for prepare data
     prepare_data_conf = {'dark_current': dark_current,
                          'flux_method': flux_method,
-                         'flux': flux,
+                         'flux': flux_value,
                          'mask_ws': mask_ws,
                          'mask_panel': mask_panel,
                          'mask_btp': mask_btp,
@@ -169,27 +169,28 @@ def process_sample_configuration(sample_ws_raw,
                          'sensitivity_workspace': sensitivity_workspace}
 
     # process sample
-    sample_ws = prepare_data_workspaces(sample_ws_raw,
-                                        output_workspace=output_workspace,
-                                        **prepare_data_conf)
+    raw_ws = prepare_data_workspaces(ws_raw,
+                                     output_workspace=output_workspace,
+                                     **prepare_data_conf)
     # apply transmission to the sample
+    sample_trans_ws, sample_trans_value = transmission
     if sample_trans_ws or sample_trans_value:
         if sample_trans_ws:
             RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
-                             WorkspaceToMatch=sample_ws,
+                             WorkspaceToMatch=raw_ws,
                              OutputWorkspace=sample_trans_ws)
-        sample_ws = apply_transmission_correction(sample_ws,
-                                                  trans_workspace=sample_trans_ws,
-                                                  trans_value=sample_trans_value,
-                                                  theta_dependent=theta_deppendent_transmission,
-                                                  output_workspace=output_workspace)
+        raw_ws = apply_transmission_correction(raw_ws,
+                                               trans_workspace=sample_trans_ws,
+                                               trans_value=sample_trans_value,
+                                               theta_dependent=theta_dependent_transmission,
+                                               output_workspace=output_workspace)
 
     # finalize with absolute scale and thickness
-    sample_ws = normalize_by_thickness(sample_ws, thickness)
+    raw_ws = normalize_by_thickness(raw_ws, thickness)
+    # absolute scale
+    raw_ws *= absolute_scale
 
-    sample_ws *= absolute_scale
-
-    return sample_ws
+    return raw_ws
 
 
 def prepare_data_workspaces(data,

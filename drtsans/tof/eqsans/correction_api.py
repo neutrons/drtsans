@@ -116,14 +116,20 @@ def parse_correction_config(reduction_config):
     CorrectionConfiguration
         incoherence/inelastic scattering correction configuration
     """
-    run_config = reduction_config['configuration']
-    do_correction = run_config.get('fitInelasticIncoh', False)
-    select_min_incoherence = run_config.get('selectMinIncoh', False)
-    _config = CorrectionConfiguration(do_correction, select_min_incoherence)
-    elastic_ref = run_config.get('elasticReference')
-    if elastic_ref is not None:
-        elastic_ref = ElasticReferenceRunSetup(elastic_ref)
-        _config.set_elastic_reference_run(elastic_ref)
+    # an exception case
+    if 'configuration' not in reduction_config:
+        _config = CorrectionConfiguration(False)
+    else:
+        # properly configured
+        run_config = reduction_config['configuration']
+        do_correction = run_config.get('fitInelasticIncoh', False)
+        select_min_incoherence = run_config.get('selectMinIncoh', False)
+        _config = CorrectionConfiguration(do_correction, select_min_incoherence)
+        elastic_ref = run_config.get('elasticReference')
+        if elastic_ref is not None:
+            elastic_ref = ElasticReferenceRunSetup(elastic_ref)
+            _config.set_elastic_reference_run(elastic_ref)
+
     return _config
 
 

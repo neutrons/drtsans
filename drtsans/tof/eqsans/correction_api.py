@@ -153,6 +153,7 @@ def process_bin_workspace(raw_ws, transmission, ref_sample_thickness, binning_se
 
     return ['IofQ1D'], ['IofQ2D']
 
+
 NormFactor = namedtuple('NormFactor', 'k k_error p s')
 
 

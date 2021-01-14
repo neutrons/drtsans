@@ -97,9 +97,7 @@ def process_sample_configuration(sample_ws_raw,
                                  output_workspace=None,
                                  output_suffix='',
                                  thickness=1.,
-                                 absolute_scale_method='standard',
-                                 absolute_scale=1.,
-                                 keep_processed_workspaces=True):
+                                 absolute_scale=1.):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)

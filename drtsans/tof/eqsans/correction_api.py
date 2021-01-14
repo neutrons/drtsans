@@ -1,7 +1,14 @@
 # This module contains workflow algorithms and methods correct intensity and error of
 # sample and background data accounting wavelength-dependent incoherent inelastic scattering.
 # The workflow algorithms will be directly called by eqsans.api.
-from drtsans.tof.eqsans.reduction_api import process_sample_configuration
+# from drtsans.tof.eqsans.reduction_api import process_sample_configuration
+from drtsans.tof.eqsans.elastic_reference_normalization import (determine_reference_wavelength_q1d_mesh,
+                                                                reshape_q_wavelength_matrix,
+                                                                determine_common_mod_q_range_mesh,
+                                                                calculate_scale_factor_mesh_grid,
+                                                                normalize_intensity_q1d,
+                                                                build_i_of_q1d)
+from collections import namedtuple
 """
 
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -66,6 +73,10 @@ class CorrectionConfiguration:
     def select_min_incoherence(self, flag):
         self._select_min_incoherence = flag
 
+    @property
+    def elastic_reference_run(self):
+        return self._elastic_ref_run_setup
+
     def set_elastic_reference_run(self, reference_run_setup):
         """Set elastic reference run reduction setup
 
@@ -116,56 +127,75 @@ def parse_correction_config(reduction_config):
     return _config
 
 
-from drtsans.tof.eqsans.reduction_api import process_sample_configuration
+def process_bin_workspace(raw_ws, transmission, ref_sample_thickness, binning_setup):
+    """Process rar workspace and do the binning with keeping wavelength terms
 
-def correct_main_workflow():
+    Parameters
+    ----------
+    raw_ws
+    transmission
+    ref_sample_thickness
+    binning_setup
 
-    # process elastic reference run
-    process_sample_configuration(elastic_run, elastic_trans, elastic_trans_value)
+    Returns
+    -------
+    ~tuple
+        list of IQmod, list of IQazimuthal
 
-
-
-
-def calculate_elastic_scattering_factor(runs, ref_thickness):
-    # normalize runs (sample and background) for elastic scattering
     """
+
+    ref_trans_ws, ref_trans_value = transmission
+    assert ref_trans_ws
+    assert ref_trans_value
+    assert raw_ws
+    assert ref_sample_thickness
+    assert binning_setup
+
+    return ['IofQ1D'], ['IofQ2D']
+
+NormFactor = namedtuple('NormFactor', 'k k_error p s')
+
+
+def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, ref_sample_thickness,
+                                        binning_setup):
+    """Normalize runs (sample and background) for elastic scattering
+
     for elastic reference, I assume that it will use the same as the sample run.
-
     Then as the elastic reference run is reduced, K and delta K are calculated.
-
     These runs will be normalized by K and delta K value
     - sample
     - bkgd
 
+
     Parameters
     ----------
-    runs: ~list
-        sample and background run (workspace)
-    ref_thickness: float
-        elastic reference sample thickness in unit of mm
+    ref_ws
+    ref_trans_ws
+    ref_trans_value
+    ref_sample_thickness
+    binning_setup
 
     Returns
     -------
-    ~list
-
+    ~dict
+        blabla
     """
-    # process elastic run
-    ref_i_of_q_frames = process_elastic_runs()
+    # Process elastic reference run, reference transmission run,
+    # TODO - reference background run, reference background transmission run
+    ref_iq1d_frames, ref_iq2d_frames = process_bin_workspace(ref_ws, (ref_trans_ws, ref_trans_value),
+                                                             ref_sample_thickness, binning_setup)
 
-    # calculate K and K error
-    from drtsans.tof.eqsans.elastic_reference_normalization import (determine_reference_wavelength_q1d_mesh,
-                                                                    reshape_q_wavelength_matrix,
-                                                                    determine_common_mod_q_range_mesh,
-                                                                    calculate_scale_factor_mesh_grid,
-                                                                    normalize_intensity_q1d,
-                                                                    build_i_of_q1d)
+    # Sanity check
+    assert len(ref_iq1d_frames) <= 3, f'Number of frames {len(ref_iq1d_frames)} is not reasonable.'
 
-    # sanity check
-    assert len(ref_i_of_q_frames) <= 3, 'Shape in correct!'
-    for i_frame in len(ref_i_of_q_frames):
+    # Output
+    elastic_norm_factor_dict = dict()
+
+    # Calculate scaling vectors for each
+    for i_frame in len(ref_iq1d_frames):
         # reshape
         ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(
-            ref_i_of_q_frames[i_frame])
+            ref_iq1d_frames[i_frame])
 
         # Calculate Qmin and Qmax
         qmin_index, qmax_index = determine_common_mod_q_range_mesh(ref_q_vec, ref_i_array)
@@ -178,73 +208,95 @@ def calculate_elastic_scattering_factor(runs, ref_thickness):
         k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(ref_wl_vec, ref_i_array, ref_error_array,
                                                                             ref_wl_ie, qmin_index, qmax_index)
 
-        #
-        k_vec_set[i_frame] = k_vec
-        k_error_set[i_frame] = k_error_vec
+        norm_factor = NormFactor(k_vec, k_error_vec, p_vec, s_vec)
+        # Form output
+        elastic_norm_factor_dict[i_frame] = norm_factor
 
         # export K and K error (task #725)
         # do_export_k(k_vec, k_error_vec, k_filename)
 
-    return k_vec_set, k_error_set
+    return elastic_norm_factor_dict
 
 
-def normalize_elastic_scattering():
+def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
 
     # KEY: a data structure to contain IQmod(s) of (1) all samples and background (2) all frames
+    if i_q2d_frames:
+        print(f'Not implemented!')
 
     # Normalize sample and background
     # normalize 1D
-    normalized_set = list()
-    for i_of_q in [combined_i_of_q(sample_i_of_q_list, bkgd_i_of_q)]:
-        # loop over frames to normalize
-        for i_frame in range(num_frames):
-            wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q[i_frame])
-            data_ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
-                                                                     qmin_index, qmax_index)
+    num_frames = len(i_q1d_frames)
+    norm_iq1d = list()
+    for i_frame in range(num_frames):
+        # convert
+        wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_q1d_frames[i_frame])
+        qmin_index = qmax_index = -1
+        if qmin_index + qmax_index < 0:
+            raise RuntimeError('calcualte qmin and qmax!')
+        # reference wavelength
+        data_ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
+                                                                 qmin_index, qmax_index)
+        #
+        k_vec = norm_dict[i_frame].k
+        p_vec = norm_dict[i_frame].p
+        s_vec = norm_dict[i_frame].s
+
+        # normalize
         normalized = normalize_intensity_q1d(wl_vec, q_vec, i_array, error_array,
                                              data_ref_wl_ie, k_vec, p_vec, s_vec,
                                              qmin_index, qmax_index)
 
         # Convert normalized intensities and errors to IModQ
         normalized_i_of_q = build_i_of_q1d(wl_vec, q_vec, normalized[0], normalized[1], dq_array)
-        normalized_set.append(normalized_i_of_q)
 
-    return normalized_set[0], normalized_set[1]
+        # set
+        norm_iq1d.append(normalized_i_of_q)
+
+    return norm_iq1d
 
 
-def process_elastic_runs():
-    """
-    - dark current
-    - mask
-    - sensitivities
-    - empty beam
-    - empty beam radius
-    Returns
-    -------
+# def process_elastic_runs():
+#     """
+#     - dark current
+#     - mask
+#     - sensitivities
+#     - empty beam
+#     - empty beam radius
+#     Returns
+#     -------
+#
+#     """
+#     processed_elastic_ref = process_sample_configuration(elastic_reference_run,
+#                                                          sample_trans_ws=elastic_reference_ws,
+#                                                          sample_trans_value=elastic_reference_ws_value,
+#                                                          bkg_ws_raw=None,
+#                                                          bkg_trans_ws=None,  # bkgd_trans_ws,
+#                                                          bkg_trans_value=None,  # bkg_trans_value,
+#                                                          theta_deppendent_transmission=True / False,
+#                                                          dark_current=loaded_ws.dark_current,
+#                                                          flux_method=flux_method,
+#                                                          flux=flux,
+#                                                          mask_ws=loaded_ws.mask,
+#                                                          mask_panel=mask_panel,
+#                                                          solid_angle=solid_angle,
+#                                                          sensitivity_workspace=loaded_ws.sensitivity,
+#                                                          output_workspace=f'processed_data_main',
+#                                                          output_suffix=output_suffix,
+#                                                          thickness=thickness,
+#                                                          absolute_scale_method=absolute_scale.method,
+#                                                          # absolute_scale_method,
+#                                                          absolute_scale=absolute_scale.value,  # absolute_scale,
+#                                                          empty_beam_ws=empty_trans_ws,
+#                                                          beam_radius=beam_radius,
+#                                                          keep_processed_workspaces=False)
+#
+#     return i_of_q
 
-    """
-    processed_elastic_ref = process_sample_configuration(elastic_reference_run,
-                                                         sample_trans_ws=elastic_reference_ws,
-                                                         sample_trans_value=elastic_reference_ws_value,
-                                                         bkg_ws_raw=None,
-                                                         bkg_trans_ws=None,  # bkgd_trans_ws,
-                                                         bkg_trans_value=None,  # bkg_trans_value,
-                                                         theta_deppendent_transmission=True / False,
-                                                         dark_current=loaded_ws.dark_current,
-                                                         flux_method=flux_method,
-                                                         flux=flux,
-                                                         mask_ws=loaded_ws.mask,
-                                                         mask_panel=mask_panel,
-                                                         solid_angle=solid_angle,
-                                                         sensitivity_workspace=loaded_ws.sensitivity,
-                                                         output_workspace=f'processed_data_main',
-                                                         output_suffix=output_suffix,
-                                                         thickness=thickness,
-                                                         absolute_scale_method=absolute_scale.method,
-                                                         # absolute_scale_method,
-                                                         absolute_scale=absolute_scale.value,  # absolute_scale,
-                                                         empty_beam_ws=empty_trans_ws,
-                                                         beam_radius=beam_radius,
-                                                         keep_processed_workspaces=False)
 
-    return i_of_q
+def correct_acc_incoherence_scattering(iq1d_frames, iq2d_frames, correction_setup):
+    assert iq1d_frames
+    assert iq2d_frames
+    assert correction_setup
+
+    return iq1d_frames, iq2d_frames

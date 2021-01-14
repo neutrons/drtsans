@@ -683,6 +683,40 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     else:
         sample_trans_ws = None
 
+    from drtsans.tof.eqsans.correction_api import (parse_correction_config,
+                                                   calculate_elastic_scattering_factor,
+                                                   normalize_ws_with_elastic_scattering,
+                                                   process_bin_workspace,
+                                                   correct_acc_incoherence_scattering)
+    # Process inelastic/incoherent scattering correction configuration
+    incoherence_correction_setup = parse_correction_config(reduction_config)
+    if incoherence_correction_setup.do_correction:
+        # optinally calcualte the elastic scattering nromalization factors
+        elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
+        if elastic_ref_setup:
+            # calculate normalization factor
+            norm_dict = calculate_elastic_scattering_factor(loaded_ws.elastic_ref_ws,
+                                                            loaded_ws.elastic_ref_trans_ws,
+                                                            elastic_ref_setup.ref_trans_value,
+                                                            elastic_ref_setup.ref_sample_thickness,
+                                                            None)
+        else:
+            norm_dict = None
+
+        # process, bin and optionally normalize (by elastic scattering) background
+        bkgd_iq1d, bkgd_iq2d = process_bin_workspace(loaded_ws.background,
+                                                     (loaded_ws.background_transmission, bkg_trans_value),
+                                                     None, None)
+        # normalize
+        if norm_dict:
+            bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
+        # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
+        bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d, incoherence_correction_setup)
+    else:
+        norm_dict = None
+        bkgd_iq1d = bkgd_iq2d = None
+        # END-IF
+
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
@@ -690,38 +724,66 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
-        processed_data_main = process_single_configuration(raw_sample_ws,
-                                                           sample_trans_ws=sample_trans_ws,
-                                                           sample_trans_value=sample_trans_value,
-                                                           bkg_ws_raw=loaded_ws.background,
-                                                           bkg_trans_ws=bkgd_trans_ws,
-                                                           bkg_trans_value=bkg_trans_value,
-                                                           theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
-                                                           dark_current=loaded_ws.dark_current,
-                                                           flux_method=flux_method,
-                                                           flux=flux,
-                                                           mask_ws=loaded_ws.mask,
-                                                           mask_panel=mask_panel,
-                                                           solid_angle=solid_angle,
-                                                           sensitivity_workspace=loaded_ws.sensitivity,
-                                                           output_workspace=f'processed_data_main',
-                                                           output_suffix=output_suffix,
-                                                           thickness=thickness,
-                                                           absolute_scale_method=absolute_scale_method,
-                                                           empty_beam_ws=empty_trans_ws,
-                                                           beam_radius=beam_radius,
-                                                           absolute_scale=absolute_scale,
-                                                           keep_processed_workspaces=False)
-        # Save nexus processed
-        filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
-        SaveNexus(processed_data_main, Filename=filename)
-        # binning
-        subpixel_kwargs = dict()
-        if reduction_config['useSubpixels'] is True:
-            subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
-                               'n_vertical': reduction_config['subpixelsY']}
-        iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
-        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
+        if incoherence_correction_setup.do_correction:
+            # process data with incoherent/inelastic correction
+            sample_1d_fr, sample_2d_fr = process_bin_workspace(raw_sample_ws,
+                                                               (sample_trans_ws, sample_trans_value),
+                                                               None, None)
+            # normalize
+            if norm_dict:
+                sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
+                                                                                  sample_2d_fr,
+                                                                                  norm_dict)
+            # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
+            r = correct_acc_incoherence_scattering(sample_1d_fr, sample_2d_fr, incoherence_correction_setup)
+            iq1d_main_in_fr, iq2d_main_in_fr = r
+
+            # subtract with background
+            iq1d_main_in_fr -= bkgd_iq1d
+            iq2d_main_in_fr -= bkgd_iq2d
+
+        else:
+            # process data without correction
+            processed_data_main = process_single_configuration(raw_sample_ws,
+                                                               sample_trans_ws=sample_trans_ws,
+                                                               sample_trans_value=sample_trans_value,
+                                                               bkg_ws_raw=loaded_ws.background,
+                                                               bkg_trans_ws=bkgd_trans_ws,
+                                                               bkg_trans_value=bkg_trans_value,
+                                                               theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+                                                               dark_current=loaded_ws.dark_current,
+                                                               flux_method=flux_method,
+                                                               flux=flux,
+                                                               mask_ws=loaded_ws.mask,
+                                                               mask_panel=mask_panel,
+                                                               solid_angle=solid_angle,
+                                                               sensitivity_workspace=loaded_ws.sensitivity,
+                                                               output_workspace=f'processed_data_main',
+                                                               output_suffix=output_suffix,
+                                                               thickness=thickness,
+                                                               absolute_scale_method=absolute_scale_method,
+                                                               empty_beam_ws=empty_trans_ws,
+                                                               beam_radius=beam_radius,
+                                                               absolute_scale=absolute_scale,
+                                                               keep_processed_workspaces=False)
+            # Save nexus processed
+            filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
+            SaveNexus(processed_data_main, Filename=filename)
+            # Convert to Q
+            # set up subpixel binning options  FIXME - it does not seem to work
+            subpixel_kwargs = dict()
+            if reduction_config['useSubpixels']:
+                subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
+                                   'n_vertical': reduction_config['subpixelsY']}
+            # convert to Q
+            iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
+            iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
+            # split to frames
+            iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
+            iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
+        # END-IF-ELSE
+
+        # Work with wedgets
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
             logger.notice(f'Auto wedge options: {autoWedgeOpts}')
             autoWedgeOpts['debug_dir'] = output_dir
@@ -736,8 +798,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             reduction_config["wedges"] = wedges
             reduction_config["symmetric_wedges"] = symmetric_wedges
 
-        iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
-        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
         for wl_frame in range(n_wl_frames):

@@ -64,6 +64,18 @@ class CorrectionConfiguration:
         self._elastic_ref_run_setup = None
         self._sample_thickness = 1  # mm
 
+        # special debug option
+        self.debug_no_correction = False
+
+    def __str__(self):
+        if self._do_correction:
+            output = f'Do correction: select min incoherence = {self._select_min_incoherence}, ' \
+                     f'thickness = {self._sample_thickness}, no correction (debug) = {self.debug_no_correction}'
+        else:
+            output = f'No correction'
+
+        return output
+
     @property
     def do_correction(self):
         return self._do_correction

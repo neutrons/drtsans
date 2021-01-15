@@ -32,6 +32,12 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
+from drtsans.tof.eqsans.correction_api import (calculate_elastic_scattering_factor,
+                                               normalize_ws_with_elastic_scattering,
+                                               process_bin_workspace,
+                                               # parse_correction_config
+                                               correct_acc_incoherence_scattering,
+                                               CorrectionConfiguration)
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -572,9 +578,36 @@ def process_single_configuration(sample_ws_raw,
 
 
 def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True,
-                                no_correction=False):
+                                incoherence_correction_setup=None):
+    """
+
+    Parameters
+    ----------
+    loaded_ws
+    reduction_input
+    prefix
+    skip_nan
+    incoherence_correction_setup: CorrectionConfiguration
+        incoherence/inelastic scattering correction configuration
+
+    Returns
+    -------
+    ~collections.namedtuple
+        IofQ_output': ['I2D_main', 'I1D_main']
+
+    """
+    # Process reduction input: configuration and etc.
     reduction_config = reduction_input["configuration"]
 
+    # Process inelastic/incoherent scattering correction configuration
+    # FIXME - this shall be parsed after JSON is implemented
+    # incoherence_correction_setup = parse_correction_config(reduction_config)
+    if incoherence_correction_setup is None:
+        # backward compatibility
+        incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
+    print(f'Incoherence correction setup: {incoherence_correction_setup}')
+
+    # process: monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
     flux_method = flux_method_translator.get(reduction_config["normalization"], None)
 
@@ -720,14 +753,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                       'qmax': qmax}
     binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
 
-    # TODO FIXME - move the imports to the top of the module
-    from drtsans.tof.eqsans.correction_api import (parse_correction_config,
-                                                   calculate_elastic_scattering_factor,
-                                                   normalize_ws_with_elastic_scattering,
-                                                   process_bin_workspace,
-                                                   correct_acc_incoherence_scattering)
-    # Process inelastic/incoherent scattering correction configuration
-    incoherence_correction_setup = parse_correction_config(reduction_config)
     if incoherence_correction_setup.do_correction:
         # optinally calcualte the elastic scattering nromalization factors
         elastic_ref_setup = incoherence_correction_setup.elastic_reference_run

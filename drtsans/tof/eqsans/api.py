@@ -299,14 +299,18 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     print('TOTAL: ', '{:.2f} MB'.format(total_size/1024**2))
 
     ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
-    return dict(sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],
-                background=ws_mon_pair(data=background_ws, monitor=background_mon_ws),
-                empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
-                sample_transmission=ws_mon_pair(data=sample_transmission_ws, monitor=sample_transmission_mon_ws),
-                background_transmission=ws_mon_pair(data=background_transmission_ws,
-                                                    monitor=background_transmission_mon_ws),
-                dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
-                sensitivity=sensitivity_ws, mask=mask_ws)
+
+    loaded_ws_dict = dict(sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],
+                          background=ws_mon_pair(data=background_ws, monitor=background_mon_ws),
+                          empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
+                          sample_transmission=ws_mon_pair(data=sample_transmission_ws,
+                                                          monitor=sample_transmission_mon_ws),
+                          background_transmission=ws_mon_pair(data=background_transmission_ws,
+                                                              monitor=background_transmission_mon_ws),
+                          dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
+                          sensitivity=sensitivity_ws, mask=mask_ws)
+
+    return loaded_ws_dict
 
 
 def prepare_data_workspaces(data,

@@ -3,8 +3,9 @@ from drtsans.dataobjects import IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, get_gold_1d_linear_bins,\
-    get_gold_1d_log_bins
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import (generate_test_data, generate_test_data_wavelength,
+                                                              get_gold_1d_linear_bins,
+                                                              get_gold_1d_log_bins)
 import pytest
 
 # This module supports testing data for issue #239.
@@ -63,13 +64,6 @@ def test_1d_bin_linear_no_wt():
     assert binned_iq.delta_mod_q[3] == pytest.approx(1.154e-02, abs=2.E-5), \
         'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
 
-    # verify
-    # np.testing.assert_allclose(binned_iq2.intensity, binned_iq.intensity, rtol=1e-8,
-    #                            equal_nan=True, err_msg='High level method cannot have same result from low levels',
-    #                            verbose=True)
-
-    return
-
 
 def test_1d_bin_log_no_wt():
     """Test '1D_bin_log_no_sub_no_wt'
@@ -109,6 +103,61 @@ def test_1d_bin_log_no_wt():
     # sigma_Q(0.0022) = 1.135E-02
     assert binned_iq.delta_mod_q[4] == pytest.approx(1.154E-2, abs=2.E-5), \
         'Log binning: Q resolution {} does not match expected {}'.format(binned_iq.delta_mod_q[3], 1.135E-02)
+
+
+def test_1d_bin_linear_no_wt_no_wl():
+    """Test case: linear binning 1D with no-weight binning and keep wavelength
+    """
+    q_min = 0.000
+    q_max = 0.010
+    num_bins = 10
+
+    # Verify bin edges and bin center
+    linear_bins = determine_1d_linear_bins(q_min, q_max, num_bins)
+    gold_edges, gold_centers = get_gold_1d_linear_bins()
+
+    np.testing.assert_allclose(linear_bins.edges, gold_edges, rtol=1.E-12)
+    np.testing.assert_allclose(linear_bins.centers, gold_centers, rtol=1.E-12)
+
+    # Get Q1D data
+    intensities, sigmas, scalar_q_array, scalar_dq_array, wl_array = generate_test_data_wavelength(1, 3)
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array, wl_array)
+
+    # Binned I(Q) no-weight
+    binned_iq_wl = bin_intensity_into_q1d(test_iq, linear_bins, BinningMethod.NOWEIGHT, wavelength_bins=None)
+    binned_iq_no_wl = bin_intensity_into_q1d(test_iq, linear_bins, BinningMethod.NOWEIGHT)
+
+    # Calculate and verify
+    # Check size of output I(Q, wl) and I(Q)
+    assert binned_iq_wl.intensity.shape[0] == 3 * binned_iq_no_wl.intensity.shape[0]
+    num_base_bins = binned_iq_no_wl.intensity.shape[0]
+
+    # I(0.0035) = 68.92857:    drtsans: 68.92857142857143
+    # verify Q[3]
+    assert abs(binned_iq_wl.mod_q[3] - 0.0035) < 1E-6, 'Q[3] {} shall be {} +/- 1e-6' \
+                                                       ''.format(binned_iq_wl.delta_mod_q[3], 0.0035)
+    assert abs(binned_iq_no_wl.mod_q[3] - 0.0035) < 1E-6, f'Q[3] {binned_iq_wl.delta_mod_q[3]} shall be ' \
+                                                          f'{0.0035} +/- 1e-6'
+
+    # verify wavelength
+    assert binned_iq_no_wl.wavelength is None
+    assert binned_iq_wl.wavelength[3] == pytest.approx(1.5, 1E-5)
+
+    # verify I[3]
+    assert abs(binned_iq_wl.intensity[3] - 68.92857) < 1E-5, 'Intensity[3] shall be 68.92857 but not {}' \
+                                                             ''.format(binned_iq_wl.intensity[3])
+    assert binned_iq_wl.intensity[3 + num_base_bins] == pytest.approx(68.92857 * 2, 1E-6),\
+        f'diff = {binned_iq_wl.intensity[3 + num_base_bins] - 68.92857 * 2}'
+    # 3 wavelengths, 3 times of sample points, 6 times of total intensity (simple sum).
+    # thus the binned intensity is increased by 6/3 = 2 times
+    assert binned_iq_wl.intensity[3] * 2. == pytest.approx(binned_iq_no_wl.intensity[3], 1E-6),\
+        f'diff = {binned_iq_wl.intensity[3] * 6. - binned_iq_no_wl.intensity[3]}'
+
+    # verify sigmaI[3] = 2.218889:
+    assert abs(binned_iq_wl.error[3] - 2.218889) < 1E-6, 'error'
+    # verify sigma_Q[3] = 1.154E-02
+    assert binned_iq_wl.delta_mod_q[3] == pytest.approx(1.154e-02, abs=2.E-5), \
+        'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq_wl.delta_mod_q[3], 1.135E-02)
 
 
 if __name__ == '__main__':

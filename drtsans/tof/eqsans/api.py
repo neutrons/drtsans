@@ -55,6 +55,17 @@ def _get_configuration_file_parameters(sample_run):
 def load_all_files(reduction_input, prefix='', load_params=None):
     r"""
     overwrites metadata for sample workspace
+
+    Workflow:
+    1. parse reduction_input
+    2. remove existing related workspaces with same run numbers
+    3. process beam center
+        output: load_params, reduction_input
+    4. adjust pixel heights and widths
+        output: load_params, reduction_input
+    5. load and optionally slice sample runs
+    6. load other runs: bkgd, empty, sample_trans, bkgd_trans
+
     """
     reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
 
@@ -95,6 +106,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     # find the center first
     if center != "":
+        # calculate beam center from center workspace
         center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
         if not registered_workspace(center_ws_name):
             center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
@@ -110,13 +122,17 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         print(f"calculated center ({center_x}, {center_y})")
         beam_center_type = 'calculated'
     else:
+        # use default EQSANS center
+        # FIXME - it is better to have these hard code value defined out side of this method
         center_x = 0.025239
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")
         beam_center_type = 'default'
+    # set beam center
     reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
                                       'y': center_y, 'fit_results': fit_results}
 
+    # update to 'load_params'
     if load_params is None:
         load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
 
@@ -137,7 +153,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         load_params['bin_width'] = step_type * reduction_config["wavelengthStep"]
     load_params['monitors'] = reduction_config["normalization"] == "Monitor"
 
-    # FIXME the issues with the monitor on EQSANS has been fixed. Enable normalization by monitor (issue #538)
+    # FIXME the issues with the monitor on EQSANS has not been fixed. Enable normalization by monitor (issue #538)
     if load_params['monitors']:
         raise RuntimeError('Normalization by monitor option will be enabled in a later drt-sans release')
 
@@ -147,6 +163,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if len(sample.split(',')) > 1:
             raise ValueError("Can't do slicing on summed data sets")
 
+    # Load (and optionally slice) sample runs
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
@@ -188,6 +205,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     reduction_input["logslice_data"] = logslice_data_dict
 
     # load all other files
+    # background, empty, sample transmission, background transmission
     for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
@@ -199,6 +217,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
 
+    # dark run (aka dark current run)
     dark_current_ws = None
     dark_current_mon_ws = None
     dark_current_file = reduction_config["darkFileName"]
@@ -275,6 +294,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
     smearing_pixel_size_y = reduction_config["smearingPixelSizeY"]
 
+    # Sample workspace: set meta data
     for ws in sample_ws_list:
         set_meta_data(ws, wave_length=None, wavelength_spread=None,
                       sample_offset=load_params['sample_offset'],

@@ -576,6 +576,27 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
 
     """
     def _bin_iq1d(bin_edges, q_vec, dq_vec, i_vec, error_vec):
+        """Bin I(Q1D), dI(Q1D) and dQ(Q1D) by no weight binning algorithm
+
+        Parameters
+        ----------
+        bin_edges: ~numpy.ndarray
+            bin edges
+        q_vec: ~numpy.ndarray
+            vector of Q1D
+        dq_vec: ~numpy.ndarray, None
+            vector for Q1D resolution.  could be left as None
+        i_vec: ~numpy.ndarray
+            1d vector of intensity
+        error_vec: ~numpy.ndarray
+            1D vector of intensity error
+
+        Returns
+        -------
+        ~tuple
+            binned intensity vector, binned intensity error vector, binned q resolution vector
+
+        """
         # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
         num_pt_vec, _ = np.histogram(q_vec, bins=bin_edges)
 
@@ -604,34 +625,10 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
 
     if wavelength_bins == 1 or wl_array is None:
         # bin I(Q, wl) regardless of wl value
-
-        # # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
-        # num_pt_array, _ = np.histogram(q_array, bins=q_bins.edges)
-        #
-        # # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-        # i_raw_array, _ = np.histogram(q_array, bins=q_bins.edges, weights=iq_array)
-        #
-        # # Square of summed uncertainties for each bin
-        # sigma_sqr_array, _ = np.histogram(q_array, bins=q_bins.edges, weights=sigmaq_array ** 2)
-        #
-        # # Final I(Q):     I_k       = \frac{I_{k, raw}}{N_k}
-        # i_final_array = i_raw_array / num_pt_array
-        # # Final sigma(Q): sigmaI_k  = \frac{sigmaI_{k, raw}}{N_k}
-        # sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
-        #
-        # # Calculate Q resolution of binned
-        # if dq_array is None:
-        #     bin_q_resolution = None
-        # else:
-        #     binned_dq, bin_x = np.histogram(q_array, bins=q_bins.edges, weights=dq_array)
-        #     bin_q_resolution = binned_dq / num_pt_array
-
-        # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
-        # IQmod is a class for holding 1D binned data.
-
         i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(q_bins.edges, q_array, dq_array,
                                                                        iq_array, sigmaq_array)
 
+        # construct output without wavelength vector
         binned_iq1d = IQmod(intensity=i_final_array, error=sigma_final_array,
                             mod_q=q_bins.centers, delta_mod_q=bin_q_resolution)
 
@@ -655,38 +652,17 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             # filter
             filtered_matrix = wl_matrix[wl_matrix[:, 0] == wl_i]
 
-            q_array_i = filtered_matrix[:, 1]
-            iq_array_i = filtered_matrix[:, 2]
-            sigmaq_array_i = filtered_matrix[:, 3]
+            # special work with q resolution
             if dq_array is None:
                 dq_array_i = None
             else:
                 dq_array_i = filtered_matrix[:, 4]
 
-            # # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
-            # num_pt_array, _ = np.histogram(q_array_i, bins=q_bins.edges)
-            #
-            # # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-            # i_raw_array, _ = np.histogram(q_array_i, bins=q_bins.edges, weights=iq_array_i)
-            #
-            # # Square of summed uncertainties for each bin
-            # sigma_sqr_array, _ = np.histogram(q_array_i, bins=q_bins.edges, weights=sigmaq_array_i ** 2)
-            #
-            # # Final I(Q):     I_k       = \frac{I_{k, raw}}{N_k}
-            # i_final_array = i_raw_array / num_pt_array
-            # # Final sigma(Q): sigmaI_k  = \frac{sigmaI_{k, raw}}{N_k}
-            # sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
-            #
-            # # Calculate Q resolution of binned
-            # if dq_array is None:
-            #     bin_q_resolution = None
-            # else:
-            #     dq_array_i = filtered_matrix[:, 4]
-            #     binned_dq, bin_x = np.histogram(q_array_i, bins=q_bins.edges, weights=dq_array_i)
-            #     bin_q_resolution = binned_dq / num_pt_array
-
-            i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(q_bins.edges, q_array_i, dq_array_i,
-                                                                           iq_array_i, sigmaq_array_i)
+            # bin by Q1D
+            i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(q_bins.edges, filtered_matrix[:, 1],
+                                                                           dq_array_i,
+                                                                           filtered_matrix[:, 2],
+                                                                           filtered_matrix[:, 3])
 
             # build up the final output
             binned_q_vec = np.concatenate((binned_q_vec, q_bins.centers))

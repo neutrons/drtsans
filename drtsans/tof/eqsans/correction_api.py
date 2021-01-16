@@ -207,16 +207,16 @@ def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
         # binning does not support annular and wedge for correction purpose
         iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                binning_setup.nxbins_main, binning_setup.nybins_main,
-                                               n1dbins=binning_setup.nbins_main,
-                                               n1dbins_per_decade=binning_setup.nbins_main_per_decade,
+                                               n1dbins=binning_setup.n1dbins,
+                                               n1dbins_per_decade=binning_setup.n1dbins_per_decade,
                                                decade_on_center=binning_setup.decade_on_center,
                                                bin1d_type=binning_setup.bin1d_type,
-                                               log_scale=binning_setup.log_binning,
+                                               log_scale=binning_setup.log_scale,
                                                qmin=binning_setup.qmin, qmax=binning_setup.qmax,
                                                # annular_angle_bin=binning_setup.annular_bin,
                                                # wedges=binning_setup.wedges,
                                                # symmetric_wedges=symmetric_wedges,
-                                               error_weighted=binning_setup.weighted_errors,
+                                               error_weighted=False,  # FIXME - check weighted error is equal to weighted binning?
                                                n_wavelength_bin=None)
         q1d_frames.append(iq2d_main_out)
         q2d_frames.append(iq1d_main_out)

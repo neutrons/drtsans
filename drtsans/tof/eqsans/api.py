@@ -768,18 +768,18 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
         # process, bin and optionally normalize (by elastic scattering) background
         bkgd_iq1d, bkgd_iq2d = process_bin_workspace(loaded_ws.background,
-                                                     (loaded_ws.background_transmission, bkg_trans_value),
+                                                     (bkgd_trans_ws, bkg_trans_value),
                                                      theta_deppendent_transmission,
                                                      loaded_ws.dark_current,
                                                      (flux_method, flux),
-                                                     (loaded_ws.mask_ws, mask_panel, None),
+                                                     (loaded_ws.mask, mask_panel, None),
                                                      solid_angle,
-                                                     loaded_ws.senstivity,
+                                                     loaded_ws.sensitivity,
                                                      incoherence_correction_setup.sample_thickness,
                                                      absolute_scale,
                                                      binning_params)
 
-        if no_correction is False:
+        if incoherence_correction_setup.debug_no_correction is False:
             # normalize
             if norm_dict:
                 bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
@@ -805,14 +805,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                                theta_deppendent_transmission,
                                                                loaded_ws.dark_current,
                                                                (flux_method, flux),
-                                                               (loaded_ws.mask_ws, mask_panel, None),
+                                                               (loaded_ws.mask, mask_panel, None),
                                                                solid_angle,
-                                                               loaded_ws.senstivity,
+                                                               loaded_ws.sensitivity,
                                                                incoherence_correction_setup.sample_thickness,
                                                                absolute_scale,
                                                                binning_params)
 
-            if not no_correction:
+            # FIXME - this if-else block is for debugging refined workflow.
+            if incoherence_correction_setup.debug_no_correction is False:
                 # normalize
                 if norm_dict:
                     sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
@@ -822,12 +823,20 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                 r = correct_acc_incoherence_scattering(sample_1d_fr, sample_2d_fr, incoherence_correction_setup)
                 iq1d_main_in_fr, iq2d_main_in_fr = r
             else:
+                # no correction for debugging purpose
+                # FIXME - remove this after everything passes!
                 iq1d_main_in_fr = sample_1d_fr
                 iq2d_main_in_fr = sample_2d_fr
 
             # subtract with background
-            iq1d_main_in_fr -= bkgd_iq1d
-            iq2d_main_in_fr -= bkgd_iq2d
+            print(f'type: iq1d: {type(iq1d_main_in_fr)}')
+            print(f'type: bkgd: {type(bkgd_iq1d)}')
+            print(f'len: iq1d: {len(iq1d_main_in_fr)}')
+            print(f'len: bkgd: {len(bkgd_iq1d)}')
+            for i in range(len(iq1d_main_in_fr)):
+                iq1d_main_in_fr[i] = subtract_background(iq1d_main_in_fr[i], bkgd_iq1d[i])
+                iq2d_main_in_fr[i] = subtract_background(iq2d_main_in_fr[i], bkgd_iq2d[i])
+                # iq2d_main_in_fr[i] = iq2d_main_in_fr[i] - bkgd_iq2d[i]
 
         else:
             # process data without correction

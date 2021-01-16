@@ -174,7 +174,10 @@ def process_raw_workspace(ws_raw,
                                      **prepare_data_conf)
     # apply transmission to the sample
     sample_trans_ws, sample_trans_value = transmission
+    print(f'tpe of transmission: {type(transmission)}')
     if sample_trans_ws or sample_trans_value:
+        print(f'sample trans ws : {sample_trans_ws}\n\t\ttype = {type(sample_trans_ws)}')
+        print(f'sample trans val: {sample_trans_value}\n\t\ttype = {type(sample_trans_value)}')
         if sample_trans_ws:
             RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
                              WorkspaceToMatch=raw_ws,

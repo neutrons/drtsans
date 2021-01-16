@@ -200,7 +200,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
     """
     # Sanity check
     if n_wavelength_bin is None:
-        raise NotImplementedError(f'Case for n_wavelength_bin = {n_wavelength_bin} has not been implemented')
+        pass
     elif n_wavelength_bin > 1:
         raise NotImplementedError(f'Case for n_wavelength_bin = {n_wavelength_bin} has not been implemented')
 
@@ -259,12 +259,14 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                       ub1d.mod_q[q_filter],
                                       ub1d.delta_mod_q[q_filter] if ub1d.delta_mod_q is not None else None,
                                       ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
-                binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method))
+                binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method,
+                                       wavelength_bins=n_wavelength_bin))
         else:
             # linear bins
             bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
             for ub1d in unbinned_1d:
-                binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method))
+                binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method,
+                                       wavelength_bins=n_wavelength_bin))
     return binned_q2d, binned_q1d_list
 
 

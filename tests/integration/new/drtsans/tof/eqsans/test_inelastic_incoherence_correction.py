@@ -75,7 +75,7 @@ def test_parse_json():
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason="Required test data not available")
-def test_wavelength_step(reference_dir):
+def test_correct_without_elastic(reference_dir):
 
     # Set up the configuration dict
     configuration = {
@@ -126,22 +126,40 @@ def test_wavelength_step(reference_dir):
     gold_file_dir = os.path.join(reference_dir.new.eqsans, 'test_reduce/gold_data')
     assert os.path.exists(gold_file_dir), f'EQSANS gold data directory: {gold_file_dir} does not exist'
 
+    # Create temp output directory
+    # FIXME the following with block is skipped for quick test on the next with-block
+    # with tempfile.TemporaryDirectory() as test_dir:
+    #     configuration['configuration']['outputDir'] = test_dir
+    #     configuration['outputFileName'] = 'test_wavelength_step_reg'
+    #     configuration['dataDirectories'] = test_dir
+    #     # validate and clean configuration
+    #     input_config = reduction_parameters(configuration)
+    #     loaded = load_all_files(input_config)
+    #     reduced_value = reduce_single_configuration(loaded, input_config)
+
+    # print(f'reduced: {reduced_value}')
+    # print(f'reduced type = {type(reduced_value)}')
+    # print(f'list size = {len(reduced_value)}')
+    # for val in reduced_value:
+    #     print(f'type = {type(val)}')
+
+    from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+
     # Create output directory
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir
         configuration['outputFileName'] = 'test_wavelength_step_reg'
         configuration['dataDirectories'] = test_dir
+
+        # Test correction setup
+        test_setup = CorrectionConfiguration(True, False)
+        test_setup.debug_no_correction = True
+
         # validate and clean configuration
         input_config = reduction_parameters(configuration)
         loaded = load_all_files(input_config)
-        reduce_single_configuration(loaded, input_config, no_correction=True)
-        output_file_name = os.path.join(test_dir, 'test_wavelength_step_reg.nxs')
-        assert os.path.isfile(output_file_name), f'Expected output file {output_file_name} does not exists'
+        reduce_single_configuration(loaded, input_config, incoherence_correction_setup=test_setup)
 
-        # verify_reduced_data
-        gold_file = os.path.join(gold_file_dir, 'expected_wavelength_step_reg.nxs')
-        exp_file = output_file_name
-        verify_reduction(exp_file, gold_file, 'reg')
 
 
 def verify_reduction(test_file, gold_file, ws_prefix):

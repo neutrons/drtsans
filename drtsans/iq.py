@@ -143,6 +143,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             n1dbins_per_decade=None, bin1d_type='scalar',
             log_scale=False, decade_on_center=False,
             qmin=None, qmax=None,
+            qxrange=None, qyrange=None,
             annular_angle_bin=1.,
             wedges: List[Any] = None,
             symmetric_wedges: bool = True,
@@ -176,6 +177,10 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         minimum 1D q
     qmax: float
         maximum 1D q
+    qxrange: ~tuple
+        qx min and qx max
+    qyrange: ~tuple
+        qy min and qy max
     annular_angle_bin: float
         width of annular bin in degrrees. Annular binning is linear
     wedges: list
@@ -209,13 +214,22 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         method = BinningMethod.WEIGHTED
 
     # 2D binning
-    qx_min = np.min(i_qxqy.qx)
-    qx_max = np.max(i_qxqy.qx)
+    if qxrange is None:
+        # default: data's qx range
+        qx_min = np.min(i_qxqy.qx)
+        qx_max = np.max(i_qxqy.qx)
+    else:
+        qx_min, qx_max = qxrange
     binning_x = determine_1d_linear_bins(qx_min, qx_max, nxbins)
-    qy_min = np.min(i_qxqy.qy)
-    qy_max = np.max(i_qxqy.qy)
-    binning_y = determine_1d_linear_bins(qy_min, qy_max, nybins)
 
+    if qyrange is None:
+        # default: data's qy range
+        qy_min = np.min(i_qxqy.qy)
+        qy_max = np.max(i_qxqy.qy)
+    else:
+        qy_min, qy_max = qyrange
+    binning_y = determine_1d_linear_bins(qy_min, qy_max, nybins)
+    # bin 2D
     binned_q2d = bin_intensity_into_q2d(i_qxqy,
                                         binning_x,
                                         binning_y,

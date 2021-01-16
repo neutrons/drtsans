@@ -829,12 +829,16 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                 iq2d_main_in_fr = sample_2d_fr
 
             # subtract with background
+            print(f'Binning: {binning_params}')
             print(f'type: iq1d: {type(iq1d_main_in_fr)}')
             print(f'type: bkgd: {type(bkgd_iq1d)}')
             print(f'len: iq1d: {len(iq1d_main_in_fr)}')
             print(f'len: bkgd: {len(bkgd_iq1d)}')
+            print(f'Number of frame: {len(iq1d_main_in_fr)}')
             for i in range(len(iq1d_main_in_fr)):
+                print('1D')
                 iq1d_main_in_fr[i] = subtract_background(iq1d_main_in_fr[i], bkgd_iq1d[i])
+                print('2D')
                 iq2d_main_in_fr[i] = subtract_background(iq2d_main_in_fr[i], bkgd_iq2d[i])
                 # iq2d_main_in_fr[i] = iq2d_main_in_fr[i] - bkgd_iq2d[i]
 

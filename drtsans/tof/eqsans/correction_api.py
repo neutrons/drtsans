@@ -218,8 +218,9 @@ def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
                                                # symmetric_wedges=symmetric_wedges,
                                                error_weighted=False,  # FIXME - check weighted error is equal to weighted binning?
                                                n_wavelength_bin=None)
-        q1d_frames.append(iq2d_main_out)
-        q2d_frames.append(iq1d_main_out)
+        assert isinstance(iq1d_main_out, list), f'iq1d output type = {type(iq1d_main_out)}'
+        q2d_frames.append(iq2d_main_out)
+        q1d_frames.append(iq1d_main_out[0])
     # END-FOR
 
     return q1d_frames, q2d_frames

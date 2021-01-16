@@ -830,16 +830,20 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
             # subtract with background
             print(f'Binning: {binning_params}')
-            print(f'type: iq1d: {type(iq1d_main_in_fr)}')
-            print(f'type: bkgd: {type(bkgd_iq1d)}')
-            print(f'len: iq1d: {len(iq1d_main_in_fr)}')
-            print(f'len: bkgd: {len(bkgd_iq1d)}')
-            print(f'Number of frame: {len(iq1d_main_in_fr)}')
-            for i in range(len(iq1d_main_in_fr)):
+            print(f'Number of frames: {len(iq1d_main_in_fr)}')
+            for i_f in range(len(iq1d_main_in_fr)):
                 print('1D')
-                iq1d_main_in_fr[i] = subtract_background(iq1d_main_in_fr[i], bkgd_iq1d[i])
+                print(f'[NOW-CORRECTION] 1D: sample     range {iq1d_main_in_fr[i_f].mod_q[0]}, '
+                      f'{iq1d_main_in_fr[i_f].mod_q[-1]}')
+                print(f'[NOW-CORRECTION] 1D: background range {bkgd_iq1d[i_f].mod_q[0]}, '
+                      f'{bkgd_iq1d[i_f].mod_q[-1]}')
+                iq1d_main_in_fr[i_f] = subtract_background(iq1d_main_in_fr[i_f], bkgd_iq1d[i_f])
+
                 print('2D')
-                iq2d_main_in_fr[i] = subtract_background(iq2d_main_in_fr[i], bkgd_iq2d[i])
+                print(f'[NOW-CORRECTION] 2D: range {iq2d_main_in_fr.qx[0, 0]}, '
+                      f'{iq2d_main_in_fr.qx[0, nxbins_main - 1]}')
+                iq2d_main_in_fr[i_f] = subtract_background(iq2d_main_in_fr[i_f], bkgd_iq2d[i_f])
+
                 # iq2d_main_in_fr[i] = iq2d_main_in_fr[i] - bkgd_iq2d[i]
 
         else:
@@ -900,6 +904,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
+
+        print(f'[NOW] qmin = {qmin}, qmax = {qmax}')
+
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
                 fr_log_label = f'_frame_{wl_frame}'
@@ -917,6 +924,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                    annular_angle_bin=annular_bin, wedges=wedges,
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
+            print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[0, nxbins_main-1]}')
+            print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 

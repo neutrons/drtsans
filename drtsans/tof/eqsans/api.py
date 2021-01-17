@@ -38,6 +38,7 @@ from drtsans.tof.eqsans.correction_api import (calculate_elastic_scattering_fact
                                                # parse_correction_config
                                                correct_acc_incoherence_scattering,
                                                CorrectionConfiguration)
+from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -210,7 +211,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     reduction_input["logslice_data"] = logslice_data_dict
 
-    # load all other files
+    # load all other files without further processing
     # background, empty, sample transmission, background transmission
     for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
         if run_number:
@@ -339,95 +340,96 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     return loaded_ws_dict
 
 
-def prepare_data_workspaces(data,
-                            dark_current=None,
-                            flux_method=None,    # normalization (proton charge/time/monitor)
-                            flux=None,           # additional file for normalization
-                            mask_ws=None,        # apply a custom mask from workspace
-                            mask_panel=None,     # mask back or front panel
-                            mask_btp=None,       # mask bank/tube/pixel
-                            solid_angle=True,
-                            sensitivity_workspace=None,
-                            output_workspace=None):
-
-    r"""
-    Given a " raw"data workspace, this function provides the following:
-
-        - subtracts dark current
-        - normalize by time or monitor
-        - applies masks
-        - corrects for solid angle
-        - corrects for sensitivity
-
-    All steps are optional. data, mask_ws, dark_current are either None
-    or histogram workspaces. This function does not load any file.
-
-    Parameters
-    ----------
-    data: namedtuple
-        (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
-        raw workspace (histogram) for data and monitor
-    dark_current: ~mantid.dataobjects.Workspace2D
-        histogram workspace containing the dark current measurement
-    flux_method: str
-        Method for flux normalization. Either 'monitor', or 'time'.
-    flux: str
-        if ``flux_method`` is proton charge, then path to file containing the
-        wavelength distribution of the neutron flux. If ``flux method`` is
-        monitor, then path to file containing the flux-to-monitor ratios.
-        if ``flux_method`` is time, then pass one log entry name such
-        as ``duration`` or leave it as :py:obj:`None` for automatic log search.
-    mask_ws: ~mantid.dataobjects.Workspace2D
-        Mask workspace
-    mask_panel: str
-        Either 'front' or 'back' to mask whole front or back panel.
-    mask_btp: dict
-        Additional properties to Mantid's MaskBTP algorithm
-    solid_angle: bool
-        Apply the solid angle correction
-    sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
-        workspace containing previously calculated sensitivity correction. This
-        overrides the sensitivity_filename if both are provided.
-    output_workspace: str
-        The output workspace name. If None will create data.name()+output_suffix
-
-    Returns
-    -------
-    ~mantid.dataobjects.Workspace2D
-        Reference to the processed workspace
-    """
-    if not output_workspace:
-        output_workspace = str(data.data)
-        output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
-
-    mtd[str(data.data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
-
-    # Dark current
-    if dark_current is not None and dark_current.data is not None:
-        subtract_dark_current(output_workspace, dark_current.data)
-
-    # Normalization
-    if flux_method is not None:
-        kw = dict(method=flux_method, output_workspace=output_workspace)
-        if flux_method == 'monitor':
-            kw['monitor_workspace'] = data.monitor
-        normalize_by_flux(output_workspace, flux, **kw)
-
-    # Additional masks
-    if mask_btp is None:
-        mask_btp = dict()
-    apply_mask(output_workspace, panel=mask_panel, mask=mask_ws, **mask_btp)
-
-    # Solid angle
-    if solid_angle:
-        solid_angle_correction(output_workspace)
-
-    # Sensitivity
-    if sensitivity_workspace is not None:
-        apply_sensitivity_correction(output_workspace,
-                                     sensitivity_workspace=sensitivity_workspace)
-
-    return mtd[output_workspace]
+# NOTE: move to reduction_api.py
+# def prepare_data_workspaces(data,
+#                             dark_current=None,
+#                             flux_method=None,    # normalization (proton charge/time/monitor)
+#                             flux=None,           # additional file for normalization
+#                             mask_ws=None,        # apply a custom mask from workspace
+#                             mask_panel=None,     # mask back or front panel
+#                             mask_btp=None,       # mask bank/tube/pixel
+#                             solid_angle=True,
+#                             sensitivity_workspace=None,
+#                             output_workspace=None):
+#
+#     r"""
+#     Given a " raw"data workspace, this function provides the following:
+#
+#         - subtracts dark current
+#         - normalize by time or monitor
+#         - applies masks
+#         - corrects for solid angle
+#         - corrects for sensitivity
+#
+#     All steps are optional. data, mask_ws, dark_current are either None
+#     or histogram workspaces. This function does not load any file.
+#
+#     Parameters
+#     ----------
+#     data: namedtuple
+#         (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
+#         raw workspace (histogram) for data and monitor
+#     dark_current: ~mantid.dataobjects.Workspace2D
+#         histogram workspace containing the dark current measurement
+#     flux_method: str
+#         Method for flux normalization. Either 'monitor', or 'time'.
+#     flux: str
+#         if ``flux_method`` is proton charge, then path to file containing the
+#         wavelength distribution of the neutron flux. If ``flux method`` is
+#         monitor, then path to file containing the flux-to-monitor ratios.
+#         if ``flux_method`` is time, then pass one log entry name such
+#         as ``duration`` or leave it as :py:obj:`None` for automatic log search.
+#     mask_ws: ~mantid.dataobjects.Workspace2D
+#         Mask workspace
+#     mask_panel: str
+#         Either 'front' or 'back' to mask whole front or back panel.
+#     mask_btp: dict
+#         Additional properties to Mantid's MaskBTP algorithm
+#     solid_angle: bool
+#         Apply the solid angle correction
+#     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
+#         workspace containing previously calculated sensitivity correction. This
+#         overrides the sensitivity_filename if both are provided.
+#     output_workspace: str
+#         The output workspace name. If None will create data.name()+output_suffix
+#
+#     Returns
+#     -------
+#     ~mantid.dataobjects.Workspace2D
+#         Reference to the processed workspace
+#     """
+#     if not output_workspace:
+#         output_workspace = str(data.data)
+#         output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
+#
+#     mtd[str(data.data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
+#
+#     # Dark current
+#     if dark_current is not None and dark_current.data is not None:
+#         subtract_dark_current(output_workspace, dark_current.data)
+#
+#     # Normalization
+#     if flux_method is not None:
+#         kw = dict(method=flux_method, output_workspace=output_workspace)
+#         if flux_method == 'monitor':
+#             kw['monitor_workspace'] = data.monitor
+#         normalize_by_flux(output_workspace, flux, **kw)
+#
+#     # Additional masks
+#     if mask_btp is None:
+#         mask_btp = dict()
+#     apply_mask(output_workspace, panel=mask_panel, mask=mask_ws, **mask_btp)
+#
+#     # Solid angle
+#     if solid_angle:
+#         solid_angle_correction(output_workspace)
+#
+#     # Sensitivity
+#     if sensitivity_workspace is not None:
+#         apply_sensitivity_correction(output_workspace,
+#                                      sensitivity_workspace=sensitivity_workspace)
+#
+#     return mtd[output_workspace]
 
 
 def process_single_configuration(sample_ws_raw,
@@ -541,6 +543,7 @@ def process_single_configuration(sample_ws_raw,
 
     # process background, if not already processed
     if bkg_ws_raw.data:
+        # process background run
         bkgd_ws_name = output_suffix + '_background'
         if not registered_workspace(bkgd_ws_name):
             bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
@@ -579,7 +582,8 @@ def process_single_configuration(sample_ws_raw,
 
 def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True,
                                 incoherence_correction_setup=None):
-    """
+    """Reduce samples from raw workspaces including
+    1. prepare data
 
     Parameters
     ----------
@@ -605,9 +609,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     if incoherence_correction_setup is None:
         # backward compatibility
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
-    print(f'Incoherence correction setup: {incoherence_correction_setup}')
+    print(f'[DEBUG] Incoherence correction setup: {incoherence_correction_setup}')
 
-    # process: monitor, proton charge, ...
+    # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
     flux_method = flux_method_translator.get(reduction_config["normalization"], None)
 
@@ -629,10 +633,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     beam_radius = None  # EQSANS doesn't use keyword DBScalingBeamRadius
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     output_dir = reduction_config["outputDir"]
+    # process binning
+    # Note: option {even_decades = reduction_config["useLogQBinsEvenDecade"]} is removed
     nybins_main = nxbins_main = reduction_config["numQxQyBins"]
     bin1d_type = reduction_config["1DQbinType"]
-    log_binning = reduction_config["QbinType"] == 'log'
-    # FIXME - NO MORE EVENT DECADES even_decades = reduction_config["useLogQBinsEvenDecade"]
+    log_binning = reduction_config["QbinType"] == 'log'  # FIXME - note: fixed to log binning
     decade_on_center = reduction_config["useLogQBinsDecadeCenter"]
     nbins_main = reduction_config["numQBins"]
     nbins_main_per_decade = reduction_config["LogQBinsPerDecade"]
@@ -675,6 +680,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     else:
         empty_trans_ws = None
 
+    # FIXME - compare background transmission and sample transmission codes
     # background transmission
     background_transmission_dict = {}
     background_transmission_raw_dict = {}
@@ -708,8 +714,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         bkgd_trans_ws = None
 
     # sample transmission
-    sample_transmission_dict = {}
-    sample_transmission_raw_dict = {}
+    sample_transmission_dict = {}  # for output log
+    sample_transmission_raw_dict = {}  # for output log
+
     if loaded_ws.sample_transmission.data is not None and empty_trans_ws is not None:
         sample_trans_ws_name = f'{prefix}_sample_trans'
         sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
@@ -718,6 +725,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                             solid_angle=False,
                                                             sensitivity_workspace=loaded_ws.sensitivity,
                                                             output_workspace=sample_trans_ws_name)
+        # calculate transmission with fit function (default) Formula=a*x+b'
         sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                  radius=transmission_radius, radius_unit="mm")
 
@@ -725,10 +733,13 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
         tr_fn = os.path.join(output_dir, f'{outputFilename}_trans.txt')
         SaveAscii(sample_trans_ws, Filename=tr_fn)
+
+        # Prepare result for drtsans.savereductionlog
         sample_transmission_dict['value'] = sample_trans_ws.extractY()
         sample_transmission_dict['error'] = sample_trans_ws.extractE()
         sample_transmission_dict['wavelengths'] = sample_trans_ws.extractX()
 
+        # Prepare result for drtsans.savereductionlog including raw sample transmission
         sample_trans_raw_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
                                                      radius=transmission_radius, radius_unit="mm",
                                                      fit_function='')
@@ -753,21 +764,18 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                       'qmax': qmax}
     binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
 
+    from drtsans.tof.eqsans.correction_api import process_elastic_reference_data
     if incoherence_correction_setup.do_correction:
-        # optinally calcualte the elastic scattering nromalization factors
+        # optionally calcualte the elastic scattering nromalization factors
         elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
         if elastic_ref_setup:
-            # calculate normalization factor
-            norm_dict = calculate_elastic_scattering_factor(loaded_ws.elastic_ref_ws,
-                                                            loaded_ws.elastic_ref_trans_ws,
-                                                            elastic_ref_setup.ref_trans_value,
-                                                            elastic_ref_setup.ref_sample_thickness,
-                                                            None)
-        else:
-            norm_dict = None
+            # process - process_single_configuration - elastic reference run (no bin)
+            process_elastic_reference_data(elastic_ref_setup)
+            # TODO sanity check of expected output from elastic_ref_setup
 
-        # process, bin and optionally normalize (by elastic scattering) background
-        bkgd_iq1d, bkgd_iq2d = process_bin_workspace(loaded_ws.background,
+        # pre-process background background
+        # TODO - rewrite process_bin_workspace to process_workspace()
+        processed_background = process_bin_workspace(loaded_ws.background,
                                                      (bkgd_trans_ws, bkg_trans_value),
                                                      theta_deppendent_transmission,
                                                      loaded_ws.dark_current,
@@ -777,74 +785,25 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                      loaded_ws.sensitivity,
                                                      incoherence_correction_setup.sample_thickness,
                                                      absolute_scale,
-                                                     binning_params)
+                                                     None)
 
-        if incoherence_correction_setup.debug_no_correction is False:
-            # normalize
-            if norm_dict:
-                bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
-            # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
-            bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
-                                                                      incoherence_correction_setup)
+        assert processed_background
+
     else:
-        norm_dict = None
-        bkgd_iq1d = bkgd_iq2d = None
-        # END-IF
+        processed_background = None
+    # END-IF
 
     output = []
     detectordata = {}
+    from drtsans.tof.eqsans.reduction_api import process_single_configuration_incoherence_correction
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
         if incoherence_correction_setup.do_correction:
-            # process data with incoherent/inelastic correction
-            sample_1d_fr, sample_2d_fr = process_bin_workspace(raw_sample_ws,
-                                                               (sample_trans_ws, sample_trans_value),
-                                                               theta_deppendent_transmission,
-                                                               loaded_ws.dark_current,
-                                                               (flux_method, flux),
-                                                               (loaded_ws.mask, mask_panel, None),
-                                                               solid_angle,
-                                                               loaded_ws.sensitivity,
-                                                               incoherence_correction_setup.sample_thickness,
-                                                               absolute_scale,
-                                                               binning_params)
-
-            # FIXME - this if-else block is for debugging refined workflow.
-            if incoherence_correction_setup.debug_no_correction is False:
-                # normalize
-                if norm_dict:
-                    sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
-                                                                                      sample_2d_fr,
-                                                                                      norm_dict)
-                # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
-                r = correct_acc_incoherence_scattering(sample_1d_fr, sample_2d_fr, incoherence_correction_setup)
-                iq1d_main_in_fr, iq2d_main_in_fr = r
-            else:
-                # no correction for debugging purpose
-                # FIXME - remove this after everything passes!
-                iq1d_main_in_fr = sample_1d_fr
-                iq2d_main_in_fr = sample_2d_fr
-
-            # subtract with background
-            print(f'Binning: {binning_params}')
-            print(f'Number of frames: {len(iq1d_main_in_fr)}')
-            for i_f in range(len(iq1d_main_in_fr)):
-                print('1D')
-                print(f'[NOW-CORRECTION] 1D: sample     range {iq1d_main_in_fr[i_f].mod_q[0]}, '
-                      f'{iq1d_main_in_fr[i_f].mod_q[-1]}')
-                print(f'[NOW-CORRECTION] 1D: background range {bkgd_iq1d[i_f].mod_q[0]}, '
-                      f'{bkgd_iq1d[i_f].mod_q[-1]}')
-                iq1d_main_in_fr[i_f] = subtract_background(iq1d_main_in_fr[i_f], bkgd_iq1d[i_f])
-
-                print('2D')
-                print(f'[NOW-CORRECTION] 2D: range {iq2d_main_in_fr.qx[0, 0]}, '
-                      f'{iq2d_main_in_fr.qx[0, nxbins_main - 1]}')
-                iq2d_main_in_fr[i_f] = subtract_background(iq2d_main_in_fr[i_f], bkgd_iq2d[i_f])
-
-                # iq2d_main_in_fr[i] = iq2d_main_in_fr[i] - bkgd_iq2d[i]
+            processed = process_single_configuration_incoherence_correction(processed_background)
+            iq1d_main_in_fr, iq2d_main_in_fr = processed
 
         else:
             # process data without correction

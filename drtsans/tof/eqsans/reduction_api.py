@@ -26,60 +26,162 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
+from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 
 
-def reduce_background():
+def process_single_configuration_incoherence_correction(incoherence_correction_setup):
+    """Process raw sample workspace with single configuration and inelastic/incoherence correction
+    till binned I(Q, wavelength)
 
-    # process background run without binning
-    bkgd_ws = process_background()
+    Parameters
+    ----------
+    incoherence_correction_setup: CorrectionConfiguration
+        Incoherence correction setup
 
-    # convert to Q
-    iq1d_main_in = convert_to_q(bkgd_ws, mode='scalar')
-    iq2d_main_in = convert_to_q(bkgd_ws, mode='azimuthal')
+    Returns
+    -------
 
-    # split to frames
-    iq1d_main_in_fr = split_by_frame(bkgd_ws, iq1d_main_in)
-    iq2d_main_in_fr = split_by_frame(bkgd_ws, iq2d_main_in)
+    """
+
+    # 1. process single configuration of a sample run
+    pass
+
+    # 2. determine Qmin and Qmax sample run
+    # min_q = max_q = None
+
+    # 3. bin sample data (without background)
+    # process data with incoherent/inelastic correction
+    # sample_1d_fr, sample_2d_fr = process_bin_workspace(raw_sample_ws,
+    #                                                    (sample_trans_ws, sample_trans_value),
+    #                                                    theta_deppendent_transmission,
+    #                                                    loaded_ws.dark_current,
+    #                                                    (flux_method, flux),
+    #                                                    (loaded_ws.mask, mask_panel, None),
+    #                                                    solid_angle,
+    #                                                    loaded_ws.sensitivity,
+    #                                                    incoherence_correction_setup.sample_thickness,
+    #                                                    absolute_scale,
+    #                                                    binning_params)
+    #
+    # # FIXME - this if-else block is for debugging refined workflow.
+    # if incoherence_correction_setup.debug_no_correction is False:
+    #     # normalize
+    #     if norm_dict:
+    #         sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
+    #                                                                           sample_2d_fr,
+    #                                                                           norm_dict)
+    #     # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
+    #     r = correct_acc_incoherence_scattering(sample_1d_fr, sample_2d_fr, incoherence_correction_setup)
+    #     iq1d_main_in_fr, iq2d_main_in_fr = r
+    # else:
+    #     # no correction for debugging purpose
+    #     # FIXME - remove this after everything passes!
+    #     iq1d_main_in_fr = sample_1d_fr
+    #     iq2d_main_in_fr = sample_2d_fr
+    #
+    # # subtract with background
+    # print(f'Binning: {binning_params}')
+    # print(f'Number of frames: {len(iq1d_main_in_fr)}')
+    # for i_f in range(len(iq1d_main_in_fr)):
+    #     print('1D')
+    #     print(f'[NOW-CORRECTION] 1D: sample     range {iq1d_main_in_fr[i_f].mod_q[0]}, '
+    #           f'{iq1d_main_in_fr[i_f].mod_q[-1]}')
+    #     print(f'[NOW-CORRECTION] 1D: background range {bkgd_iq1d[i_f].mod_q[0]}, '
+    #           f'{bkgd_iq1d[i_f].mod_q[-1]}')
+    #     iq1d_main_in_fr[i_f] = subtract_background(iq1d_main_in_fr[i_f], bkgd_iq1d[i_f])
+    #
+    #     print('2D')
+    #     print(f'[NOW-CORRECTION] 2D: range {iq2d_main_in_fr.qx[0, 0]}, '
+    #           f'{iq2d_main_in_fr.qx[0, nxbins_main - 1]}')
+    #     iq2d_main_in_fr[i_f] = subtract_background(iq2d_main_in_fr[i_f], bkgd_iq2d[i_f])
+    #     iq2d_main_in_fr[i] = iq2d_main_in_fr[i] - bkgd_iq2d[i]
+
+    # 4. bin background data
+    pass
+
+    # 5. normalize by elastic scattering reference data
+    if incoherence_correction_setup.do_correction and incoherence_correction_setup.elastic_reference_run:
+        # normalize
+        # calculate the normalization factors
+        # # calculate normalization factor
+        # norm_dict = calculate_elastic_scattering_factor(loaded_ws.elastic_ref_ws,
+        #                                                 loaded_ws.elastic_ref_trans_ws,
+        #                                                 elastic_ref_setup.ref_trans_value,
+        #                                                 elastic_ref_setup.ref_sample_thickness,
+        #                                                 None)
+
+        # normalize background and sample
+        # bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
+        # sample_iq1d, sample_iq2d = normalize_ws_with_elastic_scattering(sample_iq1d, sample_iq2d, norm_dict)
+        print(f'ASAP')
+
+    # 6. correct to reduce incoherence and inelastic scattering
+    if incoherence_correction_setup.do_correction:
+        # bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
+        #                                                           incoherence_correction_setup)
+        # sample_iq1d, sample_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
+        #                                                           incoherence_correction_setup)
+        pass
+
+    # 7. Remove background
+    # subtract_bkgd()
+
+    # 8. Return Q1D and Q2D
+
+    return None, None
+
+
+# TODO - compare this method with process_raw_workspace()
+def process_background_workspace():
+    """Process raw background workspace including
+    (1) regular process data workspace
+    (2) apply transmission correction
+    (3) bin to Q
+    (4) split to frame
+
+    Product:
+    1. returned Q frames
+    2. processed background workspace
+
+    Returns
+    -------
+
+    """
+    # # Determine workspace name
+    # bkgd_ws_name = output_suffix + '_background'
+    # bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
+    #                                   output_workspace=bkgd_ws_name,
+    #                                   **prepare_data_conf)
+    # # apply transmission to bkgd
+    # if bkg_trans_ws or bkg_trans_value:
+    #     # make binning consistent
+    #     if bkg_trans_ws:
+    #         RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
+    #                          WorkspaceToMatch=bkgd_ws,
+    #                          OutputWorkspace=bkg_trans_ws)
+    #     # apply transmission correction to output workspace
+    #     bkgd_ws = apply_transmission_correction(bkgd_ws,
+    #                                             trans_workspace=bkg_trans_ws,
+    #                                             trans_value=bkg_trans_value,
+    #                                             theta_dependent=theta_dependent_transmission,
+    #                                             output_workspace=bkgd_ws_name)
+    # # normalize by thickness
+    # bkgd_ws = normalize_by_thickness(bkgd_ws, thickness)
+    #
+    # # scale up
+    # bkgd_ws *= absolute_scale
+    #
+    # # convert to Q
+    # iq1d_main_in = convert_to_q(bkgd_ws, mode='scalar')
+    # iq2d_main_in = convert_to_q(bkgd_ws, mode='azimuthal')
+    #
+    # # split to frames
+    # iq1d_main_in_fr = split_by_frame(bkgd_ws, iq1d_main_in)
+    # iq2d_main_in_fr = split_by_frame(bkgd_ws, iq2d_main_in)
+
+    iq1d_main_in_fr = iq2d_main_in_fr = None
 
     return iq1d_main_in_fr, iq2d_main_in_fr
-
-
-def process_background(bkg_ws_raw, output_suffix, prepare_data_conf,
-                       bkg_trans_ws, bkg_trans_value, theta_dependent_transmission,
-                       absolute_scale, thickness):
-
-    # process background, if not already processed
-    if bkg_ws_raw.data:
-        bkgd_ws_name = output_suffix + '_background'
-        bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
-                                          output_workspace=bkgd_ws_name,
-                                          **prepare_data_conf)
-        # apply transmission to bkgd
-        if bkg_trans_ws or bkg_trans_value:
-            if bkg_trans_ws:
-                RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
-                                 WorkspaceToMatch=bkgd_ws,
-                                 OutputWorkspace=bkg_trans_ws)
-            bkgd_ws = apply_transmission_correction(bkgd_ws,
-                                                    trans_workspace=bkg_trans_ws,
-                                                    trans_value=bkg_trans_value,
-                                                    theta_dependent=theta_dependent_transmission,
-                                                    output_workspace=bkgd_ws_name)
-
-        # TODO - IMPORTANT
-        # # subtract background
-        # sample_ws = subtract_background(sample_ws, bkgd_ws)
-
-        # normalize by thickness
-        bkgd_ws = normalize_by_thickness(bkgd_ws, thickness)
-
-        # ... ...
-        bkgd_ws *= absolute_scale
-
-    else:
-        bkgd_ws = None
-
-    return bkgd_ws
 
 
 def process_raw_workspace(ws_raw,
@@ -196,6 +298,7 @@ def process_raw_workspace(ws_raw,
     return raw_ws
 
 
+# TODO/FIXME - this is an exact copy of api.prepare_data_workspaces
 def prepare_data_workspaces(data,
                             dark_current=None,
                             flux_method=None,    # normalization (proton charge/time/monitor)

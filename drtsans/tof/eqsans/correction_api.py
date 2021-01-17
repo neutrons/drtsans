@@ -152,6 +152,123 @@ def parse_correction_config(reduction_config):
     return _config
 
 
+# Define named tuple for elastic scattering normalization factor
+NormFactor = namedtuple('NormFactor', 'k k_error p s')
+
+
+# TODO - merge this with process_elastic_reference_data
+def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, ref_sample_thickness,
+                                        binning_setup):
+    """Normalize runs (sample and background) for elastic scattering
+
+    for elastic reference, I assume that it will use the same as the sample run.
+    Then as the elastic reference run is reduced, K and delta K are calculated.
+    These runs will be normalized by K and delta K value
+    - sample
+    - bkgd
+
+
+    Parameters
+    ----------
+    ref_ws
+    ref_trans_ws
+    ref_trans_value
+    ref_sample_thickness
+    binning_setup
+
+    Returns
+    -------
+    ~dict
+        blabla
+    """
+    # Process elastic reference run, reference transmission run,
+    # TODO - reference background run, reference background transmission run
+    ref_iq1d_frames, ref_iq2d_frames = process_bin_workspace(ref_ws, (ref_trans_ws, ref_trans_value),
+                                                             ref_sample_thickness, binning_setup)
+
+    # Sanity check
+    assert len(ref_iq1d_frames) <= 3, f'Number of frames {len(ref_iq1d_frames)} is not reasonable.'
+
+    # Output
+    elastic_norm_factor_dict = dict()
+
+    # Calculate scaling vectors for each
+    for i_frame in len(ref_iq1d_frames):
+        # reshape
+        ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(
+            ref_iq1d_frames[i_frame])
+
+        # Calculate Qmin and Qmax
+        qmin_index, qmax_index = determine_common_mod_q_range_mesh(ref_q_vec, ref_i_array)
+
+        # Calculate reference
+        ref_wl_ie = determine_reference_wavelength_q1d_mesh(ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array,
+                                                            qmin_index, qmax_index)
+
+        # Calculate scale factor
+        k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(ref_wl_vec, ref_i_array, ref_error_array,
+                                                                            ref_wl_ie, qmin_index, qmax_index)
+
+        norm_factor = NormFactor(k_vec, k_error_vec, p_vec, s_vec)
+        # Form output
+        elastic_norm_factor_dict[i_frame] = norm_factor
+
+        # export K and K error (task #725)
+        # do_export_k(k_vec, k_error_vec, k_filename)
+
+    return elastic_norm_factor_dict
+
+
+# TODO FIXME - in progress (latest)
+def process_elastic_reference_data(elastic_ref_setup):
+    """Process elastic reference run from raw workspaces to I of Q1D and Q2D split to frames
+
+    Workflow
+    1. Process ref sample transmission
+    2. Process ref background transmission
+    3. Process (single configuration) ref sample run
+    4. Process (single configuration) ref background run
+    5. Ref sample run convert to Q and split frame
+    6. Ref background run convert to Q and split frame
+
+    Requires:
+      - dark current
+      - mask
+      - sensitivities
+      - empty beam
+      - empty beam radius
+
+    Parameters
+    ----------
+    elastic_ref_setup: ElasticReferenceRunSetup
+        elastic scattering correction reference setup
+
+    Returns
+    -------
+    ElasticReferenceRunSetup
+
+
+    """
+    # # process transmission if there is any
+    # if sample_transmission.data is not None and empty_trans_ws is not None:
+    #     sample_trans_ws_name = f'{prefix}_sample_trans'
+    #     sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
+    #                                                         flux_method=flux_method,
+    #                                                         flux=flux,
+    #                                                         solid_angle=False,
+    #                                                         sensitivity_workspace=loaded_ws.sensitivity,
+    #                                                         output_workspace=sample_trans_ws_name)
+    #     # calculate transmission with fit function (default) Formula=a*x+b'
+    #     trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
+    #                                       radius=transmission_radius, radius_unit="mm")
+
+    return elastic_ref_setup
+
+
+# This is a composite method.  It can be used by
+# reduction_api.process_single_configuration_incoherence_correction()
+# without binning.
+# TODO consider to move to reduction_api.
 def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
                           dark_current, flux, mask,
                           solid_angle, sensitivity_workspace,
@@ -226,72 +343,6 @@ def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
     return q1d_frames, q2d_frames
 
 
-# Define named tuple for elastic scattering normalization factor
-NormFactor = namedtuple('NormFactor', 'k k_error p s')
-
-
-def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, ref_sample_thickness,
-                                        binning_setup):
-    """Normalize runs (sample and background) for elastic scattering
-
-    for elastic reference, I assume that it will use the same as the sample run.
-    Then as the elastic reference run is reduced, K and delta K are calculated.
-    These runs will be normalized by K and delta K value
-    - sample
-    - bkgd
-
-
-    Parameters
-    ----------
-    ref_ws
-    ref_trans_ws
-    ref_trans_value
-    ref_sample_thickness
-    binning_setup
-
-    Returns
-    -------
-    ~dict
-        blabla
-    """
-    # Process elastic reference run, reference transmission run,
-    # TODO - reference background run, reference background transmission run
-    ref_iq1d_frames, ref_iq2d_frames = process_bin_workspace(ref_ws, (ref_trans_ws, ref_trans_value),
-                                                             ref_sample_thickness, binning_setup)
-
-    # Sanity check
-    assert len(ref_iq1d_frames) <= 3, f'Number of frames {len(ref_iq1d_frames)} is not reasonable.'
-
-    # Output
-    elastic_norm_factor_dict = dict()
-
-    # Calculate scaling vectors for each
-    for i_frame in len(ref_iq1d_frames):
-        # reshape
-        ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(
-            ref_iq1d_frames[i_frame])
-
-        # Calculate Qmin and Qmax
-        qmin_index, qmax_index = determine_common_mod_q_range_mesh(ref_q_vec, ref_i_array)
-
-        # Calculate reference
-        ref_wl_ie = determine_reference_wavelength_q1d_mesh(ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array,
-                                                            qmin_index, qmax_index)
-
-        # Calculate scale factor
-        k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(ref_wl_vec, ref_i_array, ref_error_array,
-                                                                            ref_wl_ie, qmin_index, qmax_index)
-
-        norm_factor = NormFactor(k_vec, k_error_vec, p_vec, s_vec)
-        # Form output
-        elastic_norm_factor_dict[i_frame] = norm_factor
-
-        # export K and K error (task #725)
-        # do_export_k(k_vec, k_error_vec, k_filename)
-
-    return elastic_norm_factor_dict
-
-
 def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
 
     # KEY: a data structure to contain IQmod(s) of (1) all samples and background (2) all frames
@@ -328,44 +379,6 @@ def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
         norm_iq1d.append(normalized_i_of_q)
 
     return norm_iq1d
-
-
-# def process_elastic_runs():
-#     """
-#     - dark current
-#     - mask
-#     - sensitivities
-#     - empty beam
-#     - empty beam radius
-#     Returns
-#     -------
-#
-#     """
-#     processed_elastic_ref = process_sample_configuration(elastic_reference_run,
-#                                                          sample_trans_ws=elastic_reference_ws,
-#                                                          sample_trans_value=elastic_reference_ws_value,
-#                                                          bkg_ws_raw=None,
-#                                                          bkg_trans_ws=None,  # bkgd_trans_ws,
-#                                                          bkg_trans_value=None,  # bkg_trans_value,
-#                                                          theta_deppendent_transmission=True / False,
-#                                                          dark_current=loaded_ws.dark_current,
-#                                                          flux_method=flux_method,
-#                                                          flux=flux,
-#                                                          mask_ws=loaded_ws.mask,
-#                                                          mask_panel=mask_panel,
-#                                                          solid_angle=solid_angle,
-#                                                          sensitivity_workspace=loaded_ws.sensitivity,
-#                                                          output_workspace=f'processed_data_main',
-#                                                          output_suffix=output_suffix,
-#                                                          thickness=thickness,
-#                                                          absolute_scale_method=absolute_scale.method,
-#                                                          # absolute_scale_method,
-#                                                          absolute_scale=absolute_scale.value,  # absolute_scale,
-#                                                          empty_beam_ws=empty_trans_ws,
-#                                                          beam_radius=beam_radius,
-#                                                          keep_processed_workspaces=False)
-#
-#     return i_of_q
 
 
 def correct_acc_incoherence_scattering(iq1d_frames, iq2d_frames, correction_setup):

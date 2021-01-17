@@ -690,7 +690,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                          loaded_ws.sensitivity,
                                          flux_method, flux, prefix, 'bkgd',
                                          output_dir, base_out_name)
-    bkgd_trans_ws, bkgd_trans, base_out_name = bkgd_returned
+    bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
 
     # background_transmission_dict = {}
     # background_transmission_raw_dict = {}

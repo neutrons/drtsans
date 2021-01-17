@@ -63,12 +63,11 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     1. parse reduction_input
     2. remove existing related workspaces with same run numbers
     3. process beam center
-        output: load_params, reduction_input
+    -  output: load_params, reduction_input
     4. adjust pixel heights and widths
-        output: load_params, reduction_input
+    -  output: load_params, reduction_input
     5. load and optionally slice sample runs
     6. load other runs: bkgd, empty, sample_trans, bkgd_trans
-
     """
     reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
 
@@ -861,7 +860,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
 
-        print(f'[NOW] qmin = {qmin}, qmax = {qmax}')
+        # print(f'[NOW] qmin = {qmin}, qmax = {qmax}')
 
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
@@ -880,8 +879,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                    annular_angle_bin=annular_bin, wedges=wedges,
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
-            print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[0, nxbins_main-1]}')
-            print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
+            # print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[0, nxbins_main-1]}')
+            # print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 

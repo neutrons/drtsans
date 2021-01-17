@@ -261,8 +261,6 @@ def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensi
     # process raw.
     assert sample_cal_trans_ws == 1, 'IMPLEMENTATION TO BE CONTINUED ... '
 
-
-
     # # process transmission if there is any
     # if sample_transmission.data is not None and empty_trans_ws is not None:
     #     sample_trans_ws_name = f'{prefix}_sample_trans'

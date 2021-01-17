@@ -676,42 +676,54 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         empty_trans_ws = None
 
     # FIXME - compare background transmission and sample transmission codes
-    # background transmission
-    background_transmission_dict = {}
-    background_transmission_raw_dict = {}
-    if loaded_ws.background_transmission.data is not None and empty_trans_ws is not None:
-        bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
-        bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
-                                                          flux_method=flux_method,
-                                                          flux=flux,
-                                                          solid_angle=False,
-                                                          sensitivity_workspace=loaded_ws.sensitivity,
-                                                          output_workspace=bkgd_trans_ws_name)
-        bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
-                                               radius=transmission_radius, radius_unit="mm")
-        print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
-
-        bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
-        bk_tr_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_trans.txt')
-        SaveAscii(bkgd_trans_ws, Filename=bk_tr_fn)
-        background_transmission_dict['value'] = bkgd_trans_ws.extractY()
-        background_transmission_dict['error'] = bkgd_trans_ws.extractE()
-        background_transmission_dict['wavelengths'] = bkgd_trans_ws.extractX()
-        bkgd_trans_raw_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
-                                                   radius=transmission_radius, radius_unit="mm",
-                                                   fit_function='')
-        bk_tr_raw_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_raw_trans.txt')
-        SaveAscii(bkgd_trans_raw_ws, Filename=bk_tr_raw_fn)
-        background_transmission_raw_dict['value'] = bkgd_trans_raw_ws.extractY()
-        background_transmission_raw_dict['error'] = bkgd_trans_raw_ws.extractE()
-        background_transmission_raw_dict['wavelengths'] = bkgd_trans_raw_ws.extractX()
-    else:
-        bkgd_trans_ws = None
-
-    # sample transmission
-
     from drtsans.tof.eqsans.reduction_api import process_transmission
 
+    # Background transmission
+    # specific output filename (base) for background trans
+    bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
+    base_out_name = f'{outputFilename}_bkgd_{bkgd_trans}'
+
+    # process transmission
+    bkgd_returned = process_transmission(loaded_ws.background_transmission,
+                                         empty_trans_ws,
+                                         transmission_radius,
+                                         loaded_ws.sensitivity,
+                                         flux_method, flux, prefix, 'bkgd',
+                                         output_dir, base_out_name)
+    bkgd_trans_ws, bkgd_trans, base_out_name = bkgd_returned
+
+    # background_transmission_dict = {}
+    # background_transmission_raw_dict = {}
+    # if loaded_ws.background_transmission.data is not None and empty_trans_ws is not None:
+    #     bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
+    #     bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
+    #                                                       flux_method=flux_method,
+    #                                                       flux=flux,
+    #                                                       solid_angle=False,
+    #                                                       sensitivity_workspace=loaded_ws.sensitivity,
+    #                                                       output_workspace=bkgd_trans_ws_name)
+    #     bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
+    #                                            radius=transmission_radius, radius_unit="mm")
+    #     print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+    #
+    #     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
+    #     bk_tr_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_trans.txt')
+    #     SaveAscii(bkgd_trans_ws, Filename=bk_tr_fn)
+    #     background_transmission_dict['value'] = bkgd_trans_ws.extractY()
+    #     background_transmission_dict['error'] = bkgd_trans_ws.extractE()
+    #     background_transmission_dict['wavelengths'] = bkgd_trans_ws.extractX()
+    #     bkgd_trans_raw_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
+    #                                                radius=transmission_radius, radius_unit="mm",
+    #                                                fit_function='')
+    #     bk_tr_raw_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_raw_trans.txt')
+    #     SaveAscii(bkgd_trans_raw_ws, Filename=bk_tr_raw_fn)
+    #     background_transmission_raw_dict['value'] = bkgd_trans_raw_ws.extractY()
+    #     background_transmission_raw_dict['error'] = bkgd_trans_raw_ws.extractE()
+    #     background_transmission_raw_dict['wavelengths'] = bkgd_trans_raw_ws.extractX()
+    # else:
+    #     bkgd_trans_ws = None
+
+    # sample transmission
     sample_returned = process_transmission(loaded_ws.sample_transmission,
                                            empty_trans_ws,
                                            transmission_radius,
@@ -720,43 +732,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                            output_dir, outputFilename)
 
     sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict = sample_returned
-
-    # sample_transmission_dict = {}  # for output log
-    # sample_transmission_raw_dict = {}  # for output log
-    # if loaded_ws.sample_transmission.data is not None and empty_trans_ws is not None:
-    #     sample_trans_ws_name = f'{prefix}_sample_trans'
-    #     sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
-    #                                                         flux_method=flux_method,
-    #                                                         flux=flux,
-    #                                                         solid_angle=False,
-    #                                                         sensitivity_workspace=loaded_ws.sensitivity,
-    #                                                         output_workspace=sample_trans_ws_name)
-    #     # calculate transmission with fit function (default) Formula=a*x+b'
-    #     sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
-    #                                              radius=transmission_radius, radius_unit="mm")
-    #
-    #     print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
-    #
-    #     tr_fn = os.path.join(output_dir, f'{outputFilename}_trans.txt')
-    #     SaveAscii(sample_trans_ws, Filename=tr_fn)
-    #
-    #     # Prepare result for drtsans.savereductionlog
-    #     sample_transmission_dict['value'] = sample_trans_ws.extractY()
-    #     sample_transmission_dict['error'] = sample_trans_ws.extractE()
-    #     sample_transmission_dict['wavelengths'] = sample_trans_ws.extractX()
-    #
-    #     # Prepare result for drtsans.savereductionlog including raw sample transmission
-    #     sample_trans_raw_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
-    #                                                  radius=transmission_radius, radius_unit="mm",
-    #                                                  fit_function='')
-    #     raw_tr_fn = os.path.join(output_dir, f'{outputFilename}_raw_trans.txt')
-    #     SaveAscii(sample_trans_raw_ws, Filename=raw_tr_fn)
-    #     sample_transmission_raw_dict['value'] = sample_trans_raw_ws.extractY()
-    #     sample_transmission_raw_dict['error'] = sample_trans_raw_ws.extractE()
-    #     sample_transmission_raw_dict['wavelengths'] = sample_trans_raw_ws.extractX()
-    #
-    # else:
-    #     sample_trans_ws = None
 
     # Form binning parameters
     binning_par_dc = {'nxbins_main': nxbins_main,

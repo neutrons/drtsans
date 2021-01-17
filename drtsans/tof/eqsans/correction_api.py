@@ -220,7 +220,7 @@ def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, r
 
 
 # TODO FIXME - in progress (latest)
-def process_elastic_reference_data(elastic_ref_setup):
+def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensitivity_ws, flux, ):
     """Process elastic reference run from raw workspaces to I of Q1D and Q2D split to frames
 
     Workflow
@@ -249,6 +249,18 @@ def process_elastic_reference_data(elastic_ref_setup):
 
 
     """
+    from drtsans.tof.eqsans.reduction_api import process_transmission
+
+    sample_transmission = elastic_ref_setup.ref_transmission_ws
+    empty_trans_ws = elastic_ref_setup.empty_trans_ws
+
+    sample_cal_trans_ws, _, _ = process_transmission(sample_transmission, empty_trans_ws,
+                                                     transmission_radius, sensitivity_ws,
+                                                     flux.method, flux.data, 'elastic_reference',
+                                                     'elastic_reference', None, None)
+    # process raw.
+    assert sample_cal_trans_ws == 1, 'IMPLEMENTATION TO BE CONTINUED ... '
+
     # # process transmission if there is any
     # if sample_transmission.data is not None and empty_trans_ws is not None:
     #     sample_trans_ws_name = f'{prefix}_sample_trans'

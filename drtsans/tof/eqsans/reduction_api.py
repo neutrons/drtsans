@@ -27,6 +27,7 @@ from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+import os
 
 
 def process_single_configuration_incoherence_correction(incoherence_correction_setup):
@@ -389,3 +390,53 @@ def prepare_data_workspaces(data,
                                      sensitivity_workspace=sensitivity_workspace)
 
     return mtd[output_workspace]
+
+
+# NOTE: transformed from block of codes inside reduce_single_configuration
+#       for calculating transmission
+def process_transmission(transmission_ws, empty_trans_ws, transmission_radius, sensitivity_ws,
+                         flux_method, flux, prefix,
+                         type_name, output_dir, output_file_name):
+    # sample transmission
+    processed_transmission_dict = {}  # for output log
+    raw_transmission_dict = {}  # for output log
+
+    if transmission_ws.data is not None and empty_trans_ws is not None:
+        # process transition workspace from raw
+        processed_trans_ws_name = f'{prefix}_{type_name}_trans'  # type_name: sample/background
+        processed_trans_ws = prepare_data_workspaces(transmission_ws,
+                                                     flux_method=flux_method,
+                                                     flux=flux,
+                                                     solid_angle=False,
+                                                     sensitivity_workspace=sensitivity_ws,
+                                                     output_workspace=processed_trans_ws_name)
+        # calculate transmission with fit function (default) Formula=a*x+b'
+        calculated_trans_ws = calculate_transmission(processed_trans_ws, empty_trans_ws,
+                                                     radius=transmission_radius, radius_unit="mm")
+        print(f'{type_name} transmission =', calculated_trans_ws.extractY()[0, 0])
+
+        # optionally save
+        if output_dir:
+            # save calculated transmission
+            transmission_filename = os.path.join(output_dir, f'{output_file_name}_trans.txt')
+            SaveAscii(calculated_trans_ws, Filename=transmission_filename)
+            # Prepare result for drtsans.savereductionlog
+            processed_transmission_dict['value'] = calculated_trans_ws.extractY()
+            processed_transmission_dict['error'] = calculated_trans_ws.extractE()
+            processed_transmission_dict['wavelengths'] = calculated_trans_ws.extractX()
+
+            # Prepare result for drtsans.savereductionlog including raw sample transmission
+            sample_trans_raw_ws = calculate_transmission(processed_trans_ws, empty_trans_ws,
+                                                         radius=transmission_radius, radius_unit="mm",
+                                                         fit_function='')
+
+            raw_tr_fn = os.path.join(output_dir, f'{output_file_name}_raw_trans.txt')
+            SaveAscii(sample_trans_raw_ws, Filename=raw_tr_fn)
+            # Prepare result for drtsans.savereductionlog
+            raw_transmission_dict['value'] = sample_trans_raw_ws.extractY()
+            raw_transmission_dict['error'] = sample_trans_raw_ws.extractE()
+            raw_transmission_dict['wavelengths'] = sample_trans_raw_ws.extractX()
+    else:
+        calculated_trans_ws = None
+
+    return calculated_trans_ws, processed_transmission_dict, raw_transmission_dict

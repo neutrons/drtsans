@@ -333,7 +333,8 @@ def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
                                                # annular_angle_bin=binning_setup.annular_bin,
                                                # wedges=binning_setup.wedges,
                                                # symmetric_wedges=symmetric_wedges,
-                                               error_weighted=False,  # FIXME - check weighted error is equal to weighted binning?
+                                               error_weighted=False,
+                                               # FIXME - check weighted error is equal to weighted binning?
                                                n_wavelength_bin=None)
         assert isinstance(iq1d_main_out, list), f'iq1d output type = {type(iq1d_main_out)}'
         q2d_frames.append(iq2d_main_out)

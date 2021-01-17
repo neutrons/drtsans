@@ -42,6 +42,7 @@ def process_single_configuration_incoherence_correction(incoherence_correction_s
     -------
 
     """
+    assert isinstance(incoherence_correction_setup, CorrectionConfiguration)
 
     # 1. process single configuration of a sample run
     pass

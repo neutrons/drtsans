@@ -32,11 +32,7 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
-from drtsans.tof.eqsans.correction_api import (calculate_elastic_scattering_factor,
-                                               normalize_ws_with_elastic_scattering,
-                                               process_bin_workspace,
-                                               # parse_correction_config
-                                               correct_acc_incoherence_scattering,
+from drtsans.tof.eqsans.correction_api import (process_bin_workspace,
                                                CorrectionConfiguration)
 from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces
 
@@ -763,6 +759,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                       'qmin': qmin,
                       'qmax': qmax}
     binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
+    assert binning_params
 
     from drtsans.tof.eqsans.correction_api import process_elastic_reference_data
     if incoherence_correction_setup.do_correction:

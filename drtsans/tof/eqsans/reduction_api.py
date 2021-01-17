@@ -133,78 +133,30 @@ def process_single_configuration_incoherence_correction(incoherence_correction_s
     return None, None
 
 
-# TODO - compare this method with process_raw_workspace()
-def process_background_workspace():
-    """Process raw background workspace including
-    (1) regular process data workspace
-    (2) apply transmission correction
-    (3) bin to Q
-    (4) split to frame
-
-    Product:
-    1. returned Q frames
-    2. processed background workspace
-
-    Returns
-    -------
-
-    """
-    # # Determine workspace name
-    # bkgd_ws_name = output_suffix + '_background'
-    # bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
-    #                                   output_workspace=bkgd_ws_name,
-    #                                   **prepare_data_conf)
-    # # apply transmission to bkgd
-    # if bkg_trans_ws or bkg_trans_value:
-    #     # make binning consistent
-    #     if bkg_trans_ws:
-    #         RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
-    #                          WorkspaceToMatch=bkgd_ws,
-    #                          OutputWorkspace=bkg_trans_ws)
-    #     # apply transmission correction to output workspace
-    #     bkgd_ws = apply_transmission_correction(bkgd_ws,
-    #                                             trans_workspace=bkg_trans_ws,
-    #                                             trans_value=bkg_trans_value,
-    #                                             theta_dependent=theta_dependent_transmission,
-    #                                             output_workspace=bkgd_ws_name)
-    # # normalize by thickness
-    # bkgd_ws = normalize_by_thickness(bkgd_ws, thickness)
-    #
-    # # scale up
-    # bkgd_ws *= absolute_scale
-    #
-    # # convert to Q
-    # iq1d_main_in = convert_to_q(bkgd_ws, mode='scalar')
-    # iq2d_main_in = convert_to_q(bkgd_ws, mode='azimuthal')
-    #
-    # # split to frames
-    # iq1d_main_in_fr = split_by_frame(bkgd_ws, iq1d_main_in)
-    # iq2d_main_in_fr = split_by_frame(bkgd_ws, iq2d_main_in)
-
-    iq1d_main_in_fr = iq2d_main_in_fr = None
-
-    return iq1d_main_in_fr, iq2d_main_in_fr
-
-
-def process_raw_workspace(ws_raw,
-                          transmission,
-                          theta_dependent_transmission,
-                          dark_current,
-                          flux,
-                          mask,
-                          solid_angle,
-                          sensitivity_workspace,
-                          thickness=1.,
-                          absolute_scale=1.,
-                          output_workspace=None,
-                          output_suffix=''):
-    r"""
-    This function provides full data processing for a single experimental configuration,
+def process_workspace_single_configuration(ws_raw,
+                                           transmission,
+                                           theta_dependent_transmission,
+                                           dark_current,
+                                           flux,
+                                           mask,
+                                           solid_angle,
+                                           sensitivity_workspace,
+                                           thickness=1.,
+                                           absolute_scale=1.,
+                                           output_workspace=None,
+                                           output_suffix=''):
+    """This function provides quasi-full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
+
+    This is a simplified version of eqsans.api.process_single_configuration().
+    The major difference is that
+    1. this method does not assume input workspace is a sample run
+    2. this method does not remove background
+    3. this method tends to use a more concise list of input parameters
 
     Parameters
     ----------
-    sample_ws_raw: namedtuple
+    ws_raw: namedtuple
         (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
         raw data histogram workspace and monitor
     sample_trans_ws:  ~mantid.dataobjects.Workspace2D
@@ -255,13 +207,15 @@ def process_raw_workspace(ws_raw,
     ~mantid.dataobjects.Workspace2D
         Reference to the processed workspace
     """
+    # Default output workspace name
     if not output_workspace:
-        output_workspace = output_suffix + '_sample'
+        output_workspace = f'{str(ws_raw)}_single_config_{output_suffix}'
 
-    # expand
+    # Process input function parameters
     flux_method, flux_value = flux
     mask_ws, mask_panel, mask_btp = mask
 
+    # Prepare data workspace with dark current, flux, mask, solid angle and sensitivities
     # create a common configuration for prepare data
     prepare_data_conf = {'dark_current': dark_current,
                          'flux_method': flux_method,
@@ -271,12 +225,11 @@ def process_raw_workspace(ws_raw,
                          'mask_btp': mask_btp,
                          'solid_angle': solid_angle,
                          'sensitivity_workspace': sensitivity_workspace}
-
-    # process sample
     raw_ws = prepare_data_workspaces(ws_raw,
                                      output_workspace=output_workspace,
                                      **prepare_data_conf)
-    # apply transmission to the sample
+
+    # Apply transmission to the sample
     sample_trans_ws, sample_trans_value = transmission
     print(f'tpe of transmission: {type(transmission)}')
     if sample_trans_ws or sample_trans_value:

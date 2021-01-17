@@ -183,8 +183,8 @@ def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, r
     """
     # Process elastic reference run, reference transmission run,
     # TODO - reference background run, reference background transmission run
-    ref_iq1d_frames, ref_iq2d_frames = process_bin_workspace(ref_ws, (ref_trans_ws, ref_trans_value),
-                                                             ref_sample_thickness, binning_setup)
+    ref_iq1d_frames, ref_iq2d_frames = process_convert_q(ref_ws, (ref_trans_ws, ref_trans_value),
+                                                         ref_sample_thickness, binning_setup)
 
     # Sanity check
     assert len(ref_iq1d_frames) <= 3, f'Number of frames {len(ref_iq1d_frames)} is not reasonable.'
@@ -261,6 +261,8 @@ def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensi
     # process raw.
     assert sample_cal_trans_ws == 1, 'IMPLEMENTATION TO BE CONTINUED ... '
 
+
+
     # # process transmission if there is any
     # if sample_transmission.data is not None and empty_trans_ws is not None:
     #     sample_trans_ws_name = f'{prefix}_sample_trans'
@@ -280,12 +282,11 @@ def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensi
 # This is a composite method.  It can be used by
 # reduction_api.process_single_configuration_incoherence_correction()
 # without binning.
-# TODO consider to move to reduction_api.
-def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
-                          dark_current, flux, mask,
-                          solid_angle, sensitivity_workspace,
-                          sample_thickness, absolute_scale,
-                          binning_setup):
+def process_convert_q(raw_ws, transmission, theta_dependent_transmission,
+                      dark_current, flux, mask,
+                      solid_angle, sensitivity_workspace,
+                      sample_thickness, absolute_scale,
+                      binning_setup):
     """Process rar workspace and do the binning with keeping wavelength terms
 
     Parameters
@@ -305,15 +306,15 @@ def process_bin_workspace(raw_ws, transmission, theta_dependent_transmission,
     # Sanity check
     assert raw_ws, 'Raw workspace cannot be None'
 
-    from drtsans.tof.eqsans.reduction_api import process_raw_workspace
+    from drtsans.tof.eqsans.reduction_api import process_workspace_single_configuration
     # Process raw workspace
     output_workspace = str(raw_ws)
     output_suffix = 'background_correction'
-    processed_ws = process_raw_workspace(raw_ws, transmission, theta_dependent_transmission,
-                                         dark_current, flux, mask,
-                                         solid_angle, sensitivity_workspace,
-                                         sample_thickness, absolute_scale,
-                                         output_workspace, output_suffix)
+    processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
+                                                          dark_current, flux, mask,
+                                                          solid_angle, sensitivity_workspace,
+                                                          sample_thickness, absolute_scale,
+                                                          output_workspace, output_suffix)
 
     # TODO - Shall we delete raw workspace?
 

@@ -32,7 +32,7 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
-from drtsans.tof.eqsans.correction_api import (process_bin_workspace,
+from drtsans.tof.eqsans.correction_api import (process_convert_q,
                                                CorrectionConfiguration)
 from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces
 
@@ -692,37 +692,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                          output_dir, base_out_name)
     bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
 
-    # background_transmission_dict = {}
-    # background_transmission_raw_dict = {}
-    # if loaded_ws.background_transmission.data is not None and empty_trans_ws is not None:
-    #     bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
-    #     bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
-    #                                                       flux_method=flux_method,
-    #                                                       flux=flux,
-    #                                                       solid_angle=False,
-    #                                                       sensitivity_workspace=loaded_ws.sensitivity,
-    #                                                       output_workspace=bkgd_trans_ws_name)
-    #     bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
-    #                                            radius=transmission_radius, radius_unit="mm")
-    #     print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
-    #
-    #     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
-    #     bk_tr_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_trans.txt')
-    #     SaveAscii(bkgd_trans_ws, Filename=bk_tr_fn)
-    #     background_transmission_dict['value'] = bkgd_trans_ws.extractY()
-    #     background_transmission_dict['error'] = bkgd_trans_ws.extractE()
-    #     background_transmission_dict['wavelengths'] = bkgd_trans_ws.extractX()
-    #     bkgd_trans_raw_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
-    #                                                radius=transmission_radius, radius_unit="mm",
-    #                                                fit_function='')
-    #     bk_tr_raw_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_raw_trans.txt')
-    #     SaveAscii(bkgd_trans_raw_ws, Filename=bk_tr_raw_fn)
-    #     background_transmission_raw_dict['value'] = bkgd_trans_raw_ws.extractY()
-    #     background_transmission_raw_dict['error'] = bkgd_trans_raw_ws.extractE()
-    #     background_transmission_raw_dict['wavelengths'] = bkgd_trans_raw_ws.extractX()
-    # else:
-    #     bkgd_trans_ws = None
-
     # sample transmission
     sample_returned = process_transmission(loaded_ws.sample_transmission,
                                            empty_trans_ws,
@@ -757,17 +726,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
         # pre-process background background
         # TODO - rewrite process_bin_workspace to process_workspace()
-        processed_background = process_bin_workspace(loaded_ws.background,
-                                                     (bkgd_trans_ws, bkg_trans_value),
-                                                     theta_deppendent_transmission,
-                                                     loaded_ws.dark_current,
-                                                     (flux_method, flux),
-                                                     (loaded_ws.mask, mask_panel, None),
-                                                     solid_angle,
-                                                     loaded_ws.sensitivity,
-                                                     incoherence_correction_setup.sample_thickness,
-                                                     absolute_scale,
-                                                     None)
+        processed_background = process_convert_q(loaded_ws.background,
+                                                 (bkgd_trans_ws, bkg_trans_value),
+                                                 theta_deppendent_transmission,
+                                                 loaded_ws.dark_current,
+                                                 (flux_method, flux),
+                                                 (loaded_ws.mask, mask_panel, None),
+                                                 solid_angle,
+                                                 loaded_ws.sensitivity,
+                                                 incoherence_correction_setup.sample_thickness,
+                                                 absolute_scale,
+                                                 None)
 
         assert processed_background
 

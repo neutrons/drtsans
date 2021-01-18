@@ -11,6 +11,8 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (determine_refere
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
+from typing import List, Any, Tuple
+
 """
 
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -280,20 +282,43 @@ def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensi
 # This is a composite method.  It can be used by
 # reduction_api.process_single_configuration_incoherence_correction()
 # without binning.
-def process_convert_q(raw_ws, transmission, theta_dependent_transmission,
+def process_convert_q(raw_ws,
+                      transmission: Tuple[Any, float],
+                      theta_dependent_transmission,
                       dark_current, flux, mask,
                       solid_angle, sensitivity_workspace,
-                      sample_thickness, absolute_scale,
-                      binning_setup):
-    """Process rar workspace and do the binning with keeping wavelength terms
+                      sample_thickness: float,
+                      absolute_scale: float,
+                      output_suffix: str,
+                      delete_raw: bool) -> Tuple[List[Any], List[Any]]:
+    """Process raw workspace and convert to Q and split into frames
 
     Parameters
     ----------
-    raw_ws
+    raw_ws:
+        raw event workspace and monitor workspace to process from
     transmission: ~tuple
         transmission workspace, transmission value
-    ref_sample_thickness
-    binning_setup: ~namedtuple for binnings
+    theta_dependent_transmission:
+        blabla
+    dark_current:
+        blabla
+    flux: ~tuple
+        flux method, flux run
+    mask: ~tuple
+        mask workspace, mask panel, mask BTP
+    solid_angle: bool
+        flag to do solid angle correction
+    sensitivity_workspace:
+        sensitivities workspace
+    sample_thickness: float
+        sample thickness in mm
+    absolute_scale: float
+        scale factor to intensities
+    output_suffix: float
+        suffix for output workspace
+    delete_raw: bool
+        flag to delete raw workspace
 
     Returns
     -------
@@ -307,19 +332,22 @@ def process_convert_q(raw_ws, transmission, theta_dependent_transmission,
     from drtsans.tof.eqsans.reduction_api import process_workspace_single_configuration
     # Process raw workspace
     output_workspace = str(raw_ws)
-    output_suffix = 'background_correction'
     processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
                                                           dark_current, flux, mask,
                                                           solid_angle, sensitivity_workspace,
                                                           sample_thickness, absolute_scale,
                                                           output_workspace, output_suffix)
 
-    # TODO - Shall we delete raw workspace?
+    # Optionally delete raw workspace
+    if delete_raw:
+        if isinstance(raw_ws, tuple):
+            raw_ws[0].delete()
+        else:
+            raw_ws.delete()
 
     # TODO - Save the processed workspace?
 
     # No subpixel binning supported
-
     # convert to Q: Q1D and Q2D
     iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
     iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
@@ -327,13 +355,22 @@ def process_convert_q(raw_ws, transmission, theta_dependent_transmission,
     iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in)
     iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in)
 
+    return iq1d_main_in_fr, iq2d_main_in_fr
+
+
+def bin_i_of_q(iq1d_raw_frame: List[Any],
+               iq2d_raw_frame: List[Any],
+               binning_setup) -> Tuple[List[Any], List[Any]]:
     # Binning by frame
-    n_wl_frames = len(iq2d_main_in_fr)
-    q1d_frames = list()
-    q2d_frames = list()
+
+    # Sanity check
+    n_wl_frames = len(iq1d_raw_frame)
+    assert len(iq2d_raw_frame) == n_wl_frames
+
+    q1d_binned_frames = q2d_binned_frames = list()
     for wl_frame in range(n_wl_frames):
         # binning does not support annular and wedge for correction purpose
-        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
+        iq2d_main_out, iq1d_main_out = bin_all(iq2d_raw_frame[wl_frame], iq1d_raw_frame[wl_frame],
                                                binning_setup.nxbins_main, binning_setup.nybins_main,
                                                n1dbins=binning_setup.n1dbins,
                                                n1dbins_per_decade=binning_setup.n1dbins_per_decade,
@@ -341,18 +378,16 @@ def process_convert_q(raw_ws, transmission, theta_dependent_transmission,
                                                bin1d_type=binning_setup.bin1d_type,
                                                log_scale=binning_setup.log_scale,
                                                qmin=binning_setup.qmin, qmax=binning_setup.qmax,
-                                               # annular_angle_bin=binning_setup.annular_bin,
-                                               # wedges=binning_setup.wedges,
-                                               # symmetric_wedges=symmetric_wedges,
+                                               qxrange=(binning_setup.qxmin, binning_setup.qxmax),
+                                               qyrange=(binning_setup.qymin, binning_setup.qymax),
                                                error_weighted=False,
-                                               # FIXME - check weighted error is equal to weighted binning?
                                                n_wavelength_bin=None)
         assert isinstance(iq1d_main_out, list), f'iq1d output type = {type(iq1d_main_out)}'
-        q2d_frames.append(iq2d_main_out)
-        q1d_frames.append(iq1d_main_out[0])
+        q2d_binned_frames.append(iq2d_main_out)
+        q1d_binned_frames.append(iq1d_main_out[0])
     # END-FOR
 
-    return q1d_frames, q2d_frames
+    return q1d_binned_frames, q2d_binned_frames
 
 
 def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):

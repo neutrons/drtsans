@@ -335,98 +335,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     return loaded_ws_dict
 
 
-# NOTE: move to reduction_api.py
-# def prepare_data_workspaces(data,
-#                             dark_current=None,
-#                             flux_method=None,    # normalization (proton charge/time/monitor)
-#                             flux=None,           # additional file for normalization
-#                             mask_ws=None,        # apply a custom mask from workspace
-#                             mask_panel=None,     # mask back or front panel
-#                             mask_btp=None,       # mask bank/tube/pixel
-#                             solid_angle=True,
-#                             sensitivity_workspace=None,
-#                             output_workspace=None):
-#
-#     r"""
-#     Given a " raw"data workspace, this function provides the following:
-#
-#         - subtracts dark current
-#         - normalize by time or monitor
-#         - applies masks
-#         - corrects for solid angle
-#         - corrects for sensitivity
-#
-#     All steps are optional. data, mask_ws, dark_current are either None
-#     or histogram workspaces. This function does not load any file.
-#
-#     Parameters
-#     ----------
-#     data: namedtuple
-#         (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
-#         raw workspace (histogram) for data and monitor
-#     dark_current: ~mantid.dataobjects.Workspace2D
-#         histogram workspace containing the dark current measurement
-#     flux_method: str
-#         Method for flux normalization. Either 'monitor', or 'time'.
-#     flux: str
-#         if ``flux_method`` is proton charge, then path to file containing the
-#         wavelength distribution of the neutron flux. If ``flux method`` is
-#         monitor, then path to file containing the flux-to-monitor ratios.
-#         if ``flux_method`` is time, then pass one log entry name such
-#         as ``duration`` or leave it as :py:obj:`None` for automatic log search.
-#     mask_ws: ~mantid.dataobjects.Workspace2D
-#         Mask workspace
-#     mask_panel: str
-#         Either 'front' or 'back' to mask whole front or back panel.
-#     mask_btp: dict
-#         Additional properties to Mantid's MaskBTP algorithm
-#     solid_angle: bool
-#         Apply the solid angle correction
-#     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
-#         workspace containing previously calculated sensitivity correction. This
-#         overrides the sensitivity_filename if both are provided.
-#     output_workspace: str
-#         The output workspace name. If None will create data.name()+output_suffix
-#
-#     Returns
-#     -------
-#     ~mantid.dataobjects.Workspace2D
-#         Reference to the processed workspace
-#     """
-#     if not output_workspace:
-#         output_workspace = str(data.data)
-#         output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
-#
-#     mtd[str(data.data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
-#
-#     # Dark current
-#     if dark_current is not None and dark_current.data is not None:
-#         subtract_dark_current(output_workspace, dark_current.data)
-#
-#     # Normalization
-#     if flux_method is not None:
-#         kw = dict(method=flux_method, output_workspace=output_workspace)
-#         if flux_method == 'monitor':
-#             kw['monitor_workspace'] = data.monitor
-#         normalize_by_flux(output_workspace, flux, **kw)
-#
-#     # Additional masks
-#     if mask_btp is None:
-#         mask_btp = dict()
-#     apply_mask(output_workspace, panel=mask_panel, mask=mask_ws, **mask_btp)
-#
-#     # Solid angle
-#     if solid_angle:
-#         solid_angle_correction(output_workspace)
-#
-#     # Sensitivity
-#     if sensitivity_workspace is not None:
-#         apply_sensitivity_correction(output_workspace,
-#                                      sensitivity_workspace=sensitivity_workspace)
-#
-#     return mtd[output_workspace]
-
-
 def process_single_configuration(sample_ws_raw,
                                  sample_trans_ws=None,
                                  sample_trans_value=None,
@@ -736,7 +644,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                  loaded_ws.sensitivity,
                                                  incoherence_correction_setup.sample_thickness,
                                                  absolute_scale,
-                                                 None)
+                                                 'bkgd')
 
         assert processed_background
 

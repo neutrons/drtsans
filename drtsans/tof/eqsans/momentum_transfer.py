@@ -235,7 +235,7 @@ def split_by_frame(input_workspace, *args, **kwargs):
 
     Returns
     -------
-    list
+    ~list
         A list with namedtuples
     """
     # get the type of the input

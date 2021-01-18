@@ -644,7 +644,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                  loaded_ws.sensitivity,
                                                  incoherence_correction_setup.sample_thickness,
                                                  absolute_scale,
-                                                 'bkgd')
+                                                 'bkgd', delete_raw=True)
 
         assert processed_background
 
@@ -742,8 +742,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                    annular_angle_bin=annular_bin, wedges=wedges,
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
-            # print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[0, nxbins_main-1]}')
-            # print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
+            print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[-1]}')
+            print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 

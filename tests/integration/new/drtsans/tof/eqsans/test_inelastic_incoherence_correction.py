@@ -126,24 +126,28 @@ def failed_test_correct_without_elastic(reference_dir):
     gold_file_dir = os.path.join(reference_dir.new.eqsans, 'test_reduce/gold_data')
     assert os.path.exists(gold_file_dir), f'EQSANS gold data directory: {gold_file_dir} does not exist'
 
+    from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+
     # Create temp output directory
     # FIXME the following with block is skipped for quick test on the next with-block
-    # with tempfile.TemporaryDirectory() as test_dir:
-    #     configuration['configuration']['outputDir'] = test_dir
-    #     configuration['outputFileName'] = 'test_wavelength_step_reg'
-    #     configuration['dataDirectories'] = test_dir
-    #     # validate and clean configuration
-    #     input_config = reduction_parameters(configuration)
-    #     loaded = load_all_files(input_config)
-    #     reduced_value = reduce_single_configuration(loaded, input_config)
+    with tempfile.TemporaryDirectory() as test_dir:
+        configuration['configuration']['outputDir'] = test_dir
+        configuration['outputFileName'] = 'test_wavelength_step_reg'
+        configuration['dataDirectories'] = test_dir
 
-    # print(f'reduced: {reduced_value}')
-    # print(f'reduced type = {type(reduced_value)}')
-    # print(f'list size = {len(reduced_value)}')
-    # for val in reduced_value:
-    #     print(f'type = {type(val)}')
+        # Test correction setup
+        test_setup = CorrectionConfiguration(False, False)
+        test_setup.debug_no_correction = False
 
-    from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+        # validate and clean configuration
+        input_config = reduction_parameters(configuration)
+        loaded = load_all_files(input_config)
+        reduced_value = reduce_single_configuration(loaded, input_config, incoherence_correction_setup=test_setup)
+    print(f'reduced: {reduced_value}')
+    print(f'reduced type = {type(reduced_value)}')
+    print(f'list size = {len(reduced_value)}')
+    for val in reduced_value:
+        print(f'type = {type(val)}')
 
     # Create output directory
     with tempfile.TemporaryDirectory() as test_dir:

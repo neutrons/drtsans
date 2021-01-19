@@ -642,7 +642,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                  (loaded_ws.mask, mask_panel, None),
                                                  solid_angle,
                                                  loaded_ws.sensitivity,
-                                                 incoherence_correction_setup.sample_thickness,
+                                                 thickness,  # sample thickness
                                                  absolute_scale,
                                                  'bkgd', delete_raw=True)
 
@@ -661,7 +661,18 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             output_suffix = f'_{i}'
 
         if incoherence_correction_setup.do_correction:
-            processed = process_single_configuration_incoherence_correction(processed_background)
+            processed = process_single_configuration_incoherence_correction(raw_sample_ws,
+                                                                            (sample_trans_ws, sample_trans_value),
+                                                                            theta_deppendent_transmission,
+                                                                            loaded_ws.dark_current,
+                                                                            (flux_method, flux),
+                                                                            (loaded_ws.mask, mask_panel, None),
+                                                                            solid_angle,
+                                                                            loaded_ws.sensitivity,
+                                                                            absolute_scale,
+                                                                            thickness,
+                                                                            processed_background,
+                                                                            incoherence_correction_setup)
             iq1d_main_in_fr, iq2d_main_in_fr = processed
 
         else:

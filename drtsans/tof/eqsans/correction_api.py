@@ -9,6 +9,7 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (determine_refere
                                                                 normalize_intensity_q1d,
                                                                 build_i_of_q1d)
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
+from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
 from typing import List, Any, Tuple
@@ -358,36 +359,40 @@ def process_convert_q(raw_ws,
     return iq1d_main_in_fr, iq2d_main_in_fr
 
 
-def bin_i_of_q(iq1d_raw_frame: List[Any],
-               iq2d_raw_frame: List[Any],
-               binning_setup) -> Tuple[List[Any], List[Any]]:
-    # Binning by frame
+def bin_i_of_q(iq1d_raw: IQmod,
+               iq2d_raw: IQazimuthal,
+               binning_setup) -> Tuple[IQmod, IQazimuthal]:
+    """Bin I(Q1D) and I(Q2D), keeping raw wavelength values
 
-    # Sanity check
-    n_wl_frames = len(iq1d_raw_frame)
-    assert len(iq2d_raw_frame) == n_wl_frames
+    Parameters
+    ----------
+    iq1d_raw
+    iq2d_raw
+    binning_setup
 
-    q1d_binned_frames = q2d_binned_frames = list()
-    for wl_frame in range(n_wl_frames):
-        # binning does not support annular and wedge for correction purpose
-        iq2d_main_out, iq1d_main_out = bin_all(iq2d_raw_frame[wl_frame], iq1d_raw_frame[wl_frame],
-                                               binning_setup.nxbins_main, binning_setup.nybins_main,
-                                               n1dbins=binning_setup.n1dbins,
-                                               n1dbins_per_decade=binning_setup.n1dbins_per_decade,
-                                               decade_on_center=binning_setup.decade_on_center,
-                                               bin1d_type=binning_setup.bin1d_type,
-                                               log_scale=binning_setup.log_scale,
-                                               qmin=binning_setup.qmin, qmax=binning_setup.qmax,
-                                               qxrange=(binning_setup.qxmin, binning_setup.qxmax),
-                                               qyrange=(binning_setup.qymin, binning_setup.qymax),
-                                               error_weighted=False,
-                                               n_wavelength_bin=None)
-        assert isinstance(iq1d_main_out, list), f'iq1d output type = {type(iq1d_main_out)}'
-        q2d_binned_frames.append(iq2d_main_out)
-        q1d_binned_frames.append(iq1d_main_out[0])
-    # END-FOR
+    Returns
+    -------
+    ~tuple
+        binned I(Q, wavelength), binned I(qx, qy, wavelength)
 
-    return q1d_binned_frames, q2d_binned_frames
+    """
+    # binning does not support annular and wedge for correction purpose
+    iq2d_out, iq1d_out = bin_all(iq2d_raw, iq1d_raw,
+                                 binning_setup.nxbins_main, binning_setup.nybins_main,
+                                 n1dbins=binning_setup.n1dbins,
+                                 n1dbins_per_decade=binning_setup.n1dbins_per_decade,
+                                 decade_on_center=binning_setup.decade_on_center,
+                                 bin1d_type=binning_setup.bin1d_type,
+                                 log_scale=binning_setup.log_scale,
+                                 qmin=binning_setup.qmin, qmax=binning_setup.qmax,
+                                 qxrange=(binning_setup.qxmin, binning_setup.qxmax),
+                                 qyrange=(binning_setup.qymin, binning_setup.qymax),
+                                 error_weighted=False, n_wavelength_bin=None)
+
+    # sanity check
+    assert isinstance(iq1d_out, list), f'iq1d output type = {type(iq1d_out)}'
+
+    return iq1d_out[0], iq2d_out
 
 
 def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):

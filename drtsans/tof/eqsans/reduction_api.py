@@ -28,9 +28,22 @@ from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 import os
+from drtsans.tof.eqsans.correction_api import process_convert_q
+import numpy as np
 
 
-def process_single_configuration_incoherence_correction(incoherence_correction_setup):
+def process_single_configuration_incoherence_correction(sample_ws, sample_transmission,
+                                                        theta_dependent_transmission,
+                                                        dark_current,
+                                                        flux_setup,
+                                                        mask_setup,
+                                                        solid_angle,
+                                                        sensitivities_ws,
+                                                        absolute_scale,
+                                                        sample_thickness,
+                                                        bkgd_raw_iq,
+                                                        incoherence_correction_setup,
+                                                        binning_params):
     """Process raw sample workspace with single configuration and inelastic/incoherence correction
     till binned I(Q, wavelength)
 
@@ -46,91 +59,116 @@ def process_single_configuration_incoherence_correction(incoherence_correction_s
     assert isinstance(incoherence_correction_setup, CorrectionConfiguration)
 
     # 1. process single configuration of a sample run
-    pass
+    sample_raw_iq = process_convert_q(sample_ws,
+                                      sample_transmission,  # (sample_trans_ws, sample_trans_value),
+                                      theta_dependent_transmission,
+                                      dark_current,
+                                      flux_setup,  # (flux_method, flux),
+                                      mask_setup,  # (loaded_ws.mask, mask_panel, None),
+                                      solid_angle,
+                                      sensitivities_ws,
+                                      sample_thickness,
+                                      absolute_scale,
+                                      'sample',
+                                      delete_raw=True)
 
-    # 2. determine Qmin and Qmax sample run
-    # min_q = max_q = None
+    # Process each frame separately!
 
-    # 3. bin sample data (without background)
-    # process data with incoherent/inelastic correction
-    # sample_1d_fr, sample_2d_fr = process_bin_workspace(raw_sample_ws,
-    #                                                    (sample_trans_ws, sample_trans_value),
-    #                                                    theta_deppendent_transmission,
-    #                                                    loaded_ws.dark_current,
-    #                                                    (flux_method, flux),
-    #                                                    (loaded_ws.mask, mask_panel, None),
-    #                                                    solid_angle,
-    #                                                    loaded_ws.sensitivity,
-    #                                                    incoherence_correction_setup.sample_thickness,
-    #                                                    absolute_scale,
-    #                                                    binning_params)
-    #
-    # # FIXME - this if-else block is for debugging refined workflow.
-    # if incoherence_correction_setup.debug_no_correction is False:
-    #     # normalize
-    #     if norm_dict:
-    #         sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
-    #                                                                           sample_2d_fr,
-    #                                                                           norm_dict)
-    #     # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
-    #     r = correct_acc_incoherence_scattering(sample_1d_fr, sample_2d_fr, incoherence_correction_setup)
-    #     iq1d_main_in_fr, iq2d_main_in_fr = r
-    # else:
-    #     # no correction for debugging purpose
-    #     # FIXME - remove this after everything passes!
-    #     iq1d_main_in_fr = sample_1d_fr
-    #     iq2d_main_in_fr = sample_2d_fr
-    #
-    # # subtract with background
-    # print(f'Binning: {binning_params}')
-    # print(f'Number of frames: {len(iq1d_main_in_fr)}')
-    # for i_f in range(len(iq1d_main_in_fr)):
-    #     print('1D')
-    #     print(f'[NOW-CORRECTION] 1D: sample     range {iq1d_main_in_fr[i_f].mod_q[0]}, '
-    #           f'{iq1d_main_in_fr[i_f].mod_q[-1]}')
-    #     print(f'[NOW-CORRECTION] 1D: background range {bkgd_iq1d[i_f].mod_q[0]}, '
-    #           f'{bkgd_iq1d[i_f].mod_q[-1]}')
-    #     iq1d_main_in_fr[i_f] = subtract_background(iq1d_main_in_fr[i_f], bkgd_iq1d[i_f])
-    #
-    #     print('2D')
-    #     print(f'[NOW-CORRECTION] 2D: range {iq2d_main_in_fr.qx[0, 0]}, '
-    #           f'{iq2d_main_in_fr.qx[0, nxbins_main - 1]}')
-    #     iq2d_main_in_fr[i_f] = subtract_background(iq2d_main_in_fr[i_f], bkgd_iq2d[i_f])
-    #     iq2d_main_in_fr[i] = iq2d_main_in_fr[i] - bkgd_iq2d[i]
+    # output
+    binned_iq1d_frames = list()
+    binned_iq2d_frames = list()
 
-    # 4. bin background data
-    pass
+    # Step 2 to 4 are up to each frame
+    raw_q1d_frame, raw_q2d_frame = sample_raw_iq
 
-    # 5. normalize by elastic scattering reference data
-    if incoherence_correction_setup.do_correction and incoherence_correction_setup.elastic_reference_run:
-        # normalize
-        # calculate the normalization factors
-        # # calculate normalization factor
-        # norm_dict = calculate_elastic_scattering_factor(loaded_ws.elastic_ref_ws,
-        #                                                 loaded_ws.elastic_ref_trans_ws,
-        #                                                 elastic_ref_setup.ref_trans_value,
-        #                                                 elastic_ref_setup.ref_sample_thickness,
-        #                                                 None)
+    from drtsans.dataobjects import IQmod, IQazimuthal
+    from drtsans.tof.eqsans.correction_api import bin_i_of_q
 
-        # normalize background and sample
-        # bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
-        # sample_iq1d, sample_iq2d = normalize_ws_with_elastic_scattering(sample_iq1d, sample_iq2d, norm_dict)
-        print(f'ASAP')
+    for frame in range(len(raw_q1d_frame)):
+        # step 2. determine Qmin and Qmax sample run
+        # 1D
+        raw_iq1d = raw_q1d_frame[frame]
+        assert isinstance(raw_iq1d, IQmod), f'Raw I(Q1D) is of type {type(raw_iq1d)}'
 
-    # 6. correct to reduce incoherence and inelastic scattering
-    if incoherence_correction_setup.do_correction:
-        # bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
-        #                                                           incoherence_correction_setup)
-        # sample_iq1d, sample_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
-        #                                                           incoherence_correction_setup)
-        pass
+        if binning_params.qmin is None:
+            binning_params.qmin = raw_iq1d.mod_q.min()
+        if binning_params.qmax is None:
+            binning_params.qmax = raw_iq1d.mod_q.max()
 
-    # 7. Remove background
-    # subtract_bkgd()
+        # 2D
+        raw_iq2d = raw_q2d_frame[frame]
+        assert isinstance(raw_iq2d, IQazimuthal), f'Raw I(Q2D) is of type {type(raw_iq2d)}'
 
-    # 8. Return Q1D and Q2D
+        if binning_params.qxrange is None:
+            # default: data's qx range
+            qx_min = np.min(raw_iq2d.qx)
+            qx_max = np.max(raw_iq2d.qx)
+            binning_params.qxrange = qx_min, qx_max
 
-    return None, None
+        if binning_params.qyrange is None:
+            # default: data's qy range
+            qy_min = np.min(raw_iq2d.qy)
+            qy_max = np.max(raw_iq2d.qy)
+            binning_params.qyrange = qy_min, qy_max
+
+        # step 3. bin sample data (without background), background and optionally elastic reference
+        binned_sample_iq = bin_i_of_q(raw_iq1d, raw_iq2d, binning_params)
+        binned_bkgd_iq = bin_i_of_q(bkgd_raw_iq[frame][0], bkgd_raw_iq[frame][1], binning_params)
+        if incoherence_correction_setup.elastic_reference_run:
+            raw_ref_iq1d, raw_ref_iq2d = incoherence_correction_setup.elastic_reference_run.binned_ref_iq[frame]
+            binned_elastic_ref_iq = bin_i_of_q(raw_ref_iq1d, raw_ref_iq2d, binning_params)
+        else:
+            binned_elastic_ref_iq = None
+
+        # step 4. process data with incoherent/inelastic correction
+        # FIXME - this if-else block is for debugging refined workflow.
+        if incoherence_correction_setup.debug_no_correction is False:
+            # normalize sample run and background run
+            if binned_elastic_ref_iq:
+                # calculate normalization according to new binning
+                raise NotImplementedError('ASAP')
+                # norm_dict = calculate_elastic_scattering_factor(loaded_ws.elastic_ref_ws,
+                #                                                 loaded_ws.elastic_ref_trans_ws,
+                #                                                 elastic_ref_setup.ref_trans_value,
+                #                                                 elastic_ref_setup.ref_sample_thickness,
+                #                                                 None)
+
+                # normalize sample data
+                # sample_iq1d, sample_iq2d = normalize_ws_with_elastic_scattering(sample_iq1d, sample_iq2d, norm_dict)
+
+                # normalize background data
+                # bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)
+
+                # sample_1d_fr, sample_2d_fr = normalize_ws_with_elastic_scattering(sample_1d_fr,
+                #                                                               sample_2d_fr,
+                #                                                               norm_dict)
+            # END-IF (correction step 2)
+
+            # correct 1D
+            # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
+            # bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
+            #                                                           incoherence_correction_setup)
+            # sample_iq1d, sample_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
+            #                                                           incoherence_correction_setup)
+
+        # subtract with background
+        print(f'Binning: {binning_params}')
+        print('1D')
+        print(f'[NOW-CORRECTION] 1D: sample     range {binned_sample_iq[0].mod_q[0]}, '
+              f'{binned_sample_iq[0].mod_q[-1]}')
+        print(f'[NOW-CORRECTION] 1D: background range {binned_bkgd_iq[0].mod_q[0]}, '
+              f'{binned_bkgd_iq[0].mod_q[-1]}')
+        print('2D')
+        print(f'[NOW-CORRECTION] 2D: range {binned_bkgd_iq[0].qx[0, 0]}')
+
+        binned_sample_q1d = subtract_background(binned_sample_iq[0], binned_bkgd_iq[0])
+        binned_sample_q2d = subtract_background(binned_sample_iq[1], binned_bkgd_iq[1])
+
+        # append
+        binned_iq1d_frames.append(binned_sample_q1d)
+        binned_iq2d_frames.append(binned_sample_q2d)
+
+    return binned_iq1d_frames, binned_iq2d_frames
 
 
 def process_workspace_single_configuration(ws_raw,
@@ -246,6 +284,9 @@ def process_workspace_single_configuration(ws_raw,
                                                output_workspace=output_workspace)
 
     # finalize with absolute scale and thickness
+    # TODO FIXME @changwoo - normalization of sample thickness shall be applied to sample/background before or after
+    # inelastic/incoherence correction????
+    # Mathematically it does not mastter
     raw_ws = normalize_by_thickness(raw_ws, thickness)
     # absolute scale
     raw_ws *= absolute_scale

@@ -223,7 +223,7 @@ def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, r
 
 
 # TODO FIXME - in progress (latest)
-def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensitivity_ws, flux, ):
+def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensitivity_ws, flux):
     """Process elastic reference run from raw workspaces to I of Q1D and Q2D split to frames
 
     Workflow
@@ -385,8 +385,8 @@ def bin_i_of_q(iq1d_raw: IQmod,
                                  bin1d_type=binning_setup.bin1d_type,
                                  log_scale=binning_setup.log_scale,
                                  qmin=binning_setup.qmin, qmax=binning_setup.qmax,
-                                 qxrange=(binning_setup.qxmin, binning_setup.qxmax),
-                                 qyrange=(binning_setup.qymin, binning_setup.qymax),
+                                 qxrange=(binning_setup.qxrange[0], binning_setup.qxrange[1]),
+                                 qyrange=(binning_setup.qyrange[0], binning_setup.qyrange[1]),
                                  error_weighted=False, n_wavelength_bin=None)
 
     # sanity check

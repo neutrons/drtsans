@@ -91,9 +91,9 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         assert isinstance(raw_iq1d, IQmod), f'Raw I(Q1D) is of type {type(raw_iq1d)}'
 
         if binning_params.qmin is None:
-            binning_params.qmin = raw_iq1d.mod_q.min()
+            binning_params = binning_params._replace(qmin=raw_iq1d.mod_q.min())
         if binning_params.qmax is None:
-            binning_params.qmax = raw_iq1d.mod_q.max()
+            binning_params = binning_params._replace(qmax=raw_iq1d.mod_q.max())
 
         # 2D
         raw_iq2d = raw_q2d_frame[frame]
@@ -103,17 +103,23 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             # default: data's qx range
             qx_min = np.min(raw_iq2d.qx)
             qx_max = np.max(raw_iq2d.qx)
-            binning_params.qxrange = qx_min, qx_max
+            binning_params = binning_params._replace(qxrange=(qx_min, qx_max))
 
         if binning_params.qyrange is None:
             # default: data's qy range
             qy_min = np.min(raw_iq2d.qy)
             qy_max = np.max(raw_iq2d.qy)
-            binning_params.qyrange = qy_min, qy_max
+            binning_params = binning_params._replace(qyrange=(qy_min, qy_max))
+
+        print(f'[DEBUG binning] {binning_params.qxrange}, {binning_params.qyrange}')
 
         # step 3. bin sample data (without background), background and optionally elastic reference
         binned_sample_iq = bin_i_of_q(raw_iq1d, raw_iq2d, binning_params)
-        binned_bkgd_iq = bin_i_of_q(bkgd_raw_iq[frame][0], bkgd_raw_iq[frame][1], binning_params)
+
+        print(f'[DEBUG bkgd] type: {type(bkgd_raw_iq)}')
+        print(f'[DEBUG bkgd] type: {type(bkgd_raw_iq[0])}')
+
+        binned_bkgd_iq = bin_i_of_q(bkgd_raw_iq[0][frame], bkgd_raw_iq[1][frame], binning_params)
         if incoherence_correction_setup.elastic_reference_run:
             raw_ref_iq1d, raw_ref_iq2d = incoherence_correction_setup.elastic_reference_run.binned_ref_iq[frame]
             binned_elastic_ref_iq = bin_i_of_q(raw_ref_iq1d, raw_ref_iq2d, binning_params)
@@ -122,7 +128,11 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
 
         # step 4. process data with incoherent/inelastic correction
         # FIXME - this if-else block is for debugging refined workflow.
-        if incoherence_correction_setup.debug_no_correction is False:
+        if incoherence_correction_setup.debug_no_correction:
+            # do not do any correction as a test for refactored reduction workflow, which shall
+            # yield the same result if correction is skipped.
+            pass
+        else:
             # normalize sample run and background run
             if binned_elastic_ref_iq:
                 # calculate normalization according to new binning
@@ -159,7 +169,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         print(f'[NOW-CORRECTION] 1D: background range {binned_bkgd_iq[0].mod_q[0]}, '
               f'{binned_bkgd_iq[0].mod_q[-1]}')
         print('2D')
-        print(f'[NOW-CORRECTION] 2D: range {binned_bkgd_iq[0].qx[0, 0]}')
+        print(f'[NOW-CORRECTION] 2D: range {binned_bkgd_iq[1].qx[0, 0]}')
 
         binned_sample_q1d = subtract_background(binned_sample_iq[0], binned_bkgd_iq[0])
         binned_sample_q2d = subtract_background(binned_sample_iq[1], binned_bkgd_iq[1])

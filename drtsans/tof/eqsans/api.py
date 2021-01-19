@@ -619,7 +619,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                       'bin1d_type': bin1d_type,
                       'log_scale': log_binning,
                       'qmin': qmin,
-                      'qmax': qmax}
+                      'qmax': qmax,
+                      'qxrange': None,
+                      'qyrange': None}
     binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
     assert binning_params
 
@@ -672,7 +674,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                                             absolute_scale,
                                                                             thickness,
                                                                             processed_background,
-                                                                            incoherence_correction_setup)
+                                                                            incoherence_correction_setup, binning_params)
             iq1d_main_in_fr, iq2d_main_in_fr = processed
 
         else:

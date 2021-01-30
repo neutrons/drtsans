@@ -160,5 +160,70 @@ def test_1d_bin_linear_no_wt_no_wl():
         'Linear binning: Q resolution {} does not match expected {}'.format(binned_iq_wl.delta_mod_q[3], 1.135E-02)
 
 
+def test_1d_bin_wavelength():
+    """Test binning wavelength while the target Q bins are the same as input
+    I(Q)
+
+    Returns
+    -------
+
+    """
+    q_min = 0.000
+    q_max = 0.010
+    num_bins = 10
+
+    # Verify bin edges and bin center
+    linear_bins = determine_1d_linear_bins(q_min, q_max, num_bins)
+    gold_edges, gold_centers = get_gold_1d_linear_bins()
+
+    np.testing.assert_allclose(linear_bins.edges, gold_edges, rtol=1.E-12)
+    np.testing.assert_allclose(linear_bins.centers, gold_centers, rtol=1.E-12)
+
+    # Get Q1D data
+    intensities, sigmas, scalar_q_array, scalar_dq_array, wl_array = generate_test_data_wavelength(1, 3)
+    test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array, wl_array)
+
+    # Bin I(Q) no-weight with summing wavelength as the correct result
+    binned_iq_1step = bin_intensity_into_q1d(test_iq, linear_bins, BinningMethod.NOWEIGHT, wavelength_bins=1)
+
+    # Bin I(Q) no-weight but not wavelength
+    binned_iq_wl = bin_intensity_into_q1d(test_iq, linear_bins, BinningMethod.NOWEIGHT, wavelength_bins=None)
+
+    # Check NaN
+    nan_intensities = np.where(np.isnan(binned_iq_wl.intensity))[0]
+    nan_errors = np.where(np.isnan(binned_iq_wl.error))[0]
+    assert len(nan_intensities) == 6, f'Expected {6} NaN but got {len(nan_errors)} instead'
+    np.testing.assert_allclose(nan_intensities, nan_errors)
+
+    print(f'Number of  intensities = {binned_iq_wl.intensity.shape}')
+
+    #  Remove NaN
+    finite_binned_iq_wl = binned_iq_wl.be_finite()
+    # finite_locations = np.isfinite(binned_iq_wl.intensity)
+    # finite_delta_mod_q = None if binned_iq_wl.mod_q is None else binned_iq_wl.delta_mod_q[finite_locations]
+    # finite_binned_iq_wl = IQmod(intensity=binned_iq_wl.intensity[finite_locations],
+    #                             error=binned_iq_wl.error[finite_locations],
+    #                             mod_q=binned_iq_wl.mod_q[finite_locations],
+    #                             delta_mod_q=finite_delta_mod_q,
+    #                             wavelength=binned_iq_wl.wavelength[finite_locations])
+
+    # Bin I(Q, wavelength) again with same bins
+    binned_iq_no_wl = bin_intensity_into_q1d(finite_binned_iq_wl, linear_bins,
+                                             BinningMethod.NOWEIGHT, wavelength_bins=1)
+
+    print(f'Number of final binned I(Q): {binned_iq_no_wl.intensity.shape}')
+
+    print(f'I(Q, wavelength)')
+    for i in range(24):
+        print(f'{i}:  {finite_binned_iq_wl.mod_q[i]:.5f}    {finite_binned_iq_wl.wavelength[i]:.5f}    '
+              f'{finite_binned_iq_wl.intensity[i]}')
+
+    # Verify with 1-step binning
+    np.testing.assert_allclose(binned_iq_no_wl.mod_q, binned_iq_1step.mod_q)
+    np.testing.assert_allclose(binned_iq_no_wl.intensity, binned_iq_1step.intensity)
+    np.testing.assert_allclose(binned_iq_no_wl.error, binned_iq_1step.error)
+    np.testing.assert_allclose(binned_iq_no_wl.delta_mod_q, binned_iq_1step.delta_mod_q)
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

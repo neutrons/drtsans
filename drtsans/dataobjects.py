@@ -363,6 +363,18 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
     def id(self):
         return DataType.IQ_MOD
 
+    def be_finite(self):
+        #  Remove NaN
+        finite_locations = np.isfinite(self.intensity)
+        finite_delta_mod_q = None if self.mod_q is None else self.delta_mod_q[finite_locations]
+        finite_binned_iq_wl = IQmod(intensity=self.intensity[finite_locations],
+                                    error=self.error[finite_locations],
+                                    mod_q=self.mod_q[finite_locations],
+                                    delta_mod_q=finite_delta_mod_q,
+                                    wavelength=self.wavelength[finite_locations])
+
+        return finite_binned_iq_wl
+
     def to_workspace(self, name=None):
         # create a name if one isn't provided
         if name is None:

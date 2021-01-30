@@ -199,13 +199,6 @@ def test_1d_bin_wavelength():
 
     #  Remove NaN
     finite_binned_iq_wl = binned_iq_wl.be_finite()
-    # finite_locations = np.isfinite(binned_iq_wl.intensity)
-    # finite_delta_mod_q = None if binned_iq_wl.mod_q is None else binned_iq_wl.delta_mod_q[finite_locations]
-    # finite_binned_iq_wl = IQmod(intensity=binned_iq_wl.intensity[finite_locations],
-    #                             error=binned_iq_wl.error[finite_locations],
-    #                             mod_q=binned_iq_wl.mod_q[finite_locations],
-    #                             delta_mod_q=finite_delta_mod_q,
-    #                             wavelength=binned_iq_wl.wavelength[finite_locations])
 
     # Bin I(Q, wavelength) again with same bins
     binned_iq_no_wl = bin_intensity_into_q1d(finite_binned_iq_wl, linear_bins,

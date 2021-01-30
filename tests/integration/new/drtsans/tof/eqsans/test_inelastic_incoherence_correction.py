@@ -75,7 +75,7 @@ def failed_test_parse_json():
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason="Required test data not available")
-def failed_test_correct_without_elastic(reference_dir):
+def test_correct_without_elastic(reference_dir):
 
     # Set up the configuration dict
     configuration = {

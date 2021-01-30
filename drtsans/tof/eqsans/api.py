@@ -676,6 +676,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                                             processed_background,
                                                                             incoherence_correction_setup, binning_params)
             iq1d_main_in_fr, iq2d_main_in_fr = processed
+            print(f'[DEBUG].... ... Path check!')
 
         else:
             # process data without correction

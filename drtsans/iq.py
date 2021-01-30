@@ -229,11 +229,17 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
     else:
         qy_min, qy_max = qyrange
     binning_y = determine_1d_linear_bins(qy_min, qy_max, nybins)
+
     # bin 2D
-    binned_q2d = bin_intensity_into_q2d(i_qxqy,
-                                        binning_x,
-                                        binning_y,
-                                        method=method)
+    # TODO FIXME resume... after 2D is implemented
+    try:
+        binned_q2d = bin_intensity_into_q2d(i_qxqy,
+                                            binning_x,
+                                            binning_y,
+                                            method=method)
+    except RuntimeError as err:
+        print(f'[DEBUG] Shall re-throw this exception: {err}')
+        pass
 
     # 1D binning
     binned_q1d_list = []

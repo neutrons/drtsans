@@ -663,6 +663,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             output_suffix = f'_{i}'
 
         if incoherence_correction_setup.do_correction:
+            # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
             processed = process_single_configuration_incoherence_correction(raw_sample_ws,
                                                                             (sample_trans_ws, sample_trans_value),
                                                                             theta_deppendent_transmission,
@@ -677,6 +678,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                                             incoherence_correction_setup,
                                                                             binning_params)
             iq1d_main_in_fr, iq2d_main_in_fr = processed
+            # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
             print(f'[DEBUG].... ... Path check!')
 
         else:
@@ -758,13 +760,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
             print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[-1]}')
-            print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
+            # print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
-            save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
+
+            # TODO FIXME - make save_ascii_binned_2D() back afterwards
+            # save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
             for j in range(len(iq1d_main_out)):
                 add_suffix = ""
@@ -801,18 +805,20 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                          'background_transmission': background_transmission_dict,
                          'background_transmission_raw': background_transmission_raw_dict}
 
-    samplelogs = {'main': SampleLogs(processed_data_main)}
-    logslice_data_dict = reduction_input["logslice_data"]
+    # TODO FIXME - Reincarnate this section!  The correction workflow does not output processed data workspace yet!
+    if False:
+        samplelogs = {'main': SampleLogs(processed_data_main)}
+        logslice_data_dict = reduction_input["logslice_data"]
 
-    drtsans.savereductionlog(filename=filename,
-                             detectordata=detectordata,
-                             reductionparams=reductionparams,
-                             # pythonfile=pythonfile,
-                             starttime=starttime,
-                             specialparameters=specialparameters,
-                             logslicedata=logslice_data_dict,
-                             samplelogs=samplelogs,
-                             )
+        drtsans.savereductionlog(filename=filename,
+                                 detectordata=detectordata,
+                                 reductionparams=reductionparams,
+                                 # pythonfile=pythonfile,
+                                 starttime=starttime,
+                                 specialparameters=specialparameters,
+                                 logslicedata=logslice_data_dict,
+                                 samplelogs=samplelogs,
+                                 )
 
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)

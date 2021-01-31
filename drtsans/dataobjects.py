@@ -366,7 +366,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
     def be_finite(self):
         #  Remove NaN
         finite_locations = np.isfinite(self.intensity)
-        finite_delta_mod_q = None if self.mod_q is None else self.delta_mod_q[finite_locations]
+        finite_delta_mod_q = None if self.delta_mod_q is None else self.delta_mod_q[finite_locations]
         finite_binned_iq_wl = IQmod(intensity=self.intensity[finite_locations],
                                     error=self.error[finite_locations],
                                     mod_q=self.mod_q[finite_locations],

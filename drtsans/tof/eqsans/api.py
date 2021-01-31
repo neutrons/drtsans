@@ -806,7 +806,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                          'background_transmission_raw': background_transmission_raw_dict}
 
     # TODO FIXME - Reincarnate this section!  The correction workflow does not output processed data workspace yet!
-    if False:
+    try:
         samplelogs = {'main': SampleLogs(processed_data_main)}
         logslice_data_dict = reduction_input["logslice_data"]
 
@@ -819,6 +819,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                  logslicedata=logslice_data_dict,
                                  samplelogs=samplelogs,
                                  )
+    except AttributeError:
+        pass
+        # raise AttributeError('ASAP')
 
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)

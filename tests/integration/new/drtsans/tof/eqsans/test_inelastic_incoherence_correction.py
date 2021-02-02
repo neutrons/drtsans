@@ -69,7 +69,7 @@ def test_parse_json():
 
     # Check that inelastic incoherence config items were parsed
     assert input_config['configuration'].get('fitInelasticIncoh')
-    assert input_config['configuration'].get('elasticReference') == '115363'
+    assert input_config['configuration']['elasticReference'].get('runNumber') == '115363'
     assert input_config['configuration'].get('selectMinIncoh')
 
 

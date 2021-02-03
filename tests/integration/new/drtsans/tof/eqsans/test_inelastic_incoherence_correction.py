@@ -51,7 +51,7 @@ def test_parse_json():
             "AnnularAngleBin": "5",
             "useSliceIDxAsSuffix": True,
             "fitInelasticIncoh": True,
-            "elasticReference": "260159121",
+            "elasticReference": {"runNumber": "260159121"},
             "selectMinIncoh": True
         }
     }
@@ -63,7 +63,7 @@ def test_parse_json():
 
     # Respecify to use a valid run
     # json_str.replace('260159121', '26015')
-    reduction_input['configuration']['elasticReference'] = "115363"
+    reduction_input['configuration']['elasticReference']['runNumber'] = "115363"
     # Defaults and Validate
     input_config = reduction_parameters(reduction_input)
 

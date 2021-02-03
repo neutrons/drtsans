@@ -1,5 +1,7 @@
 import pytest
 import os
+
+from jsonschema.exceptions import ValidationError
 # import tempfile
 # import json
 from drtsans.tof.eqsans import reduction_parameters
@@ -60,7 +62,7 @@ def test_parse_json():
     }
 
     # Validate
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValidationError):
         # TODO - expect to fail as elastic reference run 260159121 does not exist
         reduction_parameters(reduction_input)
 

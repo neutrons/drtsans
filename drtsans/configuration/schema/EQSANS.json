@@ -214,7 +214,7 @@
         "selectMinIncoh": {"type": "boolean", "default": false,
                            "description": "use smallest wavelength as reference wavelength"}
       },
-      "maxProperties": 59,
+      "maxProperties": 60,
       "required": ["outputDir", "useTimeSlice", "timeSliceInterval", "useLogSlice", "logSliceName",
         "logSliceInterval", "sampleOffset", "useDetectorOffset", "detectorOffset",
         "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",

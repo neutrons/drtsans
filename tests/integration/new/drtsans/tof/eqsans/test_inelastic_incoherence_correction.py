@@ -51,7 +51,10 @@ def test_parse_json():
             "AnnularAngleBin": "5",
             "useSliceIDxAsSuffix": True,
             "fitInelasticIncoh": True,
-            "elasticReference": {"runNumber": "260159121"},
+            "elasticReference": {
+                "runNumber": "260159121",
+                "thickness": "1.0"
+            },
             "selectMinIncoh": True
         }
     }

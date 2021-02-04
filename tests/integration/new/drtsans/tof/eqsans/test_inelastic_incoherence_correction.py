@@ -14,6 +14,8 @@ from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,
 def test_parse_json():
     """Test the JSON to dictionary
     """
+    invalid_run_num = "260159121"
+    valid_run_num = "115363"
     # Specify JSON input
     reduction_input = {
         "instrumentName": "EQSANS",
@@ -54,8 +56,19 @@ def test_parse_json():
             "useSliceIDxAsSuffix": True,
             "fitInelasticIncoh": True,
             "elasticReference": {
-                "runNumber": "260159121",
-                "thickness": "1.0"
+                "runNumber": invalid_run_num,
+                "thickness": "1.0",
+                "transmission": {
+                    "runNumber": valid_run_num,
+                    "value": "0.9"
+                }
+            },
+            "elasticReferenceBkgd": {
+                "runNumber": valid_run_num,
+                "transmission": {
+                    "runNumber": valid_run_num,
+                    "value": "0.9"
+                }
             },
             "selectMinIncoh": True
         }
@@ -68,13 +81,13 @@ def test_parse_json():
 
     # Respecify to use a valid run
     # json_str.replace('260159121', '26015')
-    reduction_input['configuration']['elasticReference']['runNumber'] = "115363"
+    reduction_input['configuration']['elasticReference']['runNumber'] = valid_run_num
     # Defaults and Validate
     input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
     assert input_config['configuration'].get('fitInelasticIncoh')
-    assert input_config['configuration']['elasticReference'].get('runNumber') == '115363'
+    assert input_config['configuration']['elasticReference'].get('runNumber') == valid_run_num
     assert input_config['configuration'].get('selectMinIncoh')
 
 

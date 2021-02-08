@@ -815,8 +815,12 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
-        binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
-                                                 i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
+        if i_of_q.wavelength == None:
+            binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
+                                                     i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
+        else:
+            binned_arrays = _do_2d_no_weight_binning_wavelength(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
+                                                                i_of_q.wavelength, i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
     else:
         # Calculate weighed binning
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
@@ -897,6 +901,150 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array,
     dqy_final_array = dqy_raw_array / num_pt_array
 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
+
+
+def _bin_iq2d(qx_bin_edges, qy_bin_edges qx_vec, qy_vec, dqx_vec, dqy_vec, i_vec, error_vec):
+    """ Bin I(Q2D), dI(Q2D) and dQ(Q2D) by no weight binning algorithm
+
+    Parameters
+    ----------
+    qx_bin_edges: ~numpy.ndarray
+        bin edges
+    qy_bin_edges: ~numpy.ndarray
+        bin edges
+    qx_vec: ~numpy.ndarray
+        vector of Q2D
+    qy_vec: ~numpy.ndarray
+        vector of Q2D
+    dqx_vec: ~numpy.ndarray, None
+        vector for Q2D resolution. May be None
+    dqx_vec: ~numpy.ndarray, None
+        vector for Q2D resolution. May be None
+    i_vec: ~numpy.ndarray
+        2D array of intensity
+    error_vec: ~numpy.ndarray
+        2D array of intensity error
+
+    Returns
+    -------
+    ~tuple
+        binned intensity vector, binned intensity error vector, binned q resolution vector
+    """
+
+    # Number of I(q) in each target Q bin
+    num_pt_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges))
+
+    # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
+    i_raw_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
+                                    weights=i_vec)
+
+    # Square of summed uncertainties for each bin
+    sigma_sqr_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
+                                        weights=error_vec ** 2)
+
+    # Q resolution: simple average
+    dqx_raw_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
+                                      weights=dqx_vec)
+    dqy_raw_array, _ = np.histogram2d(qx_vec, qy_vecy, bins=(qx_bin_edges, qy_bin_edges),
+                                      weights=dqy_vec)
+
+    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
+    #       sigma = 1/sqrt(w_k)
+    i_final_array = i_raw_array / num_pt_array
+    sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
+    dqx_final_array = dqx_raw_array / num_pt_array
+    dqy_final_array = dqy_raw_array / num_pt_array
+
+    return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
+
+
+def _do_2d_no_weight_binning_wl(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
+                             qx_bin_edges, qy_bin_edges):
+    """Perform 2D no-weight binning on I(Qx, Qy)
+
+    General description of the algorithm:
+
+      I_{i, j} = sum^{(i, j)}_k I_{k} / N_{i, j}
+      sigma I_{i, j} = sqrt(sum^{(i, j)}_k sigma I_k^2) / N_{i, j}
+
+    Parameters
+    ----------
+    qx_array: ndarray
+        Qx array
+    dqx_array: ndarray
+        Qx resolution
+    qy_array : ndarray
+        Qy array
+    dqy_array: ndarray
+        Qy resolution
+    wavelength_array: ndarray
+        wavelengths
+    iq_array: ndarray
+        intensities
+    sigma_iq_array: ndarray
+        intensities error
+    qx_bin_edges: ndarray
+    qy_bin_edges
+
+    Returns
+    -------
+    ndarray, ndarray, ndarray, ndarray
+        intensities (n x m), sigma intensities (n x m), Qx resolution (n x m), Qy resolution (n x m)
+
+    """
+
+    unique_wl_vec = np.unique(wl_array)
+    unique_wl_vec.sort()
+
+    # construct a 2D array for filtering
+    if dqx_array is None:
+        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigmaq_array])
+    else:
+        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigmaq_array, dqx_array, dqy_array])
+    wl_matrix = wl_matrix.transpose()
+
+    binned_qx_array = binned_qy_array = binned_iq_array = binned_sigma_iq_array = binned_wl_array = np.ndarray(shape=(0,), dtype=float)
+
+    if dqx_array is not None:
+        binned_dqx_array = binned_dqy_array = np.ndarray(shape=(0,), dtype=float)
+
+
+    for wl_i in unique_wl_vec:
+        filtered_matrix = wl_matrix[wl_matrix[:, 0] == wl_i]
+
+        
+        # special work with q resolution
+        if dqx_array is None:
+            dqx_array_i = None
+            dqy_array_i = None
+        else:
+            dqx_array_i = filtered_matrix[:, 5]
+            dqy_array_i = filtered_matrix[:, 6]
+
+        # bin by Q2D
+        i_final_array, sigma_final_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin_edges, qy_bin_edges,
+                                                                                       filtered_matrix[:, 1],
+                                                                                       dqx_array_i, dqy_array_i,
+                                                                                       filtered_matrix[:, 2],
+                                                                                       filtered_matrix[:, 3])
+#need to update rest of function
+        # build up the final output
+        binned_q_vec = np.concatenate((binned_q_vec, q_bins.centers))
+        binned_i_vec = np.concatenate((binned_i_vec, i_final_array))
+        binned_sigma_vec = np.concatenate((binned_sigma_vec, sigma_final_array))
+        if dq_array is not None:
+            binned_dq_vec = np.concatenate((binned_dq_vec, bin_q_resolution))
+        binned_wl_vec = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
+    # END-FOR (wl_i)
+
+    # Construct output
+    # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
+    # IQmod is a class for holding 1D binned data.
+    if dq_array is None:
+        binned_dq_vec = None
+    binned_iq1d = IQmod(intensity=binned_i_vec, error=binned_sigma_vec,
+                        mod_q=binned_q_vec, delta_mod_q=binned_dq_vec,
+                        wavelength=binned_wl_vec)
 
 
 def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

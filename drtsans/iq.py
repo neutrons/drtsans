@@ -947,7 +947,7 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
     # Q resolution: simple average
     dqx_raw_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
                                       weights=dqx_vec)
-    dqy_raw_array, _ = np.histogram2d(qx_vec, qy_vecy, bins=(qx_bin_edges, qy_bin_edges),
+    dqy_raw_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
                                       weights=dqy_vec)
 
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
@@ -992,9 +992,9 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
 
     Returns
     -------
-    ndarray, ndarray, ndarray, ndarray
-        intensities (n x m), sigma intensities (n x m), Qx resolution (n x m), Qy resolution (n x m)
-
+    ndarray, ndarray, ndarray, ndarray, ndarray
+        intensities (n x m x o), sigma intensities (n x m x o), Qx resolution (n x m x o), Qy resolution (n x m x o),
+        Wavelengths (o)
     """
 
     unique_wl_vec = np.unique(wl_array)
@@ -1002,12 +1002,12 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
 
     # construct a 2D array for filtering
     if dqx_array is None:
-        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigmaq_array])
+        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array])
     else:
-        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigmaq_array, dqx_array, dqy_array])
+        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array, dqx_array, dqy_array])
     wl_matrix = wl_matrix.transpose()
 
-    binned_qx_array = binned_qy_array = binned_iq_array = np.ndarray(shape=(0,), dtype=float) 
+    binned_qx_array = binned_qy_array = binned_iq_array = np.ndarray(shape=(0,), dtype=float)
     binned_sigma_iq_array = binned_wl_array = np.ndarray(shape=(0,), dtype=float)
 
     if dqx_array is not None:
@@ -1038,13 +1038,13 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
         if dqx_array is not None:
             binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array))
             binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array))
-        binned_wl_array = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
+        binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i))
     # END-FOR (wl_i)
 
     if dqx_array is None:
         binned_dqx_array = None
         binned_dqy_array = None
-    return binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array
+    return binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array, binned_wl_array
 
 
 def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

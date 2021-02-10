@@ -934,20 +934,20 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
     """
 
     # Number of I(q) in each target Q bin
-    num_pt_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges))
+    num_pt_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges))
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-    i_raw_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
+    i_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
                                     weights=i_vec)
 
     # Square of summed uncertainties for each bin
-    sigma_sqr_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
+    sigma_sqr_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
                                         weights=error_vec ** 2)
 
     # Q resolution: simple average
-    dqx_raw_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
+    dqx_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
                                       weights=dqx_vec)
-    dqy_raw_array, _ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
+    dqy_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
                                       weights=dqy_vec)
 
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}

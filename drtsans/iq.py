@@ -958,7 +958,7 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges qx_vec, qy_vec, dqx_vec, dqy_vec, i_vec
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-def _do_2d_no_weight_binning_wl(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
+def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
                              qx_bin, qy_bin):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
@@ -1028,23 +1028,20 @@ def _do_2d_no_weight_binning_wl(qx_array, dqx_array, qy_array, dqy_array, wl_arr
                                                                                        filtered_matrix[:, 2],
                                                                                        filtered_matrix[:, 3])
         # build up the final output
-        binned_qx_vec = np.concatenate((binned_qx_array, q_bin.centers))
-        binned_qy_vec = 
-        binned_i_vec = np.concatenate((binned_i_vec, i_final_array))
-        binned_sigma_vec = np.concatenate((binned_sigma_vec, sigma_final_array))
-        if dq_array is not None:
-            binned_dq_vec = np.concatenate((binned_dq_vec, bin_q_resolution))
-        binned_wl_vec = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
+        binned_qx_array = np.concatenate((binned_qx_array, qx_bin.centers))
+        binned_qy_array = np.concatenate((binned_qy_array, qy_bin.centers))
+        binned_iq_array = np.concatenate((binned_iq_array, i_final_array))
+        binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array))
+        if dqx_array is not None:
+            binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array))
+            binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array))
+        binned_wl_array = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
     # END-FOR (wl_i)
 
-    # Construct output
-    # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
-    # IQmod is a class for holding 1D binned data.
-    if dq_array is None:
-        binned_dq_vec = None
-    binned_iq1d = IQmod(intensity=binned_i_vec, error=binned_sigma_vec,
-                        mod_q=binned_q_vec, delta_mod_q=binned_dq_vec,
-                        wavelength=binned_wl_vec)
+    if dqx_array is None:
+        binned_dqx_array = None
+        binned_dqy_array = None
+    return binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array
 
 
 def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

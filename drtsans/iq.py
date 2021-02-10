@@ -938,17 +938,17 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
     i_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                    weights=i_vec)
+                                     weights=i_vec)
 
     # Square of summed uncertainties for each bin
     sigma_sqr_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                        weights=error_vec ** 2)
+                                         weights=error_vec ** 2)
 
     # Q resolution: simple average
     dqx_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                      weights=dqx_vec)
+                                       weights=dqx_vec)
     dqy_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                      weights=dqy_vec)
+                                       weights=dqy_vec)
 
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
     #       sigma = 1/sqrt(w_k)

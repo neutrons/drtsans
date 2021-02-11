@@ -1029,7 +1029,8 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
                                                                                        filtered_matrix[:, 1],
                                                                                        dqx_array_i, dqy_array_i,
                                                                                        filtered_matrix[:, 2],
-                                                                                       filtered_matrix[:, 3])
+                                                                                       filtered_matrix[:, 3],
+                                                                                       filtered_matrix[:, 4])
         # build up the final output
         binned_qx_array = np.concatenate((binned_qx_array, qx_bin.centers))
         binned_qy_array = np.concatenate((binned_qy_array, qy_bin.centers))

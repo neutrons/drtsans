@@ -2,7 +2,7 @@ from drtsans.dataobjects import IQazimuthal
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import determine_1d_linear_bins, BinningMethod, bin_intensity_into_q2d
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
+from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, generate_test_data_wavelength
 import pytest
 
 # This module supports testing data for issue #239.
@@ -40,6 +40,66 @@ def test_2d_bin_no_sub_no_wt():
     # Bin 2D No-weight
     # Get Q1D data
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+
+    # Bin I(Qx, Qy) with no-weight binning algorithm
+    test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
+                           delta_qx=dqx_array, delta_qy=dqy_array)
+    binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT)
+
+    # Verify Qx and Qy
+    assert qx_bins.centers[1] == pytest.approx(-0.003254, abs=1.E-6), 'Qx is not correct'
+    assert qy_bins.centers[1] == pytest.approx(-0.001713, abs=1.E-6), 'Qy is not correct'
+
+    # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
+    assert binned_iq_2d.intensity[1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
+    assert binned_iq_2d.error[1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
+
+    # verify dQx and dQy
+    assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00816, abs=1E-5), 'dQx {} is incorrect comparing to {}.' \
+                                                                            ''.format(binned_iq_2d[2][1][1], 0.00816)
+    assert binned_iq_2d.delta_qy[1][1] == pytest.approx(0.00816, abs=1E-5), 'dQy {}is incorrect comparing to {}.' \
+                                                                            ''.format(binned_iq_2d[3][1][1], 0.00816)
+
+    # verify Qx and Qy on off diagonal values
+    # Qx in row 0 shall be all same as qx bin center [1]
+    assert binned_iq_2d.qx[0][1] == pytest.approx(qx_bins.centers[0], abs=1E-5), \
+        'Qx[0, 1] {} shall be same as Qx bin center [1] {}'.format(binned_iq_2d.qx[0][1], qx_bins.centers[0])
+    # Qx in row 1 shall be all same as qx bin center [0]
+    assert binned_iq_2d.qx[1][0] == pytest.approx(qx_bins.centers[1], abs=1E-5), \
+        'Qx[1, 0] {} shall be same as Qx bin center [1] {}'.format(binned_iq_2d.qx[1][0], qx_bins.centers[1])
+
+    # Qy in col 0 shall be all same as qy bin center [0]
+    assert binned_iq_2d.qy[1][0] == pytest.approx(qy_bins.centers[0], abs=1E-5), \
+        'Qy[1, 0] {} shall be same as Qy bin center [0] {}'.format(binned_iq_2d.qy[1][0], qy_bins.centers[0])
+    # Qy in col 1 shall be all same as qy bin center [1]
+    assert binned_iq_2d.qy[0][1] == pytest.approx(qy_bins.centers[1], abs=1E-5), \
+        'Qy[0, 1] {} shall be same as Qy bin center [1] {}'.format(binned_iq_2d.qx[0][1], qy_bins.centers[1])
+
+
+def test_2d_bin_no_sub_no_wt_wavelength():
+    """Test '2D_bin_no_sub_no_wt_wavelength'
+
+    2D linear bin no sub pixel with weighted and no-weight summation
+    multiple wavelengths
+
+    Returns
+    -------
+    None
+
+    """
+    # Calculate and determine the bin edges
+    # range of binned (Qx, Qy) is taken from William's Excel
+    qx_min = -0.007573828
+    qx_max = 0.006825091
+    qy_min = -0.005051412
+    qy_max = 0.00607504
+
+    qx_bins = determine_1d_linear_bins(qx_min, qx_max, 5)
+    qy_bins = determine_1d_linear_bins(qy_min, qy_max, 5)
+
+    # Bin 2D No-weight
+    # Get Q1D data
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data_wavelength(2, 5)
 
     # Bin I(Qx, Qy) with no-weight binning algorithm
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,

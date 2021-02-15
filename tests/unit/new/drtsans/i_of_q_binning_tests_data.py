@@ -236,7 +236,29 @@ def generate_test_data_wavelength(q_dimension, num_wavelengths):
         returns = i_array, sigma_array, q_array, dq_array, wl_array
 
     elif q_dimension == 2:
-        raise NotImplementedError('ASAP')
+        # get initial 1D arrays
+        i_array, sigma_array, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+
+        # size
+        print(i_array.shape)
+        num_pts = i_array.shape(1)
+        
+        # tile to number of wavelengths
+        i_array = np.tile(i_array, num_wavelengths)
+        sigma_array = np.tile(sigma_array, num_wavelengths)
+        qx_array = np.tile(qx_array, num_wavelengths)
+        dqx_array = np.tile(dqx_array, num_wavelengths)
+        qy_array = np.tile(qy_array, num_wavelengths)
+        dqy_array = np.tile(dqy_array, num_wavelengths)
+
+        for i_wl in range(1, num_wavelengths):
+            i_array[i_wl] *= (i_wl + 1)
+
+        # repeat for wavelength: 1.5, 2.5, 3.5, ...
+        wl_array = np.arange(num_wavelengths) * 1. + 1.5
+        wl_array = np.tile(wl_array, num_pts)
+
+        returns = i_array, sigma_array, qx_array, dqx_array, qy_array, dqy_array, wl_array
 
     else:
         raise RuntimeError(f'Q dimension equal to {q_dimension} is not supported')

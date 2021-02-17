@@ -1019,6 +1019,7 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
         binned_dqx_array = binned_dqy_array = np.ndarray(shape=(0,), dtype=float)
 
     for wl_i in unique_wl_vec:
+        print(wl_matrix.shape, wl_matrix[:,0].shape)
         filtered_matrix = wl_matrix[wl_matrix[:, 0] == wl_i]
 
         # special work with q resolution

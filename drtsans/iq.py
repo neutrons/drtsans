@@ -815,6 +815,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
+        print("i_of_q.wavelength: ", i_of_q.wavelength)
         if i_of_q.wavelength is None:
             binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                      i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)

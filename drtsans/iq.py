@@ -816,13 +816,9 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
         print("i_of_q.wavelength: ", i_of_q.wavelength)
-        # if i_of_q.wavelength is None:
-        # binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
-        #                                          i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
-        # else:
         binned_arrays = _do_2d_no_weight_binning_wavelength(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                             i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
-                                                            qx_bins, qy_bins)
+                                                            qx_bins.edges, qy_bins.edges)
     else:
         # Calculate weighed binning
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
@@ -966,7 +962,7 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
 
 
 def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                                        qx_bin, qy_bin):
+                                        qx_bin_edges, qy_bin_edges):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -1003,8 +999,8 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
     """
 
     if wl_array is None:
-        binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges,
-                                                                                             qy_bin.edges,
+        binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin_edges,
+                                                                                             qy_bin_edges,
                                                                                              qx_array,
                                                                                              qy_array,
                                                                                              dqx_array,
@@ -1043,7 +1039,7 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
                 dqy_array_i = filtered_matrix[:, 6]
 
             # bin by Q2D
-            i_final_array, sigma_final_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges, qy_bin.edges,
+            i_final_array, sigma_final_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin_edges, qy_bin_edges,
                                                                                            filtered_matrix[:, 1],
                                                                                            filtered_matrix[:, 2],
                                                                                            dqx_array_i, dqy_array_i,

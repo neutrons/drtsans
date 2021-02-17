@@ -966,7 +966,7 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
 
 
 def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                                        qx_bin, qy_bin):
+                                         qx_bin, qy_bin):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -1002,58 +1002,69 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
         Wavelengths (o)
     """
 
-    unique_wl_vec = np.unique(wl_array)
-    unique_wl_vec.sort()
 
-    # construct a 2D array for filtering
-    if dqx_array is None:
-        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array])
+    if wl_array is None:
+         binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges, qy_bin.edges,
+                                                                                       qx_array, qy_array,
+                                                                                       dqx_array, dqy_array,
+                                                                                       iq_array,
+                                                                                       sigma_iq_array)
+         binned_wl_array = None
     else:
-        wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array, dqx_array, dqy_array])
-    wl_matrix = wl_matrix.transpose()
+        unique_wl_vec = np.unique(wl_array)
+        unique_wl_vec.sort()
 
-    binned_iq_array = np.ndarray(shape=(0,), dtype=float)
-    binned_sigma_iq_array = binned_wl_array = np.ndarray(shape=(0,), dtype=float)
-
-    if dqx_array is not None:
-        binned_dqx_array = binned_dqy_array = np.ndarray(shape=(0,), dtype=float)
-
-    for wl_i in unique_wl_vec:
-        print(wl_matrix.shape, wl_matrix[:,0].shape)
-        filtered_matrix = wl_matrix[wl_matrix[:, 0] == wl_i]
-
-        # special work with q resolution
+        # construct a 2D array for filtering
         if dqx_array is None:
-            dqx_array_i = None
-            dqy_array_i = None
+            wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array])
         else:
-            dqx_array_i = filtered_matrix[:, 5]
-            dqy_array_i = filtered_matrix[:, 6]
+            wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array, dqx_array, dqy_array])
+        wl_matrix = wl_matrix.transpose()
 
-        # bin by Q2D
-        i_final_array, sigma_final_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges, qy_bin.edges,
-                                                                                       filtered_matrix[:, 1],
-                                                                                       dqx_array_i, dqy_array_i,
-                                                                                       filtered_matrix[:, 2],
-                                                                                       filtered_matrix[:, 3],
-                                                                                       filtered_matrix[:, 4])
-        # build up the final output
-        binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=1) \
-            if binned_iq_array.size else i_final_array
-        binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=1) \
-            if binned_sigma_iq_array.size else sigma_final_array
+        binned_iq_array = np.ndarray(shape=(0,), dtype=float)
+        binned_sigma_iq_array = binned_wl_array = np.ndarray(shape=(0,), dtype=float)
+
         if dqx_array is not None:
-            binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array), axis=1) \
-                if binned_dqx_array.size else dqx_final_array
-            binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array), axis=1) \
-                if binned_dqy_array.size else dqy_final_array
-        binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1) \
-            if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
-    # END-FOR (wl_i)
+            binned_dqx_array = binned_dqy_array = np.ndarray(shape=(0,), dtype=float)
 
-    if dqx_array is None:
-        binned_dqx_array = None
-        binned_dqy_array = None
+        for wl_i in unique_wl_vec:
+            print(wl_matrix.shape)
+            print(wl_matrix[1])
+            filtered_matrix = wl_matrix[wl_matrix[:, 0] == wl_i]
+
+            # special work with q resolution
+            if dqx_array is None:
+                dqx_array_i = None
+                dqy_array_i = None
+            else:
+                dqx_array_i = filtered_matrix[:, 5]
+                dqy_array_i = filtered_matrix[:, 6]
+
+            # bin by Q2D
+            i_final_array, sigma_final_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges, qy_bin.edges,
+                                                                                           filtered_matrix[:, 1],
+                                                                                           filtered_matrix[:, 2],
+                                                                                           dqx_array_i, dqy_array_i,
+                                                                                           filtered_matrix[:, 3],
+                                                                                           filtered_matrix[:, 4])
+            # build up the final output
+            binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=1) \
+                if binned_iq_array.size else i_final_array
+            binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=1) \
+                if binned_sigma_iq_array.size else sigma_final_array
+            if dqx_array is not None:
+                binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array), axis=1) \
+                    if binned_dqx_array.size else dqx_final_array
+                binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array), axis=1) \
+                    if binned_dqy_array.size else dqy_final_array
+            binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1) \
+                if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
+        # END-FOR (wl_i)
+
+        if dqx_array is None:
+            binned_dqx_array = None
+            binned_dqy_array = None
+
     return binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array, binned_wl_array
 
 

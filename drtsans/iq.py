@@ -966,7 +966,7 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
 
 
 def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                                         qx_bin, qy_bin):
+                                        qx_bin, qy_bin):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -1002,14 +1002,10 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
         Wavelengths (o)
     """
 
-
     if wl_array is None:
-         binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges, qy_bin.edges,
-                                                                                       qx_array, qy_array,
-                                                                                       dqx_array, dqy_array,
-                                                                                       iq_array,
-                                                                                       sigma_iq_array)
-         binned_wl_array = None
+        binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges, qy_bin.edges,
+            qx_array, qy_array, dqx_array, dqy_array, iq_array, sigma_iq_array)
+        binned_wl_array = None
     else:
         unique_wl_vec = np.unique(wl_array)
         unique_wl_vec.sort()

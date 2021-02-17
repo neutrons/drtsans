@@ -816,10 +816,10 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
         print("i_of_q.wavelength: ", i_of_q.wavelength)
-        #if i_of_q.wavelength is None:
-        #binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
-        #                                         i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
-        #else:
+        # if i_of_q.wavelength is None:
+        # binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
+        #                                          i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
+        # else:
         binned_arrays = _do_2d_no_weight_binning_wavelength(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                             i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
                                                             qx_bins, qy_bins)
@@ -847,7 +847,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers, indexing='ij')
 
     return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_matrix,
-                       delta_qx=binned_dqx, qy=qy_matrix, delta_qy=binned_dqy)
+                       delta_qx=binned_dqx, qy=qy_matrix, delta_qy=binned_dqy, wavelength=binned_wl)
 
 
 def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

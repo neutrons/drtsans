@@ -816,13 +816,13 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
         print("i_of_q.wavelength: ", i_of_q.wavelength)
-        if i_of_q.wavelength is None:
-            binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
-                                                     i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
-        else:
-            binned_arrays = _do_2d_no_weight_binning_wavelength(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
-                                                                i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
-                                                                qx_bins, qy_bins)
+        #if i_of_q.wavelength is None:
+        #binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
+        #                                         i_of_q.intensity, i_of_q.error, qx_bins.edges, qy_bins.edges)
+        #else:
+        binned_arrays = _do_2d_no_weight_binning_wavelength(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
+                                                            i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
+                                                            qx_bins, qy_bins)
     else:
         # Calculate weighed binning
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
@@ -830,7 +830,11 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     # END-IF-ELSE
 
     # construct return
-    binned_intensities, binned_sigmas, binned_dqx, binned_dqy = binned_arrays
+    if len(binned_arrays) == 5:
+        binned_intensities, binned_sigmas, binned_dqx, binned_dqy, binned_wl = binned_arrays
+    else:
+        binned_intensities, binned_sigmas, binned_dqx, binned_dqy = binned_arrays
+        binned_wl = None
     # create Qx and Qy meshgrid explicitly
     # this must agree with the return from histogram2D, which is as
     # qx = [[qx0, qx0, ...],
@@ -1008,7 +1012,7 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
         wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array, dqx_array, dqy_array])
     wl_matrix = wl_matrix.transpose()
 
-    binned_qx_array = binned_qy_array = binned_iq_array = np.ndarray(shape=(0,), dtype=float)
+    binned_iq_array = np.ndarray(shape=(0,), dtype=float)
     binned_sigma_iq_array = binned_wl_array = np.ndarray(shape=(0,), dtype=float)
 
     if dqx_array is not None:
@@ -1033,14 +1037,12 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
                                                                                        filtered_matrix[:, 3],
                                                                                        filtered_matrix[:, 4])
         # build up the final output
-        binned_qx_array = np.concatenate((binned_qx_array, qx_bin.centers))
-        binned_qy_array = np.concatenate((binned_qy_array, qy_bin.centers))
-        binned_iq_array = np.concatenate((binned_iq_array, i_final_array))
-        binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array))
+        binned_iq_array = np.dstack([binned_iq_array, i_final_array]) if binned_iq_array.size else i_final_array
+        binned_sigma_iq_array = np.dstack([binned_sigma_iq_array, sigma_final_array]) if binned_sigma_iq_array.size else sigma_final_array
         if dqx_array is not None:
-            binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array))
-            binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array))
-        binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i))
+            binned_dqx_array = np.dstack([binned_dqx_array, dqx_final_array]) if binned_dqx_array.size else dqx_final_array
+            binned_dqy_array = np.dstack([binned_dqy_array, dqy_final_array]) if binned_dqy_array.size else dqy_final_array
+        binned_wl_array = np.dstack([binned_wl_array, np.zeros_like(i_final_array) + wl_i]) if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
     # END-FOR (wl_i)
 
     if dqx_array is None:

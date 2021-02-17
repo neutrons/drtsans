@@ -241,7 +241,7 @@ def generate_test_data_wavelength(q_dimension, num_wavelengths):
 
         # size
         print(i_array.shape)
-        num_pts = i_array.shape(1) 
+        num_pts = i_array.shape(1)
         # tile to number of wavelengths
         i_array = np.tile(i_array, num_wavelengths)
         sigma_array = np.tile(sigma_array, num_wavelengths)

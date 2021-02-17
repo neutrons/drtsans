@@ -1003,8 +1003,14 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
     """
 
     if wl_array is None:
-        binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges, qy_bin.edges,
-            qx_array, qy_array, dqx_array, dqy_array, iq_array, sigma_iq_array)
+        binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin.edges,
+                                                                                             qy_bin.edges,
+                                                                                             qx_array,
+                                                                                             qy_array,
+                                                                                             dqx_array,
+                                                                                             dqy_array,
+                                                                                             iq_array,
+                                                                                             sigma_iq_array)
         binned_wl_array = None
     else:
         unique_wl_vec = np.unique(wl_array)

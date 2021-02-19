@@ -6,6 +6,9 @@ import numpy as np
 
 def generate_test_data():
     # Generate test data
+    # Created from
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/375b630f348d152cd18d919587bafd2a/test_inelastic_incoherent_avg_noerrestimation.xlsx
+    # using np_array[qx, qy, lambda].flatten()
     intensity_vec = np.array([
         0.1, np.nan, np.nan, np.nan, np.nan,
         0.1, np.nan, np.nan, np.nan, np.nan,

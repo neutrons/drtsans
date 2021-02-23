@@ -218,6 +218,10 @@ def test_calculate_b2d():
     assert b_vals.shape[0] == wavelength_len
     known_b_vals = np.array([0, 0.03, 0.05, 0.04, 0.01])
     assert np.allclose(b_vals, known_b_vals)
+    b_vals = ic2d.calculate_b2d(i_of_q, q_subset_mask, wavelength_len, min_incoh=True)
+    assert b_vals.shape[0] == wavelength_len
+    known_b_vals = np.array([0, 0.03, 0.05, 0.04, 0.01])
+    assert np.allclose(b_vals, known_b_vals)
 
 
 if __name__ == "__main__":

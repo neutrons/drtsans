@@ -204,8 +204,9 @@ def test_gen_q_subset_mask():
     assert not test_q_subset_mask[:, -2:, :].any()
     assert not test_q_subset_mask[3:8, 3:8, :].any()
     # Test filtering
-    assert np.all(np.isfinite(i_of_q.intensity[q_subset_mask]))
-    assert np.any(np.isnan(i_of_q.intensity[~q_subset_mask]))
+    q_subset_filter = q_subset_mask.repeat(wavelength_len)
+    assert np.all(np.isfinite(i_of_q.intensity[q_subset_filter]))
+    assert np.any(np.isnan(i_of_q.intensity[~q_subset_filter]))
 
 
 def test_calculate_b2d():
@@ -218,7 +219,7 @@ def test_calculate_b2d():
     assert b_vals.shape[0] == wavelength_len
     known_b_vals = np.array([0, 0.03, 0.05, 0.04, 0.01])
     assert np.allclose(b_vals, known_b_vals)
-    b_vals = ic2d.calculate_b2d(i_of_q, q_subset_mask, wavelength_len, min_incoh=True)
+    b_vals = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=True)
     assert b_vals.shape[0] == wavelength_len
     known_b_vals = np.array([0, 0.03, 0.05, 0.04, 0.01])
     assert np.allclose(b_vals, known_b_vals)

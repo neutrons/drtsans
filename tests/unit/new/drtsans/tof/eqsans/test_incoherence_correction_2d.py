@@ -155,6 +155,29 @@ def generate_test_data():
     return i_of_q
 
 
+def test_reshape_q_azimuthal():
+    # IQazimuthal does not require specific ordering; however,
+    # calculations performed assume a specific ordering
+    i_of_q = generate_test_data()
+    # create some random order that will be de-randomed
+    r_order = np.arange(i_of_q.intensity.shape[0])
+    np.random.shuffle(r_order)
+    r_i_of_q = IQazimuthal(
+        intensity=i_of_q.intensity[r_order],
+        error=i_of_q.error[r_order],
+        qx=i_of_q.qx[r_order],
+        qy=i_of_q.qy[r_order],
+        wavelength=i_of_q.wavelength[r_order]
+    )
+    test_i_of_q, source_order = ic2d.reshape_q_azimuthal(r_i_of_q)
+    i_drop_nan = i_of_q.intensity[np.isfinite(i_of_q.intensity)]
+    test_i_drop_nan = test_i_of_q.intensity[np.isfinite(test_i_of_q.intensity)]
+    assert np.array_equal(i_drop_nan, test_i_drop_nan)
+    assert np.array_equal(i_of_q.qx, test_i_of_q.qx)
+    assert np.array_equal(i_of_q.qy, test_i_of_q.qy)
+    assert np.array_equal(i_of_q.wavelength, test_i_of_q.wavelength)
+
+
 def test_gen_q_subset_mask():
     # q_subset of 2d case is each qx, qy where all lambda(qx, qy) is finite
     # in original test data, this can be represented as the ndarray ranges

@@ -38,7 +38,7 @@ def reshape_q_azimuthal(i_of_q):
     )
 
 
-def gen_q_subset_mask(i_of_q):
+def gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len):
     """Generate filtering array for q_subset from intensity vector for 2d case
 
     Calculation of B requires usage of only qx, qy where all lambda exist,
@@ -46,10 +46,21 @@ def gen_q_subset_mask(i_of_q):
 
     Parameters
     ----------
-    i_of_q
+    i_of_q: ~drtsans.dataobjects.IQazimuthal
+        Input reshaped I(Qx, Qy, wavelength)
+    qx_len: int
+        Number of unique Qx values
+    qy_len: int
+        Number of unique Qy values
+    wavelength_len: int
+        Number of unique wavelength values
 
     Returns
     -------
+    ~numpy.ndarray
+        Boolean numpy array representing q_subset
 
     """
-    pass
+    _q_by_wavelength = i_of_q.intensity.reshape((qx_len*qy_len, wavelength_len))
+    _mask_squeezed = np.all(np.isfinite(_q_by_wavelength), 1)
+    return _mask_squeezed.repeat(wavelength_len)

@@ -58,15 +58,15 @@ def gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len):
     Returns
     -------
     ~numpy.ndarray
-        Boolean numpy array representing q_subset
+        Boolean numpy array representing q_subset in form Qxy, wavelength
 
     """
     _q_by_wavelength = i_of_q.intensity.reshape((qx_len*qy_len, wavelength_len))
     _mask_squeezed = np.all(np.isfinite(_q_by_wavelength), 1)
-    return _mask_squeezed.repeat(wavelength_len)
+    return _mask_squeezed
 
 
-def calculate_b2d(i_of_q, q_subset_mask, wavelength_len, min_incoh=False):
+def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=False):
     """Calculates the 2D b parameters
 
     Parameters
@@ -75,6 +75,10 @@ def calculate_b2d(i_of_q, q_subset_mask, wavelength_len, min_incoh=False):
         Input reshaped I(Qx, Qy, wavelength)
     q_subset_mask: ~numpy.ndarray
         Boolean array defining q_subset
+    qx_len: int
+        Number of unique Qx values
+    qy_len: int
+        Number of unique Qy values
     wavelength_len: int
         Number of unique wavelength values
     min_incoh: bool
@@ -86,4 +90,18 @@ def calculate_b2d(i_of_q, q_subset_mask, wavelength_len, min_incoh=False):
         calculated 2D b values
 
     """
-    pass
+    _qxy = qx_len * qy_len
+    # reshape to Qxy by wavelength, filter wavelengths, swap to wavelength by Qxy
+    _sub_i = i_of_q.intensity.reshape((_qxy, wavelength_len))[q_subset_mask, :].transpose()
+    _sub_len = _sub_i[0].shape[0]
+    _c_val = -1/_sub_i[0].shape[0]
+    # initially calculate b2d using smallest wavelength as reference
+    # expand reference wavelength across wavelength values of subset of intensities
+    _ref_i = np.tile(_sub_i[0], wavelength_len).reshape((wavelength_len, _sub_len))
+    b2d = _c_val * np.sum(_ref_i - _sub_i, 1)
+    if min_incoh is False:
+        return b2d
+    min_b = np.argmin(b2d)
+    _ref_i = np.tile(_sub_i[min_b], wavelength_len).reshape((wavelength_len, _sub_len))
+    b2d = _c_val * np.sum(_ref_i - _sub_i, 1)
+    return b2d

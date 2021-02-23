@@ -169,7 +169,7 @@ def test_reshape_q_azimuthal():
         qy=i_of_q.qy[r_order],
         wavelength=i_of_q.wavelength[r_order]
     )
-    test_i_of_q, source_order = ic2d.reshape_q_azimuthal(r_i_of_q)
+    test_i_of_q = ic2d.reshape_q_azimuthal(r_i_of_q)
     i_drop_nan = i_of_q.intensity[np.isfinite(i_of_q.intensity)]
     test_i_drop_nan = test_i_of_q.intensity[np.isfinite(test_i_of_q.intensity)]
     assert np.array_equal(i_drop_nan, test_i_drop_nan)

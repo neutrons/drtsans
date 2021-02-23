@@ -206,3 +206,7 @@ def test_gen_q_subset_mask():
     # Test filtering
     assert np.all(np.isfinite(i_of_q.intensity[q_subset_mask]))
     assert np.any(np.isnan(i_of_q.intensity[~q_subset_mask]))
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

@@ -186,7 +186,10 @@ def test_gen_q_subset_mask():
     # 2, 2:-2, :
     # 8, 2:-2, :
     i_of_q = generate_test_data()
-    q_subset_mask = ic2d.gen_q_subset_mask(i_of_q)
+    qx_len = np.unique(i_of_q.qx).shape[0]
+    qy_len = np.unique(i_of_q.qy).shape[0]
+    wavelength_len = np.unique(i_of_q.wavelength).shape[0]
+    q_subset_mask = ic2d.gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len)
     # return mask to test data arangment for testing
     test_q_subset_mask = q_subset_mask.reshape((11, 11, 5))
     # Positive assertions

@@ -187,7 +187,7 @@ def generate_test_data(q_dimension, drt_standard):
         # Raw matrix format
         if q_dimension == 1:
             # 1D: scalar Q
-            returns = intensities_matrix, uncertainties_matrix, scalar_q_matrix, scalar_q_matrix
+            returns = intensities_matrix, uncertainties_matrix, scalar_q_matrix, scalar_dq_matrix
         elif q_dimension == 2:
             # 2D: Qx, Qy
             returns = intensities_matrix, uncertainties_matrix, qx_matrix, dqx_matrix, qy_matrix, dqy_matrix
@@ -236,12 +236,11 @@ def generate_test_data_wavelength(q_dimension, num_wavelengths):
         returns = i_array, sigma_array, q_array, dq_array, wl_array
 
     elif q_dimension == 2:
-        # get initial 1D arrays
+        # get initial 2D arrays
         i_array, sigma_array, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
         # size
-        print(i_array.shape)
-        num_pts = i_array.shape(1)
+        num_pts = len(i_array)
         # tile to number of wavelengths
         i_array = np.tile(i_array, num_wavelengths)
         sigma_array = np.tile(sigma_array, num_wavelengths)
@@ -250,8 +249,8 @@ def generate_test_data_wavelength(q_dimension, num_wavelengths):
         qy_array = np.tile(qy_array, num_wavelengths)
         dqy_array = np.tile(dqy_array, num_wavelengths)
 
-        for i_wl in range(1, num_wavelengths):
-            i_array[i_wl] *= (i_wl + 1)
+        #for i_wl in range(1, num_wavelengths):
+        #    i_array[i_wl*num_pts:(1 + i_wl)*num_pts] *= (i_wl + 1)
 
         # repeat for wavelength: 1.5, 2.5, 3.5, ...
         wl_array = np.arange(num_wavelengths) * 1. + 1.5

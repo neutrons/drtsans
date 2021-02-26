@@ -51,6 +51,8 @@ def test_2d_bin_no_sub_no_wt():
     assert qy_bins.centers[1] == pytest.approx(-0.001713, abs=1.E-6), 'Qy is not correct'
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
+    #print(binned_iq_2d.intensity)
+    #assert False
     assert binned_iq_2d.intensity[1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
     assert binned_iq_2d.error[1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
 
@@ -72,6 +74,7 @@ def test_2d_bin_no_sub_no_wt():
     assert binned_iq_2d.qy[1][0] == pytest.approx(qy_bins.centers[0], abs=1E-5), \
         'Qy[1, 0] {} shall be same as Qy bin center [0] {}'.format(binned_iq_2d.qy[1][0], qy_bins.centers[0])
     # Qy in col 1 shall be all same as qy bin center [1]
+
     assert binned_iq_2d.qy[0][1] == pytest.approx(qy_bins.centers[1], abs=1E-5), \
         'Qy[0, 1] {} shall be same as Qy bin center [1] {}'.format(binned_iq_2d.qx[0][1], qy_bins.centers[1])
 
@@ -99,11 +102,11 @@ def test_2d_bin_no_sub_no_wt_wavelength():
 
     # Bin 2D No-weight
     # Get Q1D data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data_wavelength(2, 5)
-
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array, wl_array = generate_test_data_wavelength(2, 2)
+    print(intensities)
     # Bin I(Qx, Qy) with no-weight binning algorithm
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
-                           delta_qx=dqx_array, delta_qy=dqy_array)
+                           delta_qx=dqx_array, delta_qy=dqy_array, wavelength=wl_array)
     binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT)
 
     # Verify Qx and Qy
@@ -111,6 +114,8 @@ def test_2d_bin_no_sub_no_wt_wavelength():
     assert qy_bins.centers[1] == pytest.approx(-0.001713, abs=1.E-6), 'Qy is not correct'
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
+    #print(binned_iq_2d.intensity)
+    #assert False
     assert binned_iq_2d.intensity[1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
     assert binned_iq_2d.error[1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
 

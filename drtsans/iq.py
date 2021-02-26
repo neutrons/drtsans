@@ -815,7 +815,6 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
-        print("i_of_q.wavelength: ", i_of_q.wavelength)
         binned_arrays = _do_2d_no_weight_binning_wavelength(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                             i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
                                                             qx_bins.edges, qy_bins.edges)
@@ -841,9 +840,21 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     #       ...]
     # Thus indexing='ij' is used
     qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers, indexing='ij')
+    binned_qx_array = qx_matrix
+    binned_qy_array = qy_matrix
+    unique_wl_vec = np.unique(i_of_q.wavelength)
+    unique_wl_vec.sort()
+    if not i_of_q.wavelength is None:
+        for wl_i in unique_wl_vec[1:]:
+            print(wl_i)
+            binned_qx_array = np.concatenate((binned_qx_array, qx_matrix), axis=0)
+            binned_qy_array = np.concatenate((binned_qy_array, qy_matrix), axis=0)
 
-    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=qx_matrix,
-                       delta_qx=binned_dqx, qy=qy_matrix, delta_qy=binned_dqy, wavelength=binned_wl)
+    print("binned: ",binned_intensities.shape, binned_sigmas.shape, binned_dqx.shape, binned_dqy.shape)
+    if not binned_wl is None: 
+        print("binned_wl: ", binned_wl.shape)
+    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=binned_qx_array,
+                       delta_qx=binned_dqx, qy=binned_qy_array, delta_qy=binned_dqy, wavelength=binned_wl)
 
 
 def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
@@ -999,7 +1010,7 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
     """
 
     if wl_array is None:
-        binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin_edges,
+        binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array = _bin_iq2d(qx_bin_edges,
                                                                                              qy_bin_edges,
                                                                                              qx_array,
                                                                                              qy_array,
@@ -1026,8 +1037,6 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
             binned_dqx_array = binned_dqy_array = np.ndarray(shape=(0,), dtype=float)
 
         for wl_i in unique_wl_vec:
-            print(wl_matrix.shape)
-            print(wl_matrix[1])
             filtered_matrix = wl_matrix[wl_matrix[:, 0] == wl_i]
 
             # special work with q resolution
@@ -1046,16 +1055,16 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
                                                                                            filtered_matrix[:, 3],
                                                                                            filtered_matrix[:, 4])
             # build up the final output
-            binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=1) \
+            binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=0) \
                 if binned_iq_array.size else i_final_array
-            binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=1) \
+            binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=0) \
                 if binned_sigma_iq_array.size else sigma_final_array
             if dqx_array is not None:
-                binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array), axis=1) \
+                binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array), axis=0) \
                     if binned_dqx_array.size else dqx_final_array
-                binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array), axis=1) \
+                binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array), axis=0) \
                     if binned_dqy_array.size else dqy_final_array
-            binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1) \
+            binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=0) \
                 if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
         # END-FOR (wl_i)
 
@@ -1063,7 +1072,7 @@ def _do_2d_no_weight_binning_wavelength(qx_array, dqx_array, qy_array, dqy_array
             binned_dqx_array = None
             binned_dqy_array = None
 
-    return binned_iq_array, binned_sigma_iq_array, dqx_final_array, dqy_final_array, binned_wl_array
+    return binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array, binned_wl_array
 
 
 def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,

@@ -826,7 +826,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     # END-IF-ELSE
 
     # construct return
-        binned_intensities, binned_sigmas, binned_dqx, binned_dqy, binned_wl = binned_arrays
+    binned_intensities, binned_sigmas, binned_dqx, binned_dqy, binned_wl = binned_arrays
     # create Qx and Qy meshgrid explicitly
     # this must agree with the return from histogram2D, which is as
     # qx = [[qx0, qx0, ...],

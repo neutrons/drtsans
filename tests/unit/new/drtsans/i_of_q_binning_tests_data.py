@@ -251,8 +251,7 @@ def generate_test_data_wavelength(q_dimension, num_wavelengths):
 
         # repeat for wavelength: 1.5, 2.5, 3.5, ...
         wl_array = np.arange(num_wavelengths) * 1. + 1.5
-        wl_array = np.tile(wl_array, num_pts)
-
+        wl_array = np.repeat(wl_array, num_pts)
         returns = i_array, sigma_array, qx_array, dqx_array, qy_array, dqy_array, wl_array
 
     else:

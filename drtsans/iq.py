@@ -843,8 +843,8 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     unique_wl_vec.sort()
     if i_of_q.wavelength is not None:
         for wl_i in unique_wl_vec[1:]:
-            binned_qx_array = np.concatenate((binned_qx_array, qx_matrix), axis=0)
-            binned_qy_array = np.concatenate((binned_qy_array, qy_matrix), axis=0)
+            binned_qx_array = np.concatenate((binned_qx_array, qx_matrix), axis=1)
+            binned_qy_array = np.concatenate((binned_qy_array, qy_matrix), axis=1)
     return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=binned_qx_array,
                        delta_qx=binned_dqx, qy=binned_qy_array, delta_qy=binned_dqy, wavelength=binned_wl)
 
@@ -988,16 +988,17 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                                                                                            filtered_matrix[:, 3],
                                                                                            filtered_matrix[:, 4])
             # build up the final output
-            binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=0) \
+            print(binned_iq_array, i_final_array)
+            binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=1) \
                 if binned_iq_array.size else i_final_array
-            binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=0) \
+            binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=1) \
                 if binned_sigma_iq_array.size else sigma_final_array
             if dqx_array is not None:
-                binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array), axis=0) \
+                binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array), axis=1) \
                     if binned_dqx_array.size else dqx_final_array
-                binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array), axis=0) \
+                binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array), axis=1) \
                     if binned_dqy_array.size else dqy_final_array
-            binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=0) \
+            binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1) \
                 if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
         # END-FOR (wl_i)
 

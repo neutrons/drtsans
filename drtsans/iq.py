@@ -1064,7 +1064,7 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
         # sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
         w_2d_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                         weights=invert_sigma2_array)  # 2D
+                                        weights=invert_sigma2_array)  # 2D
 
         # Calculate Equation 11.22: I(Qx, Qy)
         # I(x', y') = sum_{x, y, lambda}^{K} (I(x, y, lambda) / sigma(x, y, lambda)^2) /

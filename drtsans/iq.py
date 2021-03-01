@@ -988,7 +988,6 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                                                                                            filtered_matrix[:, 3],
                                                                                            filtered_matrix[:, 4])
             # build up the final output
-            print(binned_iq_array, i_final_array)
             binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=1) \
                 if binned_iq_array.size else i_final_array
             binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=1) \

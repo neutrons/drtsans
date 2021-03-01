@@ -944,13 +944,13 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
 
     if wl_array is None:
         binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array = _bin_iq2d(qx_bin_edges,
-                                                                                             qy_bin_edges,
-                                                                                             qx_array,
-                                                                                             qy_array,
-                                                                                             dqx_array,
-                                                                                             dqy_array,
-                                                                                             iq_array,
-                                                                                             sigma_iq_array)
+                                                                                               qy_bin_edges,
+                                                                                               qx_array,
+                                                                                               qy_array,
+                                                                                               dqx_array,
+                                                                                               dqy_array,
+                                                                                               iq_array,
+                                                                                               sigma_iq_array)
         binned_wl_array = None
     else:
         unique_wl_vec = np.unique(wl_array)
@@ -1050,13 +1050,13 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
     Returns
     -------
     ndarray, ndarray, ndarray, ndarray
-        binned intensities (n x m), binned sigmas (n x m), binned Qx resolution (n x m), binned Qy resolution (n x m), binned wavelength (n x m)
-
+        binned intensities (n x m), binned sigmas (n x m), binned Qx resolution (n x m), binned Qy resolution (n x m),
+        binned wavelength (n x m)
     """
 
     unique_wl_vec = np.unique(wl_array)
     unique_wl_vec.sort()
-    if wl_array is None or len(unique_wl_vec) == 1:    
+    if wl_array is None or len(unique_wl_vec) == 1:
 
         # Calculate 1/sigma^2 for multiple uses
         invert_sigma2_array = 1. / (sigma_iq_array ** 2)   # 1D
@@ -1064,14 +1064,14 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
         # sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
         w_2d_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                          weights=invert_sigma2_array)  # 2D
+                                         weights=invert_sigma2_array)  # 2D
 
         # Calculate Equation 11.22: I(Qx, Qy)
         # I(x', y') = sum_{x, y, lambda}^{K} (I(x, y, lambda) / sigma(x, y, lambda)^2) /
         #             sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
         # denominator in Equation 11.22: sum_{x, y, lambda}^{K} (I(x, y, lambda) / sigma(x, y, lambda)^2)
         i_raw_2d_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                                      weights=iq_array * invert_sigma2_array)  # 2D
+                                            weights=iq_array * invert_sigma2_array)  # 2D
         # denominator divided by nominator (11.22)
         i_final_array = i_raw_2d_array / w_2d_array
 
@@ -1089,9 +1089,9 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         #                  sum_{x, y, lambda}^{K}(1/sigma(x, y, lambda)^2)
         # denominator in Equation 11.24: sum_{x, y, lambda}^{K}(sigmaQ(x, y, lambda)/sigma^2(x, y, lambda)^2)
         dqx_raw_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                                         weights=dqx_array * invert_sigma2_array)  # 2D
+                                           weights=dqx_array * invert_sigma2_array)  # 2D
         dqy_raw_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                                     weights=dqy_array * invert_sigma2_array)  # 2D
+                                           weights=dqy_array * invert_sigma2_array)  # 2D
         # denominator divided by nominator (11.24)
         dqx_final_array = dqx_raw_array / w_2d_array  # dQx
         dqy_final_array = dqy_raw_array / w_2d_array  # dQy
@@ -1101,6 +1101,6 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         else:
             wl_final_array = np.full_like(i_final_array, unique_wl_vec[0])
     else:
-        raise NotImplementedError("2D binning with multiple wavelengths is not supported")            
+        raise NotImplementedError("2D binning with multiple wavelengths is not supported")
 
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array, wl_final_array

@@ -215,12 +215,14 @@ def test_calculate_b2d():
     qy_len = np.unique(i_of_q.qy).shape[0]
     wavelength_len = np.unique(i_of_q.wavelength).shape[0]
     q_subset_mask = ic2d.gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len)
-    b_vals, b_e_vals = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=False)
+    b_pack = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=False)
+    b_vals, b_e_vals, ref = b_pack
     assert b_vals.shape[0] == wavelength_len
     assert b_e_vals.shape[0] == wavelength_len
     known_b_vals = np.array([0, 0.03, 0.05, 0.04, 0.01])
     assert np.allclose(b_vals, known_b_vals)
-    b_vals, b_e_vals = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=True)
+    b_pack = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=True)
+    b_vals, b_e_vals, ref = b_pack
     assert b_vals.shape[0] == wavelength_len
     assert b_e_vals.shape[0] == wavelength_len
     assert np.allclose(b_vals, known_b_vals)

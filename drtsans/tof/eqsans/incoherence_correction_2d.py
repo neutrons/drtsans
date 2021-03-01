@@ -98,17 +98,22 @@ def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_inc
     _c_val = 1/_sub_i[0].shape[0]
     # initially calculate b2d using smallest wavelength as reference
     _ref = 0
-    # expand reference wavelength across wavelength values of subset of intensities
-    _ref_i = np.tile(_sub_i[_ref], wavelength_len).reshape((wavelength_len, _sub_len))
-    _ref_i_e = np.tile(_sub_i_e[_ref], wavelength_len).reshape((wavelength_len, _sub_len))
-    b2d = -_c_val * np.sum(_ref_i - _sub_i, 1)
-    b2d_e = _c_val * np.sqrt(np.sum(_ref_i_e**2 + _sub_i_e**2, 1))
+    b2d, b2d_e = _b_math(_ref, _sub_i, _sub_i_e, wavelength_len)
     if min_incoh is False:
         return b2d, b2d_e
     # if min_incoh, redo calculation with minimum b wavelength as ref
     _ref = np.argmin(b2d)
-    _ref_i = np.tile(_sub_i[_ref], wavelength_len).reshape((wavelength_len, _sub_len))
-    _ref_i_e = np.tile(_sub_i_e[_ref], wavelength_len).reshape((wavelength_len, _sub_len))
-    b2d = _c_val * np.sum(_ref_i - _sub_i, 1)
-    b2d_e = _c_val * np.sqrt(np.sum(_ref_i_e**2 + _sub_i_e**2, 1))
+    b2d, b2d_e = _b_math(_ref, _sub_i, _sub_i_e, wavelength_len)
     return b2d, b2d_e
+
+
+def _b_math(ref, sub, sub_e, w_len):
+    sub_len = sub.shape[0]
+    # expand reference wavelength across wavelength values of subset of intensities
+    ref_i = np.tile(sub[ref], w_len).reshape((w_len, sub_len))
+    ref_i_e = np.tile(sub_e[ref], w_len).reshape((w_len, sub_len))
+    c_val = 1/sub_len
+    # do the actual math for b and b error
+    b_val = -c_val * np.sum(ref_i - sub, 1)
+    b_e_val = c_val * np.sqrt(np.sum(ref_i_e**2 + sub_e**2, 1))
+    return b_val, b_e_val

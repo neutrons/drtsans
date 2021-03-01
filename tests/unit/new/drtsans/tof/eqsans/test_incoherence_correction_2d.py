@@ -219,6 +219,7 @@ def test_calculate_b2d():
     b_vals, b_e_vals, ref = b_pack
     assert b_vals.shape[0] == wavelength_len
     assert b_e_vals.shape[0] == wavelength_len
+    assert ref == 0
     known_b_vals = np.array([0, 0.03, 0.05, 0.04, 0.01])
     assert np.allclose(b_vals, known_b_vals)
     b_pack = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=True)

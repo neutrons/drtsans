@@ -100,11 +100,11 @@ def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_inc
     _ref = 0
     b2d, b2d_e = _b_math(_ref, _sub_i, _sub_i_e, wavelength_len)
     if min_incoh is False:
-        return b2d, b2d_e
+        return b2d, b2d_e, _ref
     # if min_incoh, redo calculation with minimum b wavelength as ref
     _ref = np.argmin(b2d)
     b2d, b2d_e = _b_math(_ref, _sub_i, _sub_i_e, wavelength_len)
-    return b2d, b2d_e
+    return b2d, b2d_e, _ref
 
 
 def _b_math(ref, sub, sub_e, w_len):

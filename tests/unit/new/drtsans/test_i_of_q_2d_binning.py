@@ -51,8 +51,6 @@ def test_2d_bin_no_sub_no_wt():
     assert qy_bins.centers[1] == pytest.approx(-0.001713, abs=1.E-6), 'Qy is not correct'
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
-    #print(binned_iq_2d.intensity)
-    #assert False
     assert binned_iq_2d.intensity[1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
     assert binned_iq_2d.error[1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
 
@@ -114,8 +112,6 @@ def test_2d_bin_no_sub_no_wt_wavelength():
     assert qy_bins.centers[1] == pytest.approx(-0.001713, abs=1.E-6), 'Qy is not correct'
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
-    #print(binned_iq_2d.intensity)
-    #assert False
     assert binned_iq_2d.intensity[1][1] == pytest.approx(67., abs=1E-6), 'I(Qx, Qy) is incorrect'
     assert binned_iq_2d.error[1][1] == pytest.approx(4.725815626, abs=1E-8), 'sigma I(Qx, Qy) is incorrect'
 

@@ -841,71 +841,12 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     binned_qy_array = qy_matrix
     unique_wl_vec = np.unique(i_of_q.wavelength)
     unique_wl_vec.sort()
-    if not i_of_q.wavelength is None:
+    if i_of_q.wavelength is not None:
         for wl_i in unique_wl_vec[1:]:
             binned_qx_array = np.concatenate((binned_qx_array, qx_matrix), axis=0)
             binned_qy_array = np.concatenate((binned_qy_array, qy_matrix), axis=0)
     return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=binned_qx_array,
                        delta_qx=binned_dqx, qy=binned_qy_array, delta_qy=binned_dqy, wavelength=binned_wl)
-
-
-def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, iq_array, sigma_iq_array,
-                             qx_bin_edges, qy_bin_edges):
-    """Perform 2D no-weight binning on I(Qx, Qy)
-
-    General description of the algorithm:
-
-      I_{i, j} = sum^{(i, j)}_k I_{k} / N_{i, j}
-      sigma I_{i, j} = sqrt(sum^{(i, j)}_k sigma I_k^2) / N_{i, j}
-
-    Parameters
-    ----------
-    qx_array: ndarray
-        Qx array
-    dqx_array: ndarray
-        Qx resolution
-    qy_array : ndarray
-        Qy array
-    dqy_array: ndarray
-        Qy resolution
-    iq_array: ndarray
-        intensities
-    sigma_iq_array: ndarray
-        intensities error
-    qx_bin_edges: ndarray
-    qy_bin_edges
-
-    Returns
-    -------
-    ndarray, ndarray, ndarray, ndarray
-        intensities (n x m), sigma intensities (n x m), Qx resolution (n x m), Qy resolution (n x m)
-
-    """
-    # Number of I(q) in each target Q bin
-    num_pt_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges))
-
-    # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-    i_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                           weights=iq_array)
-
-    # Square of summed uncertainties for each bin
-    sigma_sqr_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                               weights=sigma_iq_array ** 2)
-
-    # Q resolution: simple average
-    dqx_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                             weights=dqx_array)
-    dqy_raw_array, dummy_bin_x, dummy_bin_y = np.histogram2d(qx_array, qy_array, bins=(qx_bin_edges, qy_bin_edges),
-                                                             weights=dqy_array)
-
-    # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
-    #       sigma = 1/sqrt(w_k)
-    i_final_array = i_raw_array / num_pt_array
-    sigma_final_array = np.sqrt(sigma_sqr_array) / num_pt_array
-    dqx_final_array = dqx_raw_array / num_pt_array
-    dqy_final_array = dqy_raw_array / num_pt_array
-
-    return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
 def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_vec, error_vec):

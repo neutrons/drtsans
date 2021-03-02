@@ -86,8 +86,8 @@ def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_inc
 
     Returns
     -------
-    ~numpy.ndarray
-        calculated 2D b values
+    tuple
+        calculated 2D b values, calculated 2d b errors, reference wavelength index
 
     """
     _qxy = qx_len * qy_len
@@ -115,3 +115,51 @@ def _b_math(ref, sub, sub_e, w_len):
     b_val = -c_val * np.sum(ref_i - sub, 1)
     b_e_val = c_val * np.sqrt(np.sum(ref_i_e**2 + sub_e**2, 1))
     return b_val, b_e_val
+
+
+def intensity_error(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, ref):
+    """Calculates corrected error from reshaped i_of_q and ref
+
+    Parameters
+    ----------
+    i_of_q: ~drtsans.dataobjects.IQazimuthal
+        Input reshaped I(Qx, Qy, wavelength)
+    q_subset_mask: ~numpy.ndarray
+        Boolean array defining q_subset
+    qx_len: int
+        Number of unique Qx values
+    qy_len: int
+        Number of unique Qy values
+    wavelength_len: int
+        Number of unique wavelength values
+    ref: int
+        Index of reference wavelength
+
+    Returns
+    -------
+    ~numpy.ndarray
+        intensity error vector
+
+    """
+    # collapse error and mask to 3D numpy arrays
+    _i_e_pack = i_of_q.error.copy().reshape((qx_len, qy_len, wavelength_len))
+    _mask_pack = q_subset_mask.reshape((qx_len, qy_len, wavelength_len))
+    # filter only the reference wavelength
+    _e_ref_pack = _i_e_pack[_mask_pack[:, :, ref], ref]
+    # calculate summation from reference intensity errors
+    _e_ref_term = np.sum(_e_ref_pack)/(_e_ref_pack.shape[0]**2)
+    # step through each wavelength
+    for _wave in range(wavelength_len):
+        # grab slice of filter and calculate sum of filtered values
+        _w_mask = _mask_pack[:, :, _wave]
+        _e_w_pack = _i_e_pack[_w_mask, _wave]
+        _e_w_term = np.sum(_e_w_pack)/(_e_w_pack.shape[0]**2)
+        _c_val = 1 - 2/_e_w_pack.shape[0]
+        # apply error correction to q_subset
+        _i_e_pack[_w_mask, _wave] = _c_val*_i_e_pack[_w_mask, _wave]**2 + _e_w_term + _e_ref_term
+        # apply error correction to not q_subset
+        _i_e_pack[~_w_mask, _wave] = _i_e_pack[~_w_mask, _wave]**2 + _e_w_term + _e_ref_term
+    # final sqrt to finish correction
+    _i_e_pack = np.sqrt(_i_e_pack)
+    # return flattened for consistency
+    return _i_e_pack.flatten()

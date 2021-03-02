@@ -106,7 +106,7 @@ def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_inc
 
 
 def _b_math(ref, sub, sub_e, w_len):
-    sub_len = sub.shape[0]
+    sub_len = sub[ref].shape[0]
     # expand reference wavelength across wavelength values of subset of intensities
     ref_i = np.tile(sub[ref], w_len).reshape((w_len, sub_len))
     ref_i_e = np.tile(sub_e[ref], w_len).reshape((w_len, sub_len))

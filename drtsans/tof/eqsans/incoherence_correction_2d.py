@@ -94,8 +94,6 @@ def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_inc
     # reshape to Qxy by wavelength, filter wavelengths, swap to wavelength by Qxy
     _sub_i = i_of_q.intensity.reshape((_qxy, wavelength_len))[q_subset_mask, :].transpose()
     _sub_i_e = i_of_q.error.reshape((_qxy, wavelength_len))[q_subset_mask, :].transpose()
-    _sub_len = _sub_i[0].shape[0]
-    _c_val = 1/_sub_i[0].shape[0]
     # initially calculate b2d using smallest wavelength as reference
     _ref = 0
     b2d, b2d_e = _b_math(_ref, _sub_i, _sub_i_e, wavelength_len)

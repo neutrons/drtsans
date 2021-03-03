@@ -73,6 +73,12 @@ def test_regular_setup(run_config, basename, tmpdir):
     reduction_output = reduce_single_configuration(loaded, input_config)
     print(f'{type(reduction_output)}:\n{dir(reduction_output)}')
 
+    for item in reduction_output:
+        print(f'{type(item)}')
+        print(f'{dir(item)}')
+
+    raise RuntimeError('DEBUG STOP output')
+
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason="Required test data not available")

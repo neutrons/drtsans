@@ -627,6 +627,24 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
         return DataType.IQ_CRYSTAL
 
 
+def export_to_h5(i_of_q, file_name):
+    """ Export I_of_Q, named tuple, to an hdf5
+    """
+    blabla
+    assert isinstance(i_of_q, namedtuple)
+
+    for index, field in enumerate(i_of_q._fields):
+        h5.add_group(field).add_data(i_of_q[index])
+
+
+def load_iq1d_from_h5(file_name):
+    build_q_1d
+
+
+def load_iq2d_from_h5(file_name):
+    # will auto determine 
+
+
 class _Testing:
     r"""
     Mimic the numpy.testing module by applying functions of this module to the component arrays of the IQ objects

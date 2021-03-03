@@ -163,3 +163,50 @@ def intensity_error(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, ref):
     _i_e_pack = np.sqrt(_i_e_pack)
     # return flattened for consistency
     return _i_e_pack.flatten()
+
+
+def correct_incoherence_inelastic_2d(i_of_q, minimum_incoherence):
+    """Correct I(Q2D) with wavelength dependent incoherence inelastic scattering
+
+    This method implements the workflow for correcting I(Q2D) with
+    wavelength-dependent incoherent inelastic scattering
+
+    Parameters
+    ----------
+    i_of_q: ~drtsans.dataobjects.IQazimuthal
+        I(Qx, Qy, wavelength) with error
+    minimum_incoherence: bool
+        correct B using minimum incoherence
+
+    Returns
+    -------
+    tuple
+        corrected I(Qx, Qy, wavelength), b2d, b2d error
+
+    """
+    # coerce IQazimuthal data to desired shapes
+    _i_of_q = reshape_q_azimuthal(i_of_q)
+
+    # grab unique lengths
+    _qx_len = np.unique(_i_of_q.qx).shape[0]
+    _qy_len = np.unique(_i_of_q.qy).shape[0]
+    _wavelength_len = np.unique(_i_of_q.wavelength).shape[0]
+
+    # create mask for q_subset
+    q_subset = gen_q_subset_mask(_i_of_q, _qx_len, _qy_len, _wavelength_len)
+
+    # get b values
+    b2d, b2d_error, ref = calculate_b2d(_i_of_q, q_subset, _qx_len, _qy_len, _wavelength_len, minimum_incoherence)
+
+    corrected_intensity = _i_of_q.intensity - np.tile(b2d, _qx_len*_qy_len)
+    corrected_error = intensity_error(_i_of_q, q_subset, _qx_len, _qy_len, _wavelength_len, ref)
+    corrected_i_of_q = IQazimuthal(
+        intensity=corrected_intensity,
+        error=corrected_error,
+        qx=_i_of_q.qx,
+        qy=_i_of_q.qy,
+        wavelength=_i_of_q.wavelength,
+        delta_qx=_i_of_q.delta_qx,
+        delta_qy=_i_of_q.delta_qy
+    )
+    return corrected_i_of_q, b2d, b2d_error

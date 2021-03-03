@@ -1,5 +1,6 @@
 from collections import namedtuple
 from collections.abc import Iterable
+import h5py
 from enum import Enum
 import numpy as np
 
@@ -627,22 +628,67 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
         return DataType.IQ_CRYSTAL
 
 
-def export_to_h5(i_of_q, file_name):
-    """ Export I_of_Q, named tuple, to an hdf5
+def save_i_of_q_to_h5(iq: namedtuple,
+                      h5_name: str):
+    """Export I of Q, in form of namedtuple, to an HDF5
     """
-    blabla
-    assert isinstance(i_of_q, namedtuple)
+    assert isinstance(iq, namedtuple), f'I of Q must be of type namedtuple but not {type(iq)}'
 
-    for index, field in enumerate(i_of_q._fields):
-        h5.add_group(field).add_data(i_of_q[index])
+    # Init h5
+    iq_h5 = h5py.File(h5_name, 'w')
+    # create group
+    data_group = iq_h5.create_group(iq_h5.__class__.__name__)
+
+    # Write field
+    for index, field in enumerate(iq._fields):
+        # add data
+        data_group.create_dataset(field, data=iq[index])
+
+    # Close
+    iq_h5.close()
 
 
-def load_iq1d_from_h5(file_name):
-    build_q_1d
+def load_iq1d_from_h5(h5_name: str) -> IQmod:
+    """Load an HDF5 for I(Q1D)
+    """
+    # Open file
+    with h5py.File(h5_name, 'r') as iq_h5:
+        print(f'DEBUG group name = {IQmod.__class__.__name__}')
+        data_group = iq_h5[IQmod.__class__.__name__]
+
+        value_dict = dict()
+
+        # get tuple element
+        for field in ['intensity', 'error', 'mod_q', 'delta_mod_q', 'wavelength']:
+            try:
+                value_dict[field] = data_group[field].value
+            except KeyError:
+                value_dict[field] = None
+
+        iqmod = IQmod(**value_dict)
+
+    return iqmod
 
 
-def load_iq2d_from_h5(file_name):
-    # will auto determine 
+def load_iq2d_from_h5(h5_name: str) -> IQazimuthal:
+    # Open file
+    with h5py.File(h5_name, 'r') as iq_h5:
+        print(f'DEBUG group name = {IQazimuthal.__class__.__name__}')
+        data_group = iq_h5[IQazimuthal.__class__.__name__]
+
+        value_dict = dict()
+
+        # get tuple element
+        print(f'DEBUG field: {IQazimuthal._fields}')
+        for field in IQazimuthal._fields:
+            try:
+                value_dict[field] = data_group[field].value
+            except KeyError:
+                value_dict[field] = None
+
+        iq2d = IQazimuthal(**value_dict)
+
+    return iq2d
 
 
 class _Testing:

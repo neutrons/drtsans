@@ -5,8 +5,7 @@ from drtsans.tof.eqsans import reduction_parameters, update_reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,plot_reduction_output)  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 import numpy as np
-from tempfile import NamedTemporaryFile
-import json
+from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5, load_iq2d_from_h5
 
 
 # EQSANS reduction
@@ -73,9 +72,25 @@ def test_regular_setup(run_config, basename, tmpdir):
     reduction_output = reduce_single_configuration(loaded, input_config)
     print(f'{type(reduction_output)}:\n{dir(reduction_output)}')
 
+    output_dir = os.getcwd()
+    for section_index, section_output in enumerate(reduction_output):
+        iq1d = section_output.I1D_main
+        save_i_of_q_to_h5(iq1d, os.path.join(output_dir, f'iq1d_{section_index}.h5'))
+        iq2d = section_output.I2D_main
+        save_i_of_q_to_h5(iq2d, os.path.join(output_dir, f'iq2d_{section_index}.h5'))
+
     for item in reduction_output:
         print(f'{type(item)}')
         print(f'{dir(item)}')
+
+    # Test load
+    for index in range(2):
+        iq1d_h5_name = os.path.join(output_dir, f'iq1d_{index}.h5')
+        iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        print(type(iq1d))
+        iq2d_h5_name = os.path.join(output_dir, f'iq1d_{index}.h5')
+        iq2d = load_iq2d_from_h5(iq2d_h5_name)
+        print(type(iq2d))
 
     raise RuntimeError('DEBUG STOP output')
 

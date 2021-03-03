@@ -1,10 +1,77 @@
 import pytest
 import os
 import tempfile
-from drtsans.tof.eqsans import reduction_parameters
+from drtsans.tof.eqsans import reduction_parameters, update_reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,plot_reduction_output)  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 import numpy as np
+from tempfile import NamedTemporaryFile
+import json
+
+
+# EQSANS reduction
+specs_eqsans = {
+    'EQSANS_88980': {
+        "iptsNumber": 19800,
+        "sample": {"runNumber": 88980, "thickness": 0.1, "transmission": {"runNumber": 88980}},
+        "background": {"runNumber": 88978, "transmission": {"runNumber": 88974}},
+        "beamCenter": {"runNumber": 88973},
+        "emptyTransmission": {"runNumber": 88973},
+        "configuration": {
+            "sampleApertureSize": 30,
+            "darkFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5",
+            "StandardAbsoluteScale": 0.0208641883,
+            "sampleOffset": 0,
+        }
+    }
+}
+
+
+@pytest.mark.parametrize('run_config, basename',
+                         [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
+                         ids=['88980'])
+def test_regular_setup(run_config, basename, tmpdir):
+    """Same reduction from Shaman test
+
+    Returns
+    -------
+
+    """
+    common_config = {
+        "configuration": {
+            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
+            "useDefaultMask": True,
+            "normalization": "Total charge",
+            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+            "absoluteScaleMethod": "standard",
+            "detectorOffset": 0,
+            "mmRadiusForTransmission": 25,
+            "numQxQyBins": 80,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 120,
+            "AnnularAngleBin": 5,
+            "wavelengthStepType": "constant Delta lambda",
+            "wavelengthStep": 0.1,
+        }
+    }
+    input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
+    input_config = update_reduction_parameters(input_config, run_config, validate=False)
+    output_dir = str(tmpdir)
+    amendments = {
+        'outputFileName': basename,
+        'configuration': {'outputDir': output_dir}
+    }
+    input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
+
+    # json_file = NamedTemporaryFile(suffix='.json', delete=False).name
+    # with open(json_file, 'w') as handle:
+    #     json.dump(input_config, handle)
+    # run_reduction('eqsans_reduction.py', json_file)
+    loaded = load_all_files(input_config)
+    reduction_output = reduce_single_configuration(loaded, input_config)
+    print(f'{type(reduction_output)}:\n{dir(reduction_output)}')
 
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
@@ -64,7 +131,7 @@ def test_wavelength_step(reference_dir):
         # validate and clean configuration
         input_config = reduction_parameters(configuration)
         loaded = load_all_files(input_config)
-        reduce_single_configuration(loaded, input_config)
+        reduction_output = reduce_single_configuration(loaded, input_config)
         output_file_name = os.path.join(test_dir, 'test_wavelength_step_reg.nxs')
         assert os.path.isfile(output_file_name), f'Expected output file {output_file_name} does not exists'
 
@@ -72,6 +139,11 @@ def test_wavelength_step(reference_dir):
         gold_file = os.path.join(gold_file_dir, 'expected_wavelength_step_reg.nxs')
         exp_file = output_file_name
         verify_reduction(exp_file, gold_file, 'reg')
+
+        print(f'type output: {type(reduction_output)}')
+        print(f'{dir(reduction_output)}')
+
+        raise RuntimeError('DEBUG STOP: reduction output')
 
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir

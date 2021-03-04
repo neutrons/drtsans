@@ -7,6 +7,7 @@ from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 import numpy as np
 from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5, load_iq2d_from_h5
 from typing import List, Any, Union
+from drtsans.dataobjects import _Testing
 
 
 # EQSANS reduction
@@ -30,7 +31,7 @@ specs_eqsans = {
 @pytest.mark.parametrize('run_config, basename',
                          [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
                          ids=['88980'])
-def test_regular_setup(run_config, basename, tmpdir):
+def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     """Same reduction from Shaman test
 
     Returns
@@ -69,27 +70,18 @@ def test_regular_setup(run_config, basename, tmpdir):
     loaded = load_all_files(input_config)
     reduction_output = reduce_single_configuration(loaded, input_config)
 
-    from drtsans.dataobjects import _Testing
-
     # Load data and compare
-    gold_dir = os.getcwd()
+    gold_dir = reference_dir.new.eqsans
     for index in range(2):
         # 1D
         iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
         gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
         _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
-        # np.testing.assert_allclose(iq1d.mod_q, iq1d_dict[(index, 0)].mod_q, equal_nan=True)
-        # np.testing.assert_allclose(iq1d.intensity, iq1d_dict[(index, 0)].intensity, equal_nan=True)
-        # print(type(iq1d))
 
         # 2D
         iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
         gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
         _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
-        # np.testing.assert_allclose(iq2d.qx, iq2d_dict[index].qx, equal_nan=True)
-        # np.testing.assert_allclose(iq2d.qy, iq2d_dict[index].qy, equal_nan=True)
-        # np.testing.assert_allclose(iq2d.intensity, iq2d_dict[index].intensity, equal_nan=True)
-        # print(type(iq2d))
 
 
 def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):
@@ -171,13 +163,21 @@ def test_wavelength_step(reference_dir):
         output_file_name = os.path.join(test_dir, 'test_wavelength_step_reg.nxs')
         assert os.path.isfile(output_file_name), f'Expected output file {output_file_name} does not exists'
 
-        # export TODO TEST - remove later
-        export_reduction_output(reduction_output, prefix='wave_')
-
         # verify_reduced_data
         gold_file = os.path.join(gold_file_dir, 'expected_wavelength_step_reg.nxs')
         exp_file = output_file_name
         verify_reduction(exp_file, gold_file, 'reg')
+        # verify binned IQmod and IQazimuthal
+        gold_dir = reference_dir.new.eqsans
+        # 1D
+        iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_wave_0_0.h5')
+        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        _Testing.assert_allclose(reduction_output[0].I1D_main[0], gold_iq1d)
+
+        # 2D
+        iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_wave_0.h5')
+        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
+        _Testing.assert_allclose(reduction_output[0].I2D_main, gold_iq2d)
 
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir

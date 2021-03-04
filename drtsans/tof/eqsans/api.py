@@ -626,6 +626,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     assert binning_params
 
     from drtsans.tof.eqsans.correction_api import process_elastic_reference_data
+
+    print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction}')
+
     if incoherence_correction_setup.do_correction:
         # optionally calcualte the elastic scattering nromalization factors
         elastic_ref_setup = incoherence_correction_setup.elastic_reference_run

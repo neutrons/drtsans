@@ -78,6 +78,11 @@ def gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len):
 def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=False):
     """Calculates the 2D b parameters
 
+    Calculates b parameters using the following formula
+    b_2d(lambda_i) = -1/(N_q) * sum_{j=1,k=1}^{j=N_qx,k=N_qy} [I(q_j,q_k,lambda_ref)-I(q_j,q_k,lambda_i)]
+    and is described in greater detail
+    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
+
     Parameters
     ----------
     i_of_q: ~drtsans.dataobjects.IQazimuthal
@@ -115,6 +120,8 @@ def calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_inc
 
 
 def _b_math(ref, sub, sub_e, w_len):
+    # the actual math for calculate_b2d happens here since
+    # the math needs to happen twice if min_incoh==True
     sub_len = sub[ref].shape[0]
     # expand reference wavelength across wavelength values of subset of intensities
     ref_i = np.tile(sub[ref], w_len).reshape((w_len, sub_len))

@@ -3,6 +3,7 @@ from collections.abc import Iterable
 import h5py
 from enum import Enum
 import numpy as np
+from typing import Union
 
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
@@ -628,21 +629,23 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
         return DataType.IQ_CRYSTAL
 
 
-def save_i_of_q_to_h5(iq: namedtuple,
+def save_i_of_q_to_h5(iq: Union[IQmod, IQazimuthal],
                       h5_name: str):
     """Export I of Q, in form of namedtuple, to an HDF5
     """
-    assert isinstance(iq, namedtuple), f'I of Q must be of type namedtuple but not {type(iq)}'
+    # assert isinstance(iq, namedtuple), f'I of Q must be of type namedtuple but not {type(iq)}'
 
     # Init h5
     iq_h5 = h5py.File(h5_name, 'w')
     # create group
-    data_group = iq_h5.create_group(iq_h5.__class__.__name__)
+    data_group = iq_h5.create_group(iq.__class__.__name__)
 
     # Write field
     for index, field in enumerate(iq._fields):
         # add data
-        data_group.create_dataset(field, data=iq[index])
+        data = iq[index]
+        if data is not None:
+            data_group.create_dataset(field, data=data)
 
     # Close
     iq_h5.close()
@@ -653,8 +656,7 @@ def load_iq1d_from_h5(h5_name: str) -> IQmod:
     """
     # Open file
     with h5py.File(h5_name, 'r') as iq_h5:
-        print(f'DEBUG group name = {IQmod.__class__.__name__}')
-        data_group = iq_h5[IQmod.__class__.__name__]
+        data_group = iq_h5['IQmod']
 
         value_dict = dict()
 
@@ -673,8 +675,7 @@ def load_iq1d_from_h5(h5_name: str) -> IQmod:
 def load_iq2d_from_h5(h5_name: str) -> IQazimuthal:
     # Open file
     with h5py.File(h5_name, 'r') as iq_h5:
-        print(f'DEBUG group name = {IQazimuthal.__class__.__name__}')
-        data_group = iq_h5[IQazimuthal.__class__.__name__]
+        data_group = iq_h5['IQazimuthal']
 
         value_dict = dict()
 

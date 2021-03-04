@@ -72,11 +72,24 @@ def test_regular_setup(run_config, basename, tmpdir):
     reduction_output = reduce_single_configuration(loaded, input_config)
     print(f'{type(reduction_output)}:\n{dir(reduction_output)}')
 
+    # FIXME TODO - need to document to eqsans.api
+    # output of reduce_single_configuration: list of list, containing 
+
     output_dir = os.getcwd()
+    print(f'Reduction output size: {len(reduction_output)}')
+    iq1d_dict = dict()
+    iq2d_dict = dict()
     for section_index, section_output in enumerate(reduction_output):
-        iq1d = section_output.I1D_main
-        save_i_of_q_to_h5(iq1d, os.path.join(output_dir, f'iq1d_{section_index}.h5'))
+        print(f'Type of output: {type(section_output)}')
+        iq1ds = section_output.I1D_main
+        print(f'Type of iq1ds {section_index}: {type(iq1ds)}  size = {len(iq1ds)}')
+        for j_index, iq1d in enumerate(iq1ds):
+            print(f'Type of iq1d: {type(iq1d)}')
+            iq1d_dict[(section_index, j_index)] = iq1d
+            save_i_of_q_to_h5(iq1d, os.path.join(output_dir, f'iq1d_{section_index}_{j_index}.h5'))
         iq2d = section_output.I2D_main
+        iq2d_dict[section_index] = iq2d
+        print(f'Type of iq2d {section_index}: {type(iq2d)}')
         save_i_of_q_to_h5(iq2d, os.path.join(output_dir, f'iq2d_{section_index}.h5'))
 
     for item in reduction_output:
@@ -85,11 +98,16 @@ def test_regular_setup(run_config, basename, tmpdir):
 
     # Test load
     for index in range(2):
-        iq1d_h5_name = os.path.join(output_dir, f'iq1d_{index}.h5')
+        iq1d_h5_name = os.path.join(output_dir, f'iq1d_{index}_0.h5')
         iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        np.testing.assert_allclose(iq1d.mod_q, iq1d_dict[(index, 0)].mod_q, equal_nan=True)
+        np.testing.assert_allclose(iq1d.intensity, iq1d_dict[(index, 0)].intensity, equal_nan=True)
         print(type(iq1d))
-        iq2d_h5_name = os.path.join(output_dir, f'iq1d_{index}.h5')
+        iq2d_h5_name = os.path.join(output_dir, f'iq2d_{index}.h5')
         iq2d = load_iq2d_from_h5(iq2d_h5_name)
+        np.testing.assert_allclose(iq2d.qx, iq2d_dict[index].qx, equal_nan=True)
+        np.testing.assert_allclose(iq2d.qy, iq2d_dict[index].qy, equal_nan=True)
+        np.testing.assert_allclose(iq2d.intensity, iq2d_dict[index].intensity, equal_nan=True)
         print(type(iq2d))
 
     raise RuntimeError('DEBUG STOP output')

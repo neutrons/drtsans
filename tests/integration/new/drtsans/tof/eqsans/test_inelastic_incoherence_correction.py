@@ -1,5 +1,6 @@
 import pytest
 import os
+from jsonschema.exceptions import ValidationError
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,plot_reduction_output)  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
@@ -12,6 +13,8 @@ import tempfile
 def failed_test_parse_json():
     """Test the JSON to dictionary
     """
+    invalid_run_num = "260159121"
+    valid_run_num = "115363"
     # Specify JSON input
     reduction_input = {
         "instrumentName": "EQSANS",
@@ -51,25 +54,39 @@ def failed_test_parse_json():
             "AnnularAngleBin": "5",
             "useSliceIDxAsSuffix": True,
             "fitInelasticIncoh": True,
-            "elasticReference": "260159121",
+            "elasticReference": {
+                "runNumber": invalid_run_num,
+                "thickness": "1.0",
+                "transmission": {
+                    "runNumber": valid_run_num,
+                    "value": "0.9"
+                }
+            },
+            "elasticReferenceBkgd": {
+                "runNumber": valid_run_num,
+                "transmission": {
+                    "runNumber": valid_run_num,
+                    "value": "0.9"
+                }
+            },
             "selectMinIncoh": True
         }
     }
 
     # Validate
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValidationError):
         # TODO - expect to fail as elastic reference run 260159121 does not exist
         reduction_parameters(reduction_input)
 
     # Respecify to use a valid run
     # json_str.replace('260159121', '26015')
-    reduction_input['configuration']['elasticReference'] = "115363"
+    reduction_input['configuration']['elasticReference']['runNumber'] = valid_run_num
     # Defaults and Validate
     input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
     assert input_config['configuration'].get('fitInelasticIncoh')
-    assert input_config['configuration'].get('elasticReference') == '115363'
+    assert input_config['configuration']['elasticReference'].get('runNumber') == valid_run_num
     assert input_config['configuration'].get('selectMinIncoh')
 
 

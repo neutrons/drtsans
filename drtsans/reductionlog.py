@@ -280,7 +280,7 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                            data=iqxqy.delta_qy,
                            units='1/A')
         # wavelength
-        if iqxqy.wavelength:
+        if not (iqxqy.wavelength is None):
             wavelength = "{}".format(iqxqy.wavelength)
             _create_groupe(entry=entry,
                            name='Wavelength',

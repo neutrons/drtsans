@@ -191,7 +191,7 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
     # open
     debug_h5 = h5py.File(os.path.join(output_dir, 'auto_wedge_fit.h5'), 'w')
     # define h5py string type
-    h5_string_type = h5py.string_dtype(encoding='ascii')
+    h5_string_type = h5py.special_dtype(vlen=bytes)
 
     # create 3 groups for result
     ring_group = debug_h5.create_group('rings')

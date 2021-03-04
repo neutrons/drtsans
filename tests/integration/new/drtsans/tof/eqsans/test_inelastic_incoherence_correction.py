@@ -10,7 +10,7 @@ import tempfile
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason='Required test data not available')
-def failed_test_parse_json():
+def test_parse_json():
     """Test the JSON to dictionary
     """
     invalid_run_num = "260159121"
@@ -92,7 +92,7 @@ def failed_test_parse_json():
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason="Required test data not available")
-def test_correct_without_elastic(reference_dir):
+def failed_test_correct_without_elastic(reference_dir):
 
     # Set up the configuration dict
     configuration = {
@@ -133,7 +133,21 @@ def test_correct_without_elastic(reference_dir):
             'useSliceIDxAsSuffix': True,
             # inelastic/incoherent correction
             "fitInelasticIncoh": True,
-            "elasticReference": None,
+            "elasticReference": {
+                "runNumber": None,
+                "thickness": "1.0",
+                "transmission": {
+                    "runNumber": None,
+                    "value": "0.9"
+                }
+            },
+            "elasticReferenceBkgd": {
+                "runNumber": None,
+                "transmission": {
+                    "runNumber": None,
+                    "value": "0.9"
+                }
+            },
             "selectMinIncoh": False,
         }
     }

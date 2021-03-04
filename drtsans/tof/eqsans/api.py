@@ -665,6 +665,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
+        print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction} (2) ')
         if incoherence_correction_setup.do_correction:
             # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
             processed = process_single_configuration_incoherence_correction(raw_sample_ws,
@@ -683,6 +684,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             iq1d_main_in_fr, iq2d_main_in_fr = processed
             # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
             print(f'[DEBUG].... ... Path check!')
+            # FIXME TODO - the purpose is to write out logs in the very late part of the method.  It is not correct!
+            processed_data_main = raw_sample_ws
 
         else:
             # process data without correction
@@ -711,6 +714,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             # Save nexus processed
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
             SaveNexus(processed_data_main, Filename=filename)
+            print(f'SaveNexus to {filename}')
             # Convert to Q
             # set up subpixel binning options  FIXME - it does not seem to work
             subpixel_kwargs = dict()
@@ -769,9 +773,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
-
-            # TODO FIXME - make save_ascii_binned_2D() back afterwards
-            # save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
+            # TODO FIXME - make save_ascii_binned_2D() back afterwards: iq2d_main_out cannot be None
+            if iq2d_main_out:
+                save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
             for j in range(len(iq1d_main_out)):
                 add_suffix = ""

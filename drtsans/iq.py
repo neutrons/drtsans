@@ -239,6 +239,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                             method=method)
     except RuntimeError as err:
         print(f'[DEBUG] Shall re-throw this exception: {err}')
+        binned_q2d = None
         pass
 
     # 1D binning
@@ -287,6 +288,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             for ub1d in unbinned_1d:
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method,
                                        wavelength_bins=n_wavelength_bin))
+
     return binned_q2d, binned_q1d_list
 
 

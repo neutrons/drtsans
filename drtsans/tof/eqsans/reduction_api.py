@@ -187,7 +187,11 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_sample_q1d = binned_sample_q1d.be_finite()
 
         binned_sample_q2d = subtract_background(binned_sample_iq[1], binned_bkgd_iq[1])
-        binned_sample_q2d = binned_sample_q2d.be_finite()
+        try:
+            binned_sample_q2d = binned_sample_q2d.be_finite()
+        except AttributeError:
+            # TODO FIXME - implement be_finite() for 2D
+            pass
 
         # append
         binned_iq1d_frames.append(binned_sample_q1d)

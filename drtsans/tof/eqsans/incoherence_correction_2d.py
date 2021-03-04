@@ -136,6 +136,15 @@ def _b_math(ref, sub, sub_e, w_len):
 def intensity_error(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, ref):
     """Calculates corrected error from reshaped i_of_q and ref
 
+    Calculation of error for q_subset is described by
+    (dF_{x,y}^{lambda_i})^2 = (1-2/N_q)(dI_{x,y}^{lambda_i})^2 \
+                              + 1/N_q * sum_{j=1,k=1}^{j=N_x,k=N_y}[(dI_{j,k}^{lambda_i})^2+(dI_{j,k}^{lambda_ref})^2]
+    Calculation of error for q not in q_subset is described by
+    (dF_{x,y}^{lambda_i})^2 = (dI_{x,y}^{lambda_i})^2 \
+                              + 1/N_q * sum_{j=1,k=1}^{j=N_x,k=N_y}[(dI_{j,k}^{lambda_i})^2+(dI_{j,k}^{lambda_ref})^2]
+    Calculation is described in greater detail
+    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
+
     Parameters
     ----------
     i_of_q: ~drtsans.dataobjects.IQazimuthal

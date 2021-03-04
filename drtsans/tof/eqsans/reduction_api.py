@@ -27,9 +27,12 @@ from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+from drtsans.dataobjects import IQmod, IQazimuthal
+from drtsans.tof.eqsans.correction_api import bin_i_of_q
 import os
 from drtsans.tof.eqsans.correction_api import process_convert_q
 import numpy as np
+from typing import Tuple, Any, List
 
 
 def process_single_configuration_incoherence_correction(sample_ws, sample_transmission,
@@ -43,7 +46,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                                         sample_thickness,
                                                         bkgd_raw_iq,
                                                         incoherence_correction_setup,
-                                                        binning_params):
+                                                        binning_params) -> Tuple[List[Any], List[Any], Any]:
     """Process raw sample workspace with single configuration and inelastic/incoherence correction
     till binned I(Q, wavelength)
 
@@ -54,6 +57,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
 
     Returns
     -------
+    tuple
+        list (binned Q1D), list (binned Q2D), processed workspace
 
     """
     assert isinstance(incoherence_correction_setup, CorrectionConfiguration)
@@ -73,23 +78,21 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                       delete_raw=True)
 
     # Process each frame separately!
-
     # output
     binned_iq1d_frames = list()
     binned_iq2d_frames = list()
 
     # Step 2 to 4 are up to each frame
-    raw_q1d_frame, raw_q2d_frame = sample_raw_iq
+    raw_q1d_frame, raw_q2d_frame, processed_ws = sample_raw_iq
 
-    from drtsans.dataobjects import IQmod, IQazimuthal
-    from drtsans.tof.eqsans.correction_api import bin_i_of_q
-
+    # Process each frame individually
     for frame in range(len(raw_q1d_frame)):
         # step 2. determine Qmin and Qmax sample run
         # 1D
         raw_iq1d = raw_q1d_frame[frame]
         assert isinstance(raw_iq1d, IQmod), f'Raw I(Q1D) is of type {type(raw_iq1d)}'
 
+        # Set Qmin and Qmax if they are not implemented
         if binning_params.qmin is None:
             binning_params = binning_params._replace(qmin=raw_iq1d.mod_q.min())
         if binning_params.qmax is None:
@@ -197,7 +200,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_iq1d_frames.append(binned_sample_q1d)
         binned_iq2d_frames.append(binned_sample_q2d)
 
-    return binned_iq1d_frames, binned_iq2d_frames
+    return binned_iq1d_frames, binned_iq2d_frames, processed_ws
 
 
 def process_workspace_single_configuration(ws_raw,

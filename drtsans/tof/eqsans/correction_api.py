@@ -291,7 +291,7 @@ def process_convert_q(raw_ws,
                       sample_thickness: float,
                       absolute_scale: float,
                       output_suffix: str,
-                      delete_raw: bool) -> Tuple[List[Any], List[Any]]:
+                      delete_raw: bool) -> Tuple[List[Any], List[Any], Any]:
     """Process raw workspace and convert to Q and split into frames
 
     Parameters
@@ -324,7 +324,7 @@ def process_convert_q(raw_ws,
     Returns
     -------
     ~tuple
-        list of IQmod, list of IQazimuthal
+        list of IQmod, list of IQazimuthal, processed workspace
 
     """
     # Sanity check
@@ -356,7 +356,7 @@ def process_convert_q(raw_ws,
     iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in)
     iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in)
 
-    return iq1d_main_in_fr, iq2d_main_in_fr
+    return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
 
 
 def bin_i_of_q(iq1d_raw: IQmod,

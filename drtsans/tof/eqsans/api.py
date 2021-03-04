@@ -43,6 +43,8 @@ __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'process_single_configuration', 'reduce_single_configuration',
            'plot_reduction_output']
 
+IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
+
 
 def _get_configuration_file_parameters(sample_run):
     try:
@@ -483,8 +485,10 @@ def process_single_configuration(sample_ws_raw,
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True,
-                                incoherence_correction_setup=None):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
+                                skip_nan=True,
+                                incoherence_correction_setup=None,
+                                use_correction_workflow: bool = False):
     """Reduce samples from raw workspaces including
     1. prepare data
 
@@ -496,11 +500,13 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     skip_nan
     incoherence_correction_setup: CorrectionConfiguration
         incoherence/inelastic scattering correction configuration
+    use_correction_workflow: bool
+        Force to use workflow designed for incoherent and inelastic correction
 
     Returns
     -------
-    ~collections.namedtuple
-        IofQ_output': ['I2D_main', 'I1D_main']
+    ~list
+        list of IofQ_output: ['I2D_main', 'I1D_main']
 
     """
     # Process reduction input: configuration and etc.
@@ -629,7 +635,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
     print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction}')
 
-    if incoherence_correction_setup.do_correction:
+    if incoherence_correction_setup.do_correction or use_correction_workflow:
         # optionally calcualte the elastic scattering nromalization factors
         elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
         if elastic_ref_setup:
@@ -666,7 +672,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             output_suffix = f'_{i}'
 
         print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction} (2) ')
-        if incoherence_correction_setup.do_correction:
+        if incoherence_correction_setup.do_correction or use_correction_workflow:
             # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
             processed = process_single_configuration_incoherence_correction(raw_sample_ws,
                                                                             (sample_trans_ws, sample_trans_value),
@@ -681,11 +687,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                                             processed_background,
                                                                             incoherence_correction_setup,
                                                                             binning_params)
-            iq1d_main_in_fr, iq2d_main_in_fr = processed
+            iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main = processed
             # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
             print(f'[DEBUG].... ... Path check!')
-            # FIXME TODO - the purpose is to write out logs in the very late part of the method.  It is not correct!
-            processed_data_main = raw_sample_ws
 
         else:
             # process data without correction
@@ -729,7 +733,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         # END-IF-ELSE
 
-        # Work with wedgets
+        # Work with wedges
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
             logger.notice(f'Auto wedge options: {autoWedgeOpts}')
             autoWedgeOpts['debug_dir'] = output_dir
@@ -749,6 +753,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
         # print(f'[NOW] qmin = {qmin}, qmax = {qmax}')
 
+        # Process each frame separately
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
                 fr_log_label = f'_frame_{wl_frame}'
@@ -786,7 +791,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                  f'{outputFilename}{output_suffix}{add_suffix}_Iq.dat')
                 save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
-            IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
             current_output = IofQ_output(I2D_main=iq2d_main_out,
                                          I1D_main=iq1d_main_out)
             output.append(current_output)

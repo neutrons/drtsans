@@ -6,6 +6,7 @@ from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 import numpy as np
 from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5, load_iq2d_from_h5
+from typing import List, Any, Union
 
 
 # EQSANS reduction
@@ -64,53 +65,49 @@ def test_regular_setup(run_config, basename, tmpdir):
     }
     input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
 
-    # json_file = NamedTemporaryFile(suffix='.json', delete=False).name
-    # with open(json_file, 'w') as handle:
-    #     json.dump(input_config, handle)
-    # run_reduction('eqsans_reduction.py', json_file)
+    # Load and reduce
     loaded = load_all_files(input_config)
     reduction_output = reduce_single_configuration(loaded, input_config)
-    print(f'{type(reduction_output)}:\n{dir(reduction_output)}')
 
-    # FIXME TODO - need to document to eqsans.api
-    # output of reduce_single_configuration: list of list, containing 
+    from drtsans.dataobjects import _Testing
 
-    output_dir = os.getcwd()
-    print(f'Reduction output size: {len(reduction_output)}')
-    iq1d_dict = dict()
-    iq2d_dict = dict()
-    for section_index, section_output in enumerate(reduction_output):
-        print(f'Type of output: {type(section_output)}')
-        iq1ds = section_output.I1D_main
-        print(f'Type of iq1ds {section_index}: {type(iq1ds)}  size = {len(iq1ds)}')
-        for j_index, iq1d in enumerate(iq1ds):
-            print(f'Type of iq1d: {type(iq1d)}')
-            iq1d_dict[(section_index, j_index)] = iq1d
-            save_i_of_q_to_h5(iq1d, os.path.join(output_dir, f'iq1d_{section_index}_{j_index}.h5'))
-        iq2d = section_output.I2D_main
-        iq2d_dict[section_index] = iq2d
-        print(f'Type of iq2d {section_index}: {type(iq2d)}')
-        save_i_of_q_to_h5(iq2d, os.path.join(output_dir, f'iq2d_{section_index}.h5'))
-
-    for item in reduction_output:
-        print(f'{type(item)}')
-        print(f'{dir(item)}')
-
-    # Test load
+    # Load data and compare
+    gold_dir = os.getcwd()
     for index in range(2):
-        iq1d_h5_name = os.path.join(output_dir, f'iq1d_{index}_0.h5')
-        iq1d = load_iq1d_from_h5(iq1d_h5_name)
-        np.testing.assert_allclose(iq1d.mod_q, iq1d_dict[(index, 0)].mod_q, equal_nan=True)
-        np.testing.assert_allclose(iq1d.intensity, iq1d_dict[(index, 0)].intensity, equal_nan=True)
-        print(type(iq1d))
-        iq2d_h5_name = os.path.join(output_dir, f'iq2d_{index}.h5')
-        iq2d = load_iq2d_from_h5(iq2d_h5_name)
-        np.testing.assert_allclose(iq2d.qx, iq2d_dict[index].qx, equal_nan=True)
-        np.testing.assert_allclose(iq2d.qy, iq2d_dict[index].qy, equal_nan=True)
-        np.testing.assert_allclose(iq2d.intensity, iq2d_dict[index].intensity, equal_nan=True)
-        print(type(iq2d))
+        # 1D
+        iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
+        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
+        # np.testing.assert_allclose(iq1d.mod_q, iq1d_dict[(index, 0)].mod_q, equal_nan=True)
+        # np.testing.assert_allclose(iq1d.intensity, iq1d_dict[(index, 0)].intensity, equal_nan=True)
+        # print(type(iq1d))
 
-    raise RuntimeError('DEBUG STOP output')
+        # 2D
+        iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
+        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
+        _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
+        # np.testing.assert_allclose(iq2d.qx, iq2d_dict[index].qx, equal_nan=True)
+        # np.testing.assert_allclose(iq2d.qy, iq2d_dict[index].qy, equal_nan=True)
+        # np.testing.assert_allclose(iq2d.intensity, iq2d_dict[index].intensity, equal_nan=True)
+        # print(type(iq2d))
+
+
+def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):
+    """Export the reduced I(Q) and I(Qx, Qy) to  hdf5 files
+    """
+    # FIXME TODO - need to document to eqsans.api
+    # output of reduce_single_configuration: list of list, containing
+    if output_dir is None:
+        output_dir = os.getcwd()
+
+    for section_index, section_output in enumerate(reduction_output):
+        # 1D (list of IQmod)
+        iq1ds = section_output.I1D_main
+        for j_index, iq1d in enumerate(iq1ds):
+            save_i_of_q_to_h5(iq1d, os.path.join(output_dir, f'{prefix}iq1d_{section_index}_{j_index}.h5'))
+        # 2D (IQazimuthal)
+        iq2d = section_output.I2D_main
+        save_i_of_q_to_h5(iq2d, os.path.join(output_dir, f'{prefix}iq2d_{section_index}.h5'))
 
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
@@ -174,15 +171,13 @@ def test_wavelength_step(reference_dir):
         output_file_name = os.path.join(test_dir, 'test_wavelength_step_reg.nxs')
         assert os.path.isfile(output_file_name), f'Expected output file {output_file_name} does not exists'
 
+        # export TODO TEST - remove later
+        export_reduction_output(reduction_output, prefix='wave_')
+
         # verify_reduced_data
         gold_file = os.path.join(gold_file_dir, 'expected_wavelength_step_reg.nxs')
         exp_file = output_file_name
         verify_reduction(exp_file, gold_file, 'reg')
-
-        print(f'type output: {type(reduction_output)}')
-        print(f'{dir(reduction_output)}')
-
-        raise RuntimeError('DEBUG STOP: reduction output')
 
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir

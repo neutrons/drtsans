@@ -1,7 +1,9 @@
 from collections import namedtuple
 from collections.abc import Iterable
+import h5py
 from enum import Enum
 import numpy as np
+from typing import Union
 
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
@@ -625,6 +627,69 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
 
     def id(self):
         return DataType.IQ_CRYSTAL
+
+
+def save_i_of_q_to_h5(iq: Union[IQmod, IQazimuthal],
+                      h5_name: str):
+    """Export I of Q, in form of namedtuple, to an HDF5
+    """
+    # assert isinstance(iq, namedtuple), f'I of Q must be of type namedtuple but not {type(iq)}'
+
+    # Init h5
+    iq_h5 = h5py.File(h5_name, 'w')
+    # create group
+    data_group = iq_h5.create_group(iq.__class__.__name__)
+
+    # Write field
+    for index, field in enumerate(iq._fields):
+        # add data
+        data = iq[index]
+        if data is not None:
+            data_group.create_dataset(field, data=data)
+
+    # Close
+    iq_h5.close()
+
+
+def load_iq1d_from_h5(h5_name: str) -> IQmod:
+    """Load an HDF5 for I(Q1D)
+    """
+    # Open file
+    with h5py.File(h5_name, 'r') as iq_h5:
+        data_group = iq_h5['IQmod']
+
+        value_dict = dict()
+
+        # get tuple element
+        for field in ['intensity', 'error', 'mod_q', 'delta_mod_q', 'wavelength']:
+            try:
+                value_dict[field] = data_group[field].value
+            except KeyError:
+                value_dict[field] = None
+
+        iqmod = IQmod(**value_dict)
+
+    return iqmod
+
+
+def load_iq2d_from_h5(h5_name: str) -> IQazimuthal:
+    # Open file
+    with h5py.File(h5_name, 'r') as iq_h5:
+        data_group = iq_h5['IQazimuthal']
+
+        value_dict = dict()
+
+        # get tuple element
+        print(f'DEBUG field: {IQazimuthal._fields}')
+        for field in IQazimuthal._fields:
+            try:
+                value_dict[field] = data_group[field].value
+            except KeyError:
+                value_dict[field] = None
+
+        iq2d = IQazimuthal(**value_dict)
+
+    return iq2d
 
 
 class _Testing:

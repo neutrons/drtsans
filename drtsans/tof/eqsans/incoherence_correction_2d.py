@@ -23,6 +23,8 @@ def reshape_q_azimuthal(i_of_q):
 
     """
     flat_i_of_q = i_of_q.ravel()
+    # lexsort sorts from last argument to first (qx, then qy, then wavelength in this case)
+    # this recreates the ordering of numpy.ndarray.flatten on array form [Qx, Qy, wavelength]
     index_sorted = np.lexsort((
         flat_i_of_q.wavelength,
         flat_i_of_q.qy,

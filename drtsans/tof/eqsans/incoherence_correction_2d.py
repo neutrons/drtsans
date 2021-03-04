@@ -49,7 +49,9 @@ def gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len):
     """Generate filtering array for q_subset from intensity vector for 2d case
 
     Calculation of B requires usage of only qx, qy where all lambda exist,
-    so this function handles creating a boolean array for filtering
+    so this function handles creating a boolean array for filtering. Said
+    array can be described by Q_valid(Qx, Qy) flattened to a 1D array of
+    length qx_len*qy_len
 
     Parameters
     ----------
@@ -65,7 +67,7 @@ def gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len):
     Returns
     -------
     ~numpy.ndarray
-        Boolean numpy array representing q_subset in form Qxy, wavelength
+        1D boolean numpy array representing q_subset in form Qxy, wavelength
 
     """
     _q_by_wavelength = i_of_q.intensity.reshape((qx_len*qy_len, wavelength_len))

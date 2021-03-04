@@ -4,7 +4,12 @@ from drtsans.dataobjects import IQazimuthal
 
 
 def reshape_q_azimuthal(i_of_q):
-    """Enforce usable IQazimuthal setup and preserve original shape
+    """Enforce flattened and sorted IQazimuthal setup
+
+    2D incoherence correction as implemented operates on IQazimuthal data assuming that
+    the numpy arrays are one dimensional and sorted such that a 3D array of each IQazimuthal
+    attribute structured [Qx index, Qy index, wavelength index] would equal the desired array
+    when flattened by numpy.ndarray.flatten
 
     Parameters
     ----------

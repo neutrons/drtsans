@@ -168,7 +168,7 @@ def intensity_error(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, ref):
     """
     # collapse error and mask to 3D numpy arrays
     _i_e_pack = i_of_q.error.copy().reshape((qx_len, qy_len, wavelength_len))
-    _mask_pack = q_subset_mask.reshape((qx_len, qy_len, wavelength_len))
+    _mask_pack = q_subset_mask.repeat(wavelength_len).reshape((qx_len, qy_len, wavelength_len))
     # filter only the reference wavelength
     _e_ref_pack = _i_e_pack[_mask_pack[:, :, ref], ref]
     # calculate summation from reference intensity errors

@@ -147,6 +147,13 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
         gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
         _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
 
+    # Check reduced workspace
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}.nxs')
+    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    # verify with gold data
+    gold_file = os.path.join(reference_dir.new.eqsans, 'expected_wavelength_step_com.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+
 
 def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):
     """Export the reduced I(Q) and I(Qx, Qy) to  hdf5 files
@@ -294,6 +301,8 @@ def verify_reduction(test_file, gold_file, ws_prefix):
 
     """
     assert os.path.exists(gold_file), f'Gold file {gold_file} cannot be found'
+    assert os.path.exists(test_file), f'Test file {test_file} cannot be found'
+
     gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace=f'{ws_prefix}_gold')
     test_ws = LoadNexusProcessed(Filename=test_file, OutputWorkspace=f'{ws_prefix}_test')
     r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)

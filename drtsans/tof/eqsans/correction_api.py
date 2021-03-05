@@ -291,7 +291,7 @@ def process_convert_q(raw_ws,
                       sample_thickness: float,
                       absolute_scale: float,
                       output_suffix: str,
-                      delete_raw: bool) -> Tuple[List[Any], List[Any], Any]:
+                      delete_raw: bool) -> Tuple[List[IQmod], List[IQazimuthal], Any]:
     """Process raw workspace and convert to Q and split into frames
 
     Parameters
@@ -353,8 +353,13 @@ def process_convert_q(raw_ws,
     iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
     iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
     # split to frames
-    iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in)
-    iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in)
+    iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in, verbose=True)
+    iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
+
+    # debug output
+    print(f'[DEBUG Q-RANGE]From {raw_ws}:')
+    for frame, iq1d in enumerate(iq2d_main_in_fr):
+        print(f'Frame {frame}: Q range: {iq1d.mod_q.min()}, {iq1d.mod_q.max()}')
 
     return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
 

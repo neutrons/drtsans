@@ -227,7 +227,6 @@ def split_by_frame(input_workspace, *args, **kwargs):
 
     Parameters
     ----------
-
     input_workspace:  str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
         Workspace in units of wavelength
     kwargs: ~collections.namedtuple or dict
@@ -238,35 +237,55 @@ def split_by_frame(input_workspace, *args, **kwargs):
     ~list
         A list with namedtuples
     """
+    # Verbose?
+    if 'verbose' in kwargs:
+        verbose = kwargs['verbose']
+    else:
+        verbose = False
+
+    info = ''
+
     # get the type of the input
     try:
         id_type = args[0].id()
+        info += f'Split frame for {id_type}\n'
         if id_type == DataType.IQ_MOD:
             input_type = IQmod
         elif id_type == DataType.IQ_AZIMUTHAL:
             input_type = IQazimuthal
         elif id_type == DataType.IQ_CRYSTAL:
             input_type = IQcrystal
+        else:
+            raise RuntimeError(f'Input type {id_type} is not supported')
     except AttributeError:
         input_type = None
     # transform args to dictionary
+    # FIXME - It is better to use a different variable name for kwargs as it may shadow method input
     try:
         kwargs = args[0]._asdict()
     except AttributeError:
         pass
     keys = kwargs.keys()
+    info += f'Argument keys = {list(keys)}\n'
+
     # get the wavelengths for each frame
     sl = SampleLogs(input_workspace)
-    frames = []
-    if bool(sl.is_frame_skipping.value) is True:
+    frames = list()
+    if bool(sl.is_frame_skipping.value):
+        # skip frame mode
         logger.information("This is a frame skipping data set.")
+        # frame 1
         frame1_wavelength_min = sl.wavelength_skip_min.value
         frame1_wavelength_max = sl.wavelength_skip_max.value
+        # frame 2
         frame2_wavelength_min = sl.wavelength_lead_min.value
         frame2_wavelength_max = sl.wavelength_lead_max.value
+        # append
         frames.append((frame1_wavelength_min, frame1_wavelength_max))
         frames.append((frame2_wavelength_min, frame2_wavelength_max))
+        info += f'Wavelength ranges: {frames}'
     else:
+        # regular: 1 frame
         frame1_wavelength_min = sl.wavelength_min.value
         frame1_wavelength_max = sl.wavelength_max.value
         frames.append((frame1_wavelength_min, frame1_wavelength_max))
@@ -277,12 +296,17 @@ def split_by_frame(input_workspace, *args, **kwargs):
         output = dict()
         wavelength = kwargs['wavelength']
         # use only data between the given wavelengths
-        keep = np.logical_and(np.greater_equal(wavelength, wl_min), np.less_equal(wavelength, wl_max))
+        kept_data_indexes = np.logical_and(np.greater_equal(wavelength, wl_min), np.less_equal(wavelength, wl_max))
+        # filter each data/key
         for k in keys:
-            output[k] = kwargs[k][keep]
+            output[k] = kwargs[k][kept_data_indexes]
         # create the namedtuple from a dictionary
         if input_type is not None:
             output_list.append(input_type(**output))
         else:
             output_list.append(namedtuple('frame', output)(**output))
+
+    if verbose:
+        print(info)
+
     return output_list

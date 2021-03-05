@@ -44,7 +44,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                                         sensitivities_ws,
                                                         absolute_scale,
                                                         sample_thickness,
-                                                        bkgd_raw_iq,
+                                                        bkgd_raw_iq: Tuple[List[IQmod], List[IQazimuthal], Any],
                                                         incoherence_correction_setup,
                                                         binning_params) -> Tuple[List[Any], List[Any], Any]:
     """Process raw sample workspace with single configuration and inelastic/incoherence correction
@@ -52,6 +52,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
 
     Parameters
     ----------
+    bkgd_raw_iq: ~tuple
+        List of I(Q), List of I(Qx, Qy) of various frames, Processed background workspace
     incoherence_correction_setup: CorrectionConfiguration
         Incoherence correction setup
 
@@ -83,7 +85,18 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     binned_iq2d_frames = list()
 
     # Step 2 to 4 are up to each frame
-    raw_q1d_frame, raw_q2d_frame, processed_ws = sample_raw_iq
+    raw_q1d_frame, raw_q2d_frame, processed_sample_ws = sample_raw_iq
+
+    # DEBUG
+    print(f'[DEBUG WORKFLOW] Prove processed workspace: ')
+    from mantid.simpleapi import SaveNexusProcessed
+    processed_bkgd_ws = bkgd_raw_iq[2]
+    processed_sample_ws -= processed_bkgd_ws
+    SaveNexusProcessed(InputWorkspace=processed_sample_ws,
+                       Filename=os.path.join(os.getcwd(), 'ProcessedSampleSBkgd.nxs'))
+    debug_iq1d = convert_to_q(processed_sample_ws, mode='scalar')
+    print(f'[DEBUG] Processed sample - background.  Q range = {debug_iq1d.mod_q.min()}, {debug_iq1d.mod_q.max()}')
+    # END OF DEBUG -------------------------------------------------------------------
 
     # Process each frame individually
     for frame in range(len(raw_q1d_frame)):
@@ -200,7 +213,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_iq1d_frames.append(binned_sample_q1d)
         binned_iq2d_frames.append(binned_sample_q2d)
 
-    return binned_iq1d_frames, binned_iq2d_frames, processed_ws
+    return binned_iq1d_frames, binned_iq2d_frames, processed_sample_ws
 
 
 def process_workspace_single_configuration(ws_raw,
@@ -326,7 +339,6 @@ def process_workspace_single_configuration(ws_raw,
     return raw_ws
 
 
-# TODO/FIXME - this is an exact copy of api.prepare_data_workspaces
 def prepare_data_workspaces(data,
                             dark_current=None,
                             flux_method=None,    # normalization (proton charge/time/monitor)

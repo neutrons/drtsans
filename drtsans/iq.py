@@ -253,10 +253,13 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             kwargs['q_max'] = qmax
         binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, **kwargs))
     else:
+        print(f'[DEBUG] Raw input: qmin = {qmin}, qmax = {qmax}')
         if qmin is None:
             qmin = i_modq.mod_q.min()
         if qmax is None:
             qmax = i_modq.mod_q.max()
+        print(f'[DEBUG] Then     : qmin = {qmin}, qmax = {qmax}')
+
         if bin1d_type == 'scalar':
             unbinned_1d = [i_modq]
         elif bin1d_type == 'wedge':
@@ -271,6 +274,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                             n_bins_per_decade=n1dbins_per_decade,
                                             n_bins=n1dbins,
                                             decade_on_center=decade_on_center)
+            print(f'[LOG SCALE] {bins_1d}')
             for ub1d in unbinned_1d:
                 # The filter is needed for logarithmic binning so that
                 # the qmin and qmax are correctly taken into account
@@ -285,6 +289,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         else:
             # linear bins
             bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
+            print(f'[LINEAR BINS] {bins_1d}')
             for ub1d in unbinned_1d:
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method,
                                        wavelength_bins=n_wavelength_bin))

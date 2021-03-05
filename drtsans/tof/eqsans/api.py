@@ -554,6 +554,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     weighted_errors = reduction_config["useErrorWeighting"]
     qmin = reduction_config["Qmin"]
     qmax = reduction_config["Qmax"]
+    print('FIRST qmin = {qmin}, qmax = {qmax}')
     annular_bin = reduction_config["AnnularAngleBin"]
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
@@ -630,6 +631,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                       'qyrange': None}
     binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
     assert binning_params
+    print(f'First qmin = {qmin}, qmax  {qmax}')
 
     from drtsans.tof.eqsans.correction_api import process_elastic_reference_data
 
@@ -751,7 +753,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
 
-        # print(f'[NOW] qmin = {qmin}, qmax = {qmax}')
 
         # Process each frame separately
         for wl_frame in range(n_wl_frames):
@@ -762,6 +763,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                 fr_log_label = f'frame'
                 fr_label = ""
 
+            print(f'[Frame {wl_frame} qmin = {qmin}, qmax = {qmax}')
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
                                                    n1dbins_per_decade=nbins_main_per_decade,

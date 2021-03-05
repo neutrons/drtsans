@@ -740,6 +740,7 @@ class _Testing:
         assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
         for i in range(len(reference_object)):  # iterate over the IQ object components
             component_name = reference_object._fields[i]
+            print(f'all_close on {component_name}')
             i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
             if True in [i_component is None for i_component in i_components]:  # is any of these None?
                 if set(i_components) == set([None]):

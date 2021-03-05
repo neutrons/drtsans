@@ -91,7 +91,20 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     print(f'[DEBUG WORKFLOW] Prove processed workspace: ')
     from mantid.simpleapi import SaveNexusProcessed
     processed_bkgd_ws = bkgd_raw_iq[2]
-    processed_sample_ws -= processed_bkgd_ws
+    
+    print(f'sample     workspace unit X: {processed_sample_ws.getAxis(0).getUnit().unitID()}')
+    print(f'background workspace unit X: {processed_bkgd_ws.getAxis(0).getUnit().unitID()}')
+    wl_array = processed_sample_ws.extractX()
+    print(f'sample     wavelength size: {wl_array.shape}')
+    wl_array = processed_bkgd_ws.extractX()
+    print(f'background wavelength size: {wl_array.shape}')
+    wl_array = processed_sample_ws.extractX()
+    print(f'sample     wavelength range: {wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
+    wl_array = processed_bkgd_ws.extractX()
+    print(f'background wavelength range: {wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
+
+    # wavelength bins between sample and background are different
+    processed_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
     SaveNexusProcessed(InputWorkspace=processed_sample_ws,
                        Filename=os.path.join(os.getcwd(), 'ProcessedSampleSBkgd.nxs'))
     debug_iq1d = convert_to_q(processed_sample_ws, mode='scalar')

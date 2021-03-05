@@ -339,12 +339,15 @@ def process_convert_q(raw_ws,
                                                           sample_thickness, absolute_scale,
                                                           output_workspace, output_suffix)
 
-    # Optionally delete raw workspace
+    # Optionally delete raw workspacea
     if delete_raw:
         if isinstance(raw_ws, tuple):
+            raw_ws_name = str(raw_ws[0])
             raw_ws[0].delete()
         else:
+            raw_ws_name = str(raw_ws)
             raw_ws.delete()
+        raw_ws = raw_ws_name
 
     # TODO - Save the processed workspace?
 
@@ -357,8 +360,8 @@ def process_convert_q(raw_ws,
     iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
 
     # debug output
-    print(f'[DEBUG Q-RANGE]From {raw_ws}:')
-    for frame, iq1d in enumerate(iq2d_main_in_fr):
+    print(f'[DEBUG Q-RANGE]From {raw_ws} -> {processed_ws}:')
+    for frame, iq1d in enumerate(iq1d_main_in_fr):
         print(f'Frame {frame}: Q range: {iq1d.mod_q.min()}, {iq1d.mod_q.max()}')
 
     return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws

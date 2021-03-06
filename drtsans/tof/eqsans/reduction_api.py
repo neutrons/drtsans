@@ -105,32 +105,31 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
           f'{wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
 
     # wavelength bins between sample and background are different
-    # processed_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
-    # SaveNexusProcessed(InputWorkspace=processed_sample_ws,
-    #                    Filename=os.path.join(os.getcwd(), 'ProcessedSampleSBkgd.nxs'))
-    debug_iq1d = convert_to_q(processed_sample_ws, mode='scalar')
+    pure_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
+    debug_iq1d = convert_to_q(pure_sample_ws, mode='scalar')
     print(f'[DEBUG] Processed sample - background.  Q range = {debug_iq1d.mod_q.min()}, {debug_iq1d.mod_q.max()}')
 
     # convert to Q
-    iq1d_main_in = convert_to_q(processed_sample_ws, mode='scalar')
-    iq2d_main_in = convert_to_q(processed_sample_ws, mode='azimuthal')
+    iq1d_main_in = convert_to_q(pure_sample_ws, mode='scalar')
+    iq2d_main_in = convert_to_q(pure_sample_ws, mode='azimuthal')
     # split to frames
-    iq1d_main_in_fr = split_by_frame(processed_sample_ws, iq1d_main_in)
-    iq2d_main_in_fr = split_by_frame(processed_sample_ws, iq2d_main_in)
-
+    iq1d_main_in_fr = split_by_frame(pure_sample_ws, iq1d_main_in)
+    iq2d_main_in_fr = split_by_frame(pure_sample_ws, iq2d_main_in)
+    # get frames
     n_wl_frames = len(iq2d_main_in_fr)
-
     # Process each frame separately
     for wl_frame in range(n_wl_frames):
         iq2d = iq2d_main_in_fr[wl_frame]
         iq1d = iq1d_main_in_fr[wl_frame]
         print(f'[DEBUG PROCESSED FRAME] Frame = {wl_frame}: Q1D range = {iq1d.mod_q.min()},'
               f'{iq1d.mod_q.max()}; Q2D X range = {iq2d.qx.min(), iq2d.qx.max()}, Y range = '
-              f'{iq2d.qy.min()}, {iq2d.qy.max()}')
+              f'{iq2d.qy.min()}, {iq2d.qy.max()},  Number data points (1D) = {len(iq1d.mod_q)}')
 
     # END OF DEBUG -------------------------------------------------------------------
 
     # Process each frame individually
+    replace_qmin = binning_params.qmin is None
+    replace_qmax = binning_params.qmax is None
     for frame in range(len(raw_q1d_frame)):
         # step 2. determine Qmin and Qmax sample run
         # 1D
@@ -138,10 +137,11 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         assert isinstance(raw_iq1d, IQmod), f'Raw I(Q1D) is of type {type(raw_iq1d)}'
 
         # Set Qmin and Qmax if they are not implemented
-        if binning_params.qmin is None:
+        if replace_qmin:
             binning_params = binning_params._replace(qmin=raw_iq1d.mod_q.min())
-        if binning_params.qmax is None:
+        if replace_qmax:
             binning_params = binning_params._replace(qmax=raw_iq1d.mod_q.max())
+        print(f'[SAMPLE FRAME] {frame} Q range: {raw_iq1d.mod_q.min()}, {raw_iq1d.mod_q.max()}.  Number data points = {len(raw_iq1d.mod_q)}')
 
         # 2D
         raw_iq2d = raw_q2d_frame[frame]
@@ -245,7 +245,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_iq1d_frames.append(binned_sample_q1d)
         binned_iq2d_frames.append(binned_sample_q2d)
 
-    return binned_iq1d_frames, binned_iq2d_frames, processed_sample_ws
+    return binned_iq1d_frames, binned_iq2d_frames, pure_sample_ws
 
 
 def process_workspace_single_configuration(ws_raw,

@@ -85,6 +85,8 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     # verify with gold data
     gold_file = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
     verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    print('Successfully passed processed sample - background')
+    # assert 1 == 5, 'I know whatever from this one does not pass.'
 
     # Load data and compare
     gold_dir = reference_dir.new.eqsans

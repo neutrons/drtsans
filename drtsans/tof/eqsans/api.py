@@ -690,8 +690,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                             incoherence_correction_setup,
                                                                             binning_params)
             iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main = processed
-            # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
-            print(f'[DEBUG].... ... Path check!')
 
         else:
             # process data without correction
@@ -764,7 +762,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                 fr_log_label = f'frame'
                 fr_label = ""
 
-            print(f'[Frame {wl_frame} qmin = {qmin}, qmax = {qmax}')
+            print(f'[Final Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
                                                    n1dbins_per_decade=nbins_main_per_decade,

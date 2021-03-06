@@ -690,6 +690,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                             processed_background,
                                                                             incoherence_correction_setup,
                                                                             binning_params)
+            # The output I(Q) and I(Qx, Qy) are already BINNED.
+            # Q range for final binning cannot be retrieved from min and max of
+            # binned I(Q) and I(Qx, Qy) as they are not
+            # bin boundaries but bin centers.
             iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main, frame_q_ranges = processed
 
         else:

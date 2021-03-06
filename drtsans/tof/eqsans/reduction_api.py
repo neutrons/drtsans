@@ -141,6 +141,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     replace_qmin = binning_params.qmin is None
     replace_qmax = binning_params.qmax is None
     for frame in range(len(raw_q1d_frame)):
+        # Bin raw I(Q), I(Qx, Qy)
         # step 2. determine Qmin and Qmax sample run
         # 1D
         raw_iq1d = raw_q1d_frame[frame]

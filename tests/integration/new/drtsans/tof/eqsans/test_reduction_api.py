@@ -63,14 +63,28 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     # FIXME - debug output
     output_dir = os.getcwd()
     amendments = {
-        'outputFileName': basename,
+        'outputFileName': f'{basename}_corr',
         'configuration': {'outputDir': output_dir}
     }
     input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
+ 
+    # expected output Nexus file
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
+    # remove files 
+    if os.path.exists(reduced_data_nexus):
+        os.remove(reduced_data_nexus)
 
     # Load and reduce
     loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=False)
+    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=True)
+
+    # Check reduced workspace
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
+    print(f'Verify reduced worskpace from nexus file {reduced_data_nexus}')
+    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    # verify with gold data
+    gold_file = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
 
     # Load data and compare
     gold_dir = reference_dir.new.eqsans
@@ -89,6 +103,7 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
         gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
         _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
 
+    print('Successfully tested')
     assert 1 == 3, 'Force output on failure'
 
 
@@ -130,6 +145,12 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     }
     input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
 
+    # expected output Nexus file
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}.nxs')
+    # remove files 
+    if os.path.exists(reduced_data_nexus):
+        os.remove(reduced_data_nexus)
+
     # Load and reduce
     loaded = load_all_files(input_config)
     reduction_output = reduce_single_configuration(loaded, input_config)
@@ -148,11 +169,11 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
         _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
 
     # Check reduced workspace
-    reduced_data_nexus = os.path.join(output_dir, f'{basename}.nxs')
     assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
-    # verify with gold data
-    gold_file = os.path.join(reference_dir.new.eqsans, 'expected_wavelength_step_com.nxs')
+    # verify with gold data and clean
+    gold_file = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
     verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    os.remove(reduced_data_nexus)
 
 
 def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):

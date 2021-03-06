@@ -89,9 +89,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
 
     # DEBUG
     print(f'[DEBUG WORKFLOW] Prove processed workspace: ')
-    from mantid.simpleapi import SaveNexusProcessed
     processed_bkgd_ws = bkgd_raw_iq[2]
-    
+
     print(f'sample     workspace unit X: {processed_sample_ws.getAxis(0).getUnit().unitID()}')
     print(f'background workspace unit X: {processed_bkgd_ws.getAxis(0).getUnit().unitID()}')
     wl_array = processed_sample_ws.extractX()
@@ -99,16 +98,36 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     wl_array = processed_bkgd_ws.extractX()
     print(f'background wavelength size: {wl_array.shape}')
     wl_array = processed_sample_ws.extractX()
-    print(f'sample     wavelength range: {wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
+    print(f'sample     wavelength range: '
+          f'{wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
     wl_array = processed_bkgd_ws.extractX()
-    print(f'background wavelength range: {wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
+    print(f'background wavelength range: '
+          f'{wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
 
     # wavelength bins between sample and background are different
-    processed_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
-    SaveNexusProcessed(InputWorkspace=processed_sample_ws,
-                       Filename=os.path.join(os.getcwd(), 'ProcessedSampleSBkgd.nxs'))
+    # processed_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
+    # SaveNexusProcessed(InputWorkspace=processed_sample_ws,
+    #                    Filename=os.path.join(os.getcwd(), 'ProcessedSampleSBkgd.nxs'))
     debug_iq1d = convert_to_q(processed_sample_ws, mode='scalar')
     print(f'[DEBUG] Processed sample - background.  Q range = {debug_iq1d.mod_q.min()}, {debug_iq1d.mod_q.max()}')
+
+    # convert to Q
+    iq1d_main_in = convert_to_q(processed_sample_ws, mode='scalar')
+    iq2d_main_in = convert_to_q(processed_sample_ws, mode='azimuthal')
+    # split to frames
+    iq1d_main_in_fr = split_by_frame(processed_sample_ws, iq1d_main_in)
+    iq2d_main_in_fr = split_by_frame(processed_sample_ws, iq2d_main_in)
+
+    n_wl_frames = len(iq2d_main_in_fr)
+
+    # Process each frame separately
+    for wl_frame in range(n_wl_frames):
+        iq2d = iq2d_main_in_fr[wl_frame]
+        iq1d = iq1d_main_in_fr[wl_frame]
+        print(f'[DEBUG PROCESSED FRAME] Frame = {wl_frame}: Q1D range = {iq1d.mod_q.min()},'
+              f'{iq1d.mod_q.max()}; Q2D X range = {iq2d.qx.min(), iq2d.qx.max()}, Y range = '
+              f'{iq2d.qy.min()}, {iq2d.qy.max()}')
+
     # END OF DEBUG -------------------------------------------------------------------
 
     # Process each frame individually

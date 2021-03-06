@@ -717,10 +717,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                beam_radius=beam_radius,
                                                                absolute_scale=absolute_scale,
                                                                keep_processed_workspaces=False)
-            # Save nexus processed
-            filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
-            SaveNexus(processed_data_main, Filename=filename)
-            print(f'SaveNexus to {filename}')
+
             # Convert to Q
             # set up subpixel binning options  FIXME - it does not seem to work
             subpixel_kwargs = dict()
@@ -734,6 +731,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
             iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
             iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         # END-IF-ELSE
+
+        # Save nexus processed
+        filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
+        SaveNexus(processed_data_main, Filename=filename)
+        print(f'SaveNexus to {filename}')
 
         # Work with wedges
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
@@ -752,7 +754,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
 
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
-
 
         # Process each frame separately
         for wl_frame in range(n_wl_frames):

@@ -46,7 +46,10 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                                         sample_thickness,
                                                         bkgd_raw_iq: Tuple[List[IQmod], List[IQazimuthal], Any],
                                                         incoherence_correction_setup,
-                                                        binning_params) -> Tuple[List[Any], List[Any], Any]:
+                                                        binning_params) -> Tuple[List[Any], List[Any], Any,
+                                                                                 List[Tuple[Tuple[float, float],
+                                                                                            Tuple[float, float],
+                                                                                            Tuple[float, float]]]]:
     """Process raw sample workspace with single configuration and inelastic/incoherence correction
     till binned I(Q, wavelength)
 
@@ -60,9 +63,10 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     Returns
     -------
     tuple
-        list (binned Q1D), list (binned Q2D), processed workspace
+        list (binned Q1D), list (binned Q2D), processed workspace, list of tuples as range of Q, Qx, Qy
 
     """
+    # Check input parameters
     assert isinstance(incoherence_correction_setup, CorrectionConfiguration)
 
     # 1. process single configuration of a sample run
@@ -118,12 +122,18 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     # get frames
     n_wl_frames = len(iq2d_main_in_fr)
     # Process each frame separately
+
+    frame_q_range = list()
     for wl_frame in range(n_wl_frames):
         iq2d = iq2d_main_in_fr[wl_frame]
         iq1d = iq1d_main_in_fr[wl_frame]
         print(f'[DEBUG PROCESSED FRAME] Frame = {wl_frame}: Q1D range = {iq1d.mod_q.min()},'
               f'{iq1d.mod_q.max()}; Q2D X range = {iq2d.qx.min(), iq2d.qx.max()}, Y range = '
               f'{iq2d.qy.min()}, {iq2d.qy.max()},  Number data points (1D) = {len(iq1d.mod_q)}')
+        mod_q_range = iq1d.mod_q.min(), iq1d.mod_q.max()
+        qx_range = iq2d.qx.min(), iq2d.qx.max()
+        qy_range = iq2d.qy.min(), iq2d.qy.max()
+        frame_q_range.append((mod_q_range, qx_range, qy_range))
 
     # END OF DEBUG -------------------------------------------------------------------
 
@@ -245,7 +255,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_iq1d_frames.append(binned_sample_q1d)
         binned_iq2d_frames.append(binned_sample_q2d)
 
-    return binned_iq1d_frames, binned_iq2d_frames, pure_sample_ws
+    return binned_iq1d_frames, binned_iq2d_frames, pure_sample_ws, frame_q_range
 
 
 def process_workspace_single_configuration(ws_raw,

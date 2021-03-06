@@ -675,7 +675,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
 
         print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction} (2) ')
         if incoherence_correction_setup.do_correction or use_correction_workflow:
-            # TODO FIXME - process_single_configuration shall output the processed workspace like processed_data_main
+            # process data in workflow that is able to incorporate inelastic incoherent correction
+            # returned binned I(Q) and I(Q)
             processed = process_single_configuration_incoherence_correction(raw_sample_ws,
                                                                             (sample_trans_ws, sample_trans_value),
                                                                             theta_deppendent_transmission,
@@ -689,7 +690,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                             processed_background,
                                                                             incoherence_correction_setup,
                                                                             binning_params)
-            iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main = processed
+            iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main, frame_q_ranges = processed
 
         else:
             # process data without correction
@@ -728,6 +729,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
             # split to frames
             iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
             iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
+            # frame Q ranges to None as default
+            frame_q_ranges = None
         # END-IF-ELSE
 
         # Save nexus processed
@@ -763,12 +766,23 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                 fr_label = ""
 
             print(f'[Final Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
+            if frame_q_ranges:
+                q_range_tuples = frame_q_ranges[wl_frame]
+                qmin, qmax = q_range_tuples[0]
+                qx_range = q_range_tuples[1]
+                qy_range = q_range_tuples[2]
+                print(f'[Final-Reset Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
+            else:
+                qx_range = qy_range = None
+
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
                                                    n1dbins_per_decade=nbins_main_per_decade,
                                                    decade_on_center=decade_on_center,
                                                    bin1d_type=bin1d_type, log_scale=log_binning,
                                                    qmin=qmin, qmax=qmax,
+                                                   qxrange=qx_range,
+                                                   qyrange=qy_range,
                                                    annular_angle_bin=annular_bin, wedges=wedges,
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)

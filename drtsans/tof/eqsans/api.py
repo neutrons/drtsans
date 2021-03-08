@@ -468,6 +468,7 @@ def process_single_configuration(sample_ws_raw,
         else:
             bkgd_ws = mtd[bkgd_ws_name]
         # subtract background
+
         sample_ws = subtract_background(sample_ws, bkgd_ws)
 
         if not keep_processed_workspaces:
@@ -729,10 +730,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                    'n_vertical': reduction_config['subpixelsY']}
             # convert to Q
             iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
+            # DEBUG
+            print(f'INFO Before frame split: Bin [0, 1] information: ')
+
             iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
+
             # split to frames
-            iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
-            iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
+            iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in, verbose=True)
+            print(f'INFO After frame split: Frame 0 Bin [0, 1] information: ')
+            print(f'INFO After frame split: Frame 1 Bin [0, 1] information: ')
+
+            iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
             # frame Q ranges to None as default
             frame_q_ranges = None
         # END-IF-ELSE

@@ -37,9 +37,7 @@ from collections import namedtuple
 
 
 # Binning parameters
-binning_setup = namedtuple('binning_setup', ['nxbins_main', 'nybins_main' 'n1dbins', 'n1dbins_per_decade',
-                                             'decade_on_center', 'bin1d_type', 'log_scale',
-                                             'qmin', 'qmax', 'qxrange', 'qyrange'])
+binning_setup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')
 
 
 def process_single_configuration_incoherence_correction(sample_ws, sample_transmission,

@@ -34,7 +34,8 @@ from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import (process_convert_q,
                                                CorrectionConfiguration)
-from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces
+from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces, binning_setup
+
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -468,6 +469,7 @@ def process_single_configuration(sample_ws_raw,
         else:
             bkgd_ws = mtd[bkgd_ws_name]
         # subtract background
+
         sample_ws = subtract_background(sample_ws, bkgd_ws)
 
         if not keep_processed_workspaces:
@@ -629,9 +631,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                       'qmax': qmax,
                       'qxrange': None,
                       'qyrange': None}
-    binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
+
+    # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
+    binning_params = binning_setup(**binning_par_dc)
     assert binning_params
-    print(f'First qmin = {qmin}, qmax  {qmax}')
+    print(f'[DEBUG] First qmin = {binning_params.qmin}, qmax  {binning_params.qmax}')
 
     from drtsans.tof.eqsans.correction_api import process_elastic_reference_data
 
@@ -729,10 +733,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                    'n_vertical': reduction_config['subpixelsY']}
             # convert to Q
             iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
+            # DEBUG
+            print(f'INFO Before frame split: Bin [0, 1] information: ')
+
             iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
+
             # split to frames
-            iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
-            iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
+            iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in, verbose=True)
+            print(f'INFO After frame split: Frame 0 Bin [0, 1] information: ')
+            print(f'INFO After frame split: Frame 1 Bin [0, 1] information: ')
+
+            iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
             # frame Q ranges to None as default
             frame_q_ranges = None
         # END-IF-ELSE
@@ -771,10 +782,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
 
             print(f'[Final Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
             if frame_q_ranges:
-                q_range_tuples = frame_q_ranges[wl_frame]
-                qmin, qmax = q_range_tuples[0]
-                qx_range = q_range_tuples[1]
-                qy_range = q_range_tuples[2]
+                binning_params = frame_q_ranges[wl_frame]
+                qmin, qmax = binning_params.qmin, binning_params.qmax
+                qx_range = binning_params.qxrange
+                qy_range = binning_params.qyrange
                 print(f'[Final-Reset Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
             else:
                 qx_range = qy_range = None

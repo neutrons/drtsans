@@ -33,6 +33,13 @@ import os
 from drtsans.tof.eqsans.correction_api import process_convert_q
 import numpy as np
 from typing import Tuple, Any, List
+from collections import namedtuple
+
+
+# Binning parameters
+binning_setup = namedtuple('binning_setup', ['nxbins_main', 'nybins_main' 'n1dbins', 'n1dbins_per_decade',
+                                             'decade_on_center', 'bin1d_type', 'log_scale',
+                                             'qmin', 'qmax', 'qxrange', 'qyrange'])
 
 
 def process_single_configuration_incoherence_correction(sample_ws, sample_transmission,
@@ -46,10 +53,9 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                                         sample_thickness,
                                                         bkgd_raw_iq: Tuple[List[IQmod], List[IQazimuthal], Any],
                                                         incoherence_correction_setup,
-                                                        binning_params) -> Tuple[List[Any], List[Any], Any,
-                                                                                 List[Tuple[Tuple[float, float],
-                                                                                            Tuple[float, float],
-                                                                                            Tuple[float, float]]]]:
+                                                        binning_params: binning_setup
+                                                        ) -> Tuple[List[Any], List[Any], Any,
+                                                                   List[binning_setup]]:
     """Process raw sample workspace with single configuration and inelastic/incoherence correction
     till binned I(Q, wavelength)
 
@@ -59,6 +65,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         List of I(Q), List of I(Qx, Qy) of various frames, Processed background workspace
     incoherence_correction_setup: CorrectionConfiguration
         Incoherence correction setup
+    binning_params: binning_setup
+        binning parameters including range, step and type
 
     Returns
     -------
@@ -69,7 +77,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     # Check input parameters
     assert isinstance(incoherence_correction_setup, CorrectionConfiguration)
 
-    # 1. process single configuration of a sample run
+    # Process single configuration of a sample run (raw)
     sample_raw_iq = process_convert_q(sample_ws,
                                       sample_transmission,  # (sample_trans_ws, sample_trans_value),
                                       theta_dependent_transmission,
@@ -82,19 +90,31 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                       absolute_scale,
                                       'sample',
                                       delete_raw=True)
-
-    # Process each frame separately!
-    # output
-    binned_iq1d_frames = list()
-    binned_iq2d_frames = list()
-
-    # Step 2 to 4 are up to each frame
     raw_q1d_frame, raw_q2d_frame, processed_sample_ws = sample_raw_iq
 
-    # DEBUG
+    # Re-process background: workspace shall be rebinned to match the sample workspace
     print(f'[DEBUG WORKFLOW] Prove processed workspace: ')
     processed_bkgd_ws = bkgd_raw_iq[2]
+    bkgd_x0_vec = processed_bkgd_ws.extractX()[0]
+    sample_x0_vec = processed_sample_ws.extractX()[0]
+    if len(bkgd_x0_vec) != len(sample_x0_vec):
+        raise RuntimeError('Background workspace and sample workspace have different dimension on wavelength (X)')
+    elif not np.allclose(sample_x0_vec, bkgd_x0_vec):
+        # wavelength bins between sample and background are different
+        # rebin background
+        processed_bkgd_ws = RebinToWorkspace(WorkspaceToRebin=processed_bkgd_ws,
+                                             WorkspaceToMatch=processed_sample_ws,
+                                             OutputWorkspace=str(processed_bkgd_ws))
 
+    # convert to Q: Q1D and Q2D
+    # No subpixel binning supported
+    background_iq1d = convert_to_q(processed_bkgd_ws, mode='scalar')
+    background_iq2d = convert_to_q(processed_bkgd_ws, mode='azimuthal')
+    # split to frames
+    background_iq1d_frames = split_by_frame(processed_bkgd_ws, background_iq1d, verbose=True)
+    background_iq2d_frames = split_by_frame(processed_bkgd_ws, background_iq2d, verbose=True)
+
+    # FIXME - DEBUG OUTPUT
     print(f'sample     workspace unit X: {processed_sample_ws.getAxis(0).getUnit().unitID()}')
     print(f'background workspace unit X: {processed_bkgd_ws.getAxis(0).getUnit().unitID()}')
     wl_array = processed_sample_ws.extractX()
@@ -107,42 +127,50 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     wl_array = processed_bkgd_ws.extractX()
     print(f'background wavelength range: '
           f'{wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
+    # END ====================================================================================
 
-    # wavelength bins between sample and background are different
+    # Subtract background from sample in workspace level for future output
     pure_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
     debug_iq1d = convert_to_q(pure_sample_ws, mode='scalar')
     print(f'[DEBUG] Processed sample - background.  Q range = {debug_iq1d.mod_q.min()}, {debug_iq1d.mod_q.max()}')
 
-    # convert to Q
-    iq1d_main_in = convert_to_q(pure_sample_ws, mode='scalar')
-    iq2d_main_in = convert_to_q(pure_sample_ws, mode='azimuthal')
-    # split to frames
-    iq1d_main_in_fr = split_by_frame(pure_sample_ws, iq1d_main_in)
-    iq2d_main_in_fr = split_by_frame(pure_sample_ws, iq2d_main_in)
+    # # convert to Q
+    # iq1d_main_in = convert_to_q(pure_sample_ws, mode='scalar')
+    # iq2d_main_in = convert_to_q(pure_sample_ws, mode='azimuthal')
+    # # split to frames
+    # iq1d_main_in_fr = split_by_frame(pure_sample_ws, iq1d_main_in)
+    # iq2d_main_in_fr = split_by_frame(pure_sample_ws, iq2d_main_in)
     # get frames
-    n_wl_frames = len(iq2d_main_in_fr)
-    # Process each frame separately
+    # n_wl_frames = len(iq2d_main_in_fr)
+    # # Process each frame separately
 
+    # # Step 2 to 4 are up to each frame
+    # # Determine Q range for each frame from PURE sample I(Q1D) and I(Q2D)
+    # frame_q_range = list()
+    # for wl_frame in range(n_wl_frames):
+    #     iq2d = iq2d_main_in_fr[wl_frame]
+    #     iq1d = iq1d_main_in_fr[wl_frame]
+    #     mod_q_range = iq1d.mod_q.min(), iq1d.mod_q.max()
+    #     qx_range = iq2d.qx.min(), iq2d.qx.max()
+    #     qy_range = iq2d.qy.min(), iq2d.qy.max()
+    #     frame_q_range.append((mod_q_range, qx_range, qy_range))
+    #     print(f'[DEBUG PROCESSED FRAME] Frame = {wl_frame}: Q1D range = {iq1d.mod_q.min()},'
+    #           f'{iq1d.mod_q.max()}; Q2D X range = {iq2d.qx.min(), iq2d.qx.max()}, Y range = '
+    #           f'{iq2d.qy.min()}, {iq2d.qy.max()},  Number data points (1D) = {len(iq1d.mod_q)}')
+    # #
+
+    # Process each frame separately!
+    # output
+    binned_iq1d_frames = list()
+    binned_iq2d_frames = list()
     frame_q_range = list()
-    for wl_frame in range(n_wl_frames):
-        iq2d = iq2d_main_in_fr[wl_frame]
-        iq1d = iq1d_main_in_fr[wl_frame]
-        print(f'[DEBUG PROCESSED FRAME] Frame = {wl_frame}: Q1D range = {iq1d.mod_q.min()},'
-              f'{iq1d.mod_q.max()}; Q2D X range = {iq2d.qx.min(), iq2d.qx.max()}, Y range = '
-              f'{iq2d.qy.min()}, {iq2d.qy.max()},  Number data points (1D) = {len(iq1d.mod_q)}')
-        mod_q_range = iq1d.mod_q.min(), iq1d.mod_q.max()
-        qx_range = iq2d.qx.min(), iq2d.qx.max()
-        qy_range = iq2d.qy.min(), iq2d.qy.max()
-        frame_q_range.append((mod_q_range, qx_range, qy_range))
 
-    # END OF DEBUG -------------------------------------------------------------------
-
-    # Process each frame individually
     replace_qmin = binning_params.qmin is None
     replace_qmax = binning_params.qmax is None
-    for frame in range(len(raw_q1d_frame)):
-        # Bin raw I(Q), I(Qx, Qy)
-        # step 2. determine Qmin and Qmax sample run
+    n_wl_frames = len(raw_q1d_frame)
+    for frame in range(n_wl_frames):
+        # Bin raw I(Q), I(Qx, Qy), elastic normalization and inelastic/incoherent correction
+        # step 2. determine binning parameters:  Qmin and Qmax from sample run
         # 1D
         raw_iq1d = raw_q1d_frame[frame]
         assert isinstance(raw_iq1d, IQmod), f'Raw I(Q1D) is of type {type(raw_iq1d)}'
@@ -152,7 +180,6 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             binning_params = binning_params._replace(qmin=raw_iq1d.mod_q.min())
         if replace_qmax:
             binning_params = binning_params._replace(qmax=raw_iq1d.mod_q.max())
-        print(f'[SAMPLE FRAME] {frame} Q range: {raw_iq1d.mod_q.min()}, {raw_iq1d.mod_q.max()}.  Number data points = {len(raw_iq1d.mod_q)}')
 
         # 2D
         raw_iq2d = raw_q2d_frame[frame]
@@ -170,15 +197,16 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             qy_max = np.max(raw_iq2d.qy)
             binning_params = binning_params._replace(qyrange=(qy_min, qy_max))
 
+        # Set to future record
+        frame_q_range.append(binning_params)
+
+        print(f'[SAMPLE FRAME] {frame} Q range: {raw_iq1d.mod_q.min()}, {raw_iq1d.mod_q.max()}.  Number data points = {len(raw_iq1d.mod_q)}')
         print(f'[DEBUG binning] {binning_params.qxrange}, {binning_params.qyrange}')
 
-        # step 3. bin sample data (without background), background and optionally elastic reference
+        # Bin sample data (without background), background and optionally elastic reference separately
         binned_sample_iq = bin_i_of_q(raw_iq1d, raw_iq2d, binning_params)
+        binned_bkgd_iq = bin_i_of_q(background_iq1d_frames[frame], background_iq2d_frames[frame], binning_params)
 
-        print(f'[DEBUG bkgd] type: {type(bkgd_raw_iq)}')
-        print(f'[DEBUG bkgd] type: {type(bkgd_raw_iq[0])}')
-
-        binned_bkgd_iq = bin_i_of_q(bkgd_raw_iq[0][frame], bkgd_raw_iq[1][frame], binning_params)
         if incoherence_correction_setup.elastic_reference_run:
             raw_ref_iq1d, raw_ref_iq2d = incoherence_correction_setup.elastic_reference_run.binned_ref_iq[frame]
             binned_elastic_ref_iq = bin_i_of_q(raw_ref_iq1d, raw_ref_iq2d, binning_params)
@@ -219,10 +247,11 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             #                                                           incoherence_correction_setup)
             # sample_iq1d, sample_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
             #                                                           incoherence_correction_setup)
+        # END-IF-step 4
 
-        # subtract with background
+        # Merge sample and background: subtract sample with background
         print(f'Binning: {binning_params}')
-        print('1D')
+        print('1D {}, {}'.format(type(binned_sample_iq), type(binned_bkgd_iq)))
         print(f'[NOW-CORRECTION] 1D: sample     range {binned_sample_iq[0].mod_q[0]}, '
               f'{binned_sample_iq[0].mod_q[-1]}')
         print(f'[NOW-CORRECTION] 1D: background range {binned_bkgd_iq[0].mod_q[0]}, '
@@ -242,9 +271,11 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         print(f'NaN in I(Q): {len(np.where(np.isnan(vec_i))[0])}')
         print(f'NaN in I(Q): {len(np.where(np.isnan(binned_sample_iq[0].intensity))[0])}')
 
+        # Separate wavelength, reconstruct to IQmod and remove nan and inf
         binned_sample_q1d = IQmod(vec_i, vec_e, vec_q, wavelength=binned_sample_iq[0].wavelength)
         binned_sample_q1d = binned_sample_q1d.be_finite()
 
+        # 2D case
         binned_sample_q2d = subtract_background(binned_sample_iq[1], binned_bkgd_iq[1])
         try:
             binned_sample_q2d = binned_sample_q2d.be_finite()

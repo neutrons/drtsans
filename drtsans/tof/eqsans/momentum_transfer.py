@@ -248,7 +248,7 @@ def split_by_frame(input_workspace, *args, **kwargs):
     # get the type of the input
     try:
         id_type = args[0].id()
-        info += f'Split frame for {id_type}\n'
+        info += f'[INFO] Split frame for {id_type}\n'
         if id_type == DataType.IQ_MOD:
             input_type = IQmod
         elif id_type == DataType.IQ_AZIMUTHAL:

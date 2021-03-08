@@ -470,7 +470,9 @@ def process_single_configuration(sample_ws_raw,
             bkgd_ws = mtd[bkgd_ws_name]
         # subtract background
 
-        sample_ws = subtract_background(sample_ws, bkgd_ws)
+        if False:
+            # FIXME TODO - this is diabled only for debug
+            sample_ws = subtract_background(sample_ws, bkgd_ws)
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()

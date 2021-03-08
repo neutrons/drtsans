@@ -339,7 +339,7 @@ def process_convert_q(raw_ws,
                                                           sample_thickness, absolute_scale,
                                                           output_workspace, output_suffix)
 
-    # Optionally delete raw workspacea
+    # Optionally delete raw workspace
     if delete_raw:
         if isinstance(raw_ws, tuple):
             raw_ws_name = str(raw_ws[0])
@@ -348,8 +348,6 @@ def process_convert_q(raw_ws,
             raw_ws_name = str(raw_ws)
             raw_ws.delete()
         raw_ws = raw_ws_name
-
-    # TODO - Save the processed workspace?
 
     # No subpixel binning supported
     # convert to Q: Q1D and Q2D

@@ -10,11 +10,11 @@ from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.mask_utils import apply_mask   # noqa E402
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
-from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.dataobjects import IQmod, IQazimuthal
+from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.tof.eqsans.correction_api import bin_i_of_q
-import os
 from drtsans.tof.eqsans.correction_api import process_convert_q
+import os
 import numpy as np
 from typing import Tuple, Any, List
 from collections import namedtuple
@@ -495,3 +495,58 @@ def process_transmission(transmission_ws, empty_trans_ws, transmission_radius, s
         calculated_trans_ws = None
 
     return calculated_trans_ws, processed_transmission_dict, raw_transmission_dict
+
+
+def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensitivity_ws, flux):
+    """Process elastic reference run from raw workspaces to I of Q1D and Q2D split to frames
+
+    Workflow
+    1. Process ref sample transmission
+    2. Process ref background transmission
+    3. Process (single configuration) ref sample run
+    4. Process (single configuration) ref background run
+    5. Ref sample run convert to Q and split frame
+    6. Ref background run convert to Q and split frame
+
+    Requires:
+      - dark current
+      - mask
+      - sensitivities
+      - empty beam
+      - empty beam radius
+
+    Parameters
+    ----------
+    elastic_ref_setup: ElasticReferenceRunSetup
+        elastic scattering correction reference setup
+
+    Returns
+    -------
+    ElasticReferenceRunSetup
+
+
+    """
+    sample_transmission = elastic_ref_setup.ref_transmission_ws
+    empty_trans_ws = elastic_ref_setup.empty_trans_ws
+
+    sample_cal_trans_ws, _, _ = process_transmission(sample_transmission, empty_trans_ws,
+                                                     transmission_radius, sensitivity_ws,
+                                                     flux.method, flux.data, 'elastic_reference',
+                                                     'elastic_reference', None, None)
+    # process raw.
+    assert sample_cal_trans_ws == 1, 'IMPLEMENTATION TO BE CONTINUED ... '
+
+    # # process transmission if there is any
+    # if sample_transmission.data is not None and empty_trans_ws is not None:
+    #     sample_trans_ws_name = f'{prefix}_sample_trans'
+    #     sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
+    #                                                         flux_method=flux_method,
+    #                                                         flux=flux,
+    #                                                         solid_angle=False,
+    #                                                         sensitivity_workspace=loaded_ws.sensitivity,
+    #                                                         output_workspace=sample_trans_ws_name)
+    #     # calculate transmission with fit function (default) Formula=a*x+b'
+    #     trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
+    #                                       radius=transmission_radius, radius_unit="mm")
+
+    return elastic_ref_setup

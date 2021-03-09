@@ -633,19 +633,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
     binning_params = binning_setup(**binning_par_dc)
     assert binning_params
-    print(f'[DEBUG] First qmin = {binning_params.qmin}, qmax  {binning_params.qmax}')
-
-    from drtsans.tof.eqsans.correction_api import process_elastic_reference_data
-
-    print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction}')
+    print(f'[DEBUG] Flag to do correction = {incoherence_correction_setup.do_correction}')
 
     if incoherence_correction_setup.do_correction or use_correction_workflow:
         # optionally calcualte the elastic scattering nromalization factors
         elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
         if elastic_ref_setup:
+            # TODO FIXME [#689] Process elastic reference data
             # process - process_single_configuration - elastic reference run (no bin)
-            process_elastic_reference_data(elastic_ref_setup)
+            # process_elastic_reference_data(elastic_ref_setup)
             # TODO sanity check of expected output from elastic_ref_setup
+            pass
 
         # pre-process background background
         # TODO - rewrite process_bin_workspace to process_workspace()

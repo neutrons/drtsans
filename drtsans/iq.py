@@ -245,6 +245,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
     # 1D binning
     binned_q1d_list = []
     if bin1d_type == 'annular':
+        # annular binning
         bin_params = BinningParams(0., 360., int(360. / annular_angle_bin))
         kwargs = {'method': method}
         if qmin is not None:
@@ -253,7 +254,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             kwargs['q_max'] = qmax
         binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, **kwargs))
     else:
-        print(f'[DEBUG] Raw input: qmin = {qmin}, qmax = {qmax}')
+        # regular binning including 'scalar' and 'wedge'
+        print(f'[DEBUG] {bin1d_type} Raw input: qmin = {qmin}, qmax = {qmax}')
         if qmin is None:
             qmin = i_modq.mod_q.min()
         if qmax is None:
@@ -290,7 +292,61 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
             # linear bins
             bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
             print(f'[LINEAR BINS] {bins_1d}')
-            for ub1d in unbinned_1d:
+            for ub_index, ub1d in enumerate(unbinned_1d):
+
+                # DEBUG BINNING
+                print(f'[PROOF] [{ub_index}]  Wavelength bins = {n_wavelength_bin}')
+                if n_wavelength_bin is None:
+                    wl_vec = np.unique(ub1d.wavelength)
+                    print(f'number of wavelength: {len(wl_vec)}: {wl_vec}')
+                else:
+                    wl_vec = None
+
+                for i_bin in range(5):
+                    # print(f'{i_bin}-bin:  boundary: {bins_1d.edges[i_bin]}, {bins_1d.edges[i_bin + 1]}')
+                    bin_qmin = bins_1d.edges[i_bin]
+                    bin_qmax = bins_1d.edges[i_bin + 1]
+                    # filter the I(Q) in boundary
+                    # >= q_min
+                    in_range_i_arrays = ub1d.intensity[ub1d.mod_q >= bin_qmin]
+                    in_range_q_arrays = ub1d.mod_q[ub1d.mod_q >= bin_qmin]
+                    # < qmax
+                    in_range_i_arrays = in_range_i_arrays[in_range_q_arrays < bin_qmax]
+                    in_range_q_arrays = in_range_q_arrays[in_range_q_arrays < bin_qmax]
+                    sum_intensity = in_range_i_arrays.sum()
+                    print(f'{i_bin}-bin:  boundary: {bins_1d.edges[i_bin]}, {bins_1d.edges[i_bin + 1]}:'
+                          f'num points = {len(in_range_q_arrays)}, '
+                          f'sum = {sum_intensity},'
+                          f'average = {sum_intensity / len(in_range_q_arrays)}')
+
+                    if wl_vec is not None:
+                        # wavelength in details
+                        in_range_wl_arrays = ub1d.wavelength[ub1d.mod_q >= bin_qmin]
+                        in_range_q_arrays = ub1d.mod_q[ub1d.mod_q >= bin_qmin]
+                        # < qmax
+                        in_range_wl_arrays = in_range_wl_arrays[in_range_q_arrays < bin_qmax]
+
+                        sum_i_per_wl_vec = list()
+                        num_pt_per_wl_vec = list()
+                        for wl in wl_vec:
+                            selected_i_array = in_range_i_arrays[np.abs(in_range_wl_arrays - wl) < 0.001]
+                            sum_i_per_wl_vec.append(np.sum(selected_i_array))
+                            num_pt_per_wl_vec.append(len(selected_i_array))
+                            print(f'wl = {wl}: sum = {np.sum(selected_i_array)}, num I(Q) = {len(selected_i_array)}')
+                        sum_i_per_wl_vec = np.array(sum_i_per_wl_vec)
+                        num_pt_per_wl_vec = np.array(num_pt_per_wl_vec)
+                        sum_i = sum_i_per_wl_vec.sum()
+
+                        # binned value can be a little more complicated
+                        valid_sum_i_vec = sum_i_per_wl_vec[num_pt_per_wl_vec > 0]
+                        valid_num_pt_vec = num_pt_per_wl_vec[num_pt_per_wl_vec > 0]
+                        num_valid_ws = len(valid_num_pt_vec)
+                        bin_int = np.sum(valid_sum_i_vec / valid_num_pt_vec) / num_valid_ws
+
+                        print(f'Number of I(Q) = {num_pt_per_wl_vec.sum()}, Total I(Q) = {sum_i}, Binned I = {bin_int}')
+
+                # END-DEBUG-BINNING
+
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method,
                                        wavelength_bins=n_wavelength_bin))
 

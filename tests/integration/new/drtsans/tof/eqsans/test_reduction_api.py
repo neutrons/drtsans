@@ -77,6 +77,7 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     # Load and reduce
     loaded = load_all_files(input_config)
     reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=True)
+    raise NotImplementedError('DEBUG STOP X')
 
     # Check reduced workspace
     reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')

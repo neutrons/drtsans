@@ -222,7 +222,6 @@ def _savesamplelogs(nxentry, dict_sample_logs, name_of_entry):
 
 
 def _create_groupe(entry=None, name='Default', data=[], units=''):
-    print(f'final check: data = {data}')
     if data is not None:
         _entry_group = entry.create_dataset(name=name, data=data)
         _entry_group.attrs['units'] = units

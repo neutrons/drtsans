@@ -118,12 +118,10 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
             # FIXME - rtol is VERY large
             # Frame 1
             # Max absolute difference: 1.35398336
-	    # Max relative difference: 0.38801395
+            # Max relative difference: 0.38801395
             # Frame 2
             # Max absolute difference: 3.38294033
             # Max relative difference: 0.42140941
-
-
             np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity, rtol=0.5)
         except AssertionError as err:
             # plot the error

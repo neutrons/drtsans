@@ -859,7 +859,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                  samplelogs=samplelogs,
                                  )
     except AttributeError as attrib_error:
-        raise AttributeError('ASAP')
+        print(attrib_error)
+        # raise AttributeError('ASAP')
 
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)

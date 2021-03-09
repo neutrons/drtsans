@@ -141,9 +141,6 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         # Set to future record
         frame_q_range.append(binning_params)
 
-        print(f'[SAMPLE FRAME] {frame} Q range: {raw_iq1d.mod_q.min()}, {raw_iq1d.mod_q.max()}.  Number data points = {len(raw_iq1d.mod_q)}')
-        print(f'[DEBUG binning] {binning_params.qxrange}, {binning_params.qyrange}')
-
         # Bin sample data (without background), background and optionally elastic reference separately
         binned_sample_iq = bin_i_of_q(raw_iq1d, raw_iq2d, binning_params)
         binned_bkgd_iq = bin_i_of_q(background_iq1d_frames[frame], background_iq2d_frames[frame], binning_params)

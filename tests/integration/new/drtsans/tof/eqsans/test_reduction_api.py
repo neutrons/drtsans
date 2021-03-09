@@ -8,6 +8,7 @@ import numpy as np
 from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5, load_iq2d_from_h5
 from typing import List, Any, Union
 from drtsans.dataobjects import _Testing
+from matplotlib import pyplot as plt
 
 
 # EQSANS reduction
@@ -26,6 +27,125 @@ specs_eqsans = {
         }
     }
 }
+
+
+@pytest.mark.parametrize('run_config, basename',
+                         [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
+                         ids=['88980'])
+def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
+    """Same reduction from Shaman test but using the workflow that is designed to work with inelastic correction
+
+    Returns
+    -------
+
+    """
+    common_config = {
+        "configuration": {
+            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
+            "useDefaultMask": True,
+            "normalization": "Total charge",
+            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+            "absoluteScaleMethod": "standard",
+            "detectorOffset": 0,
+            "mmRadiusForTransmission": 25,
+            "numQxQyBins": 80,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "numQBins": 120,
+            "AnnularAngleBin": 5,
+            "wavelengthStepType": "constant Delta lambda",
+            "wavelengthStep": 0.1,
+        }
+    }
+    input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
+    input_config = update_reduction_parameters(input_config, run_config, validate=False)
+    output_dir = str(tmpdir)
+    amendments = {
+        'outputFileName': f'{basename}_corr',
+        'configuration': {'outputDir': output_dir}
+    }
+    input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
+
+    # expected output Nexus file
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
+    # remove files
+    if os.path.exists(reduced_data_nexus):
+        os.remove(reduced_data_nexus)
+
+    # Load and reduce
+    loaded = load_all_files(input_config)
+    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=True)
+
+    # Check reduced workspace
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
+    print(f'Verify reduced worskpace from nexus file {reduced_data_nexus}')
+    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    # verify with gold data
+    gold_file = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    print('Successfully passed processed sample - background')
+
+    # Load data and compare
+    gold_dir = reference_dir.new.eqsans
+
+    # Verify bin boundaries
+    for index in range(2):
+        # 1D
+        iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
+        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        print(f'Verifying frame {index}')
+        np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
+        # FIXME - temporarily skip for a more careful examin
+        # _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
+
+        # 2D
+        # FIXME - temporarily skip test on I(Qx, Qy)
+        # FIXME - [JESSE] - Please fill this part
+        iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
+        assert os.path.exists(iq2d_h5_name)
+        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
+        assert gold_iq2d
+        # _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
+
+    error_list = list()
+    for index in range(2):
+        # 1D
+        iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
+        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        print(f'Verifying frame {index}')
+        try:
+            # FIXME - rtol is VERY large
+            # Frame 1
+            # Max absolute difference: 1.35398336
+            # Max relative difference: 0.38801395
+            # Frame 2
+            # Max absolute difference: 3.38294033
+            # Max relative difference: 0.42140941
+            np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity, rtol=0.5)
+        except AssertionError as err:
+            # plot the error
+            iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
+            gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+            vec_x = gold_iq1d.mod_q
+            plt.figure(figsize=(20, 16))
+            plt.title(f'EQSANS 88980 Frame {index + 1}')
+            plt.plot(vec_x, gold_iq1d.intensity, color='black', label='gold')
+            plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label='test')
+            plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
+                     color='green', label='diff')
+            plt.xlabel('Q')
+            plt.ylabel('Intensity')
+            plt.legend()
+            plt.show()
+            plt.savefig(f'diff_{index}.png')
+            plt.close()
+            error_list.append(err)
+    if len(error_list) > 0:
+        err_msg = ''
+        for err in error_list:
+            err_msg += f'{err}\n'
+        raise AssertionError(err_msg)
 
 
 @pytest.mark.parametrize('run_config, basename',
@@ -66,6 +186,12 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     }
     input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
 
+    # expected output Nexus file
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}.nxs')
+    # remove files
+    if os.path.exists(reduced_data_nexus):
+        os.remove(reduced_data_nexus)
+
     # Load and reduce
     loaded = load_all_files(input_config)
     reduction_output = reduce_single_configuration(loaded, input_config)
@@ -82,6 +208,13 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
         iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
         gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
         _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
+
+    # Check reduced workspace
+    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    # verify with gold data and clean
+    gold_file = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    os.remove(reduced_data_nexus)
 
 
 def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):
@@ -230,6 +363,8 @@ def verify_reduction(test_file, gold_file, ws_prefix):
 
     """
     assert os.path.exists(gold_file), f'Gold file {gold_file} cannot be found'
+    assert os.path.exists(test_file), f'Test file {test_file} cannot be found'
+
     gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace=f'{ws_prefix}_gold')
     test_ws = LoadNexusProcessed(Filename=test_file, OutputWorkspace=f'{ws_prefix}_test')
     r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)

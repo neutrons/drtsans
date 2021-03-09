@@ -126,10 +126,17 @@ def run_reduction(python_script, json_file):
 
 def check_and_cleanup(outputdir, basename):
     # verify that the output files were created and cleanup
+    err_msg = ''
+    num_found = 0
     for f in FILES[basename]:
         filename = os.path.join(outputdir, f)
-        assert os.path.isfile(filename), '"{}" does not exist'.format(filename)
-        os.remove(filename)
+        if not os.path.isfile(filename):
+            err_msg += '"{}" does not exist\n'.format(filename)
+        else:
+            num_found += 1
+            os.remove(filename)
+    if err_msg != '':
+        raise AssertionError(f'Only {num_found} expected files are found out of {len(FILES[basename])}:\n{err_msg}')
 
     # remove the output and error logs if they were created, neither is required to exist
     for ext in ['.out', '.err', '_reduction_log.hdf']:

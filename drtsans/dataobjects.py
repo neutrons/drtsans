@@ -365,6 +365,18 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
     def id(self):
         return DataType.IQ_MOD
 
+    def be_finite(self):
+        #  Remove NaN
+        finite_locations = np.isfinite(self.intensity)
+        finite_delta_mod_q = None if self.delta_mod_q is None else self.delta_mod_q[finite_locations]
+        finite_binned_iq_wl = IQmod(intensity=self.intensity[finite_locations],
+                                    error=self.error[finite_locations],
+                                    mod_q=self.mod_q[finite_locations],
+                                    delta_mod_q=finite_delta_mod_q,
+                                    wavelength=self.wavelength[finite_locations])
+
+        return finite_binned_iq_wl
+
     def to_workspace(self, name=None):
         # create a name if one isn't provided
         if name is None:
@@ -728,6 +740,7 @@ class _Testing:
         assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
         for i in range(len(reference_object)):  # iterate over the IQ object components
             component_name = reference_object._fields[i]
+            print(f'all_close on {component_name}')
             i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
             if True in [i_component is None for i_component in i_components]:  # is any of these None?
                 if set(i_components) == set([None]):

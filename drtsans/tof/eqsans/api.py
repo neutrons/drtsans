@@ -32,6 +32,11 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
+from drtsans.tof.eqsans.correction_api import (process_convert_q,
+                                               CorrectionConfiguration)
+from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces, binning_setup
+from drtsans.tof.eqsans.reduction_api import process_transmission
+
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
@@ -39,6 +44,8 @@ __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'load_all_files', 'prepare_data_workspaces',
            'process_single_configuration', 'reduce_single_configuration',
            'plot_reduction_output']
+
+IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
 
 
 def _get_configuration_file_parameters(sample_run):
@@ -55,6 +62,16 @@ def _get_configuration_file_parameters(sample_run):
 def load_all_files(reduction_input, prefix='', load_params=None):
     r"""
     overwrites metadata for sample workspace
+
+    Workflow:
+    1. parse reduction_input
+    2. remove existing related workspaces with same run numbers
+    3. process beam center
+    -  output: load_params, reduction_input
+    4. adjust pixel heights and widths
+    -  output: load_params, reduction_input
+    5. load and optionally slice sample runs
+    6. load other runs: bkgd, empty, sample_trans, bkgd_trans
     """
     reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
 
@@ -95,6 +112,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     # find the center first
     if center != "":
+        # calculate beam center from center workspace
         center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
         if not registered_workspace(center_ws_name):
             center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
@@ -110,13 +128,17 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         print(f"calculated center ({center_x}, {center_y})")
         beam_center_type = 'calculated'
     else:
+        # use default EQSANS center
+        # FIXME - it is better to have these hard code value defined out side of this method
         center_x = 0.025239
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")
         beam_center_type = 'default'
+    # set beam center
     reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
                                       'y': center_y, 'fit_results': fit_results}
 
+    # update to 'load_params'
     if load_params is None:
         load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
 
@@ -137,7 +159,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         load_params['bin_width'] = step_type * reduction_config["wavelengthStep"]
     load_params['monitors'] = reduction_config["normalization"] == "Monitor"
 
-    # FIXME the issues with the monitor on EQSANS has been fixed. Enable normalization by monitor (issue #538)
+    # FIXME the issues with the monitor on EQSANS has not been fixed. Enable normalization by monitor (issue #538)
     if load_params['monitors']:
         raise RuntimeError('Normalization by monitor option will be enabled in a later drt-sans release')
 
@@ -147,6 +169,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         if len(sample.split(',')) > 1:
             raise ValueError("Can't do slicing on summed data sets")
 
+    # Load (and optionally slice) sample runs
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
@@ -187,7 +210,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     reduction_input["logslice_data"] = logslice_data_dict
 
-    # load all other files
+    # load all other files without further processing
+    # background, empty, sample transmission, background transmission
     for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
         if run_number:
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
@@ -199,6 +223,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
 
+    # dark run (aka dark current run)
     dark_current_ws = None
     dark_current_mon_ws = None
     dark_current_file = reduction_config["darkFileName"]
@@ -275,6 +300,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
     smearing_pixel_size_y = reduction_config["smearingPixelSizeY"]
 
+    # Sample workspace: set meta data
     for ws in sample_ws_list:
         set_meta_data(ws, wave_length=None, wavelength_spread=None,
                       sample_offset=load_params['sample_offset'],
@@ -299,105 +325,18 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     print('TOTAL: ', '{:.2f} MB'.format(total_size/1024**2))
 
     ws_mon_pair = namedtuple('ws_mon_pair', ['data', 'monitor'])
-    return dict(sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],
-                background=ws_mon_pair(data=background_ws, monitor=background_mon_ws),
-                empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
-                sample_transmission=ws_mon_pair(data=sample_transmission_ws, monitor=sample_transmission_mon_ws),
-                background_transmission=ws_mon_pair(data=background_transmission_ws,
-                                                    monitor=background_transmission_mon_ws),
-                dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
-                sensitivity=sensitivity_ws, mask=mask_ws)
 
+    loaded_ws_dict = dict(sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],
+                          background=ws_mon_pair(data=background_ws, monitor=background_mon_ws),
+                          empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
+                          sample_transmission=ws_mon_pair(data=sample_transmission_ws,
+                                                          monitor=sample_transmission_mon_ws),
+                          background_transmission=ws_mon_pair(data=background_transmission_ws,
+                                                              monitor=background_transmission_mon_ws),
+                          dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
+                          sensitivity=sensitivity_ws, mask=mask_ws)
 
-def prepare_data_workspaces(data,
-                            dark_current=None,
-                            flux_method=None,    # normalization (proton charge/time/monitor)
-                            flux=None,           # additional file for normalization
-                            mask_ws=None,        # apply a custom mask from workspace
-                            mask_panel=None,     # mask back or front panel
-                            mask_btp=None,       # mask bank/tube/pixel
-                            solid_angle=True,
-                            sensitivity_workspace=None,
-                            output_workspace=None):
-
-    r"""
-    Given a " raw"data workspace, this function provides the following:
-
-        - subtracts dark current
-        - normalize by time or monitor
-        - applies masks
-        - corrects for solid angle
-        - corrects for sensitivity
-
-    All steps are optional. data, mask_ws, dark_current are either None
-    or histogram workspaces. This function does not load any file.
-
-    Parameters
-    ----------
-    data: namedtuple
-        (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
-        raw workspace (histogram) for data and monitor
-    dark_current: ~mantid.dataobjects.Workspace2D
-        histogram workspace containing the dark current measurement
-    flux_method: str
-        Method for flux normalization. Either 'monitor', or 'time'.
-    flux: str
-        if ``flux_method`` is proton charge, then path to file containing the
-        wavelength distribution of the neutron flux. If ``flux method`` is
-        monitor, then path to file containing the flux-to-monitor ratios.
-        if ``flux_method`` is time, then pass one log entry name such
-        as ``duration`` or leave it as :py:obj:`None` for automatic log search.
-    mask_ws: ~mantid.dataobjects.Workspace2D
-        Mask workspace
-    mask_panel: str
-        Either 'front' or 'back' to mask whole front or back panel.
-    mask_btp: dict
-        Additional properties to Mantid's MaskBTP algorithm
-    solid_angle: bool
-        Apply the solid angle correction
-    sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
-        workspace containing previously calculated sensitivity correction. This
-        overrides the sensitivity_filename if both are provided.
-    output_workspace: str
-        The output workspace name. If None will create data.name()+output_suffix
-
-    Returns
-    -------
-    ~mantid.dataobjects.Workspace2D
-        Reference to the processed workspace
-    """
-    if not output_workspace:
-        output_workspace = str(data.data)
-        output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
-
-    mtd[str(data.data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
-
-    # Dark current
-    if dark_current is not None and dark_current.data is not None:
-        subtract_dark_current(output_workspace, dark_current.data)
-
-    # Normalization
-    if flux_method is not None:
-        kw = dict(method=flux_method, output_workspace=output_workspace)
-        if flux_method == 'monitor':
-            kw['monitor_workspace'] = data.monitor
-        normalize_by_flux(output_workspace, flux, **kw)
-
-    # Additional masks
-    if mask_btp is None:
-        mask_btp = dict()
-    apply_mask(output_workspace, panel=mask_panel, mask=mask_ws, **mask_btp)
-
-    # Solid angle
-    if solid_angle:
-        solid_angle_correction(output_workspace)
-
-    # Sensitivity
-    if sensitivity_workspace is not None:
-        apply_sensitivity_correction(output_workspace,
-                                     sensitivity_workspace=sensitivity_workspace)
-
-    return mtd[output_workspace]
+    return loaded_ws_dict
 
 
 def process_single_configuration(sample_ws_raw,
@@ -511,12 +450,13 @@ def process_single_configuration(sample_ws_raw,
 
     # process background, if not already processed
     if bkg_ws_raw.data:
+        # process background run
         bkgd_ws_name = output_suffix + '_background'
         if not registered_workspace(bkgd_ws_name):
             bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
                                               output_workspace=bkgd_ws_name,
                                               **prepare_data_conf)
-            # apply transmission to bkgd
+            # apply transmission to background
             if bkg_trans_ws or bkg_trans_value:
                 if bkg_trans_ws:
                     RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
@@ -529,6 +469,7 @@ def process_single_configuration(sample_ws_raw,
                                                         output_workspace=bkgd_ws_name)
         else:
             bkgd_ws = mtd[bkgd_ws_name]
+
         # subtract background
         sample_ws = subtract_background(sample_ws, bkgd_ws)
 
@@ -547,9 +488,42 @@ def process_single_configuration(sample_ws_raw,
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
+                                skip_nan=True,
+                                incoherence_correction_setup=None,
+                                use_correction_workflow: bool = False):
+    """Reduce samples from raw workspaces including
+    1. prepare data
+
+    Parameters
+    ----------
+    loaded_ws
+    reduction_input
+    prefix
+    skip_nan
+    incoherence_correction_setup: CorrectionConfiguration
+        incoherence/inelastic scattering correction configuration
+    use_correction_workflow: bool
+        Force to use workflow designed for incoherent and inelastic correction
+
+    Returns
+    -------
+    ~list
+        list of IofQ_output: ['I2D_main', 'I1D_main']
+
+    """
+    # Process reduction input: configuration and etc.
     reduction_config = reduction_input["configuration"]
 
+    # Process inelastic/incoherent scattering correction configuration
+    # [#689] FIXME - this shall be parsed after JSON is implemented
+    # incoherence_correction_setup = parse_correction_config(reduction_config)
+    if incoherence_correction_setup is None:
+        # backward compatibility
+        incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
+    print(f'[DEBUG] Incoherence correction setup: {incoherence_correction_setup}')
+
+    # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
     flux_method = flux_method_translator.get(reduction_config["normalization"], None)
 
@@ -571,10 +545,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     beam_radius = None  # EQSANS doesn't use keyword DBScalingBeamRadius
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     output_dir = reduction_config["outputDir"]
+    # process binning
+    # Note: option {even_decades = reduction_config["useLogQBinsEvenDecade"]} is removed
     nybins_main = nxbins_main = reduction_config["numQxQyBins"]
     bin1d_type = reduction_config["1DQbinType"]
-    log_binning = reduction_config["QbinType"] == 'log'
-    # FIXME - NO MORE EVENT DECADES even_decades = reduction_config["useLogQBinsEvenDecade"]
+    log_binning = reduction_config["QbinType"] == 'log'  # FIXME - note: fixed to log binning
     decade_on_center = reduction_config["useLogQBinsDecadeCenter"]
     nbins_main = reduction_config["numQBins"]
     nbins_main_per_decade = reduction_config["LogQBinsPerDecade"]
@@ -582,6 +557,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     weighted_errors = reduction_config["useErrorWeighting"]
     qmin = reduction_config["Qmin"]
     qmax = reduction_config["Qmax"]
+    print('FIRST qmin = {qmin}, qmax = {qmax}')
     annular_bin = reduction_config["AnnularAngleBin"]
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
@@ -617,111 +593,163 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     else:
         empty_trans_ws = None
 
-    # background transmission
-    background_transmission_dict = {}
-    background_transmission_raw_dict = {}
-    if loaded_ws.background_transmission.data is not None and empty_trans_ws is not None:
-        bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
-        bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
-                                                          flux_method=flux_method,
-                                                          flux=flux,
-                                                          solid_angle=False,
-                                                          sensitivity_workspace=loaded_ws.sensitivity,
-                                                          output_workspace=bkgd_trans_ws_name)
-        bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
-                                               radius=transmission_radius, radius_unit="mm")
-        print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+    # Background transmission
+    # specific output filename (base) for background trans
+    bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
+    base_out_name = f'{outputFilename}_bkgd_{bkgd_trans}'
 
-        bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
-        bk_tr_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_trans.txt')
-        SaveAscii(bkgd_trans_ws, Filename=bk_tr_fn)
-        background_transmission_dict['value'] = bkgd_trans_ws.extractY()
-        background_transmission_dict['error'] = bkgd_trans_ws.extractE()
-        background_transmission_dict['wavelengths'] = bkgd_trans_ws.extractX()
-        bkgd_trans_raw_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
-                                                   radius=transmission_radius, radius_unit="mm",
-                                                   fit_function='')
-        bk_tr_raw_fn = os.path.join(output_dir, f'{outputFilename}_bkgd_{bkgd_trans}_raw_trans.txt')
-        SaveAscii(bkgd_trans_raw_ws, Filename=bk_tr_raw_fn)
-        background_transmission_raw_dict['value'] = bkgd_trans_raw_ws.extractY()
-        background_transmission_raw_dict['error'] = bkgd_trans_raw_ws.extractE()
-        background_transmission_raw_dict['wavelengths'] = bkgd_trans_raw_ws.extractX()
-    else:
-        bkgd_trans_ws = None
+    # process transmission
+    bkgd_returned = process_transmission(loaded_ws.background_transmission,
+                                         empty_trans_ws,
+                                         transmission_radius,
+                                         loaded_ws.sensitivity,
+                                         flux_method, flux, prefix, 'bkgd',
+                                         output_dir, base_out_name)
+    bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
 
     # sample transmission
-    sample_transmission_dict = {}
-    sample_transmission_raw_dict = {}
-    if loaded_ws.sample_transmission.data is not None and empty_trans_ws is not None:
-        sample_trans_ws_name = f'{prefix}_sample_trans'
-        sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
-                                                            flux_method=flux_method,
-                                                            flux=flux,
-                                                            solid_angle=False,
-                                                            sensitivity_workspace=loaded_ws.sensitivity,
-                                                            output_workspace=sample_trans_ws_name)
-        sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
-                                                 radius=transmission_radius, radius_unit="mm")
+    sample_returned = process_transmission(loaded_ws.sample_transmission,
+                                           empty_trans_ws,
+                                           transmission_radius,
+                                           loaded_ws.sensitivity,
+                                           flux_method, flux, prefix, 'sample',
+                                           output_dir, outputFilename)
 
-        print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
+    sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict = sample_returned
 
-        tr_fn = os.path.join(output_dir, f'{outputFilename}_trans.txt')
-        SaveAscii(sample_trans_ws, Filename=tr_fn)
-        sample_transmission_dict['value'] = sample_trans_ws.extractY()
-        sample_transmission_dict['error'] = sample_trans_ws.extractE()
-        sample_transmission_dict['wavelengths'] = sample_trans_ws.extractX()
+    # Form binning parameters
+    binning_par_dc = {'nxbins_main': nxbins_main,
+                      'nybins_main': nybins_main,
+                      'n1dbins': nbins_main,
+                      'n1dbins_per_decade': nbins_main_per_decade,
+                      'decade_on_center': decade_on_center,
+                      'bin1d_type': bin1d_type,
+                      'log_scale': log_binning,
+                      'qmin': qmin,
+                      'qmax': qmax,
+                      'qxrange': None,
+                      'qyrange': None}
 
-        sample_trans_raw_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
-                                                     radius=transmission_radius, radius_unit="mm",
-                                                     fit_function='')
-        raw_tr_fn = os.path.join(output_dir, f'{outputFilename}_raw_trans.txt')
-        SaveAscii(sample_trans_raw_ws, Filename=raw_tr_fn)
-        sample_transmission_raw_dict['value'] = sample_trans_raw_ws.extractY()
-        sample_transmission_raw_dict['error'] = sample_trans_raw_ws.extractE()
-        sample_transmission_raw_dict['wavelengths'] = sample_trans_raw_ws.extractX()
+    # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
+    binning_params = binning_setup(**binning_par_dc)
+    assert binning_params
+    print(f'[DEBUG] Flag to do correction = {incoherence_correction_setup.do_correction}')
+
+    if incoherence_correction_setup.do_correction or use_correction_workflow:
+        # optionally calcualte the elastic scattering nromalization factors
+        elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
+        if elastic_ref_setup:
+            # TODO FIXME [#689] Process elastic reference data
+            # process - process_single_configuration - elastic reference run (no bin)
+            # process_elastic_reference_data(elastic_ref_setup)
+            # TODO sanity check of expected output from elastic_ref_setup
+            pass
+
+        # pre-process background background
+        # TODO - rewrite process_bin_workspace to process_workspace()
+        processed_background = process_convert_q(loaded_ws.background,
+                                                 (bkgd_trans_ws, bkg_trans_value),
+                                                 theta_deppendent_transmission,
+                                                 loaded_ws.dark_current,
+                                                 (flux_method, flux),
+                                                 (loaded_ws.mask, mask_panel, None),
+                                                 solid_angle,
+                                                 loaded_ws.sensitivity,
+                                                 thickness,  # sample thickness
+                                                 absolute_scale,
+                                                 'bkgd', delete_raw=True)
+
+        assert processed_background
 
     else:
-        sample_trans_ws = None
+        processed_background = None
+    # END-IF
 
     output = []
     detectordata = {}
+    from drtsans.tof.eqsans.reduction_api import process_single_configuration_incoherence_correction
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
-        processed_data_main = process_single_configuration(raw_sample_ws,
-                                                           sample_trans_ws=sample_trans_ws,
-                                                           sample_trans_value=sample_trans_value,
-                                                           bkg_ws_raw=loaded_ws.background,
-                                                           bkg_trans_ws=bkgd_trans_ws,
-                                                           bkg_trans_value=bkg_trans_value,
-                                                           theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
-                                                           dark_current=loaded_ws.dark_current,
-                                                           flux_method=flux_method,
-                                                           flux=flux,
-                                                           mask_ws=loaded_ws.mask,
-                                                           mask_panel=mask_panel,
-                                                           solid_angle=solid_angle,
-                                                           sensitivity_workspace=loaded_ws.sensitivity,
-                                                           output_workspace=f'processed_data_main',
-                                                           output_suffix=output_suffix,
-                                                           thickness=thickness,
-                                                           absolute_scale_method=absolute_scale_method,
-                                                           empty_beam_ws=empty_trans_ws,
-                                                           beam_radius=beam_radius,
-                                                           absolute_scale=absolute_scale,
-                                                           keep_processed_workspaces=False)
+        print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction} (2) ')
+        if incoherence_correction_setup.do_correction or use_correction_workflow:
+            # process data in workflow that is able to incorporate inelastic incoherent correction
+            # returned binned I(Q) and I(Q)
+            processed = process_single_configuration_incoherence_correction(raw_sample_ws,
+                                                                            (sample_trans_ws, sample_trans_value),
+                                                                            theta_deppendent_transmission,
+                                                                            loaded_ws.dark_current,
+                                                                            (flux_method, flux),
+                                                                            (loaded_ws.mask, mask_panel, None),
+                                                                            solid_angle,
+                                                                            loaded_ws.sensitivity,
+                                                                            absolute_scale,
+                                                                            thickness,
+                                                                            processed_background,
+                                                                            incoherence_correction_setup,
+                                                                            binning_params)
+            # The output I(Q) and I(Qx, Qy) are already BINNED.
+            # Q range for final binning cannot be retrieved from min and max of
+            # binned I(Q) and I(Qx, Qy) as they are not
+            # bin boundaries but bin centers.
+            iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main, frame_q_ranges = processed
+
+        else:
+            # process data without correction
+            processed_data_main = process_single_configuration(raw_sample_ws,
+                                                               sample_trans_ws=sample_trans_ws,
+                                                               sample_trans_value=sample_trans_value,
+                                                               bkg_ws_raw=loaded_ws.background,
+                                                               bkg_trans_ws=bkgd_trans_ws,
+                                                               bkg_trans_value=bkg_trans_value,
+                                                               theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+                                                               dark_current=loaded_ws.dark_current,
+                                                               flux_method=flux_method,
+                                                               flux=flux,
+                                                               mask_ws=loaded_ws.mask,
+                                                               mask_panel=mask_panel,
+                                                               solid_angle=solid_angle,
+                                                               sensitivity_workspace=loaded_ws.sensitivity,
+                                                               output_workspace=f'processed_data_main',
+                                                               output_suffix=output_suffix,
+                                                               thickness=thickness,
+                                                               absolute_scale_method=absolute_scale_method,
+                                                               empty_beam_ws=empty_trans_ws,
+                                                               beam_radius=beam_radius,
+                                                               absolute_scale=absolute_scale,
+                                                               keep_processed_workspaces=False)
+
+            # Convert to Q
+            # set up subpixel binning options  FIXME - it does not seem to work
+            subpixel_kwargs = dict()
+            if reduction_config['useSubpixels']:
+                subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
+                                   'n_vertical': reduction_config['subpixelsY']}
+            # convert to Q
+            iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
+            # DEBUG
+            print(f'INFO Before frame split: Bin [0, 1] information: ')
+
+            iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
+
+            # split to frames
+            iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in, verbose=True)
+            print(f'INFO After frame split: Frame 0 Bin [0, 1] information: ')
+            print(f'INFO After frame split: Frame 1 Bin [0, 1] information: ')
+
+            iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
+            # frame Q ranges to None as default
+            frame_q_ranges = None
+        # END-IF-ELSE
+
         # Save nexus processed
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
         SaveNexus(processed_data_main, Filename=filename)
-        # binning
-        subpixel_kwargs = dict()
-        if reduction_config['useSubpixels'] is True:
-            subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
-                               'n_vertical': reduction_config['subpixelsY']}
-        iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
-        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
+        print(f'SaveNexus to {filename}')
+
+        # Work with wedges
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
             logger.notice(f'Auto wedge options: {autoWedgeOpts}')
             autoWedgeOpts['debug_dir'] = output_dir
@@ -736,10 +764,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             reduction_config["wedges"] = wedges
             reduction_config["symmetric_wedges"] = symmetric_wedges
 
-        iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in)
-        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in)
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
+
+        # Process each frame separately
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
                 fr_log_label = f'_frame_{wl_frame}'
@@ -748,21 +776,37 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                 fr_log_label = f'frame'
                 fr_label = ""
 
+            print(f'[Final Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
+            if frame_q_ranges:
+                binning_params = frame_q_ranges[wl_frame]
+                qmin, qmax = binning_params.qmin, binning_params.qmax
+                qx_range = binning_params.qxrange
+                qy_range = binning_params.qyrange
+                print(f'[Final-Reset Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
+            else:
+                qx_range = qy_range = None
+
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
                                                    n1dbins_per_decade=nbins_main_per_decade,
                                                    decade_on_center=decade_on_center,
                                                    bin1d_type=bin1d_type, log_scale=log_binning,
                                                    qmin=qmin, qmax=qmax,
+                                                   qxrange=qx_range,
+                                                   qyrange=qy_range,
                                                    annular_angle_bin=annular_bin, wedges=wedges,
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
+            print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[-1]}')
+            # print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
-            save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
+            # [#689] TODO FIXME - make save_ascii_binned_2D() back afterwards: iq2d_main_out cannot be None
+            if iq2d_main_out:
+                save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
             for j in range(len(iq1d_main_out)):
                 add_suffix = ""
@@ -773,7 +817,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                  f'{outputFilename}{output_suffix}{add_suffix}_Iq.dat')
                 save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
-            IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
             current_output = IofQ_output(I2D_main=iq2d_main_out,
                                          I1D_main=iq1d_main_out)
             output.append(current_output)
@@ -799,18 +842,25 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                          'background_transmission': background_transmission_dict,
                          'background_transmission_raw': background_transmission_raw_dict}
 
-    samplelogs = {'main': SampleLogs(processed_data_main)}
-    logslice_data_dict = reduction_input["logslice_data"]
+    # [#689] TODO FIXME - Reincarnate this section!
+    # FIXME - check original code.  processed_data_main outside a loop is a BUG!
+    #  The correction workflow does not output processed data workspace yet!
+    try:
+        samplelogs = {'main': SampleLogs(processed_data_main)}
+        logslice_data_dict = reduction_input["logslice_data"]
 
-    drtsans.savereductionlog(filename=filename,
-                             detectordata=detectordata,
-                             reductionparams=reductionparams,
-                             # pythonfile=pythonfile,
-                             starttime=starttime,
-                             specialparameters=specialparameters,
-                             logslicedata=logslice_data_dict,
-                             samplelogs=samplelogs,
-                             )
+        drtsans.savereductionlog(filename=filename,
+                                 detectordata=detectordata,
+                                 reductionparams=reductionparams,
+                                 # pythonfile=pythonfile,
+                                 starttime=starttime,
+                                 specialparameters=specialparameters,
+                                 logslicedata=logslice_data_dict,
+                                 samplelogs=samplelogs,
+                                 )
+    except AttributeError as attrib_error:
+        print(attrib_error)
+        # raise AttributeError('ASAP')
 
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)

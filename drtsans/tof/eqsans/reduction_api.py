@@ -1,31 +1,15 @@
 # Move part of the methods from api.py to avoid importing in loops
 from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
-import drtsans  # noqa E402
-from drtsans import (apply_sensitivity_correction, getWedgeSelection, load_sensitivity_workspace, solid_angle_correction)  # noqa E402
+from drtsans import (apply_sensitivity_correction, solid_angle_correction)  # noqa E402
 from drtsans import subtract_background  # noqa E402
-from drtsans.settings import namedtuplefy  # noqa E402
-from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
-from drtsans.save_ascii import save_ascii_1D, save_xml_1D, save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
-from drtsans.save_2d import save_nist_dat, save_nexus  # noqa E402
 from drtsans.transmission import apply_transmission_correction  # noqa E402
 from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
-from drtsans.beam_finder import find_beam_center, fbc_options_json  # noqa E402
-from drtsans.instruments import extract_run_number  # noqa E402
-from drtsans.path import abspath, abspaths, registered_workspace  # noqa E402
-from drtsans.tof.eqsans.load import load_events, load_events_and_histogram, load_and_split  # noqa E402
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
-from drtsans.tof.eqsans.cfg import load_config  # noqa E402
-from drtsans.samplelogs import SampleLogs  # noqa E402
-from drtsans.mask_utils import apply_mask, load_mask  # noqa E402
+from drtsans.mask_utils import apply_mask   # noqa E402
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
-from drtsans.tof.eqsans.meta_data import set_meta_data  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
-from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
-from drtsans.iq import bin_all  # noqa E402
-from drtsans.dataobjects import save_iqmod  # noqa E402
-from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.dataobjects import IQmod, IQazimuthal
 from drtsans.tof.eqsans.correction_api import bin_i_of_q
@@ -37,7 +21,8 @@ from collections import namedtuple
 
 
 # Binning parameters
-binning_setup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')
+binning_setup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade '
+                                            'decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')
 
 
 def process_single_configuration_incoherence_correction(sample_ws, sample_transmission,
@@ -112,50 +97,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     background_iq1d_frames = split_by_frame(processed_bkgd_ws, background_iq1d, verbose=True)
     background_iq2d_frames = split_by_frame(processed_bkgd_ws, background_iq2d, verbose=True)
 
-    # FIXME - DEBUG OUTPUT
-    print(f'sample     workspace unit X: {processed_sample_ws.getAxis(0).getUnit().unitID()}')
-    print(f'background workspace unit X: {processed_bkgd_ws.getAxis(0).getUnit().unitID()}')
-    wl_array = processed_sample_ws.extractX()
-    print(f'sample     wavelength size: {wl_array.shape}')
-    wl_array = processed_bkgd_ws.extractX()
-    print(f'background wavelength size: {wl_array.shape}')
-    wl_array = processed_sample_ws.extractX()
-    print(f'sample     wavelength range: '
-          f'{wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
-    wl_array = processed_bkgd_ws.extractX()
-    print(f'background wavelength range: '
-          f'{wl_array[0][0]}, {wl_array[0][-1]} ... {wl_array[-1][0]}, {wl_array[-1][-1]}')
-    # END ====================================================================================
-
     # Subtract background from sample in workspace level for future output
     pure_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
-    debug_iq1d = convert_to_q(pure_sample_ws, mode='scalar')
-    print(f'[DEBUG] Processed sample - background.  Q range = {debug_iq1d.mod_q.min()}, {debug_iq1d.mod_q.max()}')
-
-    # # convert to Q
-    # iq1d_main_in = convert_to_q(pure_sample_ws, mode='scalar')
-    # iq2d_main_in = convert_to_q(pure_sample_ws, mode='azimuthal')
-    # # split to frames
-    # iq1d_main_in_fr = split_by_frame(pure_sample_ws, iq1d_main_in)
-    # iq2d_main_in_fr = split_by_frame(pure_sample_ws, iq2d_main_in)
-    # get frames
-    # n_wl_frames = len(iq2d_main_in_fr)
-    # # Process each frame separately
-
-    # # Step 2 to 4 are up to each frame
-    # # Determine Q range for each frame from PURE sample I(Q1D) and I(Q2D)
-    # frame_q_range = list()
-    # for wl_frame in range(n_wl_frames):
-    #     iq2d = iq2d_main_in_fr[wl_frame]
-    #     iq1d = iq1d_main_in_fr[wl_frame]
-    #     mod_q_range = iq1d.mod_q.min(), iq1d.mod_q.max()
-    #     qx_range = iq2d.qx.min(), iq2d.qx.max()
-    #     qy_range = iq2d.qy.min(), iq2d.qy.max()
-    #     frame_q_range.append((mod_q_range, qx_range, qy_range))
-    #     print(f'[DEBUG PROCESSED FRAME] Frame = {wl_frame}: Q1D range = {iq1d.mod_q.min()},'
-    #           f'{iq1d.mod_q.max()}; Q2D X range = {iq2d.qx.min(), iq2d.qx.max()}, Y range = '
-    #           f'{iq2d.qy.min()}, {iq2d.qy.max()},  Number data points (1D) = {len(iq1d.mod_q)}')
-    # #
 
     # Process each frame separately!
     # output
@@ -257,6 +200,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         print('2D')
         print(f'[NOW-CORRECTION] 2D: range {binned_bkgd_iq[1].qx[0, 0]}')
 
+        # Process 1D case
         binned_sample_q1d = subtract_background(binned_sample_iq[0], binned_bkgd_iq[0])
         print(f'[DEBUG] sample q1D workspace: {binned_sample_q1d}')
         # TODO NOW - build IQmod from workspace
@@ -273,7 +217,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_sample_q1d = IQmod(vec_i, vec_e, vec_q, wavelength=binned_sample_iq[0].wavelength)
         binned_sample_q1d = binned_sample_q1d.be_finite()
 
-        # 2D case
+        # Process 2D case
+        # FIXME - [JESSE] Please take care of this: the current code may not work
         binned_sample_q2d = subtract_background(binned_sample_iq[1], binned_bkgd_iq[1])
         try:
             binned_sample_q2d = binned_sample_q2d.be_finite()

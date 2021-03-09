@@ -8,6 +8,7 @@ import numpy as np
 from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5, load_iq2d_from_h5
 from typing import List, Any, Union
 from drtsans.dataobjects import _Testing
+from matplotlib import pyplot as plt
 
 
 # EQSANS reduction
@@ -60,8 +61,6 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
     input_config = update_reduction_parameters(input_config, run_config, validate=False)
     output_dir = str(tmpdir)
-    # FIXME - debug output
-    output_dir = os.getcwd()
     amendments = {
         'outputFileName': f'{basename}_corr',
         'configuration': {'outputDir': output_dir}
@@ -76,8 +75,7 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
 
     # Load and reduce
     loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=True)
-    raise NotImplementedError('DEBUG STOP X')
+    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=False)
 
     # Check reduced workspace
     reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
@@ -85,13 +83,13 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
     # verify with gold data
     gold_file = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
-    # TODO FIXME - disabled for debug purpsoe
-    if False:
-        verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
     print('Successfully passed processed sample - background')
 
     # Load data and compare
     gold_dir = reference_dir.new.eqsans
+
+    # Verify bin boundaries
     for index in range(2):
         # 1D
         iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
@@ -102,34 +100,14 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
         # _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
 
         # 2D
+        # FIXME - temporarily skip test on I(Qx, Qy)
+        # FIXME - [JESSE] - Please fill this part
         iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
         gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
-        # FIXME - temporarily skip test on I(Qx, Qy) 
+        assert os.path.exists(gold_iq2d)
         # _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
 
-    # Test intensity
-    from matplotlib import pyplot as plt
-    for index in range(2):
-        # 1D
-        iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
-        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
-        vec_x = gold_iq1d.mod_q
-        plt.figure(figsize=(10, 8))
-        plt.plot(vec_x, gold_iq1d.intensity, color='black', label='gold')
-        plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label='test')
-        plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
-                 color='green', label='diff')
-        plt.legend()
-        plt.show()
-        plt.savefig(f'diff_{index}.png')
-        plt.close()
-
-        print(f'Frame {index}')
-        for qi in range(len(vec_x)):
-            print('{}\t\t{}\t\t{}\t\t{}'.format(vec_x[qi], reduction_output[index].I1D_main[0].intensity[qi],
-                                                gold_iq1d.intensity[qi],
-                                                reduction_output[index].I1D_main[0].intensity[qi] - gold_iq1d.intensity[qi]))
-
+    error_list = list()
     for index in range(2):
         # 1D
         iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
@@ -139,10 +117,26 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
 
             np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity)
         except AssertionError as err:
-            raise err
-    print('Successfully tested')
-    # assert 1 == 3, 'Force output on failure'
-    
+            # plot the error
+            iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
+            gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+            vec_x = gold_iq1d.mod_q
+            plt.figure(figsize=(20, 16))
+            plt.plot(vec_x, gold_iq1d.intensity, color='black', label='gold')
+            plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label='test')
+            plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
+                     color='green', label='diff')
+            plt.legend()
+            plt.show()
+            plt.savefig(f'diff_{index}.png')
+            plt.close()
+            error_list.append(err)
+    if len(error_list) > 0:
+        err_msg = ''
+        for err in error_list:
+            err_msg += f'{err}\n'
+        raise AssertionError(err_msg)
+
 
 @pytest.mark.parametrize('run_config, basename',
                          [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],

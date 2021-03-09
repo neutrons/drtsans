@@ -35,6 +35,7 @@ from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import (process_convert_q,
                                                CorrectionConfiguration)
 from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces, binning_setup
+from drtsans.tof.eqsans.reduction_api import process_transmission
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -455,7 +456,7 @@ def process_single_configuration(sample_ws_raw,
             bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
                                               output_workspace=bkgd_ws_name,
                                               **prepare_data_conf)
-            # apply transmission to bkgd
+            # apply transmission to background
             if bkg_trans_ws or bkg_trans_value:
                 if bkg_trans_ws:
                     RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
@@ -468,11 +469,9 @@ def process_single_configuration(sample_ws_raw,
                                                         output_workspace=bkgd_ws_name)
         else:
             bkgd_ws = mtd[bkgd_ws_name]
-        # subtract background
 
-        if False:
-            # FIXME TODO - this is diabled only for debug
-            sample_ws = subtract_background(sample_ws, bkgd_ws)
+        # subtract background
+        sample_ws = subtract_background(sample_ws, bkgd_ws)
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()
@@ -517,7 +516,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     reduction_config = reduction_input["configuration"]
 
     # Process inelastic/incoherent scattering correction configuration
-    # FIXME - this shall be parsed after JSON is implemented
+    # [#689] FIXME - this shall be parsed after JSON is implemented
     # incoherence_correction_setup = parse_correction_config(reduction_config)
     if incoherence_correction_setup is None:
         # backward compatibility
@@ -593,9 +592,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                  output_workspace=empty_trans_ws_name)
     else:
         empty_trans_ws = None
-
-    # FIXME - compare background transmission and sample transmission codes
-    from drtsans.tof.eqsans.reduction_api import process_transmission
 
     # Background transmission
     # specific output filename (base) for background trans
@@ -810,7 +806,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
-            # TODO FIXME - make save_ascii_binned_2D() back afterwards: iq2d_main_out cannot be None
+            # [#689] TODO FIXME - make save_ascii_binned_2D() back afterwards: iq2d_main_out cannot be None
             if iq2d_main_out:
                 save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
@@ -848,7 +844,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                          'background_transmission': background_transmission_dict,
                          'background_transmission_raw': background_transmission_raw_dict}
 
-    # TODO FIXME - Reincarnate this section!  The correction workflow does not output processed data workspace yet!
+    # [#689] TODO FIXME - Reincarnate this section!
+    # FIXME - check original code.  processed_data_main outside a loop is a BUG!
+    #  The correction workflow does not output processed data workspace yet!
     try:
         samplelogs = {'main': SampleLogs(processed_data_main)}
         logslice_data_dict = reduction_input["logslice_data"]
@@ -862,9 +860,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                  logslicedata=logslice_data_dict,
                                  samplelogs=samplelogs,
                                  )
-    except AttributeError:
-        pass
-        # raise AttributeError('ASAP')
+    except AttributeError as attrib_error:
+        raise AttributeError('ASAP')
 
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)

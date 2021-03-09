@@ -13,9 +13,9 @@ from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
 from typing import List, Any, Tuple
+from drtsans.tof.eqsans.reduction_api import process_transmission
 
 """
-
 Workflow to correct intensities and errors accounting wavelength dependent
 incoherent inelastic scattering
 
@@ -222,7 +222,6 @@ def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, r
     return elastic_norm_factor_dict
 
 
-# TODO FIXME - in progress (latest)
 def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensitivity_ws, flux):
     """Process elastic reference run from raw workspaces to I of Q1D and Q2D split to frames
 
@@ -252,8 +251,6 @@ def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensi
 
 
     """
-    from drtsans.tof.eqsans.reduction_api import process_transmission
-
     sample_transmission = elastic_ref_setup.ref_transmission_ws
     empty_trans_ws = elastic_ref_setup.empty_trans_ws
 

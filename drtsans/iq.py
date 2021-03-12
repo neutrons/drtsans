@@ -819,7 +819,7 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
                  mod_q=q_bins.centers, delta_mod_q=bin_q_resolution)
 
 
-def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT):
+def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT, wavelength_bins=1):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
     Note 1: for binning parameters:
@@ -841,6 +841,8 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
         namedtuple for arbitrary bin edges and bin centers for Qy
     method: ~drtsans.BinningMethod
         Weighted binning or no weight binning
+    wavelength_bins: None, int
+        number of binned wavelength.  If None, do not bin.  If equal to 1, bin all wavelength together
 
     Returns
     -------
@@ -850,11 +852,18 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     # Check input I(Q) whether it meets assumptions
     check_iq_for_binning(i_of_q)
 
+    # Check whether it needs to bin wavelength
+    if wavelength_bins == 1 or i_of_q.wavelength is not None:
+        # no need to do 2D binning by filtering wavelength
+        filter_wavelength = False
+    else:
+        filter_wavelength = True
+
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
         binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                  i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
-                                                 qx_bins.edges, qy_bins.edges)
+                                                 qx_bins.edges, qy_bins.edges, debug_filter_wl=filter_wavelength)
     else:
         # Calculate weighed binning
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
@@ -899,9 +908,9 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
         array of Q2D
     qy_vec: ~numpy.ndarray
         array of Q2D
-    dqx_vec: ~numpy.ndarray, None
+    dqx_vec: ~numpy.ndarray or None
         array for Q2D resolution. May be None
-    dqy_vec: ~numpy.ndarray, None
+    dqy_vec: ~numpy.ndarray or None
         array for Q2D resolution. May be None
     i_vec: ~numpy.ndarray
         2D array of intensity
@@ -943,7 +952,7 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
 
 
 def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                             qx_bin_edges, qy_bin_edges):
+                             qx_bin_edges, qy_bin_edges, debug_filter_wl: bool = False):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -978,6 +987,8 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         intensities (n x m x o), sigma intensities (n x m x o), Qx resolution (n x m x o), Qy resolution (n x m x o),
         Wavelengths (o)
     """
+    print(f'[DEBUG WL BINNING] Filter Wavelength Flag = {debug_filter_wl}   Wavelength array is None = '
+          f'{wl_array is None}')
 
     if wl_array is None:
         binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array = _bin_iq2d(qx_bin_edges,
@@ -1090,7 +1101,6 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         binned intensities (n x m), binned sigmas (n x m), binned Qx resolution (n x m), binned Qy resolution (n x m),
         binned wavelength (n x m)
     """
-
     unique_wl_vec = np.unique(wl_array)
     unique_wl_vec.sort()
     if wl_array is None or len(unique_wl_vec) == 1:
@@ -1137,6 +1147,7 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
             wl_final_array = None
         else:
             wl_final_array = np.full_like(i_final_array, unique_wl_vec[0])
+        raise RuntimeError('2D weighted binning is not fully implemented (no test)')
     else:
         raise NotImplementedError("2D binning with multiple wavelengths is not supported")
 

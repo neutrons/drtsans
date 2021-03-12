@@ -4,10 +4,15 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (reshape_q_wavele
                                                                 determine_common_mod_q_range_mesh,
                                                                 build_i_of_q1d,
                                                                 determine_reference_wavelength_q1d_mesh)
+from collections import namedtuple
 import numpy as np
 
 
-__all__ = ['correct_incoherence_inelastic_1d']
+__all__ = ['correct_incoherence_inelastic_1d', 'CorrectedIQ1D']
+
+
+# Output of corrected 1D case
+CorrectedIQ1D = namedtuple('CorrectedIQ1D', 'iq1d b_factor b_error')
 
 
 def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
@@ -25,8 +30,9 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
 
     Returns
     -------
-    ~drtsans.dataobjects.IQmod
-        corrected I(Q, wavelength)
+    CorrectedIQ1D
+        named tuple include ~drtsans.dataobjects.IQmod (corrected I(Q, wavelength)),  B vector, B error vector
+
     """
     # Convert to mesh grid I(Q) and delta I(Q)
     wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
@@ -46,7 +52,11 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
     # construct the output and return
     corrected_i_of_q = build_i_of_q1d(wl_vec, q_vec, corrected_intensities, corrected_errors, dq_array)
 
-    return corrected_i_of_q
+    corrected = {'iq1d': corrected_i_of_q,
+                 'b_factor': b_array[0],
+                 'b_error': b_array[1]}
+
+    return CorrectedIQ1D(**corrected)
 
 
 def calculate_b_factors(wl_vec, q_vec, intensity_array, error_array,
@@ -157,7 +167,7 @@ def calculate_b_error_b(wl_vec, intensity_array, error_array, qmin_index, qmax_i
     return b_factor_array
 
 
-def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array, b_vector,
+def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array, b_array2d,
                             qmin_index, qmax_index, ref_wl_ie):
     """Correct intensity and error
 
@@ -177,8 +187,8 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
         index of common Q max (included)
     ref_wl_ie: ReferenceWavelengths
         instance of ReferenceWavelengths containing intensities and errors
-    b_vector: ~numpy.ndarray
-        B[wavelength]
+    b_array2d: ~numpy.ndarray
+        2D numpy array for B[wavelength], B error[wavelength]
 
     Returns
     -------
@@ -191,7 +201,9 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
     assert intensity_array.shape == error_array.shape
     assert wavelength_vec.shape[0] == intensity_array.shape[1]
     assert q_vec.shape[0] == error_array.shape[0]
-    assert b_vector.shape[1] == wavelength_vec.shape[0]
+    assert len(b_array2d.shape) == 2 and b_array2d.shape[0] == 2, f'Expected input B and B error but not ' \
+                                                                  f'of shape {b_array2d.shape}'
+    assert b_array2d.shape[1] == wavelength_vec.shape[0]
 
     # Init data structure
     num_common_q = qmax_index - qmin_index + 1
@@ -201,7 +213,7 @@ def correct_intensity_error(wavelength_vec, q_vec, intensity_array, error_array,
     # Loop around wavelength
     for i_wl in range(wavelength_vec.shape[0]):
         # Correct intensity: I'(q, wl_i) = I(q, wl_i) - b(wl_i)
-        corrected_intensities[:, i_wl] = intensity_array[:, i_wl] - b_vector[0][i_wl]
+        corrected_intensities[:, i_wl] = intensity_array[:, i_wl] - b_array2d[0][i_wl]
 
         # Correct intensity error
         # outside q_min and q_max

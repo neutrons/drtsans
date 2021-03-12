@@ -252,7 +252,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
 
         # Process 2D case
         binned_sample_q2d = subtract_background(binned_sample_iq2d, binned_bkgd_iq2d)
-        binned_sample_q2d = binned_sample_q2d.be_finite()
+        # TODO FIXME - #743 binned_sample_q2d = binned_sample_q2d.be_finite()
 
         # append
         binned_iq1d_frames.append(binned_sample_q1d)

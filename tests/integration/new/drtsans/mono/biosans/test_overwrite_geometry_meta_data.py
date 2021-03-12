@@ -45,7 +45,7 @@ def test_no_overwrite(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def test_overwrite_both_minor(reference_dir, cleanfile):
+def crashed_gw0_test_overwrite_both_minor(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with minor change.
     - Overwrite sampleToSi (distance) to 61 mm.

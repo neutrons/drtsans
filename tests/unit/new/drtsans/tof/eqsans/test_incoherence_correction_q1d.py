@@ -70,7 +70,7 @@ def test_calculate_b_factor_select_min_incoherence():
 
 
 def test_incoherence_inelastic_correction():
-    """Test methods to correct I(Q1D) accouting wavelength dependent incoherence
+    """Test methods to correct I(Q1D) accounting wavelength dependent incoherence
     inelastic scattering
     """
     select_min_incoh = False
@@ -109,7 +109,7 @@ def test_incoherence_inelastic_correction():
 
     # Test overall workflow
     corrected_i_of_q = correct_incoherence_inelastic_1d(test_iq1d, False)
-    np.testing.assert_allclose(corrected_i_of_q.intensity, generate_expected_corrected_intensities())
+    np.testing.assert_allclose(corrected_i_of_q.iq1d.intensity, generate_expected_corrected_intensities())
 
 
 def correct_intensity_error_prototype(wavelength_vec, q_vec, intensity_array, error_array, b_vector,

@@ -970,7 +970,7 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         Qy array
     dqy_array: ndarray
         Qy resolution
-    wavelength_array: ndarray
+    wl_array: ndarray or None
         wavelengths
     iq_array: ndarray
         intensities
@@ -1001,6 +1001,9 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                                                                                                sigma_iq_array)
         binned_wl_array = None
     else:
+        if debug_filter_wl is False:
+            raise RuntimeError(f'It is not supposed to do binning with wavelength term kept.')
+
         unique_wl_vec = np.unique(wl_array)
         unique_wl_vec.sort()
 
@@ -1147,7 +1150,6 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
             wl_final_array = None
         else:
             wl_final_array = np.full_like(i_final_array, unique_wl_vec[0])
-        raise RuntimeError('2D weighted binning is not fully implemented (no test)')
     else:
         raise NotImplementedError("2D binning with multiple wavelengths is not supported")
 

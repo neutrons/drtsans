@@ -863,7 +863,8 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
         # Calculate no-weight binning
         binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                  i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
-                                                 qx_bins.edges, qy_bins.edges, debug_filter_wl=filter_wavelength)
+                                                 qx_bins.edges, qy_bins.edges, debug_filter_wl=filter_wavelength,
+                                                 sum_all_wavelengths=True)
     else:
         # Calculate weighed binning
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
@@ -952,7 +953,8 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
 
 
 def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                             qx_bin_edges, qy_bin_edges, debug_filter_wl: bool = False):
+                             qx_bin_edges, qy_bin_edges, sum_all_wavelengths: bool = True,
+                             debug_filter_wl: bool = False):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -980,6 +982,8 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         Bin centers and edges
     qy_bin:
         Bin centers and edges
+    sum_all_wavelengths: bool
+        Flag to bin I(qx, qy, wavelength) by qx and qy only.  Wavelength term will then be thrown away
 
     Returns
     -------
@@ -990,7 +994,7 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
     print(f'[DEBUG WL BINNING] Filter Wavelength Flag = {debug_filter_wl}   Wavelength array is None = '
           f'{wl_array is None}')
 
-    if wl_array is None:
+    if wl_array is None or sum_all_wavelengths:
         binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array = _bin_iq2d(qx_bin_edges,
                                                                                                qy_bin_edges,
                                                                                                qx_array,

@@ -501,7 +501,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     reduction_input
     prefix
     skip_nan
-    incoherence_correction_setup: CorrectionConfiguration
+    incoherence_correction_setup: CorrectionConfiguration, None
         incoherence/inelastic scattering correction configuration
     use_correction_workflow: bool
         Force to use workflow designed for incoherent and inelastic correction
@@ -515,13 +515,13 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     # Process reduction input: configuration and etc.
     reduction_config = reduction_input["configuration"]
 
-    # Process inelastic/incoherent scattering correction configuration
-    # [#689] FIXME - this shall be parsed after JSON is implemented
-    # incoherence_correction_setup = parse_correction_config(reduction_config)
+    # Process inelastic/incoherent scattering correction configuration if user does not specify
     if incoherence_correction_setup is None:
         # backward compatibility
+        # TODO FIXME 689 - implement parse_correction_config() and unify with sections of codes in tests
+        # incoherence_correction_setup = parse_correction_config(reduction_input)
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
-    print(f'[DEBUG] Incoherence correction setup: {incoherence_correction_setup}')
+    print(f'[DEBUG 689] Incoherence correction setup: {incoherence_correction_setup}')
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}

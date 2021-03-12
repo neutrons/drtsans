@@ -179,7 +179,7 @@ def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_ar
     # flatten intensity, error and optionally delta q
     intensity_array = intensity_array.flatten()
     error_array = error_array.flatten()
-    if delta_q_array:
+    if delta_q_array is not None:
         delta_q_array = delta_q_array.flatten()
 
     return IQmod(intensity=intensity_array,

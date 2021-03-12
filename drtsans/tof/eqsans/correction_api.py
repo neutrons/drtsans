@@ -13,6 +13,7 @@ from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
 from typing import List, Any, Tuple
+from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
 
 """
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -66,13 +67,10 @@ class CorrectionConfiguration:
         self._elastic_ref_run_setup = None
         self._sample_thickness = 1  # mm
 
-        # special debug option
-        self.debug_no_correction = False
-
     def __str__(self):
         if self._do_correction:
             output = f'Do correction: select min incoherence = {self._select_min_incoherence}, ' \
-                     f'thickness = {self._sample_thickness}, no correction (debug) = {self.debug_no_correction}'
+                     f'thickness = {self._sample_thickness}'
         else:
             output = f'No correction'
 
@@ -380,9 +378,19 @@ def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
     return norm_iq1d
 
 
-def correct_acc_incoherence_scattering(iq1d_frames, iq2d_frames, correction_setup):
-    assert iq1d_frames
-    assert iq2d_frames
-    assert correction_setup
+def do_inelastic_incoherence_correction_q1d(iq1d_list: List[IQmod],
+                                            correction_setup: CorrectionConfiguration) -> List[CorrectedIQ1D]:
 
-    return iq1d_frames, iq2d_frames
+    corrected_iq_list = list()
+
+    for iq1d in iq1d_list:
+        # type check
+        assert isinstance(iq1d, IQmod), f'Assuming each element in input is IQmod but not {type(iq1d)}'
+
+        # do inelastic/incoherent correction
+        corrected = correct_incoherence_inelastic_1d(iq1d, correction_setup.select_min_incoherence)
+
+        # append
+        corrected_iq_list.append(corrected)
+
+    return corrected_iq_list

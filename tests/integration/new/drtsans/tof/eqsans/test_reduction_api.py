@@ -122,7 +122,12 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
             # Frame 2
             # Max absolute difference: 3.38294033
             # Max relative difference: 0.42140941
-            np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity, rtol=0.5)
+            if index == 0:
+                rel_tol = 0.39
+            else:
+                rel_tol = 0.43
+            np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity,
+                                       rtol=rel_tol)
         except AssertionError as err:
             # plot the error
             iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
@@ -132,8 +137,12 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
             plt.title(f'EQSANS 88980 Frame {index + 1}')
             plt.plot(vec_x, gold_iq1d.intensity, color='black', label='gold')
             plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label='test')
-            plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
-                     color='green', label='diff')
+            if True:
+                plt.yscale('log')
+            else:
+                plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
+                         color='green', label='diff')
+                plt.yscale('linear')
             plt.xlabel('Q')
             plt.ylabel('Intensity')
             plt.legend()

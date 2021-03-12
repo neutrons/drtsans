@@ -1001,7 +1001,7 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                                                                                                sigma_iq_array)
         binned_wl_array = None
     else:
-        if debug_filter_wl is False:
+        if debug_filter_wl is False and len(wl_array) > 1:
             raise RuntimeError(f'It is not supposed to do binning with wavelength term kept.')
 
         unique_wl_vec = np.unique(wl_array)

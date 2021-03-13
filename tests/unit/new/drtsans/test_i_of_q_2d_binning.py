@@ -104,7 +104,13 @@ def test_2d_bin_no_sub_no_wt_wavelength():
     # Bin I(Qx, Qy) with no-weight binning algorithm
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
                            delta_qx=dqx_array, delta_qy=dqy_array, wavelength=wl_array)
-    binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT)
+    binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT, wavelength_bins=False)
+
+    # Verify size of output
+    assert len(binned_iq_2d.intensity) == 5 * 5 * len(wl_array), f'Expected number of I(Qx, Qy) is ' \
+                                                                 f'{5 * 5 * len(wl_array)}; but the binned ' \
+                                                                 f'intensities have {len(binned_iq_2d.intensity)} ' \
+                                                                 f'values'
 
     # Verify Qx and Qy
     assert qx_bins.centers[1] == pytest.approx(-0.003254, abs=1.E-6), 'Qx is not correct'

@@ -888,7 +888,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     binned_qy_array = qy_matrix
     unique_wl_vec = np.unique(i_of_q.wavelength)
     unique_wl_vec.sort()
-    if i_of_q.wavelength is not None:
+    if i_of_q.wavelength is not None and filter_wavelength:
         for wl_i in unique_wl_vec[1:]:
             binned_qx_array = np.concatenate((binned_qx_array, qx_matrix), axis=1)
             binned_qy_array = np.concatenate((binned_qy_array, qy_matrix), axis=1)

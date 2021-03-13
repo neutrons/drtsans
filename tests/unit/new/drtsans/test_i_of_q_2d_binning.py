@@ -110,6 +110,8 @@ def test_2d_bin_no_sub_no_wt_wavelength():
     num_inputs = test_i_q.intensity.size
     num_unique_intensity = np.unique(test_i_q.intensity).size
     num_unique_x = np.unique(test_i_q.qx).size
+    print(f'[DEBUG Test Bin 2D NW] Inputs size = {num_inputs}, Unique intensities size = {num_unique_intensity}, '
+          f'Unique X size = {num_unique_x}')
 
     # Bin
     binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT, wavelength_bins=False)

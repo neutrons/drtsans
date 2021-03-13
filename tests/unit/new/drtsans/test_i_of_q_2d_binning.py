@@ -3,6 +3,7 @@ from drtsans.dataobjects import IQazimuthal
 from drtsans.iq import determine_1d_linear_bins, BinningMethod, bin_intensity_into_q2d
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data, generate_test_data_wavelength
+import numpy as np
 import pytest
 
 # This module supports testing data for issue #239.
@@ -107,10 +108,11 @@ def test_2d_bin_no_sub_no_wt_wavelength():
     binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT, wavelength_bins=False)
 
     # Verify size of output
-    assert len(binned_iq_2d.intensity) == 5 * 5 * len(wl_array), f'Expected number of I(Qx, Qy) is ' \
-                                                                 f'{5 * 5 * len(wl_array)}; but the binned ' \
-                                                                 f'intensities have {len(binned_iq_2d.intensity)} ' \
-                                                                 f'values'
+    num_wl = np.unique(wl_array).size
+    assert len(binned_iq_2d.size) == 5 * 5 * num_wl, f'Expected number of I(Qx, Qy) is ' \
+                                                     f'{5 * 5 * len(wl_array)}; but the binned ' \
+                                                     f'intensities have {len(binned_iq_2d.intensity)} ' \
+                                                     f'values'
 
     # Verify Qx and Qy
     assert qx_bins.centers[1] == pytest.approx(-0.003254, abs=1.E-6), 'Qx is not correct'

@@ -109,10 +109,10 @@ def test_2d_bin_no_sub_no_wt_wavelength():
 
     # Verify size of output
     num_wl = np.unique(wl_array).size
-    assert len(binned_iq_2d.intensity.size) == 5 * 5 * num_wl, f'Expected number of I(Qx, Qy) is ' \
-                                                               f'{5 * 5 * len(wl_array)}; but the binned ' \
-                                                               f'intensities have {len(binned_iq_2d.intensity)} ' \
-                                                               f'values'
+    assert binned_iq_2d.intensity.size == 5 * 5 * num_wl, f'Expected number of I(Qx, Qy) is ' \
+                                                          f'{5 * 5 * num_wl}; but the binned ' \
+                                                          f'intensities have {binned_iq_2d.intensity.size} ' \
+                                                          f'values'
 
     # Verify Qx and Qy
     assert qx_bins.centers[1] == pytest.approx(-0.003254, abs=1.E-6), 'Qx is not correct'

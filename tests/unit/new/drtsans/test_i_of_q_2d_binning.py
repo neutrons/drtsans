@@ -105,6 +105,13 @@ def test_2d_bin_no_sub_no_wt_wavelength():
     # Bin I(Qx, Qy) with no-weight binning algorithm
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
                            delta_qx=dqx_array, delta_qy=dqy_array, wavelength=wl_array)
+
+    # Debug output for input data
+    num_inputs = test_i_q.intensity.size
+    num_unique_intensity = np.unique(test_i_q.intensity).size
+    num_unique_x = np.unique(test_i_q.qx).size
+
+    # Bin
     binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT, wavelength_bins=False)
 
     # Verify size of output

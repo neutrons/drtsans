@@ -853,10 +853,11 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     check_iq_for_binning(i_of_q)
 
     # Check whether it needs to bin wavelength
-    if wavelength_bins == 1 or i_of_q.wavelength is not None:
+    if wavelength_bins == 1 or i_of_q.wavelength is None:
         # no need to do 2D binning by filtering wavelength
         filter_wavelength = False
     else:
+        # bin I(qx, qy, wl) by each wave length
         filter_wavelength = True
 
     if method == BinningMethod.NOWEIGHT:
@@ -864,7 +865,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
         binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                  i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
                                                  qx_bins.edges, qy_bins.edges, debug_filter_wl=filter_wavelength,
-                                                 sum_all_wavelengths=True)
+                                                 sum_all_wavelengths=not filter_wavelength)
     else:
         # Calculate weighed binning
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
@@ -992,7 +993,7 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         Wavelengths (o)
     """
     print(f'[DEBUG WL BINNING] Filter Wavelength Flag = {debug_filter_wl}   Wavelength array is None = '
-          f'{wl_array is None}')
+          f'{wl_array is None},  sum_all_wavelength = {sum_all_wavelengths}')
 
     if wl_array is None or sum_all_wavelengths:
         # bin only by (qx, qy).  all I(qx, qy, wavelength) with binned regardless of wavelength value

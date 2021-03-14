@@ -819,7 +819,7 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
                  mod_q=q_bins.centers, delta_mod_q=bin_q_resolution)
 
 
-def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT):
+def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT, wavelength_bins=1):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
     Note 1: for binning parameters:
@@ -841,6 +841,8 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
         namedtuple for arbitrary bin edges and bin centers for Qy
     method: ~drtsans.BinningMethod
         Weighted binning or no weight binning
+    wavelength_bins: None, int
+        number of binned wavelength.  If None, do not bin.  If equal to 1, bin all wavelength together
 
     Returns
     -------
@@ -850,11 +852,20 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     # Check input I(Q) whether it meets assumptions
     check_iq_for_binning(i_of_q)
 
+    # Check whether it needs to bin wavelength
+    if wavelength_bins == 1 or i_of_q.wavelength is None:
+        # no need to do 2D binning by filtering wavelength
+        filter_wavelength = False
+    else:
+        # bin I(qx, qy, wl) by each wave length
+        filter_wavelength = True
+
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
         binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                  i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
-                                                 qx_bins.edges, qy_bins.edges)
+                                                 qx_bins.edges, qy_bins.edges, debug_filter_wl=filter_wavelength,
+                                                 sum_all_wavelengths=not filter_wavelength)
     else:
         # Calculate weighed binning
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
@@ -878,7 +889,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     binned_qy_array = qy_matrix
     unique_wl_vec = np.unique(i_of_q.wavelength)
     unique_wl_vec.sort()
-    if i_of_q.wavelength is not None:
+    if i_of_q.wavelength is not None and filter_wavelength:
         for wl_i in unique_wl_vec[1:]:
             binned_qx_array = np.concatenate((binned_qx_array, qx_matrix), axis=1)
             binned_qy_array = np.concatenate((binned_qy_array, qy_matrix), axis=1)
@@ -899,9 +910,9 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
         array of Q2D
     qy_vec: ~numpy.ndarray
         array of Q2D
-    dqx_vec: ~numpy.ndarray, None
+    dqx_vec: ~numpy.ndarray or None
         array for Q2D resolution. May be None
-    dqy_vec: ~numpy.ndarray, None
+    dqy_vec: ~numpy.ndarray or None
         array for Q2D resolution. May be None
     i_vec: ~numpy.ndarray
         2D array of intensity
@@ -943,7 +954,8 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
 
 
 def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                             qx_bin_edges, qy_bin_edges):
+                             qx_bin_edges, qy_bin_edges, sum_all_wavelengths: bool = True,
+                             debug_filter_wl: bool = False):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -961,7 +973,7 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         Qy array
     dqy_array: ndarray
         Qy resolution
-    wavelength_array: ndarray
+    wl_array: ndarray or None
         wavelengths
     iq_array: ndarray
         intensities
@@ -971,6 +983,8 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         Bin centers and edges
     qy_bin:
         Bin centers and edges
+    sum_all_wavelengths: bool
+        Flag to bin I(qx, qy, wavelength) by qx and qy only.  Wavelength term will then be thrown away
 
     Returns
     -------
@@ -978,8 +992,12 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         intensities (n x m x o), sigma intensities (n x m x o), Qx resolution (n x m x o), Qy resolution (n x m x o),
         Wavelengths (o)
     """
+    print(f'[DEBUG WL BINNING] Filter Wavelength Flag = {debug_filter_wl}   Wavelength array is None = '
+          f'{wl_array is None},  sum_all_wavelength = {sum_all_wavelengths}')
 
-    if wl_array is None:
+    if wl_array is None or sum_all_wavelengths:
+        # bin only by (qx, qy).  all I(qx, qy, wavelength) with binned regardless of wavelength value
+        # output will be I(Qx, Qy)
         binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array = _bin_iq2d(qx_bin_edges,
                                                                                                qy_bin_edges,
                                                                                                qx_array,
@@ -990,6 +1008,11 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                                                                                                sigma_iq_array)
         binned_wl_array = None
     else:
+        # separate I(qx, qy, wavelength) by wavelength value and bin (qx, qy)
+        # output will be I(Qx, Qy, wavelength)
+        if debug_filter_wl is False and len(wl_array) > 1:
+            raise RuntimeError(f'It is not supposed to do binning with wavelength term kept.')
+
         unique_wl_vec = np.unique(wl_array)
         unique_wl_vec.sort()
 
@@ -1003,8 +1026,12 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         binned_iq_array = np.ndarray(shape=(0,), dtype=float)
         binned_sigma_iq_array = binned_wl_array = np.ndarray(shape=(0,), dtype=float)
 
+        # Initialize binned dqx and dqy arrays
         if dqx_array is not None:
-            binned_dqx_array = binned_dqy_array = np.ndarray(shape=(0,), dtype=float)
+            binned_dqx_array = np.ndarray(shape=(0,), dtype=float)
+            binned_dqy_array = np.ndarray(shape=(0,), dtype=float)
+        else:
+            binned_dqx_array = binned_dqy_array = None
 
         for wl_i in unique_wl_vec:
             filtered_matrix = wl_matrix[wl_matrix[:, 0] == wl_i]
@@ -1036,11 +1063,18 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                     if binned_dqy_array.size else dqy_final_array
             binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1) \
                 if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
+
+            print(f'[DEBUG BIN2D Concatenate] wavelength = {wl_i}, Binned intensity shape = {binned_iq_array.shape}')
+
         # END-FOR (wl_i)
 
         if dqx_array is None:
             binned_dqx_array = None
             binned_dqy_array = None
+
+        # sanity check
+        print(f'[DEBUG BIN2D NOW SHAPE]: I = {binned_iq_array.shape}, Sigma = {binned_sigma_iq_array.shape},'
+              f'Wavelength = {binned_wl_array.shape}')
 
     return binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array, binned_wl_array
 
@@ -1090,7 +1124,6 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         binned intensities (n x m), binned sigmas (n x m), binned Qx resolution (n x m), binned Qy resolution (n x m),
         binned wavelength (n x m)
     """
-
     unique_wl_vec = np.unique(wl_array)
     unique_wl_vec.sort()
     if wl_array is None or len(unique_wl_vec) == 1:

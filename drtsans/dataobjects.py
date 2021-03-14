@@ -701,13 +701,6 @@ def load_iq2d_from_h5(h5_name: str) -> IQazimuthal:
 
         iq2d = IQazimuthal(**value_dict)
 
-        # Check unique Qx, Qy
-        num_unique_qx = np.unique(iq2d.qx).size
-        num_unique_qy = np.unique(iq2d.qy).size
-        if num_unique_qx * num_unique_qy != iq2d.intensity.size:
-            raise NotImplementedError(f'Loaded I(qx, qy): num intensity = {iq2d.intensity.size}, '
-                                      f'number of unique (qx, qy) = {num_unique_qx}, {num_unique_qy}')
-
     return iq2d
 
 

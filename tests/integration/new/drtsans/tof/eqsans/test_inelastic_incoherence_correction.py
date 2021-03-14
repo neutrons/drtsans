@@ -114,7 +114,7 @@ specs_eqsans = {
 @pytest.mark.parametrize('run_config, basename',
                          [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
                          ids=['88980'])
-def skip_test_correction_workflow(run_config, basename, tmpdir):
+def test_correction_workflow(run_config, basename, tmpdir):
     """Same reduction from Shaman test but using the workflow that is designed to work with inelastic correction
 
     Returns

@@ -14,6 +14,7 @@ from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
 from typing import List, Any, Tuple
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
+from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
 
 """
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -394,3 +395,14 @@ def do_inelastic_incoherence_correction_q1d(iq1d_list: List[IQmod],
         corrected_iq_list.append(corrected)
 
     return corrected_iq_list
+
+
+def do_inelastic_incoherence_correction_q2d(iq2d_list: List[IQazimuthal],
+                                            correction_setup: CorrectionConfiguration) -> List[CorrectedIQ2D]:
+    assert all(isinstance(iq2d, IQazimuthal) for iq2d in iq2d_list), 'All in iq2d_list must be IQazimuthal'
+
+    # apply the correction to each
+    corrected = (correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence) for iq2d in iq2d_list)
+
+    # consistent list return
+    return list(corrected)

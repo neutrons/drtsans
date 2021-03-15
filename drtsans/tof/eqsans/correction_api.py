@@ -341,8 +341,8 @@ def bin_i_of_q_per_wavelength(iq1d_raw: IQmod,
     elif not isinstance(iq1d_out, list):
         raise NotImplementedError(f'IQ1D returns object of type {type(iq1d_out)}')
 
-    num_unique_qx = np.unique(iq2d_out.qx.size).size
-    num_unique_qy = np.unique(iq2d_out.qy.size).size
+    num_unique_qx = np.unique(iq2d_out.qx).size
+    num_unique_qy = np.unique(iq2d_out.qy).size
     num_unique_wl = np.unique(iq2d_out.wavelength).size
     if iq2d_out.intensity.size != num_unique_qx * num_unique_qy * num_unique_wl:
         raise RuntimeError(f'I(qx, qy, wavelength) has dimensional issue: |qx| x |qy| x |wl| != |intensity|: '

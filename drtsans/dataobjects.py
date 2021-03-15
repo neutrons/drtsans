@@ -585,7 +585,7 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
         qy = self.qy.flatten()[finite_locations]
         dqx = None if self.delta_qx is None else self.delta_qx.flatten()[finite_locations]
         dqy = None if self.delta_qy is None else self.delta_qy.flatten()[finite_locations]
-        wavelength = None if self.wavelength is None else self.wavelength[finite_locations]
+        wavelength = None if self.wavelength is None else self.wavelength.flatten()[finite_locations]
 
         finite_iq2d = IQazimuthal(intensity=intensity,
                                   error=error,

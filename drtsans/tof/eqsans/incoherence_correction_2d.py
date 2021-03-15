@@ -242,5 +242,9 @@ def correct_incoherence_inelastic_2d(i_of_q, minimum_incoherence):
         delta_qx=_i_of_q.delta_qx,
         delta_qy=_i_of_q.delta_qy
     )
-    corrected = CorrectedIQ2D(corrected_i_of_q, b2d, b2d_error)
+    corrected = CorrectedIQ2D(
+        iq2d=corrected_i_of_q,
+        b_factor=b2d,
+        b_error=b2d_error
+    )
     return corrected

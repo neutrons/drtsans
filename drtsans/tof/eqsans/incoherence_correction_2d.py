@@ -1,6 +1,14 @@
+from collections import namedtuple
+
 import numpy as np
 
 from drtsans.dataobjects import IQazimuthal
+
+
+__all__ = ['correct_incoherence_inelastic_2d', 'CorrectedIQ2D']
+
+
+CorrectedIQ2D = namedtuple('CorrectedIQ2D', 'iq2d b_factor b_error')
 
 
 def reshape_q_azimuthal(i_of_q):
@@ -205,8 +213,8 @@ def correct_incoherence_inelastic_2d(i_of_q, minimum_incoherence):
 
     Returns
     -------
-    tuple
-        corrected I(Qx, Qy, wavelength), b2d, b2d error
+    CorrectedIQ2D
+        named tuple of corrected I(Qx, Qy, wavelength), b2d, b2d error
 
     """
     # coerce IQazimuthal data to desired shapes
@@ -234,4 +242,5 @@ def correct_incoherence_inelastic_2d(i_of_q, minimum_incoherence):
         delta_qx=_i_of_q.delta_qx,
         delta_qy=_i_of_q.delta_qy
     )
-    return corrected_i_of_q, b2d, b2d_error
+    corrected = CorrectedIQ2D(corrected_i_of_q, b2d, b2d_error)
+    return corrected

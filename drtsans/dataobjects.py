@@ -559,6 +559,44 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
         # pass everything to namedtuple
         return super(IQazimuthal, cls).__new__(cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength)
 
+    def be_finite(self):
+        """Remove NaN by flattening first
+
+        Returns
+        -------
+        IQazimuthal
+            I(qx, qy, wavelength) with NaN removed
+
+        """
+        # Check whether is any need to recontruct the IQazimuthal
+        num_finite_points = len(np.where(np.isfinite(self.intensity))[0])
+        if num_finite_points == self.intensity.size:
+            return self
+
+        # Flatten
+        intensity = self.intensity.flatten()
+        # finite values
+        finite_locations = np.isfinite(intensity)
+
+        # construct output
+        intensity = intensity[finite_locations]
+        error = self.error.flatten()[finite_locations]
+        qx = self.qx.flatten()[finite_locations]
+        qy = self.qy.flatten()[finite_locations]
+        dqx = None if self.delta_qx is None else self.delta_qx.flatten()[finite_locations]
+        dqy = None if self.delta_qy is None else self.delta_qy.flatten()[finite_locations]
+        wavelength = None if self.wavelength is None else self.wavelength.flatten()[finite_locations]
+
+        finite_iq2d = IQazimuthal(intensity=intensity,
+                                  error=error,
+                                  qx=qx,
+                                  qy=qy,
+                                  delta_qx=dqx,
+                                  delta_qy=dqy,
+                                  wavelength=wavelength)
+
+        return finite_iq2d
+
     def id(self):
         return DataType.IQ_AZIMUTHAL
 

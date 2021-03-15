@@ -787,6 +787,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
             else:
                 qx_range = qy_range = None
 
+            assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main in cannot be None.'
             iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                    nxbins_main, nybins_main, n1dbins=nbins_main,
                                                    n1dbins_per_decade=nbins_main_per_decade,
@@ -799,7 +800,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                    symmetric_wedges=symmetric_wedges,
                                                    error_weighted=weighted_errors)
             print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[-1]}')
-            # print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
+            assert iq2d_main_out is not None
+            print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 
@@ -847,22 +849,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     # FIXME - check original code.  processed_data_main outside a loop is a BUG!
     #  The correction workflow does not output processed data workspace yet!
     assert processed_data_main is not None
-    try:
-        samplelogs = {'main': SampleLogs(processed_data_main)}
-        logslice_data_dict = reduction_input["logslice_data"]
+    samplelogs = {'main': SampleLogs(processed_data_main)}
+    logslice_data_dict = reduction_input["logslice_data"]
 
-        drtsans.savereductionlog(filename=filename,
-                                 detectordata=detectordata,
-                                 reductionparams=reductionparams,
-                                 # pythonfile=pythonfile,
-                                 starttime=starttime,
-                                 specialparameters=specialparameters,
-                                 logslicedata=logslice_data_dict,
-                                 samplelogs=samplelogs,
-                                 )
-    except AttributeError as attrib_error:
-        print(attrib_error)
-        raise AttributeError('ASAP')
+    drtsans.savereductionlog(filename=filename,
+                             detectordata=detectordata,
+                             reductionparams=reductionparams,
+                             # pythonfile=pythonfile,
+                             starttime=starttime,
+                             specialparameters=specialparameters,
+                             logslicedata=logslice_data_dict,
+                             samplelogs=samplelogs)
 
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)

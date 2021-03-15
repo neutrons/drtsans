@@ -12,7 +12,8 @@ from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
 from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q_per_wavelength,
-                                               process_convert_q, do_inelastic_incoherence_correction_q1d)
+                                               process_convert_q, do_inelastic_incoherence_correction_q1d,
+                                               do_inelastic_incoherence_correction_q2d)
 import os
 import numpy as np
 from typing import Tuple, Any, List
@@ -215,9 +216,14 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             binned_sample_iq1d = corrected_sample_1d.iq1d
             binned_bkgd_iq1d = corrected_bkgd_1d.iq1d
 
-            # Leave this to Jesse
-            binned_sample_iq2d = binned_sample_iq[1]
-            binned_bkgd_iq2d = binned_bkgd_iq[1]
+            # correct 2D
+            returned_list = do_inelastic_incoherence_correction_q2d(
+                [binned_sample_iq[1], binned_bkgd_iq[1]],
+                incoherence_correction_setup
+            )
+            corrected_sample_2d, corrected_bkgd_2d = returned_list
+            binned_sample_iq2d = corrected_sample_2d.iq2d
+            binned_bkgd_iq2d = corrected_bkgd_2d.iq2d
 
         # END-IF-step 4
 

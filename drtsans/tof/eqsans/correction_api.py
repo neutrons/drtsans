@@ -14,6 +14,7 @@ from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
 from typing import List, Any, Tuple
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
+import numpy as np
 
 """
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -304,9 +305,9 @@ def process_convert_q(raw_ws,
     return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
 
 
-def bin_i_of_q(iq1d_raw: IQmod,
-               iq2d_raw: IQazimuthal,
-               binning_setup) -> Tuple[IQmod, IQazimuthal]:
+def bin_i_of_q_per_wavelength(iq1d_raw: IQmod,
+                              iq2d_raw: IQazimuthal,
+                              binning_setup) -> Tuple[IQmod, IQazimuthal]:
     """Bin I(Q1D) and I(Q2D), keeping raw wavelength values
 
     Parameters
@@ -335,7 +336,19 @@ def bin_i_of_q(iq1d_raw: IQmod,
                                  error_weighted=False, n_wavelength_bin=None)
 
     # sanity check
-    assert isinstance(iq1d_out, list), f'iq1d output type = {type(iq1d_out)}'
+    if isinstance(iq1d_out, list) and len(iq1d_out) > 1:
+        raise NotImplementedError(f'IQ1D returns list of length {len(iq1d_out)} which is supposed to be 1')
+    elif not isinstance(iq1d_out, list):
+        raise NotImplementedError(f'IQ1D returns object of type {type(iq1d_out)}')
+
+    num_unique_qx = np.unique(iq2d_out.qx.size)
+    num_unique_qy = np.unique(iq2d_out.qy.size)
+    num_unique_wl = np.unique(iq2d_out.wavelength.size)
+    if iq2d_out.intensity.size != num_unique_qx * num_unique_qy * num_unique_wl:
+        raise RuntimeError(f'I(qx, qy, wavelength) has dimensional issue: |qx| x |qy| x |wl| != |intensity|: '
+                           f'{num_unique_qx} x {num_unique_qy} x {num_unique_wl} <> '
+                           f'{iq2d_out.intensity.size}')
+    print(f'[DEBUG OUTPUT connection_api.bin_i_of_q_wl]: intensity shape = {iq2d_out.intensity.shape}')
 
     return iq1d_out[0], iq2d_out
 

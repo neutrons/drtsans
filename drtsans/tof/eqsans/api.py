@@ -668,6 +668,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     output = []
     detectordata = {}
     from drtsans.tof.eqsans.reduction_api import process_single_configuration_incoherence_correction
+    processed_data_main = None
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
@@ -845,6 +846,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     # [#689] TODO FIXME - Reincarnate this section!
     # FIXME - check original code.  processed_data_main outside a loop is a BUG!
     #  The correction workflow does not output processed data workspace yet!
+    assert processed_data_main is not None
     try:
         samplelogs = {'main': SampleLogs(processed_data_main)}
         logslice_data_dict = reduction_input["logslice_data"]
@@ -860,7 +862,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                  )
     except AttributeError as attrib_error:
         print(attrib_error)
-        # raise AttributeError('ASAP')
+        raise AttributeError('ASAP')
 
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)

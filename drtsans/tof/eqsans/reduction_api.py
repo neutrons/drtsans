@@ -11,7 +11,7 @@ from drtsans.mask_utils import apply_mask   # noqa E402
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
-from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q,
+from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q_per_wavelength,
                                                process_convert_q, do_inelastic_incoherence_correction_q1d)
 import os
 import numpy as np
@@ -132,7 +132,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     replace_qmax = binning_params.qmax is None
     n_wl_frames = len(raw_q1d_frame)
 
-    print(f'Number of frames = {n_wl_frames}')
+    print(f'[DEBUG INFO] Number of frames = {n_wl_frames}')
 
     for frame in range(n_wl_frames):
         # Bin raw I(Q), I(Qx, Qy), elastic normalization and inelastic/incoherent correction
@@ -167,12 +167,13 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         frame_q_range.append(binning_params)
 
         # Bin sample data (without background), background and optionally elastic reference separately
-        binned_sample_iq = bin_i_of_q(raw_iq1d, raw_iq2d, binning_params)
-        binned_bkgd_iq = bin_i_of_q(background_iq1d_frames[frame], background_iq2d_frames[frame], binning_params)
+        binned_sample_iq = bin_i_of_q_per_wavelength(raw_iq1d, raw_iq2d, binning_params)
+        binned_bkgd_iq = bin_i_of_q_per_wavelength(background_iq1d_frames[frame], background_iq2d_frames[frame],
+                                                   binning_params)
 
         if incoherence_correction_setup.elastic_reference_run:
             raw_ref_iq1d, raw_ref_iq2d = incoherence_correction_setup.elastic_reference_run.binned_ref_iq[frame]
-            binned_elastic_ref_iq = bin_i_of_q(raw_ref_iq1d, raw_ref_iq2d, binning_params)
+            binned_elastic_ref_iq = bin_i_of_q_per_wavelength(raw_ref_iq1d, raw_ref_iq2d, binning_params)
         else:
             binned_elastic_ref_iq = None
 

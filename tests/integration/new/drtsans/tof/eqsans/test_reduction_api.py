@@ -56,6 +56,7 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
             "AnnularAngleBin": 5,
             "wavelengthStepType": "constant Delta lambda",
             "wavelengthStep": 0.1,
+            "useErrorWeighting": True,
         }
     }
     input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
@@ -180,6 +181,7 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
             "numQxQyBins": 80,
             "1DQbinType": "scalar",
             "QbinType": "linear",
+            "useErrorWeighting": False,
             "numQBins": 120,
             "AnnularAngleBin": 5,
             "wavelengthStepType": "constant Delta lambda",

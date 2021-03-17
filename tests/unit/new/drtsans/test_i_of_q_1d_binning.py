@@ -280,10 +280,6 @@ def test_1d_weighted_binning():
     binned_iq_all_wl = bin_intensity_into_q1d(i_of_q=finite_test_iq_1d, q_bins=test_bins,
                                               bin_method=BinningMethod.WEIGHTED, wavelength_bins=1)
 
-    print(f'Result: Q    = {binned_iq_all_wl.mod_q}')
-    print(f'Result: I(Q) = {binned_iq_all_wl.intensity}')
-    print(f'Result: E(Q) = {binned_iq_all_wl.error}')
-
     np.testing.assert_allclose(binned_iq_all_wl.mod_q, expected_binned_qie[:, 0])
     np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])
     np.testing.assert_allclose(binned_iq_all_wl.error, expected_binned_qie[:, 2])
@@ -292,10 +288,6 @@ def test_1d_weighted_binning():
     binned_iq_per_wl = bin_intensity_into_q1d(i_of_q=finite_test_iq_1d, q_bins=test_bins,
                                               bin_method=BinningMethod.WEIGHTED, wavelength_bins=None)
     assert binned_iq_per_wl.wavelength is not None
-    print(f'Result: Q     = {binned_iq_per_wl.mod_q}')
-    print(f'Result: I(Q)  = {binned_iq_per_wl.intensity}')
-    print(f'Result: E(Q)  = {binned_iq_per_wl.error}')
-    print(f'Result: WL(Q) = {binned_iq_per_wl.wavelength}')
 
     np.testing.assert_allclose(binned_iq_per_wl.mod_q, expected_binned_qiew[:, 0])
     np.testing.assert_allclose(binned_iq_per_wl.intensity, expected_binned_qiew[:, 1])
@@ -305,9 +297,6 @@ def test_1d_weighted_binning():
     # Do weighted binning on Q-binned I(Q, wl)
     binned_iq_all_wl = bin_intensity_into_q1d(binned_iq_per_wl, test_bins,
                                               BinningMethod.WEIGHTED, 1)
-    print(f'Result: Q    = {binned_iq_all_wl.mod_q}')
-    print(f'Result: I(Q) = {binned_iq_all_wl.intensity}')
-    print(f'Result: E(Q) = {binned_iq_all_wl.error}')
 
     np.testing.assert_allclose(binned_iq_all_wl.mod_q, expected_binned_qie[:, 0])
     np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])

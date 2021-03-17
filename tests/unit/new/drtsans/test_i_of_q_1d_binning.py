@@ -291,7 +291,7 @@ def test_1d_weighted_binning():
     # Do weighted binning on each wavelength
     binned_iq_per_wl = bin_intensity_into_q1d(i_of_q=finite_test_iq_1d, q_bins=test_bins,
                                               bin_method=BinningMethod.WEIGHTED, wavelength_bins=None)
-    assert binned_iq_all_wl.wavelength is not None
+    assert binned_iq_per_wl.wavelength is not None
     print(f'Result: Q     = {binned_iq_per_wl.mod_q}')
     print(f'Result: I(Q)  = {binned_iq_per_wl.intensity}')
     print(f'Result: E(Q)  = {binned_iq_per_wl.error}')

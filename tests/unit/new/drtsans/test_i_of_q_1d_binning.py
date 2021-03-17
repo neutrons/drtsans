@@ -1,7 +1,8 @@
 import numpy as np
 from drtsans.dataobjects import IQmod
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
-from drtsans.iq import determine_1d_linear_bins, determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d
+from drtsans.determine_bins import Bins
+from drtsans.iq import (determine_1d_linear_bins, determine_1d_log_bins, BinningMethod, bin_intensity_into_q1d)
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import (generate_test_data, generate_test_data_wavelength,
                                                               get_gold_1d_linear_bins,
@@ -216,6 +217,101 @@ def test_1d_bin_wavelength():
     np.testing.assert_allclose(binned_iq_no_wl.intensity, binned_iq_1step.intensity)
     np.testing.assert_allclose(binned_iq_no_wl.error, binned_iq_1step.error)
     np.testing.assert_allclose(binned_iq_no_wl.delta_mod_q, binned_iq_1step.delta_mod_q)
+
+
+def test_1d_weighted_binning():
+    """Test 1D weighted binning
+
+    It is expected that weighted binning will make these two approach yield the same results
+    - do weighted binning with 1 wavelength bin
+    - do weighted binning for each wavelength bin and then do binning on wave length bin to 1 wave length bin
+
+    Returns
+    -------
+
+    """
+    # Generate test data
+    test_qiew_array = np.array([
+        [0.013,	np.nan, np.nan, 1.0],
+        [0.021,	np.nan,	np.nan, 1.0],
+        [0.032,	np.nan,	np.nan, 1.0],
+        [0.041,	10.000,	1.1000, 1.0],
+        [0.048,	10.000,	1.5000, 1.0],
+        [0.060,	10.000,	1.1300, 1.0],
+        [0.070,	10.000,	2.3000, 1.0],
+        [0.080,	10.000,	0.7000, 1.0],
+        [0.090,	10.000,	0.8000, 1.0],
+        [0.099,	10.000,	1.2000, 1.0],
+        [0.011,	np.nan,	np.nan, 2.0],
+        [0.021,	12.000,	2.3000, 2.0],
+        [0.031,	12.000,	1.5000, 2.0],
+        [0.039,	12.000,	1.7000, 2.0],
+        [0.049,	12.000,	0.5000, 2.0],
+        [0.062,	12.000,	2.4000, 2.0],
+        [0.073,	12.000,	0.6000, 2.0],
+        [0.079,	12.000,	0.9000, 2.0],
+        [0.091,	12.000,	1.3000, 2.0],
+        [0.099,	12.000,	1.4000, 2.0]])
+
+    test_iq_1d = IQmod(intensity=test_qiew_array[:, 1], error=test_qiew_array[:, 2],
+                       mod_q=test_qiew_array[:, 0], wavelength=test_qiew_array[:, 3])
+
+    # Generate binning
+    test_bins = {'edges': np.array([0., 0.05, 0.10]),
+                 'centers': np.array([0.025, 0.075])}
+    test_bins = Bins(**test_bins)
+
+    # Expected binned I(Q, wl)
+    expected_binned_qiew = np.array([
+        [0.025,	10, 0.887045495441276, 1.0],
+        [0.075,	10, 0.435609182296287, 1.0],
+        [0.025,	12, 0.448133161649441, 2.0],
+        [0.075,	12, 0.434869885395938, 2.0]])
+
+    # Expected binned I(Q)
+    expected_binned_qie = np.array([
+        [0.025, 11.5933404636534, 0.399987461455165],
+        [0.075, 11.0016985965419, 0.307760492837406]])
+
+    # Clean NaN
+    finite_test_iq_1d = test_iq_1d.be_finite()
+
+    # Do weighted binning on all wavelength
+    binned_iq_all_wl = bin_intensity_into_q1d(i_of_q=finite_test_iq_1d, q_bins=test_bins,
+                                              bin_method=BinningMethod.WEIGHTED, wavelength_bins=1)
+
+    print(f'Result: Q    = {binned_iq_all_wl.mod_q}')
+    print(f'Result: I(Q) = {binned_iq_all_wl.intensity}')
+    print(f'Result: E(Q) = {binned_iq_all_wl.error}')
+
+    np.testing.assert_allclose(binned_iq_all_wl.mod_q, expected_binned_qie[:, 0])
+    np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])
+    np.testing.assert_allclose(binned_iq_all_wl.error, expected_binned_qie[:, 2])
+
+    # Do weighted binning on each wavelength
+    binned_iq_per_wl = bin_intensity_into_q1d(i_of_q=finite_test_iq_1d, q_bins=test_bins,
+                                              bin_method=BinningMethod.WEIGHTED, wavelength_bins=None)
+    assert binned_iq_all_wl.wavelength is not None
+    print(f'Result: Q     = {binned_iq_per_wl.mod_q}')
+    print(f'Result: I(Q)  = {binned_iq_per_wl.intensity}')
+    print(f'Result: E(Q)  = {binned_iq_per_wl.error}')
+    print(f'Result: WL(Q) = {binned_iq_per_wl.wavelength}')
+
+    np.testing.assert_allclose(binned_iq_per_wl.mod_q, expected_binned_qiew[:, 0])
+    np.testing.assert_allclose(binned_iq_per_wl.intensity, expected_binned_qiew[:, 1])
+    np.testing.assert_allclose(binned_iq_per_wl.error, expected_binned_qiew[:, 2])
+    np.testing.assert_allclose(binned_iq_per_wl.wavelength, expected_binned_qiew[:, 3])
+
+    # Do weighted binning on Q-binned I(Q, wl)
+    binned_iq_all_wl = bin_intensity_into_q1d(binned_iq_per_wl, test_bins,
+                                              BinningMethod.WEIGHTED, 1)
+    print(f'Result: Q    = {binned_iq_all_wl.mod_q}')
+    print(f'Result: I(Q) = {binned_iq_all_wl.intensity}')
+    print(f'Result: E(Q) = {binned_iq_all_wl.error}')
+
+    np.testing.assert_allclose(binned_iq_all_wl.mod_q, expected_binned_qie[:, 0])
+    np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])
+    np.testing.assert_allclose(binned_iq_all_wl.error, expected_binned_qie[:, 2])
 
 
 if __name__ == '__main__':

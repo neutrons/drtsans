@@ -372,7 +372,7 @@ def validate_wedges_groups(wedges, symmetric_wedges) -> List[List[Tuple[float, f
 
 
 def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT,
-                           wavelength_bins=1):
+                           wavelength_bins=1) -> IQmod:
     """Binning I(Q) from scalar Q (1D) with linear binning on Q
 
     Replace intensity, intensity_error, scalar_q, scalar_dq by IQmod
@@ -766,41 +766,45 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
     assert q_bins.centers.shape[0] + 1 == q_bins.edges.shape[0]
 
     if wl_array is None or wavelength_bins == 1:
-        # bin I(Q, wl) regardless of wl value
-        # Calculate 1/sigma^2 for multiple uses
-        invert_sigma2_array = 1. / (sigma_iq_array ** 2)
+        # # bin I(Q, wl) regardless of wl value
+        # # Calculate 1/sigma^2 for multiple uses
+        # invert_sigma2_array = 1. / (sigma_iq_array ** 2)
+        #
+        # # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
+        # # sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
+        # w_array, _ = np.histogram(q_array, bins=q_bins.edges, weights=invert_sigma2_array)
+        #
+        # # Calculate Equation 11.22: I(Q)
+        # #  I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
+        # #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
+        # # denominator in Equation 11.22: sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2)
+        # i_raw_array, _ = np.histogram(q_array, bins=q_bins.edges, weights=iq_array * invert_sigma2_array)
+        # # denominator divided by nominator (11.22)
+        # i_final_array = i_raw_array / w_array
+        #
+        # # Calculate equation 11.23: sigmaI(Q)
+        # # sigmaI(Q') = sqrt(sum_{Q, lambda}^{K} (sigma(Q, lambda / sigma(Q, lambda)^2)^2) /
+        # #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
+        # #            = sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)) /
+        # #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
+        # #             = 1 / sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2))
+        # # Thus histogrammed sigmaI can be obtained from histogrammed invert_sigma2_array directly
+        # sigma_final_array = 1 / np.sqrt(w_array)
+        #
+        # # Calculate equation 11.24:  sigmaQ (i.e., Q resolution)
+        # # sigmaQ(Q') = sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2) /
+        # #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
+        # # denominator in Equation 11.24: sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2)
+        # if dq_array is None:
+        #     bin_q_resolution = None
+        # else:
+        #     binned_dq, _ = np.histogram(q_array, bins=q_bins.edges, weights=dq_array * invert_sigma2_array)
+        #     # denominator divided by nominator (11.24)
+        #     bin_q_resolution = binned_dq / i_raw_array
 
-        # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
-        # sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
-        w_array, _ = np.histogram(q_array, bins=q_bins.edges, weights=invert_sigma2_array)
+        i_final_array, sigma_final_array, bin_q_resolution = _bin_q1d_weighted(q_array, dq_array, iq_array, sigma_iq_array, q_bins.edges)
 
-        # Calculate Equation 11.22: I(Q)
-        #  I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
-        #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
-        # denominator in Equation 11.22: sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2)
-        i_raw_array, _ = np.histogram(q_array, bins=q_bins.edges, weights=iq_array * invert_sigma2_array)
-        # denominator divided by nominator (11.22)
-        i_final_array = i_raw_array / w_array
-
-        # Calculate equation 11.23: sigmaI(Q)
-        # sigmaI(Q') = sqrt(sum_{Q, lambda}^{K} (sigma(Q, lambda / sigma(Q, lambda)^2)^2) /
-        #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
-        #            = sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)) /
-        #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
-        #             = 1 / sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2))
-        # Thus histogrammed sigmaI can be obtained from histogrammed invert_sigma2_array directly
-        sigma_final_array = 1 / np.sqrt(w_array)
-
-        # Calculate equation 11.24:  sigmaQ (i.e., Q resolution)
-        # sigmaQ(Q') = sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2) /
-        #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
-        # denominator in Equation 11.24: sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2)
-        if dq_array is None:
-            bin_q_resolution = None
-        else:
-            binned_dq, _ = np.histogram(q_array, bins=q_bins.edges, weights=dq_array * invert_sigma2_array)
-            # denominator divided by nominator (11.24)
-            bin_q_resolution = binned_dq / i_raw_array
+        wavelength_array = None
 
     elif wavelength_bins is None:
         raise NotImplementedError('ASAP')
@@ -811,7 +815,48 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
     # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
     # IQmod is a class for holding 1D binned data.
     return IQmod(intensity=i_final_array, error=sigma_final_array,
-                 mod_q=q_bins.centers, delta_mod_q=bin_q_resolution)
+                 mod_q=q_bins.centers, delta_mod_q=bin_q_resolution,
+                 wavelength=wavelength_array)
+
+
+def _bin_q1d_weighted(mod_q_array, delta_q_array, intensity_array, error_array, bin_edges):
+    # bin I(Q, wl) regardless of wl value
+    # Calculate 1/sigma^2 for multiple uses
+    invert_sigma2_array = 1. / (error_array ** 2)
+
+    # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
+    # sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
+    w_array, _ = np.histogram(mod_q_array, bins=bin_edges, weights=invert_sigma2_array)
+
+    # Calculate Equation 11.22: I(Q)
+    #  I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
+    #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
+    # denominator in Equation 11.22: sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2)
+    i_raw_array, _ = np.histogram(mod_q_array, bins=bin_edges, weights=intensity_array * invert_sigma2_array)
+    # denominator divided by nominator (11.22)
+    binned_intensity_array = i_raw_array / w_array
+
+    # Calculate equation 11.23: sigmaI(Q)
+    # sigmaI(Q') = sqrt(sum_{Q, lambda}^{K} (sigma(Q, lambda / sigma(Q, lambda)^2)^2) /
+    #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
+    #            = sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)) /
+    #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
+    #             = 1 / sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2))
+    # Thus histogrammed sigmaI can be obtained from histogrammed invert_sigma2_array directly
+    binned_error_array = 1 / np.sqrt(w_array)
+
+    # Calculate equation 11.24:  sigmaQ (i.e., Q resolution)
+    # sigmaQ(Q') = sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2) /
+    #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
+    # denominator in Equation 11.24: sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2)
+    if delta_q_array is None:
+        binned_dq_array = None
+    else:
+        binned_dq, _ = np.histogram(mod_q_array, bins=bin_edges, weights=delta_q_array * invert_sigma2_array)
+        # denominator divided by nominator (11.24)
+        binned_dq_array = binned_dq / i_raw_array
+
+    return binned_intensity_array, binned_error_array, binned_dq_array
 
 
 def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT, wavelength_bins=1):

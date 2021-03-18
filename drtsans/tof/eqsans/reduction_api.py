@@ -13,7 +13,8 @@ from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  #
 from drtsans.dataobjects import IQmod, IQazimuthal
 from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q_per_wavelength,
                                                do_inelastic_incoherence_correction_q1d,
-                                               do_inelastic_incoherence_correction_q2d)
+                                               do_inelastic_incoherence_correction_q2d,
+                                               save_b_factor)
 import os
 import numpy as np
 from typing import Tuple, Any, List
@@ -77,6 +78,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                                         bkgd_raw_iq: Tuple[List[IQmod], List[IQazimuthal], Any],
                                                         incoherence_correction_setup,
                                                         binning_params: BinningSetup,
+                                                        run_number,
+                                                        output_dir,
                                                         debug_keep_background: bool = False
                                                         ) -> Tuple[List[Any], List[Any], Any,
                                                                    List[BinningSetup]]:
@@ -220,6 +223,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             returned_list = do_inelastic_incoherence_correction_q1d([binned_sample_iq[0], binned_bkgd_iq[0]],
                                                                     incoherence_correction_setup)
             corrected_sample_1d, corrected_bkgd_1d = returned_list
+            b_1d_path = os.path.join(output_dir, f"{run_number}_{frame+1}_b1d.txt")
+            save_b_factor(corrected_sample_1d, b_1d_path)
             binned_sample_iq1d = corrected_sample_1d.iq1d
             binned_bkgd_iq1d = corrected_bkgd_1d.iq1d
 
@@ -229,6 +234,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                 incoherence_correction_setup
             )
             corrected_sample_2d, corrected_bkgd_2d = returned_list
+            b_2d_path = os.path.join(output_dir, f"{run_number}_{frame+1}_b2d.txt")
+            save_b_factor(corrected_sample_2d, b_2d_path)
             binned_sample_iq2d = corrected_sample_2d.iq2d
             binned_bkgd_iq2d = corrected_bkgd_2d.iq2d
         # END-IF-step 4

@@ -12,7 +12,7 @@ from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  #
 from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
 from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
 import numpy as np
@@ -340,3 +340,17 @@ def do_inelastic_incoherence_correction_q2d(iq2d_list: List[IQazimuthal],
 
     # consistent list return
     return list(corrected)
+
+
+def save_b_factor(i_of_q: Union[CorrectedIQ1D, CorrectedIQ2D], path: str) -> None:
+    header = 'lambda,b,delta_b\n'
+    # grab the IQmod or IQazimuthal wavelength
+    wavelength = i_of_q[0].wavelength
+    wave_str = map(str, wavelength)
+    b_str = map(str, i_of_q.b_factor)
+    b_e_str = map(str, i_of_q.b_error)
+    # merge items (all are appropriately ordered, so zip is usable)
+    output = '\n'.join(map(','.join, zip(wave_str, b_str, b_e_str)))
+    with open(path, 'w', encoding='utf-8') as save_file:
+        save_file.write(header)
+        save_file.write(output)

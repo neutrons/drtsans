@@ -196,9 +196,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
 
     Returns
     -------
-    ~drtsans.dataobjects.IQazimuthal
+    (~drtsans.dataobjects.IQazimuthal, ~list)
         binned IQazimuthal
-    list
         list of binned ~drtsans.dataobjects.IQmod objects. The list has length
         1, unless the 'wedge' mode is selected, when the length is the number of
         original wedges

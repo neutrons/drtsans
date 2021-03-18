@@ -74,89 +74,72 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     if os.path.exists(reduced_data_nexus):
         os.remove(reduced_data_nexus)
 
+    # Debug setup
+    use_correction_workflow = True
+    keep_background = False
+
     # Load and reduce
     loaded = load_all_files(input_config)
-    use_correction_workflow = True
     reduction_output = reduce_single_configuration(loaded, input_config,
-                                                   use_correction_workflow=use_correction_workflow)
+                                                   use_correction_workflow=use_correction_workflow,
+                                                   ignore_background=keep_background)
 
     # Check reduced workspace
     reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
-    print(f'Verify reduced worskpace from nexus file {reduced_data_nexus}')
+    print(f'Verify reduced workspace from nexus file {reduced_data_nexus}')
     assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
     # verify with gold data
-    gold_file = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
-    # FIXME - temp disabled verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    gold_ws_nexus = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl')
     print('Successfully passed processed sample - background')
 
     # Load data and compare
     gold_dir = reference_dir.new.eqsans
 
-    # Verify bin boundaries
-    flag = 'nocorr' if not use_correction_workflow else 'correction'
+    # Save I(Q) to h5 file
+    flag1 = 'old' if not use_correction_workflow else 'new'
+    flag2 = 'keepbkgd' if keep_background else 'removebkgd'
     for index in range(2):
-        save_i_of_q_to_h5(reduction_output[index].I1D_main[0], f'88980_frame1_weighted_{flag}_{index}_bkgdremoved.h5')
+        save_i_of_q_to_h5(reduction_output[index].I1D_main[0], f'88980_frame1_weighted_{flag1}_{flag2}_{index}.h5')
 
     error_list = list()
     for index in range(2):
         # 1D
-        # iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
-        iq1d_h5_name = f'88980_frame1_weighted_nocorr_{index}_nobkgd.h5'
-        iq1d_h5_name = f'88980_frame1_weighted_nocorr_{index}_nobkgd.h5'
-        iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
-        assert os.path.exists(iq1d_h5_name)
-        assert os.path.exists(iq2d_h5_name)
+        gold_iq1d_h5 = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
+        gold_iq2d_h5 = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
+        assert os.path.exists(gold_iq1d_h5)
+        assert os.path.exists(gold_iq2d_h5)
+        print(f'Verifying intensity frame {index} from {gold_iq1d_h5}')
 
-        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
-        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
-
-        print(f'Verifying intensity frame {index} from {iq1d_h5_name}')
+        gold_iq1d = load_iq1d_from_h5(gold_iq1d_h5)
+        gold_iq2d = load_iq2d_from_h5(gold_iq2d_h5)
 
         # Verify Q bins
         # 1D
         np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
-
         # 2D
         assert gold_iq2d
 
+        # Verify intensity
         try:
-            # FIXME - rtol is VERY large
-            # Frame 1
-            # Max absolute difference: 1.35398336
-            # Max relative difference: 0.38801395
-            # Frame 2
-            # Max absolute difference: 3.38294033
-            # Max relative difference: 0.42140941
-            if index == 0:
-                rel_tol = 0.39
-            else:
-                rel_tol = 0.43
-            rel_tol = 0.00001
-
+            rel_tol = 1E-3
             np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity,
                                        rtol=rel_tol)
-            # _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
         except AssertionError as err:
             # plot the error
-            # iq1d_h5_name = os.path.join(gold_dir, f'gold_iq1d_{index}_0.h5')
-            # iq1d_h5_name = f'88980_frame1_weighted_{index}.h5'
-            gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+            gold_iq1d = load_iq1d_from_h5(gold_iq1d_h5)
             vec_x = gold_iq1d.mod_q
             plt.figure(figsize=(20, 16))
             plt.title(f'EQSANS 88980 Frame {index + 1}')
-            plt.plot(vec_x, gold_iq1d.intensity, color='black', label=f'gold {iq1d_h5_name}')
-            plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label=f'test {flag}')
-            if True:
-                plt.yscale('log')
-            else:
-                plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
-                         color='green', label='diff')
-                plt.yscale('linear')
+            plt.plot(vec_x, gold_iq1d.intensity, color='black', label=f'gold {gold_iq1d_h5}')
+            plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red',
+                     label=f'test {flag1} {flag2}')
+            plt.yscale('log')
             plt.xlabel('Q')
             plt.ylabel('Intensity')
             plt.legend()
             plt.show()
-            plt.savefig(f'diff_{index}.png')
+            plt.savefig(f'diff_{index + 1}.png')
             plt.close()
             error_list.append(err)
     if len(error_list) > 0:

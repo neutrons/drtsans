@@ -15,6 +15,7 @@ from drtsans.iq import bin_all  # noqa E402
 from typing import List, Any, Tuple
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
 from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
+from drtsans.tof.eqsans.reduction_api import process_workspace_single_configuration
 import numpy as np
 
 """
@@ -271,7 +272,6 @@ def process_convert_q(raw_ws,
     # Sanity check
     assert raw_ws, 'Raw workspace cannot be None'
 
-    from drtsans.tof.eqsans.reduction_api import process_workspace_single_configuration
     # Process raw workspace
     output_workspace = str(raw_ws)
     processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
@@ -279,16 +279,14 @@ def process_convert_q(raw_ws,
                                                           solid_angle, sensitivity_workspace,
                                                           sample_thickness, absolute_scale,
                                                           output_workspace, output_suffix)
+    print(f'[DEBUG Q-RANGE]From {raw_ws} -> {processed_ws}:')
 
     # Optionally delete raw workspace
     if delete_raw:
         if isinstance(raw_ws, tuple):
-            raw_ws_name = str(raw_ws[0])
-            raw_ws[0].delete()
-        else:
-            raw_ws_name = str(raw_ws)
-            raw_ws.delete()
-        raw_ws = raw_ws_name
+            raw_ws = raw_ws[0]
+        assert str(raw_ws) != str(processed_ws), 'Raw workspace and processed workspace have same name'
+        raw_ws.delete()
 
     # No subpixel binning supported
     # convert to Q: Q1D and Q2D
@@ -297,11 +295,6 @@ def process_convert_q(raw_ws,
     # split to frames
     iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in, verbose=True)
     iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
-
-    # debug output
-    print(f'[DEBUG Q-RANGE]From {raw_ws} -> {processed_ws}:')
-    for frame, iq1d in enumerate(iq1d_main_in_fr):
-        print(f'Frame {frame}: Q range: {iq1d.mod_q.min()}, {iq1d.mod_q.max()}')
 
     return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
 
@@ -334,7 +327,8 @@ def bin_i_of_q_per_wavelength(iq1d_raw: IQmod,
                                  qmin=binning_setup.qmin, qmax=binning_setup.qmax,
                                  qxrange=(binning_setup.qxrange[0], binning_setup.qxrange[1]),
                                  qyrange=(binning_setup.qyrange[0], binning_setup.qyrange[1]),
-                                 error_weighted=True, n_wavelength_bin=None)
+                                 error_weighted=True,  # Correction workflow must use weighted binning
+                                 n_wavelength_bin=None)
 
     # sanity check
     if isinstance(iq1d_out, list) and len(iq1d_out) > 1:
@@ -349,7 +343,10 @@ def bin_i_of_q_per_wavelength(iq1d_raw: IQmod,
         raise RuntimeError(f'I(qx, qy, wavelength) has dimensional issue: |qx| x |qy| x |wl| != |intensity|: '
                            f'{num_unique_qx} x {num_unique_qy} x {num_unique_wl} <> '
                            f'{iq2d_out.intensity.size}')
-    print(f'[DEBUG OUTPUT connection_api.bin_i_of_q_wl]: intensity shape = {iq2d_out.intensity.shape}')
+    print(f'[DEBUG OUTPUT connection_api.bin_i_of_q_wl]: 2D intensity shape = {iq2d_out.intensity.shape}')
+
+    if len(iq1d_out) > 1:
+        raise RuntimeError(f'There are {len(iq1d_out)} I(Q1D) from bin_all.  Case is not considered.')
 
     return iq1d_out[0], iq2d_out
 

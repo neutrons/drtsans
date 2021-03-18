@@ -21,8 +21,8 @@ from collections import namedtuple
 
 
 # Binning parameters
-binning_setup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade '
-                                            'decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')
+BinningSetup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade '
+                                           'decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')
 
 
 def _convert_background_to_q(processed_background_ws, processed_sample_ws) -> Tuple[List[IQmod], List[IQazimuthal]]:
@@ -76,9 +76,10 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                                         sample_thickness,
                                                         bkgd_raw_iq: Tuple[List[IQmod], List[IQazimuthal], Any],
                                                         incoherence_correction_setup,
-                                                        binning_params: binning_setup
+                                                        binning_params: BinningSetup,
+                                                        debug_keep_background: bool = False
                                                         ) -> Tuple[List[Any], List[Any], Any,
-                                                                   List[binning_setup]]:
+                                                                   List[BinningSetup]]:
     """Process raw sample workspace with single configuration and inelastic/incoherence correction
     till binned I(Q, wavelength)
 
@@ -90,6 +91,8 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         Incoherence correction setup
     binning_params: binning_setup
         binning parameters including range, step and type
+    debug_keep_background: bool
+        Debug flag to keep background in the final binned I(Q)
 
     Returns
     -------
@@ -121,6 +124,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                                                                               processed_sample_ws)
 
     # Subtract background from sample in workspace level for future output
+    # To this step, the old workflow and new workflow have the same results
     pure_sample_ws = subtract_background(processed_sample_ws, processed_bkgd_ws)
 
     # Process each frame separately!
@@ -134,7 +138,6 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     n_wl_frames = len(raw_q1d_frame)
 
     print(f'[DEBUG INFO] Number of frames = {n_wl_frames}')
-
     for frame in range(n_wl_frames):
         # Bin raw I(Q), I(Qx, Qy), elastic normalization and inelastic/incoherent correction
         # step 2. determine binning parameters:  Qmin and Qmax from sample run
@@ -171,21 +174,27 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         binned_sample_iq = bin_i_of_q_per_wavelength(raw_iq1d, raw_iq2d, binning_params)
         binned_bkgd_iq = bin_i_of_q_per_wavelength(background_iq1d_frames[frame], background_iq2d_frames[frame],
                                                    binning_params)
+        # check wavelength
+        sample_wl_vec = np.unique(binned_sample_iq[0].wavelength)
+        bkgd_wl_vec = np.unique(binned_bkgd_iq[0].wavelength)
+        np.testing.assert_allclose(sample_wl_vec, bkgd_wl_vec, err_msg='Sample and background wavelengths '
+                                                                       'do not match')
 
+        # Prepare for step 2: Process reference elastic diffraction run
         if incoherence_correction_setup.elastic_reference_run:
             raw_ref_iq1d, raw_ref_iq2d = incoherence_correction_setup.elastic_reference_run.binned_ref_iq[frame]
             binned_elastic_ref_iq = bin_i_of_q_per_wavelength(raw_ref_iq1d, raw_ref_iq2d, binning_params)
         else:
             binned_elastic_ref_iq = None
 
-        # step 4. process data with incoherent/inelastic correction
+        # step 2, 3 and 4: process data with incoherent/inelastic correction
         if not incoherence_correction_setup.do_correction:
             # do not do any correction as a test for refactored reduction workflow, which shall
             # yield the same result if correction is skipped.
             binned_bkgd_iq1d, binned_bkgd_iq2d = binned_bkgd_iq
             binned_sample_iq1d, binned_sample_iq2d = binned_sample_iq
         else:
-            # normalize sample run and background run
+            # step 2: normalize sample run and background run
             if binned_elastic_ref_iq:
                 # calculate normalization according to new binning
                 raise NotImplementedError('ASAP')
@@ -207,8 +216,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             # END-IF (correction step 2)
 
             print(f'[DEBUG 689] (Step 3 and 4) correct sample and background with {incoherence_correction_setup}')
-
-            # correct 1D
+            # step 3: correct 1D
             # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
             returned_list = do_inelastic_incoherence_correction_q1d([binned_sample_iq[0], binned_bkgd_iq[0]],
                                                                     incoherence_correction_setup)
@@ -216,7 +224,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             binned_sample_iq1d = corrected_sample_1d.iq1d
             binned_bkgd_iq1d = corrected_bkgd_1d.iq1d
 
-            # correct 2D
+            # step 4: correct 2D
             returned_list = do_inelastic_incoherence_correction_q2d(
                 [binned_sample_iq[1], binned_bkgd_iq[1]],
                 incoherence_correction_setup
@@ -224,24 +232,14 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             corrected_sample_2d, corrected_bkgd_2d = returned_list
             binned_sample_iq2d = corrected_sample_2d.iq2d
             binned_bkgd_iq2d = corrected_bkgd_2d.iq2d
-
         # END-IF-step 4
 
-        # Merge sample and background: subtract sample with background
-        print(f'Binning: {binning_params}')
-        print('1D {}, {}'.format(type(binned_sample_iq), type(binned_bkgd_iq)))
-        print(f'[NOW-CORRECTION] 1D: sample     range {binned_sample_iq[0].mod_q[0]}, '
-              f'{binned_sample_iq[0].mod_q[-1]}')
-        print(f'[NOW-CORRECTION] 1D: background range {binned_bkgd_iq[0].mod_q[0]}, '
-              f'{binned_bkgd_iq[0].mod_q[-1]}')
-        print('2D')
-        print(f'[NOW-CORRECTION] 2D: range {binned_bkgd_iq[1].qx[0, 0]}')
-
-        # Process 1D case
-        if True:
+        # Subtract background from sample
+        # process 1D case
+        if not debug_keep_background:
             # subtract background: input IQmod, output workspace
             binned_sample_q1d = subtract_background(binned_sample_iq1d, binned_bkgd_iq1d)
-            # TODO NOW - build IQmod from workspace
+            # build IQmod from workspace
             vec_q = binned_sample_q1d.extractX().flatten()
             vec_i = binned_sample_q1d.extractY().flatten()
             vec_e = binned_sample_q1d.extractE().flatten()
@@ -253,6 +251,7 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
             binned_sample_q1d = IQmod(vec_i, vec_e, vec_q, wavelength=binned_sample_iq[0].wavelength)
             binned_sample_q1d = binned_sample_q1d.be_finite()
         else:
+            # not binned
             binned_sample_q1d = binned_sample_iq1d.be_finite()
 
         # Process 2D case

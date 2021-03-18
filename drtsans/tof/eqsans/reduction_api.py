@@ -215,7 +215,6 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
                 #                                                               norm_dict)
             # END-IF (correction step 2)
 
-            print(f'[DEBUG 689] (Step 3 and 4) correct sample and background with {incoherence_correction_setup}')
             # step 3: correct 1D
             # correct I and dI of background accounting wavelength-dependent incoherent/inelastic scattering
             returned_list = do_inelastic_incoherence_correction_q1d([binned_sample_iq[0], binned_bkgd_iq[0]],

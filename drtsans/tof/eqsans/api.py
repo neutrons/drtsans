@@ -473,15 +473,15 @@ def process_single_configuration(sample_ws_raw,
         else:
             bkgd_ws = mtd[bkgd_ws_name]
 
-        # subtract background
-        sample_ws = subtract_background(sample_ws, bkgd_ws)
+        # subtract background as an option
+        if debug_keep_background is False:
+            sample_ws = subtract_background(sample_ws, bkgd_ws)
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()
 
     # finalize with absolute scale and thickness
-    if not debug_keep_background:
-        sample_ws = normalize_by_thickness(sample_ws, thickness)
+    sample_ws = normalize_by_thickness(sample_ws, thickness)
 
     # standard method assumes absolute scale from outside
     if absolute_scale_method == 'direct_beam':

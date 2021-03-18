@@ -32,10 +32,10 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
-from drtsans.tof.eqsans.correction_api import (process_convert_q,
-                                               CorrectionConfiguration)
-from drtsans.tof.eqsans.reduction_api import prepare_data_workspaces, binning_setup
-from drtsans.tof.eqsans.reduction_api import process_transmission
+from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, BinningSetup, process_convert_q,
+                                              process_transmission,
+                                              process_single_configuration_incoherence_correction)
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -361,7 +361,8 @@ def process_single_configuration(sample_ws_raw,
                                  empty_beam_ws=None,
                                  beam_radius=None,
                                  absolute_scale=1.,
-                                 keep_processed_workspaces=True):
+                                 keep_processed_workspaces=True,
+                                 debug_keep_background: bool = False):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
@@ -413,6 +414,8 @@ def process_single_configuration(sample_ws_raw,
         absolute scaling value for standard method
     keep_processed_workspaces: bool
         flag to keep the processed background workspace
+    debug_keep_background: bool
+        Debug flag to keep background in the final binned I(Q)
 
     Returns
     -------
@@ -470,8 +473,9 @@ def process_single_configuration(sample_ws_raw,
         else:
             bkgd_ws = mtd[bkgd_ws_name]
 
-        # subtract background
-        sample_ws = subtract_background(sample_ws, bkgd_ws)
+        # subtract background as an option
+        if debug_keep_background is False:
+            sample_ws = subtract_background(sample_ws, bkgd_ws)
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()
@@ -491,7 +495,8 @@ def process_single_configuration(sample_ws_raw,
 def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                 skip_nan=True,
                                 incoherence_correction_setup=None,
-                                use_correction_workflow: bool = False):
+                                use_correction_workflow: bool = False,
+                                ignore_background: bool = False):
     """Reduce samples from raw workspaces including
     1. prepare data
 
@@ -505,6 +510,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
         incoherence/inelastic scattering correction configuration
     use_correction_workflow: bool
         Force to use workflow designed for incoherent and inelastic correction
+    ignore_background: bool
+        Flag to output binned data without subtracting background.  This is for DEBUG only
 
     Returns
     -------
@@ -631,8 +638,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                       'qyrange': None}
 
     # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
-    binning_params = binning_setup(**binning_par_dc)
-    assert binning_params
+    binning_params = BinningSetup(**binning_par_dc)
     print(f'[DEBUG] Flag to do correction = {incoherence_correction_setup.do_correction}')
 
     if incoherence_correction_setup.do_correction or use_correction_workflow:
@@ -645,7 +651,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
             # TODO sanity check of expected output from elastic_ref_setup
             pass
 
-        # pre-process background background
+        # pre-process background background: product = processed
         # TODO - rewrite process_bin_workspace to process_workspace()
         processed_background = process_convert_q(loaded_ws.background,
                                                  (bkgd_trans_ws, bkg_trans_value),
@@ -657,17 +663,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                  loaded_ws.sensitivity,
                                                  thickness,  # sample thickness
                                                  absolute_scale,
-                                                 'bkgd', delete_raw=True)
-
-        assert processed_background
-
+                                                 'bkgd',
+                                                 delete_raw=True)
     else:
         processed_background = None
     # END-IF
 
+    # Define output data structure
     output = []
     detectordata = {}
-    from drtsans.tof.eqsans.reduction_api import process_single_configuration_incoherence_correction
     processed_data_main = None
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "slice_{}".format(i+1)
@@ -690,7 +694,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                             thickness,
                                                                             processed_background,
                                                                             incoherence_correction_setup,
-                                                                            binning_params)
+                                                                            binning_params,
+                                                                            ignore_background)
             # The output I(Q) and I(Qx, Qy) are already BINNED.
             # Q range for final binning cannot be retrieved from min and max of
             # binned I(Q) and I(Qx, Qy) as they are not
@@ -720,7 +725,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                empty_beam_ws=empty_trans_ws,
                                                                beam_radius=beam_radius,
                                                                absolute_scale=absolute_scale,
-                                                               keep_processed_workspaces=False)
+                                                               keep_processed_workspaces=False,
+                                                               debug_keep_background=ignore_background)
 
             # Convert to Q
             # set up subpixel binning options  FIXME - it does not seem to work

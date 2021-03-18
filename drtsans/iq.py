@@ -196,9 +196,8 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
 
     Returns
     -------
-    ~drtsans.dataobjects.IQazimuthal
+    (~drtsans.dataobjects.IQazimuthal, ~list)
         binned IQazimuthal
-    list
         list of binned ~drtsans.dataobjects.IQmod objects. The list has length
         1, unless the 'wedge' mode is selected, when the length is the number of
         original wedges
@@ -231,10 +230,12 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
     binning_y = determine_1d_linear_bins(qy_min, qy_max, nybins)
 
     # bin 2D
+    # FIXME - 2D binning does not support weighted binning well.  Force it to no-weight binning
+    bin_2d_method = BinningMethod.NOWEIGHT
     binned_q2d = bin_intensity_into_q2d(i_qxqy,
                                         binning_x,
                                         binning_y,
-                                        method=method,
+                                        method=bin_2d_method,
                                         wavelength_bins=n_wavelength_bin)
 
     # 1D binning
@@ -924,6 +925,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
                                                  sum_all_wavelengths=not filter_wavelength)
     else:
         # Calculate weighed binning
+        # FIXME - _do_2d_weighted_binning API shall be changed as _do_2d_no_weight_binning() for sum_all_wavelength
         binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
                                                 i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
                                                 qx_bins.edges, qy_bins.edges)

@@ -680,6 +680,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
 
         print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction} (2) ')
         if incoherence_correction_setup.do_correction or use_correction_workflow:
+            sample_run_num = reduction_input['sample']['runNumber']
             # process data in workflow that is able to incorporate inelastic incoherent correction
             # returned binned I(Q) and I(Q)
             processed = process_single_configuration_incoherence_correction(raw_sample_ws,
@@ -695,6 +696,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                             processed_background,
                                                                             incoherence_correction_setup,
                                                                             binning_params,
+                                                                            sample_run_num,
+                                                                            output_dir,
                                                                             ignore_background)
             # The output I(Q) and I(Qx, Qy) are already BINNED.
             # Q range for final binning cannot be retrieved from min and max of

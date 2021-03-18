@@ -238,24 +238,22 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
         print(f'[NOW-CORRECTION] 2D: range {binned_bkgd_iq[1].qx[0, 0]}')
 
         # Process 1D case
-        # binned_sample_q1d = subtract_background(binned_sample_iq[0], binned_bkgd_iq[0])
-        binned_sample_q1d = subtract_background(binned_sample_iq1d, binned_bkgd_iq1d)
-
-        print(f'[DEBUG] sample q1D workspace: {binned_sample_q1d}')
-        # TODO NOW - build IQmod from workspace
-        vec_q = binned_sample_q1d.extractX().flatten()
-        vec_i = binned_sample_q1d.extractY().flatten()
-        vec_e = binned_sample_q1d.extractE().flatten()
-        print(f'Q vec: size {vec_q.shape}')
-        print(f'original IQ vec: size {binned_sample_iq[0].mod_q.shape}')
-        # FIXME : q1d, wavelength order is different
-        #         np.testing.assert_allclose(binned_sample_iq[0].mod_q, vec_q)
-        print(f'NaN in I(Q): {len(np.where(np.isnan(vec_i))[0])}')
-        print(f'NaN in I(Q): {len(np.where(np.isnan(binned_sample_iq[0].intensity))[0])}')
-
-        # Separate wavelength, reconstruct to IQmod and remove nan and inf
-        binned_sample_q1d = IQmod(vec_i, vec_e, vec_q, wavelength=binned_sample_iq[0].wavelength)
-        binned_sample_q1d = binned_sample_q1d.be_finite()
+        if True:
+            # subtract background: input IQmod, output workspace
+            binned_sample_q1d = subtract_background(binned_sample_iq1d, binned_bkgd_iq1d)
+            # TODO NOW - build IQmod from workspace
+            vec_q = binned_sample_q1d.extractX().flatten()
+            vec_i = binned_sample_q1d.extractY().flatten()
+            vec_e = binned_sample_q1d.extractE().flatten()
+            print(f'Q vec: size {vec_q.shape}')
+            print(f'original IQ vec: size {binned_sample_iq[0].mod_q.shape}')
+            # FIXME : q1d, wavelength order is different
+            #         np.testing.assert_allclose(binned_sample_iq[0].mod_q, vec_q)
+            # Separate wavelength, reconstruct to IQmod and remove nan and inf
+            binned_sample_q1d = IQmod(vec_i, vec_e, vec_q, wavelength=binned_sample_iq[0].wavelength)
+            binned_sample_q1d = binned_sample_q1d.be_finite()
+        else:
+            binned_sample_q1d = binned_sample_iq1d.be_finite()
 
         # Process 2D case
         binned_sample_q2d = subtract_background(binned_sample_iq2d, binned_bkgd_iq2d)

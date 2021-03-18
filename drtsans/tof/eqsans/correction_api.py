@@ -334,7 +334,7 @@ def bin_i_of_q_per_wavelength(iq1d_raw: IQmod,
                                  qmin=binning_setup.qmin, qmax=binning_setup.qmax,
                                  qxrange=(binning_setup.qxrange[0], binning_setup.qxrange[1]),
                                  qyrange=(binning_setup.qyrange[0], binning_setup.qyrange[1]),
-                                 error_weighted=False, n_wavelength_bin=None)
+                                 error_weighted=True, n_wavelength_bin=None)
 
     # sanity check
     if isinstance(iq1d_out, list) and len(iq1d_out) > 1:

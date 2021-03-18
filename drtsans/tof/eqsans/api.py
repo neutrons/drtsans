@@ -32,9 +32,8 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
-from drtsans.tof.eqsans.correction_api import (process_convert_q,
-                                               CorrectionConfiguration)
-from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, BinningSetup,
+from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, BinningSetup, process_convert_q,
                                               process_transmission,
                                               process_single_configuration_incoherence_correction)
 

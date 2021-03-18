@@ -12,7 +12,7 @@ from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
 from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q_per_wavelength,
-                                               process_convert_q, do_inelastic_incoherence_correction_q1d,
+                                               do_inelastic_incoherence_correction_q1d,
                                                do_inelastic_incoherence_correction_q2d)
 import os
 import numpy as np
@@ -264,6 +264,83 @@ def process_single_configuration_incoherence_correction(sample_ws, sample_transm
     # END-FOR-FRAME
 
     return binned_iq1d_frames, binned_iq2d_frames, pure_sample_ws, frame_q_range
+
+
+# This is a composite method.  It can be used by
+# reduction_api.process_single_configuration_incoherence_correction()
+# without binning.
+def process_convert_q(raw_ws,
+                      transmission: Tuple[Any, float],
+                      theta_dependent_transmission,
+                      dark_current, flux, mask,
+                      solid_angle, sensitivity_workspace,
+                      sample_thickness: float,
+                      absolute_scale: float,
+                      output_suffix: str,
+                      delete_raw: bool) -> Tuple[List[IQmod], List[IQazimuthal], Any]:
+    """Process raw workspace and convert to Q and split into frames
+
+    Parameters
+    ----------
+    raw_ws:
+        raw event workspace and monitor workspace to process from
+    transmission: ~tuple
+        transmission workspace, transmission value
+    theta_dependent_transmission:
+        blabla
+    dark_current:
+        blabla
+    flux: ~tuple
+        flux method, flux run
+    mask: ~tuple
+        mask workspace, mask panel, mask BTP
+    solid_angle: bool
+        flag to do solid angle correction
+    sensitivity_workspace:
+        sensitivities workspace
+    sample_thickness: float
+        sample thickness in mm
+    absolute_scale: float
+        scale factor to intensities
+    output_suffix: float
+        suffix for output workspace
+    delete_raw: bool
+        flag to delete raw workspace
+
+    Returns
+    -------
+    ~tuple
+        list of IQmod, list of IQazimuthal, processed workspace
+
+    """
+    # Sanity check
+    assert raw_ws, 'Raw workspace cannot be None'
+
+    # Process raw workspace
+    output_workspace = str(raw_ws)
+    processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
+                                                          dark_current, flux, mask,
+                                                          solid_angle, sensitivity_workspace,
+                                                          sample_thickness, absolute_scale,
+                                                          output_workspace, output_suffix)
+    print(f'[DEBUG Q-RANGE]From {raw_ws} -> {processed_ws}:')
+
+    # Optionally delete raw workspace
+    if delete_raw:
+        if isinstance(raw_ws, tuple):
+            raw_ws = raw_ws[0]
+        assert str(raw_ws) != str(processed_ws), 'Raw workspace and processed workspace have same name'
+        raw_ws.delete()
+
+    # No subpixel binning supported
+    # convert to Q: Q1D and Q2D
+    iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
+    iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
+    # split to frames
+    iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in, verbose=True)
+    iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
+
+    return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
 
 
 def process_workspace_single_configuration(ws_raw,

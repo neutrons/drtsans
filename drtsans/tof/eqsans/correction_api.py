@@ -12,10 +12,9 @@ from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  #
 from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
-from typing import List, Any, Tuple
+from typing import List, Tuple
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
 from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
-from drtsans.tof.eqsans.reduction_api import process_workspace_single_configuration
 import numpy as np
 
 """
@@ -160,9 +159,13 @@ NormFactor = namedtuple('NormFactor', 'k k_error p s')
 
 
 # TODO - merge this with process_elastic_reference_data
-def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, ref_sample_thickness,
-                                        binning_setup):
+def calculate_elastic_scattering_factor(ref_iq1d_frames: List[IQmod], ref_iq2d_frames):
     """Normalize runs (sample and background) for elastic scattering
+
+    TODO: in reduction_api, shall implement a method as
+    preprocess_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, ref_sample_thickness, binning_setup):
+    ref_iq1d_frames, ref_iq2d_frames = process_convert_q(ref_ws, (ref_trans_ws, ref_trans_value),
+                                                         ref_sample_thickness, binning_setup)
 
     for elastic reference, I assume that it will use the same as the sample run.
     Then as the elastic reference run is reduced, K and delta K are calculated.
@@ -173,11 +176,10 @@ def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, r
 
     Parameters
     ----------
-    ref_ws
-    ref_trans_ws
-    ref_trans_value
-    ref_sample_thickness
-    binning_setup
+    ref_iq1d_frames: ~list
+        List of reference I(Q) in various frames
+    ref_iq2d_frames: ~list
+        List of reference I(Qx, Qy)
 
     Returns
     -------
@@ -186,17 +188,16 @@ def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, r
     """
     # Process elastic reference run, reference transmission run,
     # TODO - reference background run, reference background transmission run
-    ref_iq1d_frames, ref_iq2d_frames = process_convert_q(ref_ws, (ref_trans_ws, ref_trans_value),
-                                                         ref_sample_thickness, binning_setup)
 
     # Sanity check
     assert len(ref_iq1d_frames) <= 3, f'Number of frames {len(ref_iq1d_frames)} is not reasonable.'
+    assert ref_iq2d_frames
 
     # Output
     elastic_norm_factor_dict = dict()
 
     # Calculate scaling vectors for each
-    for i_frame in len(ref_iq1d_frames):
+    for i_frame in range(len(ref_iq1d_frames)):
         # reshape
         ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(
             ref_iq1d_frames[i_frame])
@@ -220,83 +221,6 @@ def calculate_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, r
         # do_export_k(k_vec, k_error_vec, k_filename)
 
     return elastic_norm_factor_dict
-
-
-# This is a composite method.  It can be used by
-# reduction_api.process_single_configuration_incoherence_correction()
-# without binning.
-def process_convert_q(raw_ws,
-                      transmission: Tuple[Any, float],
-                      theta_dependent_transmission,
-                      dark_current, flux, mask,
-                      solid_angle, sensitivity_workspace,
-                      sample_thickness: float,
-                      absolute_scale: float,
-                      output_suffix: str,
-                      delete_raw: bool) -> Tuple[List[IQmod], List[IQazimuthal], Any]:
-    """Process raw workspace and convert to Q and split into frames
-
-    Parameters
-    ----------
-    raw_ws:
-        raw event workspace and monitor workspace to process from
-    transmission: ~tuple
-        transmission workspace, transmission value
-    theta_dependent_transmission:
-        blabla
-    dark_current:
-        blabla
-    flux: ~tuple
-        flux method, flux run
-    mask: ~tuple
-        mask workspace, mask panel, mask BTP
-    solid_angle: bool
-        flag to do solid angle correction
-    sensitivity_workspace:
-        sensitivities workspace
-    sample_thickness: float
-        sample thickness in mm
-    absolute_scale: float
-        scale factor to intensities
-    output_suffix: float
-        suffix for output workspace
-    delete_raw: bool
-        flag to delete raw workspace
-
-    Returns
-    -------
-    ~tuple
-        list of IQmod, list of IQazimuthal, processed workspace
-
-    """
-    # Sanity check
-    assert raw_ws, 'Raw workspace cannot be None'
-
-    # Process raw workspace
-    output_workspace = str(raw_ws)
-    processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
-                                                          dark_current, flux, mask,
-                                                          solid_angle, sensitivity_workspace,
-                                                          sample_thickness, absolute_scale,
-                                                          output_workspace, output_suffix)
-    print(f'[DEBUG Q-RANGE]From {raw_ws} -> {processed_ws}:')
-
-    # Optionally delete raw workspace
-    if delete_raw:
-        if isinstance(raw_ws, tuple):
-            raw_ws = raw_ws[0]
-        assert str(raw_ws) != str(processed_ws), 'Raw workspace and processed workspace have same name'
-        raw_ws.delete()
-
-    # No subpixel binning supported
-    # convert to Q: Q1D and Q2D
-    iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
-    iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
-    # split to frames
-    iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in, verbose=True)
-    iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
-
-    return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
 
 
 def bin_i_of_q_per_wavelength(iq1d_raw: IQmod,

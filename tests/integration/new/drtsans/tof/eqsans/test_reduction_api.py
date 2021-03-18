@@ -185,7 +185,6 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
     input_config = update_reduction_parameters(input_config, run_config, validate=False)
     output_dir = str(tmpdir)
-    output_dir = '/SNS/users/wzz/Projects/SANS/sans-backend/temp'
     amendments = {
         'outputFileName': basename,
         'configuration': {'outputDir': output_dir}
@@ -200,7 +199,7 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
 
     # Load and reduce
     loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config)
+    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=False)
 
     # Load data and compare
     gold_dir = reference_dir.new.eqsans

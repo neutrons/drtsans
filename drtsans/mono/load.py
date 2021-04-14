@@ -160,9 +160,9 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
     # Specify a default name for non-single run output workspace
     if not single_run and ((output_workspace is None) or (not output_workspace) or (output_workspace == 'None')):
         # create default name for output workspace, uses all input
-        instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
+        instrument_unique_name = instrument_enum_name(runs[0])  # determine which SANS instrument
         output_workspace = '{}_{}{}'.format(instrument_unique_name,
-                                            '_'.join(str(extract_run_number(r)) for r in run),
+                                            '_'.join(str(extract_run_number(r)) for r in runs),
                                             output_suffix)
 
     # Load NeXus file(s)

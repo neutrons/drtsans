@@ -205,7 +205,8 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
         # Sum temporary loaded workspaces
         out_ws = sum_data(temp_workspaces, output_workspace=output_workspace)
         # Remove temporary workspaces
-        for ws_name in temp_workspaces:
+        for ws_i in temp_workspaces:
+            ws_name = str(ws_i)
             if mtd.doesExist(ws_name):
                 mtd.remove(ws_name)
 

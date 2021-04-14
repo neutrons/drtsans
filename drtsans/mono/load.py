@@ -149,13 +149,35 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):
-        run = [r.strip() for r in run.split(',')]
+        runs = [r.strip() for r in run.split(',')]
+    else:
+        runs = run
+    # sanity check
+    if not isinstance(runs, list):
+        raise RuntimeError(f'runs {runs} of type {type(runs)} must be a list at this stage')
+    single_run = len(runs) == 1
+
+    # Specify a default name for non-single run output workspace
+    if not single_run and ((output_workspace is None) or (not output_workspace) or (output_workspace == 'None')):
+        # create default name for output workspace, uses all input
+        instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
+        output_workspace = '{}_{}{}'.format(instrument_unique_name,
+                                            '_'.join(str(extract_run_number(r)) for r in run),
+                                            output_suffix)
+
     # Load NeXus file(s)
-    if len(run) == 1:
-        # if only one run just load and transform to wavelength and return workspace
-        ws = load_events(run=run[0],
+    # define list of workspace to sum
+    temp_workspaces = list()
+    for index, run in enumerate(runs):
+        # load and transform to wavelength and return workspace
+        if single_run:
+            output_ws_name = output_workspace
+        else:
+            output_ws_name = '__tmp_ws_{}'.format(index)
+        # Load event but not move sample or detector position by meta data
+        ws = load_events(run=run,
                          data_dir=data_dir,
-                         output_workspace=output_workspace,
+                         output_workspace=output_ws_name,
                          overwrite_instrument=overwrite_instrument,
                          output_suffix=output_suffix,
                          pixel_calibration=pixel_calibration,
@@ -165,61 +187,32 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
                          **kwargs)
 
         # Calculate offset with overwriting to sample-detector-distance
-        ws = set_sample_detector_position(ws, sample_to_si_name, si_nominal_distance,
-                                          sample_to_si_value, sample_detector_distance_value)
+        set_sample_detector_position(ws,
+                                     sample_to_si_window_name=sample_to_si_name,
+                                     si_window_to_nominal_distance=si_nominal_distance,
+                                     sample_si_window_overwrite_value=sample_to_si_value,
+                                     sample_detector_distance_overwrite_value=sample_detector_distance_value)
+        # Transform to wavelength
+        transform_to_wavelength(ws)
 
-        # Transform to wavelength and set unit uncertainties
-        ws = transform_to_wavelength(ws)
-        ws = set_init_uncertainties(ws)
-        return ws
+        # Append
+        temp_workspaces.append(ws)
+
+    # Sum over all the workspaces if needed
+    if single_run:
+        out_ws = temp_workspaces[0]
     else:
-        instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
-
-        # create default name for output workspace, uses all input
-        if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
-            output_workspace = '{}_{}{}'.format(instrument_unique_name,
-                                                '_'.join(str(extract_run_number(r)) for r in run),
-                                                output_suffix)
-
-        # list of worksapce to sum
-        temp_workspaces = []
-
-        # load and transform each workspace in turn
-        for n, r in enumerate(run):
-            temp_workspace_name = '__tmp_ws_{}'.format(n)
-            # Load event but not move sample or detector position by meta data
-            temp_ws = load_events(run=r,
-                                  data_dir=data_dir,
-                                  output_workspace=temp_workspace_name,
-                                  overwrite_instrument=overwrite_instrument,
-                                  detector_offset=0.,
-                                  sample_offset=0.,
-                                  reuse_workspace=reuse_workspace,
-                                  **kwargs)
-
-            # Calculate offset with overwriting to sample-detector-distance
-            set_sample_detector_position(temp_ws,
-                                         sample_to_si_window_name=sample_to_si_name,
-                                         si_window_to_nominal_distance=si_nominal_distance,
-                                         sample_si_window_overwrite_value=sample_to_si_value,
-                                         sample_detector_distance_overwrite_value=sample_detector_distance_value)
-
-            transform_to_wavelength(temp_workspace_name)
-            temp_workspaces.append(temp_workspace_name)
-
         # Sum temporary loaded workspaces
-        ws = sum_data(temp_workspaces,
-                      output_workspace=output_workspace)
-
-        # After summing data re-calculate initial uncertainties
-        ws = set_init_uncertainties(ws)
-
-        # Remove temporary workspace
+        out_ws = sum_data(temp_workspaces, output_workspace=output_workspace)
+        # Remove temporary workspaces
         for ws_name in temp_workspaces:
             if mtd.doesExist(ws_name):
                 mtd.remove(ws_name)
 
-        return ws
+    # Set uncertainty: After summing data re-calculate initial uncertainties
+    out_ws = set_init_uncertainties(out_ws)
+
+    return out_ws
 
 
 def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nominal_distance,

@@ -23,7 +23,8 @@ def _getConfigJsonFile():
 def _strValue(group, name):
     '''Get a value from a SDS'''
     assert name in group, 'Did not find "{}" in "{}"'.format(name, group.name)
-    return group[name].value[0].decode('utf-8')
+    # return group[name].value[0].decode('utf-8')
+    return group[name][0].decode('utf-8')
 
 
 def _strAttr(data, name):
@@ -221,9 +222,9 @@ def test_writing_metadata_with_no_reductionparams():
         assert _strValue(reduction_information_entry, 'start_time') == starttime
         assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
         assert _strValue(reduction_information_entry['user'], 'name') == username
-        assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
-        assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
-        assert reduction_information_entry['special_parameters']['key3'].value == ""
+        assert reduction_information_entry['special_parameters']['key1'][()] == specialparameters['key1']
+        assert reduction_information_entry['special_parameters']['key2'][()] == specialparameters['key2']
+        assert reduction_information_entry['special_parameters']['key3'][()] == ""
 
 
 def test_writing_metadata():
@@ -258,9 +259,9 @@ def test_writing_metadata():
         assert _strValue(reduction_information_entry, 'start_time') == starttime
         assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
         assert _strValue(reduction_information_entry['user'], 'name') == username
-        assert reduction_information_entry['special_parameters']['key1'].value == specialparameters['key1']
-        assert reduction_information_entry['special_parameters']['key2'].value == specialparameters['key2']
-        assert reduction_information_entry['special_parameters']['key3'].value == ""
+        assert reduction_information_entry['special_parameters']['key1'][()] == specialparameters['key1']
+        assert reduction_information_entry['special_parameters']['key2'][()] == specialparameters['key2']
+        assert reduction_information_entry['special_parameters']['key3'][()] == ""
 
 
 def test_writing_iq_wedge_mode():
@@ -574,14 +575,20 @@ def test_reduction_parameters():
     with h5py.File(tmp_log_filename, 'r') as handle:
         reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
 
-        assert _strValue(reduction_information_entry['drtsans'], 'version') == drtsans_version
+        try:
+            assert _strValue(reduction_information_entry['drtsans'], 'version') == drtsans_version
+        except AttributeError as att_err:
+            info = f'h5py version = {h5py.__version__}: type: {type(reduction_information_entry["drtsans"])}'
+            info += f'\nmethods: {dir(reduction_information_entry["drtsans"])}'
+            info += f'\nError: {att_err}'
+            raise AttributeError(info)
         assert _strValue(reduction_information_entry['mantid'], 'version') == mantid_version
 
-        red_val = reduction_information_entry['reduction_parameters']['background']['transmission']['runNumber'].value
+        red_val = reduction_information_entry['reduction_parameters']['background']['transmission']['runNumber'][()]
         test_val = data['data']['background']['transmission']['runNumber']
         assert red_val == test_val
 
-        red_val = reduction_information_entry['reduction_parameters']['iptsNumber'].value
+        red_val = reduction_information_entry['reduction_parameters']['iptsNumber'][()]
         test_val = data['data']['iptsNumber']
         assert red_val == test_val
 

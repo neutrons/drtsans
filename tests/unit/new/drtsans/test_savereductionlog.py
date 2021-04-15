@@ -23,7 +23,8 @@ def _getConfigJsonFile():
 def _strValue(group, name):
     '''Get a value from a SDS'''
     assert name in group, 'Did not find "{}" in "{}"'.format(name, group.name)
-    return group[name].value[0].decode('utf-8')
+    # return group[name].value[0].decode('utf-8')
+    return group[name][0].decode('utf-8')
 
 
 def _strAttr(data, name):

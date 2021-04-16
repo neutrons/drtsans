@@ -160,39 +160,6 @@ def _test_data(tested_data=[], ref_data=[], abs=None):
             _tested == pytest.approx(_ref, abs=abs)
 
 
-# def test_writing_das_log():
-#     data = '/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5'
-#     output_workspace = 'BC_8148'
-#     ws = load_events(data,
-#                      overwrite_instrument=True,
-#                      output_workspace=output_workspace,
-#                      output_suffix="",
-#                      sample_offset=0)
-#
-#     # expected values
-#     expected_values = {'run_number': {'value': '8148',
-#                                       'units': ""},
-#                        'monitor': {'value': 3338109,
-#                                    'units': ''}}
-#
-#     # Add sample logs
-#     sample_logs = SampleLogs(ws)
-#
-#     test_iq = _create_iq()
-#     tmp_log_filename = _create_tmp_log_filename()
-#     savereductionlog(tmp_log_filename,
-#                      detectordata={'main_detector': {'iq': test_iq}},
-#                      samplelogs=sample_logs)
-#
-#     assert os.path.exists(tmp_log_filename), 'log file {} does not exist'.format(tmp_log_filename)
-#
-#     with h5py.File(tmp_log_filename, 'r') as handle:
-#         reduction_information_entry = _getGroup(handle, 'reduction_information', 'NXentry')
-#         sample_logs_entry = _getGroup(reduction_information_entry, 'sample_logs', 'NXnote')
-#
-#         for _key in expected_values.keys():
-#             assert sample_logs_entry[_key].value == str(expected_values[_key]['value'])
-
 def test_writing_metadata_with_no_reductionparams():
     pythonscript = "this is my python script"
     pythonfile = 'this_is_my_file.py'
@@ -223,8 +190,10 @@ def test_writing_metadata_with_no_reductionparams():
         assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
         assert _strValue(reduction_information_entry['user'], 'name') == username
         assert reduction_information_entry['special_parameters']['key1'][()] == specialparameters['key1']
-        assert reduction_information_entry['special_parameters']['key2'][()].decode() == specialparameters['key2']  # str
-        assert reduction_information_entry['special_parameters']['key3'][()].decode() == ""  # str
+        # str: h5py 3.0 need to decode
+        assert reduction_information_entry['special_parameters']['key2'][()].decode() == specialparameters['key2']
+        # str: h5py 3.0 need to decode
+        assert reduction_information_entry['special_parameters']['key3'][()].decode() == ""
 
 
 def test_writing_metadata():
@@ -259,9 +228,11 @@ def test_writing_metadata():
         assert _strValue(reduction_information_entry, 'start_time') == starttime
         assert _strValue(reduction_information_entry['user'], 'facility_user_id') == user
         assert _strValue(reduction_information_entry['user'], 'name') == username
-        # assert reduction_information_entry['special_parameters']['key1'][()] == specialparameters['key1']
-        # assert reduction_information_entry['special_parameters']['key2'][()].decode() == specialparameters['key2']
-        # assert reduction_information_entry['special_parameters']['key3'][()].decode() == ""
+        assert reduction_information_entry['special_parameters']['key1'][()] == specialparameters['key1']
+        # str: h5py 3.0 need to decode
+        assert reduction_information_entry['special_parameters']['key2'][()].decode() == specialparameters['key2']
+        # str: h5py 3.0 need to decode
+        assert reduction_information_entry['special_parameters']['key3'][()].decode() == ""
 
 
 def test_writing_iq_wedge_mode():

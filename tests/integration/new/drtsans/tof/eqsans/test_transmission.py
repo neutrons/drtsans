@@ -260,8 +260,6 @@ def test_calculate_fitted_transmission(transmission_fixture):
     (this test was written previously to the testset with the instrument team)
     Gold data is changed due to a bugfix on Mantid.Fit's error bar calculation
     """
-    from mantid.simpleapi import SaveNexusProcessed
-
     fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference)
     assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_mtd6.nxs')
 

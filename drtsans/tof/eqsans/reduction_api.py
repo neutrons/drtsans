@@ -20,6 +20,7 @@ import numpy as np
 from typing import Tuple, Any, List
 from collections import namedtuple
 
+from mantid.simpleapi import SaveNexusProcessed  # noqa E402
 
 # Binning parameters
 BinningSetup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade '
@@ -585,6 +586,9 @@ def process_transmission(transmission_ws, empty_trans_ws, transmission_radius, s
         calculated_trans_ws = calculate_transmission(processed_trans_ws, empty_trans_ws,
                                                      radius=transmission_radius, radius_unit="mm")
         print(f'{type_name} transmission =', calculated_trans_ws.extractY()[0, 0])
+        # TODO DEBUG OUTPUT
+        tag = str(transmission_ws).split('.')[0]
+        SaveNexusProcessed(InputWorkspace=calculated_trans_ws, Filename=f'/tmp/transmission_data_{tag}.nxs')
 
         # optionally save
         if output_dir:
@@ -600,6 +604,7 @@ def process_transmission(transmission_ws, empty_trans_ws, transmission_radius, s
             sample_trans_raw_ws = calculate_transmission(processed_trans_ws, empty_trans_ws,
                                                          radius=transmission_radius, radius_unit="mm",
                                                          fit_function='')
+            SaveNexusProcessed(InputWorkspace=sample_trans_raw_ws, Filename=f'/tmp/transmission_sample_raw_{tag}.nxs')
 
             raw_tr_fn = os.path.join(output_dir, f'{output_file_name}_raw_trans.txt')
             SaveAscii(sample_trans_raw_ws, Filename=raw_tr_fn)

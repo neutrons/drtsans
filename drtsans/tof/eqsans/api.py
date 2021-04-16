@@ -445,6 +445,9 @@ def process_single_configuration(sample_ws_raw,
             RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
                              WorkspaceToMatch=sample_ws,
                              OutputWorkspace=sample_trans_ws)
+            print('f[  DEBUG  Trans]  Workspace Shape = {sample_trans_ws.extractY().shape}')
+        else:
+            print('f[  DEBUG  Trans]  Value = {sample_trans_value}')
         sample_ws = apply_transmission_correction(sample_ws,
                                                   trans_workspace=sample_trans_ws,
                                                   trans_value=sample_trans_value,
@@ -465,6 +468,9 @@ def process_single_configuration(sample_ws_raw,
                     RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
                                      WorkspaceToMatch=bkgd_ws,
                                      OutputWorkspace=bkg_trans_ws)
+                    print('f[  DEBUG  Trans] Bkgd Workspace Shape = {bkg_trans_ws.extractY().shape}')
+                else:
+                    print('f[  DEBUG  Trans] Bkgd Value = {bkg_trans_value}')
                 bkgd_ws = apply_transmission_correction(bkgd_ws,
                                                         trans_workspace=bkg_trans_ws,
                                                         trans_value=bkg_trans_value,
@@ -613,6 +619,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                          flux_method, flux, prefix, 'bkgd',
                                          output_dir, base_out_name)
     bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
+    SaveNexusProcessed(InputWorkspace=bkgd_trans_ws, Filename=f'/tmp/transmission_data_bkgd.nxs')
 
     # sample transmission
     sample_returned = process_transmission(loaded_ws.sample_transmission,
@@ -623,6 +630,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                            output_dir, outputFilename)
 
     sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict = sample_returned
+    SaveNexusProcessed(InputWorkspace=bkgd_trans_ws, Filename=f'/tmp/transmission_data_bkgd.nxs')
 
     # Form binning parameters
     binning_par_dc = {'nxbins_main': nxbins_main,

@@ -3,7 +3,6 @@ import copy
 from datetime import datetime
 import os
 from collections import namedtuple
-import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed
 

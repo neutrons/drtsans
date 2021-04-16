@@ -258,19 +258,17 @@ def test_calculate_raw_transmission(transmission_fixture):
 def test_calculate_fitted_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
+    Gold data is changed due to a bugfix on Mantid.Fit's error bar calculation
     """
-    # TODO FIXME the change is for study change in Mantid.Fit
     from mantid.simpleapi import SaveNexusProcessed
 
     fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference)
-    # FIXME: assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission.nxs')
-    SaveNexusProcessed(InputWorkspace=fitted_transmission_workspace, Filename='/tmp/fitted_transmission_mtd6.nxs')
+    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_mtd6.nxs')
 
     # big radius because detector is not centered
     fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample_skip,
                                                            transmission_fixture.reference_skip, radius=50)
-    # FIXME: assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_skip.nxs')
-    SaveNexusProcessed(InputWorkspace=fitted_transmission_workspace, Filename='/tmp/fitted_transmission_skip_mtd6.nxs')
+    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_skip_mtd6.nxs')
 
 
 def test_apply_transmission(transmission_fixture):

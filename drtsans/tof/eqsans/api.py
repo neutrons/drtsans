@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 import matplotlib.pyplot as plt
 
-from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
+from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus, SaveNexusProcessed  # noqa E402
 # Import rolled up to complete a single top-level API
 import drtsans  # noqa E402
 from drtsans import (apply_sensitivity_correction, getWedgeSelection, load_sensitivity_workspace, solid_angle_correction)  # noqa E402

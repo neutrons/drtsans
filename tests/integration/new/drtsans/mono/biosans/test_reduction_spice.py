@@ -248,8 +248,8 @@ def get_iq1d(log_file_name, is_main=True):
             iq1d_entry = log_h5['_slice_1']['wing_0']['I(Q)']
 
     # Get data with a copy
-    vec_q = np.copy(iq1d_entry['Q'].value)
-    vec_i = np.copy(iq1d_entry['I'].value)
+    vec_q = np.copy(iq1d_entry['Q'][()])
+    vec_i = np.copy(iq1d_entry['I'][()])
 
     # close file
     log_h5.close()

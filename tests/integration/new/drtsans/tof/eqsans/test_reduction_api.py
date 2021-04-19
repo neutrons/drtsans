@@ -235,7 +235,7 @@ def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name
     """Export a list of IQmod to plot
     """
 
-    plt.figure(figsize=(18,9))
+    plt.figure(figsize=(18, 9))
     for iq1d_tuple in iq1d_tuple_list:
         label, iq1d, color = iq1d_tuple
         plt.errorbar(iq1d.mod_q, iq1d.intensity, iq1d.error, color=color, label=label)
@@ -248,7 +248,7 @@ def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name
     # close
     plt.close()
 
-    plt.figure(figsize=(18,9))
+    plt.figure(figsize=(18, 9))
     plt.yscale('log')
 
     # plot error bar to compare
@@ -361,7 +361,6 @@ def test_wavelength_step(reference_dir):
         # iq2d_h5_name = os.path.join(gold_dir, f'gold_iq2d_wave_0.h5')
         # gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
         # _Testing.assert_allclose(reduction_output[0].I2D_main, gold_iq2d)
-
 
     with tempfile.TemporaryDirectory() as test_dir:
         configuration['configuration']['outputDir'] = test_dir

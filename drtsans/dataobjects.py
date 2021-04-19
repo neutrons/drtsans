@@ -713,7 +713,7 @@ def load_iq1d_from_h5(h5_name: str) -> IQmod:
         # get tuple element
         for field in ['intensity', 'error', 'mod_q', 'delta_mod_q', 'wavelength']:
             try:
-                value_dict[field] = data_group[field].value
+                value_dict[field] = data_group[field][()]
             except KeyError:
                 value_dict[field] = None
 
@@ -733,7 +733,7 @@ def load_iq2d_from_h5(h5_name: str) -> IQazimuthal:
         print(f'DEBUG field: {IQazimuthal._fields}')
         for field in IQazimuthal._fields:
             try:
-                value_dict[field] = data_group[field].value
+                value_dict[field] = data_group[field][()]
             except KeyError:
                 value_dict[field] = None
 

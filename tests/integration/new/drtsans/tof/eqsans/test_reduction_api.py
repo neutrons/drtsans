@@ -90,19 +90,18 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     print(f'Verify reduced workspace from nexus file {reduced_data_nexus}')
     assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
     # verify with gold data
-    gold_ws_nexus = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
-    # FIXME first faiure from here! weighted binning
-    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=True)
+    gold_dir = reference_dir.new.eqsans
+    gold_ws_nexus = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_reduced_wb_m6.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=False)
     print('Successfully passed processed sample - background')
 
     # FIXME
     import shutil
     cwd = os.getcwd()
     # To Save gold files and compare
-    shutil.copy(reduced_data_nexus, os.path.join(cwd, 'EQSANS_88980_reduced_wb.nxs'))
+    # shutil.copy(reduced_data_nexus, os.path.join(cwd, 'EQSANS_88980_reduced_wb.nxs'))
     export_reduction_output(reduction_output, cwd, 'correction_workflow')
     # Load data and compare
-    gold_dir = reference_dir.new.eqsans
 
     # Save I(Q) to h5 file
     flag1 = 'old' if not use_correction_workflow else 'new'
@@ -132,9 +131,9 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
 
         # Verify intensity
         try:
-            export_iq_comparison([('Test', reduction_output[0].I1D_main[0], 'red'),
+            export_iq_comparison([('Test', reduction_output[0].I1D_main[index], 'red'),
                                   ('Gold', gold_iq1d, 'green')],
-                                 os.path.join(cwd, 'wavelength_com_1d_comparison.png'))
+                                 os.path.join(cwd, f'wavelength_com_1d_{index}_comparison.png'))
             rel_tol = 0.5  # This is a very large value only for qualitative verification
             np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity,
                                        rtol=rel_tol)

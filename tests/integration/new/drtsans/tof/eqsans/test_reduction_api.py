@@ -96,6 +96,24 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     gold_ws_nexus = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_reduced_wb_m6.nxs')
     verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=False)
 
+    # Verify binned I(Q)
+    for index in range(2):
+        # Load expected I(Q) and I(Qx, Qy)
+        # Fixme : these 'expected' intensity and error are not verified but only Q range
+        gold_iq1d_h5 = os.path.join(gold_dir, f'88980_frame1_weighted_old_removebkgd_{index}.h5')
+        assert os.path.exists(gold_iq1d_h5)
+        gold_iq1d = load_iq1d_from_h5(gold_iq1d_h5)
+
+        gold_iq2d_h5 = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
+        assert os.path.exists(gold_iq2d_h5)
+        gold_iq2d = load_iq2d_from_h5(gold_iq2d_h5)
+        print(f'Verifying intensity frame {index} from {gold_iq1d_h5} and {gold_iq2d_h5}')
+
+        # Verify Q bins: 1D only, 2D skip
+        np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
+        # 2D
+        assert gold_iq2d
+
     # # FIXME
     # import shutil
     # cwd = os.getcwd()

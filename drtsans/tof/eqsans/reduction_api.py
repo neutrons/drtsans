@@ -584,8 +584,6 @@ def process_transmission(transmission_ws, empty_trans_ws, transmission_radius, s
         calculated_trans_ws = calculate_transmission(processed_trans_ws, empty_trans_ws,
                                                      radius=transmission_radius, radius_unit="mm")
         print(f'{type_name} transmission =', calculated_trans_ws.extractY()[0, 0])
-        # TODO DEBUG OUTPUT
-        tag = str(transmission_ws).split('.')[0]
 
         # optionally save
         if output_dir:

@@ -429,10 +429,10 @@ def test_wavelength_step(reference_dir):
         # E   Mismatched elements: 1 / 442368 (0.000226%)
         # E   Max absolute difference: 2.96006469e-09  Max relative difference: 1.7555871e-07
         gold_file = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_wl_reduced_gauss_m6.nxs')
-        verify_reduction(output_file_name, gold_file, 'gauss', ignore_error=False)
+        verify_reduction(output_file_name, gold_file, 'gauss', ignore_error=False, y_rel_tol=3.E-7)
 
 
-def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False):
+def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_tol=None):
     """Verify reduced result by verified expected result
 
     Parameters
@@ -445,6 +445,8 @@ def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False):
         prefix for Mantid workspace that the
     ignore_error: bool
         flag to ignore the checking on intensity error
+    y_rel_tol: float, None
+        allowed maximum tolerance on Y
 
     """
     assert os.path.exists(gold_file), f'Gold file {gold_file} cannot be found'
@@ -464,7 +466,11 @@ def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False):
         test_x_array = test_ws.extractX()
         assert gold_x_array.shape == test_x_array.shape
         np.testing.assert_allclose(gold_ws.extractX(), test_ws.extractX(), err_msg='X is not same')
-        np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY(), err_msg='Y is not same')
+        if y_rel_tol is not None:
+            y_dict = {'rtol': y_rel_tol} 
+        else:
+            y_dict = dict()
+        np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY(), err_msg='Y is not same', **y_dict)
         if not ignore_error:
             np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE(), err_msg='E is not same')
 

@@ -376,10 +376,11 @@ def test_wavelength_step(reference_dir):
         # E   Mismatched elements: 1 / 442368 (0.000226%)
         # E   Max absolute difference: 2.96006469e-09  Max relative difference: 1.7555871e-07
         gold_file = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_wl_reduced_gauss_m6.nxs')
-        verify_reduction(output_file_name, gold_file, 'gauss', ignore_error=False, y_rel_tol=3.E-7)
+        # This tolerance: 3E-7 comes from the different result between Ubuntu and REL7
+        verify_reduction(output_file_name, gold_file, 'gauss', ignore_error=False, y_rel_tol=3.E-7, e_rel_tol=1.36E-7)
 
 
-def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_tol=None):
+def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_tol=None, e_rel_tol=None):
     """Verify reduced result by verified expected result
 
     Parameters
@@ -419,7 +420,11 @@ def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_
             y_dict = dict()
         np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY(), err_msg='Y is not same', **y_dict)
         if not ignore_error:
-            np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE(), err_msg='E is not same')
+            if e_rel_tol is None:
+                e_dict = dict()
+            else:
+                e_dict = {'rtol': e_rel_tol}
+            np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE(), err_msg='E is not same', **e_dict)
 
 
 if __name__ == '__main__':

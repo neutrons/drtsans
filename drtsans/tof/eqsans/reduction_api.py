@@ -20,7 +20,6 @@ import numpy as np
 from typing import Tuple, Any, List
 from collections import namedtuple
 
-
 # Binning parameters
 BinningSetup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade '
                                            'decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')

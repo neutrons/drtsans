@@ -85,17 +85,17 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
                                                    use_correction_workflow=use_correction_workflow,
                                                    ignore_background=keep_background)
 
+    gold_dir = reference_dir.new.eqsans
     # Verify existence of reduced
     reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
     assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
-    # Verify reduced workspace
+    # Verify reduced workspace (previous) FIXME - remove later
     gold_ws_nexus = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=True)
+    # verify with gold data
+    gold_ws_nexus = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_reduced_wb_m6.nxs')
     verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=False)
-    assert reduction_output
 
-    # print(f'Verify reduced workspace from nexus file {reduced_data_nexus}')
-    # print('Successfully passed processed sample - background')
-    #
     # # FIXME
     # import shutil
     # cwd = os.getcwd()
@@ -103,15 +103,14 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     # shutil.copy(reduced_data_nexus, os.path.join(cwd, 'EQSANS_88980_reduced_wb.nxs'))
     # export_reduction_output(reduction_output, cwd, 'correction_workflow')
     # # Load data and compare
-    # gold_dir = reference_dir.new.eqsans
-    #
+
     # # Save I(Q) to h5 file
     # flag1 = 'old' if not use_correction_workflow else 'new'
     # flag2 = 'keepbkgd' if keep_background else 'removebkgd'
     # for index in range(2):
     #     save_i_of_q_to_h5(reduction_output[index].I1D_main[0],
     #                       os.path.join(cwd, f'88980_frame1_weighted_{flag1}_{flag2}_{index}.h5'))
-    #
+
     # error_list = list()
     # for index in range(2):
     #     # 1D
@@ -121,21 +120,21 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     #     assert os.path.exists(gold_iq1d_h5)
     #     assert os.path.exists(gold_iq2d_h5)
     #     print(f'Verifying intensity frame {index} from {gold_iq1d_h5}')
-    #
+
     #     gold_iq1d = load_iq1d_from_h5(gold_iq1d_h5)
     #     gold_iq2d = load_iq2d_from_h5(gold_iq2d_h5)
-    #
+
     #     # Verify Q bins
     #     # 1D
     #     np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
     #     # 2D
     #     assert gold_iq2d
-    #
+
     #     # Verify intensity
     #     try:
-    #         export_iq_comparison([('Test', reduction_output[0].I1D_main[0], 'red'),
+    #         export_iq_comparison([('Test', reduction_output[0].I1D_main[index], 'red'),
     #                               ('Gold', gold_iq1d, 'green')],
-    #                              os.path.join(cwd, 'wavelength_com_1d_comparison.png'))
+    #                              os.path.join(cwd, f'wavelength_com_1d_{index}_comparison.png'))
     #         rel_tol = 0.5  # This is a very large value only for qualitative verification
     #         np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity,
     #                                    rtol=rel_tol)

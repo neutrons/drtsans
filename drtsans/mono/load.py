@@ -145,7 +145,7 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
     """
     # Check inputs
     if sample_to_si_name is None:
-        raise NotImplementedError('Sample to Si window name must be specified thus cannot be None')
+        raise NotImplementedError(f'For {run} Sample to Si window name must be specified thus cannot be None')
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):

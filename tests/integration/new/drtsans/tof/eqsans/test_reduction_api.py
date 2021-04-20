@@ -232,9 +232,6 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     loaded = load_all_files(input_config)
     reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=False)
 
-    # FIXME TODO - remove debug output later
-    export_reduction_output(reduction_output, output_dir='/tmp/', prefix='mtd6')
-
     # Load data and compare
     gold_dir = reference_dir.new.eqsans
     for index in range(2):
@@ -255,8 +252,8 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
     # verify with gold data and clean
     gold_file = os.path.join(reference_dir.new.eqsans, 'test_integration_api/EQSANS_88980_reduced_m6.nxs')
-    print('Next Gold: ', reduced_data_nexus)
     verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    # clean up
     os.remove(reduced_data_nexus)
 
 
@@ -277,7 +274,7 @@ def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name
     # close
     plt.close()
 
-    plt.figure(figsize=(18, 9))
+    plt.figure(figsize=(18, 12))
     plt.yscale('log')
 
     # plot error bar to compare
@@ -408,6 +405,7 @@ def test_wavelength_step(reference_dir):
         gold_file = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_wl_reduced_com_m6.nxs')
         verify_reduction(output_file_name, gold_file, 'com', ignore_error=False)
 
+    # Test 3 with gaussian beam center
     with tempfile.TemporaryDirectory() as test_dir:
         # continue to configure
         configuration['configuration']['outputDir'] = test_dir
@@ -431,7 +429,7 @@ def test_wavelength_step(reference_dir):
         # E   Mismatched elements: 1 / 442368 (0.000226%)
         # E   Max absolute difference: 2.96006469e-09  Max relative difference: 1.7555871e-07
         gold_file = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_wl_reduced_gauss_m6.nxs')
-        verify_reduction(output_file_name, gold_file, 'com', ignore_error=False)
+        verify_reduction(output_file_name, gold_file, 'gauss', ignore_error=False)
 
 
 def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False):
@@ -445,6 +443,8 @@ def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False):
         NeXus file containing the expected reduced result to verify against
     ws_prefix: str
         prefix for Mantid workspace that the
+    ignore_error: bool
+        flag to ignore the checking on intensity error
 
     """
     assert os.path.exists(gold_file), f'Gold file {gold_file} cannot be found'

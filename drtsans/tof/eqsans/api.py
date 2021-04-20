@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 import matplotlib.pyplot as plt
 
-from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus, SaveNexusProcessed  # noqa E402
+from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
 import drtsans  # noqa E402
 from drtsans import (apply_sensitivity_correction, getWedgeSelection, load_sensitivity_workspace, solid_angle_correction)  # noqa E402
@@ -125,7 +125,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         fbc_options = fbc_options_json(reduction_input)
         center_x, center_y, fit_results = find_beam_center(center_ws_name, **fbc_options)
         logger.notice(f"calculated center ({center_x}, {center_y})")
-        print(f"calculated center ({center_x}, {center_y})")
         beam_center_type = 'calculated'
     else:
         # use default EQSANS center
@@ -294,7 +293,6 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     # beam_flux_ws = None
     # monitor_flux_ratio_ws = None
 
-    print('Done loading')
     sample_aperture_diameter = reduction_config["sampleApertureSize"]
     sample_thickness = reduction_input["sample"]["thickness"]
     smearing_pixel_size_x = reduction_config["smearingPixelSizeX"]
@@ -445,9 +443,6 @@ def process_single_configuration(sample_ws_raw,
             RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
                              WorkspaceToMatch=sample_ws,
                              OutputWorkspace=sample_trans_ws)
-            print('f[  DEBUG  Trans]  Workspace Shape = {sample_trans_ws.extractY().shape}')
-        else:
-            print('f[  DEBUG  Trans]  Value = {sample_trans_value}')
         sample_ws = apply_transmission_correction(sample_ws,
                                                   trans_workspace=sample_trans_ws,
                                                   trans_value=sample_trans_value,
@@ -468,9 +463,6 @@ def process_single_configuration(sample_ws_raw,
                     RebinToWorkspace(WorkspaceToRebin=bkg_trans_ws,
                                      WorkspaceToMatch=bkgd_ws,
                                      OutputWorkspace=bkg_trans_ws)
-                    print('f[  DEBUG  Trans] Bkgd Workspace Shape = {bkg_trans_ws.extractY().shape}')
-                else:
-                    print('f[  DEBUG  Trans] Bkgd Value = {bkg_trans_value}')
                 bkgd_ws = apply_transmission_correction(bkgd_ws,
                                                         trans_workspace=bkg_trans_ws,
                                                         trans_value=bkg_trans_value,
@@ -534,7 +526,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
         # TODO FIXME 689 - implement parse_correction_config() and unify with sections of codes in tests
         # incoherence_correction_setup = parse_correction_config(reduction_input)
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
-    print(f'[DEBUG 689] Incoherence correction setup: {incoherence_correction_setup}')
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
@@ -570,7 +561,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     weighted_errors = reduction_config["useErrorWeighting"]
     qmin = reduction_config["Qmin"]
     qmax = reduction_config["Qmax"]
-    print('FIRST qmin = {qmin}, qmax = {qmax}')
     annular_bin = reduction_config["AnnularAngleBin"]
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
@@ -619,7 +609,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                          flux_method, flux, prefix, 'bkgd',
                                          output_dir, base_out_name)
     bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
-    SaveNexusProcessed(InputWorkspace=bkgd_trans_ws, Filename=f'/tmp/transmission_data_bkgd.nxs')
 
     # sample transmission
     sample_returned = process_transmission(loaded_ws.sample_transmission,
@@ -630,7 +619,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                            output_dir, outputFilename)
 
     sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict = sample_returned
-    SaveNexusProcessed(InputWorkspace=bkgd_trans_ws, Filename=f'/tmp/transmission_data_bkgd.nxs')
 
     # Form binning parameters
     binning_par_dc = {'nxbins_main': nxbins_main,
@@ -647,7 +635,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
 
     # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
     binning_params = BinningSetup(**binning_par_dc)
-    print(f'[DEBUG] Flag to do correction = {incoherence_correction_setup.do_correction}')
 
     if incoherence_correction_setup.do_correction or use_correction_workflow:
         # optionally calcualte the elastic scattering nromalization factors
@@ -686,7 +673,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
-        print(f'DEBUG Flag to do correction = {incoherence_correction_setup.do_correction} (2) ')
         if incoherence_correction_setup.do_correction or use_correction_workflow:
             sample_run_num = reduction_input['sample']['runNumber']
             # process data in workflow that is able to incorporate inelastic incoherent correction
@@ -747,16 +733,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                    'n_vertical': reduction_config['subpixelsY']}
             # convert to Q
             iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
-            # DEBUG
-            print(f'INFO Before frame split: Bin [0, 1] information: ')
 
             iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
 
             # split to frames
             iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in, verbose=True)
-            print(f'INFO After frame split: Frame 0 Bin [0, 1] information: ')
-            print(f'INFO After frame split: Frame 1 Bin [0, 1] information: ')
-
             iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
             # frame Q ranges to None as default
             frame_q_ranges = None

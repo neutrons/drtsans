@@ -35,6 +35,7 @@
         "wavelengthSpread": {"$ref":  "common.json#/configuration/wavelengthSpread"},
 
         "useTimeSlice":         {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
+        "useTimeSliceTransmission": {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
         "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval"},
 
         "useLogSlice":         {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
@@ -209,9 +210,9 @@
         }
       },
 
-      "maxProperties": 74,
-      "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
-        "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset",
+      "maxProperties": 75,
+      "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "useTimeSliceTransmission",
+        "timeSliceInterval", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset",
         "sampleApertureSize", "sampleDetectorDistance", "sourceApertureDiameter",
         "usePixelCalibration", "maskFileName", "useDefaultMask",
         "defaultMask", "useMaskBackTubes", "darkMainFileName", "darkWingFileName", "normalization",

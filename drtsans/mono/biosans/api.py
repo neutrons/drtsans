@@ -971,14 +971,12 @@ def reduce_single_configuration(
         if len(loaded_ws.sample) > 1:
             output_suffix = f"_{i}"
 
-        if sample_trans_ws is None:
-            _sample_trans_ws = None
-        else:
-            _, _sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
+        if time_slice_transmission:
+            sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
 
         processed_data_main, trans_main = process_single_configuration(
             raw_sample_ws,
-            sample_trans_ws=_sample_trans_ws,
+            sample_trans_ws=sample_trans_ws,
             sample_trans_value=sample_trans_value,
             bkg_ws_raw=loaded_ws.background,
             bkg_trans_ws=bkgd_trans_ws,
@@ -1006,7 +1004,7 @@ def reduce_single_configuration(
         )
         processed_data_wing, trans_wing = process_single_configuration(
             raw_sample_ws,
-            sample_trans_ws=_sample_trans_ws,
+            sample_trans_ws=sample_trans_ws,
             sample_trans_value=sample_trans_value,
             bkg_ws_raw=loaded_ws.background,
             bkg_trans_ws=bkgd_trans_ws,

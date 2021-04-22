@@ -15,7 +15,7 @@ from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def crashed_gw0_test_no_overwrite(reference_dir, cleanfile):
+def test_no_overwrite(reference_dir, cleanfile):
     """Test reduce 3 sets of data without overwriting either sampleToSi or sampleDetectorDistance
 
     This integration test is from a test from and verified by Shuo Qian.

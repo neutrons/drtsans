@@ -805,6 +805,11 @@ def reduce_single_configuration(
         "DBScalingBeamRadius"
     ]  # FIXME missing keyword in the schema
     absolute_scale = reduction_config["StandardAbsoluteScale"]
+    time_slice_transmission = (
+            reduction_config["useTimeSlice"]
+            and
+            reduction_config["useTimeSliceTransmission"]
+    )
     output_dir = reduction_config["outputDir"]
 
     nxbins_main = reduction_config["numMainQxQyBins"]

@@ -949,6 +949,7 @@ def reduce_single_configuration(
             radius_unit="mm",
         )
 
+    sample_trans_ws = None
     if loaded_ws.sample_transmission is not None and empty_trans_ws is not None:
         sample_trans_ws_processed, sample_trans_ws = _prepare_sample_transmission_ws(
             loaded_ws.sample_transmission
@@ -962,9 +963,6 @@ def reduce_single_configuration(
                 backend="mpl",
                 imshow_kwargs={"norm": LogNorm(vmin=1)},
             )
-
-    else:
-        sample_trans_ws = None
 
     output = []
     detectordata = {}

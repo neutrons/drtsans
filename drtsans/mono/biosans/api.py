@@ -972,7 +972,7 @@ def reduce_single_configuration(
             output_suffix = f"_{i}"
 
         if time_slice_transmission:
-            sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
+            _, sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
 
         processed_data_main, trans_main = process_single_configuration(
             raw_sample_ws,

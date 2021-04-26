@@ -2,11 +2,10 @@ from math import isclose
 import pytest
 from tempfile import mkdtemp
 
-from mantid.simpleapi import DeleteWorkspace, mtd
+from mantid.simpleapi import mtd
 
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.mono.biosans.api import load_all_files, reduce_single_configuration
-from drtsans.path import registered_workspace
 
 
 def test_reduce_single_configuration_slice_transmission_false():

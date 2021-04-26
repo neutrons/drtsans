@@ -150,6 +150,7 @@ def test_reduce_single_configuration_slice_transmission_false():
         transmission_val,
         0.5734218305525239  # verified
     )
+    del _
 
 
 def test_reduce_single_configuration_slice_transmission_true():
@@ -294,6 +295,7 @@ def test_reduce_single_configuration_slice_transmission_true():
         transmission_val,
         0.7526460467895154  # verified
     )
+    del _
 
 
 if __name__ == '__main__':

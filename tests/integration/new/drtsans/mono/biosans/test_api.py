@@ -152,8 +152,6 @@ def test_reduce_single_configuration_slice_transmission_false():
         0.5734218305525239  # provided by s6v
     )
     del _
-    for workspace in [space for space in loaded if registered_workspace(space)]:
-        DeleteWorkspace(workspace)
 
 
 def test_reduce_single_configuration_slice_transmission_true():
@@ -299,8 +297,6 @@ def test_reduce_single_configuration_slice_transmission_true():
         0.7526460467895154  # from above config using older workflow
     )
     del _
-    for workspace in [space for space in loaded if registered_workspace(space)]:
-        DeleteWorkspace(workspace)
 
 
 if __name__ == '__main__':

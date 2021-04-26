@@ -6,6 +6,7 @@ from mantid.simpleapi import mtd
 
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.mono.biosans.api import load_all_files, reduce_single_configuration
+from drtsans.path import registered_workspace
 
 
 def test_reduce_single_configuration_slice_transmission_false():
@@ -151,7 +152,8 @@ def test_reduce_single_configuration_slice_transmission_false():
         0.5734218305525239  # verified
     )
     del _
-    mtd.clear()
+    for workspace in [space for space in loaded if registered_workspace(space)]:
+        mtd.remove(workspace)
 
 
 def test_reduce_single_configuration_slice_transmission_true():
@@ -297,7 +299,8 @@ def test_reduce_single_configuration_slice_transmission_true():
         0.7526460467895154  # verified
     )
     del _
-    mtd.clear()
+    for workspace in [space for space in loaded if registered_workspace(space)]:
+        mtd.remove(workspace)
 
 
 if __name__ == '__main__':

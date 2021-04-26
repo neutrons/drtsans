@@ -2,7 +2,7 @@ from math import isclose
 import pytest
 from tempfile import mkdtemp
 
-from mantid.simpleapi import mtd
+from mantid.simpleapi import DeleteWorkspace, mtd
 
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.mono.biosans.api import load_all_files, reduce_single_configuration
@@ -149,11 +149,11 @@ def test_reduce_single_configuration_slice_transmission_false():
     transmission_val = transmission.extractY()[0][0]
     assert isclose(
         transmission_val,
-        0.5734218305525239  # verified
+        0.5734218305525239  # provided by s6v
     )
     del _
     for workspace in [space for space in loaded if registered_workspace(space)]:
-        mtd.remove(workspace)
+        DeleteWorkspace(workspace)
 
 
 def test_reduce_single_configuration_slice_transmission_true():
@@ -296,11 +296,11 @@ def test_reduce_single_configuration_slice_transmission_true():
     transmission_val = transmission.extractY()[0][0]
     assert isclose(
         transmission_val,
-        0.7526460467895154  # verified
+        0.7526460467895154  # from above config using older workflow
     )
     del _
     for workspace in [space for space in loaded if registered_workspace(space)]:
-        mtd.remove(workspace)
+        DeleteWorkspace(workspace)
 
 
 if __name__ == '__main__':

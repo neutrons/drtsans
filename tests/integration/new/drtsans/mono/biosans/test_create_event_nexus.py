@@ -148,7 +148,7 @@ def verify_histogram(source_nexus, test_nexus):
         report_file.write(f'target: {test_nexus}\n')
 
 
-def test_reduction(reference_dir, cleanfile):
+def crashed_worker_test_reduction(reference_dir, cleanfile):
     """Test generate (partially copy) an event Nexus file by
     verifying reduction result between raw and generated event nexus file
 

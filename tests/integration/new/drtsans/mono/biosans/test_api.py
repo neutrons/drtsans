@@ -1,5 +1,6 @@
 from math import isclose
 import pytest
+import os
 from tempfile import mkdtemp
 from mantid.simpleapi import mtd
 from drtsans.mono.transmission import calculate_transmission

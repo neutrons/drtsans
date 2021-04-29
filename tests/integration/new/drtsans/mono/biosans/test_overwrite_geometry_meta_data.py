@@ -15,7 +15,7 @@ from drtsans.mono.biosans import (load_all_files, plot_reduction_output, reduce_
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def crashed_gw0_test_no_overwrite(reference_dir, cleanfile):
+def crash_worker_test_no_overwrite(reference_dir, cleanfile):
     """Test reduce 3 sets of data without overwriting either sampleToSi or sampleDetectorDistance
 
     This integration test is from a test from and verified by Shuo Qian.
@@ -45,7 +45,7 @@ def crashed_gw0_test_no_overwrite(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
-def crashed_gw0_test_overwrite_both_minor(reference_dir, cleanfile):
+def crash_worker_test_overwrite_both_minor(reference_dir, cleanfile):
     """Test reduce 3 sets of data overwriting both sampleToSi and sampleDetectorDistance
     with minor change.
     - Overwrite sampleToSi (distance) to 61 mm.
@@ -429,8 +429,8 @@ def get_iq1d(log_file_name, is_main=True):
             iq1d_entry = log_h5['_slice_1']['wing_0']['I(Q)']
 
     # Get data with a copy
-    vec_q = np.copy(iq1d_entry['Q'].value)
-    vec_i = np.copy(iq1d_entry['I'].value)
+    vec_q = np.copy(iq1d_entry['Q'][()])
+    vec_i = np.copy(iq1d_entry['I'][()])
 
     # close file
     log_h5.close()

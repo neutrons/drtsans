@@ -805,6 +805,11 @@ def reduce_single_configuration(
         "DBScalingBeamRadius"
     ]  # FIXME missing keyword in the schema
     absolute_scale = reduction_config["StandardAbsoluteScale"]
+    time_slice_transmission = (
+            reduction_config["useTimeSlice"]
+            and
+            reduction_config["useTimeSliceTransmission"]
+    )
     output_dir = reduction_config["outputDir"]
 
     nxbins_main = reduction_config["numMainQxQyBins"]
@@ -944,6 +949,7 @@ def reduce_single_configuration(
             radius_unit="mm",
         )
 
+    sample_trans_ws = None
     if loaded_ws.sample_transmission is not None and empty_trans_ws is not None:
         sample_trans_ws_processed, sample_trans_ws = _prepare_sample_transmission_ws(
             loaded_ws.sample_transmission
@@ -958,9 +964,6 @@ def reduce_single_configuration(
                 imshow_kwargs={"norm": LogNorm(vmin=1)},
             )
 
-    else:
-        sample_trans_ws = None
-
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
@@ -968,14 +971,12 @@ def reduce_single_configuration(
         if len(loaded_ws.sample) > 1:
             output_suffix = f"_{i}"
 
-        if sample_trans_ws is None:
-            _sample_trans_ws = None
-        else:
-            _, _sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
+        if time_slice_transmission:
+            _, sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
 
         processed_data_main, trans_main = process_single_configuration(
             raw_sample_ws,
-            sample_trans_ws=_sample_trans_ws,
+            sample_trans_ws=sample_trans_ws,
             sample_trans_value=sample_trans_value,
             bkg_ws_raw=loaded_ws.background,
             bkg_trans_ws=bkgd_trans_ws,
@@ -1003,7 +1004,7 @@ def reduce_single_configuration(
         )
         processed_data_wing, trans_wing = process_single_configuration(
             raw_sample_ws,
-            sample_trans_ws=_sample_trans_ws,
+            sample_trans_ws=sample_trans_ws,
             sample_trans_value=sample_trans_value,
             bkg_ws_raw=loaded_ws.background,
             bkg_trans_ws=bkgd_trans_ws,

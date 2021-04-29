@@ -6,7 +6,7 @@ from drtsans.mono.biosans.reduce_spice import reduce_biosans_nexus, clear_buffer
 import os
 
 
-def crashed_worker_test_spice_reduction(reference_dir, cleanfile):
+def test_spice_reduction(reference_dir, cleanfile):
     """Test reduction from data converted from SPICE
 
     Modified from Volker's RC488_IPTS24666_VolkerTemplate.py

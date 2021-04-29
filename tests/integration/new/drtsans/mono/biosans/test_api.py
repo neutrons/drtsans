@@ -8,7 +8,7 @@ from drtsans.mono.transmission import calculate_transmission
 from drtsans.mono.biosans.api import load_all_files, reduce_single_configuration
 
 
-def test_reduce_single_configuration_slice_transmission_false():
+def crashed_worker_test_reduce_single_configuration_slice_transmission_false():
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",

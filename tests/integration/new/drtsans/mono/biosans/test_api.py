@@ -153,7 +153,7 @@ def crashed_worker_test_reduce_single_configuration_slice_transmission_false():
     del _
 
 
-def test_reduce_single_configuration_slice_transmission_true():
+def crashed_test_reduce_single_configuration_slice_transmission_true():
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",

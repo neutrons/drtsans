@@ -6,9 +6,10 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus
 from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS
 
 
+@pytest.mark.skipif(not os.path.exists('/HFIR/HB2B/shared/autoreduce/'))
 def test_convert_spice(reference_dir, cleanfile):
     """
-    Test converting GPSANS SPICE file to event Nexus
+    Test converting BIOSANS SPICE file to event Nexus
     """
     # Set file
     ipts = 17241

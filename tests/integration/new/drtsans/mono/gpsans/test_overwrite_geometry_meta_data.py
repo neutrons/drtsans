@@ -59,7 +59,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
         reduction_input = update_reduction_parameters(reduction_input_common, specs, validate=True)
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
-        plot_reduction_output(out, reduction_input, loglog=False)
+        plot_reduction_output(out, reduction_input, loglog=False, close_figures=True)
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))

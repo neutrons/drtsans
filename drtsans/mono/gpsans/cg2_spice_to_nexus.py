@@ -1,5 +1,6 @@
 from drtsans.mono.convert_xml_to_nexus import EventNexusConverter
 import os
+import numpy as np
 
 
 class CG2EventNexusConvert(EventNexusConverter):
@@ -13,6 +14,17 @@ class CG2EventNexusConvert(EventNexusConverter):
         work for 48 banks
         """
         super(CG2EventNexusConvert, self).__init__('CG2', 'CG2', 48)
+
+    def _map_detector_and_counts(self):
+        # map to bank
+        for bank_id in range(1, self._num_banks + 1):
+            # create TofHistogram instance
+            start_pid, end_pid = self.get_pid_range(bank_id)
+            pix_ids = np.arange(start_pid, end_pid + 1)
+            counts = self._spice_detector_counts[start_pid:end_pid + 1]
+
+            self._bank_pid_dict[bank_id] = pix_ids
+            self._bank_counts_dict[bank_id] = counts
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation

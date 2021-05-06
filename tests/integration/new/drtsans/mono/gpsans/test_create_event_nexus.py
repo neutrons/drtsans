@@ -139,7 +139,7 @@ def test_reduction(reference_dir, cleanfile):
 
     # Verify results
     verify_cg2_reduction_results(sample_names, output_dir, gold_path,
-                                 title='Raw (No Overwriting)', prefix='CG2MetaRaw')
+                                 title='Raw (No Overwriting)', prefix='CG2MetaRaw_')
 
 
 def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sample_nexus_path, sample_trans_path,
@@ -193,7 +193,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix, sam
         reduction_input = update_reduction_parameters(reduction_input_common, specs, validate=True)
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
-        plot_reduction_output(out, reduction_input, loglog=False)
+        plot_reduction_output(out, reduction_input, loglog=False, close_figures=True)
 
 
 def generate_event_nexus(source_nexus, target_nexus):

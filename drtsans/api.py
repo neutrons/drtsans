@@ -63,7 +63,13 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
     # do the math
     if id_input == DataType.IQ_AZIMUTHAL:
         # verify that the qx and qy match
-        assert np.all(input_workspace.qx == background.qx), 'Qx must match'
+        try:
+            assert np.all(input_workspace.qx == background.qx), 'Qx must match'
+        except AssertionError:
+            print(f'{type(input_workspace)}: Qx size: {input_workspace.qx.shape}, {background.qx.shape}')
+            print(f'Qx min: {input_workspace.qx[0]},  {background.qx[0]}')
+            print(f'Qx max: {input_workspace.qx[-1]}, {background.qx[-1]}')
+            assert np.all(input_workspace.qx == background.qx), 'Qx must match'
         assert np.all(input_workspace.qy == background.qy), 'Qy must match'
 
         # do the math

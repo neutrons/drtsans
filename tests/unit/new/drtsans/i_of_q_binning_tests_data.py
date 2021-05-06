@@ -149,6 +149,8 @@ def generate_test_data(q_dimension, drt_standard):
 
     Returns
     -------
+    ~tuple
+        (intensity, sigma, q, dq) or (intensity, sigma, qx, dqx, qy, dqy)
 
     """
     # Check input: dimension must be either 1 or 2
@@ -185,10 +187,75 @@ def generate_test_data(q_dimension, drt_standard):
         # Raw matrix format
         if q_dimension == 1:
             # 1D: scalar Q
-            returns = intensities_matrix, uncertainties_matrix, scalar_q_matrix, scalar_q_matrix
+            returns = intensities_matrix, uncertainties_matrix, scalar_q_matrix, scalar_dq_matrix
         elif q_dimension == 2:
             # 2D: Qx, Qy
             returns = intensities_matrix, uncertainties_matrix, qx_matrix, dqx_matrix, qy_matrix, dqy_matrix
+
+    return returns
+
+
+def generate_test_data_wavelength(q_dimension, num_wavelengths):
+    """
+
+    Parameters
+    ----------
+    q_dimension
+    num_wavelengths: int
+        number of wavelength
+
+    Returns
+    -------
+    ~tuple
+        (intensity, sigma, q, dq, wavelength) or (intensity, sigma, qx, dqx, qy, dqy, wavelength)
+
+    """
+    assert isinstance(num_wavelengths, int) and num_wavelengths > 0, 'Number of wavelength must be greater' \
+                                                                     'than 0.'
+
+    if q_dimension == 1:
+        # get initial 1D arrays
+        i_array, sigma_array, q_array, dq_array = generate_test_data(1, True)
+
+        # size
+        num_pts = len(i_array)
+
+        # tile to number of wavelengths
+        i_array = np.tile(i_array, num_wavelengths)
+        sigma_array = np.tile(sigma_array, num_wavelengths)
+        q_array = np.tile(q_array, num_wavelengths)
+        dq_array = np.tile(dq_array, num_wavelengths)
+
+        for i_wl in range(1, num_wavelengths):
+            i_array[i_wl*num_pts:(1 + i_wl)*num_pts] *= (i_wl + 1)
+
+        # repeat for wavelength: 1.5, 2.5, 3.5, ...
+        wl_array = np.arange(num_wavelengths) * 1. + 1.5
+        wl_array = np.repeat(wl_array, num_pts)
+
+        returns = i_array, sigma_array, q_array, dq_array, wl_array
+
+    elif q_dimension == 2:
+        # get initial 2D arrays
+        i_array, sigma_array, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+
+        # size
+        num_pts = len(i_array)
+        # tile to number of wavelengths
+        i_array = np.tile(i_array, num_wavelengths)
+        sigma_array = np.tile(sigma_array, num_wavelengths)
+        qx_array = np.tile(qx_array, num_wavelengths)
+        dqx_array = np.tile(dqx_array, num_wavelengths)
+        qy_array = np.tile(qy_array, num_wavelengths)
+        dqy_array = np.tile(dqy_array, num_wavelengths)
+
+        # repeat for wavelength: 1.5, 2.5, 3.5, ...
+        wl_array = np.arange(num_wavelengths) * 1. + 1.5
+        wl_array = np.repeat(wl_array, num_pts)
+        returns = i_array, sigma_array, qx_array, dqx_array, qy_array, dqy_array, wl_array
+
+    else:
+        raise RuntimeError(f'Q dimension equal to {q_dimension} is not supported')
 
     return returns
 

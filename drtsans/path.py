@@ -127,7 +127,6 @@ def abspath(path, instrument='', ipts='', directory=None, search_archive=True):
 
     # get all of the options from FileFinder and convert them to an absolute
     # path in case any weren't already
-    message_archive = ''
     try:
         config = {'default.instrument': instrument, 'datasearch.searcharchive': 'hfir, sns'}
         if bool(search_archive) is False:
@@ -169,7 +168,7 @@ def abspaths(runnumbers, instrument='', ipts='', directory=None, search_archive=
     str
         Comma separated list of all of the full paths
     '''
-    # this could be written differentely to call ONCAT directly with all of the missing runnumbers
+    # this could be written differently to call ONCAT directly with all of the missing run numbers
     # once guessing the path didn't work
     filenames = []
     for runnumber in runnumbers.split(','):

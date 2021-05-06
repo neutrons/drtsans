@@ -121,11 +121,12 @@ def test_pixel_centers(workspace_with_instrument):
     Detector is 1 meter away from the sample
     The shape of a detector pixel is a cylinder of 20mm diameter and 20mm in height.
     """
+    # The generated IDF file still puts pixel position at the bottome edge center
     input_workspace = unique_workspace_dundername()  # temporary workspace
     workspace_with_instrument(axis_values=[2.0, 2.1], intensities=[[1.0, 2.0], [3.0, 2.0]],
                               output_workspace=input_workspace)
     pixel_positions = geo.pixel_centers(input_workspace, [0, 1, 2, 3])
-    expected = 1.e-03 * np.array([[10, -10, 0.], [10, 10, 0.], [-10, -10, 0.], [-10, 10, 0.]])  # in meters
+    expected = 1.e-03 * np.array([[10, -20, 0.], [10, 0, 0.], [-10, -20, 0.], [-10, 0, 0.]])  # in meters
     assert pixel_positions == pytest.approx(expected)
 
 

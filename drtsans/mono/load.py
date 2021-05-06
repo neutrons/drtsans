@@ -1,6 +1,6 @@
 import os
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
-from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd
+from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd, SaveNexusProcessed
 from mantid.kernel import logger
 # the generic version is feature complete for monochromatic data
 from drtsans.load import load_events, sum_data
@@ -145,17 +145,39 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
     """
     # Check inputs
     if sample_to_si_name is None:
-        raise NotImplementedError('Sample to Si window name must be specified thus cannot be None')
+        raise NotImplementedError(f'For {run} Sample to Si window name must be specified thus cannot be None')
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):
-        run = [r.strip() for r in run.split(',')]
+        runs = [r.strip() for r in run.split(',')]
+    else:
+        runs = run
+    # sanity check
+    if not isinstance(runs, list):
+        raise RuntimeError(f'runs {runs} of type {type(runs)} must be a list at this stage')
+    single_run = len(runs) == 1
+
+    # Specify a default name for non-single run output workspace
+    if not single_run and ((output_workspace is None) or (not output_workspace) or (output_workspace == 'None')):
+        # create default name for output workspace, uses all input
+        instrument_unique_name = instrument_enum_name(runs[0])  # determine which SANS instrument
+        output_workspace = '{}_{}{}'.format(instrument_unique_name,
+                                            '_'.join(str(extract_run_number(r)) for r in runs),
+                                            output_suffix)
+
     # Load NeXus file(s)
-    if len(run) == 1:
-        # if only one run just load and transform to wavelength and return workspace
-        ws = load_events(run=run[0],
+    # define list of workspace to sum
+    temp_workspaces = list()
+    for index, run in enumerate(runs):
+        # load and transform to wavelength and return workspace
+        if single_run:
+            output_ws_name = output_workspace
+        else:
+            output_ws_name = '__tmp_ws_{}'.format(index)
+        # Load event but not move sample or detector position by meta data
+        ws = load_events(run=run,
                          data_dir=data_dir,
-                         output_workspace=output_workspace,
+                         output_workspace=output_ws_name,
                          overwrite_instrument=overwrite_instrument,
                          output_suffix=output_suffix,
                          pixel_calibration=pixel_calibration,
@@ -165,61 +187,33 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
                          **kwargs)
 
         # Calculate offset with overwriting to sample-detector-distance
-        ws = set_sample_detector_position(ws, sample_to_si_name, si_nominal_distance,
-                                          sample_to_si_value, sample_detector_distance_value)
+        set_sample_detector_position(ws,
+                                     sample_to_si_window_name=sample_to_si_name,
+                                     si_window_to_nominal_distance=si_nominal_distance,
+                                     sample_si_window_overwrite_value=sample_to_si_value,
+                                     sample_detector_distance_overwrite_value=sample_detector_distance_value)
+        # Transform to wavelength
+        transform_to_wavelength(ws)
 
-        # Transform to wavelength and set unit uncertainties
-        ws = transform_to_wavelength(ws)
-        ws = set_init_uncertainties(ws)
-        return ws
+        # Append
+        temp_workspaces.append(ws)
+
+    # Sum over all the workspaces if needed
+    if single_run:
+        out_ws = temp_workspaces[0]
     else:
-        instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
-
-        # create default name for output workspace, uses all input
-        if (output_workspace is None) or (not output_workspace) or (output_workspace == 'None'):
-            output_workspace = '{}_{}{}'.format(instrument_unique_name,
-                                                '_'.join(str(extract_run_number(r)) for r in run),
-                                                output_suffix)
-
-        # list of worksapce to sum
-        temp_workspaces = []
-
-        # load and transform each workspace in turn
-        for n, r in enumerate(run):
-            temp_workspace_name = '__tmp_ws_{}'.format(n)
-            # Load event but not move sample or detector position by meta data
-            temp_ws = load_events(run=r,
-                                  data_dir=data_dir,
-                                  output_workspace=temp_workspace_name,
-                                  overwrite_instrument=overwrite_instrument,
-                                  detector_offset=0.,
-                                  sample_offset=0.,
-                                  reuse_workspace=reuse_workspace,
-                                  **kwargs)
-
-            # Calculate offset with overwriting to sample-detector-distance
-            set_sample_detector_position(temp_ws,
-                                         sample_to_si_window_name=sample_to_si_name,
-                                         si_window_to_nominal_distance=si_nominal_distance,
-                                         sample_si_window_overwrite_value=sample_to_si_value,
-                                         sample_detector_distance_overwrite_value=sample_detector_distance_value)
-
-            transform_to_wavelength(temp_workspace_name)
-            temp_workspaces.append(temp_workspace_name)
-
         # Sum temporary loaded workspaces
-        ws = sum_data(temp_workspaces,
-                      output_workspace=output_workspace)
-
-        # After summing data re-calculate initial uncertainties
-        ws = set_init_uncertainties(ws)
-
-        # Remove temporary workspace
-        for ws_name in temp_workspaces:
+        out_ws = sum_data(temp_workspaces, output_workspace=output_workspace)
+        # Remove temporary workspaces
+        for ws_i in temp_workspaces:
+            ws_name = str(ws_i)
             if mtd.doesExist(ws_name):
                 mtd.remove(ws_name)
 
-        return ws
+    # Set uncertainty: After summing data re-calculate initial uncertainties
+    out_ws = set_init_uncertainties(out_ws)
+
+    return out_ws
 
 
 def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nominal_distance,
@@ -249,13 +243,36 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
     """
     # Information output before
     logs = SampleLogs(ws)
-    logger.information('[META-GEOM  Init] Sample to detector distance = {} (calculated) /{} (meta) meter'
-                       ''.format(sample_detector_distance(ws, search_logs=False),
-                                 sample_detector_distance(ws, search_logs=True)))
-    logger.information('[META-GEOM      ] SampleToSi = {} m'
-                       ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm') * 1E-3))
-    logger.information('[META-GEOM      ] Overwrite Values = {}, {}'
-                       ''.format(sample_si_window_overwrite_value, sample_detector_distance_overwrite_value))
+
+    # Input verification: DAS record SDD must be same as calculated SDD
+    das_sdd = sample_detector_distance(ws, search_logs=True, unit='mm', forbid_calculation=True)
+    real_sdd = sample_detector_distance(ws, search_logs=False, unit='mm')
+    if abs(das_sdd - real_sdd) > 1.:
+        raise RuntimeError(f'Workspace {str(ws)}: after loading and initial setup, DAS SDD ({das_sdd})'
+                           f'is not equal to calculated/real SDD ({real_sdd}) by proportion as '
+                           f'{abs(das_sdd - real_sdd)/das_sdd}')
+
+    # Get original sample detector distance: find expected SDD for further verification
+    if sample_detector_distance_overwrite_value is None:
+        # respect the das-recorded SDD
+        expected_sdd = sample_detector_distance(ws, search_logs=True, unit='mm')
+        if sample_si_window_overwrite_value is not None:
+            das_sample_si_distance = ws.getRun().getProperty(sample_to_si_window_name).value.mean() * 1E-3  # meter
+            shift = sample_si_window_overwrite_value - das_sample_si_distance  # meter
+            expected_sdd += shift * 1E3
+
+    else:
+        # sample overwrite value: input is meter
+        expected_sdd = sample_detector_distance_overwrite_value * 1000
+
+    # record some raw (prior to any processing) geometry information
+    prior_geom_info = f'{ws}: \n' \
+                      f'Prior to any geometry correction:\n' \
+                      f'Sample to detector distance = {sample_detector_distance(ws, search_logs=False)}' \
+                      f'(calculated)  vs {sample_detector_distance(ws, search_logs=True)} (meta) mm.\n' \
+                      f' SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")} mm\n' \
+                      f'Overwrite Values = {sample_si_window_overwrite_value}, ' \
+                      f'{sample_detector_distance_overwrite_value}\n'
 
     # Calculate sample and detector offsets for moving
     sample_offset, detector_offset = \
@@ -264,8 +281,8 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                                    zero_sample_offset_sample_si_distance=si_window_to_nominal_distance,
                                    overwrite_sample_si_distance=sample_si_window_overwrite_value,
                                    overwrite_sample_detector_distance=sample_detector_distance_overwrite_value)
-    logger.information('[META-GEOM  INFO] Sample offset = {}, Detector offset = {}'
-                       ''.format(sample_offset, detector_offset))
+    # log
+    prior_geom_info += 'Sample offset = {}, Detector offset = {}\n'.format(sample_offset, detector_offset)
 
     # Move sample and detector
     ws = move_instrument(ws, sample_offset, detector_offset, is_mono=True,
@@ -273,14 +290,45 @@ def set_sample_detector_position(ws, sample_to_si_window_name, si_window_to_nomi
                          si_window_to_nominal_distance=si_window_to_nominal_distance)
 
     # Check current instrument setup and meta data (sample logs)
-    logs = SampleLogs(ws)
-    logger.information('[META-GEOM Final] Sample to detector distance = {} (calculated) /{} (meta) meter'
-                       ''.format(sample_detector_distance(ws, search_logs=False),
-                                 sample_detector_distance(ws, search_logs=True)))
-    logger.information('[META-GEOM      ] Sample position = {}'
-                       ''.format(ws.getInstrument().getSample().getPos()))
-    logger.information('[META-GEOM      ] SampleToSi = {} mm (From Log)'
-                       ''.format(logs.find_log_with_units(sample_to_si_window_name, unit='mm')))
+    logger.notice('{} Sample to detector distance = {} (calculated) vs {} (meta) mm'
+                  ''.format(str(ws), sample_detector_distance(ws, search_logs=False),
+                            sample_detector_distance(ws, search_logs=True)))
+
+    # Verification
+    calculated_sdd = sample_detector_distance(ws, search_logs=False, unit='mm')
+
+    # FIXME - absolute 0.01 mm is not a criteria restrict enough: 10E-2 mm will fail the test
+    criteria_mm = 1E-3
+    if abs(expected_sdd - calculated_sdd) > criteria_mm:  # absolute difference: 0.02 mm.  not good!
+        logs = SampleLogs(ws)
+        prior_geom_info += f'Result from geometry operation:\n' \
+                           f'Sample position = {ws.getInstrument().getSample().getPos()}\n' \
+                           f'SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")}' \
+                           f'mm (From Log)\n'
+        # add detector information
+        prior_geom_info += f'Detector[0] pos = {ws.getDetector(0).getPos()}\n'
+        prior_geom_info += f'Detector[{192 * 256 - 1}] = {ws.getDetector(192 * 256 - 1).getPos()}'
+
+        shift_det_x = ws.getRun().getProperty('detector_trans_Readback').value
+        shift_det_x_unit = ws.getRun().getProperty('detector_trans_Readback').units
+        prior_geom_info += f'Detector translation X-axis = {shift_det_x} ({shift_det_x_unit})\n'
+
+        # form error message
+        error_msg = f'Error: ws = {str(ws)}:\n' \
+                    f'Expected SDD = {expected_sdd} (mm), ' \
+                    f'Overwrite SDD = {sample_detector_distance_overwrite_value}, ' \
+                    f'Calculated SDD = {calculated_sdd} (mm).' \
+                    f'Error = {abs(expected_sdd - calculated_sdd)} > {criteria_mm}.\n' \
+                    f'FYI:\n {prior_geom_info}\n' \
+                    f'Failed workspace is saved to mono_sans_run_geometry_error.nxs'
+
+        logger.error(error_msg)
+
+        # Save workspace for further investigation
+        SaveNexusProcessed(InputWorkspace=ws, Filename='mono_sans_run_geometry_error.nxs',
+                           Title=f'from workspace {str(ws)}')
+
+        raise RuntimeError(error_msg)
 
     return ws
 
@@ -337,6 +385,8 @@ def load_and_split(run,
         Delta of log value to be sliced into from min log value and max log value.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
+    monitors: bool
+        flag to load monitors
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 

@@ -58,8 +58,8 @@ coarse_instrument = r'''
     <type outline="yes" name="tube">
     <properties/>
     <component type="pixel">
-        <location name="pixel0" y="-0.02000000"/>
-        <location name="pixel1" y="0.00000000"/>
+        <location name="pixel0" y="-0.01000000"/>
+        <location name="pixel1" y="0.01000000"/>
     </component>
   </type>
 

@@ -6,6 +6,7 @@ Much of the spreadsheet is split into smaller tests to aid in verifying the inte
 import pytest
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
 from drtsans.dataobjects import IQazimuthal, IQmod
 from drtsans.determine_bins import determine_1d_linear_bins
@@ -494,10 +495,40 @@ def test_real_data_biosans(reference_dir):
     plot_IQazimuthal(q2d_data, filename, backend='mpl', wedges=wedge_angles, symmetric_wedges=False,
                      imshow_kwargs={'norm': LogNorm()})
     print('saved image to', filename)
-
+    plt.close()
     # verify the plot was created and remove the file
     assert os.path.exists(filename), '"{}" does not exist'.format(filename)
     os.remove(filename)
+
+
+def test_real_data_biosans_manual(reference_dir):
+    """Test asymmetric manual wedge binning on BIOSANS data
+
+    """
+    MSamp_fn = os.path.join(reference_dir.new.biosans, 'CG3_127_5532_mBSub.h5')
+    MBuff_fn = os.path.join(reference_dir.new.biosans, 'CG3_127_5562_mBSub.h5')
+
+    ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace='sample', LoadHistory=False)
+    ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace='Main_buffer', LoadHistory=False)
+    ws_ms -= ws_mb  # subtract the buffer
+    ws_mb.delete()
+
+    # convert to I(qx,qy)
+    q1d_data = biosans.convert_to_q(ws_ms, mode='scalar')
+    q2d_data = biosans.convert_to_q(ws_ms, mode='azimuthal')
+    ws_ms.delete()
+
+    # calculate the wedge angles to use
+    wedge_angles = [(60., 120)]
+
+    # test bin_all
+    nbins = 100.
+    iq2d_rebinned, iq1d_rebinned = bin_all(q2d_data, q1d_data, nxbins=nbins, nybins=nbins, n1dbins=nbins,
+                                           bin1d_type='wedge',
+                                           wedges=wedge_angles,
+                                           symmetric_wedges=False,
+                                           error_weighted=False)
+    assert len(iq1d_rebinned) == 1, 'Expect exactly 1 output 1d spectra for manual wedge'
 
 
 if __name__ == '__main__':

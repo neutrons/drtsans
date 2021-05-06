@@ -18,7 +18,7 @@ from drtsans import solid_angle_correction
 # protected API
 from drtsans.settings import amend_config, namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import detector_name
+from drtsans.geometry import main_detector_name
 
 keys = ('run', 'num_events', 'sdd', 'ssd', 'min_tof', 'max_tof',
         'skip_frame', 'w_min', 'w_max', 'flux_normalized')
@@ -69,7 +69,7 @@ class TestLoadEvents(object):
         ws = mtd[run_infoset.ws]
         # assert distance of detector1 same as that in detectorZ of the logs
         instrument = ws.getInstrument()
-        det = instrument.getComponentByName(detector_name(instrument))
+        det = instrument.getComponentByName(main_detector_name(instrument))
         d1 = det.getDistance(instrument.getSample())
         assert run_infoset.sdd == pytest.approx(d1 * 1000, abs=1)
         # Check logs

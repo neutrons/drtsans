@@ -139,7 +139,7 @@ def test_wedges():
                                  nxbins=4, nybins=4, n1dbins=4,
                                  bin1d_type='wedge', log_scale=False,
                                  qmin=None, qmax=None,
-                                 annular_angle_bin=1., wedges=[[-30, 30], [60, 120]],
+                                 annular_angle_bin=1., wedges=[(-30, 30), (60, 120)],
                                  error_weighted=False)
     # in wedge 0, at low q 1, 2, 16, 8, 9, 10
     # in wedge 1, at low q 4, 5, 6, 12, 13, 14

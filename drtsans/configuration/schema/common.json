@@ -67,7 +67,32 @@
                 {"type": "null"},
                 {"type": "array", "items": {"type": "number", "ExclusiveMinimum": 0}}],
       "preferredType": "[float]"
-    }
+    },
+      "lmfitParameter" : {
+        "type": "object",
+        "additionalProperties": {
+          "value": {
+            "type": "number",
+            "descriptions": "Numerical Parameter value."
+          },
+          "vary": {
+            "type": "boolean",
+            "description": "Whether the Parameter is varied during a fit."
+          },
+          "min": {
+            "type": "number",
+            "description": "Lower bound for value."
+          },
+          "max": {
+            "type": "number",
+            "description": "Upper bound for value."
+          },
+          "expr": {
+            "type": "string",
+            "description": "Mathematical expression used to constrain the value during the fit."
+          }
+        }
+     }
   },
 
   "schemaStamp": {
@@ -169,7 +194,71 @@
         "examples": ["12345", 12345]
       }
     },
-    "maxProperties": 1,
+    "additionalProperties": {
+      "method": {
+        "type": "string",
+        "description": "Method to calculate the beam center. Available methods are: center_of_mass and gaussian.",
+        "examples": ["center_of_mass", "gaussian"]
+      },
+      "gaussian_centering_options": {
+        "type": "object",
+        "description": "Arguments to be passed on to the centering method.",
+        "additionalProperties": {
+          "amp": {
+            "$ref": "common.json#/definitions/lmfitParameter",
+            "description": "Amplitude of the Gaussian function. Default: ws.extractY().max()"
+          },
+          "sigma_x": {
+            "$ref": "common.json#/definitions/lmfitParameter",
+            "description": "X spead of the Gaussian function. Default: 0.01"
+          },
+          "sigma_y": {
+            "$ref": "common.json#/definitions/lmfitParameter",
+            "description": "Y spead of the Gaussian function. Default: 0.01"
+          },
+          "theta": {
+            "$ref": "common.json#/definitions/lmfitParameter",
+            "description": "Clockwise rotation angle of Gaussian function. Default: 0"
+          },
+          "CenterX": {
+            "$ref": "common.json#/definitions/lmfitParameter",
+            "description": "Estimate for the beam center in X [m]. Default: 0"
+          },
+          "CenterY": {
+            "$ref": "common.json#/definitions/lmfitParameter",
+            "description": "Estimate for the beam center in Y [m]. Default: 0"
+          }
+        }
+      },
+      "com_centering_options": {
+        "type": "object",
+        "description": "Arguments to be passed on to the centering method.",
+        "additionalProperties": {
+          "CenterX": {
+            "type": "number",
+            "description": "Estimate for the beam center in X [m]. Default: 0" 
+          },
+          "CenterY": {
+            "type": "number",
+            "description": "Estimate for the beam center in Y [m]. Default: 0"
+          },
+          "Tolerance": {
+            "$ref": "common.json#/definitions/safeStringPositiveFloat",
+            "description": "Tolerance on the center of mass position between each iteration [m]. Default: 0.00125"
+          },
+          "DirectBeam": {
+            "type": "boolean",
+             "description": "If true, a direct beam calculation will be performed. Otherwise, the center of mass of the scattering data will be computed by excluding the beam area."
+          },
+          "BeamRadius": {
+            "$ref": "common.json#/definitions/safeStringPositiveFloat",
+            "description": "Radius of the beam area, in meters, used the exclude the beam when calculating the center of mass of the scattering pattern."
+          }
+        }
+      }
+    },
+    "minProperties": 1,
+    "maxProperties": 3,
     "required": ["runNumber"]
   },
   "emptyTransmission": {

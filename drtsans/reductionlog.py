@@ -222,8 +222,9 @@ def _savesamplelogs(nxentry, dict_sample_logs, name_of_entry):
 
 
 def _create_groupe(entry=None, name='Default', data=[], units=''):
-    _entry_group = entry.create_dataset(name=name, data=data)
-    _entry_group.attrs['units'] = units
+    if data is not None:
+        _entry_group = entry.create_dataset(name=name, data=data)
+        _entry_group.attrs['units'] = units
 
 
 def _save_logslicedata(logslicedata={}, index=0, topEntry=None):
@@ -280,7 +281,7 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
                            data=iqxqy.delta_qy,
                            units='1/A')
         # wavelength
-        if iqxqy.wavelength:
+        if not (iqxqy.wavelength is None):
             wavelength = "{}".format(iqxqy.wavelength)
             _create_groupe(entry=entry,
                            name='Wavelength',
@@ -317,6 +318,7 @@ def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
                        data=iq.mod_q,
                        units='1/A')
 
+        print('delta mod q: ', iq.delta_mod_q)
         _create_groupe(entry=entry,
                        name='Qdev',
                        data=iq.delta_mod_q,
@@ -429,7 +431,8 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
     if not type(detectordata) is dict:
         raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
                            "and not a {}".format(type(detectordata)))
-
+    dk = list(detectordata.keys())
+    print(f'DEBUG detector data keys: {dk}')
     for _slice_name in detectordata.keys():
 
         if not type(detectordata[_slice_name]) is dict:
@@ -477,8 +480,13 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                 _current_frame = _current_detectordata[_frame_name]
                 midEntry = _createnxgroup(topEntry, _frame_name, 'NXdata')
 
+                cfkeys = list(_current_frame.keys())
+                print(f'current frame keys: {cfkeys}')
+
                 if 'iq' in _current_frame.keys() and 'iqxqy' in _current_frame.keys():
+                    print(_current_frame['iq'])
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
+                    print(_current_frame['iqxqy'])
                     _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
                 elif 'iq' in _current_frame.keys():
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)

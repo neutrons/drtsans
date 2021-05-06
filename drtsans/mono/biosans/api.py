@@ -6,7 +6,8 @@ import numpy as np
 import os
 
 from mantid.simpleapi import mtd, MaskDetectors, logger
-
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 import drtsans
 from drtsans import getWedgeSelection
@@ -15,7 +16,7 @@ from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_w
 from drtsans.instruments import extract_run_number
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy
-from drtsans.plots import plot_IQmod, plot_IQazimuthal
+from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans import subtract_background
 from drtsans.reductionlog import savereductionlog
 from drtsans.mono import biosans
@@ -48,7 +49,7 @@ SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None, path=None):
+def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf=False, debug_output=False):
     """load all required files at the beginning, and transform them to histograms
 
     Parameters
@@ -58,12 +59,13 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     load_params
     path: str or None
         Path to search the NeXus file
-
-    Returns
-    -------
+    use_nexus_idf: bool
+        Flag to enforce to use IDF from NeXus file.  It must be true for SPICE-converted NeXus
+    debug_output: bool
+        Flag to save internal data for debugging
 
     """
-    reduction_config = reduction_input['configuration']  # a handy shorcut to the configuration parameters dictionary
+    reduction_config = reduction_input['configuration']  # a handy shortcut to the configuration parameters dictionary
 
     instrument_name = reduction_input['instrumentName']
     ipts = reduction_input['iptsNumber']
@@ -102,6 +104,9 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     # sample offsets, etc
     if load_params is None:
         load_params = {}
+    # load nexus idf
+    if use_nexus_idf:
+        load_params['LoadNexusInstrumentXML'] = use_nexus_idf
 
     # Adjust pixel heights and widths
     load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
@@ -200,10 +205,12 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
                                                   'units': samplelogs[logslicename].units,
                                                   'name': logslicename}
     else:
+        # Load raw without slicing
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
+            # if sample is not an absolute path to nexus file, convert it to the absolute path
             filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
-            print(f"Loading filename {filename}")
+            logger.notice(f"Loading filename {filename} from sample {sample}")
             biosans.load_events_and_histogram(filename, output_workspace=ws_name,
                                               sample_to_si_name=SAMPLE_SI_META_NAME,
                                               si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
@@ -318,7 +325,6 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
             mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
         else:
             mask_ws = mtd[mask_ws_name]
-    print('Done loading')
 
     if registered_workspace(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'):
         raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group']
@@ -333,6 +339,16 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None):
     raw_bkg_trans_ws = mtd[f'{prefix}_{instrument_name}_{bkgd_trans}_raw_histo'] if bkgd_trans else None
     sensitivity_main_ws = mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
     sensitivity_wing_ws = mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
+
+    if debug_output:
+        for raw_sample in raw_sample_ws_list:
+            plot_detector(input_workspace=str(raw_sample), filename=form_output_name(raw_sample),
+                          backend='mpl')
+        for ws in [raw_bkgd_ws, raw_center_ws, raw_empty_ws, raw_sample_trans_ws,
+                   raw_bkg_trans_ws, raw_blocked_ws, dark_current_main, dark_current_wing]:
+            if ws is not None:
+                plot_detector(input_workspace=str(ws), filename=form_output_name(ws),
+                              backend='mpl',  imshow_kwargs={'norm': LogNorm(vmin=1)})
 
     return dict(sample=raw_sample_ws_list,
                 background=raw_bkgd_ws,
@@ -743,11 +759,13 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
                          imshow_kwargs=imshow_kwargs, title='Main',
                          wedges=wedges, symmetric_wedges=symmetric_wedges,
                          qmin=qmin_main, qmax=qmax_main)
+        plt.clf()
         filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.png')
         plot_IQazimuthal(out.I2D_wing, filename, backend='mpl',
                          imshow_kwargs=imshow_kwargs, title='Wing',
                          wedges=wedges, symmetric_wedges=symmetric_wedges,
                          qmin=qmin_wing, qmax=qmax_wing)
+        plt.clf()
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -755,13 +773,16 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             filename = os.path.join(output_dir, '1D', f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
             plot_IQmod([out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
                        filename, loglog=loglog, backend='mpl', errorbar_kwargs={'label': 'main,wing,both'})
-
+            plt.clf()
+    plt.close()
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, '1D'))
     allow_overwrite(os.path.join(output_dir, '2D'))
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=True):
+def reduce_single_configuration(
+    loaded_ws, reduction_input, prefix="", skip_nan=True, debug_output=False
+):
     reduction_config = reduction_input["configuration"]
 
     flux_method = reduction_config["normalization"]
@@ -772,12 +793,23 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     theta_deppendent_transmission = reduction_config["useThetaDepTransCorrection"]
     mask_panel = None
     if reduction_config["useMaskBackTubes"] is True:
-        mask_panel = 'back'
-    output_suffix = ''
-    thickness = reduction_input['sample']['thickness']  # default thickness set in BIOSANS.json schema
-    absolute_scale_method = reduction_config["absoluteScaleMethod"]  # FIXME default value in the schemay may be wrong
-    beam_radius = reduction_config["DBScalingBeamRadius"]  # FIXME missing keyword in the schema
+        mask_panel = "back"
+    output_suffix = ""
+    thickness = reduction_input["sample"][
+        "thickness"
+    ]  # default thickness set in BIOSANS.json schema
+    absolute_scale_method = reduction_config[
+        "absoluteScaleMethod"
+    ]  # FIXME default value in the schemay may be wrong
+    beam_radius = reduction_config[
+        "DBScalingBeamRadius"
+    ]  # FIXME missing keyword in the schema
     absolute_scale = reduction_config["StandardAbsoluteScale"]
+    time_slice_transmission = (
+            reduction_config["useTimeSlice"]
+            and
+            reduction_config["useTimeSliceTransmission"]
+    )
     output_dir = reduction_config["outputDir"]
 
     nxbins_main = reduction_config["numMainQxQyBins"]
@@ -786,10 +818,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
     nybins_wing = nxbins_wing
 
     bin1d_type = reduction_config["1DQbinType"]
-    log_binning = (reduction_config["QbinType"] == 'log')
+    log_binning = reduction_config["QbinType"] == "log"
     # FIXME - NO MORE USE OF Even_Decades
     # even_decades = reduction_config["useLogQBinsEvenDecade"]  # default set in the schema
-    decade_on_center = reduction_config["useLogQBinsDecadeCenter"]  # default set in the schema
+    decade_on_center = reduction_config[
+        "useLogQBinsDecadeCenter"
+    ]  # default set in the schema
 
     nbins_main = reduction_config["numMainQBins"]
     nbins_main_per_decade = reduction_config["LogQBinsPerDecadeMain"]
@@ -806,178 +840,297 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
 
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
-    wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
+    wedges = (
+        None
+        if wedges_min is None or wedges_max is None
+        else list(zip(wedges_min, wedges_max))
+    )
 
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
     symmetric_wedges = True
-    if bin1d_type == 'wedge' and wedges_min is None:
+    if bin1d_type == "wedge" and wedges_min is None:
         # the JSON validator "wedgesources" guarantees that the parameters to be collected are all non-empty
-        autoWedgeOpts = {'q_min': reduction_config['autoWedgeQmin'],
-                         'q_delta': reduction_config['autoWedgeQdelta'],
-                         'q_max': reduction_config['autoWedgeQmax'],
-                         'azimuthal_delta': reduction_config['autoWedgeAzimuthalDelta'],
-                         'peak_width': reduction_config['autoWedgePeakWidth'],
-                         'background_width': reduction_config['autoWedgeBackgroundWidth'],
-                         'signal_to_noise_min': reduction_config['autoWedgeSignalToNoiseMin']}
+        autoWedgeOpts = {
+            "q_min": reduction_config["autoWedgeQmin"],
+            "q_delta": reduction_config["autoWedgeQdelta"],
+            "q_max": reduction_config["autoWedgeQmax"],
+            "azimuthal_delta": reduction_config["autoWedgeAzimuthalDelta"],
+            "peak_width": reduction_config["autoWedgePeakWidth"],
+            "background_width": reduction_config["autoWedgeBackgroundWidth"],
+            "signal_to_noise_min": reduction_config["autoWedgeSignalToNoiseMin"],
+        }
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
 
-    xc, yc, yw = biosans.find_beam_center(loaded_ws.center)
-    print("Center  =", xc, yc, yw)
+    fbc_options = biosans.fbc_options_json(reduction_input)
+    xc, yc, yw, fit_results = biosans.find_beam_center(loaded_ws.center, **fbc_options)
+    logger.notice(f'Find beam center  = {xc}, {yc}, {yw}')
 
     # empty beam transmission workspace
     if loaded_ws.empty is not None:
-        empty_trans_ws_name = f'{prefix}_empty'
-        empty_trans_ws = prepare_data_workspaces(loaded_ws.empty,
-                                                 flux_method=flux_method,
-                                                 mask_detector='wing_detector',
-                                                 center_x=xc,
-                                                 center_y=yc,
-                                                 center_y_wing=yw,
-                                                 solid_angle=False,
-                                                 sensitivity_workspace=loaded_ws.sensitivity_main,
-                                                 output_workspace=empty_trans_ws_name)
+        empty_trans_ws_name = f"{prefix}_empty"
+        empty_trans_ws = prepare_data_workspaces(
+            loaded_ws.empty,
+            flux_method=flux_method,
+            mask_detector="wing_detector",
+            center_x=xc,
+            center_y=yc,
+            center_y_wing=yw,
+            solid_angle=False,
+            sensitivity_workspace=loaded_ws.sensitivity_main,
+            output_workspace=empty_trans_ws_name,
+        )
+        if debug_output:
+            plot_detector(
+                empty_trans_ws,
+                form_output_name(empty_trans_ws),
+                backend="mpl",
+                imshow_kwargs={"norm": LogNorm(vmin=1)},
+            )
     else:
         empty_trans_ws = None
 
     # background transmission
     if loaded_ws.background_transmission is not None and empty_trans_ws is not None:
-        bkgd_trans_ws_name = f'{prefix}_bkgd_trans'
-        bkgd_trans_ws_processed = prepare_data_workspaces(loaded_ws.background_transmission,
-                                                          flux_method=flux_method,
-                                                          mask_detector='wing_detector',
-                                                          center_x=xc,
-                                                          center_y=yc,
-                                                          center_y_wing=yw,
-                                                          solid_angle=False,
-                                                          sensitivity_workspace=loaded_ws.sensitivity_main,
-                                                          output_workspace=bkgd_trans_ws_name)
-        bkgd_trans_ws = calculate_transmission(bkgd_trans_ws_processed, empty_trans_ws,
-                                               radius=transmission_radius, radius_unit="mm")
-        print('Background transmission =', bkgd_trans_ws.extractY()[0, 0])
+        bkgd_trans_ws_name = f"{prefix}_bkgd_trans"
+        bkgd_trans_ws_processed = prepare_data_workspaces(
+            loaded_ws.background_transmission,
+            flux_method=flux_method,
+            mask_detector="wing_detector",
+            center_x=xc,
+            center_y=yc,
+            center_y_wing=yw,
+            solid_angle=False,
+            sensitivity_workspace=loaded_ws.sensitivity_main,
+            output_workspace=bkgd_trans_ws_name,
+        )
+        bkgd_trans_ws = calculate_transmission(
+            bkgd_trans_ws_processed,
+            empty_trans_ws,
+            radius=transmission_radius,
+            radius_unit="mm",
+        )
+        logger.notice(f"Background transmission = {bkgd_trans_ws.extractY()[0, 0]}")
+
+        if debug_output:
+            plot_detector(
+                bkgd_trans_ws_processed,
+                form_output_name(bkgd_trans_ws_processed),
+                backend="mpl",
+                imshow_kwargs={"norm": LogNorm(vmin=1)},
+            )
+
     else:
         bkgd_trans_ws = None
 
     # sample transmission
+    def _prepare_sample_transmission_ws(_sample_transmission):
+        """
+        inline function that prepare the sample transmission workspace for
+        normalization usage
+        """
+        _ws_processed = prepare_data_workspaces(
+            _sample_transmission,
+            flux_method=flux_method,
+            mask_detector="wing_detector",
+            center_x=xc,
+            center_y=yc,
+            center_y_wing=yw,
+            solid_angle=False,
+            sensitivity_workspace=loaded_ws.sensitivity_main,
+            output_workspace=f"{prefix}_sample_trans",
+        )
+
+        return _ws_processed, calculate_transmission(
+            _ws_processed,
+            empty_trans_ws,
+            radius=transmission_radius,
+            radius_unit="mm",
+        )
+
+    sample_trans_ws = None
     if loaded_ws.sample_transmission is not None and empty_trans_ws is not None:
-        sample_trans_ws_name = f'{prefix}_sample_trans'
-        sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
-                                                            flux_method=flux_method,
-                                                            mask_detector='wing_detector',
-                                                            center_x=xc,
-                                                            center_y=yc,
-                                                            center_y_wing=yw,
-                                                            solid_angle=False,
-                                                            sensitivity_workspace=loaded_ws.sensitivity_main,
-                                                            output_workspace=sample_trans_ws_name)
-        sample_trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
-                                                 radius=transmission_radius, radius_unit="mm")
-        print('Sample transmission =', sample_trans_ws.extractY()[0, 0])
-    else:
-        sample_trans_ws = None
+        sample_trans_ws_processed, sample_trans_ws = _prepare_sample_transmission_ws(
+            loaded_ws.sample_transmission
+        )
+        logger.notice(f"Sample transmission = {sample_trans_ws.extractY()[0, 0]}")
+
+        if debug_output:
+            plot_detector(
+                sample_trans_ws_processed,
+                form_output_name(sample_trans_ws_processed),
+                backend="mpl",
+                imshow_kwargs={"norm": LogNorm(vmin=1)},
+            )
 
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
-        name = "_slice_{}".format(i+1)
+        name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
-            output_suffix = f'_{i}'
+            output_suffix = f"_{i}"
 
-        processed_data_main, trans_main = process_single_configuration(raw_sample_ws,
-                                                                       sample_trans_ws=sample_trans_ws,
-                                                                       sample_trans_value=sample_trans_value,
-                                                                       bkg_ws_raw=loaded_ws.background,
-                                                                       bkg_trans_ws=bkgd_trans_ws,
-                                                                       bkg_trans_value=bkg_trans_value,
-                                                                       blocked_ws_raw=loaded_ws.blocked_beam,
-                                                                       theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
-                                                                       center_x=xc, center_y=yc, center_y_wing=yw,
-                                                                       dark_current=loaded_ws.dark_current_main,
-                                                                       flux_method=flux_method,
-                                                                       mask_detector='wing_detector',
-                                                                       mask_ws=loaded_ws.mask,
-                                                                       mask_panel=mask_panel,
-                                                                       solid_angle=solid_angle,
-                                                                       sensitivity_workspace=loaded_ws.sensitivity_main,  # noqa E502
-                                                                       output_workspace=f'processed_data_main_{i}',
-                                                                       output_suffix=output_suffix,
-                                                                       thickness=thickness,
-                                                                       absolute_scale_method=absolute_scale_method,
-                                                                       empty_beam_ws=empty_trans_ws,
-                                                                       beam_radius=beam_radius,
-                                                                       absolute_scale=absolute_scale,
-                                                                       keep_processed_workspaces=False)
-        processed_data_wing, trans_wing = process_single_configuration(raw_sample_ws,
-                                                                       sample_trans_ws=sample_trans_ws,
-                                                                       sample_trans_value=sample_trans_value,
-                                                                       bkg_ws_raw=loaded_ws.background,
-                                                                       bkg_trans_ws=bkgd_trans_ws,
-                                                                       bkg_trans_value=bkg_trans_value,
-                                                                       blocked_ws_raw=loaded_ws.blocked_beam,
-                                                                       theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
-                                                                       center_x=xc, center_y=yc, center_y_wing=yw,
-                                                                       dark_current=loaded_ws.dark_current_wing,
-                                                                       flux_method=flux_method,
-                                                                       mask_detector='detector1',
-                                                                       mask_ws=loaded_ws.mask,
-                                                                       mask_panel=mask_panel,
-                                                                       solid_angle=solid_angle,
-                                                                       sensitivity_workspace=loaded_ws.sensitivity_wing,  # noqa E502
-                                                                       output_workspace=f'processed_data_wing_{i}',
-                                                                       output_suffix=output_suffix,
-                                                                       thickness=thickness,
-                                                                       absolute_scale_method=absolute_scale_method,
-                                                                       empty_beam_ws=empty_trans_ws,
-                                                                       beam_radius=beam_radius,
-                                                                       absolute_scale=absolute_scale,
-                                                                       keep_processed_workspaces=False)
+        if time_slice_transmission:
+            _, sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
+
+        processed_data_main, trans_main = process_single_configuration(
+            raw_sample_ws,
+            sample_trans_ws=sample_trans_ws,
+            sample_trans_value=sample_trans_value,
+            bkg_ws_raw=loaded_ws.background,
+            bkg_trans_ws=bkgd_trans_ws,
+            bkg_trans_value=bkg_trans_value,
+            blocked_ws_raw=loaded_ws.blocked_beam,
+            theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+            center_x=xc,
+            center_y=yc,
+            center_y_wing=yw,
+            dark_current=loaded_ws.dark_current_main,
+            flux_method=flux_method,
+            mask_detector="wing_detector",
+            mask_ws=loaded_ws.mask,
+            mask_panel=mask_panel,
+            solid_angle=solid_angle,
+            sensitivity_workspace=loaded_ws.sensitivity_main,  # noqa E502
+            output_workspace=f"processed_data_main_{i}",
+            output_suffix=output_suffix,
+            thickness=thickness,
+            absolute_scale_method=absolute_scale_method,
+            empty_beam_ws=empty_trans_ws,
+            beam_radius=beam_radius,
+            absolute_scale=absolute_scale,
+            keep_processed_workspaces=False,
+        )
+        processed_data_wing, trans_wing = process_single_configuration(
+            raw_sample_ws,
+            sample_trans_ws=sample_trans_ws,
+            sample_trans_value=sample_trans_value,
+            bkg_ws_raw=loaded_ws.background,
+            bkg_trans_ws=bkgd_trans_ws,
+            bkg_trans_value=bkg_trans_value,
+            blocked_ws_raw=loaded_ws.blocked_beam,
+            theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+            center_x=xc,
+            center_y=yc,
+            center_y_wing=yw,
+            dark_current=loaded_ws.dark_current_wing,
+            flux_method=flux_method,
+            mask_detector="detector1",
+            mask_ws=loaded_ws.mask,
+            mask_panel=mask_panel,
+            solid_angle=solid_angle,
+            sensitivity_workspace=loaded_ws.sensitivity_wing,  # noqa E502
+            output_workspace=f"processed_data_wing_{i}",
+            output_suffix=output_suffix,
+            thickness=thickness,
+            absolute_scale_method=absolute_scale_method,
+            empty_beam_ws=empty_trans_ws,
+            beam_radius=beam_radius,
+            absolute_scale=absolute_scale,
+            keep_processed_workspaces=False,
+        )
+
+        if debug_output:
+            from mantid.simpleapi import SaveNexusProcessed
+
+            main_name = f'{form_output_name(processed_data_main).split(".")[0]}.nxs'
+            wing_name = f'{form_output_name(processed_data_wing).split(".")[0]}.nxs'
+            SaveNexusProcessed(InputWorkspace=processed_data_main, Filename=main_name)
+            SaveNexusProcessed(InputWorkspace=processed_data_wing, Filename=wing_name)
+            plot_detector(
+                processed_data_main,
+                form_output_name(processed_data_main),
+                backend="mpl",
+            )  # imshow_kwargs={'norm': LogNorm(vmin=1)})
+            # FIXME - using LogNorm option results in exception from matplotlib as some negative value detected
+            plot_detector(
+                processed_data_wing,
+                form_output_name(processed_data_wing),
+                backend="mpl",
+            )  # , imshow_kwargs={'norm': LogNorm(vmin=1)})
+
+        _loginfo = f"Transmission (main detector)@{str(raw_sample_ws)}:  {trans_main}\n"
+        _loginfo += f"Transmission (wing detector)@{str(raw_sample_ws)}: {trans_wing}"
+        logger.notice(_loginfo)
+        print(_loginfo)
 
         # binning
         subpixel_kwargs = dict()
-        if reduction_config['useSubpixels'] is True:
-            subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
-                               'n_vertical': reduction_config['subpixelsY']}
-        iq1d_main_in = biosans.convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
-        iq2d_main_in = biosans.convert_to_q(processed_data_main, mode='azimuthal',  **subpixel_kwargs)
+        if reduction_config["useSubpixels"] is True:
+            subpixel_kwargs = {
+                "n_horizontal": reduction_config["subpixelsX"],
+                "n_vertical": reduction_config["subpixelsY"],
+            }
+        iq1d_main_in = biosans.convert_to_q(
+            processed_data_main, mode="scalar", **subpixel_kwargs
+        )
+        iq2d_main_in = biosans.convert_to_q(
+            processed_data_main, mode="azimuthal", **subpixel_kwargs
+        )
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
-            logger.notice(f'Auto wedge options: {autoWedgeOpts}')
-            autoWedgeOpts['debug_dir'] = output_dir
+            logger.notice(f"Auto wedge options: {autoWedgeOpts}")
+            autoWedgeOpts["debug_dir"] = output_dir
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            print('found wedge angles:')
+            print("found wedge angles:")
             peak_wedge, back_wedge = wedges
-            print('    peak:      ', peak_wedge)
-            print('    background:', back_wedge)
+            print("    peak:      ", peak_wedge)
+            print("    background:", back_wedge)
             del peak_wedge, back_wedge
-            print(f'wedges: {wedges}')
+            print(f"wedges: {wedges}")
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_config["wedges"] = wedges
         reduction_config["symmetric_wedges"] = symmetric_wedges
 
-        iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in, iq1d_main_in, nxbins_main, nybins_main,
-                                               n1dbins=nbins_main, n1dbins_per_decade=nbins_main_per_decade,
-                                               decade_on_center=decade_on_center,
-                                               bin1d_type=bin1d_type, log_scale=log_binning,
-                                               qmin=qmin_main, qmax=qmax_main,
-                                               annular_angle_bin=annular_bin, wedges=wedges,
-                                               symmetric_wedges=symmetric_wedges,
-                                               error_weighted=weighted_errors)
-        iq1d_wing_in = biosans.convert_to_q(processed_data_wing, mode='scalar')
-        iq2d_wing_in = biosans.convert_to_q(processed_data_wing, mode='azimuthal')
-        iq2d_wing_out, iq1d_wing_out = bin_all(iq2d_wing_in, iq1d_wing_in, nxbins_wing, nybins_wing,
-                                               n1dbins=nbins_wing, n1dbins_per_decade=nbins_wing_per_decade,
-                                               decade_on_center=decade_on_center,
-                                               bin1d_type=bin1d_type, log_scale=log_binning,
-                                               qmin=qmin_wing, qmax=qmax_wing,
-                                               annular_angle_bin=annular_bin, wedges=wedges,
-                                               symmetric_wedges=symmetric_wedges,
-                                               error_weighted=weighted_errors)
+        iq2d_main_out, iq1d_main_out = bin_all(
+            iq2d_main_in,
+            iq1d_main_in,
+            nxbins_main,
+            nybins_main,
+            n1dbins=nbins_main,
+            n1dbins_per_decade=nbins_main_per_decade,
+            decade_on_center=decade_on_center,
+            bin1d_type=bin1d_type,
+            log_scale=log_binning,
+            qmin=qmin_main,
+            qmax=qmax_main,
+            annular_angle_bin=annular_bin,
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            error_weighted=weighted_errors,
+        )
+        iq1d_wing_in = biosans.convert_to_q(processed_data_wing, mode="scalar")
+        iq2d_wing_in = biosans.convert_to_q(processed_data_wing, mode="azimuthal")
+        iq2d_wing_out, iq1d_wing_out = bin_all(
+            iq2d_wing_in,
+            iq1d_wing_in,
+            nxbins_wing,
+            nybins_wing,
+            n1dbins=nbins_wing,
+            n1dbins_per_decade=nbins_wing_per_decade,
+            decade_on_center=decade_on_center,
+            bin1d_type=bin1d_type,
+            log_scale=log_binning,
+            qmin=qmin_wing,
+            qmax=qmax_wing,
+            annular_angle_bin=annular_bin,
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            error_weighted=weighted_errors,
+        )
+
+        # create output directories
+        create_output_dir(output_dir)
 
         # save ASCII files
-        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.dat')
+        filename = os.path.join(
+            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.dat"
+        )
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
-        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.dat')
+        filename = os.path.join(
+            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.dat"
+        )
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
 
         def olt_q_boundary(boundary):
@@ -985,101 +1138,143 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
             boundary: str; Either 'min' or 'max'
             Returns: list
             """
-            if boundary not in ('min', 'max'):
+            if boundary not in ("min", "max"):
                 raise ValueError('Only "min" or "max" are valid arguments')
-            olt_q = reduction_config[f'overlapStitchQ{boundary}']  # guaranteed `None` or `list`
+            olt_q = reduction_config[
+                f"overlapStitchQ{boundary}"
+            ]  # guaranteed `None` or `list`
             if olt_q is None:
-                extremum_function = getattr(iq1d_wing_in.mod_q, boundary)  # either min() or max() method
+                extremum_function = getattr(
+                    iq1d_wing_in.mod_q, boundary
+                )  # either min() or max() method
                 return np.repeat(extremum_function(), len(iq1d_main_out))
             elif len(olt_q) == 1:
                 return np.repeat(olt_q[0], len(iq1d_main_out))
             else:
                 return np.array(olt_q)
 
-        OLT_Qmin = olt_q_boundary('min')
-        OLT_Qmax = olt_q_boundary('max')
+        OLT_Qmin = olt_q_boundary("min")
+        OLT_Qmax = olt_q_boundary("max")
 
         iq1d_combined_out = []
         for j in range(len(iq1d_main_out)):
             add_suffix = ""
             if len(iq1d_main_out) > 1:
-                add_suffix = f'_wedge_{j}'
-            ascii_1D_filename = os.path.join(output_dir, '1D',
-                                             f'{outputFilename}{output_suffix}_1D_main{add_suffix}.txt')
+                add_suffix = f"_wedge_{j}"
+            ascii_1D_filename = os.path.join(
+                output_dir,
+                "1D",
+                f"{outputFilename}{output_suffix}_1D_main{add_suffix}.txt",
+            )
             save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
-            ascii_1D_filename = os.path.join(output_dir, '1D',
-                                             f'{outputFilename}{output_suffix}_1D_wing{add_suffix}.txt')
+            ascii_1D_filename = os.path.join(
+                output_dir,
+                "1D",
+                f"{outputFilename}{output_suffix}_1D_wing{add_suffix}.txt",
+            )
             save_iqmod(iq1d_wing_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
             try:
-                iq_output_both = biosans.stitch_profiles(profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
-                                                         overlaps=[OLT_Qmin[j], OLT_Qmax[j]],
-                                                         target_profile_index=0)
+                iq_output_both = biosans.stitch_profiles(
+                    profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
+                    overlaps=[OLT_Qmin[j], OLT_Qmax[j]],
+                    target_profile_index=0,
+                )
 
-                ascii_1D_filename = os.path.join(output_dir, '1D',
-                                                 f'{outputFilename}{output_suffix}_1D_both{add_suffix}.txt')
+                ascii_1D_filename = os.path.join(
+                    output_dir,
+                    "1D",
+                    f"{outputFilename}{output_suffix}_1D_both{add_suffix}.txt",
+                )
                 save_iqmod(iq_output_both, ascii_1D_filename, skip_nan=skip_nan)
             except ZeroDivisionError:
                 iq_output_both = IQmod(intensity=[], error=[], mod_q=[])
 
             iq1d_combined_out.append(iq_output_both)
-        IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I2D_wing', 'I1D_main', 'I1D_wing', 'I1D_combined'])
-        current_output = IofQ_output(I2D_main=iq2d_main_out,
-                                     I2D_wing=iq2d_wing_out,
-                                     I1D_main=iq1d_main_out,
-                                     I1D_wing=iq1d_wing_out,
-                                     I1D_combined=iq1d_combined_out)
+        IofQ_output = namedtuple(
+            "IofQ_output",
+            ["I2D_main", "I2D_wing", "I1D_main", "I1D_wing", "I1D_combined"],
+        )
+        current_output = IofQ_output(
+            I2D_main=iq2d_main_out,
+            I2D_wing=iq2d_wing_out,
+            I1D_main=iq1d_main_out,
+            I1D_wing=iq1d_wing_out,
+            I1D_combined=iq1d_combined_out,
+        )
         output.append(current_output)
 
         _inside_detectordata = {}
         if iq_output_both.intensity.size > 0:
-            _inside_detectordata = {'combined': {'iq': [iq_output_both]}}
+            _inside_detectordata = {"combined": {"iq": [iq_output_both]}}
         else:
             _inside_detectordata = {}
         index = 0
-        for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(iq1d_main_out, iq1d_wing_out,
-                                                                  [iq2d_main_out], [iq2d_wing_out]):
-            _inside_detectordata["main_{}".format(index)] = {'iq': [_iq1d_main],
-                                                             'iqxqy': _iq2d_main}
-            _inside_detectordata["wing_{}".format(index)] = {'iq': [_iq1d_wing],
-                                                             'iqxqy': _iq2d_wing}
+        for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(
+            iq1d_main_out, iq1d_wing_out, [iq2d_main_out], [iq2d_wing_out]
+        ):
+            _inside_detectordata["main_{}".format(index)] = {
+                "iq": [_iq1d_main],
+                "iqxqy": _iq2d_main,
+            }
+            _inside_detectordata["wing_{}".format(index)] = {
+                "iq": [_iq1d_wing],
+                "iqxqy": _iq2d_wing,
+            }
 
         detectordata[name] = _inside_detectordata
 
     # save reduction log
 
-    filename = os.path.join(reduction_config["outputDir"], outputFilename + f'_reduction_log{output_suffix}.hdf')
+    filename = os.path.join(
+        reduction_config["outputDir"],
+        outputFilename + f"_reduction_log{output_suffix}.hdf",
+    )
+    #
+    # raise RuntimeError(f'Output file name = {filename}, Path = {reduction_config["outputDir"]},'
+    #                    f'Basename = {outputFilename}, Output suffix = {output_suffix}')
+
     starttime = datetime.now().isoformat()
     # try:
     #     pythonfile = __file__
     # except NameError:
     #     pythonfile = "Launched from notebook"
-    reductionparams = {'data': copy.deepcopy(reduction_input)}
-    specialparameters = {'beam_center': {'x': xc, 'y': yc, 'y_wing': yw},
-                         'sample_transmission': {'main': trans_main['sample'],
-                                                 'wing': trans_wing['sample']},
-                         'background_transmission': {'main': trans_main['background'],
-                                                     'wing': trans_wing['background']}
-                         }
+    reductionparams = {"data": copy.deepcopy(reduction_input)}
+    specialparameters = {
+        "beam_center": {"x": xc, "y": yc, "y_wing": yw},
+        "fit results": fit_results,
+        "sample_transmission": {
+            "main": trans_main["sample"],
+            "wing": trans_wing["sample"],
+        },
+        "background_transmission": {
+            "main": trans_main["background"],
+            "wing": trans_wing["background"],
+        },
+    }
 
-    samplelogs = {'main': SampleLogs(processed_data_main), 'wing': SampleLogs(processed_data_wing)}
-    logslice_data_dict = reduction_input['logslice_data']
+    samplelogs = {
+        "main": SampleLogs(processed_data_main),
+        "wing": SampleLogs(processed_data_wing),
+    }
+    logslice_data_dict = reduction_input["logslice_data"]
 
-    savereductionlog(filename=filename,
-                     detectordata=detectordata,
-                     reductionparams=reductionparams,
-                     # pythonfile=pythonfile,
-                     starttime=starttime,
-                     specialparameters=specialparameters,
-                     logslicedata=logslice_data_dict,
-                     samplelogs=samplelogs,
-                     )
+    savereductionlog(
+        filename=filename,
+        detectordata=detectordata,
+        reductionparams=reductionparams,
+        # pythonfile=pythonfile,
+        starttime=starttime,
+        specialparameters=specialparameters,
+        logslicedata=logslice_data_dict,
+        samplelogs=samplelogs,
+    )
 
     # change permissions to all files to allow overwrite
     allow_overwrite(reduction_config["outputDir"])
-    allow_overwrite(os.path.join(reduction_config["outputDir"], '1D'))
-    allow_overwrite(os.path.join(reduction_config["outputDir"], '2D'))
+    allow_overwrite(os.path.join(reduction_config["outputDir"], "1D"))
+    allow_overwrite(os.path.join(reduction_config["outputDir"], "2D"))
 
     return output
 
@@ -1176,9 +1371,16 @@ def prepare_data(data,
     if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
         raise RuntimeError('biosans.api.prepare_data does not work with detector_offset or sample_offset')
 
+    # Load data and enforce to use nexus IDF
+    if 'enforce_use_nexus_idf' in kwargs:
+        enforce_use_nexus_idf = kwargs['enforce_use_nexus_idf']
+    else:
+        enforce_use_nexus_idf = False
+
     # Load event without moving detector and sample after loading NeXus and instrument
     ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.)
+                     pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.,
+                     LoadNexusInstrumentXML=enforce_use_nexus_idf)
 
     # Reset the offset
     sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,
@@ -1204,7 +1406,9 @@ def prepare_data(data,
         if mtd.doesExist(str(dark_current)):
             dark_ws = mtd[str(dark_current)]
         else:
-            dark_ws = load_events(dark_current, overwrite_instrument=True)
+            # load dark current
+            dark_ws = load_events(dark_current, overwrite_instrument=True,
+                                  LoadNexusInstrumentXML=enforce_use_nexus_idf)
             dark_ws = transform_to_wavelength(dark_ws)
             dark_ws = set_init_uncertainties(dark_ws)
         subtract_dark_current(ws_name, dark_ws)
@@ -1237,3 +1441,23 @@ def prepare_data(data,
                   smearing_pixel_size_x, smearing_pixel_size_y)
 
     return mtd[ws_name]
+
+
+def create_output_dir(output_dir):
+    # output root
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    # 1D and 2D
+    for sub_dir in ['1D', '2D']:
+        n_d_dir = os.path.join(output_dir, sub_dir)
+        if not os.path.exists(n_d_dir):
+            os.mkdir(n_d_dir)
+
+    return
+
+
+def form_output_name(workspace):
+    workspace_name = str(workspace)
+    file_name = workspace_name.split('/')[-1].split('.')[0]
+    return f'{file_name}.png'

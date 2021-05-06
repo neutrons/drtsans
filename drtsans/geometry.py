@@ -4,6 +4,7 @@ from mantid.kernel import logger
 # https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
 from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
+from typing import Union
 
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unpack_v3d, namedtuplefy
@@ -35,7 +36,7 @@ def panel_names(input_query):
     return detector_names
 
 
-def detector_name(ipt):
+def main_detector_name(ipt):
     r"""
     Name of the main detector array
 
@@ -75,7 +76,7 @@ def main_detector_panel(source):
     -------
     ~mantid.geometry.CompAssembly
     """
-    return get_instrument(source).getComponentByName(detector_name(source))
+    return get_instrument(source).getComponentByName(main_detector_name(source))
 
 
 def bank_workspace_index_range(input_workspace, component=''):
@@ -203,10 +204,6 @@ def pixel_centers(input_workspace, indexes, shape=None):
     r"""
     Coordinates for the center of one or more pixel detectors. It is assumed that all pixels have the same shape.
 
-    This function can handle the special case of cylinder pixels, when a call to
-    ~mantid.geometry.componentInfo.position or ~mantd.geometry.detectorInfo.position returns the position
-    for the center of the bottom base of the pixel, instead of the position of the pixel center.
-
     Parameters
     ----------
     input_workspace: str, ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
@@ -214,26 +211,19 @@ def pixel_centers(input_workspace, indexes, shape=None):
         one index or a list of component info indexes, or detector info indexes, but not workspace indexes or
         spectrum info indexes.
     shape: str
-        Shape of the pixel. One of ('cylinder', 'rectangular'). If :py:obj:`None`, then ```source_info```
-        the shape will be determined for the first pixel, and assumed it's the same for the rest.
+        vestigial argument, retained for backward compatiblity
 
     Returns
     -------
     numpy.ndarray
         Coordinates for each pixel detector
     """
+    # NOTE: All pixel positions are defined within IDF with respect to the lab reference frame.
+    #       The current IDF for CG2 defines all pixels by their center, which is directly readin
+    #       by Mantid upon data loading.
     component_info = mtd[str(input_workspace)].componentInfo()
-    if isinstance(indexes, int):
-        indexes = [indexes, ]
-    if shape is None:
-        shape_xml = component_info.shape(indexes[0]).getShapeXML()
-        shape = 'cylinder' if 'cylinder' in shape_xml else 'rectangular'
+    indexes = [indexes, ] if isinstance(indexes, int) else indexes
     positions = np.array([unpack_v3d(component_info.position, i) for i in indexes])
-    if shape == 'cylinder':
-        # shift along the vertical axis by half the nominal pixel height
-        translation = np.array([0.0, component_info.shape(indexes[0]).getBoundingBox().width().Y() / 2, 0.0])
-        positions += translation
-    # no code for rectangular, since componentInfo.position does return the center pixel
     return positions
 
 
@@ -416,10 +406,13 @@ def search_source_sample_distance_meta_name(source, specified_meta_name):
     return _search_meta_data(source, log_keys, specified_meta_name)
 
 
-def sample_detector_distance(source, unit='mm', log_key=None,
-                             search_logs=True):
+def sample_detector_distance(source,
+                             unit: str = 'mm',
+                             log_key: Union[str, None] = None,
+                             search_logs: bool = True,
+                             forbid_calculation: bool = False) -> float:
     r"""
-    Return the distance from the sample to the detector bank
+    Return the distance from the sample to the main detector bank plane
 
     The function checks the logs for the distance, otherwise returns the
     minimum distance between the sample and the detectors of the bank
@@ -436,6 +429,8 @@ def sample_detector_distance(source, unit='mm', log_key=None,
         log keys
     search_logs: bool
         Report the value found in the logs.
+    forbid_calculation: bool
+        Flag to raise an exception if it is required to get SDD from meta data but no associated meta data is found
 
     Returns
     -------
@@ -450,7 +445,8 @@ def sample_detector_distance(source, unit='mm', log_key=None,
         meta_info_list = search_sample_detector_distance_meta_name(source, log_key)
         if len(meta_info_list) == 0:
             # No meta data found: Use instrument information to get distance
-            pass
+            if forbid_calculation:
+                raise RuntimeError('Unable to find any meta data related to SDD')
         else:
             # Calculate from log value considering unit
             # In case there are more than 1 log is found, it is assumed that all of them shall have the same
@@ -461,8 +457,14 @@ def sample_detector_distance(source, unit='mm', log_key=None,
 
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
-    det = instrument.getComponentByName(detector_name(source))
-    return det.getDistance(instrument.getSample()) * m2units[unit]
+    det = instrument.getComponentByName(main_detector_name(source))
+
+    # Mantid instrument uses 'meter' only
+    det_pos = det.getPos()
+    sample_pos = instrument.getSample().getPos()
+    sample_det_plane_distance = abs(det_pos.Z() - sample_pos.Z())
+
+    return sample_det_plane_distance * m2units[unit]
 
 
 def search_sample_detector_distance_meta_name(source, specified_meta_name):
@@ -755,7 +757,7 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
         if detector_z_log in sample_logs:
             translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in millimeters
             # Has the detector already been translated by this quantity?
-            main_detector_array = detector_name(input_workspace)
+            main_detector_array = main_detector_name(input_workspace)
             _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
             if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one millimeter
                 z = translation_from_log
@@ -764,9 +766,9 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
         update_log = True
         if (not relative) or (z != 0.):
             logger.debug('Moving detector along Z = {}  is relative = {} to component {}'
-                         ''.format(z, relative, detector_name(input_workspace)))
+                         ''.format(z, relative, main_detector_name(input_workspace)))
 
-            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=detector_name(input_workspace),
+            MoveInstrumentComponent(Workspace=input_workspace, Z=z, ComponentName=main_detector_name(input_workspace),
                                     RelativePosition=relative)
 
     # update the appropriate log

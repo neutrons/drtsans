@@ -2,6 +2,7 @@
 Module contains class and method to parse SPICE SANS XML file for DAS sample logs.
 """
 from xml.etree import ElementTree
+import numpy as np
 
 
 class SpiceXMLParser(object):
@@ -101,8 +102,8 @@ class SpiceXMLParser(object):
             value_type
             if type(value_type) is type
             else {
-                "str": str,
-                "string": str,
+                "str": np.string_,
+                "string": np.string_,
                 "float": float,
                 "double": float,
                 "int": int,

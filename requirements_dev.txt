@@ -8,3 +8,4 @@ sphinxcontrib-napoleon
 # for linting and formatting
 autopep8
 flake8
+pylint

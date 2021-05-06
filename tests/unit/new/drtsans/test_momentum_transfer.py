@@ -179,7 +179,7 @@ def data_subpixel_info():
                 intensities=[[1.0, 2.0],  # first tube
                              [3.0, 2.0]],  # second tube
                 # Pixel (x, y) coordinates, in mili-meters
-                pixel_positions=[[10, -10], [10, 10], [-10, -10], [-10, 10]],  # units are mm
+                pixel_positions=[[10, -20], [10, 0], [-10, -20], [-10, 0]],  # units are mm
                 n_horizontal=2,  # number of subpixel along the X-axis
                 n_vertical=4,  # number of subpixel along the Y-axis
                 number_subpixels=8,  # just n_horizontal * n_vertical

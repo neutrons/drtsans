@@ -24,6 +24,7 @@ __all__ = [
     "DasDevice",
     "RunTime",
     "init_event_nexus",
+    "parse_event_nexus"
 ]
 
 # Specify parameter

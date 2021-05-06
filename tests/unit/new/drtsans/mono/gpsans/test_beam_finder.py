@@ -12,7 +12,7 @@ def test_beam_finder(gpsans_f):
     ws = unique_workspace_dundername()
     LoadHFIRSANS(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws)
 
-    x, y = find_beam_center(ws)
+    x, y, _ = find_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
 
     assert x == pytest.approx(0.02201, abs=1e-4)
@@ -21,7 +21,7 @@ def test_beam_finder(gpsans_f):
     # Let's center the instrument and get the new center: It should be 0 after
     # the re-centring
     center_detector(ws, x, y)
-    x, y = find_beam_center(ws)
+    x, y, _ = find_beam_center(ws)
 
     # Tolerance 1e-3 == milimeters
     assert x == pytest.approx(0.0, abs=1e-4)

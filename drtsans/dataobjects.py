@@ -1,14 +1,16 @@
 from collections import namedtuple
 from collections.abc import Iterable
+import h5py
 from enum import Enum
 import numpy as np
+from typing import Union
 
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
 
 from drtsans.settings import unique_workspace_dundername as uwd
 
-__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal']
+__all__ = ['getDataType', 'DataType', 'IQmod', 'IQazimuthal', 'IQcrystal', 'verify_same_q_bins']
 
 
 class DataType(Enum):
@@ -124,6 +126,56 @@ def scale_intensity(iq_object, scaling):
     intensity = scaling * iq_object.intensity
     error = scaling * iq_object.error
     return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
+
+
+def verify_same_q_bins(iq0, iq1):
+    """Verify whether 2 I(Q) has the same range of Q
+
+    Parameters
+    ----------
+    iq0: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    iq1: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+
+    Returns
+    -------
+    bool
+        True if they are same
+    """
+    # Same class
+    if iq0.__class__ != iq1.__class__:
+        raise RuntimeError(f'Input I(Q)s are of different type: {type(iq0)} and {type(iq1)}')
+
+    # IQmod
+    if isinstance(iq0, IQmod):
+        # Q1D
+        if iq0.wavelength is None or iq1.wavelength is None:
+            # no wave length
+            q0vec = iq0.mod_q
+            q1vec = iq1.mod_q
+        else:
+            # also comparing the wavelength bins if they do exist
+            q0vec = np.array([iq0.mod_q, iq0.wavelength])
+            q1vec = np.array([iq1.mod_q, iq1.wavelength])
+    elif isinstance(iq0, IQazimuthal) or isinstance(iq0, IQcrystal):
+        # Q2D
+        if iq0.wavelength is None or iq1.wavelength is None:
+            # no wavelength
+            q0vec = np.array([iq0.qx, iq0.qy])
+            q1vec = np.array([iq1.qx, iq1.qy])
+        else:
+            q0vec = np.array([iq0.qx, iq0.qy, iq0.wavelength])
+            q1vec = np.array([iq1.qx, iq1.qy, iq0.wavelength])
+    else:
+        raise RuntimeError(f'I(Q) of type {type(iq0)} is not supported by verify same binning')
+
+    # Verify
+    same = True
+    try:
+        np.testing.assert_allclose(q0vec, q1vec)
+    except AssertionError:
+        same = False
+
+    return same
 
 
 def q_azimuthal_to_q_modulo(Iq):
@@ -313,6 +365,18 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
     def id(self):
         return DataType.IQ_MOD
 
+    def be_finite(self):
+        #  Remove NaN
+        finite_locations = np.isfinite(self.intensity)
+        finite_delta_mod_q = None if self.delta_mod_q is None else self.delta_mod_q[finite_locations]
+        finite_binned_iq_wl = IQmod(intensity=self.intensity[finite_locations],
+                                    error=self.error[finite_locations],
+                                    mod_q=self.mod_q[finite_locations],
+                                    delta_mod_q=finite_delta_mod_q,
+                                    wavelength=self.wavelength[finite_locations])
+
+        return finite_binned_iq_wl
+
     def to_workspace(self, name=None):
         # create a name if one isn't provided
         if name is None:
@@ -495,6 +559,44 @@ class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delt
         # pass everything to namedtuple
         return super(IQazimuthal, cls).__new__(cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength)
 
+    def be_finite(self):
+        """Remove NaN by flattening first
+
+        Returns
+        -------
+        IQazimuthal
+            I(qx, qy, wavelength) with NaN removed
+
+        """
+        # Check whether is any need to recontruct the IQazimuthal
+        num_finite_points = len(np.where(np.isfinite(self.intensity))[0])
+        if num_finite_points == self.intensity.size:
+            return self
+
+        # Flatten
+        intensity = self.intensity.flatten()
+        # finite values
+        finite_locations = np.isfinite(intensity)
+
+        # construct output
+        intensity = intensity[finite_locations]
+        error = self.error.flatten()[finite_locations]
+        qx = self.qx.flatten()[finite_locations]
+        qy = self.qy.flatten()[finite_locations]
+        dqx = None if self.delta_qx is None else self.delta_qx.flatten()[finite_locations]
+        dqy = None if self.delta_qy is None else self.delta_qy.flatten()[finite_locations]
+        wavelength = None if self.wavelength is None else self.wavelength.flatten()[finite_locations]
+
+        finite_iq2d = IQazimuthal(intensity=intensity,
+                                  error=error,
+                                  qx=qx,
+                                  qy=qy,
+                                  delta_qx=dqx,
+                                  delta_qy=dqy,
+                                  wavelength=wavelength)
+
+        return finite_iq2d
+
     def id(self):
         return DataType.IQ_AZIMUTHAL
 
@@ -577,6 +679,69 @@ class IQcrystal(namedtuple('IQazimuthal', 'intensity error qx qy qz delta_qx del
         return DataType.IQ_CRYSTAL
 
 
+def save_i_of_q_to_h5(iq: Union[IQmod, IQazimuthal],
+                      h5_name: str):
+    """Export I of Q, in form of namedtuple, to an HDF5
+    """
+    # assert isinstance(iq, namedtuple), f'I of Q must be of type namedtuple but not {type(iq)}'
+
+    # Init h5
+    iq_h5 = h5py.File(h5_name, 'w')
+    # create group
+    data_group = iq_h5.create_group(iq.__class__.__name__)
+
+    # Write field
+    for index, field in enumerate(iq._fields):
+        # add data
+        data = iq[index]
+        if data is not None:
+            data_group.create_dataset(field, data=data)
+
+    # Close
+    iq_h5.close()
+
+
+def load_iq1d_from_h5(h5_name: str) -> IQmod:
+    """Load an HDF5 for I(Q1D)
+    """
+    # Open file
+    with h5py.File(h5_name, 'r') as iq_h5:
+        data_group = iq_h5['IQmod']
+
+        value_dict = dict()
+
+        # get tuple element
+        for field in ['intensity', 'error', 'mod_q', 'delta_mod_q', 'wavelength']:
+            try:
+                value_dict[field] = data_group[field][()]
+            except KeyError:
+                value_dict[field] = None
+
+        iqmod = IQmod(**value_dict)
+
+    return iqmod
+
+
+def load_iq2d_from_h5(h5_name: str) -> IQazimuthal:
+    # Open file
+    with h5py.File(h5_name, 'r') as iq_h5:
+        data_group = iq_h5['IQazimuthal']
+
+        value_dict = dict()
+
+        # get tuple element
+        print(f'DEBUG field: {IQazimuthal._fields}')
+        for field in IQazimuthal._fields:
+            try:
+                value_dict[field] = data_group[field][()]
+            except KeyError:
+                value_dict[field] = None
+
+        iq2d = IQazimuthal(**value_dict)
+
+    return iq2d
+
+
 class _Testing:
     r"""
     Mimic the numpy.testing module by applying functions of this module to the component arrays of the IQ objects
@@ -613,6 +778,7 @@ class _Testing:
         assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
         for i in range(len(reference_object)):  # iterate over the IQ object components
             component_name = reference_object._fields[i]
+            print(f'all_close on {component_name}')
             i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
             if True in [i_component is None for i_component in i_components]:  # is any of these None?
                 if set(i_components) == set([None]):

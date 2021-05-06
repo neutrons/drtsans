@@ -145,7 +145,7 @@ def retrieve_instrument_setup(input_workspace):
     ~drtsans.resolution.InstrumentSetupParameters
     """
     l1 = source_sample_distance(input_workspace, unit='m')
-    l2 = sample_detector_distance(input_workspace, unit='m')
+    l2 = sample_detector_distance(input_workspace, unit='m', search_logs=False)  # enforce to use calculated SDD/L2
     r1 = source_aperture_diameter(input_workspace, unit='m') / 2.0
     r2 = sample_aperture_diameter(input_workspace, unit='m') / 2.0
     pixel_width, pixel_height = logged_smearing_pixel_size(input_workspace)

@@ -59,7 +59,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
         reduction_input = update_reduction_parameters(reduction_input_common, specs, validate=True)
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
-        plot_reduction_output(out, reduction_input, loglog=False)
+        plot_reduction_output(out, reduction_input, loglog=False, close_figures=True)
 
     end_time = time.time()
     print('Execution Time: {}'.format(end_time - start_time))
@@ -195,6 +195,8 @@ def test_overwrite_sdd(reference_dir, cleanfile):
     sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
     output_dir = mkdtemp(prefix='meta_overwrite_test3')
     cleanfile(output_dir)
+
+    # Set up reduction
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},
@@ -230,7 +232,7 @@ def test_overwrite_sdd(reference_dir, cleanfile):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test3/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_20201027/test3/')
     verify_cg2_reduction_results(sample_names, output_dir, gold_path,
                                  title='Overwrite DetectorSampleDistance to 40 meter',
                                  prefix='CG2MetaSDD')
@@ -293,7 +295,7 @@ def test_overwrite_both(reference_dir, cleanfile):
         assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test4/')
+    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_20201027/test4/')
     verify_cg2_reduction_results(sample_names, output_dir, gold_path,
                                  title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
                                  prefix='CG2MetaBoth')

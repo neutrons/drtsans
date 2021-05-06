@@ -121,8 +121,8 @@ def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, w
     # <FindCenterOfMassPosition://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v1.html>
     beam_center = find_beam_center(reference_workspace,
                                    centering_options={'BeamRadius': data.radius, 'Tolerance': 0.1 * data.radius})
-    center_detector(reference_workspace, *beam_center)
-    center_detector(sample_workspace, *beam_center)
+    center_detector(reference_workspace, *beam_center[:-1])
+    center_detector(sample_workspace, *beam_center[:-1])
 
     # Calculate raw (no fitting) transmission at zero angle using drtsans
     transmission = calculate_transmission(sample_workspace, reference_workspace,
@@ -258,14 +258,15 @@ def test_calculate_raw_transmission(transmission_fixture):
 def test_calculate_fitted_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
+    Gold data is changed due to a bugfix on Mantid.Fit's error bar calculation
     """
     fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference)
-    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission.nxs')
+    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_mtd6.nxs')
 
     # big radius because detector is not centered
     fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample_skip,
                                                            transmission_fixture.reference_skip, radius=50)
-    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_skip.nxs')
+    assert transmission_fixture.compare(fitted_transmission_workspace, 'fitted_transmission_skip_mtd6.nxs')
 
 
 def test_apply_transmission(transmission_fixture):

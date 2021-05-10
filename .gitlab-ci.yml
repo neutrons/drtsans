@@ -277,7 +277,15 @@ analysis-update:
     - time docker pull $CONTAINER_URL
     - time docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -u 0:0 $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/analysis-update-user.sh $CI_COMMIT_REF_NAME"
     - sudo chown -R gitlab-runner .
-    - curl -X POST -F token=$DEVOPS_TRIGGER -F "ref=$CI_COMMIT_REF_SLUG" -F "variables[PLAY]=conda/update" "variables[CONDA_ENV]=sans-$CI_COMMIT_REF_SLUG" https://code.ornl.gov/api/v4/projects/7835/trigger/pipeline
+    - >
+      if [[ ${CI_COMMIT_REF_SLUG} == "next" ]]; then
+        CONDA_ENV="sans-dev"
+      elif [[ ${CI_COMMIT_REF_SLUG} == "qa" ]]; then
+        CONDA_ENV="sans-qa"
+      else
+        CONDA_ENV="sans"
+      fi    
+    - curl -X POST -F token=$DEVOPS_TRIGGER -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=$CONDA_ENV $DEVOPS_PROJECT
   tags:
     - scse-mantid-builder
   only:

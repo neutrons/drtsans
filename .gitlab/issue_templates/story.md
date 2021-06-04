@@ -5,6 +5,14 @@
 	
 	Derive a unique Title from the User Story Statement below prepended with "[Story]" 
 		- [Story] <unique title>
+
+	Add links to GitLab merge requests (MR)
+		- Create the MR from the issue
+		- Reference the issue in a MR
+
+	Add links to GitHub pull request (PR)
+		- [![GitHub issue/pull request detail](https://img.shields.io/github/issues/detail/state/<github project/repo/pr#>)(<link to github pr>)
+		- EXAMPLE: PR's against `master`: [![GitHub issue/pull request detail](https://img.shields.io/github/issues/detail/state/mantidproject/mantid/31712)](https://github.com/mantidproject/mantid/issues/31712)
 -->
 
 As a \<*role or type of user*\> I want to \< *take some action or achieve some goal*\> so that \<*some reason, e.g. I get this benefit*\>

@@ -13,6 +13,14 @@
 	Note: The Enabler title should be either: 
 		- [Enabler] <unique descriptive title>
 
+	Add links to GitLab merge requests (MR)
+		- Create the MR from the issue
+		- Reference the issue in a MR
+
+	Add links to GitHub pull request (PR)
+		- [![GitHub issue/pull request detail](https://img.shields.io/github/issues/detail/state/<github project/repo/pr#>)(<link to github pr>)
+		- EXAMPLE: PR's against `master`: [![GitHub issue/pull request detail](https://img.shields.io/github/issues/detail/state/mantidproject/mantid/31712)](https://github.com/mantidproject/mantid/issues/31712)
+
 -->
 
 Description:

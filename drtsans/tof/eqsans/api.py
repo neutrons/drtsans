@@ -33,8 +33,7 @@ from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
-from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, BinningSetup, process_convert_q,
-                                              process_transmission)
+from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission)
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -620,17 +619,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict = sample_returned
 
     # Form binning parameters
-    binning_par_dc = {'nxbins_main': nxbins_main,
-                      'nybins_main': nybins_main,
-                      'n1dbins': nbins_main,
-                      'n1dbins_per_decade': nbins_main_per_decade,
-                      'decade_on_center': decade_on_center,
-                      'bin1d_type': bin1d_type,
-                      'log_scale': log_binning,
-                      'qmin': qmin,
-                      'qmax': qmax,
-                      'qxrange': None,
-                      'qyrange': None}
+    # binning_par_dc = {'nxbins_main': nxbins_main,
+    #                   'nybins_main': nybins_main,
+    #                   'n1dbins': nbins_main,
+    #                   'n1dbins_per_decade': nbins_main_per_decade,
+    #                   'decade_on_center': decade_on_center,
+    #                   'bin1d_type': bin1d_type,
+    #                   'log_scale': log_binning,
+    #                   'qmin': qmin,
+    #                   'qmax': qmax,
+    #                   'qxrange': None,
+    #                   'qyrange': None}
 
     # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
     # binning_params = BinningSetup(**binning_par_dc)

@@ -34,8 +34,7 @@ from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, BinningSetup, process_convert_q,
-                                              process_transmission,
-                                              process_single_configuration_incoherence_correction)
+                                              process_transmission)
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -634,35 +633,35 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                       'qyrange': None}
 
     # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
-    binning_params = BinningSetup(**binning_par_dc)
-
-    if incoherence_correction_setup.do_correction or use_correction_workflow:
-        # optionally calcualte the elastic scattering nromalization factors
-        elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
-        if elastic_ref_setup:
-            # TODO FIXME [#689] Process elastic reference data
-            # process - process_single_configuration - elastic reference run (no bin)
-            # process_elastic_reference_data(elastic_ref_setup)
-            # TODO sanity check of expected output from elastic_ref_setup
-            pass
-
-        # pre-process background background: product = processed
-        # TODO - rewrite process_bin_workspace to process_workspace()
-        processed_background = process_convert_q(loaded_ws.background,
-                                                 (bkgd_trans_ws, bkg_trans_value),
-                                                 theta_deppendent_transmission,
-                                                 loaded_ws.dark_current,
-                                                 (flux_method, flux),
-                                                 (loaded_ws.mask, mask_panel, None),
-                                                 solid_angle,
-                                                 loaded_ws.sensitivity,
-                                                 thickness,  # sample thickness
-                                                 absolute_scale,
-                                                 'bkgd',
-                                                 delete_raw=True)
-    else:
-        processed_background = None
-    # END-IF
+    # binning_params = BinningSetup(**binning_par_dc)
+    #
+    # if incoherence_correction_setup.do_correction or use_correction_workflow:
+    #     # optionally calcualte the elastic scattering nromalization factors
+    #     elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
+    #     if elastic_ref_setup:
+    #         # TODO FIXME [#689] Process elastic reference data
+    #         # process - process_single_configuration - elastic reference run (no bin)
+    #         # process_elastic_reference_data(elastic_ref_setup)
+    #         # TODO sanity check of expected output from elastic_ref_setup
+    #         pass
+    #
+    #     # pre-process background background: product = processed
+    #     # TODO - rewrite process_bin_workspace to process_workspace()
+    #     processed_background = process_convert_q(loaded_ws.background,
+    #                                              (bkgd_trans_ws, bkg_trans_value),
+    #                                              theta_deppendent_transmission,
+    #                                              loaded_ws.dark_current,
+    #                                              (flux_method, flux),
+    #                                              (loaded_ws.mask, mask_panel, None),
+    #                                              solid_angle,
+    #                                              loaded_ws.sensitivity,
+    #                                              thickness,  # sample thickness
+    #                                              absolute_scale,
+    #                                              'bkgd',
+    #                                              delete_raw=True)
+    # else:
+    #     processed_background = None
+    # # END-IF
 
     # Define output data structure
     output = []

@@ -11,10 +11,10 @@ from drtsans.mask_utils import apply_mask   # noqa E402
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
-from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q_per_wavelength,
-                                               do_inelastic_incoherence_correction_q1d,
-                                               do_inelastic_incoherence_correction_q2d,
-                                               save_b_factor)
+# from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q_per_wavelength,
+#                                                do_inelastic_incoherence_correction_q1d,
+#                                                do_inelastic_incoherence_correction_q2d,
+#                                                save_b_factor)
 import os
 import numpy as np
 from typing import Tuple, Any, List
@@ -207,7 +207,8 @@ def _convert_background_to_q(processed_background_ws, processed_sample_ws) -> Tu
 #                 #                                                 None)
 #
 #                 # normalize sample data
-#                 # sample_iq1d, sample_iq2d = normalize_ws_with_elastic_scattering(sample_iq1d, sample_iq2d, norm_dict)
+#                 # sample_iq1d, sample_iq2d =
+#                 # normalize_ws_with_elastic_scattering(sample_iq1d, sample_iq2d, norm_dict)
 #
 #                 # normalize background data
 #                 # bkgd_iq1d, bkgd_iq2d = normalize_ws_with_elastic_scattering(bkgd_iq1d, bkgd_iq2d, norm_dict)

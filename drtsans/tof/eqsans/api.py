@@ -674,30 +674,31 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
             output_suffix = f'_{i}'
 
         if incoherence_correction_setup.do_correction or use_correction_workflow:
-            sample_run_num = reduction_input['sample']['runNumber']
-            # process data in workflow that is able to incorporate inelastic incoherent correction
-            # returned binned I(Q) and I(Q)
-            processed = process_single_configuration_incoherence_correction(raw_sample_ws,
-                                                                            (sample_trans_ws, sample_trans_value),
-                                                                            theta_deppendent_transmission,
-                                                                            loaded_ws.dark_current,
-                                                                            (flux_method, flux),
-                                                                            (loaded_ws.mask, mask_panel, None),
-                                                                            solid_angle,
-                                                                            loaded_ws.sensitivity,
-                                                                            absolute_scale,
-                                                                            thickness,
-                                                                            processed_background,
-                                                                            incoherence_correction_setup,
-                                                                            binning_params,
-                                                                            sample_run_num,
-                                                                            output_dir,
-                                                                            ignore_background)
-            # The output I(Q) and I(Qx, Qy) are already BINNED.
-            # Q range for final binning cannot be retrieved from min and max of
-            # binned I(Q) and I(Qx, Qy) as they are not
-            # bin boundaries but bin centers.
-            iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main, frame_q_ranges = processed
+            raise RuntimeError('This conditional branch shall be re-implemented')
+            # sample_run_num = reduction_input['sample']['runNumber']
+            # # process data in workflow that is able to incorporate inelastic incoherent correction
+            # # returned binned I(Q) and I(Q)
+            # processed = process_single_configuration_incoherence_correction(raw_sample_ws,
+            #                                                                 (sample_trans_ws, sample_trans_value),
+            #                                                                 theta_deppendent_transmission,
+            #                                                                 loaded_ws.dark_current,
+            #                                                                 (flux_method, flux),
+            #                                                                 (loaded_ws.mask, mask_panel, None),
+            #                                                                 solid_angle,
+            #                                                                 loaded_ws.sensitivity,
+            #                                                                 absolute_scale,
+            #                                                                 thickness,
+            #                                                                 processed_background,
+            #                                                                 incoherence_correction_setup,
+            #                                                                 binning_params,
+            #                                                                 sample_run_num,
+            #                                                                 output_dir,
+            #                                                                 ignore_background)
+            # # The output I(Q) and I(Qx, Qy) are already BINNED.
+            # # Q range for final binning cannot be retrieved from min and max of
+            # # binned I(Q) and I(Qx, Qy) as they are not
+            # # bin boundaries but bin centers.
+            # iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main, frame_q_ranges = processed
 
         else:
             # process data without correction

@@ -488,12 +488,16 @@ def process_single_configuration(sample_ws_raw,
     return mtd[output_workspace]
 
 
+# TODO 777 - better documentation of this function
 def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                 skip_nan=True,
                                 incoherence_correction_setup=None,
                                 ignore_background: bool = False):
     """Reduce samples from raw workspaces including
     1. prepare data
+    1.
+
+    This is the main entry point of reduction
 
     Parameters
     ----------
@@ -518,7 +522,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     # Process inelastic/incoherent scattering correction configuration if user does not specify
     if incoherence_correction_setup is None:
         # backward compatibility
-        # TODO FIXME 689 - implement parse_correction_config() and unify with sections of codes in tests
+        # TODO 777 Task 1 - implement parse_correction_config() and unify with sections of codes in tests
         # incoherence_correction_setup = parse_correction_config(reduction_input)
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
 
@@ -535,7 +539,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     transmission_radius = reduction_config["mmRadiusForTransmission"]
     sample_trans_value = reduction_input["sample"]["transmission"]["value"]
     bkg_trans_value = reduction_input["background"]["transmission"]["value"]
-    theta_deppendent_transmission = reduction_config["useThetaDepTransCorrection"]
+    theta_dependent_transmission = reduction_config["useThetaDepTransCorrection"]
     mask_panel = 'back' if reduction_config["useMaskBackTubes"] is True else None
     output_suffix = ''
 
@@ -703,7 +707,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                bkg_ws_raw=loaded_ws.background,
                                                                bkg_trans_ws=bkgd_trans_ws,
                                                                bkg_trans_value=bkg_trans_value,
-                                                               theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+                                                               theta_deppendent_transmission=theta_dependent_transmission,  # noqa E502
                                                                dark_current=loaded_ws.dark_current,
                                                                flux_method=flux_method,
                                                                flux=flux,

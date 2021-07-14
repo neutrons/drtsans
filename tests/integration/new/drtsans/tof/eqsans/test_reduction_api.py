@@ -33,11 +33,84 @@ specs_eqsans = {
 @pytest.mark.parametrize('run_config, basename',
                          [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
                          ids=['88980'])
+def test_regular_setup(run_config, basename, tmpdir, reference_dir):
+    """Same reduction from Shaman test with regular non-correction and no-weighted binning
+    """
+    # set flag to use weighted binning
+    weighted_binning = False
+
+    common_config = {
+        "configuration": {
+            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
+            "useDefaultMask": True,
+            "normalization": "Total charge",
+            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+            "absoluteScaleMethod": "standard",
+            "detectorOffset": 0,
+            "mmRadiusForTransmission": 25,
+            "numQxQyBins": 80,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "useErrorWeighting": weighted_binning,
+            "numQBins": 120,
+            "AnnularAngleBin": 5,
+            "wavelengthStepType": "constant Delta lambda",
+            "wavelengthStep": 0.1,
+        }
+    }
+    input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
+    input_config = update_reduction_parameters(input_config, run_config, validate=False)
+    output_dir = str(tmpdir)
+    amendments = {
+        'outputFileName': basename,
+        'configuration': {'outputDir': output_dir}
+    }
+    input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
+
+    # expected output Nexus file
+    reduced_data_nexus = os.path.join(output_dir, f'{basename}.nxs')
+    # remove files
+    if os.path.exists(reduced_data_nexus):
+        os.remove(reduced_data_nexus)
+
+    # Load and reduce
+    loaded = load_all_files(input_config)
+    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=False)
+
+    # Load data and compare
+    gold_dir = reference_dir.new.eqsans
+    for index in range(2):
+        # 1D
+        iq1d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq1d_{index}_0_m6.h5')
+        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        export_iq_comparison([('Test Result', reduction_output[index].I1D_main[0], 'red'),
+                              ('Gold Result', gold_iq1d, 'green')],
+                             f'/tmp/regular_setup_comparison_{index}.png')
+        _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
+
+        # 2D
+        iq2d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq2d_{index}_m6.h5')
+        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
+        _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
+
+    # Check reduced workspace
+    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    # verify with gold data and clean
+    gold_file = os.path.join(reference_dir.new.eqsans, 'test_integration_api/EQSANS_88980_reduced_m6.nxs')
+    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
+    # clean up
+    os.remove(reduced_data_nexus)
+
+
+@pytest.mark.parametrize('run_config, basename',
+                         [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
+                         ids=['88980'])
 def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     """Same reduction from Shaman test but using the workflow that is designed to work with inelastic correction
 
-    Returns
-    -------
+    - weighted binning must be used
+    - prove that 2-step binning ([Q] and then [wl]) will yield same result as 1-step binning [Q, wl])
 
     """
     common_config = {
@@ -124,83 +197,6 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     gold_iq1d_h5 = os.path.join(gold_dir, f'88980_frame1_weighted_old_removebkgd_{index}.h5')
     gold_iq2d_h5 = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
     """
-
-
-@pytest.mark.parametrize('run_config, basename',
-                         [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
-                         ids=['88980'])
-def test_regular_setup(run_config, basename, tmpdir, reference_dir):
-    """Same reduction from Shaman test
-
-    Returns
-    -------
-
-    """
-    # set flag to use weighted binning
-    weighted_binning = False
-
-    common_config = {
-        "configuration": {
-            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
-            "useDefaultMask": True,
-            "normalization": "Total charge",
-            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
-            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
-            "absoluteScaleMethod": "standard",
-            "detectorOffset": 0,
-            "mmRadiusForTransmission": 25,
-            "numQxQyBins": 80,
-            "1DQbinType": "scalar",
-            "QbinType": "linear",
-            "useErrorWeighting": weighted_binning,
-            "numQBins": 120,
-            "AnnularAngleBin": 5,
-            "wavelengthStepType": "constant Delta lambda",
-            "wavelengthStep": 0.1,
-        }
-    }
-    input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
-    input_config = update_reduction_parameters(input_config, run_config, validate=False)
-    output_dir = str(tmpdir)
-    amendments = {
-        'outputFileName': basename,
-        'configuration': {'outputDir': output_dir}
-    }
-    input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
-
-    # expected output Nexus file
-    reduced_data_nexus = os.path.join(output_dir, f'{basename}.nxs')
-    # remove files
-    if os.path.exists(reduced_data_nexus):
-        os.remove(reduced_data_nexus)
-
-    # Load and reduce
-    loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=False)
-
-    # Load data and compare
-    gold_dir = reference_dir.new.eqsans
-    for index in range(2):
-        # 1D
-        iq1d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq1d_{index}_0_m6.h5')
-        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
-        export_iq_comparison([('Test Result', reduction_output[index].I1D_main[0], 'red'),
-                              ('Gold Result', gold_iq1d, 'green')],
-                             f'/tmp/regular_setup_comparison_{index}.png')
-        _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
-
-        # 2D
-        iq2d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq2d_{index}_m6.h5')
-        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
-        _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
-
-    # Check reduced workspace
-    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
-    # verify with gold data and clean
-    gold_file = os.path.join(reference_dir.new.eqsans, 'test_integration_api/EQSANS_88980_reduced_m6.nxs')
-    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
-    # clean up
-    os.remove(reduced_data_nexus)
 
 
 def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name: str):

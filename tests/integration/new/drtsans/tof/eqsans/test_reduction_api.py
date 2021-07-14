@@ -82,7 +82,6 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     # Load and reduce
     loaded = load_all_files(input_config)
     reduction_output = reduce_single_configuration(loaded, input_config,
-                                                   use_correction_workflow=use_correction_workflow,
                                                    ignore_background=keep_background)
 
     gold_dir = reference_dir.new.eqsans

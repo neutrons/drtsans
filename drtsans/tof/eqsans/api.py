@@ -491,7 +491,6 @@ def process_single_configuration(sample_ws_raw,
 def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                 skip_nan=True,
                                 incoherence_correction_setup=None,
-                                use_correction_workflow: bool = False,
                                 ignore_background: bool = False):
     """Reduce samples from raw workspaces including
     1. prepare data
@@ -504,8 +503,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
     skip_nan
     incoherence_correction_setup: CorrectionConfiguration, None
         incoherence/inelastic scattering correction configuration
-    use_correction_workflow: bool
-        Force to use workflow designed for incoherent and inelastic correction
     ignore_background: bool
         Flag to output binned data without subtracting background.  This is for DEBUG only
 
@@ -671,7 +668,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
-        if incoherence_correction_setup.do_correction or use_correction_workflow:
+        if incoherence_correction_setup.do_correction:
             raise RuntimeError('This conditional branch shall be re-implemented')
             # sample_run_num = reduction_input['sample']['runNumber']
             # # process data in workflow that is able to incorporate inelastic incoherent correction

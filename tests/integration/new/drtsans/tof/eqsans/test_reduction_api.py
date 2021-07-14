@@ -76,7 +76,7 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
 
     # Load and reduce
     loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config, use_correction_workflow=False)
+    reduction_output = reduce_single_configuration(loaded, input_config)
 
     # Load data and compare
     gold_dir = reference_dir.new.eqsans

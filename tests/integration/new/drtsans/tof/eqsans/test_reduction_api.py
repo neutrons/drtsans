@@ -149,7 +149,7 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
         os.remove(reduced_data_nexus)
 
     # Test: use correction workflow and remove background
-    use_correction_workflow = True  # True: new workflow to test; False: old workflow
+    # use_correction_workflow = True
     keep_background = False  # default to be False
 
     # Load and reduce

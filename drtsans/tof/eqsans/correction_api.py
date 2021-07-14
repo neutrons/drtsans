@@ -14,10 +14,9 @@ from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  #
 from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
-from typing import List, Tuple, Union
+from typing import List, Union
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
 from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
-import numpy as np
 
 """
 Workflow to correct intensities and errors accounting wavelength dependent

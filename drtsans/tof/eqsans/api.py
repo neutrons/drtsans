@@ -34,13 +34,14 @@ from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission)
+from typing import Dict, Tuple
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
            'prepare_data', 'save_ascii_1D', 'save_xml_1D',
            'save_nist_dat', 'save_nexus', 'set_init_uncertainties',
            'load_all_files', 'prepare_data_workspaces',
-           'process_single_configuration', 'reduce_single_configuration',
+           'pre_process_single_configuration', 'reduce_single_configuration',
            'plot_reduction_output']
 
 IofQ_output = namedtuple('IofQ_output', ['I2D_main', 'I1D_main'])
@@ -345,29 +346,29 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     return loaded_ws_dict
 
 
-def process_single_configuration(sample_ws_raw,
-                                 sample_trans_ws=None,
-                                 sample_trans_value=None,
-                                 bkg_ws_raw=None,
-                                 bkg_trans_ws=None,
-                                 bkg_trans_value=None,
-                                 theta_dependent_transmission=True,
-                                 dark_current=None,
-                                 flux_method=None,  # normalization (time/monitor/proton charge)
-                                 flux=None,  # file for flux
-                                 mask_ws=None,  # apply a custom mask from workspace
-                                 mask_panel=None,  # mask back or front panel
-                                 mask_btp=None,  # mask bank/tube/pixel
-                                 solid_angle=True,
-                                 sensitivity_workspace=None,
-                                 output_workspace=None,
-                                 output_suffix='',
-                                 thickness=1.,
-                                 absolute_scale_method='standard',
-                                 empty_beam_ws=None,
-                                 beam_radius=None,
-                                 absolute_scale=1.,
-                                 keep_processed_workspaces=True):
+def pre_process_single_configuration(sample_ws_raw,
+                                     sample_trans_ws=None,
+                                     sample_trans_value=None,
+                                     bkg_ws_raw=None,
+                                     bkg_trans_ws=None,
+                                     bkg_trans_value=None,
+                                     theta_dependent_transmission=True,
+                                     dark_current=None,
+                                     flux_method=None,  # normalization (time/monitor/proton charge)
+                                     flux=None,  # file for flux
+                                     mask_ws=None,  # apply a custom mask from workspace
+                                     mask_panel=None,  # mask back or front panel
+                                     mask_btp=None,  # mask bank/tube/pixel
+                                     solid_angle=True,
+                                     sensitivity_workspace=None,
+                                     output_workspace=None,
+                                     output_suffix='',
+                                     thickness=1.,
+                                     absolute_scale_method='standard',
+                                     empty_beam_ws=None,
+                                     beam_radius=None,
+                                     absolute_scale=1.,
+                                     keep_processed_workspaces=True):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
@@ -419,8 +420,6 @@ def process_single_configuration(sample_ws_raw,
         absolute scaling value for standard method
     keep_processed_workspaces: bool
         flag to keep the processed background workspace
-    debug_keep_background: bool
-        Debug flag to keep background in the final binned I(Q)
 
     Returns
     -------
@@ -581,21 +580,9 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     reduction_config["symmetric_wedges"] = True
 
     # automatically determine wedge binning if it wasn't explicitly set
-    autoWedgeOpts = {}
-    symmetric_wedges = True
-    if bin1d_type == 'wedge' and len(wedges_min) == 0:
-        # the JSON validator "wedgesources" guarantees that the parameters to be collected are all non-empty
-        autoWedgeOpts = {'q_min': reduction_config['autoWedgeQmin'],
-                         'q_delta': reduction_config['autoWedgeQdelta'],
-                         'q_max': reduction_config['autoWedgeQmax'],
-                         'azimuthal_delta': reduction_config['autoWedgeAzimuthalDelta'],
-                         'peak_width': reduction_config['autoWedgePeakWidth'],
-                         'background_width': reduction_config['autoWedgeBackgroundWidth'],
-                         'signal_to_noise_min': reduction_config['autoWedgeSignalToNoiseMin']}
-        # auto-aniso returns all of the wedges
-        symmetric_wedges = False
+    autoWedgeOpts, symmetric_wedges = parse_auto_wedge_setup(reduction_config, bin1d_type, wedges_min)
 
-    # empty beam transmission workspace
+    # Prepare empty beam transmission workspace
     if loaded_ws.empty.data is not None:
         empty_trans_ws_name = f'{prefix}_empty'
         empty_trans_ws = prepare_data_workspaces(loaded_ws.empty,
@@ -647,33 +634,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
     # binning_params = BinningSetup(**binning_par_dc)
     #
-    # if incoherence_correction_setup.do_correction or use_correction_workflow:
-    #     # optionally calcualte the elastic scattering nromalization factors
-    #     elastic_ref_setup = incoherence_correction_setup.elastic_reference_run
-    #     if elastic_ref_setup:
-    #         # TODO FIXME [#689] Process elastic reference data
-    #         # process - process_single_configuration - elastic reference run (no bin)
-    #         # process_elastic_reference_data(elastic_ref_setup)
-    #         # TODO sanity check of expected output from elastic_ref_setup
-    #         pass
-    #
-    #     # pre-process background background: product = processed
-    #     # TODO - rewrite process_bin_workspace to process_workspace()
-    #     processed_background = process_convert_q(loaded_ws.background,
-    #                                              (bkgd_trans_ws, bkg_trans_value),
-    #                                              theta_deppendent_transmission,
-    #                                              loaded_ws.dark_current,
-    #                                              (flux_method, flux),
-    #                                              (loaded_ws.mask, mask_panel, None),
-    #                                              solid_angle,
-    #                                              loaded_ws.sensitivity,
-    #                                              thickness,  # sample thickness
-    #                                              absolute_scale,
-    #                                              'bkgd',
-    #                                              delete_raw=True)
-    # else:
-    #     processed_background = None
-    # # END-IF
 
     # Define output data structure
     output = []
@@ -684,36 +644,8 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
 
-        if incoherence_correction_setup.do_correction:
-            raise RuntimeError('This conditional branch shall be re-implemented')
-            # sample_run_num = reduction_input['sample']['runNumber']
-            # # process data in workflow that is able to incorporate inelastic incoherent correction
-            # # returned binned I(Q) and I(Q)
-            # processed = process_single_configuration_incoherence_correction(raw_sample_ws,
-            #                                                                 (sample_trans_ws, sample_trans_value),
-            #                                                                 theta_deppendent_transmission,
-            #                                                                 loaded_ws.dark_current,
-            #                                                                 (flux_method, flux),
-            #                                                                 (loaded_ws.mask, mask_panel, None),
-            #                                                                 solid_angle,
-            #                                                                 loaded_ws.sensitivity,
-            #                                                                 absolute_scale,
-            #                                                                 thickness,
-            #                                                                 processed_background,
-            #                                                                 incoherence_correction_setup,
-            #                                                                 binning_params,
-            #                                                                 sample_run_num,
-            #                                                                 output_dir,
-            #                                                                 ignore_background)
-            # # The output I(Q) and I(Qx, Qy) are already BINNED.
-            # # Q range for final binning cannot be retrieved from min and max of
-            # # binned I(Q) and I(Qx, Qy) as they are not
-            # # bin boundaries but bin centers.
-            # iq1d_main_in_fr, iq2d_main_in_fr, processed_data_main, frame_q_ranges = processed
-
-        else:
-            # process data without correction
-            processed_data_main = process_single_configuration(raw_sample_ws,
+        # process data without correction
+        processed_data_main = pre_process_single_configuration(raw_sample_ws,
                                                                sample_trans_ws=sample_trans_ws,
                                                                sample_trans_value=sample_trans_value,
                                                                bkg_ws_raw=loaded_ws.background,
@@ -736,23 +668,19 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                absolute_scale=absolute_scale,
                                                                keep_processed_workspaces=False)
 
-            # Convert to Q
-            # set up subpixel binning options  FIXME - it does not seem to work
-            subpixel_kwargs = dict()
-            if reduction_config['useSubpixels']:
-                subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
-                                   'n_vertical': reduction_config['subpixelsY']}
-            # convert to Q
-            iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
+        # Convert to Q
+        # set up subpixel binning options  FIXME - it does not seem to work
+        subpixel_kwargs = dict()
+        if reduction_config['useSubpixels']:
+            subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
+                               'n_vertical': reduction_config['subpixelsY']}
+        # convert to Q
+        iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
+        iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
 
-            iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
-
-            # split to frames
-            iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in, verbose=True)
-            iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
-            # frame Q ranges to None as default
-            frame_q_ranges = None
-        # END-IF-ELSE
+        # split to frames
+        iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in, verbose=True)
+        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
 
         # Save nexus processed
         filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}.nxs')
@@ -761,18 +689,20 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
         # Work with wedges
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
-            logger.notice(f'Auto wedge options: {autoWedgeOpts}')
-            autoWedgeOpts['debug_dir'] = output_dir
-            wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            logger.notice(f'found wedge angles:\n'
-                          f'              peak: {wedges[0]}\n'
-                          f'        background: {wedges[1]}')
-            # sanity check
-            assert len(wedges) == 2, f'Auto-wedges {wedges} shall have 2 2-tuples'
-            # set automated wedge to reduction configuration for correct plotting.
-            # reduction_config is an in/out function argument
-            reduction_config["wedges"] = wedges
-            reduction_config["symmetric_wedges"] = symmetric_wedges
+            wedges = process_auto_wedge(autoWedgeOpts, iq2d_main_in, output_dir, reduction_config, symmetric_wedges)
+
+            # logger.notice(f'Auto wedge options: {autoWedgeOpts}')
+            # autoWedgeOpts['debug_dir'] = output_dir
+            # wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
+            # logger.notice(f'found wedge angles:\n'
+            #               f'              peak: {wedges[0]}\n'
+            #               f'        background: {wedges[1]}')
+            # # sanity check
+            # assert len(wedges) == 2, f'Auto-wedges {wedges} shall have 2 2-tuples'
+            # # set automated wedge to reduction configuration for correct plotting.
+            # # reduction_config is an in/out function argument
+            # reduction_config["wedges"] = wedges
+            # reduction_config["symmetric_wedges"] = symmetric_wedges
 
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
@@ -786,31 +716,27 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                 fr_log_label = f'frame'
                 fr_label = ""
 
-            print(f'[Final Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
-            if frame_q_ranges:
-                binning_params = frame_q_ranges[wl_frame]
-                qmin, qmax = binning_params.qmin, binning_params.qmax
-                qx_range = binning_params.qxrange
-                qy_range = binning_params.qyrange
-                print(f'[Final-Reset Binning: Frame {wl_frame}:  qmin = {qmin}, qmax = {qmax}')
-            else:
-                qx_range = qy_range = None
+            assert iq1d_main_in_fr[wl_frame] is not None, 'Input I(Q)      main input cannot be None.'
+            assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
-            assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main in cannot be None.'
-            iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                                   nxbins_main, nybins_main, n1dbins=nbins_main,
-                                                   n1dbins_per_decade=nbins_main_per_decade,
-                                                   decade_on_center=decade_on_center,
-                                                   bin1d_type=bin1d_type, log_scale=log_binning,
-                                                   qmin=qmin, qmax=qmax,
-                                                   qxrange=qx_range,
-                                                   qyrange=qy_range,
-                                                   annular_angle_bin=annular_bin, wedges=wedges,
-                                                   symmetric_wedges=symmetric_wedges,
-                                                   error_weighted=weighted_errors)
-            print(f'[NOW-REGULAR] 1D: range {iq1d_main_out[0].mod_q[0]}, {iq1d_main_out[0].mod_q[-1]}')
-            assert iq2d_main_out is not None
-            print(f'[NOW-REGULAR] 2D: range {iq2d_main_out.qx[0, 0]}, {iq2d_main_out.qx[0, nxbins_main-1]}')
+            if incoherence_correction_setup.do_correction:
+                # TODO 786 - Implement 1D correction
+                # TODO 787 - Implement 2D correction
+                raise NotImplementedError(f'Implement 1D and 2D ASAP')
+
+            else:
+                # Not incoherence correction
+                iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
+                                                       nxbins_main, nybins_main, n1dbins=nbins_main,
+                                                       n1dbins_per_decade=nbins_main_per_decade,
+                                                       decade_on_center=decade_on_center,
+                                                       bin1d_type=bin1d_type, log_scale=log_binning,
+                                                       qmin=qmin, qmax=qmax,
+                                                       qxrange=None,
+                                                       qyrange=None,
+                                                       annular_angle_bin=annular_bin, wedges=wedges,
+                                                       symmetric_wedges=symmetric_wedges,
+                                                       error_weighted=weighted_errors)
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 
@@ -832,8 +758,10 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             current_output = IofQ_output(I2D_main=iq2d_main_out,
                                          I1D_main=iq1d_main_out)
             output.append(current_output)
+        # END binning loop over frame
 
         detectordata[name] = _inside_detectordata
+    # END reduction loop over sample workspaces
 
     # create reduction log
     filename = os.path.join(reduction_input["configuration"]["outputDir"],
@@ -874,6 +802,42 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     allow_overwrite(output_dir)
 
     return output
+
+
+def process_auto_wedge(auto_wedge_setup: Dict, iq2d_input, output_dir: str, reduction_config: Dict,
+                       symmetric_wedges):
+    logger.notice(f'Auto wedge options: {auto_wedge_setup}')
+    auto_wedge_setup['debug_dir'] = output_dir
+    wedges = getWedgeSelection(iq2d_input, **auto_wedge_setup)
+    logger.notice(f'found wedge angles:\n'
+                  f'              peak: {wedges[0]}\n'
+                  f'        background: {wedges[1]}')
+    # sanity check
+    assert len(wedges) == 2, f'Auto-wedges {wedges} shall have 2 2-tuples'
+    # set automated wedge to reduction configuration for correct plotting.
+    # reduction_config is an in/out function argument
+    reduction_config["wedges"] = wedges
+    reduction_config["symmetric_wedges"] = symmetric_wedges
+
+    return wedges
+
+
+def parse_auto_wedge_setup(reduction_config: Dict, bin1d_type: str, wedges_min) -> Tuple[Dict, bool]:
+    autoWedgeOpts = {}
+    symmetric_wedges = True
+    if bin1d_type == 'wedge' and len(wedges_min) == 0:
+        # the JSON validator "wedgesources" guarantees that the parameters to be collected are all non-empty
+        autoWedgeOpts = {'q_min': reduction_config['autoWedgeQmin'],
+                         'q_delta': reduction_config['autoWedgeQdelta'],
+                         'q_max': reduction_config['autoWedgeQmax'],
+                         'azimuthal_delta': reduction_config['autoWedgeAzimuthalDelta'],
+                         'peak_width': reduction_config['autoWedgePeakWidth'],
+                         'background_width': reduction_config['autoWedgeBackgroundWidth'],
+                         'signal_to_noise_min': reduction_config['autoWedgeSignalToNoiseMin']}
+        # auto-aniso returns all of the wedges
+        symmetric_wedges = False
+
+    return autoWedgeOpts, symmetric_wedges
 
 
 def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None):

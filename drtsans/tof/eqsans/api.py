@@ -70,6 +70,15 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     -  output: load_params, reduction_input
     5. load and optionally slice sample runs
     6. load other runs: bkgd, empty, sample_trans, bkgd_trans
+
+    Returned namedtuple:
+        - sample, background, empty, sample_transmission, background_transmission: namedtuple(data[ws], monitor[ws])
+        - dark_current, sensitivity, mask: workspace
+
+    Returns
+    -------
+    namedtuple
+        Named tuple including all loaded workspaces
     """
     reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
 
@@ -330,7 +339,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                           background_transmission=ws_mon_pair(data=background_transmission_ws,
                                                               monitor=background_transmission_mon_ws),
                           dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
-                          sensitivity=sensitivity_ws, mask=mask_ws)
+                          sensitivity=sensitivity_ws,
+                          mask=mask_ws)
 
     return loaded_ws_dict
 
@@ -341,13 +351,13 @@ def process_single_configuration(sample_ws_raw,
                                  bkg_ws_raw=None,
                                  bkg_trans_ws=None,
                                  bkg_trans_value=None,
-                                 theta_deppendent_transmission=True,
+                                 theta_dependent_transmission=True,
                                  dark_current=None,
-                                 flux_method=None,    # normalization (time/monitor/proton charge)
-                                 flux=None,           # file for flux
-                                 mask_ws=None,        # apply a custom mask from workspace
-                                 mask_panel=None,     # mask back or front panel
-                                 mask_btp=None,       # mask bank/tube/pixel
+                                 flux_method=None,  # normalization (time/monitor/proton charge)
+                                 flux=None,  # file for flux
+                                 mask_ws=None,  # apply a custom mask from workspace
+                                 mask_panel=None,  # mask back or front panel
+                                 mask_btp=None,  # mask bank/tube/pixel
                                  solid_angle=True,
                                  sensitivity_workspace=None,
                                  output_workspace=None,
@@ -357,8 +367,7 @@ def process_single_configuration(sample_ws_raw,
                                  empty_beam_ws=None,
                                  beam_radius=None,
                                  absolute_scale=1.,
-                                 keep_processed_workspaces=True,
-                                 debug_keep_background: bool = False):
+                                 keep_processed_workspaces=True):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
@@ -378,7 +387,7 @@ def process_single_configuration(sample_ws_raw,
         optional histogram workspace for background transmission
     bkg_trans_value: float
         optional value for background transmission
-    theta_deppendent_transmission: bool
+    theta_dependent_transmission: bool
         flag to apply angle dependent transmission
     dark_current: ~mantid.dataobjects.Workspace2D
         dark current workspace
@@ -444,7 +453,7 @@ def process_single_configuration(sample_ws_raw,
         sample_ws = apply_transmission_correction(sample_ws,
                                                   trans_workspace=sample_trans_ws,
                                                   trans_value=sample_trans_value,
-                                                  theta_dependent=theta_deppendent_transmission,
+                                                  theta_dependent=theta_dependent_transmission,
                                                   output_workspace=output_workspace)
 
     # process background, if not already processed
@@ -464,14 +473,13 @@ def process_single_configuration(sample_ws_raw,
                 bkgd_ws = apply_transmission_correction(bkgd_ws,
                                                         trans_workspace=bkg_trans_ws,
                                                         trans_value=bkg_trans_value,
-                                                        theta_dependent=theta_deppendent_transmission,
+                                                        theta_dependent=theta_dependent_transmission,
                                                         output_workspace=bkgd_ws_name)
         else:
             bkgd_ws = mtd[bkgd_ws_name]
 
-        # subtract background as an option
-        if debug_keep_background is False:
-            sample_ws = subtract_background(sample_ws, bkgd_ws)
+        # subtract background
+        sample_ws = subtract_background(sample_ws, bkgd_ws)
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()
@@ -489,26 +497,30 @@ def process_single_configuration(sample_ws_raw,
 
 
 # TODO 777 - better documentation of this function
-def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
+def reduce_single_configuration(loaded_ws: namedtuple,
+                                reduction_input, prefix='',
                                 skip_nan=True,
-                                incoherence_correction_setup=None,
-                                ignore_background: bool = False):
+                                incoherence_correction_setup=None):
     """Reduce samples from raw workspaces including
     1. prepare data
     1.
 
     This is the main entry point of reduction
 
+    Input loaded workspaces as namedtuple:
+      - sample, background, empty, sample_transmission, background_transmission: namedtuple(data[ws], monitor[ws])
+      - dark_current, sensitivity, mask: workspace
+
     Parameters
     ----------
-    loaded_ws
-    reduction_input
+    loaded_ws: namedtuple
+        loaded workspaces
+    reduction_input: dict
+        reduction configuration
     prefix
     skip_nan
     incoherence_correction_setup: CorrectionConfiguration, None
         incoherence/inelastic scattering correction configuration
-    ignore_background: bool
-        Flag to output binned data without subtracting background.  This is for DEBUG only
 
     Returns
     -------
@@ -707,7 +719,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                bkg_ws_raw=loaded_ws.background,
                                                                bkg_trans_ws=bkgd_trans_ws,
                                                                bkg_trans_value=bkg_trans_value,
-                                                               theta_deppendent_transmission=theta_dependent_transmission,  # noqa E502
+                                                               theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
                                                                dark_current=loaded_ws.dark_current,
                                                                flux_method=flux_method,
                                                                flux=flux,
@@ -722,8 +734,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='',
                                                                empty_beam_ws=empty_trans_ws,
                                                                beam_radius=beam_radius,
                                                                absolute_scale=absolute_scale,
-                                                               keep_processed_workspaces=False,
-                                                               debug_keep_background=ignore_background)
+                                                               keep_processed_workspaces=False)
 
             # Convert to Q
             # set up subpixel binning options  FIXME - it does not seem to work

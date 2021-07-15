@@ -150,12 +150,10 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
 
     # Test: use correction workflow and remove background
     # use_correction_workflow = True
-    keep_background = False  # default to be False
 
     # Load and reduce
     loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config,
-                                                   ignore_background=keep_background)
+    reduction_output = reduce_single_configuration(loaded, input_config)
 
     gold_dir = reference_dir.new.eqsans
     # Verify existence of reduced

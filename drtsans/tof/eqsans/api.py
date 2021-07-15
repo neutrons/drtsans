@@ -763,6 +763,21 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         detectordata[name] = _inside_detectordata
     # END reduction loop over sample workspaces
 
+    # Save reduction log
+    save_reduction_log(reduction_input, outputFilename, processed_data_main,
+                       sample_transmission_dict, sample_transmission_raw_dict,
+                       background_transmission_dict, background_transmission_raw_dict,
+                       detectordata, output_dir)
+
+    return output
+
+
+def save_reduction_log(reduction_input, outputFilename, processed_data_main,
+                       sample_transmission_dict, sample_transmission_raw_dict,
+                       background_transmission_dict, background_transmission_raw_dict,
+                       detectordata, output_dir):
+    # TODO 784 Doc!
+
     # create reduction log
     filename = os.path.join(reduction_input["configuration"]["outputDir"],
                             outputFilename + f'_reduction_log.hdf')
@@ -792,7 +807,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     drtsans.savereductionlog(filename=filename,
                              detectordata=detectordata,
                              reductionparams=reductionparams,
-                             # pythonfile=pythonfile,
                              starttime=starttime,
                              specialparameters=specialparameters,
                              logslicedata=logslice_data_dict,
@@ -801,11 +815,10 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)
 
-    return output
-
 
 def process_auto_wedge(auto_wedge_setup: Dict, iq2d_input, output_dir: str, reduction_config: Dict,
                        symmetric_wedges):
+    # TODO 784 Doc!
     logger.notice(f'Auto wedge options: {auto_wedge_setup}')
     auto_wedge_setup['debug_dir'] = output_dir
     wedges = getWedgeSelection(iq2d_input, **auto_wedge_setup)
@@ -823,6 +836,7 @@ def process_auto_wedge(auto_wedge_setup: Dict, iq2d_input, output_dir: str, redu
 
 
 def parse_auto_wedge_setup(reduction_config: Dict, bin1d_type: str, wedges_min) -> Tuple[Dict, bool]:
+    # TODO 784 Doc!
     autoWedgeOpts = {}
     symmetric_wedges = True
     if bin1d_type == 'wedge' and len(wedges_min) == 0:

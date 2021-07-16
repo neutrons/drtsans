@@ -153,7 +153,7 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
 
     # Load and reduce
     loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config)
+    reduction_output = reduce_single_configuration(loaded, input_config, temp_debug_weighting=True)
 
     gold_dir = reference_dir.new.eqsans
     # Verify existence of reduced

@@ -496,10 +496,12 @@ def pre_process_single_configuration(sample_ws_raw,
 
 
 # TODO 777 - better documentation of this function
+# FIXME TODO Task 786 Remove temp_debug_weighting
 def reduce_single_configuration(loaded_ws: namedtuple,
                                 reduction_input, prefix='',
                                 skip_nan=True,
-                                incoherence_correction_setup=None):
+                                incoherence_correction_setup=None,
+                                temp_debug_weighting=False):
     """Reduce samples from raw workspaces including
     1. prepare data
     1.
@@ -719,10 +721,43 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             assert iq1d_main_in_fr[wl_frame] is not None, 'Input I(Q)      main input cannot be None.'
             assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
-            if incoherence_correction_setup.do_correction:
+            # Note 777: 2 step binning shall generate the same result as 1 step binning
+            # FIXME 786 - Remove temp_debug_weighting after conceptual proved
+            if incoherence_correction_setup.do_correction or temp_debug_weighting:
                 # TODO 786 - Implement 1D correction
                 # TODO 787 - Implement 2D correction
-                raise NotImplementedError(f'Implement 1D and 2D ASAP')
+
+                assert weighted_errors is True, 'Must using weighted error'
+
+                # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
+                iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
+                                                     nxbins_main, nybins_main, n1dbins=nbins_main,
+                                                     n1dbins_per_decade=nbins_main_per_decade,
+                                                     decade_on_center=decade_on_center,
+                                                     bin1d_type=bin1d_type, log_scale=log_binning,
+                                                     qmin=qmin, qmax=qmax,
+                                                     qxrange=None,
+                                                     qyrange=None,
+                                                     annular_angle_bin=annular_bin, wedges=wedges,
+                                                     symmetric_wedges=symmetric_wedges,
+                                                     error_weighted=weighted_errors,
+                                                     n_wavelength_bin=None)
+
+                # TODO 786 - Implement 1D
+                # TODO 787 - Implement 2D
+
+                # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
+                iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_wl, iq1d_main_wl,
+                                                       nxbins_main, nybins_main, n1dbins=nbins_main,
+                                                       n1dbins_per_decade=nbins_main_per_decade,
+                                                       decade_on_center=decade_on_center,
+                                                       bin1d_type=bin1d_type, log_scale=log_binning,
+                                                       qmin=qmin, qmax=qmax,
+                                                       qxrange=None,
+                                                       qyrange=None,
+                                                       annular_angle_bin=annular_bin, wedges=wedges,
+                                                       symmetric_wedges=symmetric_wedges,
+                                                       error_weighted=weighted_errors)
 
             else:
                 # Not incoherence correction

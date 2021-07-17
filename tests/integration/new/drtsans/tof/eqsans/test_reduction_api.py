@@ -164,10 +164,12 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=True)
     # verify with gold data
     gold_ws_nexus = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_reduced_wb_m6.nxs')
+    print(f'[TEST] Verify correction workflow reduction: {reduced_data_nexus} vs. {gold_ws_nexus}')
     verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=False)
 
     # Verify binned I(Q)
     for index in range(2):
+        print(f'[TEST] Verify Q bins of frame {index} of 2')
         # Load expected I(Q) and I(Qx, Qy)
         # Fixme : these 'expected' intensity and error are not verified but only Q range
         gold_iq1d_h5 = os.path.join(gold_dir, f'88980_frame1_weighted_old_removebkgd_{index}.h5')
@@ -180,6 +182,7 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
         print(f'Verifying intensity frame {index} from {gold_iq1d_h5} and {gold_iq2d_h5}')
 
         # Verify Q bins: 1D only, 2D skip
+        print(f'Gold Q: {gold_iq1d.mod_q}\nTest Q: {reduction_output[index].I1D_main[0].mod_q}')
         np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
         # 2D
         assert gold_iq2d
@@ -374,7 +377,7 @@ def test_wavelength_step(reference_dir):
 
 
 def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_tol=None, e_rel_tol=None):
-    """Verify reduced result by verified expected result
+    """Verify pre-processed workspac by verified expected result (workspace)
 
     Parameters
     ----------
@@ -396,6 +399,7 @@ def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_
     gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace=f'{ws_prefix}_gold')
     test_ws = LoadNexusProcessed(Filename=test_file, OutputWorkspace=f'{ws_prefix}_test')
     r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
+    print(f'[INT-TEST] Verify reduced workspace match: {r}')
     if r != 'Success':
         assert gold_ws.getNumberHistograms() == test_ws.getNumberHistograms(),\
             f'Histograms: {gold_ws.getNumberHistograms()} != {test_ws.getNumberHistograms()}'
@@ -405,7 +409,7 @@ def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_
             f'Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0).shape}'
         gold_x_array = gold_ws.extractX()
         test_x_array = test_ws.extractX()
-        assert gold_x_array.shape == test_x_array.shape
+        assert gold_x_array.shape == test_x_array.shape, f'Q bins sizes are different'
         np.testing.assert_allclose(gold_ws.extractX(), test_ws.extractX(), err_msg='X is not same')
         if y_rel_tol is not None:
             y_dict = {'rtol': y_rel_tol}

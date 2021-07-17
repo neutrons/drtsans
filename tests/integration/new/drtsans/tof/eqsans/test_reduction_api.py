@@ -80,6 +80,47 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
 
     # Load data and compare
     gold_dir = reference_dir.new.eqsans
+    verify_binned_iq(gold_dir, reduction_output)
+
+    # gold_dir = reference_dir.new.eqsans
+    # for index in range(2):
+    #     # 1D
+    #     iq1d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq1d_{index}_0_m6.h5')
+    #     gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+    #     export_iq_comparison([('Test Result', reduction_output[index].I1D_main[0], 'red'),
+    #                           ('Gold Result', gold_iq1d, 'green')],
+    #                          f'/tmp/regular_setup_comparison_{index}.png')
+    #     _Testing.assert_allclose(reduction_output[index].I1D_main[0], gold_iq1d)
+    #
+    #     # 2D
+    #     iq2d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq2d_{index}_m6.h5')
+    #     gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
+    #     _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
+
+    # Check reduced workspace
+    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    # verify with gold data and clean
+    gold_file = os.path.join(reference_dir.new.eqsans, 'test_integration_api/EQSANS_88980_reduced_m6.nxs')
+    verify_processed_workspace(test_file=reduced_data_nexus, gold_file=gold_file, ws_prefix='no_wl')
+    # clean up
+    os.remove(reduced_data_nexus)
+
+
+def verify_binned_iq(gold_dir, reduction_output):
+    """
+
+    Parameters
+    ----------
+    gold_dir
+    reduction_output: ~list
+        list of binned I(Q1D) and I(qx, qy)
+
+    Returns
+    -------
+
+    """
+    # TODO 777 - make the gold files more flexible
+
     for index in range(2):
         # 1D
         iq1d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq1d_{index}_0_m6.h5')
@@ -93,14 +134,6 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
         iq2d_h5_name = os.path.join(gold_dir, f'test_integration_api/88980_iq2d_{index}_m6.h5')
         gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
         _Testing.assert_allclose(reduction_output[index].I2D_main, gold_iq2d)
-
-    # Check reduced workspace
-    assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
-    # verify with gold data and clean
-    gold_file = os.path.join(reference_dir.new.eqsans, 'test_integration_api/EQSANS_88980_reduced_m6.nxs')
-    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_file, ws_prefix='no_wl')
-    # clean up
-    os.remove(reduced_data_nexus)
 
 
 @pytest.mark.parametrize('run_config, basename',
@@ -161,30 +194,37 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
     assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
     # Verify reduced workspace (previous) FIXME - remove later
     gold_ws_nexus = os.path.join(reference_dir.new.eqsans, 'EQSANS_88980_reduced.nxs')
-    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=True)
+    verify_processed_workspace(test_file=reduced_data_nexus, gold_file=gold_ws_nexus, ws_prefix='no_wl',
+                               ignore_error=True)
     # verify with gold data
     gold_ws_nexus = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_reduced_wb_m6.nxs')
     print(f'[TEST] Verify correction workflow reduction: {reduced_data_nexus} vs. {gold_ws_nexus}')
-    verify_reduction(test_file=reduced_data_nexus,  gold_file=gold_ws_nexus, ws_prefix='no_wl', ignore_error=False)
+    verify_processed_workspace(test_file=reduced_data_nexus, gold_file=gold_ws_nexus, ws_prefix='no_wl',
+                               ignore_error=False)
 
     # Verify binned I(Q)
     for index in range(2):
         print(f'[TEST] Verify Q bins of frame {index} of 2')
+
+        # verify 1D
         # Load expected I(Q) and I(Qx, Qy)
-        # Fixme : these 'expected' intensity and error are not verified but only Q range
         gold_iq1d_h5 = os.path.join(gold_dir, f'88980_frame1_weighted_old_removebkgd_{index}.h5')
         assert os.path.exists(gold_iq1d_h5)
         gold_iq1d = load_iq1d_from_h5(gold_iq1d_h5)
 
+        # Verify Q bins: 1D only, 2D skip
+        print(f'Gold Q: {gold_iq1d.mod_q}\nTest Q: {reduction_output[index].I1D_main[0].mod_q}')
+        np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
+        # intensities and error
+        np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity)
+        np.testing.assert_allclose(gold_iq1d.error, reduction_output[index].I1D_main[0].error)
+
+        # verify 2D
         gold_iq2d_h5 = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
         assert os.path.exists(gold_iq2d_h5)
         gold_iq2d = load_iq2d_from_h5(gold_iq2d_h5)
         print(f'Verifying intensity frame {index} from {gold_iq1d_h5} and {gold_iq2d_h5}')
 
-        # Verify Q bins: 1D only, 2D skip
-        print(f'Gold Q: {gold_iq1d.mod_q}\nTest Q: {reduction_output[index].I1D_main[0].mod_q}')
-        np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
-        # 2D
         assert gold_iq2d
 
     """ This is information about how gold data will be generated for the next step: binning
@@ -316,7 +356,7 @@ def test_wavelength_step(reference_dir):
         assert os.path.isfile(output_file_name), f'Expected output file {output_file_name} does not exists'
         # verify reduced worksapce
         gold_file = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_wl_reduced_reg_m6.nxs')
-        verify_reduction(output_file_name, gold_file, 'reg', ignore_error=False)
+        verify_processed_workspace(output_file_name, gold_file, 'reg', ignore_error=False)
         # verify binned reduced I(Q)
         gold_iq1d_h5 = os.path.join(gold_dir, 'test_integration_api/88980_iq1d_wl_0_0_m6.h5')
         gold_iq1d = load_iq1d_from_h5(gold_iq1d_h5)
@@ -346,7 +386,7 @@ def test_wavelength_step(reference_dir):
         assert os.path.isfile(output_file_name),  f'Expected output file {output_file_name} does not exists'
         # verify reduced worksapce
         gold_file = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_wl_reduced_com_m6.nxs')
-        verify_reduction(output_file_name, gold_file, 'com', ignore_error=False)
+        verify_processed_workspace(output_file_name, gold_file, 'com', ignore_error=False)
 
     # Test 3 with gaussian beam center
     with tempfile.TemporaryDirectory() as test_dir:
@@ -373,11 +413,11 @@ def test_wavelength_step(reference_dir):
         # E   Max absolute difference: 2.96006469e-09  Max relative difference: 1.7555871e-07
         gold_file = os.path.join(gold_dir, 'test_integration_api/EQSANS_88980_wl_reduced_gauss_m6.nxs')
         # This tolerance: 3E-7 comes from the different result between Ubuntu and REL7
-        verify_reduction(output_file_name, gold_file, 'gauss', ignore_error=False, y_rel_tol=3.E-7, e_rel_tol=1.36E-7)
+        verify_processed_workspace(output_file_name, gold_file, 'gauss', ignore_error=False, y_rel_tol=3.E-7, e_rel_tol=1.36E-7)
 
 
-def verify_reduction(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_tol=None, e_rel_tol=None):
-    """Verify pre-processed workspac by verified expected result (workspace)
+def verify_processed_workspace(test_file, gold_file, ws_prefix, ignore_error=False, y_rel_tol=None, e_rel_tol=None):
+    """Verify pre-processed workspace by verified expected result (workspace)
 
     Parameters
     ----------

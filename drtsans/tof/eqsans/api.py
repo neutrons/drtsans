@@ -793,6 +793,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                        error_weighted=weighted_errors)
 
             else:
+                raise NotImplementedError('Gaurantee!')
                 # Not incoherence correction
                 print(f'[DEBUG 777-2] Frame {wl_frame} '
                       f'Before Q1D NaN = {np.isnan(iq1d_main_in_fr[wl_frame].intensity).shape}')

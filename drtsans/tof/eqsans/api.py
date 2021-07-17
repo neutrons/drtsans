@@ -721,13 +721,18 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             assert iq1d_main_in_fr[wl_frame] is not None, 'Input I(Q)      main input cannot be None.'
             assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
+            import numpy as np
+            print(f'[DEBUG 777] Frame {wl_frame} '
+                  f'Before Q1D NaN = {np.where(np.isnan(iq1d_main_in_fr[wl_frame].intensity))[0].shape}; '
+                  f'Total data points = {iq1d_main_in_fr[wl_frame].intensity.shape}')
+            print(f'DEBUG 777] Is log binning: {log_binning}')
             # Note 777: 2 step binning shall generate the same result as 1 step binning
             # FIXME 786 - Remove temp_debug_weighting after conceptual proved
             if incoherence_correction_setup.do_correction or temp_debug_weighting:
-                # TODO 786 - Implement 1D correction
-                # TODO 787 - Implement 2D correction
+                assert weighted_errors, 'Must using weighted error'
 
-                assert weighted_errors is True, 'Must using weighted error'
+                print(f'[DEBUG 777-1A] Frame {wl_frame} '
+                      f'Before Q1D NaN = {np.where(np.isnan(iq1d_main_in_fr[wl_frame].intensity))[0].shape}')
 
                 # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
                 iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
@@ -742,12 +747,19 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                      symmetric_wedges=symmetric_wedges,
                                                      error_weighted=weighted_errors,
                                                      n_wavelength_bin=None)
+                assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
+                print(f'[DEBUG 777-1B] Middle Q1D NaN = {np.where(np.isnan(iq1d_main_wl[0].intensity))[0].shape}')
 
                 # TODO 786 - Implement 1D
+                # TODO 786 - Implement 1D correction
+                # TODO 787 - Implement 2D correction
                 # TODO 787 - Implement 2D
 
                 # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
-                iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_wl, iq1d_main_wl,
+                # TODO FIXME 787 - replace iq2d_main_in_fr[wl_frame] by iq2d_main_wl
+                assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
+                                               f' but not {len(iq1d_main_wl)}'
+                iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_wl[0],
                                                        nxbins_main, nybins_main, n1dbins=nbins_main,
                                                        n1dbins_per_decade=nbins_main_per_decade,
                                                        decade_on_center=decade_on_center,
@@ -761,6 +773,9 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
             else:
                 # Not incoherence correction
+                print(f'[DEBUG 777-2] Frame {wl_frame} '
+                      f'Before Q1D NaN = {np.isnan(iq1d_main_in_fr[wl_frame].intensity).shape}')
+
                 iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                        nxbins_main, nybins_main, n1dbins=nbins_main,
                                                        n1dbins_per_decade=nbins_main_per_decade,
@@ -772,6 +787,8 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                        annular_angle_bin=annular_bin, wedges=wedges,
                                                        symmetric_wedges=symmetric_wedges,
                                                        error_weighted=weighted_errors)
+
+                raise RuntimeError('[DEBUG 777] Stop!')
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 

@@ -251,10 +251,12 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, **kwargs))
     else:
         # regular binning including 'scalar' and 'wedge'
+        print(f'[DEBUG 777] qmin = {qmin}, qmax = {qmax}')
         if qmin is None:
             qmin = i_modq.mod_q.min()
         if qmax is None:
             qmax = i_modq.mod_q.max()
+        print(f'[DEBUG 777] qmin = {qmin}, qmax = {qmax}')
 
         if bin1d_type == 'scalar':
             unbinned_1d = [i_modq]
@@ -279,13 +281,16 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                       ub1d.mod_q[q_filter],
                                       ub1d.delta_mod_q[q_filter] if ub1d.delta_mod_q is not None else None,
                                       ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
-                binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method,
-                                       wavelength_bins=n_wavelength_bin))
+                binned_q1d = bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method,
+                                                    wavelength_bins=n_wavelength_bin)
+                binned_q1d_list.append(binned_q1d)
         else:
             # linear bins
             bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
             for ub_index, ub1d in enumerate(unbinned_1d):
-
+                print(f'Linear binning for {ub_index}!')
+                print(f'Number of NaNs = {np.where(np.isnan(ub1d.intensity))[0].shape}; '
+                      f'Number of data points = {ub1d.intensity.shape}')
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method,
                                        wavelength_bins=n_wavelength_bin))
 

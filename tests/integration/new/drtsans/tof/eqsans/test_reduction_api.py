@@ -232,9 +232,12 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
         gold_iq2d_h5 = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
         assert os.path.exists(gold_iq2d_h5)
         gold_iq2d = load_iq2d_from_h5(gold_iq2d_h5)
+        print(f'Gold Q: {gold_iq2d.qx}\nTest Q: {reduction_output[index].I2D_main.qx}')
+        np.testing.assert_allclose(gold_iq2d.qx, reduction_output[index].I2D_main.qx)
+
+        # FIXME 777 - put somewhere better
         print(f'Verifying intensity frame {index} from {gold_iq1d_h5} and {gold_iq2d_h5}')
 
-        assert gold_iq2d
 
     """ This is information about how gold data will be generated for the next step: binning
     on different reduction workflow

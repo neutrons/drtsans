@@ -219,6 +219,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         qx_max = np.max(i_qxqy.qx)
     else:
         qx_min, qx_max = qxrange
+    print(f'[DEBUG 777 Bin] Qx range: {qx_min}, {qx_max}; User range: {qxrange}')
     binning_x = determine_1d_linear_bins(qx_min, qx_max, nxbins)
 
     if qyrange is None:
@@ -227,6 +228,7 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         qy_max = np.max(i_qxqy.qy)
     else:
         qy_min, qy_max = qyrange
+    print(f'[DEBUG 777 Bin] Qy range: {qy_min}, {qy_max}; User range: {qyrange}')
     binning_y = determine_1d_linear_bins(qy_min, qy_max, nybins)
 
     # bin 2D

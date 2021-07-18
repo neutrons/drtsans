@@ -736,7 +736,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
             # Note 777: 2 step binning shall generate the same result as 1 step binning
             # FIXME 786 - Remove temp_debug_weighting after conceptual proved
-            if incoherence_correction_setup.do_correction or temp_debug_weighting:
+            if incoherence_correction_setup.do_correction:  # or temp_debug_weighting:
                 assert weighted_errors, 'Must using weighted error'
 
                 print(f'[DEBUG 777-1A] Frame {wl_frame} '
@@ -753,6 +753,17 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                     qmax = user_qmax
                 print(f'[DEBUG 777-1] Frame {wl_frame} Q range: {qmin}, {qmax}')
 
+                # Determine qxrange and qyrange for this frame
+                qx_min = np.min(iq2d_main_in_fr[wl_frame].qx)
+                qx_max = np.max(iq2d_main_in_fr[wl_frame].qx)
+                qxrange = qx_min, qx_max
+                print(f'[DEBUG 777-1] Frame {wl_frame} Qx range: {qx_min}, {qx_max}; User range: {qxrange}')
+
+                qy_min = np.min(iq2d_main_in_fr[wl_frame].qy)
+                qy_max = np.max(iq2d_main_in_fr[wl_frame].qy)
+                qyrange = qy_min, qy_max
+                print(f'[DEBUG 777-1] Frame {wl_frame} Qy range: {qy_min}, {qy_max}; User range: {qyrange}')
+
                 # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
                 iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                      nxbins_main, nybins_main, n1dbins=nbins_main,
@@ -760,8 +771,8 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                      decade_on_center=decade_on_center,
                                                      bin1d_type=bin1d_type, log_scale=log_binning,
                                                      qmin=qmin, qmax=qmax,
-                                                     qxrange=None,
-                                                     qyrange=None,
+                                                     qxrange=qxrange,
+                                                     qyrange=qyrange,
                                                      annular_angle_bin=annular_bin, wedges=wedges,
                                                      symmetric_wedges=symmetric_wedges,
                                                      error_weighted=weighted_errors,
@@ -793,7 +804,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                        error_weighted=weighted_errors)
 
             else:
-                raise NotImplementedError('Gaurantee!')
                 # Not incoherence correction
                 print(f'[DEBUG 777-2] Frame {wl_frame} '
                       f'Before Q1D NaN = {np.isnan(iq1d_main_in_fr[wl_frame].intensity).shape}')

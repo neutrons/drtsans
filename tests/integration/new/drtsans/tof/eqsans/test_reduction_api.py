@@ -234,6 +234,8 @@ def test_correction_workflow(run_config, basename, tmpdir, reference_dir):
         gold_iq2d = load_iq2d_from_h5(gold_iq2d_h5)
         print(f'Gold Q: {gold_iq2d.qx}\nTest Q: {reduction_output[index].I2D_main.qx}')
         np.testing.assert_allclose(gold_iq2d.qx, reduction_output[index].I2D_main.qx)
+        np.testing.assert_allclose(gold_iq2d.qy, reduction_output[index].I2D_main.qy)
+        np.testing.assert_allclose(gold_iq2d.intensity, reduction_output[index].I2D_main.intensity)
 
         # FIXME 777 - put somewhere better
         print(f'Verifying intensity frame {index} from {gold_iq1d_h5} and {gold_iq2d_h5}')

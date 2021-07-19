@@ -497,11 +497,12 @@ def pre_process_single_configuration(sample_ws_raw,
 
 # TODO 777 - better documentation of this function
 # FIXME TODO Task 786 Remove temp_debug_weighting
+# FIXME 777 Before closing: incoherence_correction_setup shall be set up inside reduce_single_configuration()
 def reduce_single_configuration(loaded_ws: namedtuple,
-                                reduction_input, prefix='',
+                                reduction_input,
+                                prefix='',
                                 skip_nan=True,
-                                incoherence_correction_setup=None,
-                                temp_debug_weighting=False):
+                                incoherence_correction_setup=None):
     """Reduce samples from raw workspaces including
     1. prepare data
     1.

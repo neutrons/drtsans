@@ -93,88 +93,7 @@ def test_parse_json():
     assert input_config['configuration'].get('selectMinIncoh')
 
 
-# EQSANS reduction
-specs_eqsans = {
-    'EQSANS_88980': {
-        "iptsNumber": 19800,
-        "sample": {"runNumber": 88980, "thickness": 0.1, "transmission": {"runNumber": 88980}},
-        "background": {"runNumber": 88978, "transmission": {"runNumber": 88974}},
-        "beamCenter": {"runNumber": 88973},
-        "emptyTransmission": {"runNumber": 88973},
-        "configuration": {
-            "sampleApertureSize": 30,
-            "darkFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5",
-            "StandardAbsoluteScale": 0.0208641883,
-            "sampleOffset": 0,
-        }
-    }
-}
-
-
-@pytest.mark.parametrize('run_config, basename',
-                         [(specs_eqsans['EQSANS_88980'], 'EQSANS_88980')],
-                         ids=['88980'])
-def test_correction_workflow(run_config, basename, tmpdir):
-    """Same reduction from Shaman test but using the workflow that is designed to work with inelastic correction
-
-    Returns
-    -------
-
-    """
-    common_config = {
-        "configuration": {
-            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
-            "useDefaultMask": True,
-            "normalization": "Total charge",
-            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
-            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
-            "absoluteScaleMethod": "standard",
-            "detectorOffset": 0,
-            "mmRadiusForTransmission": 25,
-            "numQxQyBins": 80,
-            "1DQbinType": "scalar",
-            "QbinType": "linear",
-            "numQBins": 120,
-            "AnnularAngleBin": 5,
-            "wavelengthStepType": "constant Delta lambda",
-            "wavelengthStep": 0.1,
-            "fitInelasticIncoh": True,
-            "selectMinIncoh": True
-        }
-    }
-    input_config = reduction_parameters(common_config, 'EQSANS', validate=False)  # defaults and common options
-    input_config = update_reduction_parameters(input_config, run_config, validate=False)
-    output_dir = str(tmpdir)
-    amendments = {
-        'outputFileName': f'{basename}_corr',
-        'configuration': {'outputDir': output_dir}
-    }
-    input_config = update_reduction_parameters(input_config, amendments, validate=True)  # final changes and validation
-
-    # expected output Nexus file
-    reduced_data_nexus = os.path.join(output_dir, f'{basename}_corr.nxs')
-    # remove files
-    if os.path.exists(reduced_data_nexus):
-        os.remove(reduced_data_nexus)
-
-    # Check that inelastic incoherence config items were parsed
-    # if input_config['configuration'].get('fitInelasticIncoh'):
-    #     select_min_incoh = input_config['configuration'].get('selectMinIncoh')
-    #     correction = CorrectionConfiguration(True, select_min_incoh)
-    #     elastic_run = input_config['configuration']['elasticReference'].get('runNumber')
-    #     if elastic_run is not None:
-    #         elastic_setup = ElasticReferenceRunSetup(elastic_run)
-    #         correction.set_elastic_reference_run(elastic_setup)
-    # else:
-    #     correction = CorrectionConfiguration(False, False)
-
-    # Load and reduce
-    loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config)
-    assert reduction_output
-
-
-def generate_689_test2_configuration():
+def generate_configuration_with_correction():
     """Generate configuration dictionary (JSON) from test 2 in issue 689
 
     Source: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689  *Test 2*
@@ -183,6 +102,7 @@ def generate_689_test2_configuration():
     -------
 
     """
+    # FIXME 777 : use tempfile before closing
     output_dir = '/tmp'
 
     reduction_configuration = {
@@ -250,7 +170,7 @@ def generate_689_test2_configuration():
             "AnnularAngleBin": 5.0,
             "Qmin": None,
             "Qmax": None,
-            "useErrorWeighting": None,
+            "useErrorWeighting": True,
             "smearingPixelSizeX": None,
             "smearingPixelSizeY": None,
             "useSubpixels": None,
@@ -281,19 +201,21 @@ def generate_689_test2_configuration():
     return reduction_configuration
 
 
+# FIXME - better test method name
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-25813/nexus/EQSANS_113915.nxs.h5'),
                     reason="Required test data not available")
-def crashed_worker_test_689_test2(reference_dir):
+def test_689_test2(reference_dir):
     from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
     from drtsans.tof.eqsans.correction_api import ElasticReferenceRunSetup
 
     # Set up the configuration dict
-    configuration = generate_689_test2_configuration()
+    configuration = generate_configuration_with_correction()
 
     # Defaults and Validate
     input_config = reduction_parameters(configuration)
 
     # Check that inelastic incoherence config items were parsed
+    # FIXME 777 and 785 - make this a method (centralized)
     if input_config['configuration'].get('fitInelasticIncoh'):
         select_min_incoh = input_config['configuration'].get('selectMinIncoh')
         correction = CorrectionConfiguration(True, select_min_incoh)
@@ -302,99 +224,95 @@ def crashed_worker_test_689_test2(reference_dir):
             elastic_setup = ElasticReferenceRunSetup(elastic_run)
             correction.set_elastic_reference_run(elastic_setup)
     else:
-        correction = CorrectionConfiguration(False, False)
+        correction = None
 
     # Create temp output directory
-    with tempfile.TemporaryDirectory() as test_dir:
-        print(f'DEBUG 689 temp dir {test_dir} is overridden now')
+    test_dir = tempfile.mkdtemp()
+    print(f'[DEBUG 777] temp dir {test_dir} is created now')
 
-        # 689 - this is only for debugging and TDD
-        # base_name = ['baseline', 'newworkflow', 'correction'][2]
-        # base_name = f'EQSANS_113915_{base_name}'
-        # test_dir = os.path.join(, base_name)
-        base_name = 'EQSANS_113915_Incoh'
+    # 689 - this is only for debugging and TDD
+    # base_name = ['baseline', 'newworkflow', 'correction'][2]
+    # base_name = f'EQSANS_113915_{base_name}'
+    base_name = 'EQSANS_113915_Incoh_baseline'
 
-        assert os.path.exists(test_dir), f'Output dir {test_dir} does not exit'
-        configuration['configuration']['outputDir'] = test_dir
-        configuration['outputFileName'] = base_name
-        configuration['dataDirectories'] = test_dir
+    assert os.path.exists(test_dir), f'Output dir {test_dir} does not exit'
+    configuration['configuration']['outputDir'] = test_dir
+    configuration['outputFileName'] = base_name
+    configuration['dataDirectories'] = test_dir
 
-        # validate and clean configuration
-        input_config = reduction_parameters(configuration)
-        loaded = load_all_files(input_config)
-        if base_name.endswith('baseline'):
-            # Baseline
-            reduction_output = reduce_single_configuration(loaded, input_config,
-                                                           incoherence_correction_setup=None,
-                                                           use_correction_workflow=False)
-        elif base_name.endswith('newworkflow'):
-            # Baseline (2) new workflow without correction
-            reduction_output = reduce_single_configuration(loaded, input_config,
-                                                           incoherence_correction_setup=None,
-                                                           use_correction_workflow=True)
-        else:
-            # Real reduction
-            reduction_output = reduce_single_configuration(loaded, input_config,
-                                                           incoherence_correction_setup=correction)
+    # validate and clean configuration
+    input_config = reduction_parameters(configuration)
+    loaded = load_all_files(input_config)
+    if base_name.endswith('baseline'):
+        # Baseline
+        correction = None
+    else:
+        pass
 
-        if base_name.endswith('baseline'):
-            # output reduced result as gold files
-            export_reduction_output(reduction_output, prefix='EQSANS_113915')
-        else:
-            # Verify reduced workspace (nothing to do correction)
-            reduced_data_nexus = os.path.join(test_dir, f'{base_name}.nxs')
-            assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    reduction_output = reduce_single_configuration(loaded, input_config,
+                                                   incoherence_correction_setup=correction)
 
-            # verify with gold data
-            # gold_dir = os.path.join(reference_dir.new.eqsans, 'baseline')
-            gold_dir = reference_dir.new.eqsans
-            gold_file = os.path.join(gold_dir, f'EQSANS_113915_baseline.nxs')
-            verify_reduced_workspace(test_processed_nexus=reduced_data_nexus, gold_processed_nexus=gold_file,
-                                     ws_prefix='new')
-            print('Successfully passed processed sample - background')
+    if base_name.endswith('baseline'):
+        # output reduced result as gold files
+        export_reduction_output(reduction_output, output_dir=test_dir, prefix='EQSANS_113915')
+    else:
+        # Verify reduced workspace (nothing to do correction)
+        reduced_data_nexus = os.path.join(test_dir, f'{base_name}.nxs')
+        assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
 
-            # Compare/verify the binned I(Q)
-            error_list = list()
-            for index in range(1):
-                # 1D
-                # Verify bin boundaries
-                iq1d_h5_name = os.path.join(gold_dir, f'Expected_EQSANS_113915iq1d_{index}_0.h5')
-                gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
-                np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
+        # verify with gold data
+        # gold_dir = os.path.join(reference_dir.new.eqsans, 'baseline')
+        gold_dir = reference_dir.new.eqsans
+        gold_file = os.path.join(gold_dir, f'EQSANS_113915_baseline.nxs')
+        verify_reduced_workspace(test_processed_nexus=reduced_data_nexus, gold_processed_nexus=gold_file,
+                                 ws_prefix='new')
+        print('Successfully passed processed sample - background')
 
-                # Verify intensities
-                try:
-                    rel_tol = 0.1
-                    np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity,
-                                               rtol=rel_tol)
-                    print(f'Intensity test passed for frame {index + 1} with tolerance {rel_tol}')
-                except AssertionError as err:
-                    # plot the error
-                    print(f'Intensity test failed for frame {index + 1} with tolerance {rel_tol}')
-                    vec_x = gold_iq1d.mod_q
-                    plt.figure(figsize=(20, 16))
-                    plt.title(f'EQSANS 113915 Frame {index + 1}')
-                    plt.plot(vec_x, gold_iq1d.intensity, color='black', label='gold')
-                    plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label='test')
-                    if True:
-                        plt.yscale('log')
-                    else:
-                        plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
-                                 color='green', label='diff')
-                        plt.yscale('linear')
-                    plt.xlabel('Q')
-                    plt.ylabel('Intensity')
-                    plt.legend()
-                    plt.show()
-                    plt.savefig(f'diff_{index}.png')
-                    plt.close()
-                    error_list.append(err)
-            # END-FOR
-            if len(error_list) > 0:
-                err_msg = ''
-                for err in error_list:
-                    err_msg += f'{err}\n'
-                raise AssertionError(err_msg)
+        # Compare/verify the binned I(Q)
+        error_list = list()
+        for index in range(1):
+            # 1D
+            # Verify bin boundaries
+            iq1d_h5_name = os.path.join(gold_dir, f'Expected_EQSANS_113915iq1d_{index}_0.h5')
+            gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+            np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
+
+            # Verify intensities
+            try:
+                rel_tol = 0.1
+                np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity,
+                                           rtol=rel_tol)
+                print(f'Intensity test passed for frame {index + 1} with tolerance {rel_tol}')
+            except AssertionError as err:
+                # plot the error
+                print(f'Intensity test failed for frame {index + 1} with tolerance {rel_tol}')
+                vec_x = gold_iq1d.mod_q
+                plt.figure(figsize=(20, 16))
+                plt.title(f'EQSANS 113915 Frame {index + 1}')
+                plt.plot(vec_x, gold_iq1d.intensity, color='black', label='gold')
+                plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label='test')
+                if True:
+                    plt.yscale('log')
+                else:
+                    plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
+                             color='green', label='diff')
+                    plt.yscale('linear')
+                plt.xlabel('Q')
+                plt.ylabel('Intensity')
+                plt.legend()
+                plt.show()
+                plt.savefig(f'diff_{index}.png')
+                plt.close()
+                error_list.append(err)
+        # END-FOR
+        if len(error_list) > 0:
+            err_msg = ''
+            for err in error_list:
+                err_msg += f'{err}\n'
+            raise AssertionError(err_msg)
+
+
+    assert 1 == 3, 'Successful!  Error only for verbose'
 
 
 def verify_reduced_workspace(test_processed_nexus, gold_processed_nexus, ws_prefix):
@@ -429,6 +347,7 @@ def verify_reduced_workspace(test_processed_nexus, gold_processed_nexus, ws_pref
         np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE())
 
 
+# FIXME - combine all the export_reduction_output() and add to other module
 def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):
     """Export the reduced I(Q) and I(Qx, Qy) to  hdf5 files
     """

@@ -193,7 +193,7 @@ def load_events_and_histogram(run, data_dir=None, output_workspace=None, output_
                                      sample_si_window_overwrite_value=sample_to_si_value,
                                      sample_detector_distance_overwrite_value=sample_detector_distance_value)
         # Transform to wavelength
-        transform_to_wavelength(ws)
+        ws = transform_to_wavelength(ws)
 
         # Append
         temp_workspaces.append(ws)

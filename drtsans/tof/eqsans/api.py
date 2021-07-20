@@ -4,6 +4,7 @@ import copy
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
 from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
@@ -694,19 +695,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
             wedges = process_auto_wedge(autoWedgeOpts, iq2d_main_in, output_dir, reduction_config, symmetric_wedges)
 
-            # logger.notice(f'Auto wedge options: {autoWedgeOpts}')
-            # autoWedgeOpts['debug_dir'] = output_dir
-            # wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            # logger.notice(f'found wedge angles:\n'
-            #               f'              peak: {wedges[0]}\n'
-            #               f'        background: {wedges[1]}')
-            # # sanity check
-            # assert len(wedges) == 2, f'Auto-wedges {wedges} shall have 2 2-tuples'
-            # # set automated wedge to reduction configuration for correct plotting.
-            # # reduction_config is an in/out function argument
-            # reduction_config["wedges"] = wedges
-            # reduction_config["symmetric_wedges"] = symmetric_wedges
-
         n_wl_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
 
@@ -725,15 +713,14 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             assert iq1d_main_in_fr[wl_frame] is not None, 'Input I(Q)      main input cannot be None.'
             assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
-            import numpy as np
-            print(f'[DEBUG 777] Frame {wl_frame} '
-                  f'Before Q1D NaN = {np.where(np.isnan(iq1d_main_in_fr[wl_frame].intensity))[0].shape}; '
-                  f'Total data points = {iq1d_main_in_fr[wl_frame].intensity.shape}')
-            print(f'DEBUG 777] Is log binning: {log_binning}')
-            if True:
-                qmin_fw = iq1d_main_in_fr[wl_frame].mod_q.min()
-                qmax_fw = iq1d_main_in_fr[wl_frame].mod_q.max()
-                print(f'[DEBUG 777] Frame {wl_frame} Q range: {qmin_fw}, {qmax_fw}')
+            # print(f'[DEBUG 777] Frame {wl_frame} '
+            #       f'Before Q1D NaN = {np.where(np.isnan(iq1d_main_in_fr[wl_frame].intensity))[0].shape}; '
+            #       f'Total data points = {iq1d_main_in_fr[wl_frame].intensity.shape}')
+            # print(f'DEBUG 777] Is log binning: {log_binning}')
+            # if True:
+            #     qmin_fw = iq1d_main_in_fr[wl_frame].mod_q.min()
+            #     qmax_fw = iq1d_main_in_fr[wl_frame].mod_q.max()
+            #     print(f'[DEBUG 777] Frame {wl_frame} Q range: {qmin_fw}, {qmax_fw}')
 
             # Note 777: 2 step binning shall generate the same result as 1 step binning
             # FIXME 786 - Remove temp_debug_weighting after conceptual proved
@@ -781,13 +768,21 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                 assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
                 print(f'[DEBUG 777-1B] Middle Q1D NaN = {np.where(np.isnan(iq1d_main_wl[0].intensity))[0].shape}')
 
+                if len(iq1d_main_wl) > 0:
+                    raise NotImplementedError(f'Not expected that there are more than 1 IQmod main ')
+
                 # TODO 786 - Implement 1D
                 # TODO 786 - Implement 1D correction
+                from correction_api import do_inelastic_incoherence_correction_q1d
+                corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
+                                                                         incoherence_correction_setup,
+                                                                         output_dir)
+
                 # TODO 787 - Implement 2D correction
                 # TODO 787 - Implement 2D
 
                 # Be finite
-                finite_iq1d = iq1d_main_wl[0].be_finite()
+                finite_iq1d = corrected_iq1d.be_finite()
                 finite_iq2d = iq2d_main_wl.be_finite()
                 # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
                 assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \

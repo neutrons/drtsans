@@ -278,7 +278,7 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
 
     Returns
     -------
-    CorrectedIQ1D
+    IQmod
 
     """
     # type check

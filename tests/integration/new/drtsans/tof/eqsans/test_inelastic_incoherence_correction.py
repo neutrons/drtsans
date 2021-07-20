@@ -1,13 +1,13 @@
 import pytest
 import os
 from jsonschema.exceptions import ValidationError
-from drtsans.tof.eqsans import reduction_parameters, update_reduction_parameters
+from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration, plot_reduction_output)  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 import numpy as np
 import tempfile
 from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5
-from typing import List, Any, Union
+from typing import List, Any, Union, Dict
 from matplotlib import pyplot as plt
 
 
@@ -93,18 +93,17 @@ def test_parse_json():
     assert input_config['configuration'].get('selectMinIncoh')
 
 
-def generate_configuration_with_correction():
+def generate_configuration_with_correction(output_dir: str = '/tmp/') -> Dict:
     """Generate configuration dictionary (JSON) from test 2 in issue 689
 
     Source: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689  *Test 2*
 
     Returns
     -------
+    ~dict
+        Reduction donfiguration JSON
 
     """
-    # FIXME 777 : use tempfile before closing
-    output_dir = '/tmp'
-
     reduction_configuration = {
         "schemaStamp": "2020-05-21T17:18:11.528041",
         "instrumentName": "EQSANS",
@@ -233,7 +232,7 @@ def test_689_test2(reference_dir):
     # 689 - this is only for debugging and TDD
     # base_name = ['baseline', 'newworkflow', 'correction'][2]
     # base_name = f'EQSANS_113915_{base_name}'
-    base_name = 'EQSANS_113915_Incoh_baseline'
+    base_name = 'EQSANS_113915_Incoh_1d'
 
     assert os.path.exists(test_dir), f'Output dir {test_dir} does not exit'
     configuration['configuration']['outputDir'] = test_dir
@@ -249,6 +248,7 @@ def test_689_test2(reference_dir):
     else:
         pass
 
+    # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,
                                                    incoherence_correction_setup=correction)
 
@@ -266,53 +266,6 @@ def test_689_test2(reference_dir):
         gold_file = os.path.join(gold_dir, f'EQSANS_113915_baseline.nxs')
         verify_reduced_workspace(test_processed_nexus=reduced_data_nexus, gold_processed_nexus=gold_file,
                                  ws_prefix='new')
-        print('Successfully passed processed sample - background')
-
-        # Compare/verify the binned I(Q)
-        error_list = list()
-        for index in range(1):
-            # 1D
-            # Verify bin boundaries
-            iq1d_h5_name = os.path.join(gold_dir, f'Expected_EQSANS_113915iq1d_{index}_0.h5')
-            gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
-            np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
-
-            # Verify intensities
-            try:
-                rel_tol = 0.1
-                np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity,
-                                           rtol=rel_tol)
-                print(f'Intensity test passed for frame {index + 1} with tolerance {rel_tol}')
-            except AssertionError as err:
-                # plot the error
-                print(f'Intensity test failed for frame {index + 1} with tolerance {rel_tol}')
-                vec_x = gold_iq1d.mod_q
-                plt.figure(figsize=(20, 16))
-                plt.title(f'EQSANS 113915 Frame {index + 1}')
-                plt.plot(vec_x, gold_iq1d.intensity, color='black', label='gold')
-                plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity, color='red', label='test')
-                if True:
-                    plt.yscale('log')
-                else:
-                    plt.plot(vec_x, reduction_output[index].I1D_main[0].intensity - gold_iq1d.intensity,
-                             color='green', label='diff')
-                    plt.yscale('linear')
-                plt.xlabel('Q')
-                plt.ylabel('Intensity')
-                plt.legend()
-                plt.show()
-                plt.savefig(f'diff_{index}.png')
-                plt.close()
-                error_list.append(err)
-        # END-FOR
-        if len(error_list) > 0:
-            err_msg = ''
-            for err in error_list:
-                err_msg += f'{err}\n'
-            raise AssertionError(err_msg)
-
-
-    assert 1 == 3, 'Successful!  Error only for verbose'
 
 
 def verify_reduced_workspace(test_processed_nexus, gold_processed_nexus, ws_prefix):

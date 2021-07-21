@@ -347,7 +347,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     return loaded_ws_dict
 
 
-def pre_process_single_configuration(sample_ws_raw,
+def pre_process_single_configuration(sample_ws_raw: namedtuple,
                                      sample_trans_ws=None,
                                      sample_trans_value=None,
                                      bkg_ws_raw=None,
@@ -647,6 +647,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         name = "slice_{}".format(i+1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f'_{i}'
+        raw_name = f'EQSANS_{raw_sample_ws.data.getRunNumber()}'
 
         # process data without correction
         processed_data_main = pre_process_single_configuration(raw_sample_ws,
@@ -768,22 +769,30 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                 assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
                 print(f'[DEBUG 777-1B] Middle Q1D NaN = {np.where(np.isnan(iq1d_main_wl[0].intensity))[0].shape}')
 
-                if len(iq1d_main_wl) > 0:
-                    raise NotImplementedError(f'Not expected that there are more than 1 IQmod main ')
+                if len(iq1d_main_wl) != 1:
+                    raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
+                                              f'{len(iq1d_main_wl)}')
 
                 # TODO 786 - Implement 1D
                 # TODO 786 - Implement 1D correction
-                from correction_api import do_inelastic_incoherence_correction_q1d
+                from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
+                                                               do_inelastic_incoherence_correction_q2d)
+                b_file_prefix = f'{raw_name}_frame_{wl_frame}'
                 corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
                                                                          incoherence_correction_setup,
+                                                                         b_file_prefix,
                                                                          output_dir)
 
                 # TODO 787 - Implement 2D correction
                 # TODO 787 - Implement 2D
+                corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
+                                                                         incoherence_correction_setup,
+                                                                         b_file_prefix,
+                                                                         output_dir)
 
                 # Be finite
                 finite_iq1d = corrected_iq1d.be_finite()
-                finite_iq2d = iq2d_main_wl.be_finite()
+                finite_iq2d = corrected_iq2d.be_finite()
                 # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
                 assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
                                                f' but not {len(iq1d_main_wl)}'

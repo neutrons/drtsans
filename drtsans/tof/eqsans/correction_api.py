@@ -264,6 +264,7 @@ def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
 
 def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
                                             correction_setup: CorrectionConfiguration,
+                                            prefix: str,
                                             output_dir: str) -> IQmod:
     """Do inelastic incoherence correction on 1D data (Q1d)
 
@@ -273,6 +274,8 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
         I(Q1D)
     correction_setup: CorrectionConfiguration
         correction configuration
+    prefix: str
+        prefix for b factor file
     output_dir: str
         output directory for b1d(lambda)
 
@@ -288,13 +291,14 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
     corrected = correct_incoherence_inelastic_1d(iq1d, correction_setup.select_min_incoherence)
 
     # save file
-    save_b_factor(corrected, os.path.join(output_dir, 'b1d_{run_number}.dat'))
+    save_b_factor(corrected, os.path.join(output_dir, f'b1d_{prefix}.dat'))
 
     return corrected.iq1d
 
 
 def do_inelastic_incoherence_correction_q2d(iq2d: IQazimuthal,
                                             correction_setup: CorrectionConfiguration,
+                                            prefix: Union[int, str],
                                             output_dir: str) -> IQazimuthal:
     # type check
     assert isinstance(iq2d, IQazimuthal), f'iq2d must be IQazimuthal but not {type(iq2d)}'
@@ -303,7 +307,7 @@ def do_inelastic_incoherence_correction_q2d(iq2d: IQazimuthal,
     corrected = correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence)
 
     # save file
-    save_b_factor(corrected, os.path.join(output_dir, 'b2d_{run_number}.dat'))
+    save_b_factor(corrected, os.path.join(output_dir, f'b2d_{prefix}.dat'))
 
     return corrected.iq2d
 

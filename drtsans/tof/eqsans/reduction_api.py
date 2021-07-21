@@ -472,7 +472,7 @@ def process_workspace_single_configuration(ws_raw,
     return raw_ws
 
 
-def prepare_data_workspaces(data,
+def prepare_data_workspaces(data: namedtuple,
                             dark_current=None,
                             flux_method=None,    # normalization (proton charge/time/monitor)
                             flux=None,           # additional file for normalization

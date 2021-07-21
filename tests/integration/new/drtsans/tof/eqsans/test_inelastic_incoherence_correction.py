@@ -6,9 +6,10 @@ from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration,
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 import numpy as np
 import tempfile
-from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5
+from drtsans.dataobjects import save_i_of_q_to_h5
+# from drtsans.dataobjects import load_iq1d_from_h5
 from typing import List, Any, Union, Dict
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),

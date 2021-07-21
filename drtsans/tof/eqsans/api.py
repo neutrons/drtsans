@@ -35,6 +35,7 @@ from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission)
+from drtsans.tof.eqsans.correction_api import parse_correction_config
 from typing import Dict, Tuple
 
 
@@ -537,14 +538,17 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     # Process inelastic/incoherent scattering correction configuration if user does not specify
     if not_apply_incoherence_correction is True:
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
-    elif isinstance(not_apply_incoherence_correction, CorrectionConfiguration):
-        # THIS IS A PROTOTYPE STEP
-        # FIXME 777/785 - Remove after testing
-        incoherence_correction_setup = not_apply_incoherence_correction
     else:
+        # FIXME 777/785 - Clean up after testing
         # TODO 777 Task 1 - implement parse_correction_config() and unify with sections of codes in tests
-        from drtsans.tof.eqsans.correction_api import parse_correction_config
+
         incoherence_correction_setup = parse_correction_config(reduction_input)
+
+        if isinstance(not_apply_incoherence_correction, CorrectionConfiguration):
+            # THIS IS A PROTOTYPE STEP
+            user_setup = not_apply_incoherence_correction
+            assert user_setup.do_correction == incoherence_correction_setup.do_correction
+            assert user_setup.select_min_incoherence == incoherence_correction_setup.select_min_incoherence
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}

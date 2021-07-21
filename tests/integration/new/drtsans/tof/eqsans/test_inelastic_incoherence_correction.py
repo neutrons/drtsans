@@ -245,14 +245,14 @@ def test_689_test2(reference_dir):
     loaded = load_all_files(input_config)
     if base_name.endswith('baseline'):
         # Baseline
-        correction = None
+        not_do_correction = True
     else:
-        pass
+        # FIXME 785 make this to boolean 'False'
+        not_do_correction = correction
 
     # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,
-                                                   not_apply_incoherence_correction=correction)
-
+                                                   not_apply_incoherence_correction=not_do_correction)
     # Export
     # FIXME 777 - Remove before 777 is closed
     if True:

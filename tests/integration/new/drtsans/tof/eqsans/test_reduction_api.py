@@ -149,7 +149,7 @@ def test_weighted_binning_setup(run_config, basename, tmpdir, reference_dir):
 
     # Load and reduce
     loaded = load_all_files(input_config)
-    reduction_output = reduce_single_configuration(loaded, input_config, temp_debug_weighting=True)
+    reduction_output = reduce_single_configuration(loaded, input_config)
 
     # Verify reduced workspace
     gold_ws_nexus = os.path.join(reference_dir.new.eqsans, 'test_integration_api/EQSANS_88980_reduced_m6.nxs')

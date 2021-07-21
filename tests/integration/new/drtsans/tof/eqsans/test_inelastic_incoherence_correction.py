@@ -251,7 +251,7 @@ def test_689_test2(reference_dir):
 
     # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,
-                                                   incoherence_correction_setup=correction)
+                                                   not_apply_incoherence_correction=correction)
 
     # Export
     # FIXME 777 - Remove before 777 is closed
@@ -272,7 +272,6 @@ def test_689_test2(reference_dir):
                                  ws_prefix='new')
 
     print(f'[DEBUG] Output to {test_dir}')
-    assert 1 == 3
 
 
 def verify_reduced_workspace(test_processed_nexus, gold_processed_nexus, ws_prefix):

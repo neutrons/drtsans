@@ -503,7 +503,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                 reduction_input,
                                 prefix='',
                                 skip_nan=True,
-                                incoherence_correction_setup=None):
+                                not_apply_incoherence_correction: bool = False):
     """Reduce samples from raw workspaces including
     1. prepare data
     1.
@@ -522,8 +522,8 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         reduction configuration
     prefix
     skip_nan
-    incoherence_correction_setup: CorrectionConfiguration, None
-        incoherence/inelastic scattering correction configuration
+    not_apply_incoherence_correction: bool
+        If true, then no incoherence scattering correction will be applied to reduction overriding JSON
 
     Returns
     -------
@@ -535,11 +535,16 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     reduction_config = reduction_input["configuration"]
 
     # Process inelastic/incoherent scattering correction configuration if user does not specify
-    if incoherence_correction_setup is None:
-        # backward compatibility
-        # TODO 777 Task 1 - implement parse_correction_config() and unify with sections of codes in tests
-        # incoherence_correction_setup = parse_correction_config(reduction_input)
+    if not_apply_incoherence_correction is True:
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
+    elif isinstance(not_apply_incoherence_correction, CorrectionConfiguration):
+        # THIS IS A PROTOTYPE STEP
+        # FIXME 777/785 - Remove after testing
+        incoherence_correction_setup = not_apply_incoherence_correction
+    else:
+        # TODO 777 Task 1 - implement parse_correction_config() and unify with sections of codes in tests
+        from drtsans.tof.eqsans.correction_api import parse_correction_config
+        incoherence_correction_setup = parse_correction_config(reduction_input)
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}

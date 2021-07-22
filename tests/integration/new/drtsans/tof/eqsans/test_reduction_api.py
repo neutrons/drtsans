@@ -158,15 +158,6 @@ def test_weighted_binning_setup(run_config, basename, tmpdir, reference_dir):
                                ignore_error=False)
 
     # Verify binned I(Q)
-    # FIXME - clean this right before 777 is closed
-    """
-    -rw-r--r-- 1 wzz users 311680 Jul 17 16:35 gold_88980_weighted_2d_1.h5
-    -rw-r--r-- 1 wzz users   8448 Jul 17 16:35 gold_88980_weighted_1d_1.h5
-    -rw-r--r-- 1 wzz users 311680 Jul 17 16:35 gold_88980_weighted_2d_0.h5
-    -rw-r--r-- 1 wzz users   8448 Jul 17 16:35 gold_88980_weighted_1d_0.h5
-    [wzz@analysis-node14 gold_data]$ pwd
-    /SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/gold_data
-    """
     gold_file_dict = dict()
     gold_dir = os.path.join(reference_dir.new.eqsans, 'gold_data')
     for frame_index in range(2):
@@ -178,33 +169,6 @@ def test_weighted_binning_setup(run_config, basename, tmpdir, reference_dir):
 
     # clean up
     os.remove(reduced_data_nexus)
-
-    # FIXME - remove right before 777 is closed
-    # for index in range(2):
-    #     # Frame index
-    #     print(f'[TEST] Verify Q bins of frame {index} of 2')
-
-    #     # verify 1D
-    #     # Load expected I(Q) and I(Qx, Qy)
-    #     # gold_iq1d_h5 = os.path.join(gold_dir, f'88980_frame1_weighted_old_removebkgd_{index}.h5')
-    #     gold_iq1d_h5 = f'/SNS/users/wzz/Projects/SANS/sans-backend/gold_files/s777_1stepiq1d_{index}_0.h5'
-    #     assert os.path.exists(gold_iq1d_h5), f'Gold file {gold_iq1d_h5} cannot be found.'
-    #     gold_iq1d = load_iq1d_from_h5(gold_iq1d_h5)
-
-    #     # Verify Q bins: 1D only, 2D skip
-    #     print(f'Gold Q: {gold_iq1d.mod_q}\nTest Q: {reduction_output[index].I1D_main[0].mod_q}')
-    #     np.testing.assert_allclose(gold_iq1d.mod_q, reduction_output[index].I1D_main[0].mod_q)
-    #     # intensities and error
-    #     np.testing.assert_allclose(gold_iq1d.intensity, reduction_output[index].I1D_main[0].intensity)
-
-    #     # verify 2D
-    #     gold_iq2d_h5 = os.path.join(gold_dir, f'gold_iq2d_{index}.h5')
-    #     assert os.path.exists(gold_iq2d_h5)
-    #     gold_iq2d = load_iq2d_from_h5(gold_iq2d_h5)
-    #     print(f'Gold Q: {gold_iq2d.qx}\nTest Q: {reduction_output[index].I2D_main.qx}')
-    #     np.testing.assert_allclose(gold_iq2d.qx, reduction_output[index].I2D_main.qx)
-    #     np.testing.assert_allclose(gold_iq2d.qy, reduction_output[index].I2D_main.qy)
-    #     np.testing.assert_allclose(gold_iq2d.intensity, reduction_output[index].I2D_main.intensity)
 
 
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):

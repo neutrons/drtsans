@@ -2,14 +2,13 @@ import pytest
 import os
 from jsonschema.exceptions import ValidationError
 from drtsans.tof.eqsans import reduction_parameters
-from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration, plot_reduction_output)  # noqa E402
+from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration)  # noqa E402
+from drtsans.dataobjects import _Testing
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 import numpy as np
 import tempfile
-from drtsans.dataobjects import save_i_of_q_to_h5
-# from drtsans.dataobjects import load_iq1d_from_h5
-from typing import List, Any, Union, Dict
-# from matplotlib import pyplot as plt
+from typing import Tuple, Dict
+from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
 
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
@@ -253,25 +252,29 @@ def test_689_test2(reference_dir):
     # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,
                                                    not_apply_incoherence_correction=not_do_correction)
-    # Export
-    # FIXME 777 - Remove before 777 is closed
-    if True:
-        export_reduction_output(reduction_output, output_dir=test_dir, prefix='EQSANS_11395')
-        print(f'[DEBUG] Output to {test_dir}')
 
-    if not base_name.endswith('baseline'):
-        # Verify reduced workspace (nothing to do correction)
-        reduced_data_nexus = os.path.join(test_dir, f'{base_name}.nxs')
-        assert os.path.exists(reduced_data_nexus), f'Expected {reduced_data_nexus} does not exist'
+    # Gold data directory
+    gold_dir = os.path.join(reference_dir.new.eqsans, 'gold_data/Incoherence_Corrected_113915/')
+    assert os.path.exists(gold_dir), f'Gold/expected data directory {gold_dir} does not exist'
 
-        # verify with gold data
-        # gold_dir = os.path.join(reference_dir.new.eqsans, 'baseline')
-        gold_dir = reference_dir.new.eqsans
-        gold_file = os.path.join(gold_dir, f'EQSANS_113915_baseline.nxs')
-        verify_reduced_workspace(test_processed_nexus=reduced_data_nexus, gold_processed_nexus=gold_file,
-                                 ws_prefix='new')
+    # Verify with gold data
+    gold_file_dict = dict()
+    for frame_index in range(1):
+        iq1d_h5_name = os.path.join(gold_dir, f'EQSANS_11395iq1d_{frame_index}_0.h5')
+        gold_file_dict[1, frame_index, 0] = iq1d_h5_name
+        iq2d_h5_name = os.path.join(gold_dir, f'EQSANS_11395iq2d_{frame_index}.h5')
+        gold_file_dict[2, frame_index] = iq2d_h5_name
+        assert os.path.exists(iq1d_h5_name) and os.path.exists(iq2d_h5_name), f'{iq1d_h5_name} and/or {iq2d_h5_name}' \
+                                                                              f'do not exist'
 
-    print(f'[DEBUG] Output to {test_dir}')
+    verify_binned_iq(gold_file_dict, reduction_output)
+
+    # # Export
+    # # FIXME 777 - Remove before 777 is closed
+    # if True:
+    #     export_reduction_output(reduction_output, output_dir=test_dir, prefix='EQSANS_11395')
+    #     print(f'[DEBUG] Output to {test_dir}')
+    # print(f'[DEBUG] Output to {test_dir}')
 
 
 def verify_reduced_workspace(test_processed_nexus, gold_processed_nexus, ws_prefix):
@@ -307,21 +310,27 @@ def verify_reduced_workspace(test_processed_nexus, gold_processed_nexus, ws_pref
         # np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE())
 
 
-# FIXME - combine all the export_reduction_output() and add to other module
-def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):
-    """Export the reduced I(Q) and I(Qx, Qy) to  hdf5 files
-    """
-    if output_dir is None:
-        output_dir = os.getcwd()
+def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
+    """Verify reduced I(Q1D) and I(qx, qy) by expected/gold data
 
-    for section_index, section_output in enumerate(reduction_output):
-        # 1D (list of IQmod)
-        iq1ds = section_output.I1D_main
-        for j_index, iq1d in enumerate(iq1ds):
-            save_i_of_q_to_h5(iq1d, os.path.join(output_dir, f'{prefix}iq1d_{section_index}_{j_index}.h5'))
-        # 2D (IQazimuthal)
-        iq2d = section_output.I2D_main
-        save_i_of_q_to_h5(iq2d, os.path.join(output_dir, f'{prefix}iq2d_{section_index}.h5'))
+    Parameters
+    ----------
+    gold_file_dict: ~dict
+        dictionary for gold files
+    reduction_output: ~list
+        list of binned I(Q1D) and I(qx, qy)
+
+    """
+    for frame_index in range(2):
+        # 1D
+        iq1d_h5_name = gold_file_dict[1, frame_index, 0]
+        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
+        _Testing.assert_allclose(reduction_output[frame_index].I1D_main[0], gold_iq1d)
+
+        # 2D
+        iq2d_h5_name = gold_file_dict[2, frame_index]
+        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
+        _Testing.assert_allclose(reduction_output[frame_index].I2D_main, gold_iq2d)
 
 
 if __name__ == "__main__":

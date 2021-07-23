@@ -321,7 +321,11 @@ def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
         list of binned I(Q1D) and I(qx, qy)
 
     """
-    for frame_index in range(2):
+    num_frames_gold = len(gold_file_dict) // 2
+    assert num_frames_gold == len(reduction_output),\
+        f'Frame numbers are different: gold = {len(gold_file_dict) // 2}; test = {len(reduction_output)}'
+
+    for frame_index in range(num_frames_gold):
         # 1D
         iq1d_h5_name = gold_file_dict[1, frame_index, 0]
         gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)

@@ -4,8 +4,8 @@ from jsonschema.exceptions import ValidationError
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration)  # noqa E402
 from drtsans.dataobjects import _Testing
-from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
-import numpy as np
+from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
+from drtsans.tof.eqsans.correction_api import ElasticReferenceRunSetup
 import tempfile
 from typing import Tuple, Dict
 from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
@@ -78,7 +78,7 @@ def test_parse_json():
 
     # Validate
     with pytest.raises(ValidationError):
-        # TODO - expect to fail as elastic reference run 260159121 does not exist
+        # expect to fail as elastic reference run 260159121 does not exist
         reduction_parameters(reduction_input)
 
     # Respecify to use a valid run
@@ -200,38 +200,19 @@ def generate_configuration_with_correction(output_dir: str = '/tmp/') -> Dict:
     return reduction_configuration
 
 
-# FIXME - better test method name
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-25813/nexus/EQSANS_113915.nxs.h5'),
                     reason="Required test data not available")
-def test_689_test2(reference_dir):
-    from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
-    from drtsans.tof.eqsans.correction_api import ElasticReferenceRunSetup
-
+def test_incoherence_correction(reference_dir):
+    """Test incoherence correction without elastic correction
+    """
     # Set up the configuration dict
     configuration = generate_configuration_with_correction()
 
     # Defaults and Validate
     input_config = reduction_parameters(configuration)
 
-    # Check that inelastic incoherence config items were parsed
-    # FIXME 777 and 785 - make this a method (centralized)
-    if input_config['configuration'].get('fitInelasticIncoh'):
-        select_min_incoh = input_config['configuration'].get('selectMinIncoh')
-        correction = CorrectionConfiguration(True, select_min_incoh)
-        elastic_run = input_config['configuration']['elasticReference'].get('runNumber')
-        if elastic_run is not None:
-            elastic_setup = ElasticReferenceRunSetup(elastic_run)
-            correction.set_elastic_reference_run(elastic_setup)
-    else:
-        correction = None
-
     # Create temp output directory
     test_dir = tempfile.mkdtemp()
-    print(f'[DEBUG 777] temp dir {test_dir} is created now')
-
-    # 689 - this is only for debugging and TDD
-    # base_name = ['baseline', 'newworkflow', 'correction'][2]
-    # base_name = f'EQSANS_113915_{base_name}'
     base_name = 'EQSANS_113915_Incoh_1d'
 
     assert os.path.exists(test_dir), f'Output dir {test_dir} does not exit'
@@ -242,16 +223,10 @@ def test_689_test2(reference_dir):
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
     loaded = load_all_files(input_config)
-    if base_name.endswith('baseline'):
-        # Baseline
-        not_do_correction = True
-    else:
-        # FIXME 785 make this to boolean 'False'
-        not_do_correction = correction
 
     # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,
-                                                   not_apply_incoherence_correction=not_do_correction)
+                                                   not_apply_incoherence_correction=False)
 
     # Gold data directory
     gold_dir = os.path.join(reference_dir.new.eqsans, 'gold_data/Incoherence_Corrected_113915/')
@@ -267,47 +242,8 @@ def test_689_test2(reference_dir):
         assert os.path.exists(iq1d_h5_name) and os.path.exists(iq2d_h5_name), f'{iq1d_h5_name} and/or {iq2d_h5_name}' \
                                                                               f'do not exist'
 
+    # Verify
     verify_binned_iq(gold_file_dict, reduction_output)
-
-    # # Export
-    # # FIXME 777 - Remove before 777 is closed
-    # if True:
-    #     export_reduction_output(reduction_output, output_dir=test_dir, prefix='EQSANS_11395')
-    #     print(f'[DEBUG] Output to {test_dir}')
-    # print(f'[DEBUG] Output to {test_dir}')
-
-
-def verify_reduced_workspace(test_processed_nexus, gold_processed_nexus, ws_prefix):
-    """Verify reduced result by verified expected result
-
-    Parameters
-    ----------
-    test_processed_nexus: str
-        NeXus file from test to verify
-    gold_processed_nexus: str
-        NeXus file containing the expected reduced result to verify against
-    ws_prefix: str
-        prefix for Mantid workspace that the
-
-    """
-    assert os.path.exists(gold_processed_nexus), f'Gold file {gold_processed_nexus} cannot be found'
-    gold_ws = LoadNexusProcessed(Filename=gold_processed_nexus, OutputWorkspace=f'{ws_prefix}_gold')
-    test_ws = LoadNexusProcessed(Filename=test_processed_nexus, OutputWorkspace=f'{ws_prefix}_test')
-    r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
-    if r != 'Success':
-        assert gold_ws.getNumberHistograms() == test_ws.getNumberHistograms(), \
-            f'Histograms: {gold_ws.getNumberHistograms()} != {test_ws.getNumberHistograms()}'
-        assert gold_ws.readY(0).shape == test_ws.readY(0).shape, \
-            f'Number of wavelength: {gold_ws.readY(0).shape} != {test_ws.readY(0).shape}'
-        assert gold_ws.readX(0).shape == test_ws.readX(0).shape, \
-            f'Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0).shape}'
-        gold_x_array = gold_ws.extractX()
-        test_x_array = test_ws.extractX()
-        assert gold_x_array.shape == test_x_array.shape
-        np.testing.assert_allclose(gold_ws.extractX(), test_ws.extractX())
-        np.testing.assert_allclose(gold_ws.extractY(), test_ws.extractY())
-        # TODO 777 Need a new gold file before closing
-        # np.testing.assert_allclose(gold_ws.extractE(), test_ws.extractE())
 
 
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):

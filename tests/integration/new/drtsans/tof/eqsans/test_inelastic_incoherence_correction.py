@@ -198,8 +198,8 @@ def generate_configuration_with_correction(output_dir: str = '/tmp/') -> Dict:
     return reduction_configuration
 
 
-@pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-25813/nexus/EQSANS_113915.nxs.h5'),
-                    reason="Required test data not available")
+@pytest.mark.skipif(not os.path.exists('/SNS/users/pf9/etc/'),
+                    reason="Test is too long for build server")
 def test_incoherence_correction(reference_dir):
     """Test incoherence correction without elastic correction
     """

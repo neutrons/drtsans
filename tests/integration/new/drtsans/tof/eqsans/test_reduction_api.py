@@ -231,7 +231,6 @@ def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name
 def export_reduction_output(reduction_output: List[Any], output_dir: Union[None, str] = None, prefix: str = ''):
     """Export the reduced I(Q) and I(Qx, Qy) to  hdf5 files
     """
-    # FIXME TODO - need to document to eqsans.api
     # output of reduce_single_configuration: list of list, containing
     if output_dir is None:
         output_dir = os.getcwd()

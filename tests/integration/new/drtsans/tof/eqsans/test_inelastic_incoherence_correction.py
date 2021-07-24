@@ -208,9 +208,6 @@ def test_incoherence_correction(reference_dir):
     # Set up the configuration dict
     configuration = generate_configuration_with_correction()
 
-    # Defaults and Validate
-    input_config = reduction_parameters(configuration)
-
     # Create temp output directory
     test_dir = tempfile.mkdtemp()
     base_name = 'EQSANS_113915_Incoh_1d'

@@ -36,7 +36,9 @@ from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission)
 from drtsans.tof.eqsans.correction_api import parse_correction_config
-from typing import Dict, Tuple
+from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
+                                               do_inelastic_incoherence_correction_q2d)
+from typing import Dict, Tuple, List
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -497,9 +499,6 @@ def pre_process_single_configuration(sample_ws_raw: namedtuple,
     return mtd[output_workspace]
 
 
-# TODO 777 - better documentation of this function
-# FIXME TODO Task 786 Remove temp_debug_weighting
-# FIXME 777 Before closing: incoherence_correction_setup shall be set up inside reduce_single_configuration()
 def reduce_single_configuration(loaded_ws: namedtuple,
                                 reduction_input,
                                 prefix='',
@@ -536,19 +535,13 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     reduction_config = reduction_input["configuration"]
 
     # Process inelastic/incoherent scattering correction configuration if user does not specify
+    assert isinstance(not_apply_incoherence_correction, bool), f'Only boolean for not_apply flag is allowed'
     if not_apply_incoherence_correction is True:
+        # allow user to override JSON setup
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
     else:
-        # FIXME 777/785 - Clean up after testing
-        # TODO 777 Task 1 - implement parse_correction_config() and unify with sections of codes in tests
-
+        # parse JSON for correction setup
         incoherence_correction_setup = parse_correction_config(reduction_input)
-
-        if isinstance(not_apply_incoherence_correction, CorrectionConfiguration):
-            # THIS IS A PROTOTYPE STEP
-            user_setup = not_apply_incoherence_correction
-            assert user_setup.do_correction == incoherence_correction_setup.do_correction
-            assert user_setup.select_min_incoherence == incoherence_correction_setup.select_min_incoherence
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
@@ -723,18 +716,8 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             assert iq1d_main_in_fr[wl_frame] is not None, 'Input I(Q)      main input cannot be None.'
             assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
-            # print(f'[DEBUG 777] Frame {wl_frame} '
-            #       f'Before Q1D NaN = {np.where(np.isnan(iq1d_main_in_fr[wl_frame].intensity))[0].shape}; '
-            #       f'Total data points = {iq1d_main_in_fr[wl_frame].intensity.shape}')
-            # print(f'DEBUG 777] Is log binning: {log_binning}')
-            # if True:
-            #     qmin_fw = iq1d_main_in_fr[wl_frame].mod_q.min()
-            #     qmax_fw = iq1d_main_in_fr[wl_frame].mod_q.max()
-            #     print(f'[DEBUG 777] Frame {wl_frame} Q range: {qmin_fw}, {qmax_fw}')
-
             # Note 777: 2 step binning shall generate the same result as 1 step binning
-            # FIXME 786 - Remove temp_debug_weighting after conceptual proved
-            if incoherence_correction_setup.do_correction:  # or temp_debug_weighting:
+            if incoherence_correction_setup.do_correction:
                 assert weighted_errors, 'Must using weighted error'
 
                 print(f'[DEBUG 777-1A] Frame {wl_frame} '
@@ -782,18 +765,14 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                     raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
                                               f'{len(iq1d_main_wl)}')
 
-                # TODO 786 - Implement 1D
-                # TODO 786 - Implement 1D correction
-                from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
-                                                               do_inelastic_incoherence_correction_q2d)
+                # 1D correction
                 b_file_prefix = f'{raw_name}_frame_{wl_frame}'
                 corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
                                                                          incoherence_correction_setup,
                                                                          b_file_prefix,
                                                                          output_dir)
 
-                # TODO 787 - Implement 2D correction
-                # TODO 787 - Implement 2D
+                # 2D correction
                 corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
                                                                          incoherence_correction_setup,
                                                                          b_file_prefix,
@@ -868,15 +847,20 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     return output
 
 
-def save_reduction_log(reduction_input, outputFilename, processed_data_main,
-                       sample_transmission_dict, sample_transmission_raw_dict,
-                       background_transmission_dict, background_transmission_raw_dict,
-                       detectordata, output_dir):
-    # TODO 784 Doc!
-
+def save_reduction_log(reduction_input: Dict,
+                       output_file_name: str,
+                       processed_data_main,
+                       sample_transmission_dict: Dict,
+                       sample_transmission_raw_dict: Dict,
+                       background_transmission_dict: Dict,
+                       background_transmission_raw_dict,
+                       detector_data,
+                       output_dir: str):
+    """Save reduction log to an HDF5 file
+    """
     # create reduction log
     filename = os.path.join(reduction_input["configuration"]["outputDir"],
-                            outputFilename + f'_reduction_log.hdf')
+                            output_file_name + f'_reduction_log.hdf')
     starttime = datetime.now().isoformat()
     # try:
     #     pythonfile = __file__
@@ -901,7 +885,7 @@ def save_reduction_log(reduction_input, outputFilename, processed_data_main,
     logslice_data_dict = reduction_input["logslice_data"]
 
     drtsans.savereductionlog(filename=filename,
-                             detectordata=detectordata,
+                             detectordata=detector_data,
                              reductionparams=reductionparams,
                              starttime=starttime,
                              specialparameters=specialparameters,
@@ -912,9 +896,19 @@ def save_reduction_log(reduction_input, outputFilename, processed_data_main,
     allow_overwrite(output_dir)
 
 
-def process_auto_wedge(auto_wedge_setup: Dict, iq2d_input, output_dir: str, reduction_config: Dict,
-                       symmetric_wedges):
-    # TODO 784 Doc!
+def process_auto_wedge(auto_wedge_setup: Dict,
+                       iq2d_input,
+                       output_dir: str,
+                       reduction_config: Dict,
+                       symmetric_wedges) -> List:
+    """Process and set up auto wedge
+
+    Returns
+    -------
+    ~list
+      list containing 2 lists each contains 2 2-tuples
+      as ``[[(peak1_min, peak1_max), (peak2_min, peak2_max)], [(..., ...), (..., ...)]]``
+    """
     logger.notice(f'Auto wedge options: {auto_wedge_setup}')
     auto_wedge_setup['debug_dir'] = output_dir
     wedges = getWedgeSelection(iq2d_input, **auto_wedge_setup)
@@ -932,7 +926,8 @@ def process_auto_wedge(auto_wedge_setup: Dict, iq2d_input, output_dir: str, redu
 
 
 def parse_auto_wedge_setup(reduction_config: Dict, bin1d_type: str, wedges_min) -> Tuple[Dict, bool]:
-    # TODO 784 Doc!
+    """Parse JSON input for automatic wedge setup
+    """
     autoWedgeOpts = {}
     symmetric_wedges = True
     if bin1d_type == 'wedge' and len(wedges_min) == 0:

@@ -720,9 +720,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             if incoherence_correction_setup.do_correction:
                 assert weighted_errors, 'Must using weighted error'
 
-                print(f'[DEBUG 777-1A] Frame {wl_frame} '
-                      f'Before Q1D NaN = {np.where(np.isnan(iq1d_main_in_fr[wl_frame].intensity))[0].shape}')
-
                 # Define qmin and qmax for this frame
                 if user_qmin is None:
                     qmin = iq1d_main_in_fr[wl_frame].mod_q.min()
@@ -732,18 +729,15 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                     qmax = iq1d_main_in_fr[wl_frame].mod_q.max()
                 else:
                     qmax = user_qmax
-                print(f'[DEBUG 777-1] Frame {wl_frame} Q range: {qmin}, {qmax}')
 
                 # Determine qxrange and qyrange for this frame
                 qx_min = np.min(iq2d_main_in_fr[wl_frame].qx)
                 qx_max = np.max(iq2d_main_in_fr[wl_frame].qx)
                 qxrange = qx_min, qx_max
-                print(f'[DEBUG 777-1] Frame {wl_frame} Qx range: {qx_min}, {qx_max}; User range: {qxrange}')
 
                 qy_min = np.min(iq2d_main_in_fr[wl_frame].qy)
                 qy_max = np.max(iq2d_main_in_fr[wl_frame].qy)
                 qyrange = qy_min, qy_max
-                print(f'[DEBUG 777-1] Frame {wl_frame} Qy range: {qy_min}, {qy_max}; User range: {qyrange}')
 
                 # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
                 iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
@@ -759,7 +753,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                      error_weighted=weighted_errors,
                                                      n_wavelength_bin=None)
                 assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
-                print(f'[DEBUG 777-1B] Middle Q1D NaN = {np.where(np.isnan(iq1d_main_wl[0].intensity))[0].shape}')
 
                 if len(iq1d_main_wl) != 1:
                     raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
@@ -798,9 +791,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
             else:
                 # Not incoherence correction
-                print(f'[DEBUG 777-2] Frame {wl_frame} '
-                      f'Before Q1D NaN = {np.isnan(iq1d_main_in_fr[wl_frame].intensity).shape}')
-
                 iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
                                                        nxbins_main, nybins_main, n1dbins=nbins_main,
                                                        n1dbins_per_decade=nbins_main_per_decade,

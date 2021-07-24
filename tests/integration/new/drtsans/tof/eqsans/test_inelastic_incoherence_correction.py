@@ -4,8 +4,6 @@ from jsonschema.exceptions import ValidationError
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration)  # noqa E402
 from drtsans.dataobjects import _Testing
-from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
-from drtsans.tof.eqsans.correction_api import ElasticReferenceRunSetup
 import tempfile
 from typing import Tuple, Dict
 from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5

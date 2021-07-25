@@ -106,14 +106,6 @@ def test_2d_bin_no_sub_no_wt_wavelength():
     test_i_q = IQazimuthal(intensity=intensities, error=sigmas, qx=qx_array, qy=qy_array,
                            delta_qx=dqx_array, delta_qy=dqy_array, wavelength=wl_array)
 
-    # Debug output for input data
-    num_inputs = test_i_q.intensity.size
-    num_unique_intensity = np.unique(test_i_q.intensity).size
-    num_unique_x = np.unique(test_i_q.qx).size
-    num_unique_wl = np.unique(wl_array).size
-    print(f'[DEBUG Test Bin 2D NW] Inputs size = {num_inputs}, Unique intensities size = {num_unique_intensity}, '
-          f'Unique X size = {num_unique_x}, Unique WL size = {num_unique_wl}')
-
     # Bin
     binned_iq_2d = bin_intensity_into_q2d(test_i_q, qx_bins, qy_bins, BinningMethod.NOWEIGHT, wavelength_bins=None)
 

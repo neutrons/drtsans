@@ -6,7 +6,7 @@ from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace, mtd
 
 from drtsans.tof.eqsans import reduction_parameters
-from drtsans.tof.eqsans.api import load_all_files, prepare_data_workspaces, process_single_configuration
+from drtsans.tof.eqsans.api import load_all_files, prepare_data_workspaces, pre_process_single_configuration
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unique_workspace_dundername as uwd
 
@@ -206,9 +206,9 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
     # normalize_by_thickness and scale by absolute_scale
     # The output result should be scaled by y_out = y_in * absolute_scale / thickness
 
-    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
-                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
-                                          solid_angle=False)
+    output = pre_process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                              bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                              solid_angle=False)
 
     # CreateWorkspace, LoadInstrument, CloneWorkspace,
     # CreateSingleValuedWorkspace, Divide,
@@ -217,23 +217,23 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
 
     assert_equal(output.extractY(), [[1], [2], [3], [4]])
 
-    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
-                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
-                                          solid_angle=False,
-                                          absolute_scale=1.5)
+    output = pre_process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                              bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                              solid_angle=False,
+                                              absolute_scale=1.5)
     assert_equal(output.extractY(), [[1.5], [3], [4.5], [6]])
 
-    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
-                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
-                                          solid_angle=False,
-                                          thickness=0.1)
+    output = pre_process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                              bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                              solid_angle=False,
+                                              thickness=0.1)
     assert_equal(output.extractY(), [[10], [20], [30], [40]])
 
-    output = process_single_configuration(ws_mon_pair(data=ws, monitor=None),
-                                          bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
-                                          solid_angle=False,
-                                          absolute_scale=1.5,
-                                          thickness=0.1)
+    output = pre_process_single_configuration(ws_mon_pair(data=ws, monitor=None),
+                                              bkg_ws_raw=ws_mon_pair(data=None, monitor=None),
+                                              solid_angle=False,
+                                              absolute_scale=1.5,
+                                              thickness=0.1)
     assert_equal(output.extractY(), [[15], [30], [45], [60]])
 
 

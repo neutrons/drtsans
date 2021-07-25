@@ -279,13 +279,16 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
                                       ub1d.mod_q[q_filter],
                                       ub1d.delta_mod_q[q_filter] if ub1d.delta_mod_q is not None else None,
                                       ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
-                binned_q1d_list.append(bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method,
-                                       wavelength_bins=n_wavelength_bin))
+                binned_q1d = bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method,
+                                                    wavelength_bins=n_wavelength_bin)
+                binned_q1d_list.append(binned_q1d)
         else:
             # linear bins
             bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
             for ub_index, ub1d in enumerate(unbinned_1d):
-
+                print(f'Linear binning for {ub_index}!')
+                print(f'Number of NaNs = {np.where(np.isnan(ub1d.intensity))[0].shape}; '
+                      f'Number of data points = {ub1d.intensity.shape}')
                 binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method,
                                        wavelength_bins=n_wavelength_bin))
 
@@ -1050,9 +1053,6 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
         intensities (n x m x o), sigma intensities (n x m x o), Qx resolution (n x m x o), Qy resolution (n x m x o),
         Wavelengths (o)
     """
-    print(f'[DEBUG WL BINNING] Filter Wavelength Flag = {debug_filter_wl}   Wavelength array is None = '
-          f'{wl_array is None},  sum_all_wavelength = {sum_all_wavelengths}')
-
     if wl_array is None or sum_all_wavelengths:
         # bin only by (qx, qy).  all I(qx, qy, wavelength) with binned regardless of wavelength value
         # output will be I(Qx, Qy)
@@ -1121,18 +1121,11 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                     if binned_dqy_array.size else dqy_final_array
             binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1) \
                 if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
-
-            print(f'[DEBUG BIN2D Concatenate] wavelength = {wl_i}, Binned intensity shape = {binned_iq_array.shape}')
-
         # END-FOR (wl_i)
 
         if dqx_array is None:
             binned_dqx_array = None
             binned_dqy_array = None
-
-        # sanity check
-        print(f'[DEBUG BIN2D NOW SHAPE]: I = {binned_iq_array.shape}, Sigma = {binned_sigma_iq_array.shape},'
-              f'Wavelength = {binned_wl_array.shape}')
 
     return binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array, binned_wl_array
 

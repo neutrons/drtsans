@@ -2,6 +2,8 @@
 # sample and background data accounting wavelength-dependent incoherent inelastic scattering.
 # The workflow algorithms will be directly called by eqsans.api.
 # from drtsans.tof.eqsans.reduction_api import process_sample_configuration
+import os.path
+
 from drtsans.tof.eqsans.elastic_reference_normalization import (determine_reference_wavelength_q1d_mesh,
                                                                 reshape_q_wavelength_matrix,
                                                                 determine_common_mod_q_range_mesh,
@@ -12,10 +14,9 @@ from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  #
 from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
-from typing import List, Tuple, Union
+from typing import List, Union
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
 from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
-import numpy as np
 
 """
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -223,58 +224,6 @@ def calculate_elastic_scattering_factor(ref_iq1d_frames: List[IQmod], ref_iq2d_f
     return elastic_norm_factor_dict
 
 
-def bin_i_of_q_per_wavelength(iq1d_raw: IQmod,
-                              iq2d_raw: IQazimuthal,
-                              binning_setup) -> Tuple[IQmod, IQazimuthal]:
-    """Bin I(Q1D) and I(Q2D), keeping raw wavelength values
-
-    Parameters
-    ----------
-    iq1d_raw
-    iq2d_raw
-    binning_setup
-
-    Returns
-    -------
-    ~tuple
-        binned I(Q, wavelength), binned I(qx, qy, wavelength)
-
-    """
-    # binning does not support annular and wedge for correction purpose
-    iq2d_out, iq1d_out = bin_all(iq2d_raw, iq1d_raw,
-                                 binning_setup.nxbins_main, binning_setup.nybins_main,
-                                 n1dbins=binning_setup.n1dbins,
-                                 n1dbins_per_decade=binning_setup.n1dbins_per_decade,
-                                 decade_on_center=binning_setup.decade_on_center,
-                                 bin1d_type=binning_setup.bin1d_type,
-                                 log_scale=binning_setup.log_scale,
-                                 qmin=binning_setup.qmin, qmax=binning_setup.qmax,
-                                 qxrange=(binning_setup.qxrange[0], binning_setup.qxrange[1]),
-                                 qyrange=(binning_setup.qyrange[0], binning_setup.qyrange[1]),
-                                 error_weighted=True,  # Correction workflow must use weighted binning
-                                 n_wavelength_bin=None)
-
-    # sanity check
-    if isinstance(iq1d_out, list) and len(iq1d_out) > 1:
-        raise NotImplementedError(f'IQ1D returns list of length {len(iq1d_out)} which is supposed to be 1')
-    elif not isinstance(iq1d_out, list):
-        raise NotImplementedError(f'IQ1D returns object of type {type(iq1d_out)}')
-
-    num_unique_qx = np.unique(iq2d_out.qx).size
-    num_unique_qy = np.unique(iq2d_out.qy).size
-    num_unique_wl = np.unique(iq2d_out.wavelength).size
-    if iq2d_out.intensity.size != num_unique_qx * num_unique_qy * num_unique_wl:
-        raise RuntimeError(f'I(qx, qy, wavelength) has dimensional issue: |qx| x |qy| x |wl| != |intensity|: '
-                           f'{num_unique_qx} x {num_unique_qy} x {num_unique_wl} <> '
-                           f'{iq2d_out.intensity.size}')
-    print(f'[DEBUG OUTPUT connection_api.bin_i_of_q_wl]: 2D intensity shape = {iq2d_out.intensity.shape}')
-
-    if len(iq1d_out) > 1:
-        raise RuntimeError(f'There are {len(iq1d_out)} I(Q1D) from bin_all.  Case is not considered.')
-
-    return iq1d_out[0], iq2d_out
-
-
 def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
 
     # KEY: a data structure to contain IQmod(s) of (1) all samples and background (2) all frames
@@ -313,33 +262,54 @@ def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
     return norm_iq1d
 
 
-def do_inelastic_incoherence_correction_q1d(iq1d_list: List[IQmod],
-                                            correction_setup: CorrectionConfiguration) -> List[CorrectedIQ1D]:
+def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
+                                            correction_setup: CorrectionConfiguration,
+                                            prefix: str,
+                                            output_dir: str) -> IQmod:
+    """Do inelastic incoherence correction on 1D data (Q1d)
 
-    corrected_iq_list = list()
+    Parameters
+    ----------
+    iq1d: IQmod
+        I(Q1D)
+    correction_setup: CorrectionConfiguration
+        correction configuration
+    prefix: str
+        prefix for b factor file
+    output_dir: str
+        output directory for b1d(lambda)
 
-    for iq1d in iq1d_list:
-        # type check
-        assert isinstance(iq1d, IQmod), f'Assuming each element in input is IQmod but not {type(iq1d)}'
+    Returns
+    -------
+    IQmod
 
-        # do inelastic/incoherent correction
-        corrected = correct_incoherence_inelastic_1d(iq1d, correction_setup.select_min_incoherence)
+    """
+    # type check
+    assert isinstance(iq1d, IQmod), f'Assuming each element in input is IQmod but not {type(iq1d)}'
 
-        # append
-        corrected_iq_list.append(corrected)
+    # do inelastic/incoherent correction
+    corrected = correct_incoherence_inelastic_1d(iq1d, correction_setup.select_min_incoherence)
 
-    return corrected_iq_list
+    # save file
+    save_b_factor(corrected, os.path.join(output_dir, f'b1d_{prefix}.dat'))
+
+    return corrected.iq1d
 
 
-def do_inelastic_incoherence_correction_q2d(iq2d_list: List[IQazimuthal],
-                                            correction_setup: CorrectionConfiguration) -> List[CorrectedIQ2D]:
-    assert all(isinstance(iq2d, IQazimuthal) for iq2d in iq2d_list), 'All in iq2d_list must be IQazimuthal'
+def do_inelastic_incoherence_correction_q2d(iq2d: IQazimuthal,
+                                            correction_setup: CorrectionConfiguration,
+                                            prefix: Union[int, str],
+                                            output_dir: str) -> IQazimuthal:
+    # type check
+    assert isinstance(iq2d, IQazimuthal), f'iq2d must be IQazimuthal but not {type(iq2d)}'
 
     # apply the correction to each
-    corrected = (correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence) for iq2d in iq2d_list)
+    corrected = correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence)
 
-    # consistent list return
-    return list(corrected)
+    # save file
+    save_b_factor(corrected, os.path.join(output_dir, f'b2d_{prefix}.dat'))
+
+    return corrected.iq2d
 
 
 def save_b_factor(i_of_q: Union[CorrectedIQ1D, CorrectedIQ2D], path: str) -> None:

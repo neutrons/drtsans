@@ -601,18 +601,23 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         empty_trans_ws = None
 
     # Background transmission
+    # TODO 781 - to test and check for sanity
     # specific output filename (base) for background trans
-    bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
-    base_out_name = f'{outputFilename}_bkgd_{bkgd_trans}'
+    if loaded_ws.background_transmission.data:
+        bkgd_trans = reduction_input["background"]["transmission"]["runNumber"].strip()
+        base_out_name = f'{outputFilename}_bkgd_{bkgd_trans}'
 
-    # process transmission
-    bkgd_returned = process_transmission(loaded_ws.background_transmission,
-                                         empty_trans_ws,
-                                         transmission_radius,
-                                         loaded_ws.sensitivity,
-                                         flux_method, flux, prefix, 'bkgd',
-                                         output_dir, base_out_name)
-    bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
+        # process transmission
+        bkgd_returned = process_transmission(loaded_ws.background_transmission,
+                                             empty_trans_ws,
+                                             transmission_radius,
+                                             loaded_ws.sensitivity,
+                                             flux_method, flux, prefix, 'bkgd',
+                                             output_dir, base_out_name)
+        bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
+    else:
+        # no background transmission
+        bkgd_trans_ws = background_transmission_dict = background_transmission_raw_dict = None
 
     # sample transmission
     sample_returned = process_transmission(loaded_ws.sample_transmission,

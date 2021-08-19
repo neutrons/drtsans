@@ -6,6 +6,7 @@ import re
 import json
 import socket
 from mantid import __version__ as mantid_version
+from mantid.kernel import logger
 # from mantid.simpleapi import mtd, SaveNexusProcessed
 import numpy as np
 from drtsans import __version__ as drtsans_version
@@ -318,7 +319,7 @@ def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
                        data=iq.mod_q,
                        units='1/A')
 
-        print('delta mod q: ', iq.delta_mod_q)
+        logger.debug(f'delta mod q: {iq.delta_mod_q}')
         _create_groupe(entry=entry,
                        name='Qdev',
                        data=iq.delta_mod_q,
@@ -432,7 +433,7 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
                            "and not a {}".format(type(detectordata)))
     dk = list(detectordata.keys())
-    print(f'DEBUG detector data keys: {dk}')
+    logger.debug(f'DEBUG detector data keys: {dk}')
     for _slice_name in detectordata.keys():
 
         if not type(detectordata[_slice_name]) is dict:
@@ -481,12 +482,12 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
                 midEntry = _createnxgroup(topEntry, _frame_name, 'NXdata')
 
                 cfkeys = list(_current_frame.keys())
-                print(f'current frame keys: {cfkeys}')
+                logger.debug(f'current frame keys: {cfkeys}')
 
                 if 'iq' in _current_frame.keys() and 'iqxqy' in _current_frame.keys():
-                    print(_current_frame['iq'])
+                    logger.debug(str(_current_frame['iq']))
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)
-                    print(_current_frame['iqxqy'])
+                    logger.debug(str(_current_frame['iqxqy']))
                     _save_iqxqy_to_log(iqxqy=_current_frame['iqxqy'], topEntry=midEntry)
                 elif 'iq' in _current_frame.keys():
                     _save_iq_to_log(iq=_current_frame['iq'], topEntry=midEntry)

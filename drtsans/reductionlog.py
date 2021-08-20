@@ -243,51 +243,51 @@ def _save_logslicedata(logslicedata={}, index=0, topEntry=None):
 
 
 def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
-        entry = topEntry.create_group('I(QxQy)')
-        entry.attrs['NX_class'] = 'NXdata'
+    entry = topEntry.create_group('I(QxQy)')
+    entry.attrs['NX_class'] = 'NXdata'
 
-        # intensity
+    # intensity
+    _create_groupe(entry=entry,
+                   name='I',
+                   data=iqxqy.intensity,
+                   units='1/A')
+
+    # errors
+    _create_groupe(entry=entry,
+                   name='Idev',
+                   data=iqxqy.error,
+                   units='1/cm')
+
+    # qx
+    if not (iqxqy.qx is None):
         _create_groupe(entry=entry,
-                       name='I',
-                       data=iqxqy.intensity,
+                       name='Qx',
+                       data=iqxqy.qx,
                        units='1/A')
 
-        # errors
         _create_groupe(entry=entry,
-                       name='Idev',
-                       data=iqxqy.error,
-                       units='1/cm')
+                       name='Qxdev',
+                       data=iqxqy.delta_qx,
+                       units='1/A')
 
-        # qx
-        if not (iqxqy.qx is None):
-            _create_groupe(entry=entry,
-                           name='Qx',
-                           data=iqxqy.qx,
-                           units='1/A')
+    # qy
+    if not (iqxqy.qy is None):
+        _create_groupe(entry=entry,
+                       name='Qy',
+                       data=iqxqy.qy,
+                       units='1/A')
 
-            _create_groupe(entry=entry,
-                           name='Qxdev',
-                           data=iqxqy.delta_qx,
-                           units='1/A')
-
-        # qy
-        if not (iqxqy.qy is None):
-            _create_groupe(entry=entry,
-                           name='Qy',
-                           data=iqxqy.qy,
-                           units='1/A')
-
-            _create_groupe(entry=entry,
-                           name='Qydev',
-                           data=iqxqy.delta_qy,
-                           units='1/A')
-        # wavelength
-        if not (iqxqy.wavelength is None):
-            wavelength = "{}".format(iqxqy.wavelength)
-            _create_groupe(entry=entry,
-                           name='Wavelength',
-                           data=wavelength,
-                           units='A')
+        _create_groupe(entry=entry,
+                       name='Qydev',
+                       data=iqxqy.delta_qy,
+                       units='1/A')
+    # wavelength
+    if not (iqxqy.wavelength is None):
+        wavelength = "{}".format(iqxqy.wavelength)
+        _create_groupe(entry=entry,
+                       name='Wavelength',
+                       data=wavelength,
+                       units='A')
 
 
 def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=''):
@@ -432,7 +432,6 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
     if not type(detectordata) is dict:
         raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
                            "and not a {}".format(type(detectordata)))
-    dk = list(detectordata.keys())
     for _slice_name in detectordata.keys():
 
         if not type(detectordata[_slice_name]) is dict:

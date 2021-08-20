@@ -433,7 +433,6 @@ def savereductionlog(filename='', detectordata=None, **kwargs):
         raise RuntimeError("detectordata has the wrong type. It should be a dictionary "
                            "and not a {}".format(type(detectordata)))
     dk = list(detectordata.keys())
-    logger.debug(f'DEBUG detector data keys: {dk}')
     for _slice_name in detectordata.keys():
 
         if not type(detectordata[_slice_name]) is dict:

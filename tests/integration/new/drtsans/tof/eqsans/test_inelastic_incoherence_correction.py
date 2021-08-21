@@ -9,6 +9,7 @@ import tempfile
 from typing import Tuple, Dict
 from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
 
+
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason='Required test data not available')
 def test_parse_json():

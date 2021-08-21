@@ -75,19 +75,11 @@ def test_parse_json():
     }
 
     # Validate
-    with pytest.raises(ValidationError):
-        # expect to fail as elastic reference run 260159121 does not exist
-        reduction_parameters(reduction_input)
-
-    # Respecify to use a valid run
-    # json_str.replace('260159121', '26015')
-    reduction_input['configuration']['elasticReference']['runNumber'] = valid_run_num
-    # Defaults and Validate
     input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
     assert input_config['configuration'].get('fitInelasticIncoh')
-    assert input_config['configuration']['elasticReference'].get('runNumber') == valid_run_num
+    assert input_config['configuration']['elasticReference'].get('runNumber') == elastic_reference_run
     assert input_config['configuration'].get('selectMinIncoh')
 
 
@@ -368,7 +360,6 @@ def test_incoherence_correction_elastic_normalization(reference_dir):
 
     # Verify
     verify_binned_iq(gold_file_dict, reduction_output)
-
 
 
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):

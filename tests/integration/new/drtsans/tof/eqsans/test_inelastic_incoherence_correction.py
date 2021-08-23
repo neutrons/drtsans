@@ -16,7 +16,7 @@ def test_parse_json():
     """Test the JSON to dictionary
     """
     elastic_reference_run = "124680"
-    elastic_reference_bkgd_run = "null"
+    elastic_reference_bkgd_run = ""
     # Specify JSON input
     reduction_input = {
         "instrumentName": "EQSANS",
@@ -60,14 +60,14 @@ def test_parse_json():
                 "runNumber": elastic_reference_run,
                 "thickness": "1.0",
                 "transmission": {
-                    "runNumber": "null",
+                    "runNumber": None,
                     "value": "1.0"
                 }
             },
             "elasticReferenceBkgd": {
                 "runNumber": elastic_reference_bkgd_run,
                 "transmission": {
-                    "runNumber": "null",
+                    "runNumber": "",
                     "value": "0.9"
                 }
             },

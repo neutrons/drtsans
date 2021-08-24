@@ -667,6 +667,30 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     # process elastic run
     if loaded_ws.elastic_reference:
         # TODO - 792 - pre_process_single_configuration(...)
+        # NameError: name 'elastic_ref_trans_value' is not defined
+        processed_elastic_ref = pre_process_single_configuration(loaded_ws.elastic_reference,
+                                                                 sample_trans_ws=None,
+                                                                 sample_trans_value=elastic_ref_trans_value,
+                                                                 bkg_ws_raw=loaded_ws.elastic_reference_background,
+                                                                 bkg_trans_ws=None,
+                                                                 bkg_trans_value=elastic_ref_trans_bkgd_vavlue,
+                                                                 theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
+                                                                 dark_current=loaded_ws.dark_current,
+                                                                 flux_method=flux_method,
+                                                                 flux=flux,
+                                                                 mask_ws=loaded_ws.mask,
+                                                                 mask_panel=mask_panel,
+                                                                 solid_angle=solid_angle,
+                                                                 sensitivity_workspace=loaded_ws.sensitivity,
+                                                                 output_workspace=f'processed_data_main',
+                                                                 output_suffix=output_suffix,
+                                                                 thickness=elastic_ref_thickness,
+                                                                 absolute_scale_method=absolute_scale_method,
+                                                                 empty_beam_ws=empty_trans_ws,
+                                                                 beam_radius=beam_radius,
+                                                                 absolute_scale=absolute_scale,
+                                                                 keep_processed_workspaces=False)
+    else:
         print('TODO')
 
     # Define output data structure

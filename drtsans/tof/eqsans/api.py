@@ -96,9 +96,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     empty = reduction_input["emptyTransmission"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
     # TODO 792 - add elastic correction
+    elastic_ref_run = reduction_config['elasticReference'].get('runNumber')
+    elastic_ref_bkgd_run = reduction_config['elasticReferenceBkgd'].get('runNumber')
 
     # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
     # In the future this should be made optional
+    # TODO 792 Remove elastic and elastic background reference runs
     ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
                     for run_number in (sample,
                                        bkgd,
@@ -224,8 +227,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     # load all other files without further processing
     # background, empty, sample transmission, background transmission
-    for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
+    other_ws_list = list()
+    for run_number in [bkgd, empty, sample_trans, bkgd_trans, elastic_ref_run, elastic_ref_bkgd_run]:
         if run_number:
+            # run number is given
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 filename = abspaths(run_number.strip(), instrument=instrument_name, ipts=ipts)
@@ -234,6 +239,14 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
+            other_ws_list.append(ws_name)
+        else:
+            # run number is not given
+            other_ws_list.append(None)
+
+    # elastic and elastic background reference run
+    elastic_ref_ws = other_ws_list[4]
+    elastic_ref_bkgd_ws = other_ws_list[5]
 
     # dark run (aka dark current run)
     dark_current_ws = None
@@ -321,6 +334,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       smearing_pixel_size_x=smearing_pixel_size_x,
                       smearing_pixel_size_y=smearing_pixel_size_y)
 
+    # TODO 792 - set  meta data to elastic  reference run
+    # TODO 792 - check  any setup for  background run such that elastic reference background can be  processed
+
     print('FILE PATH, FILE SIZE:')
     total_size = 0
     for comma_separated_names in filenames:
@@ -346,7 +362,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                                               monitor=background_transmission_mon_ws),
                           dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
                           sensitivity=sensitivity_ws,
-                          mask=mask_ws)
+                          mask=mask_ws,
+                          elastic_reference=elastic_ref_ws, elastic_reference_background=elastic_ref_bkgd_ws)
 
     return loaded_ws_dict
 
@@ -646,6 +663,11 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
     # binning_params = BinningSetup(**binning_par_dc)
     #
+
+    # process elastic run
+    if loaded_ws.elastic_reference:
+        # TODO - 792 - pre_process_single_configuration(...)
+        print('TODO')
 
     # Define output data structure
     output = []

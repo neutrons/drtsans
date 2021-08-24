@@ -330,7 +330,7 @@ def test_incoherence_correction_elastic_normalization(reference_dir):
 
     # Create temp output directory
     test_dir = tempfile.mkdtemp()
-    base_name = 'EQSANS_113915_Incoh_1d'
+    base_name = 'EQSANS_125707_'
 
     assert os.path.exists(test_dir), f'Output dir {test_dir} does not exit'
     configuration['configuration']['outputDir'] = test_dir
@@ -340,6 +340,9 @@ def test_incoherence_correction_elastic_normalization(reference_dir):
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
     loaded = load_all_files(input_config)
+
+    # check loaded JSON file
+    assert loaded['...']
 
     # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,

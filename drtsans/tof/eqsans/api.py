@@ -95,6 +95,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
     empty = reduction_input["emptyTransmission"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
+    # TODO 792 - add elastic correction
 
     # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
     # In the future this should be made optional

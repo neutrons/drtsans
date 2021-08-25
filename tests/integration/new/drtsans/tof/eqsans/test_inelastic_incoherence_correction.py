@@ -343,8 +343,8 @@ def test_incoherence_correction_elastic_normalization(reference_dir):
 
     # check loaded JSON file
     print(f'type: {type(loaded)}')
-    assert loaded.elastic_reference
-    assert loaded.elastic_reference_background is None
+    assert loaded.elastic_reference.data
+    assert loaded.elastic_reference_background.data is None
 
     # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,

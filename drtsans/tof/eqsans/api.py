@@ -342,15 +342,16 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       smearing_pixel_size_x=smearing_pixel_size_x,
                       smearing_pixel_size_y=smearing_pixel_size_y)
 
-    # Set  meta data to elastic reference run
-    reference_thickness = reduction_config['elasticReference'].get('thickness')
-    set_meta_data(elastic_ref_run, wave_length=None, wavelength_spread=None,
-                  sample_offset=load_params['sample_offset'],
-                  sample_aperture_diameter=sample_aperture_diameter,
-                  sample_thickness=reference_thickness,
-                  source_aperture_diameter=None,
-                  smearing_pixel_size_x=smearing_pixel_size_x,
-                  smearing_pixel_size_y=smearing_pixel_size_y)
+    # Set  meta data to elastic reference run optionally
+    if elastic_ref_run:
+        reference_thickness = reduction_config['elasticReference'].get('thickness')
+        set_meta_data(elastic_ref_ws, wave_length=None, wavelength_spread=None,
+                      sample_offset=load_params['sample_offset'],
+                      sample_aperture_diameter=sample_aperture_diameter,
+                      sample_thickness=reference_thickness,
+                      source_aperture_diameter=None,
+                      smearing_pixel_size_x=smearing_pixel_size_x,
+                      smearing_pixel_size_y=smearing_pixel_size_y)
     # There is not extra setup for elastic reference background following typical background run
 
     print('FILE PATH, FILE SIZE:')
@@ -379,7 +380,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                           dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
                           sensitivity=sensitivity_ws,
                           mask=mask_ws,
-                          elastic_reference=elastic_ref_ws, elastic_reference_background=elastic_ref_bkgd_ws)
+                          elastic_reference=ws_mon_pair(elastic_ref_ws, None),
+                          elastic_reference_background=ws_mon_pair(elastic_ref_bkgd_ws, None))
 
     return loaded_ws_dict
 
@@ -681,12 +683,12 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     #
 
     # process elastic run
-    if loaded_ws.elastic_reference:
+    if loaded_ws.elastic_reference.data:
         elastic_ref_trans_run = reduction_config['elasticReference']['transmission'].get('runNumber')
         elastic_ref_trans_value = reduction_config['elasticReference']['transmission'].get('value')
         elastic_bkgd_trans_run = reduction_config['elasticReferenceBkgd']['transmission'].get('runNumber')
         elastic_bkgd_trans_value = reduction_config['elasticReferenceBkgd']['transmission'].get('value')
-        elastic_ref_thickness = reduction_config['elasticReference'].get('thickness')
+        elastic_ref_thickness = float(reduction_config['elasticReference'].get('thickness'))
         processed_elastic_ref = pre_process_single_configuration(loaded_ws.elastic_reference,
                                                                  sample_trans_ws=elastic_ref_trans_run,
                                                                  sample_trans_value=elastic_ref_trans_value,

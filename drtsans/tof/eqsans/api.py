@@ -95,19 +95,21 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
     empty = reduction_input["emptyTransmission"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
-    # TODO 792 - add elastic correction
+    # elastic reference and background: incoherence correction
     elastic_ref_run = reduction_config['elasticReference'].get('runNumber')
     elastic_ref_bkgd_run = reduction_config['elasticReferenceBkgd'].get('runNumber')
 
     # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
     # In the future this should be made optional
-    # TODO 792 Remove elastic and elastic background reference runs
+    # TODO 792+ : refactor this block to method 'delete_existing_workspaces()'
     ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
                     for run_number in (sample,
                                        bkgd,
                                        empty,
                                        sample_trans,
-                                       bkgd_trans)]
+                                       bkgd_trans,
+                                       elastic_ref_run,
+                                       elastic_ref_bkgd_run)]
     ws_to_remove.append(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group')
     ws_to_remove.append(f'{prefix}_{instrument_name}_{center}_raw_events')
     ws_to_remove.append(f'{prefix}_sensitivity')
@@ -118,6 +120,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     for ws_name in ws_to_remove:
         if registered_workspace(ws_name):
             mtd.remove(ws_name)
+    # --> TILL HERE
 
     filenames = set()
 
@@ -126,6 +129,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         configuration_file_parameters = _get_configuration_file_parameters(sample.split(',')[0].strip())
         default_mask = configuration_file_parameters['combined mask']
 
+    # TODO - 792+ Refactor this following block to method 'set_beam_center()'
     # find the center first
     if center != "":
         # calculate beam center from center workspace
@@ -149,10 +153,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")
         beam_center_type = 'default'
+        fit_results = None
     # set beam center
+    # --> TILL HERE
+
     reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
                                       'y': center_y, 'fit_results': fit_results}
-
     # update to 'load_params'
     if load_params is None:
         load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
@@ -177,6 +183,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     # FIXME the issues with the monitor on EQSANS has not been fixed. Enable normalization by monitor (issue #538)
     if load_params['monitors']:
         raise RuntimeError('Normalization by monitor option will be enabled in a later drt-sans release')
+
+    # ----- END OF SETUP of load_params -----
 
     # check for time/log slicing
     timeslice,  logslice = reduction_config["useTimeSlice"], reduction_config["useLogSlice"]
@@ -225,7 +233,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
 
     reduction_input["logslice_data"] = logslice_data_dict
 
-    # load all other files without further processing
+    # Load all other files without further processing
     # background, empty, sample transmission, background transmission
     other_ws_list = list()
     for run_number in [bkgd, empty, sample_trans, bkgd_trans, elastic_ref_run, elastic_ref_bkgd_run]:
@@ -239,7 +247,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
-            other_ws_list.append(ws_name)
+            other_ws_list.append(mtd[ws_name])
         else:
             # run number is not given
             other_ws_list.append(None)
@@ -334,8 +342,16 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       smearing_pixel_size_x=smearing_pixel_size_x,
                       smearing_pixel_size_y=smearing_pixel_size_y)
 
-    # TODO 792 - set  meta data to elastic  reference run
-    # TODO 792 - check  any setup for  background run such that elastic reference background can be  processed
+    # Set  meta data to elastic reference run
+    reference_thickness = reduction_config['elasticReference'].get('thickness')
+    set_meta_data(elastic_ref_run, wave_length=None, wavelength_spread=None,
+                  sample_offset=load_params['sample_offset'],
+                  sample_aperture_diameter=sample_aperture_diameter,
+                  sample_thickness=reference_thickness,
+                  source_aperture_diameter=None,
+                  smearing_pixel_size_x=smearing_pixel_size_x,
+                  smearing_pixel_size_y=smearing_pixel_size_y)
+    # There is not extra setup for elastic reference background following typical background run
 
     print('FILE PATH, FILE SIZE:')
     total_size = 0
@@ -666,14 +682,17 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
     # process elastic run
     if loaded_ws.elastic_reference:
-        # TODO - 792 - pre_process_single_configuration(...)
-        # NameError: name 'elastic_ref_trans_value' is not defined
+        elastic_ref_trans_run = reduction_config['elasticReference']['transmission'].get('runNumber')
+        elastic_ref_trans_value = reduction_config['elasticReference']['transmission'].get('value')
+        elastic_bkgd_trans_run = reduction_config['elasticReferenceBkgd']['transmission'].get('runNumber')
+        elastic_bkgd_trans_value = reduction_config['elasticReferenceBkgd']['transmission'].get('value')
+        elastic_ref_thickness = reduction_config['elasticReference'].get('thickness')
         processed_elastic_ref = pre_process_single_configuration(loaded_ws.elastic_reference,
-                                                                 sample_trans_ws=None,
+                                                                 sample_trans_ws=elastic_ref_trans_run,
                                                                  sample_trans_value=elastic_ref_trans_value,
                                                                  bkg_ws_raw=loaded_ws.elastic_reference_background,
-                                                                 bkg_trans_ws=None,
-                                                                 bkg_trans_value=elastic_ref_trans_bkgd_vavlue,
+                                                                 bkg_trans_ws=elastic_bkgd_trans_run,
+                                                                 bkg_trans_value=elastic_bkgd_trans_value,
                                                                  theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
                                                                  dark_current=loaded_ws.dark_current,
                                                                  flux_method=flux_method,
@@ -682,7 +701,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                  mask_panel=mask_panel,
                                                                  solid_angle=solid_angle,
                                                                  sensitivity_workspace=loaded_ws.sensitivity,
-                                                                 output_workspace=f'processed_data_main',
+                                                                 output_workspace=f'processed_elastic_ref',
                                                                  output_suffix=output_suffix,
                                                                  thickness=elastic_ref_thickness,
                                                                  absolute_scale_method=absolute_scale_method,
@@ -690,8 +709,9 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                  beam_radius=beam_radius,
                                                                  absolute_scale=absolute_scale,
                                                                  keep_processed_workspaces=False)
+        assert processed_elastic_ref
     else:
-        print('TODO')
+        processed_elastic_ref = None
 
     # Define output data structure
     output = []
@@ -770,6 +790,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
             # Note 777: 2 step binning shall generate the same result as 1 step binning
             if incoherence_correction_setup.do_correction:
+                # Sanity check
                 assert weighted_errors, 'Must using weighted error'
 
                 # Define qmin and qmax for this frame
@@ -809,6 +830,11 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                 if len(iq1d_main_wl) != 1:
                     raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
                                               f'{len(iq1d_main_wl)}')
+
+                # Bin elastic reference run
+                if processed_elastic_ref:
+                    raise NotImplementedError(f'Processed elastic reference of type {type(processed_elastic_ref)} '
+                                              f'is ready for next task')
 
                 # 1D correction
                 b_file_prefix = f'{raw_name}_frame_{wl_frame}'

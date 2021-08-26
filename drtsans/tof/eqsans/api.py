@@ -777,6 +777,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         _inside_detectordata = {}
 
         # Process each frame separately
+        # FIXME 792 - no need to save qmin/qmax
         user_qmin = qmin
         user_qmax = qmax
 
@@ -791,109 +792,43 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             assert iq1d_main_in_fr[wl_frame] is not None, 'Input I(Q)      main input cannot be None.'
             assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
-            # Note 777: 2 step binning shall generate the same result as 1 step binning
-            if incoherence_correction_setup.do_correction:
-                iq2d_main_out, iq1d_main_out = bin_i_with_correction(weighted_errors, user_qmin, user_qmax,
-                                                                     iq1d_main_in_fr, iq2d_main_in_fr,
-                                                                     wl_frame, nxbins_main, nybins_main, nbins_main,
-                                                                     nbins_main_per_decade,
-                                                                     decade_on_center, bin1d_type, log_binning,
-                                                                     annular_bin, wedges,
-                                                                     symmetric_wedges,
-                                                                     incoherence_correction_setup,
-                                                                     processed_elastic_ref,
-                                                                     raw_name, output_dir)
+            iq2d_main_out, iq1d_main_out = bin_i_with_correction(weighted_errors, user_qmin, user_qmax,
+                                                                 iq1d_main_in_fr, iq2d_main_in_fr,
+                                                                 wl_frame, nxbins_main, nybins_main, nbins_main,
+                                                                 nbins_main_per_decade,
+                                                                 decade_on_center, bin1d_type, log_binning,
+                                                                 annular_bin, wedges,
+                                                                 symmetric_wedges,
+                                                                 incoherence_correction_setup,
+                                                                 processed_elastic_ref,
+                                                                 raw_name, output_dir)
 
-                # # Sanity check
-                # assert weighted_errors, 'Must using weighted error'
-
-                # # Define qmin and qmax for this frame
-                # if user_qmin is None:
-                #     qmin = iq1d_main_in_fr[wl_frame].mod_q.min()
-                # else:
-                #     qmin = user_qmin
-                # if user_qmax is None:
-                #     qmax = iq1d_main_in_fr[wl_frame].mod_q.max()
-                # else:
-                #     qmax = user_qmax
-
-                # # Determine qxrange and qyrange for this frame
-                # qx_min = np.min(iq2d_main_in_fr[wl_frame].qx)
-                # qx_max = np.max(iq2d_main_in_fr[wl_frame].qx)
-                # qxrange = qx_min, qx_max
-
-                # qy_min = np.min(iq2d_main_in_fr[wl_frame].qy)
-                # qy_max = np.max(iq2d_main_in_fr[wl_frame].qy)
-                # qyrange = qy_min, qy_max
-
-                # # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
-                # iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                #                                      nxbins_main, nybins_main, n1dbins=nbins_main,
-                #                                      n1dbins_per_decade=nbins_main_per_decade,
-                #                                      decade_on_center=decade_on_center,
-                #                                      bin1d_type=bin1d_type, log_scale=log_binning,
-                #                                      qmin=qmin, qmax=qmax,
-                #                                      qxrange=qxrange,
-                #                                      qyrange=qyrange,
-                #                                      annular_angle_bin=annular_bin, wedges=wedges,
-                #                                      symmetric_wedges=symmetric_wedges,
-                #                                      error_weighted=weighted_errors,
-                #                                      n_wavelength_bin=None)
-                # assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
-
-                # if len(iq1d_main_wl) != 1:
-                #     raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
-                #                               f'{len(iq1d_main_wl)}')
-
-                # # Bin elastic reference run
-                # if processed_elastic_ref:
-                #     raise NotImplementedError(f'Processed elastic reference of type {type(processed_elastic_ref)} '
-                #                               f'is ready for next task')
-
-                # # 1D correction
-                # b_file_prefix = f'{raw_name}_frame_{wl_frame}'
-                # corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
-                #                                                          incoherence_correction_setup,
-                #                                                          b_file_prefix,
-                #                                                          output_dir)
-
-                # # 2D correction
-                # corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
-                #                                                          incoherence_correction_setup,
-                #                                                          b_file_prefix,
-                #                                                          output_dir)
-
-                # # Be finite
-                # finite_iq1d = corrected_iq1d.be_finite()
-                # finite_iq2d = corrected_iq2d.be_finite()
-                # # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
-                # assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
-                #                                f' but not {len(iq1d_main_wl)}'
-                # iq2d_main_out, iq1d_main_out = bin_all(finite_iq2d, finite_iq1d,
-                #                                        nxbins_main, nybins_main, n1dbins=nbins_main,
-                #                                        n1dbins_per_decade=nbins_main_per_decade,
-                #                                        decade_on_center=decade_on_center,
-                #                                        bin1d_type=bin1d_type, log_scale=log_binning,
-                #                                        qmin=qmin, qmax=qmax,
-                #                                        qxrange=None,
-                #                                        qyrange=None,
-                #                                        annular_angle_bin=annular_bin, wedges=wedges,
-                #                                        symmetric_wedges=symmetric_wedges,
-                #                                        error_weighted=weighted_errors)
-
-            else:
-                # Not incoherence correction
-                iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                                       nxbins_main, nybins_main, n1dbins=nbins_main,
-                                                       n1dbins_per_decade=nbins_main_per_decade,
-                                                       decade_on_center=decade_on_center,
-                                                       bin1d_type=bin1d_type, log_scale=log_binning,
-                                                       qmin=qmin, qmax=qmax,
-                                                       qxrange=None,
-                                                       qyrange=None,
-                                                       annular_angle_bin=annular_bin, wedges=wedges,
-                                                       symmetric_wedges=symmetric_wedges,
-                                                       error_weighted=weighted_errors)
+            # # Note 777: 2 step binning shall generate the same result as 1 step binning
+            # if incoherence_correction_setup.do_correction:
+            #     iq2d_main_out, iq1d_main_out = bin_i_with_correction(weighted_errors, user_qmin, user_qmax,
+            #                                                          iq1d_main_in_fr, iq2d_main_in_fr,
+            #                                                          wl_frame, nxbins_main, nybins_main, nbins_main,
+            #                                                          nbins_main_per_decade,
+            #                                                          decade_on_center, bin1d_type, log_binning,
+            #                                                          annular_bin, wedges,
+            #                                                          symmetric_wedges,
+            #                                                          incoherence_correction_setup,
+            #                                                          processed_elastic_ref,
+            #                                                          raw_name, output_dir)
+            #
+            # else:
+            #     # Not incoherence correction
+            #     iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
+            #                                            nxbins_main, nybins_main, n1dbins=nbins_main,
+            #                                            n1dbins_per_decade=nbins_main_per_decade,
+            #                                            decade_on_center=decade_on_center,
+            #                                            bin1d_type=bin1d_type, log_scale=log_binning,
+            #                                            qmin=qmin, qmax=qmax,
+            #                                            qxrange=None,
+            #                                            qyrange=None,
+            #                                            annular_angle_bin=annular_bin, wedges=wedges,
+            #                                            symmetric_wedges=symmetric_wedges,
+            #                                            error_weighted=weighted_errors)
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 
@@ -936,68 +871,76 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
     # Sanity check
     assert weighted_errors, 'Must using weighted error'
 
-    # Define qmin and qmax for this frame
-    if user_qmin is None:
-        qmin = iq1d_main_in_fr[wl_frame].mod_q.min()
+    if incoherence_correction_setup.do_correction:
+        # Define qmin and qmax for this frame
+        if user_qmin is None:
+            qmin = iq1d_main_in_fr[wl_frame].mod_q.min()
+        else:
+            qmin = user_qmin
+        if user_qmax is None:
+            qmax = iq1d_main_in_fr[wl_frame].mod_q.max()
+        else:
+            qmax = user_qmax
+
+        # Determine qxrange and qyrange for this frame
+        qx_min = np.min(iq2d_main_in_fr[wl_frame].qx)
+        qx_max = np.max(iq2d_main_in_fr[wl_frame].qx)
+        qxrange = qx_min, qx_max
+
+        qy_min = np.min(iq2d_main_in_fr[wl_frame].qy)
+        qy_max = np.max(iq2d_main_in_fr[wl_frame].qy)
+        qyrange = qy_min, qy_max
+
+        # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
+        iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
+                                             nxbins_main, nybins_main, n1dbins=nbins_main,
+                                             n1dbins_per_decade=nbins_main_per_decade,
+                                             decade_on_center=decade_on_center,
+                                             bin1d_type=bin1d_type, log_scale=log_binning,
+                                             qmin=qmin, qmax=qmax,
+                                             qxrange=qxrange,
+                                             qyrange=qyrange,
+                                             annular_angle_bin=annular_bin, wedges=wedges,
+                                             symmetric_wedges=symmetric_wedges,
+                                             error_weighted=weighted_errors,
+                                             n_wavelength_bin=None)
+        assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
+
+        if len(iq1d_main_wl) != 1:
+            raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
+                                      f'{len(iq1d_main_wl)}')
+
+        # Bin elastic reference run
+        if processed_elastic_ref:
+            raise NotImplementedError(f'Processed elastic reference of type {type(processed_elastic_ref)} '
+                                      f'is ready for next task')
+
+        # 1D correction
+        b_file_prefix = f'{raw_name}_frame_{wl_frame}'
+        corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
+                                                                 incoherence_correction_setup,
+                                                                 b_file_prefix,
+                                                                 output_dir)
+
+        # 2D correction
+        corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
+                                                                 incoherence_correction_setup,
+                                                                 b_file_prefix,
+                                                                 output_dir)
+
+        # Be finite
+        finite_iq1d = corrected_iq1d.be_finite()
+        finite_iq2d = corrected_iq2d.be_finite()
+        # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
+        assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
+                                       f' but not {len(iq1d_main_wl)}'
     else:
+        finite_iq2d = iq2d_main_in_fr[wl_frame]
+        finite_iq1d = iq1d_main_in_fr[wl_frame]
         qmin = user_qmin
-    if user_qmax is None:
-        qmax = iq1d_main_in_fr[wl_frame].mod_q.max()
-    else:
         qmax = user_qmax
+    # END-IF-ELSE
 
-    # Determine qxrange and qyrange for this frame
-    qx_min = np.min(iq2d_main_in_fr[wl_frame].qx)
-    qx_max = np.max(iq2d_main_in_fr[wl_frame].qx)
-    qxrange = qx_min, qx_max
-
-    qy_min = np.min(iq2d_main_in_fr[wl_frame].qy)
-    qy_max = np.max(iq2d_main_in_fr[wl_frame].qy)
-    qyrange = qy_min, qy_max
-
-    # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
-    iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                         nxbins_main, nybins_main, n1dbins=nbins_main,
-                                         n1dbins_per_decade=nbins_main_per_decade,
-                                         decade_on_center=decade_on_center,
-                                         bin1d_type=bin1d_type, log_scale=log_binning,
-                                         qmin=qmin, qmax=qmax,
-                                         qxrange=qxrange,
-                                         qyrange=qyrange,
-                                         annular_angle_bin=annular_bin, wedges=wedges,
-                                         symmetric_wedges=symmetric_wedges,
-                                         error_weighted=weighted_errors,
-                                         n_wavelength_bin=None)
-    assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
-
-    if len(iq1d_main_wl) != 1:
-        raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
-                                  f'{len(iq1d_main_wl)}')
-
-    # Bin elastic reference run
-    if processed_elastic_ref:
-        raise NotImplementedError(f'Processed elastic reference of type {type(processed_elastic_ref)} '
-                                  f'is ready for next task')
-
-    # 1D correction
-    b_file_prefix = f'{raw_name}_frame_{wl_frame}'
-    corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
-                                                             incoherence_correction_setup,
-                                                             b_file_prefix,
-                                                             output_dir)
-
-    # 2D correction
-    corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
-                                                             incoherence_correction_setup,
-                                                             b_file_prefix,
-                                                             output_dir)
-
-    # Be finite
-    finite_iq1d = corrected_iq1d.be_finite()
-    finite_iq2d = corrected_iq2d.be_finite()
-    # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
-    assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
-                                   f' but not {len(iq1d_main_wl)}'
     iq2d_main_out, iq1d_main_out = bin_all(finite_iq2d, finite_iq1d,
                                            nxbins_main, nybins_main, n1dbins=nbins_main,
                                            n1dbins_per_decade=nbins_main_per_decade,

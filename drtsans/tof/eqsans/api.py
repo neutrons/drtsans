@@ -868,10 +868,11 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
                           decade_on_center, bin1d_type, log_binning, annular_bin, wedges, symmetric_wedges,
                           incoherence_correction_setup, processed_elastic_ref,
                           raw_name, output_dir):
-    # Sanity check
-    assert weighted_errors, 'Must using weighted error'
 
     if incoherence_correction_setup.do_correction:
+        # Sanity check
+        assert weighted_errors, 'Must using weighted error'
+
         # Define qmin and qmax for this frame
         if user_qmin is None:
             qmin = iq1d_main_in_fr[wl_frame].mod_q.min()

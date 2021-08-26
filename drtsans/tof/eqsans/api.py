@@ -578,6 +578,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     else:
         # parse JSON for correction setup
         incoherence_correction_setup = parse_correction_config(reduction_input)
+        print(f'[DEBUG LOG] incoherence_correction: {incoherence_correction_setup}')
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}

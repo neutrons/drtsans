@@ -683,6 +683,12 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     # binning_params = BinningSetup(**binning_par_dc)
     #
 
+    # set up subpixel binning options  FIXME - it does not seem to work
+    subpixel_kwargs = dict()
+    if reduction_config['useSubpixels']:
+        subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
+                           'n_vertical': reduction_config['subpixelsY']}
+
     # process elastic run
     if incoherence_correction_setup.do_correction:
         assert loaded_ws.elastic_reference.data
@@ -714,8 +720,15 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                  absolute_scale=absolute_scale,
                                                                  keep_processed_workspaces=False)
         assert processed_elastic_ref
+        # convert to I(Q)
+        iq1d_elastic_ref = convert_to_q(processed_elastic_ref, mode='scalar', **subpixel_kwargs)
+        iq2d_elastic_ref = convert_to_q(processed_elastic_ref, mode='azimuthal', **subpixel_kwargs)
+        # split to frames
+        iq1d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq1d_elastic_ref, verbose=True)
+        iq2d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq2d_elastic_ref, verbose=True)
     else:
-        processed_elastic_ref = None
+        iq1d_elastic_ref_frames = iq2d_elastic_ref_frames = None
+
     # Define output data structure
     output = []
     detectordata = {}
@@ -751,11 +764,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                keep_processed_workspaces=False)
 
         # Convert to Q
-        # set up subpixel binning options  FIXME - it does not seem to work
-        subpixel_kwargs = dict()
-        if reduction_config['useSubpixels']:
-            subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
-                               'n_vertical': reduction_config['subpixelsY']}
+
         # convert to Q
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
@@ -800,35 +809,9 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                  annular_bin, wedges,
                                                                  symmetric_wedges,
                                                                  incoherence_correction_setup,
-                                                                 processed_elastic_ref,
+                                                                 iq1d_elastic_ref_frames,
+                                                                 iq2d_elastic_ref_frames,
                                                                  raw_name, output_dir)
-
-            # # Note 777: 2 step binning shall generate the same result as 1 step binning
-            # if incoherence_correction_setup.do_correction:
-            #     iq2d_main_out, iq1d_main_out = bin_i_with_correction(weighted_errors, user_qmin, user_qmax,
-            #                                                          iq1d_main_in_fr, iq2d_main_in_fr,
-            #                                                          wl_frame, nxbins_main, nybins_main, nbins_main,
-            #                                                          nbins_main_per_decade,
-            #                                                          decade_on_center, bin1d_type, log_binning,
-            #                                                          annular_bin, wedges,
-            #                                                          symmetric_wedges,
-            #                                                          incoherence_correction_setup,
-            #                                                          processed_elastic_ref,
-            #                                                          raw_name, output_dir)
-            #
-            # else:
-            #     # Not incoherence correction
-            #     iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-            #                                            nxbins_main, nybins_main, n1dbins=nbins_main,
-            #                                            n1dbins_per_decade=nbins_main_per_decade,
-            #                                            decade_on_center=decade_on_center,
-            #                                            bin1d_type=bin1d_type, log_scale=log_binning,
-            #                                            qmin=qmin, qmax=qmax,
-            #                                            qxrange=None,
-            #                                            qyrange=None,
-            #                                            annular_angle_bin=annular_bin, wedges=wedges,
-            #                                            symmetric_wedges=symmetric_wedges,
-            #                                            error_weighted=weighted_errors)
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 
@@ -866,7 +849,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr, iq2d_main_in_fr,
                           wl_frame, nxbins_main, nybins_main, nbins_main, nbins_main_per_decade,
                           decade_on_center, bin1d_type, log_binning, annular_bin, wedges, symmetric_wedges,
-                          incoherence_correction_setup, processed_elastic_ref,
+                          incoherence_correction_setup, iq1d_elastic_ref_fr, iq2d_elastic_ref_fr,
                           raw_name, output_dir):
 
     if incoherence_correction_setup.do_correction:
@@ -905,16 +888,34 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
                                              symmetric_wedges=symmetric_wedges,
                                              error_weighted=weighted_errors,
                                              n_wavelength_bin=None)
+        # Check due to functional limitation
         assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
-
         if len(iq1d_main_wl) != 1:
             raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
                                       f'{len(iq1d_main_wl)}')
 
         # Bin elastic reference run
-        if processed_elastic_ref:
-            raise NotImplementedError(f'Processed elastic reference of type {type(processed_elastic_ref)} '
-                                      f'is ready for next task')
+        if incoherence_correction_setup.elastic_reference_run:
+            # bin the reference elastic runs of the current frame
+            iq2d_elastic_wl, iq1d_elastic_wl = bin_all(iq2d_elastic_ref_fr[wl_frame], iq1d_elastic_ref_fr[wl_frame],
+                                                       nxbins_main, nybins_main, n1dbins=nbins_main,
+                                                       n1dbins_per_decade=nbins_main_per_decade,
+                                                       decade_on_center=decade_on_center,
+                                                       bin1d_type=bin1d_type, log_scale=log_binning,
+                                                       qmin=qmin, qmax=qmax,
+                                                       qxrange=qxrange,
+                                                       qyrange=qyrange,
+                                                       annular_angle_bin=annular_bin, wedges=wedges,
+                                                       symmetric_wedges=symmetric_wedges,
+                                                       error_weighted=weighted_errors,
+                                                       n_wavelength_bin=None)
+            if len(iq1d_elastic_wl) != 1:
+                raise NotImplementedError(f'Not expected that there are more than 1 IQmod of '
+                                          f'elastic reference run.')
+            # normalization
+            from drtsans.tof.eqsans.elastic_reference_normalization import normalize_by_elastic_reference
+            iq1d_main_wl[0] = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
+            raise NotImplementedError(f'Processed elastic reference')
 
         # 1D correction
         b_file_prefix = f'{raw_name}_frame_{wl_frame}'

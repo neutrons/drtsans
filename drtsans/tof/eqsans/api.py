@@ -916,6 +916,7 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
                                           f'elastic reference run.')
             # normalization
             from drtsans.tof.eqsans.elastic_reference_normalization import normalize_by_elastic_reference
+            print(f'[DEBUG] Q range: {qmin}, {qmax}')
             iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
             iq1d_main_wl[0] = iq1d_wl
             raise NotImplementedError(f'Need to save k and k_error to file')

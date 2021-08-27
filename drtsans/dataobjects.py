@@ -128,7 +128,7 @@ def scale_intensity(iq_object, scaling):
     return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
 
 
-def verify_same_q_bins(iq0, iq1):
+def verify_same_q_bins(iq0, iq1, raise_exception_if_diffrent=False, tolerance=None):
     """Verify whether 2 I(Q) has the same range of Q
 
     Parameters
@@ -171,9 +171,14 @@ def verify_same_q_bins(iq0, iq1):
     # Verify
     same = True
     try:
-        np.testing.assert_allclose(q0vec, q1vec)
-    except AssertionError:
+        if tolerance:
+            np.testing.assert_allclose(q0vec, q1vec, atol=tolerance)
+        else:
+            np.testing.assert_allclose(q0vec, q1vec)
+    except AssertionError as assert_error:
         same = False
+        if raise_exception_if_diffrent:
+            raise assert_error
 
     return same
 

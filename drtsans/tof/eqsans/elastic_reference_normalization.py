@@ -112,6 +112,13 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
 
     # check i_of_q and ref_i_of_q shall have same binning
     if not verify_same_q_bins(i_of_q, ref_i_of_q):
+        print(f'[DEBUG ERROR] Sample Q shape = {i_of_q.mod_q.shape}, Wavelength shape = {i_of_q.wavelength.shape}')
+        print(f'[DEBUG ERROR] Ref    Q shape = {ref_i_of_q.mod_q.shape},'
+              f'Wavelength shape = {ref_i_of_q.wavelength.shape}')
+        print(f'[DEBUG ERROR] Sample Q value {i_of_q.mod_q}')
+        print(f'[DEBUG ERROR] Ref    Q value {ref_i_of_q.mod_q}')
+        print(f'[DEBUG ERROR] Sample WL value {i_of_q.wavelength}')
+        print(f'[DEBUG ERROR] Ref    WL value {ref_i_of_q.wavelength}')
         raise RuntimeError('Input I(Q) and elastic reference I(Q) have different Q and wavelength binning')
 
     # Reshape Q, wavelength, intensities and errors to unique 1D array or 2D array

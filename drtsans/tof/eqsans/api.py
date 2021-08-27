@@ -690,7 +690,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                            'n_vertical': reduction_config['subpixelsY']}
 
     # process elastic run
-    if incoherence_correction_setup.do_correction:
+    if incoherence_correction_setup.do_correction and loaded_ws.elastic_reference.data:
         assert loaded_ws.elastic_reference.data
         elastic_ref_trans_run = reduction_config['elasticReference']['transmission'].get('runNumber')
         elastic_ref_trans_value = reduction_config['elasticReference']['transmission'].get('value')
@@ -854,7 +854,7 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
 
     if incoherence_correction_setup.do_correction:
         # Sanity check
-        assert weighted_errors, 'Must using weighted error'
+        assert weighted_errors, f'Must using weighted error {weighted_errors}'
 
         # Define qmin and qmax for this frame
         if user_qmin is None:
@@ -895,8 +895,10 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
                                       f'{len(iq1d_main_wl)}')
 
         # Bin elastic reference run
-        if incoherence_correction_setup.elastic_reference_run:
+        # TODO FIXME 792  incoherence_correction_setup.elastic_reference_run.ref_run_number is not set correctly
+        if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
+            print(f'DEBUG:  {incoherence_correction_setup.elastic_reference_run.ref_run_number}')
             iq2d_elastic_wl, iq1d_elastic_wl = bin_all(iq2d_elastic_ref_fr[wl_frame], iq1d_elastic_ref_fr[wl_frame],
                                                        nxbins_main, nybins_main, n1dbins=nbins_main,
                                                        n1dbins_per_decade=nbins_main_per_decade,

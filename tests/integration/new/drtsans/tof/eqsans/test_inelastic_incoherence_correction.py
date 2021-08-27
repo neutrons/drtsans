@@ -275,7 +275,7 @@ def generate_configuration_with_correction(output_dir: str = '/tmp/') -> Dict:
 
 @pytest.mark.skipif(not os.path.exists('/SNS/users/pf9/etc/'),
                     reason="Test is too long for build server")
-def test_incoherence_correction(reference_dir):
+def test_incoherence_correction_step4only(reference_dir):
     """Test incoherence correction without elastic correction
     """
     # Set up the configuration dict

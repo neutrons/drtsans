@@ -77,7 +77,7 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
     """
     w = load_events_monitor(data, output_workspace=output_workspace)
     w = smash_monitor_spikes(w)
-    w = transform_to_wavelength(w, bin_width=bin_width)
+    w, bands = transform_to_wavelength(w, bin_width=bin_width)
     w = set_init_uncertainties(w)
     return w
 
@@ -255,14 +255,15 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                                                      centering_options=centering_options)
         center_detector(ws, center_x=center_x, center_y=center_y)  # operates in-place
 
-        ws = transform_to_wavelength(ws, bin_width=bin_width,
-                                     low_tof_clip=low_tof_clip,
-                                     high_tof_clip=high_tof_clip,
-                                     keep_events=keep_events)
+        ws, bands = transform_to_wavelength(ws, bin_width=bin_width,
+                                            low_tof_clip=low_tof_clip,
+                                            high_tof_clip=high_tof_clip,
+                                            keep_events=keep_events)
         ws = set_init_uncertainties(ws)
 
         return dict(data=ws,
-                    monitor=ws_monitors)
+                    monitor=ws_monitors,
+                    bands=bands)
     else:
         if keep_events:
             raise NotImplementedError("Cannot merge runs together with keep_events=True.")

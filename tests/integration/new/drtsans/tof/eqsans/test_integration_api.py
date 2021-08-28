@@ -52,8 +52,9 @@ def run_infoset(reference_dir, request):
     tof_workspace = unique_workspace_dundername()
     with amend_config(data_dir=reference_dir.new.eqsans):
         eqsans.load_events(run, output_workspace=tof_workspace)
-    wavelength_workspace = eqsans.transform_to_wavelength(tof_workspace, low_tof_clip=500, high_tof_clip=2000,
-                                                          output_workspace=unique_workspace_dundername())
+    wavelength_workspace, bands = eqsans.transform_to_wavelength(tof_workspace,
+                                                                 low_tof_clip=500, high_tof_clip=2000,
+                                                                 output_workspace=unique_workspace_dundername())
     wavelength_workspace = eqsans.set_init_uncertainties(wavelength_workspace)
     return {**run_set, **dict(ws=tof_workspace, wl=wavelength_workspace)}
 
@@ -97,9 +98,9 @@ class TestLoadEvents(object):
 
 
 def test_transform_to_wavelength(run_infoset):
-    ws = eqsans.transform_to_wavelength(run_infoset.ws, low_tof_clip=500,
-                                        high_tof_clip=2000,
-                                        output_workspace=unique_workspace_dundername())
+    ws, bands = eqsans.transform_to_wavelength(run_infoset.ws, low_tof_clip=500,
+                                               high_tof_clip=2000,
+                                               output_workspace=unique_workspace_dundername())
     ws = eqsans.set_init_uncertainties(ws)
     sl = SampleLogs(ws)
     assert sl.wavelength_min.value == approx(run_infoset.w_min, abs=0.05)

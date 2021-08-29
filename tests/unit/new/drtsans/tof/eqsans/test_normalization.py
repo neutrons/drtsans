@@ -43,7 +43,7 @@ def data_ws(reference_dir):
     with amend_config(data_dir=reference_dir.new.eqsans):
         for run in ('92353', '88565'):
             w = load_events('EQSANS_{}'.format(run), output_workspace=unique_workspace_dundername())
-            ws[run] = transform_to_wavelength(w, output_workspace=w.name())
+            ws[run], bands = transform_to_wavelength(w, output_workspace=w.name())
             ws[run] = set_init_uncertainties(ws[run])
     return ws
 

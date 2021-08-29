@@ -267,9 +267,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             dark_current_file = abspath(dark_current_file)
             print(f"Loading filename {dark_current_file}")
             filenames.add(dark_current_file)
-            dark_current_ws, _ = load_events_and_histogram(dark_current_file,
-                                                           output_workspace=ws_name,
-                                                           **load_params)
+            loaded_dark = load_events_and_histogram(dark_current_file,
+                                                    output_workspace=ws_name,
+                                                    **load_params)
+            dark_current_ws = loaded_dark.data
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
         else:

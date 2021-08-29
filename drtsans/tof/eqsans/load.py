@@ -265,6 +265,7 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                     monitor=ws_monitors,
                     bands=bands)
     else:
+        # Load multiple runs
         if keep_events:
             raise NotImplementedError("Cannot merge runs together with keep_events=True.")
 
@@ -299,11 +300,13 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                 center_x, center_y, _ = find_beam_center(temp_workspace_name, mask=mask,
                                                          method=centering_method, centering_options=centering_options)
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
-            transform_to_wavelength(temp_workspace_name,
-                                    bin_width=bin_width,
-                                    low_tof_clip=low_tof_clip,
-                                    high_tof_clip=high_tof_clip,
-                                    keep_events=keep_events)
+            # FIXME 792, whether the 2nd workspace shall use the bands from the first one?
+            ws, bands = transform_to_wavelength(temp_workspace_name,
+                                                bin_width=bin_width,
+                                                low_tof_clip=low_tof_clip,
+                                                high_tof_clip=high_tof_clip,
+                                                keep_events=keep_events)
+            assert ws
             temp_workspaces.append(temp_workspace_name)
 
         # Sum temporary loaded monitor workspaces
@@ -316,6 +319,7 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
             ws_monitors = None
 
         # Sum temporary loaded workspaces
+        # FIXME 792 sum data potential defect: wavelength range are different
         ws = sum_data(temp_workspaces,
                       output_workspace=output_workspace)
 
@@ -328,7 +332,8 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                 mtd.remove(ws_name)
 
         return dict(data=ws,
-                    monitor=ws_monitors)
+                    monitor=ws_monitors,
+                    bands=bands)
 
 
 def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True,

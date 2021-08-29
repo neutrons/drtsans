@@ -150,6 +150,7 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                               bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                               center_x=None, center_y=None, centering_method='center_of_mass', centering_options={},
                               mask=None, monitors=False, keep_events=True,
+                              sample_bands=None,
                               **kwargs):
     r"""Load events from one or more NeXus files with initial corrections
     for geometry, time-of-flight and beam center. Convert to
@@ -214,6 +215,8 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
         Option to load the monitors as well as the data, if False monitor will be None
     keep_events: bool
         The final histogram will be an EventsWorkspace if True.
+    sample_bands: bands or None
+        sample bands
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -258,7 +261,8 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
         ws, bands = transform_to_wavelength(ws, bin_width=bin_width,
                                             low_tof_clip=low_tof_clip,
                                             high_tof_clip=high_tof_clip,
-                                            keep_events=keep_events)
+                                            keep_events=keep_events,
+                                            bands=sample_bands)
         ws = set_init_uncertainties(ws)
 
         return dict(data=ws,
@@ -391,4 +395,6 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                 keep_events=keep_events)
         set_init_uncertainties(_w)
 
+    if ws:
+        raise NotImplementedError('Is this method: load_and_split still used?')
     return ws

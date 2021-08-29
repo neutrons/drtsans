@@ -221,22 +221,27 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                     logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
                                                   'units': samplelogs[logslicename].units,
                                                   'name': logslicename}
+        sample_bands = None
     else:
+        # load Nexus file or files without splitting
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
             filename = abspaths(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             filenames.add(filename)
-            load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            loaded_sample_tup = load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            sample_bands = loaded_sample_tup.bands
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
+        else:
+            sample_bands = None
 
     reduction_input["logslice_data"] = logslice_data_dict
 
     # Load all other files without further processing
     # background, empty, sample transmission, background transmission
     other_ws_list = list()
-    for run_number in [bkgd, empty, sample_trans, bkgd_trans, elastic_ref_run, elastic_ref_bkgd_run]:
+    for irun, run_number in enumerate([bkgd, empty, sample_trans, bkgd_trans, elastic_ref_run, elastic_ref_bkgd_run]):
         if run_number:
             # run number is given
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
@@ -244,7 +249,12 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                 filename = abspaths(run_number.strip(), instrument=instrument_name, ipts=ipts)
                 print(f"Loading filename {filename}")
                 filenames.add(filename)
-                load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+                if irun in [4, 5]:
+                    # elastic reference run and background run, the bands must be same as sample's
+                    load_events_and_histogram(filename, output_workspace=ws_name, sample_bands=sample_bands,
+                                              **load_params)
+                else:
+                    load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
             other_ws_list.append(mtd[ws_name])

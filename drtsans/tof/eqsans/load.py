@@ -348,7 +348,7 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                    center_x=None, center_y=None, centering_method='center_of_mass',
                    centering_options={}, mask=None, monitors=False, keep_events=True,
                    time_interval=None, log_name=None, log_value_interval=None,
-                   reuse_workspace=False, **kwargs) -> Tuple:
+                   reuse_workspace=False, **kwargs):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
     on the provided filter options. Either a time_interval must be
     provided or a log_name and log_value_interval.
@@ -393,10 +393,10 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                                      centering_options=centering_options)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
 
-        _, c_bands = transform_to_wavelength(_w, bin_width=bin_width,
-                                             low_tof_clip=low_tof_clip,
-                                             high_tof_clip=high_tof_clip,
-                                             keep_events=keep_events)
+        ws, c_bands = transform_to_wavelength(_w, bin_width=bin_width,
+                                              low_tof_clip=low_tof_clip,
+                                              high_tof_clip=high_tof_clip,
+                                              keep_events=keep_events)
         set_init_uncertainties(_w)
 
         if bands is None:

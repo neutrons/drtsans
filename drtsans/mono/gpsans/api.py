@@ -607,7 +607,11 @@ def prepare_data_workspaces(data,
 
     # Normalization
     if str(flux_method).lower() == 'monitor':
-        normalize_by_monitor(output_workspace_name)
+        try:
+            normalize_by_monitor(output_workspace_name)
+        except RuntimeError as e:
+            logger.warning(f'{e}. Resorting to normalization by time')
+            normalize_by_time(output_workspace_name)
     elif str(flux_method).lower() == 'time':
         normalize_by_time(output_workspace_name)
 
@@ -995,7 +999,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix='', skip_nan=
                                                            mask_panel=mask_panel,
                                                            solid_angle=solid_angle,
                                                            sensitivity_workspace=loaded_ws.sensitivity,
-                                                           output_workspace=f'processed_data_main',
+                                                           output_workspace='processed_data_main',
                                                            output_suffix=output_suffix,
                                                            thickness=thickness,
                                                            absolute_scale_method=absolute_scale_method,

@@ -77,6 +77,16 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     input_workspace : ~mantid.api.MatrixWorkspace
     output_workspace: str
         Optional name of the output workspace. Default is to replace the input workspace
+
+    Returns
+    -------
+    ~mantid.api.MatrixWorkspace
+        the normalized input workspace
+
+    Raises
+    ------
+    RuntimeError
+        No monitor metadata found in the sample logs of the input workspace
     """
     metadata_entry_names = ['monitor',  # created by load_events
                             'monitor1']  # may be in the DAS logs
@@ -87,10 +97,14 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     if output_workspace is None:
         output_workspace = input_workspace
     for entry_name in metadata_entry_names:
+        monitor = None
         try:
             monitor = SampleLogs(input_workspace).single_value(entry_name) / reference_total_counts
+            break
         except RuntimeError:  # the entry is not found in the metadata
             continue  # search next entry
+    else:
+        raise RuntimeError('No monitor metadata found')
     # Cast the monitor value into a Mantid workspace to later divide the input workspace by this workspace
     monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=unique_workspace_dundername())
     Divide(LHSWorkspace=input_workspace, RHSWorkspace=monitor_workspace, OutputWorkspace=output_workspace)

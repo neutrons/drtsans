@@ -9,7 +9,7 @@ from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
                                               set_init_uncertainties, correct_tof_offset, correct_emission_time)
 from drtsans.instruments import extract_run_number, instrument_enum_name
 import os
-from typing import Tuple
+# from typing import Tuple
 
 __all__ = ['load_events', 'load_events_monitor', 'sum_data', 'load_events_and_histogram',
            'load_and_split', 'prepare_monitors']

@@ -178,8 +178,8 @@ def test_generic_load_and_split(reference_dir):
 
 def test_load_and_split(reference_dir):
     # split by the SampleTemp log
-    filtered_ws = load_and_split('EQSANS_104088', data_dir=reference_dir.new.eqsans,
-                                 log_name='SampleTemp', log_value_interval=0.1)
+    filtered_ws, bands = load_and_split('EQSANS_104088', data_dir=reference_dir.new.eqsans,
+                                        log_name='SampleTemp', log_value_interval=0.1)
 
     assert filtered_ws.size() == 3
 

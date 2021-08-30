@@ -9,6 +9,7 @@ from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
                                               set_init_uncertainties, correct_tof_offset, correct_emission_time)
 from drtsans.instruments import extract_run_number, instrument_enum_name
 import os
+from typing import Tuple
 
 __all__ = ['load_events', 'load_events_monitor', 'sum_data', 'load_events_and_histogram',
            'load_and_split', 'prepare_monitors']
@@ -347,7 +348,7 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                    center_x=None, center_y=None, centering_method='center_of_mass',
                    centering_options={}, mask=None, monitors=False, keep_events=True,
                    time_interval=None, log_name=None, log_value_interval=None,
-                   reuse_workspace=False, **kwargs):
+                   reuse_workspace=False, **kwargs) -> Tuple:
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
     on the provided filter options. Either a time_interval must be
     provided or a log_name and log_value_interval.
@@ -366,8 +367,8 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
         Arguments to be passed on to the centering method.
     Returns
     -------
-    WorkspaceGroup
-        Reference to the workspace groups containing all the split workspaces
+    ~tuple
+        (WorkspaceGroup, Bands): Reference to the workspace groups containing all the split workspaces
     """
     ws = generic_load_and_split(run=run, data_dir=data_dir,
                                 output_workspace=output_workspace, output_suffix=output_suffix,
@@ -376,6 +377,9 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                 time_interval=time_interval, log_name=log_name, log_value_interval=log_value_interval,
                                 reuse_workspace=reuse_workspace, monitors=False,
                                 instrument_unique_name='EQSANS', **kwargs)
+
+    # Init
+    bands = None
 
     for _w in ws:
         # Correct TOF offset
@@ -389,12 +393,13 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                                      centering_options=centering_options)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
 
-        transform_to_wavelength(_w, bin_width=bin_width,
-                                low_tof_clip=low_tof_clip,
-                                high_tof_clip=high_tof_clip,
-                                keep_events=keep_events)
+        _, c_bands = transform_to_wavelength(_w, bin_width=bin_width,
+                                             low_tof_clip=low_tof_clip,
+                                             high_tof_clip=high_tof_clip,
+                                             keep_events=keep_events)
         set_init_uncertainties(_w)
 
-    if ws:
-        raise NotImplementedError('Is this method: load_and_split still used?')
-    return ws
+        if bands is None:
+            bands = c_bands
+
+    return ws, bands

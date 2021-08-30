@@ -39,6 +39,7 @@ from drtsans.tof.eqsans.correction_api import parse_correction_config
 from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
                                                do_inelastic_incoherence_correction_q2d)
 from typing import Dict, Tuple, List
+from drtsans.tof.eqsans.elastic_reference_normalization import normalize_by_elastic_reference
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -926,11 +927,9 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
                 raise NotImplementedError(f'Not expected that there are more than 1 IQmod of '
                                           f'elastic reference run.')
             # normalization
-            from drtsans.tof.eqsans.elastic_reference_normalization import normalize_by_elastic_reference
-            print(f'[DEBUG] Q range: {qmin}, {qmax}')
             iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
             iq1d_main_wl[0] = iq1d_wl
-            raise NotImplementedError(f'Need to save k and k_error to file')
+            # TODO 792 save k and k_error to file
 
         # 1D correction
         b_file_prefix = f'{raw_name}_frame_{wl_frame}'

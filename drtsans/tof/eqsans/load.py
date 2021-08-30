@@ -370,18 +370,20 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
     ~tuple
         (WorkspaceGroup, Bands): Reference to the workspace groups containing all the split workspaces
     """
-    ws = generic_load_and_split(run=run, data_dir=data_dir,
-                                output_workspace=output_workspace, output_suffix=output_suffix,
-                                overwrite_instrument=overwrite_instrument, pixel_calibration=pixel_calibration,
-                                detector_offset=detector_offset, sample_offset=sample_offset,
-                                time_interval=time_interval, log_name=log_name, log_value_interval=log_value_interval,
-                                reuse_workspace=reuse_workspace, monitors=False,
-                                instrument_unique_name='EQSANS', **kwargs)
+    ws_group = generic_load_and_split(run=run, data_dir=data_dir,
+                                      output_workspace=output_workspace, output_suffix=output_suffix,
+                                      overwrite_instrument=overwrite_instrument,
+                                      pixel_calibration=pixel_calibration,
+                                      detector_offset=detector_offset, sample_offset=sample_offset,
+                                      time_interval=time_interval, log_name=log_name,
+                                      log_value_interval=log_value_interval,
+                                      reuse_workspace=reuse_workspace, monitors=False,
+                                      instrument_unique_name='EQSANS', **kwargs)
 
     # Init
     bands = None
 
-    for _w in ws:
+    for _w in ws_group:
         # Correct TOF offset
         correct_tof_offset(_w)
         # Correct TOF of detector
@@ -393,13 +395,13 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                                      centering_options=centering_options)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
 
-        ws, c_bands = transform_to_wavelength(_w, bin_width=bin_width,
-                                              low_tof_clip=low_tof_clip,
-                                              high_tof_clip=high_tof_clip,
-                                              keep_events=keep_events)
+        ws_i, c_bands = transform_to_wavelength(_w, bin_width=bin_width,
+                                                low_tof_clip=low_tof_clip,
+                                                high_tof_clip=high_tof_clip,
+                                                keep_events=keep_events)
         set_init_uncertainties(_w)
 
         if bands is None:
             bands = c_bands
 
-    return ws, bands
+    return ws_group, bands

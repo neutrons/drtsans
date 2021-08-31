@@ -435,6 +435,7 @@ def prepare_data_workspaces(data,
                             center_x=None, center_y=None, center_y_wing=None,
                             dark_current=None,
                             flux_method=None,    # normalization (time/monitor)
+                            monitor_fail_switch=False,
                             mask_ws=None,        # apply a custom mask from workspace
                             mask_detector=None,  # main or wing
                             mask_panel=None,     # mask back or front panel
@@ -475,6 +476,8 @@ def prepare_data_workspaces(data,
         histogram workspace containing the dark current measurement
     flux_method: str
         Method for flux normalization. Either 'monitor', or 'time'.
+    monitor_fail_switch: bool
+        Resort to normalization by 'time' if 'monitor' was selected but no monitor counts are available
     mask_ws: ~mantid.dataobjects.Workspace2D
         Mask workspace
     mask_panel: str
@@ -509,9 +512,20 @@ def prepare_data_workspaces(data,
 
     # Normalization
     if str(flux_method).lower() == 'monitor':
-        normalize_by_monitor(output_workspace)
+        try:
+            normalize_by_monitor(output_workspace)
+        except RuntimeError as e:
+            if monitor_fail_switch:
+                logger.warning(f'{e}. Resorting to normalization by time')
+                normalize_by_time(output_workspace)
+            else:
+                msg = '. Setting "normalizationResortToTime": True will cause the' \
+                      ' reduction to normalize by time if monitor counts are not available'
+                raise RuntimeError(str(e) + msg)
     elif str(flux_method).lower() == 'time':
         normalize_by_time(output_workspace)
+    else:
+        raise RuntimeError(f'Do not know how to normalize by {flux_method}')
 
     # Mask either detector
     if mask_detector is not None:
@@ -547,6 +561,7 @@ def process_single_configuration(sample_ws_raw,
                                  center_y_wing=None,
                                  dark_current=None,
                                  flux_method=None,    # normalization (time/monitor)
+                                 monitor_fail_switch=False,
                                  mask_ws=None,        # apply a custom mask from workspace
                                  mask_detector=None,
                                  mask_panel=None,     # mask back or front panel
@@ -592,7 +607,9 @@ def process_single_configuration(sample_ws_raw,
     dark_current: ~mantid.dataobjects.Workspace2D
         dark current workspace
     flux_method: str
-        normalization by time or monitor
+        normalization by 'time' or 'monitor'
+    monitor_fail_switch: bool
+        resort to normalization by 'time' if 'monitor' was selected but no monitor counts are available
     mask_ws: ~mantid.dataobjects.Workspace2D
         user defined mask
     mask_panel: str
@@ -634,6 +651,7 @@ def process_single_configuration(sample_ws_raw,
                          'center_y_wing': center_y_wing,
                          'dark_current': dark_current,
                          'flux_method': flux_method,
+                         'monitor_fail_switch': monitor_fail_switch,
                          'mask_ws': mask_ws,
                          'mask_detector': mask_detector,
                          'mask_panel': mask_panel,
@@ -786,6 +804,7 @@ def reduce_single_configuration(
     reduction_config = reduction_input["configuration"]
 
     flux_method = reduction_config["normalization"]
+    monitor_fail_switch = reduction_config["normalizationResortToTime"]
     transmission_radius = reduction_config["mmRadiusForTransmission"]
     solid_angle = reduction_config["useSolidAngleCorrection"]
     sample_trans_value = reduction_input["sample"]["transmission"]["value"]
@@ -873,6 +892,7 @@ def reduce_single_configuration(
         empty_trans_ws = prepare_data_workspaces(
             loaded_ws.empty,
             flux_method=flux_method,
+            monitor_fail_switch=monitor_fail_switch,
             mask_detector="wing_detector",
             center_x=xc,
             center_y=yc,
@@ -897,6 +917,7 @@ def reduce_single_configuration(
         bkgd_trans_ws_processed = prepare_data_workspaces(
             loaded_ws.background_transmission,
             flux_method=flux_method,
+            monitor_fail_switch=monitor_fail_switch,
             mask_detector="wing_detector",
             center_x=xc,
             center_y=yc,
@@ -933,6 +954,7 @@ def reduce_single_configuration(
         _ws_processed = prepare_data_workspaces(
             _sample_transmission,
             flux_method=flux_method,
+            monitor_fail_switch=monitor_fail_switch,
             mask_detector="wing_detector",
             center_x=xc,
             center_y=yc,
@@ -988,6 +1010,7 @@ def reduce_single_configuration(
             center_y_wing=yw,
             dark_current=loaded_ws.dark_current_main,
             flux_method=flux_method,
+            monitor_fail_switch=monitor_fail_switch,
             mask_detector="wing_detector",
             mask_ws=loaded_ws.mask,
             mask_panel=mask_panel,
@@ -1016,6 +1039,7 @@ def reduce_single_configuration(
             center_y_wing=yw,
             dark_current=loaded_ws.dark_current_wing,
             flux_method=flux_method,
+            monitor_fail_switch=monitor_fail_switch,
             mask_detector="detector1",
             mask_ws=loaded_ws.mask,
             mask_panel=mask_panel,
@@ -1286,6 +1310,7 @@ def prepare_data(data,
                  center_x=None, center_y=None, center_y_wing=None,
                  dark_current=None,
                  flux_method=None,
+                 monitor_fail_switch=False,
                  mask=None, mask_panel=None, btp=dict(),
                  solid_angle=True,
                  sensitivity_file_path=None, sensitivity_workspace=None,
@@ -1326,6 +1351,8 @@ def prepare_data(data,
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
     flux_method: str
         Method for flux normalization. Either 'monitor', or 'time'.
+    monitor_fail_switch: bool
+        Resort to normalization by 'time' if 'monitor' was selected but no monitor counts are available
     panel: str
         Either 'front' or 'back' to mask a whole panel
     mask_panel: str
@@ -1415,7 +1442,16 @@ def prepare_data(data,
 
     # Normalization
     if str(flux_method).lower() == 'monitor':
-        normalize_by_monitor(ws_name)
+        try:
+            normalize_by_monitor(ws_name)
+        except RuntimeError as e:
+            if monitor_fail_switch:
+                logger.warning(f'{e}. Resorting to normalization by time')
+                normalize_by_time(ws_name)
+            else:
+                msg = '. Setting configuration "normalizationResortToTime": True will cause the' \
+                      ' reduction to normalize by time if monitor counts are not available'
+                raise RuntimeError(str(e) + msg)
     elif str(flux_method).lower() == 'time':
         normalize_by_time(ws_name)
 

@@ -110,39 +110,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
         configuration_file_parameters = _get_configuration_file_parameters(sample.split(',')[0].strip())
         default_mask = configuration_file_parameters['combined mask']
 
-    # TODO - 792+ Refactor this following block to method 'set_beam_center()'
-    # find the center first
-    if center != "":
-        # calculate beam center from center workspace
-        center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
-        if not registered_workspace(center_ws_name):
-            center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
-            filenames.add(center_filename)
-            load_events(center_filename,
-                        pixel_calibration=reduction_config.get('usePixelCalibration', False),
-                        output_workspace=center_ws_name)
-            if reduction_config["useDefaultMask"]:
-                apply_mask(center_ws_name, mask=default_mask)
-        fbc_options = fbc_options_json(reduction_input)
-        center_x, center_y, fit_results = find_beam_center(center_ws_name, **fbc_options)
-        logger.notice(f"calculated center ({center_x}, {center_y})")
-        beam_center_type = 'calculated'
-    else:
-        # use default EQSANS center
-        # FIXME - it is better to have these hard code value defined out side of this method
-        center_x = 0.025239
-        center_y = 0.0170801
-        logger.notice(f"use default center ({center_x}, {center_y})")
-        beam_center_type = 'default'
-        fit_results = None
-    # set beam center
-    # --> TILL HERE
-
-    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
-                                      'y': center_y, 'fit_results': fit_results}
-    # update to 'load_params'
-    if load_params is None:
-        load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
+    load_params = set_beam_center(center, prefix, instrument_name, ipts, filenames, reduction_config,
+                                  reduction_input, default_mask, load_params)
 
     # Adjust pixel heights and widths
     load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
@@ -1095,6 +1064,51 @@ def apply_solid_angle_correction(input_workspace):
     """Apply solid angle correction. This uses :func:`drtsans.solid_angle_correction`."""
     return solid_angle_correction(input_workspace,
                                   detector_type='VerticalTube')
+
+
+def set_beam_center(center, prefix, instrument_name, ipts, filenames, reduction_config,
+                    reduction_input, default_mask, load_params):
+    """Helping method to set beam center
+    """
+    # find the center first
+    if center != "":
+        # calculate beam center from center workspace
+        center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
+        if not registered_workspace(center_ws_name):
+            center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
+            filenames.add(center_filename)
+            load_events(center_filename,
+                        pixel_calibration=reduction_config.get('usePixelCalibration', False),
+                        output_workspace=center_ws_name)
+            if reduction_config["useDefaultMask"]:
+                apply_mask(center_ws_name, mask=default_mask)
+        fbc_options = fbc_options_json(reduction_input)
+        center_x, center_y, fit_results = find_beam_center(center_ws_name, **fbc_options)
+        logger.notice(f"calculated center ({center_x}, {center_y})")
+        beam_center_type = 'calculated'
+    else:
+        # use default EQSANS center
+        # FIXME - it is better to have these hard code value defined out side of this method
+        center_x = 0.025239
+        center_y = 0.0170801
+        logger.notice(f"use default center ({center_x}, {center_y})")
+        beam_center_type = 'default'
+        fit_results = None
+
+    # set beam center to reduction configuration
+    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
+                                      'y': center_y, 'fit_results': fit_results}
+    # update to 'load_params'
+    if load_params is None:
+        load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
+    elif isinstance(load_params, dict):
+        load_params['center_x'] = center_x
+        load_params['center_y'] = center_y
+        load_params['keep_events'] = False
+    else:
+        raise RuntimeError(f'load_param of type {type(load_params)} is not allowed.')
+
+    return load_params
 
 
 def remove_workspaces(reduction_config: Dict, instrument_name: str,

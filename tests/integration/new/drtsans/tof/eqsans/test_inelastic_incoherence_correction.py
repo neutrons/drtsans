@@ -83,6 +83,16 @@ def test_parse_json():
     assert input_config['configuration']['elasticReference'].get('runNumber') == elastic_reference_run
     assert input_config['configuration'].get('selectMinIncoh')
 
+    # Parse
+    from drtsans.tof.eqsans.correction_api import parse_correction_config
+    correction = parse_correction_config(input_config)
+    assert correction.do_correction
+    print(correction.elastic_reference_run)
+    assert correction.elastic_reference_run
+    assert correction.elastic_reference_run.thickness
+    assert correction.elastic_reference_run.transmission_value
+    assert correction.elastic_reference_run.background_run
+
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason='Required test data not available')
@@ -351,6 +361,8 @@ def test_incoherence_correction_elastic_normalization(reference_dir):
                                                    not_apply_incoherence_correction=False)
     assert reduction_output
 
+    # TODO 792 Need to (1) save output (2) compare without/without correction with/without elastic normalization
+    # TODO 792         (3) compare and report  (4) create gold files
     # # Gold data directory
     # gold_dir = os.path.join(reference_dir.new.eqsans, 'gold_data/Incoherence_Corrected_113915/')
     # assert os.path.exists(gold_dir), f'Gold/expected data directory {gold_dir} does not exist'

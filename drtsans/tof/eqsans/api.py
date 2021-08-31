@@ -910,7 +910,7 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
         # TODO FIXME 792  incoherence_correction_setup.elastic_reference_run.ref_run_number is not set correctly
         if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
-            print(f'DEBUG:  {incoherence_correction_setup.elastic_reference_run.ref_run_number}')
+            print(f'DEBUG:  {incoherence_correction_setup.elastic_reference_run.run_number}')
             iq2d_elastic_wl, iq1d_elastic_wl = bin_all(iq2d_elastic_ref_fr[wl_frame], iq1d_elastic_ref_fr[wl_frame],
                                                        nxbins_main, nybins_main, n1dbins=nbins_main,
                                                        n1dbins_per_decade=nbins_main_per_decade,

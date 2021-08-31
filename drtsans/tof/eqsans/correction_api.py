@@ -107,10 +107,8 @@ class CorrectionConfiguration:
         reference_run_setup: ElasticReferenceRunSetup
             reduction setup
 
-        Returns
-        -------
-
         """
+        assert isinstance(reference_run_setup, ElasticReferenceRunSetup)
         self._elastic_ref_run_setup = reference_run_setup
 
 
@@ -119,14 +117,45 @@ class ElasticReferenceRunSetup:
     """
     A data class/structure to hold the reference run
     """
-    def __init__(self, ref_run_number, trans_run_number=None, trans_value=None):
-        self.ref_run_number = ref_run_number
+    def __init__(self, ref_run_number: Union[int, str],
+                 thickness: float,
+                 trans_run_number: Union[None, Union[str, int]] = None,
+                 trans_value: Union[None, float] = None):
+        self.run_number = ref_run_number
+        self.thickness = thickness
         self.trans_run_number = trans_run_number
         self.trans_value = trans_value
 
+        # sanity check
+        if self.trans_run_number is None and self.trans_value is None:
+            raise RuntimeError(f'Either transmission run or transmission value shall be given.')
+        elif self.trans_run_number and self.trans_value:
+            raise RuntimeError(f'Either transmission run or transmission value can be given, but '
+                               f'not both')
+
+        # Background
+        self.background_run_number = None
+        self.background_trans_run_number = None
+        self.background_trans_value = None
+
+    def set_background(self, run_number: Union[int, str],
+                       trans_run_number: Union[None, Union[int, str]] = None,
+                       trans_value: Union[None, float] = None):
+        """Set elastic reference background run setup
+        """
+        self.background_run_number = run_number
+        self.background_trans_run_number = trans_run_number
+        self.background_trans_value = trans_value
+
+        if trans_run_number is None and trans_value is None:
+            raise RuntimeError(f'Either background transmission run or transmission value shall be given.')
+        elif trans_run_number and trans_value:
+            raise RuntimeError(f'Either background transmission run or transmission value can be given, but '
+                               f'not both')
+
 
 def parse_correction_config(reduction_config):
-    """Parse correction configuration from reduction configuration
+    """Parse correction configuration from reduction configuration (top level)
 
     Parameters
     ----------
@@ -144,13 +173,37 @@ def parse_correction_config(reduction_config):
     else:
         # properly configured
         run_config = reduction_config['configuration']
+
+        # incoherence inelastic correction setup: basic
         do_correction = run_config.get('fitInelasticIncoh', False)
         select_min_incoherence = run_config.get('selectMinIncoh', False)
         _config = CorrectionConfiguration(do_correction, select_min_incoherence)
-        elastic_ref = run_config.get('elasticReference')
-        if elastic_ref is not None:
-            elastic_ref = ElasticReferenceRunSetup(elastic_ref)
-            _config.set_elastic_reference_run(elastic_ref)
+
+        # Optional elastic normalization
+        elastic_ref_json = run_config.get('elasticReference')
+        if elastic_ref_json is not None:
+            try:
+                elastic_ref_run = elastic_ref_json.get('runNumber')
+                elastic_ref_trans_run = elastic_ref_json['transmission'].get('runNumber')
+                elastic_ref_trans_value = elastic_ref_json['transmission'].get('value')
+                elastic_ref_thickness = float(elastic_ref_json.get('thickness'))
+            except IndexError as index_err:
+                raise RuntimeError(f'Invalid JSON for elastic reference run setup: {index_err}')
+            elastic_ref_config = ElasticReferenceRunSetup(elastic_ref_run, elastic_ref_thickness,
+                                                          elastic_ref_trans_run, elastic_ref_trans_value)
+
+            # background runs
+            elastic_ref_bkgd = run_config.get('elasticReference')
+            if elastic_ref_bkgd:
+                elastic_bkgd_run = elastic_ref_bkgd.get('runNumber')
+                elastic_bkgd_trans_run = elastic_ref_bkgd['transmission'].get('runNumber')
+                elastic_bkgd_trans_value = elastic_ref_bkgd['transmission'].get('value')
+                if elastic_bkgd_run:
+                    elastic_ref_config.set_background(elastic_bkgd_run, elastic_bkgd_trans_run,
+                                                      elastic_bkgd_trans_value)
+
+            # Set to configuration
+            _config.set_elastic_reference_run(elastic_ref_config)
 
     return _config
 

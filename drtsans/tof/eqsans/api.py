@@ -733,6 +733,8 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     #                                                          absolute_scale=absolute_scale,
     #                                                          keep_processed_workspaces=False)
     if incoherence_correction_setup.do_correction and incoherence_correction_setup.elastic_reference:
+        print(f'DEBUG INVESTIGATE: {incoherence_correction_setup.elastic_reference}')
+        print(f'DEBUG INVESTIGATE: {incoherence_correction_setup.elastic_reference.run_number}')
         assert loaded_ws.elastic_reference.data, f'Reference run is not loaded: ' \
                                                  f'{incoherence_correction_setup.elastic_reference}'
         elastic_ref = incoherence_correction_setup.elastic_reference
@@ -765,6 +767,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         # split to frames
         iq1d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq1d_elastic_ref, verbose=True)
         iq2d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq2d_elastic_ref, verbose=True)
+
     else:
         iq1d_elastic_ref_frames = iq2d_elastic_ref_frames = None
 
@@ -934,10 +937,9 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
                                       f'{len(iq1d_main_wl)}')
 
         # Bin elastic reference run
-        # TODO FIXME 792  incoherence_correction_setup.elastic_reference_run.ref_run_number is not set correctly
         if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
-            print(f'DEBUG:  {incoherence_correction_setup.elastic_reference_run.run_number}')
+            print(f'DEBUG:  {incoherence_correction_setup.elastic_reference.run_number}')
             iq2d_elastic_wl, iq1d_elastic_wl = bin_all(iq2d_elastic_ref_fr[wl_frame], iq1d_elastic_ref_fr[wl_frame],
                                                        nxbins_main, nybins_main, n1dbins=nbins_main,
                                                        n1dbins_per_decade=nbins_main_per_decade,

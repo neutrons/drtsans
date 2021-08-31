@@ -183,29 +183,34 @@ def parse_correction_config(reduction_config):
 
         # Optional elastic normalization
         elastic_ref_json = run_config.get('elasticReference')
-        if elastic_ref_json is not None:
-            try:
-                elastic_ref_run = elastic_ref_json.get('runNumber')
-                elastic_ref_trans_run = elastic_ref_json['transmission'].get('runNumber')
-                elastic_ref_trans_value = elastic_ref_json['transmission'].get('value')
-                elastic_ref_thickness = float(elastic_ref_json.get('thickness'))
-            except IndexError as index_err:
-                raise RuntimeError(f'Invalid JSON for elastic reference run setup: {index_err}')
-            elastic_ref_config = ElasticReferenceRunSetup(elastic_ref_run, elastic_ref_thickness,
-                                                          elastic_ref_trans_run, elastic_ref_trans_value)
+        if elastic_ref_json:
+            elastic_ref_run = elastic_ref_json.get('runNumber')
+            if elastic_ref_run is not None and elastic_ref_run != '':
+                # only set up elastic reference after checking run number
+                try:
+                    elastic_ref_trans_run = elastic_ref_json['transmission'].get('runNumber')
+                    elastic_ref_trans_value = elastic_ref_json['transmission'].get('value')
+                    elastic_ref_thickness = float(elastic_ref_json.get('thickness'))
+                    elastic_ref_config = ElasticReferenceRunSetup(elastic_ref_run,
+                                                                  elastic_ref_thickness,
+                                                                  elastic_ref_trans_run,
+                                                                  elastic_ref_trans_value)
+                    # background runs
+                    elastic_ref_bkgd = run_config.get('elasticReferenceBkgd')
+                    if elastic_ref_bkgd:
+                        elastic_bkgd_run = elastic_ref_bkgd.get('runNumber')
+                        # only set up elastic reference background after checking run number
+                        if elastic_bkgd_run is not None and elastic_bkgd_run != '':
+                            elastic_bkgd_trans_run = elastic_ref_bkgd['transmission'].get('runNumber')
+                            elastic_bkgd_trans_value = elastic_ref_bkgd['transmission'].get('value')
+                            elastic_ref_config.set_background(elastic_bkgd_run, elastic_bkgd_trans_run,
+                                                              elastic_bkgd_trans_value)
 
-            # background runs
-            elastic_ref_bkgd = run_config.get('elasticReferenceBkgd')
-            if elastic_ref_bkgd:
-                elastic_bkgd_run = elastic_ref_bkgd.get('runNumber')
-                elastic_bkgd_trans_run = elastic_ref_bkgd['transmission'].get('runNumber')
-                elastic_bkgd_trans_value = elastic_ref_bkgd['transmission'].get('value')
-                if elastic_bkgd_run:
-                    elastic_ref_config.set_background(elastic_bkgd_run, elastic_bkgd_trans_run,
-                                                      elastic_bkgd_trans_value)
+                    # Set to configuration
+                    _config.set_elastic_reference(elastic_ref_config)
+                except IndexError as index_err:
+                    raise RuntimeError(f'Invalid JSON for elastic reference run setup: {index_err}')
 
-            # Set to configuration
-            _config.set_elastic_reference(elastic_ref_config)
 
     return _config
 

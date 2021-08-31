@@ -702,39 +702,8 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                            'n_vertical': reduction_config['subpixelsY']}
 
     # process elastic run
-    # if incoherence_correction_setup.do_correction and loaded_ws.elastic_reference.data:
-    #     assert loaded_ws.elastic_reference.data
-    #     elastic_ref_trans_run = reduction_config['elasticReference']['transmission'].get('runNumber')
-    #     elastic_ref_trans_value = reduction_config['elasticReference']['transmission'].get('value')
-    #     elastic_bkgd_trans_run = reduction_config['elasticReferenceBkgd']['transmission'].get('runNumber')
-    #     elastic_bkgd_trans_value = reduction_config['elasticReferenceBkgd']['transmission'].get('value')
-    #     elastic_ref_thickness = float(reduction_config['elasticReference'].get('thickness'))
-    #     processed_elastic_ref = pre_process_single_configuration(loaded_ws.elastic_reference,
-    #                                                          sample_trans_ws=elastic_ref_trans_run,
-    #                                                          sample_trans_value=elastic_ref_trans_value,
-    #                                                          bkg_ws_raw=loaded_ws.elastic_reference_background,
-    #                                                          bkg_trans_ws=elastic_bkgd_trans_run,
-    #                                                          bkg_trans_value=elastic_bkgd_trans_value,
-    #                                                          theta_dependent_transmission=theta_dependent_transmission,
-    #                                                          # noqa E502
-    #                                                          dark_current=loaded_ws.dark_current,
-    #                                                          flux_method=flux_method,
-    #                                                          flux=flux,
-    #                                                          mask_ws=loaded_ws.mask,
-    #                                                          mask_panel=mask_panel,
-    #                                                          solid_angle=solid_angle,
-    #                                                          sensitivity_workspace=loaded_ws.sensitivity,
-    #                                                          output_workspace=f'processed_elastic_ref',
-    #                                                          output_suffix=output_suffix,
-    #                                                          thickness=elastic_ref_thickness,
-    #                                                          absolute_scale_method=absolute_scale_method,
-    #                                                          empty_beam_ws=empty_trans_ws,
-    #                                                          beam_radius=beam_radius,
-    #                                                          absolute_scale=absolute_scale,
-    #                                                          keep_processed_workspaces=False)
     if incoherence_correction_setup.do_correction and incoherence_correction_setup.elastic_reference:
-        print(f'DEBUG INVESTIGATE: {incoherence_correction_setup.elastic_reference}')
-        print(f'DEBUG INVESTIGATE: {incoherence_correction_setup.elastic_reference.run_number}')
+        # sanity check
         assert loaded_ws.elastic_reference.data, f'Reference run is not loaded: ' \
                                                  f'{incoherence_correction_setup.elastic_reference}'
         elastic_ref = incoherence_correction_setup.elastic_reference
@@ -760,7 +729,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                  beam_radius=beam_radius,
                                                                  absolute_scale=absolute_scale,
                                                                  keep_processed_workspaces=False)
-        assert processed_elastic_ref
         # convert to I(Q)
         iq1d_elastic_ref = convert_to_q(processed_elastic_ref, mode='scalar', **subpixel_kwargs)
         iq2d_elastic_ref = convert_to_q(processed_elastic_ref, mode='azimuthal', **subpixel_kwargs)
@@ -893,6 +861,8 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
                           decade_on_center, bin1d_type, log_binning, annular_bin, wedges, symmetric_wedges,
                           incoherence_correction_setup, iq1d_elastic_ref_fr, iq2d_elastic_ref_fr,
                           raw_name, output_dir):
+    """ Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction
+    """
 
     if incoherence_correction_setup.do_correction:
         # Sanity check
@@ -958,7 +928,11 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
             # normalization
             iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
             iq1d_main_wl[0] = iq1d_wl
-            # TODO 792 save k and k_error to file
+            # write
+            from correction_api import save_k_vector
+            run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split('.')[0]
+            save_k_vector(iq1d_wl.wavelength, k_vec, k_error_vec,
+                          path=os.path.join(output_dir, f'k_{run_number}.dat'))
 
         # 1D correction
         b_file_prefix = f'{raw_name}_frame_{wl_frame}'

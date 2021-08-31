@@ -352,16 +352,25 @@ def test_incoherence_correction_elastic_normalization(reference_dir):
     loaded = load_all_files(input_config)
 
     # check loaded JSON file
-    print(f'type: {type(loaded)}')
-    if False:
-        assert loaded.elastic_reference.data
-        assert loaded.elastic_reference_background.data is None
+    assert loaded.elastic_reference.data
+    assert loaded.elastic_reference_background.data is None
 
     # Reduce
     reduction_output = reduce_single_configuration(loaded, input_config,
                                                    not_apply_incoherence_correction=False)
     assert reduction_output
     print(f'Output directory: {test_dir}')
+
+    # Check output result
+    iq1d_base_name = 'EQSANS_125707__Iq.dat'
+    test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
+    assert os.path.exists(test_iq1d_file), f'Expected test result {test_iq1d_file} does not exist'
+    gold_iq1d_file = os.path.join(reference_dir.new.eqsans, 'test_incoherence_correction', iq1d_base_name)
+    assert os.path.exists(gold_iq1d_file), f'Expected gold file {gold_iq1d_file} does not exist'
+    # compare
+    import filecmp
+    print(f'TEST DEBUT: {filecmp.cmp(test_iq1d_file, gold_iq1d_file)}')
+    assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
 
 
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):

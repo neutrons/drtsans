@@ -211,7 +211,6 @@ def parse_correction_config(reduction_config):
                 except IndexError as index_err:
                     raise RuntimeError(f'Invalid JSON for elastic reference run setup: {index_err}')
 
-
     return _config
 
 
@@ -381,6 +380,21 @@ def save_b_factor(i_of_q: Union[CorrectedIQ1D, CorrectedIQ2D], path: str) -> Non
     b_e_str = map(str, i_of_q.b_error)
     # merge items (all are appropriately ordered, so zip is usable)
     output = '\n'.join(map(','.join, zip(wave_str, b_str, b_e_str)))
+    with open(path, 'w', encoding='utf-8') as save_file:
+        save_file.write(header)
+        save_file.write(output)
+
+
+def save_k_vector(wavelength_vec, k_vec, delta_k_vec, path: str) -> None:
+    """Save K vector from elastic scattering normalization
+    """
+    header = 'lambda,k,delta_k\n'
+    # grab the IQmod or IQazimuthal wavelength
+    wave_str = map(str, wavelength_vec)
+    k_str = map(str, k_vec)
+    k_e_str = map(str, delta_k_vec)
+    # merge items (all are appropriately ordered, so zip is usable)
+    output = '\n'.join(map(','.join, zip(wave_str, k_str, k_e_str)))
     with open(path, 'w', encoding='utf-8') as save_file:
         save_file.write(header)
         save_file.write(output)

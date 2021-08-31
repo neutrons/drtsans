@@ -61,7 +61,7 @@ def test_parse_json():
                 "thickness": "1.0",
                 "transmission": {
                     "runNumber": None,
-                    "value": "1.0"
+                    "value": "0.89"
                 }
             },
             "elasticReferenceBkgd": {
@@ -87,11 +87,11 @@ def test_parse_json():
     from drtsans.tof.eqsans.correction_api import parse_correction_config
     correction = parse_correction_config(input_config)
     assert correction.do_correction
-    print(correction.elastic_reference_run)
-    assert correction.elastic_reference_run
-    assert correction.elastic_reference_run.thickness
-    assert correction.elastic_reference_run.transmission_value
-    assert correction.elastic_reference_run.background_run
+    assert correction.elastic_reference
+    assert correction.elastic_reference.run_number == "124680"
+    assert correction.elastic_reference.thickness == 1.0
+    assert correction.elastic_reference.transmission_value == 0.89
+    assert correction.elastic_reference.background_run_number is None
 
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),

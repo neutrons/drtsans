@@ -92,14 +92,16 @@ class CorrectionConfiguration:
         self._select_min_incoherence = flag
 
     @property
-    def elastic_reference_run(self):
+    def elastic_reference(self):
+        """elastic scattering normalization reference run and background run
+        """
         return self._elastic_ref_run_setup
 
     @property
     def sample_thickness(self):
         return self._sample_thickness
 
-    def set_elastic_reference_run(self, reference_run_setup):
+    def set_elastic_reference(self, reference_run_setup):
         """Set elastic reference run reduction setup
 
         Parameters
@@ -123,20 +125,20 @@ class ElasticReferenceRunSetup:
                  trans_value: Union[None, float] = None):
         self.run_number = ref_run_number
         self.thickness = thickness
-        self.trans_run_number = trans_run_number
-        self.trans_value = trans_value
+        self.transmission_run_number = trans_run_number
+        self.transmission_value = trans_value
 
         # sanity check
-        if self.trans_run_number is None and self.trans_value is None:
+        if trans_run_number is None and trans_value is None:
             raise RuntimeError(f'Either transmission run or transmission value shall be given.')
-        elif self.trans_run_number and self.trans_value:
+        elif trans_run_number and trans_value:
             raise RuntimeError(f'Either transmission run or transmission value can be given, but '
                                f'not both')
 
         # Background
         self.background_run_number = None
-        self.background_trans_run_number = None
-        self.background_trans_value = None
+        self.background_transmission_run_number = None
+        self.background_transmission_value = None
 
     def set_background(self, run_number: Union[int, str],
                        trans_run_number: Union[None, Union[int, str]] = None,
@@ -193,7 +195,7 @@ def parse_correction_config(reduction_config):
                                                           elastic_ref_trans_run, elastic_ref_trans_value)
 
             # background runs
-            elastic_ref_bkgd = run_config.get('elasticReference')
+            elastic_ref_bkgd = run_config.get('elasticReferenceBkgd')
             if elastic_ref_bkgd:
                 elastic_bkgd_run = elastic_ref_bkgd.get('runNumber')
                 elastic_bkgd_trans_run = elastic_ref_bkgd['transmission'].get('runNumber')
@@ -203,7 +205,7 @@ def parse_correction_config(reduction_config):
                                                       elastic_bkgd_trans_value)
 
             # Set to configuration
-            _config.set_elastic_reference_run(elastic_ref_config)
+            _config.set_elastic_reference(elastic_ref_config)
 
     return _config
 

@@ -35,7 +35,7 @@ from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
 from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
 from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission)
-from drtsans.tof.eqsans.correction_api import parse_correction_config
+from drtsans.tof.eqsans.correction_api import (parse_correction_config, save_k_vector)
 from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
                                                do_inelastic_incoherence_correction_q2d)
 from typing import Dict, Tuple, List
@@ -929,7 +929,6 @@ def bin_i_with_correction(weighted_errors, user_qmin, user_qmax, iq1d_main_in_fr
             iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
             iq1d_main_wl[0] = iq1d_wl
             # write
-            from correction_api import save_k_vector
             run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split('.')[0]
             save_k_vector(iq1d_wl.wavelength, k_vec, k_error_vec,
                           path=os.path.join(output_dir, f'k_{run_number}.dat'))

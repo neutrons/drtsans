@@ -56,6 +56,7 @@
 
         "darkFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "normalization":              {"$ref":  "common.json#/configuration/normalization", "default": "Monitor"},
+        "normalizationResortToTime":  {"$ref":  "common.json#/configuration/normalizationResortToTime", "default": false},
         "sensitivityFileName":        {"$ref":  "common.json#/configuration/sensitivityFileName"},
         "useSolidAngleCorrection":    {"$ref":  "common.json#/configuration/useSolidAngleCorrection", "default": true},
         "blockedBeamRunNumber":       {"$ref": "common.json#/configuration/blockedBeamRunNumber"},

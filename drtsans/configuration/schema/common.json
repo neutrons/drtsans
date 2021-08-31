@@ -550,6 +550,10 @@
       "type": "string", "enum": ["Monitor", "Time"],
       "description": "Normalization type. Allowed values 'Total charge', 'Time', 'Monitor'",
       "examples": ["Monitor", "Time"]
+    },
+    "normalizationResortToTime": {
+      "type": "boolean",
+      "description": "Carry out Time normalization if Monitor was selected but no monitor counts are found"
     }
   }
 }

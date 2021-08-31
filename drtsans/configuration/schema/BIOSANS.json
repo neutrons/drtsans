@@ -62,6 +62,7 @@
         "darkMainFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "darkWingFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "normalization": {"$ref":  "common.json#/configuration/normalization", "default": "Monitor"},
+        "normalizationResortToTime":  {"$ref":  "common.json#/configuration/normalizationResortToTime", "default": false},
         "sensitivityMainFileName":    {"$ref": "common.json#/configuration/sensitivityFileName"},
         "sensitivityWingFileName":    {"$ref": "common.json#/configuration/sensitivityFileName"},
         "useSolidAngleCorrection":    {"$ref": "common.json#/configuration/useSolidAngleCorrection", "default": true},

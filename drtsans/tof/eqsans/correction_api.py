@@ -146,8 +146,8 @@ class ElasticReferenceRunSetup:
         """Set elastic reference background run setup
         """
         self.background_run_number = run_number
-        self.background_trans_run_number = trans_run_number
-        self.background_trans_value = trans_value
+        self.background_transmission_run_number = trans_run_number
+        self.background_transmission_value = trans_value
 
         if trans_run_number is None and trans_value is None:
             raise RuntimeError(f'Either background transmission run or transmission value shall be given.')

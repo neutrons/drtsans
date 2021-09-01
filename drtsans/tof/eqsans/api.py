@@ -4,8 +4,6 @@ import copy
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
-import numpy as np
-
 from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
 import drtsans  # noqa E402

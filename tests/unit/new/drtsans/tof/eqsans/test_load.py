@@ -44,13 +44,13 @@ def test_load_events_monitor(reference_dir):
 
 def test_merge_Data(reference_dir):
     ws0 = load_events('EQSANS_101595', data_dir=reference_dir.new.eqsans)
-    ws0 = transform_to_wavelength(ws0)
+    ws0, bands0 = transform_to_wavelength(ws0)
     ws0 = set_init_uncertainties(ws0)
     ws1 = load_events('EQSANS_104088', data_dir=reference_dir.new.eqsans)
-    ws1 = transform_to_wavelength(ws1)
+    ws1, bands1 = transform_to_wavelength(ws1)
     ws1 = set_init_uncertainties(ws1)
     ws2 = load_events('EQSANS_105428', data_dir=reference_dir.new.eqsans)
-    ws2 = transform_to_wavelength(ws2)
+    ws2, bands2 = transform_to_wavelength(ws2)
     ws2 = set_init_uncertainties(ws2)
 
     sample_logs0 = SampleLogs(ws0)
@@ -178,8 +178,8 @@ def test_generic_load_and_split(reference_dir):
 
 def test_load_and_split(reference_dir):
     # split by the SampleTemp log
-    filtered_ws = load_and_split('EQSANS_104088', data_dir=reference_dir.new.eqsans,
-                                 log_name='SampleTemp', log_value_interval=0.1)
+    filtered_ws, bands = load_and_split('EQSANS_104088', data_dir=reference_dir.new.eqsans,
+                                        log_name='SampleTemp', log_value_interval=0.1)
 
     assert filtered_ws.size() == 3
 

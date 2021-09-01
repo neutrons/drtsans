@@ -4,8 +4,6 @@ import copy
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
-import numpy as np
-
 from mantid.simpleapi import mtd, logger, SaveAscii, RebinToWorkspace, SaveNexus  # noqa E402
 # Import rolled up to complete a single top-level API
 import drtsans  # noqa E402
@@ -33,11 +31,8 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
-from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
-from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission)
-from drtsans.tof.eqsans.correction_api import parse_correction_config
-from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
-                                               do_inelastic_incoherence_correction_q2d)
+from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission, bin_i_with_correction)
+from drtsans.tof.eqsans.correction_api import (parse_correction_config, CorrectionConfiguration)
 from typing import Dict, Tuple, List
 
 
@@ -95,63 +90,23 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
     empty = reduction_input["emptyTransmission"]["runNumber"]
     center = reduction_input["beamCenter"]["runNumber"]
+    # elastic reference and background: incoherence correction
+    elastic_ref_run = reduction_config['elasticReference'].get('runNumber')
+    elastic_ref_bkgd_run = reduction_config['elasticReferenceBkgd'].get('runNumber')
 
-    # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
-    # In the future this should be made optional
-    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
-                    for run_number in (sample,
-                                       bkgd,
-                                       empty,
-                                       sample_trans,
-                                       bkgd_trans)]
-    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group')
-    ws_to_remove.append(f'{prefix}_{instrument_name}_{center}_raw_events')
-    ws_to_remove.append(f'{prefix}_sensitivity')
-    ws_to_remove.append(f'{prefix}_mask')
-    if reduction_config["darkFileName"]:
-        run_number = extract_run_number(reduction_config["darkFileName"])
-        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
-    for ws_name in ws_to_remove:
-        if registered_workspace(ws_name):
-            mtd.remove(ws_name)
+    from drtsans.tof.eqsans.reduction_api import remove_workspaces
+    remove_workspaces(reduction_config, instrument_name, prefix, sample, center,
+                      extra_run_numbers=[sample, bkgd, empty, sample_trans, bkgd_trans,
+                                         elastic_ref_run, elastic_ref_bkgd_run])
 
     filenames = set()
-
     default_mask = None
     if reduction_config["useDefaultMask"]:
         configuration_file_parameters = _get_configuration_file_parameters(sample.split(',')[0].strip())
         default_mask = configuration_file_parameters['combined mask']
 
-    # find the center first
-    if center != "":
-        # calculate beam center from center workspace
-        center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
-        if not registered_workspace(center_ws_name):
-            center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
-            filenames.add(center_filename)
-            load_events(center_filename,
-                        pixel_calibration=reduction_config.get('usePixelCalibration', False),
-                        output_workspace=center_ws_name)
-            if reduction_config["useDefaultMask"]:
-                apply_mask(center_ws_name, mask=default_mask)
-        fbc_options = fbc_options_json(reduction_input)
-        center_x, center_y, fit_results = find_beam_center(center_ws_name, **fbc_options)
-        logger.notice(f"calculated center ({center_x}, {center_y})")
-        beam_center_type = 'calculated'
-    else:
-        # use default EQSANS center
-        # FIXME - it is better to have these hard code value defined out side of this method
-        center_x = 0.025239
-        center_y = 0.0170801
-        logger.notice(f"use default center ({center_x}, {center_y})")
-        beam_center_type = 'default'
-    # set beam center
-    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
-                                      'y': center_y, 'fit_results': fit_results}
-
-    # update to 'load_params'
-    if load_params is None:
-        load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
+    load_params = set_beam_center(center, prefix, instrument_name, ipts, filenames, reduction_config,
+                                  reduction_input, default_mask, load_params)
 
     # Adjust pixel heights and widths
     load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
@@ -174,6 +129,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     if load_params['monitors']:
         raise RuntimeError('Normalization by monitor option will be enabled in a later drt-sans release')
 
+    # ----- END OF SETUP of load_params -----
+
     # check for time/log slicing
     timeslice,  logslice = reduction_config["useTimeSlice"], reduction_config["useLogSlice"]
     if timeslice or logslice:
@@ -194,6 +151,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             elif logslice:
                 timesliceinterval = None
                 logslicename, logsliceinterval = reduction_config["logSliceName"], reduction_config["logSliceInterval"]
+            else:
+                raise RuntimeError('There is no 3rd option besides time and log slice')
             filenames.add(filename)
             load_and_split(filename, output_workspace=ws_name,
                            time_interval=timesliceinterval,
@@ -209,30 +168,50 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                     logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
                                                   'units': samplelogs[logslicename].units,
                                                   'name': logslicename}
+        sample_bands = None
     else:
+        # load Nexus file or files without splitting
         ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
         if not registered_workspace(ws_name):
             filename = abspaths(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             filenames.add(filename)
-            load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            loaded_sample_tup = load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            sample_bands = loaded_sample_tup.bands
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
+        else:
+            sample_bands = None
 
     reduction_input["logslice_data"] = logslice_data_dict
 
-    # load all other files without further processing
+    # Load all other files without further processing
     # background, empty, sample transmission, background transmission
-    for run_number in [bkgd, empty, sample_trans, bkgd_trans]:
+    other_ws_list = list()
+    for irun, run_number in enumerate([bkgd, empty, sample_trans, bkgd_trans, elastic_ref_run, elastic_ref_bkgd_run]):
         if run_number:
+            # run number is given
             ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
             if not registered_workspace(ws_name):
                 filename = abspaths(run_number.strip(), instrument=instrument_name, ipts=ipts)
                 print(f"Loading filename {filename}")
                 filenames.add(filename)
-                load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+                if irun in [4, 5]:
+                    # elastic reference run and background run, the bands must be same as sample's
+                    load_events_and_histogram(filename, output_workspace=ws_name, sample_bands=sample_bands,
+                                              **load_params)
+                else:
+                    load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
+            other_ws_list.append(mtd[ws_name])
+        else:
+            # run number is not given
+            other_ws_list.append(None)
+
+    # elastic and elastic background reference run
+    elastic_ref_ws = other_ws_list[4]
+    elastic_ref_bkgd_ws = other_ws_list[5]
 
     # dark run (aka dark current run)
     dark_current_ws = None
@@ -245,9 +224,10 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             dark_current_file = abspath(dark_current_file)
             print(f"Loading filename {dark_current_file}")
             filenames.add(dark_current_file)
-            dark_current_ws, _ = load_events_and_histogram(dark_current_file,
-                                                           output_workspace=ws_name,
-                                                           **load_params)
+            loaded_dark = load_events_and_histogram(dark_current_file,
+                                                    output_workspace=ws_name,
+                                                    **load_params)
+            dark_current_ws = loaded_dark.data
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
         else:
@@ -320,6 +300,18 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                       smearing_pixel_size_x=smearing_pixel_size_x,
                       smearing_pixel_size_y=smearing_pixel_size_y)
 
+    # Set  meta data to elastic reference run optionally
+    if elastic_ref_run:
+        reference_thickness = reduction_config['elasticReference'].get('thickness')
+        set_meta_data(elastic_ref_ws, wave_length=None, wavelength_spread=None,
+                      sample_offset=load_params['sample_offset'],
+                      sample_aperture_diameter=sample_aperture_diameter,
+                      sample_thickness=reference_thickness,
+                      source_aperture_diameter=None,
+                      smearing_pixel_size_x=smearing_pixel_size_x,
+                      smearing_pixel_size_y=smearing_pixel_size_y)
+    # There is not extra setup for elastic reference background following typical background run
+
     print('FILE PATH, FILE SIZE:')
     total_size = 0
     for comma_separated_names in filenames:
@@ -345,7 +337,9 @@ def load_all_files(reduction_input, prefix='', load_params=None):
                                                               monitor=background_transmission_mon_ws),
                           dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
                           sensitivity=sensitivity_ws,
-                          mask=mask_ws)
+                          mask=mask_ws,
+                          elastic_reference=ws_mon_pair(elastic_ref_ws, None),
+                          elastic_reference_background=ws_mon_pair(elastic_ref_bkgd_ws, None))
 
     return loaded_ws_dict
 
@@ -629,22 +623,49 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
     sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict = sample_returned
 
-    # Form binning parameters
-    # binning_par_dc = {'nxbins_main': nxbins_main,
-    #                   'nybins_main': nybins_main,
-    #                   'n1dbins': nbins_main,
-    #                   'n1dbins_per_decade': nbins_main_per_decade,
-    #                   'decade_on_center': decade_on_center,
-    #                   'bin1d_type': bin1d_type,
-    #                   'log_scale': log_binning,
-    #                   'qmin': qmin,
-    #                   'qmax': qmax,
-    #                   'qxrange': None,
-    #                   'qyrange': None}
+    # set up subpixel binning options  FIXME - it does not seem to work
+    subpixel_kwargs = dict()
+    if reduction_config['useSubpixels']:
+        subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
+                           'n_vertical': reduction_config['subpixelsY']}
 
-    # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
-    # binning_params = BinningSetup(**binning_par_dc)
-    #
+    # process elastic run
+    if incoherence_correction_setup.do_correction and incoherence_correction_setup.elastic_reference:
+        # sanity check
+        assert loaded_ws.elastic_reference.data, f'Reference run is not loaded: ' \
+                                                 f'{incoherence_correction_setup.elastic_reference}'
+        elastic_ref = incoherence_correction_setup.elastic_reference
+        processed_elastic_ref = pre_process_single_configuration(loaded_ws.elastic_reference,
+                                                                 sample_trans_ws=elastic_ref.transmission_run_number,
+                                                                 sample_trans_value=elastic_ref.transmission_value,
+                                                                 bkg_ws_raw=loaded_ws.elastic_reference_background,
+                                                                 bkg_trans_ws=elastic_ref.background_transmission_run_number,  # noqa E502
+                                                                 bkg_trans_value=elastic_ref.background_transmission_value,  # noqa E502
+                                                                 theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
+                                                                 dark_current=loaded_ws.dark_current,
+                                                                 flux_method=flux_method,
+                                                                 flux=flux,
+                                                                 mask_ws=loaded_ws.mask,
+                                                                 mask_panel=mask_panel,
+                                                                 solid_angle=solid_angle,
+                                                                 sensitivity_workspace=loaded_ws.sensitivity,
+                                                                 output_workspace=f'processed_elastic_ref',
+                                                                 output_suffix=output_suffix,
+                                                                 thickness=elastic_ref.thickness,
+                                                                 absolute_scale_method=absolute_scale_method,
+                                                                 empty_beam_ws=empty_trans_ws,
+                                                                 beam_radius=beam_radius,
+                                                                 absolute_scale=absolute_scale,
+                                                                 keep_processed_workspaces=False)
+        # convert to I(Q)
+        iq1d_elastic_ref = convert_to_q(processed_elastic_ref, mode='scalar', **subpixel_kwargs)
+        iq2d_elastic_ref = convert_to_q(processed_elastic_ref, mode='azimuthal', **subpixel_kwargs)
+        # split to frames
+        iq1d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq1d_elastic_ref, verbose=True)
+        iq2d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq2d_elastic_ref, verbose=True)
+
+    else:
+        iq1d_elastic_ref_frames = iq2d_elastic_ref_frames = None
 
     # Define output data structure
     output = []
@@ -680,12 +701,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                absolute_scale=absolute_scale,
                                                                keep_processed_workspaces=False)
 
-        # Convert to Q
-        # set up subpixel binning options  FIXME - it does not seem to work
-        subpixel_kwargs = dict()
-        if reduction_config['useSubpixels']:
-            subpixel_kwargs = {'n_horizontal': reduction_config['subpixelsX'],
-                               'n_vertical': reduction_config['subpixelsY']}
         # convert to Q
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
@@ -707,9 +722,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         _inside_detectordata = {}
 
         # Process each frame separately
-        user_qmin = qmin
-        user_qmax = qmax
-
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
                 fr_log_label = f'_frame_{wl_frame}'
@@ -721,98 +733,22 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             assert iq1d_main_in_fr[wl_frame] is not None, 'Input I(Q)      main input cannot be None.'
             assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
-            # Note 777: 2 step binning shall generate the same result as 1 step binning
-            if incoherence_correction_setup.do_correction:
-                assert weighted_errors, 'Must using weighted error'
-
-                # Define qmin and qmax for this frame
-                if user_qmin is None:
-                    qmin = iq1d_main_in_fr[wl_frame].mod_q.min()
-                else:
-                    qmin = user_qmin
-                if user_qmax is None:
-                    qmax = iq1d_main_in_fr[wl_frame].mod_q.max()
-                else:
-                    qmax = user_qmax
-
-                # Determine qxrange and qyrange for this frame
-                qx_min = np.min(iq2d_main_in_fr[wl_frame].qx)
-                qx_max = np.max(iq2d_main_in_fr[wl_frame].qx)
-                qxrange = qx_min, qx_max
-
-                qy_min = np.min(iq2d_main_in_fr[wl_frame].qy)
-                qy_max = np.max(iq2d_main_in_fr[wl_frame].qy)
-                qyrange = qy_min, qy_max
-
-                # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
-                iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                                     nxbins_main, nybins_main, n1dbins=nbins_main,
-                                                     n1dbins_per_decade=nbins_main_per_decade,
-                                                     decade_on_center=decade_on_center,
-                                                     bin1d_type=bin1d_type, log_scale=log_binning,
-                                                     qmin=qmin, qmax=qmax,
-                                                     qxrange=qxrange,
-                                                     qyrange=qyrange,
-                                                     annular_angle_bin=annular_bin, wedges=wedges,
-                                                     symmetric_wedges=symmetric_wedges,
-                                                     error_weighted=weighted_errors,
-                                                     n_wavelength_bin=None)
-                assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
-
-                if len(iq1d_main_wl) != 1:
-                    raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
-                                              f'{len(iq1d_main_wl)}')
-
-                # 1D correction
-                b_file_prefix = f'{raw_name}_frame_{wl_frame}'
-                corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
-                                                                         incoherence_correction_setup,
-                                                                         b_file_prefix,
-                                                                         output_dir)
-
-                # 2D correction
-                corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
-                                                                         incoherence_correction_setup,
-                                                                         b_file_prefix,
-                                                                         output_dir)
-
-                # Be finite
-                finite_iq1d = corrected_iq1d.be_finite()
-                finite_iq2d = corrected_iq2d.be_finite()
-                # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
-                assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
-                                               f' but not {len(iq1d_main_wl)}'
-                iq2d_main_out, iq1d_main_out = bin_all(finite_iq2d, finite_iq1d,
-                                                       nxbins_main, nybins_main, n1dbins=nbins_main,
-                                                       n1dbins_per_decade=nbins_main_per_decade,
-                                                       decade_on_center=decade_on_center,
-                                                       bin1d_type=bin1d_type, log_scale=log_binning,
-                                                       qmin=qmin, qmax=qmax,
-                                                       qxrange=None,
-                                                       qyrange=None,
-                                                       annular_angle_bin=annular_bin, wedges=wedges,
-                                                       symmetric_wedges=symmetric_wedges,
-                                                       error_weighted=weighted_errors)
-
-            else:
-                # Not incoherence correction
-                iq2d_main_out, iq1d_main_out = bin_all(iq2d_main_in_fr[wl_frame], iq1d_main_in_fr[wl_frame],
-                                                       nxbins_main, nybins_main, n1dbins=nbins_main,
-                                                       n1dbins_per_decade=nbins_main_per_decade,
-                                                       decade_on_center=decade_on_center,
-                                                       bin1d_type=bin1d_type, log_scale=log_binning,
-                                                       qmin=qmin, qmax=qmax,
-                                                       qxrange=None,
-                                                       qyrange=None,
-                                                       annular_angle_bin=annular_bin, wedges=wedges,
-                                                       symmetric_wedges=symmetric_wedges,
-                                                       error_weighted=weighted_errors)
+            iq2d_main_out, iq1d_main_out = bin_i_with_correction(iq1d_main_in_fr, iq2d_main_in_fr, wl_frame,
+                                                                 weighted_errors, qmin, qmax,
+                                                                 nxbins_main, nybins_main, nbins_main,
+                                                                 nbins_main_per_decade,
+                                                                 decade_on_center, bin1d_type, log_binning,
+                                                                 annular_bin, wedges,
+                                                                 symmetric_wedges,
+                                                                 incoherence_correction_setup,
+                                                                 iq1d_elastic_ref_frames,
+                                                                 iq2d_elastic_ref_frames,
+                                                                 raw_name, output_dir)
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 
             # save ASCII files
             filename = os.path.join(output_dir, f'{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat')
-            # [#689] TODO FIXME - make save_ascii_binned_2D() back afterwards: iq2d_main_out cannot be None
             if iq2d_main_out:
                 save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
@@ -983,6 +919,51 @@ def apply_solid_angle_correction(input_workspace):
     """Apply solid angle correction. This uses :func:`drtsans.solid_angle_correction`."""
     return solid_angle_correction(input_workspace,
                                   detector_type='VerticalTube')
+
+
+def set_beam_center(center, prefix, instrument_name, ipts, filenames, reduction_config,
+                    reduction_input, default_mask, load_params):
+    """Helping method to set beam center
+    """
+    # find the center first
+    if center != "":
+        # calculate beam center from center workspace
+        center_ws_name = f'{prefix}_{instrument_name}_{center}_raw_events'
+        if not registered_workspace(center_ws_name):
+            center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
+            filenames.add(center_filename)
+            load_events(center_filename,
+                        pixel_calibration=reduction_config.get('usePixelCalibration', False),
+                        output_workspace=center_ws_name)
+            if reduction_config["useDefaultMask"]:
+                apply_mask(center_ws_name, mask=default_mask)
+        fbc_options = fbc_options_json(reduction_input)
+        center_x, center_y, fit_results = find_beam_center(center_ws_name, **fbc_options)
+        logger.notice(f"calculated center ({center_x}, {center_y})")
+        beam_center_type = 'calculated'
+    else:
+        # use default EQSANS center
+        # TODO - it is better to have these hard code value defined out side of this method
+        center_x = 0.025239
+        center_y = 0.0170801
+        logger.notice(f"use default center ({center_x}, {center_y})")
+        beam_center_type = 'default'
+        fit_results = None
+
+    # set beam center to reduction configuration
+    reduction_input['beam_center'] = {'type': beam_center_type, 'x': center_x,
+                                      'y': center_y, 'fit_results': fit_results}
+    # update to 'load_params'
+    if load_params is None:
+        load_params = dict(center_x=center_x, center_y=center_y, keep_events=False)
+    elif isinstance(load_params, dict):
+        load_params['center_x'] = center_x
+        load_params['center_y'] = center_y
+        load_params['keep_events'] = False
+    else:
+        raise RuntimeError(f'load_param of type {type(load_params)} is not allowed.')
+
+    return load_params
 
 
 def prepare_data(data,

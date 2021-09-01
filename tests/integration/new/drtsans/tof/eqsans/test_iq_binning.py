@@ -62,7 +62,7 @@ def test_iq_binning_serial(reference_dir):
                      sample_offset=0)
 
     # Convert to wave length
-    ws = transform_to_wavelength(ws, bin_width=0.1, low_tof_clip=500, high_tof_clip=2000)
+    ws, bands = transform_to_wavelength(ws, bin_width=0.1, low_tof_clip=500, high_tof_clip=2000)
     ws = set_init_uncertainties(ws)
     # Calibration in the next few steps
     center_detector(ws, center_x=0.025, center_y=0.016)

@@ -593,7 +593,8 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
 def transform_to_wavelength(input_workspace, bin_width=0.1,
                             low_tof_clip=0., high_tof_clip=0.,
                             keep_events=True, interior_clip=True,
-                            output_workspace=None):
+                            output_workspace=None,
+                            bands=None):
     r"""
     API function that converts corrected TOF's to Wavelength.
 
@@ -621,21 +622,27 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
 
     Returns
     -------
-    ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
+    tuple
+        ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
     """
     input_workspace = mtd[str(input_workspace)]
     if output_workspace is None:
         output_workspace = str(input_workspace)
-    if low_tof_clip > 0. or high_tof_clip > 0.:
-        sdd = source_detector_distance(input_workspace, unit='m')
-        bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
-                                          high_tof_clip)
-    else:
-        bands = transmitted_bands(input_workspace)
+
+    # generate bands if not given
+    if bands is None:
+        if low_tof_clip > 0. or high_tof_clip > 0.:
+            sdd = source_detector_distance(input_workspace, unit='m')
+            bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
+                                              high_tof_clip)
+        else:
+            bands = transmitted_bands(input_workspace)
+
+    # convert input workspaces to wavelength
     convert_to_wavelength(input_workspace, bands=bands, bin_width=bin_width,
                           events=keep_events, output_workspace=output_workspace)
     log_band_structure(output_workspace, bands)
     w = log_tof_structure(output_workspace, low_tof_clip,
                           high_tof_clip, interior_clip=interior_clip)
 
-    return w
+    return w, bands

@@ -9,6 +9,7 @@ from drtsans.tof.eqsans.correct_frame import (correct_detector_frame,
                                               set_init_uncertainties, correct_tof_offset, correct_emission_time)
 from drtsans.instruments import extract_run_number, instrument_enum_name
 import os
+# from typing import Tuple
 
 __all__ = ['load_events', 'load_events_monitor', 'sum_data', 'load_events_and_histogram',
            'load_and_split', 'prepare_monitors']
@@ -77,7 +78,7 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
     """
     w = load_events_monitor(data, output_workspace=output_workspace)
     w = smash_monitor_spikes(w)
-    w = transform_to_wavelength(w, bin_width=bin_width)
+    w, bands = transform_to_wavelength(w, bin_width=bin_width)
     w = set_init_uncertainties(w)
     return w
 
@@ -150,6 +151,7 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                               bin_width=0.1, low_tof_clip=500, high_tof_clip=2000,
                               center_x=None, center_y=None, centering_method='center_of_mass', centering_options={},
                               mask=None, monitors=False, keep_events=True,
+                              sample_bands=None,
                               **kwargs):
     r"""Load events from one or more NeXus files with initial corrections
     for geometry, time-of-flight and beam center. Convert to
@@ -214,6 +216,8 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
         Option to load the monitors as well as the data, if False monitor will be None
     keep_events: bool
         The final histogram will be an EventsWorkspace if True.
+    sample_bands: bands or None
+        sample bands
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -255,15 +259,18 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                                                      centering_options=centering_options)
         center_detector(ws, center_x=center_x, center_y=center_y)  # operates in-place
 
-        ws = transform_to_wavelength(ws, bin_width=bin_width,
-                                     low_tof_clip=low_tof_clip,
-                                     high_tof_clip=high_tof_clip,
-                                     keep_events=keep_events)
+        ws, bands = transform_to_wavelength(ws, bin_width=bin_width,
+                                            low_tof_clip=low_tof_clip,
+                                            high_tof_clip=high_tof_clip,
+                                            keep_events=keep_events,
+                                            bands=sample_bands)
         ws = set_init_uncertainties(ws)
 
         return dict(data=ws,
-                    monitor=ws_monitors)
+                    monitor=ws_monitors,
+                    bands=bands)
     else:
+        # Load multiple runs
         if keep_events:
             raise NotImplementedError("Cannot merge runs together with keep_events=True.")
 
@@ -298,11 +305,13 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                 center_x, center_y, _ = find_beam_center(temp_workspace_name, mask=mask,
                                                          method=centering_method, centering_options=centering_options)
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
-            transform_to_wavelength(temp_workspace_name,
-                                    bin_width=bin_width,
-                                    low_tof_clip=low_tof_clip,
-                                    high_tof_clip=high_tof_clip,
-                                    keep_events=keep_events)
+            # FIXME 792, whether the 2nd workspace shall use the bands from the first one?
+            ws, bands = transform_to_wavelength(temp_workspace_name,
+                                                bin_width=bin_width,
+                                                low_tof_clip=low_tof_clip,
+                                                high_tof_clip=high_tof_clip,
+                                                keep_events=keep_events)
+            assert ws
             temp_workspaces.append(temp_workspace_name)
 
         # Sum temporary loaded monitor workspaces
@@ -315,6 +324,7 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
             ws_monitors = None
 
         # Sum temporary loaded workspaces
+        # FIXME 792 sum data potential defect: wavelength range are different
         ws = sum_data(temp_workspaces,
                       output_workspace=output_workspace)
 
@@ -327,7 +337,8 @@ def load_events_and_histogram(run, pixel_calibration=False, detector_offset=0., 
                 mtd.remove(ws_name)
 
         return dict(data=ws,
-                    monitor=ws_monitors)
+                    monitor=ws_monitors,
+                    bands=bands)
 
 
 def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True,
@@ -356,18 +367,23 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
         Arguments to be passed on to the centering method.
     Returns
     -------
-    WorkspaceGroup
-        Reference to the workspace groups containing all the split workspaces
+    ~tuple
+        (WorkspaceGroup, Bands): Reference to the workspace groups containing all the split workspaces
     """
-    ws = generic_load_and_split(run=run, data_dir=data_dir,
-                                output_workspace=output_workspace, output_suffix=output_suffix,
-                                overwrite_instrument=overwrite_instrument, pixel_calibration=pixel_calibration,
-                                detector_offset=detector_offset, sample_offset=sample_offset,
-                                time_interval=time_interval, log_name=log_name, log_value_interval=log_value_interval,
-                                reuse_workspace=reuse_workspace, monitors=False,
-                                instrument_unique_name='EQSANS', **kwargs)
+    ws_group = generic_load_and_split(run=run, data_dir=data_dir,
+                                      output_workspace=output_workspace, output_suffix=output_suffix,
+                                      overwrite_instrument=overwrite_instrument,
+                                      pixel_calibration=pixel_calibration,
+                                      detector_offset=detector_offset, sample_offset=sample_offset,
+                                      time_interval=time_interval, log_name=log_name,
+                                      log_value_interval=log_value_interval,
+                                      reuse_workspace=reuse_workspace, monitors=False,
+                                      instrument_unique_name='EQSANS', **kwargs)
 
-    for _w in ws:
+    # Init
+    bands = None
+
+    for _w in ws_group:
         # Correct TOF offset
         correct_tof_offset(_w)
         # Correct TOF of detector
@@ -379,10 +395,13 @@ def load_and_split(run, detector_offset=0., sample_offset=0., path_to_pixel=True
                                                      centering_options=centering_options)
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
 
-        transform_to_wavelength(_w, bin_width=bin_width,
-                                low_tof_clip=low_tof_clip,
-                                high_tof_clip=high_tof_clip,
-                                keep_events=keep_events)
+        ws_i, c_bands = transform_to_wavelength(_w, bin_width=bin_width,
+                                                low_tof_clip=low_tof_clip,
+                                                high_tof_clip=high_tof_clip,
+                                                keep_events=keep_events)
         set_init_uncertainties(_w)
 
-    return ws
+        if bands is None:
+            bands = c_bands
+
+    return ws_group, bands

@@ -109,16 +109,18 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
         normalized Q(1D), K vector and delta K vector
 
     """
-
     # check i_of_q and ref_i_of_q shall have same binning
     if not verify_same_q_bins(i_of_q, ref_i_of_q):
         raise RuntimeError('Input I(Q) and elastic reference I(Q) have different Q and wavelength binning')
 
     # Reshape Q, wavelength, intensities and errors to unique 1D array or 2D array
     wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
-    if i_of_q == ref_i_of_q:
+    try:
+        # in some case, I(Q) and ref I(Q) are the same
+        np.testing.assert_allclose(i_of_q.mod_q, ref_i_of_q.mod_q)
+        np.testing.assert_allclose(i_of_q.intensity, ref_i_of_q.intensity, equal_nan=True)
         ref_i_array, ref_error_array = i_array, error_array
-    else:
+    except AssertionError:
         ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(ref_i_of_q)
 
     # Calculate Qmin and Qmax

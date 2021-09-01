@@ -525,7 +525,7 @@ def prepare_data_workspaces(data,
     elif str(flux_method).lower() == 'time':
         normalize_by_time(output_workspace)
     else:
-        raise RuntimeError(f'Do not know how to normalize by {flux_method}')
+        logger.notice('No time or monitor normalization is carried out')
 
     # Mask either detector
     if mask_detector is not None:
@@ -1454,6 +1454,8 @@ def prepare_data(data,
                 raise RuntimeError(str(e) + msg)
     elif str(flux_method).lower() == 'time':
         normalize_by_time(ws_name)
+    else:
+        logger.notice('No time or monitor normalization is carried out')
 
     # Additional masks
     apply_mask(ws_name, panel=mask_panel, mask=mask, **btp)

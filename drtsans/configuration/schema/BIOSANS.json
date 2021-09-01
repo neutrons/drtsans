@@ -211,12 +211,13 @@
         }
       },
 
-      "maxProperties": 75,
+      "maxProperties": 76,
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "useTimeSliceTransmission",
         "timeSliceInterval", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset",
         "sampleApertureSize", "sampleDetectorDistance", "sourceApertureDiameter",
         "usePixelCalibration", "maskFileName", "useDefaultMask",
         "defaultMask", "useMaskBackTubes", "darkMainFileName", "darkWingFileName", "normalization",
+        "normalizationResortToTime",
         "sensitivityMainFileName", "sensitivityWingFileName", "useSolidAngleCorrection", "blockedBeamRunNumber",
         "useThetaDepTransCorrection", "DBScalingBeamRadius", "mmRadiusForTransmission", "absoluteScaleMethod",
         "StandardAbsoluteScale", "numMainQxQyBins", "numWingQxQyBins", "1DQbinType", "QbinType", "numMainQBins",

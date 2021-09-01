@@ -10,254 +10,19 @@ from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.mask_utils import apply_mask   # noqa E402
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
-from drtsans.dataobjects import IQmod, IQazimuthal
-import os
 import numpy as np
-from typing import Tuple, List
+from drtsans.iq import bin_all  # noqa E402
+from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
+                                               do_inelastic_incoherence_correction_q2d,
+                                               save_k_vector)
+from drtsans.tof.eqsans.elastic_reference_normalization import normalize_by_elastic_reference
+import os
 from collections import namedtuple
+from typing import Dict, List
 
 # Binning parameters
 BinningSetup = namedtuple('binning_setup', 'nxbins_main nybins_main n1dbins n1dbins_per_decade '
                                            'decade_on_center bin1d_type log_scale qmin, qmax, qxrange, qyrange')
-
-
-# TODO - remove after 689 series is completely finished
-def _convert_background_to_q(processed_background_ws, processed_sample_ws) -> Tuple[List[IQmod], List[IQazimuthal]]:
-    """Re-process background to align binning with sample, convert to Q and split frames
-
-    Parameters
-    ----------
-    processed_background_ws: mantid.dataobjects.EventWorkspace
-        Processed background workspace
-    processed_sample_ws: mantid.dataobjects.EventWorkspace
-        Processed sample workspace
-
-    Returns
-    -------
-    ~tuple
-        list of I(Q1D), list of I(Q2D)
-
-    """
-    # Re-process background: workspace shall be rebinned to match the sample workspace
-    bkgd_x0_vec = processed_background_ws.extractX()[0]
-    sample_x0_vec = processed_sample_ws.extractX()[0]
-    if len(bkgd_x0_vec) != len(sample_x0_vec):
-        raise RuntimeError('Background workspace and sample workspace have different dimension on wavelength (X)')
-    elif not np.allclose(sample_x0_vec, bkgd_x0_vec):
-        # wavelength bins between sample and background are different
-        # rebin background
-        processed_background_ws = RebinToWorkspace(WorkspaceToRebin=processed_background_ws,
-                                                   WorkspaceToMatch=processed_sample_ws,
-                                                   OutputWorkspace=str(processed_background_ws))
-
-    # convert to Q: Q1D and Q2D
-    # No subpixel binning supported
-    background_iq1d = convert_to_q(processed_background_ws, mode='scalar')
-    background_iq2d = convert_to_q(processed_background_ws, mode='azimuthal')
-    # split to frames
-    background_iq1d_frames = split_by_frame(processed_background_ws, background_iq1d, verbose=True)
-    background_iq2d_frames = split_by_frame(processed_background_ws, background_iq2d, verbose=True)
-
-    return background_iq1d_frames, background_iq2d_frames
-
-
-# # This is a composite method.  It can be used by
-# # reduction_api.process_single_configuration_incoherence_correction()
-# # without binning.
-# def process_convert_q(raw_ws,
-#                       transmission: Tuple[Any, float],
-#                       theta_dependent_transmission,
-#                       dark_current, flux, mask,
-#                       solid_angle, sensitivity_workspace,
-#                       sample_thickness: float,
-#                       absolute_scale: float,
-#                       output_suffix: str,
-#                       delete_raw: bool) -> Tuple[List[IQmod], List[IQazimuthal], Any]:
-#     """Process raw workspace and convert to Q and split into frames
-#
-#     Parameters
-#     ----------
-#     raw_ws:
-#         raw event workspace and monitor workspace to process from
-#     transmission: ~tuple
-#         transmission workspace, transmission value
-#     theta_dependent_transmission:
-#         blabla
-#     dark_current:
-#         blabla
-#     flux: ~tuple
-#         flux method, flux run
-#     mask: ~tuple
-#         mask workspace, mask panel, mask BTP
-#     solid_angle: bool
-#         flag to do solid angle correction
-#     sensitivity_workspace:
-#         sensitivities workspace
-#     sample_thickness: float
-#         sample thickness in mm
-#     absolute_scale: float
-#         scale factor to intensities
-#     output_suffix: float
-#         suffix for output workspace
-#     delete_raw: bool
-#         flag to delete raw workspace
-#
-#     Returns
-#     -------
-#     ~tuple
-#         list of IQmod, list of IQazimuthal, processed workspace
-#
-#     """
-#     # Sanity check
-#     assert raw_ws, 'Raw workspace cannot be None'
-#
-#     # Process raw workspace
-#     output_workspace = str(raw_ws)
-#     processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
-#                                                           dark_current, flux, mask,
-#                                                           solid_angle, sensitivity_workspace,
-#                                                           sample_thickness, absolute_scale,
-#                                                           output_workspace, output_suffix)
-#
-#     # Optionally delete raw workspace
-#     if delete_raw:
-#         if isinstance(raw_ws, tuple):
-#             raw_ws = raw_ws[0]
-#         assert str(raw_ws) != str(processed_ws), 'Raw workspace and processed workspace have same name'
-#         raw_ws.delete()
-#
-#     # No subpixel binning supported
-#     # convert to Q: Q1D and Q2D
-#     iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
-#     iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
-#     # split to frames
-#     iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in, verbose=True)
-#     iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
-#
-#     return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
-
-
-# def process_workspace_single_configuration(ws_raw,
-#                                            transmission,
-#                                            theta_dependent_transmission,
-#                                            dark_current,
-#                                            flux,
-#                                            mask,
-#                                            solid_angle,
-#                                            sensitivity_workspace,
-#                                            thickness=1.,
-#                                            absolute_scale=1.,
-#                                            output_workspace=None,
-#                                            output_suffix=''):
-#     """This function provides quasi-full data processing for a single experimental configuration,
-#     starting from workspaces (no data loading is happening inside this function)
-#
-#     This is a simplified version of eqsans.api.process_single_configuration().
-#     The major difference is that
-#     1. this method does not assume input workspace is a sample run
-#     2. this method does not remove background
-#     3. this method tends to use a more concise list of input parameters
-#
-#     Parameters
-#     ----------
-#     ws_raw: namedtuple
-#         (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
-#         raw data histogram workspace and monitor
-#     sample_trans_ws:  ~mantid.dataobjects.Workspace2D
-#         optional histogram workspace for sample transmission (already prepared)
-#     sample_trans_value: float
-#         optional value for sample transmission
-#     bkg_ws_raw: ~mantid.dataobjects.Workspace2D
-#         optional raw histogram workspace for background
-#     bkg_trans_ws: ~mantid.dataobjects.Workspace2D
-#         optional histogram workspace for background transmission
-#     bkg_trans_value: float
-#         optional value for background transmission
-#     theta_deppendent_transmission: bool
-#         flag to apply angle dependent transmission
-#     dark_current: ~mantid.dataobjects.Workspace2D
-#         dark current workspace
-#     flux_method: str
-#         normalization by time or monitor
-#     mask_ws: ~mantid.dataobjects.Workspace2D
-#         user defined mask
-#     mask_panel: str
-#         mask fron or back panel
-#     mask_btp: dict
-#         optional bank, tube, pixel to mask
-#     solid_angle: bool
-#         flag to apply solid angle
-#     sensitivity_workspace: ~mantid.dataobjects.Workspace2D
-#         workspace containing sensitivity
-#     output_workspace: str
-#         output workspace name
-#     output_suffix:str
-#         suffix for output workspace
-#     thickness: float
-#         sample thickness (cm)
-#     absolute_scale_method: str
-#         method to do absolute scaling (standard or direct_beam)
-#     empty_beam_ws: ~mantid.dataobjects.Workspace2D
-#         empty beam workspace for absolute scaling
-#     beam_radius: float, None
-#         beam radius for absolute scaling
-#     absolute_scale: float
-#         absolute scaling value for standard method
-#     keep_processed_workspaces: bool
-#         flag to keep the processed background workspace
-#
-#     Returns
-#     -------
-#     ~mantid.dataobjects.Workspace2D
-#         Reference to the processed workspace
-#     """
-#     # Default output workspace name
-#     if not output_workspace:
-#         output_workspace = f'{str(ws_raw)}_single_config_{output_suffix}'
-#
-#     # Process input function parameters
-#     flux_method, flux_value = flux
-#     mask_ws, mask_panel, mask_btp = mask
-#
-#     # Prepare data workspace with dark current, flux, mask, solid angle and sensitivities
-#     # create a common configuration for prepare data
-#     prepare_data_conf = {'dark_current': dark_current,
-#                          'flux_method': flux_method,
-#                          'flux': flux_value,
-#                          'mask_ws': mask_ws,
-#                          'mask_panel': mask_panel,
-#                          'mask_btp': mask_btp,
-#                          'solid_angle': solid_angle,
-#                          'sensitivity_workspace': sensitivity_workspace}
-#     raw_ws = prepare_data_workspaces(ws_raw,
-#                                      output_workspace=output_workspace,
-#                                      **prepare_data_conf)
-#
-#     # Apply transmission to the sample
-#     sample_trans_ws, sample_trans_value = transmission
-#     print(f'tpe of transmission: {type(transmission)}')
-#     if sample_trans_ws or sample_trans_value:
-#         print(f'sample trans ws : {sample_trans_ws}\n\t\ttype = {type(sample_trans_ws)}')
-#         print(f'sample trans val: {sample_trans_value}\n\t\ttype = {type(sample_trans_value)}')
-#         if sample_trans_ws:
-#             RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
-#                              WorkspaceToMatch=raw_ws,
-#                              OutputWorkspace=sample_trans_ws)
-#         raw_ws = apply_transmission_correction(raw_ws,
-#                                                trans_workspace=sample_trans_ws,
-#                                                trans_value=sample_trans_value,
-#                                                theta_dependent=theta_dependent_transmission,
-#                                                output_workspace=output_workspace)
-#
-#     # finalize with absolute scale and thickness
-#     # TODO FIXME @changwoo - normalization of sample thickness shall be applied to sample/background before or after
-#     # inelastic/incoherence correction????
-#     # Mathematically it does not mastter
-#     raw_ws = normalize_by_thickness(raw_ws, thickness)
-#     # absolute scale
-#     raw_ws *= absolute_scale
-#
-#     return raw_ws
 
 
 def prepare_data_workspaces(data: namedtuple,
@@ -399,3 +164,145 @@ def process_transmission(transmission_ws, empty_trans_ws, transmission_radius, s
         calculated_trans_ws = None
 
     return calculated_trans_ws, processed_transmission_dict, raw_transmission_dict
+
+
+def bin_i_with_correction(iq1d_in_frames, iq2d_in_frames, wl_frame, weighted_errors,
+                          user_qmin, user_qmax, num_x_bins, num_y_bins, num_q1d_bins, num_q1d_bins_per_decade,
+                          decade_on_center, bin1d_type, log_binning, annular_bin, wedges, symmetric_wedges,
+                          incoherence_correction_setup, iq1d_elastic_ref_fr, iq2d_elastic_ref_fr,
+                          raw_name, output_dir):
+    """ Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction
+    """
+
+    if incoherence_correction_setup.do_correction:
+        # Sanity check
+        assert weighted_errors, f'Must using weighted error {weighted_errors}'
+
+        # Define qmin and qmax for this frame
+        if user_qmin is None:
+            qmin = iq1d_in_frames[wl_frame].mod_q.min()
+        else:
+            qmin = user_qmin
+        if user_qmax is None:
+            qmax = iq1d_in_frames[wl_frame].mod_q.max()
+        else:
+            qmax = user_qmax
+
+        # Determine qxrange and qyrange for this frame
+        qx_min = np.min(iq2d_in_frames[wl_frame].qx)
+        qx_max = np.max(iq2d_in_frames[wl_frame].qx)
+        qxrange = qx_min, qx_max
+
+        qy_min = np.min(iq2d_in_frames[wl_frame].qy)
+        qy_max = np.max(iq2d_in_frames[wl_frame].qy)
+        qyrange = qy_min, qy_max
+
+        # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
+        iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_in_frames[wl_frame], iq1d_in_frames[wl_frame],
+                                             num_x_bins, num_y_bins, n1dbins=num_q1d_bins,
+                                             n1dbins_per_decade=num_q1d_bins_per_decade,
+                                             decade_on_center=decade_on_center,
+                                             bin1d_type=bin1d_type, log_scale=log_binning,
+                                             qmin=qmin, qmax=qmax,
+                                             qxrange=qxrange,
+                                             qyrange=qyrange,
+                                             annular_angle_bin=annular_bin, wedges=wedges,
+                                             symmetric_wedges=symmetric_wedges,
+                                             error_weighted=weighted_errors,
+                                             n_wavelength_bin=None)
+        # Check due to functional limitation
+        assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
+        if len(iq1d_main_wl) != 1:
+            raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
+                                      f'{len(iq1d_main_wl)}')
+
+        # Bin elastic reference run
+        if iq1d_elastic_ref_fr:
+            # bin the reference elastic runs of the current frame
+            iq2d_elastic_wl, iq1d_elastic_wl = bin_all(iq2d_elastic_ref_fr[wl_frame], iq1d_elastic_ref_fr[wl_frame],
+                                                       num_x_bins, num_y_bins, n1dbins=num_q1d_bins,
+                                                       n1dbins_per_decade=num_q1d_bins_per_decade,
+                                                       decade_on_center=decade_on_center,
+                                                       bin1d_type=bin1d_type, log_scale=log_binning,
+                                                       qmin=qmin, qmax=qmax,
+                                                       qxrange=qxrange,
+                                                       qyrange=qyrange,
+                                                       annular_angle_bin=annular_bin, wedges=wedges,
+                                                       symmetric_wedges=symmetric_wedges,
+                                                       error_weighted=weighted_errors,
+                                                       n_wavelength_bin=None)
+            if len(iq1d_elastic_wl) != 1:
+                raise NotImplementedError(f'Not expected that there are more than 1 IQmod of '
+                                          f'elastic reference run.')
+            # normalization
+            iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
+            iq1d_main_wl[0] = iq1d_wl
+            # write
+            run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split('.')[0]
+            save_k_vector(iq1d_wl.wavelength, k_vec, k_error_vec,
+                          path=os.path.join(output_dir, f'k_{run_number}.dat'))
+
+        # 1D correction
+        b_file_prefix = f'{raw_name}_frame_{wl_frame}'
+        corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
+                                                                 incoherence_correction_setup,
+                                                                 b_file_prefix,
+                                                                 output_dir)
+
+        # 2D correction
+        corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
+                                                                 incoherence_correction_setup,
+                                                                 b_file_prefix,
+                                                                 output_dir)
+
+        # Be finite
+        finite_iq1d = corrected_iq1d.be_finite()
+        finite_iq2d = corrected_iq2d.be_finite()
+        # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
+        assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
+                                       f' but not {len(iq1d_main_wl)}'
+    else:
+        finite_iq2d = iq2d_in_frames[wl_frame]
+        finite_iq1d = iq1d_in_frames[wl_frame]
+        qmin = user_qmin
+        qmax = user_qmax
+    # END-IF-ELSE
+
+    iq2d_main_out, iq1d_main_out = bin_all(finite_iq2d, finite_iq1d,
+                                           num_x_bins, num_y_bins, n1dbins=num_q1d_bins,
+                                           n1dbins_per_decade=num_q1d_bins_per_decade,
+                                           decade_on_center=decade_on_center,
+                                           bin1d_type=bin1d_type, log_scale=log_binning,
+                                           qmin=qmin, qmax=qmax,
+                                           qxrange=None,
+                                           qyrange=None,
+                                           annular_angle_bin=annular_bin, wedges=wedges,
+                                           symmetric_wedges=symmetric_wedges,
+                                           error_weighted=weighted_errors)
+
+    return iq2d_main_out, iq1d_main_out
+
+
+def remove_workspaces(reduction_config: Dict, instrument_name: str,
+                      prefix: str, sample_run_number, center_run_number,
+                      extra_run_numbers: List):
+    """Helping method to remove existing workspaces
+    """
+    from drtsans.instruments import extract_run_number  # noqa E402
+    from drtsans.path import registered_workspace  # noqa E402
+
+    # In the future this should be made optional
+    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+                    for run_number in extra_run_numbers]
+    # List special workspaces and workspace groups
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample_run_number}_raw_histo_slice_group')
+    ws_to_remove.append(f'{prefix}_{instrument_name}_{center_run_number}_raw_events')
+    ws_to_remove.append(f'{prefix}_sensitivity')
+    ws_to_remove.append(f'{prefix}_mask')
+    if reduction_config["darkFileName"]:
+        run_number = extract_run_number(reduction_config["darkFileName"])
+        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+    for ws_name in ws_to_remove:
+        # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
+        if registered_workspace(ws_name):
+            mtd.remove(ws_name)

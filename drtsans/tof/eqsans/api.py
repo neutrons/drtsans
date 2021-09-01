@@ -33,13 +33,9 @@ from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.dataobjects import save_iqmod  # noqa E402
 from drtsans.path import allow_overwrite  # noqa E402
-from drtsans.tof.eqsans.correction_api import CorrectionConfiguration
-from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission)
-from drtsans.tof.eqsans.correction_api import (parse_correction_config, save_k_vector)
-from drtsans.tof.eqsans.correction_api import (do_inelastic_incoherence_correction_q1d,
-                                               do_inelastic_incoherence_correction_q2d)
+from drtsans.tof.eqsans.reduction_api import (prepare_data_workspaces, process_transmission, bin_i_with_correction)
+from drtsans.tof.eqsans.correction_api import (parse_correction_config, CorrectionConfiguration)
 from typing import Dict, Tuple, List
-from drtsans.tof.eqsans.elastic_reference_normalization import normalize_by_elastic_reference
 
 
 __all__ = ['apply_solid_angle_correction', 'subtract_background',
@@ -100,6 +96,7 @@ def load_all_files(reduction_input, prefix='', load_params=None):
     elastic_ref_run = reduction_config['elasticReference'].get('runNumber')
     elastic_ref_bkgd_run = reduction_config['elasticReferenceBkgd'].get('runNumber')
 
+    from drtsans.tof.eqsans.reduction_api import remove_workspaces
     remove_workspaces(reduction_config, instrument_name, prefix, sample, center,
                       extra_run_numbers=[sample, bkgd, empty, sample_trans, bkgd_trans,
                                          elastic_ref_run, elastic_ref_bkgd_run])
@@ -156,6 +153,8 @@ def load_all_files(reduction_input, prefix='', load_params=None):
             elif logslice:
                 timesliceinterval = None
                 logslicename, logsliceinterval = reduction_config["logSliceName"], reduction_config["logSliceInterval"]
+            else:
+                raise RuntimeError('There is no 3rd option besides time and log slice')
             filenames.add(filename)
             load_and_split(filename, output_workspace=ws_name,
                            time_interval=timesliceinterval,
@@ -626,23 +625,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
 
     sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict = sample_returned
 
-    # Form binning parameters
-    # binning_par_dc = {'nxbins_main': nxbins_main,
-    #                   'nybins_main': nybins_main,
-    #                   'n1dbins': nbins_main,
-    #                   'n1dbins_per_decade': nbins_main_per_decade,
-    #                   'decade_on_center': decade_on_center,
-    #                   'bin1d_type': bin1d_type,
-    #                   'log_scale': log_binning,
-    #                   'qmin': qmin,
-    #                   'qmax': qmax,
-    #                   'qxrange': None,
-    #                   'qyrange': None}
-
-    # binning_params = namedtuple('binning_setup', binning_par_dc)(**binning_par_dc)
-    # binning_params = BinningSetup(**binning_par_dc)
-    #
-
     # set up subpixel binning options  FIXME - it does not seem to work
     subpixel_kwargs = dict()
     if reduction_config['useSubpixels']:
@@ -721,8 +703,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                absolute_scale=absolute_scale,
                                                                keep_processed_workspaces=False)
 
-        # Convert to Q
-
         # convert to Q
         iq1d_main_in = convert_to_q(processed_data_main, mode='scalar', **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode='azimuthal', **subpixel_kwargs)
@@ -744,10 +724,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
         _inside_detectordata = {}
 
         # Process each frame separately
-        # FIXME 792 - no need to save qmin/qmax
-        user_qmin = qmin
-        user_qmax = qmax
-
         for wl_frame in range(n_wl_frames):
             if n_wl_frames > 1:
                 fr_log_label = f'_frame_{wl_frame}'
@@ -760,7 +736,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
             assert iq2d_main_in_fr[wl_frame] is not None, 'Input I(qx, qy) main input cannot be None.'
 
             iq2d_main_out, iq1d_main_out = bin_i_with_correction(iq1d_main_in_fr, iq2d_main_in_fr, wl_frame,
-                                                                 weighted_errors, user_qmin, user_qmax,
+                                                                 weighted_errors, qmin, qmax,
                                                                  nxbins_main, nybins_main, nbins_main,
                                                                  nbins_main_per_decade,
                                                                  decade_on_center, bin1d_type, log_binning,
@@ -802,123 +778,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                        detectordata, output_dir)
 
     return output
-
-
-def bin_i_with_correction(iq1d_in_frames, iq2d_in_frames, wl_frame, weighted_errors,
-                          user_qmin, user_qmax, num_x_bins, num_y_bins, num_q1d_bins, num_q1d_bins_per_decade,
-                          decade_on_center, bin1d_type, log_binning, annular_bin, wedges, symmetric_wedges,
-                          incoherence_correction_setup, iq1d_elastic_ref_fr, iq2d_elastic_ref_fr,
-                          raw_name, output_dir):
-    """ Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction
-    """
-
-    if incoherence_correction_setup.do_correction:
-        # Sanity check
-        assert weighted_errors, f'Must using weighted error {weighted_errors}'
-
-        # Define qmin and qmax for this frame
-        if user_qmin is None:
-            qmin = iq1d_in_frames[wl_frame].mod_q.min()
-        else:
-            qmin = user_qmin
-        if user_qmax is None:
-            qmax = iq1d_in_frames[wl_frame].mod_q.max()
-        else:
-            qmax = user_qmax
-
-        # Determine qxrange and qyrange for this frame
-        qx_min = np.min(iq2d_in_frames[wl_frame].qx)
-        qx_max = np.max(iq2d_in_frames[wl_frame].qx)
-        qxrange = qx_min, qx_max
-
-        qy_min = np.min(iq2d_in_frames[wl_frame].qy)
-        qy_max = np.max(iq2d_in_frames[wl_frame].qy)
-        qyrange = qy_min, qy_max
-
-        # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
-        iq2d_main_wl, iq1d_main_wl = bin_all(iq2d_in_frames[wl_frame], iq1d_in_frames[wl_frame],
-                                             num_x_bins, num_y_bins, n1dbins=num_q1d_bins,
-                                             n1dbins_per_decade=num_q1d_bins_per_decade,
-                                             decade_on_center=decade_on_center,
-                                             bin1d_type=bin1d_type, log_scale=log_binning,
-                                             qmin=qmin, qmax=qmax,
-                                             qxrange=qxrange,
-                                             qyrange=qyrange,
-                                             annular_angle_bin=annular_bin, wedges=wedges,
-                                             symmetric_wedges=symmetric_wedges,
-                                             error_weighted=weighted_errors,
-                                             n_wavelength_bin=None)
-        # Check due to functional limitation
-        assert isinstance(iq1d_main_wl, list), f'Output I(Q) must be a list but not a {type(iq1d_main_wl)}'
-        if len(iq1d_main_wl) != 1:
-            raise NotImplementedError(f'Not expected that there are more than 1 IQmod main but '
-                                      f'{len(iq1d_main_wl)}')
-
-        # Bin elastic reference run
-        if iq1d_elastic_ref_fr:
-            # bin the reference elastic runs of the current frame
-            iq2d_elastic_wl, iq1d_elastic_wl = bin_all(iq2d_elastic_ref_fr[wl_frame], iq1d_elastic_ref_fr[wl_frame],
-                                                       num_x_bins, num_y_bins, n1dbins=num_q1d_bins,
-                                                       n1dbins_per_decade=num_q1d_bins_per_decade,
-                                                       decade_on_center=decade_on_center,
-                                                       bin1d_type=bin1d_type, log_scale=log_binning,
-                                                       qmin=qmin, qmax=qmax,
-                                                       qxrange=qxrange,
-                                                       qyrange=qyrange,
-                                                       annular_angle_bin=annular_bin, wedges=wedges,
-                                                       symmetric_wedges=symmetric_wedges,
-                                                       error_weighted=weighted_errors,
-                                                       n_wavelength_bin=None)
-            if len(iq1d_elastic_wl) != 1:
-                raise NotImplementedError(f'Not expected that there are more than 1 IQmod of '
-                                          f'elastic reference run.')
-            # normalization
-            iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
-            iq1d_main_wl[0] = iq1d_wl
-            # write
-            run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split('.')[0]
-            save_k_vector(iq1d_wl.wavelength, k_vec, k_error_vec,
-                          path=os.path.join(output_dir, f'k_{run_number}.dat'))
-
-        # 1D correction
-        b_file_prefix = f'{raw_name}_frame_{wl_frame}'
-        corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
-                                                                 incoherence_correction_setup,
-                                                                 b_file_prefix,
-                                                                 output_dir)
-
-        # 2D correction
-        corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
-                                                                 incoherence_correction_setup,
-                                                                 b_file_prefix,
-                                                                 output_dir)
-
-        # Be finite
-        finite_iq1d = corrected_iq1d.be_finite()
-        finite_iq2d = corrected_iq2d.be_finite()
-        # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
-        assert len(iq1d_main_wl) == 1, f'It is assumed that output I(Q) list contains 1 I(Q)' \
-                                       f' but not {len(iq1d_main_wl)}'
-    else:
-        finite_iq2d = iq2d_in_frames[wl_frame]
-        finite_iq1d = iq1d_in_frames[wl_frame]
-        qmin = user_qmin
-        qmax = user_qmax
-    # END-IF-ELSE
-
-    iq2d_main_out, iq1d_main_out = bin_all(finite_iq2d, finite_iq1d,
-                                           num_x_bins, num_y_bins, n1dbins=num_q1d_bins,
-                                           n1dbins_per_decade=num_q1d_bins_per_decade,
-                                           decade_on_center=decade_on_center,
-                                           bin1d_type=bin1d_type, log_scale=log_binning,
-                                           qmin=qmin, qmax=qmax,
-                                           qxrange=None,
-                                           qyrange=None,
-                                           annular_angle_bin=annular_bin, wedges=wedges,
-                                           symmetric_wedges=symmetric_wedges,
-                                           error_weighted=weighted_errors)
-
-    return iq2d_main_out, iq1d_main_out
 
 
 def save_reduction_log(reduction_input: Dict,
@@ -1107,28 +966,6 @@ def set_beam_center(center, prefix, instrument_name, ipts, filenames, reduction_
         raise RuntimeError(f'load_param of type {type(load_params)} is not allowed.')
 
     return load_params
-
-
-def remove_workspaces(reduction_config: Dict, instrument_name: str,
-                      prefix: str, sample_run_number, center_run_number,
-                      extra_run_numbers: List):
-    """Helping method to remove existing workspaces
-    """
-    # In the future this should be made optional
-    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
-                    for run_number in extra_run_numbers]
-    # List special workspaces and workspace groups
-    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample_run_number}_raw_histo_slice_group')
-    ws_to_remove.append(f'{prefix}_{instrument_name}_{center_run_number}_raw_events')
-    ws_to_remove.append(f'{prefix}_sensitivity')
-    ws_to_remove.append(f'{prefix}_mask')
-    if reduction_config["darkFileName"]:
-        run_number = extract_run_number(reduction_config["darkFileName"])
-        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
-    for ws_name in ws_to_remove:
-        # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
-        if registered_workspace(ws_name):
-            mtd.remove(ws_name)
 
 
 def prepare_data(data,

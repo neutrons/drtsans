@@ -11,13 +11,9 @@ from drtsans.mask_utils import apply_mask   # noqa E402
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
-# from drtsans.tof.eqsans.correction_api import (CorrectionConfiguration, bin_i_of_q_per_wavelength,
-#                                                do_inelastic_incoherence_correction_q1d,
-#                                                do_inelastic_incoherence_correction_q2d,
-#                                                save_b_factor)
 import os
 import numpy as np
-from typing import Tuple, Any, List
+from typing import Tuple, List
 from collections import namedtuple
 
 # Binning parameters

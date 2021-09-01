@@ -1,20 +1,12 @@
 # This module contains workflow algorithms and methods correct intensity and error of
 # sample and background data accounting wavelength-dependent incoherent inelastic scattering.
 # The workflow algorithms will be directly called by eqsans.api.
-# from drtsans.tof.eqsans.reduction_api import process_sample_configuration
 import os.path
-
-from drtsans.tof.eqsans.elastic_reference_normalization import (determine_reference_wavelength_q1d_mesh,
-                                                                reshape_q_wavelength_matrix,
-                                                                determine_common_mod_q_range_mesh,
-                                                                calculate_scale_factor_mesh_grid,
-                                                                normalize_intensity_q1d,
-                                                                build_i_of_q1d)
 from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
-from typing import List, Union
+from typing import Union
 from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
 from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
 
@@ -168,6 +160,7 @@ def parse_correction_config(reduction_config):
     -------
     CorrectionConfiguration
         incoherence/inelastic scattering correction configuration
+
     """
     # an exception case
     if 'configuration' not in reduction_config:
@@ -216,109 +209,6 @@ def parse_correction_config(reduction_config):
 
 # Define named tuple for elastic scattering normalization factor
 NormFactor = namedtuple('NormFactor', 'k k_error p s')
-
-
-# TODO - merge this with process_elastic_reference_data
-def calculate_elastic_scattering_factor(ref_iq1d_frames: List[IQmod], ref_iq2d_frames):
-    """Normalize runs (sample and background) for elastic scattering
-
-    TODO: in reduction_api, shall implement a method as
-    preprocess_elastic_scattering_factor(ref_ws, ref_trans_ws, ref_trans_value, ref_sample_thickness, binning_setup):
-    ref_iq1d_frames, ref_iq2d_frames = process_convert_q(ref_ws, (ref_trans_ws, ref_trans_value),
-                                                         ref_sample_thickness, binning_setup)
-
-    for elastic reference, I assume that it will use the same as the sample run.
-    Then as the elastic reference run is reduced, K and delta K are calculated.
-    These runs will be normalized by K and delta K value
-    - sample
-    - bkgd
-
-
-    Parameters
-    ----------
-    ref_iq1d_frames: ~list
-        List of reference I(Q) in various frames
-    ref_iq2d_frames: ~list
-        List of reference I(Qx, Qy)
-
-    Returns
-    -------
-    ~dict
-        blabla
-    """
-    # Process elastic reference run, reference transmission run,
-    # TODO - reference background run, reference background transmission run
-
-    # Sanity check
-    assert len(ref_iq1d_frames) <= 3, f'Number of frames {len(ref_iq1d_frames)} is not reasonable.'
-    assert ref_iq2d_frames
-
-    # Output
-    elastic_norm_factor_dict = dict()
-
-    # Calculate scaling vectors for each
-    for i_frame in range(len(ref_iq1d_frames)):
-        # reshape
-        ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(
-            ref_iq1d_frames[i_frame])
-
-        # Calculate Qmin and Qmax
-        qmin_index, qmax_index = determine_common_mod_q_range_mesh(ref_q_vec, ref_i_array)
-
-        # Calculate reference
-        ref_wl_ie = determine_reference_wavelength_q1d_mesh(ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array,
-                                                            qmin_index, qmax_index)
-
-        # Calculate scale factor
-        k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(ref_wl_vec, ref_i_array, ref_error_array,
-                                                                            ref_wl_ie, qmin_index, qmax_index)
-
-        norm_factor = NormFactor(k_vec, k_error_vec, p_vec, s_vec)
-        # Form output
-        elastic_norm_factor_dict[i_frame] = norm_factor
-
-        # export K and K error (task #725)
-        # do_export_k(k_vec, k_error_vec, k_filename)
-
-    return elastic_norm_factor_dict
-
-
-def normalize_ws_with_elastic_scattering(i_q1d_frames, i_q2d_frames, norm_dict):
-
-    # KEY: a data structure to contain IQmod(s) of (1) all samples and background (2) all frames
-    if i_q2d_frames:
-        print(f'Not implemented!')
-
-    # Normalize sample and background
-    # normalize 1D
-    num_frames = len(i_q1d_frames)
-    norm_iq1d = list()
-    for i_frame in range(num_frames):
-        # convert
-        wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_q1d_frames[i_frame])
-        qmin_index = qmax_index = -1
-        if qmin_index + qmax_index < 0:
-            raise RuntimeError('calcualte qmin and qmax!')
-        # reference wavelength
-        data_ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
-                                                                 qmin_index, qmax_index)
-        #
-        k_vec = norm_dict[i_frame].k
-        p_vec = norm_dict[i_frame].p
-        s_vec = norm_dict[i_frame].s
-
-        # normalize
-        normalized = normalize_intensity_q1d(wl_vec, q_vec, i_array, error_array,
-                                             data_ref_wl_ie, k_vec, p_vec, s_vec,
-                                             qmin_index, qmax_index)
-
-        # Convert normalized intensities and errors to IModQ
-        normalized_i_of_q = build_i_of_q1d(wl_vec, q_vec, normalized[0], normalized[1], dq_array)
-
-        # set
-        norm_iq1d.append(normalized_i_of_q)
-
-    return norm_iq1d
 
 
 def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,

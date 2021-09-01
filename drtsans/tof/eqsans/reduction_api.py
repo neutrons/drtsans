@@ -65,204 +65,203 @@ def _convert_background_to_q(processed_background_ws, processed_sample_ws) -> Tu
     return background_iq1d_frames, background_iq2d_frames
 
 
-# This is a composite method.  It can be used by
-# reduction_api.process_single_configuration_incoherence_correction()
-# without binning.
-def process_convert_q(raw_ws,
-                      transmission: Tuple[Any, float],
-                      theta_dependent_transmission,
-                      dark_current, flux, mask,
-                      solid_angle, sensitivity_workspace,
-                      sample_thickness: float,
-                      absolute_scale: float,
-                      output_suffix: str,
-                      delete_raw: bool) -> Tuple[List[IQmod], List[IQazimuthal], Any]:
-    """Process raw workspace and convert to Q and split into frames
+# # This is a composite method.  It can be used by
+# # reduction_api.process_single_configuration_incoherence_correction()
+# # without binning.
+# def process_convert_q(raw_ws,
+#                       transmission: Tuple[Any, float],
+#                       theta_dependent_transmission,
+#                       dark_current, flux, mask,
+#                       solid_angle, sensitivity_workspace,
+#                       sample_thickness: float,
+#                       absolute_scale: float,
+#                       output_suffix: str,
+#                       delete_raw: bool) -> Tuple[List[IQmod], List[IQazimuthal], Any]:
+#     """Process raw workspace and convert to Q and split into frames
+#
+#     Parameters
+#     ----------
+#     raw_ws:
+#         raw event workspace and monitor workspace to process from
+#     transmission: ~tuple
+#         transmission workspace, transmission value
+#     theta_dependent_transmission:
+#         blabla
+#     dark_current:
+#         blabla
+#     flux: ~tuple
+#         flux method, flux run
+#     mask: ~tuple
+#         mask workspace, mask panel, mask BTP
+#     solid_angle: bool
+#         flag to do solid angle correction
+#     sensitivity_workspace:
+#         sensitivities workspace
+#     sample_thickness: float
+#         sample thickness in mm
+#     absolute_scale: float
+#         scale factor to intensities
+#     output_suffix: float
+#         suffix for output workspace
+#     delete_raw: bool
+#         flag to delete raw workspace
+#
+#     Returns
+#     -------
+#     ~tuple
+#         list of IQmod, list of IQazimuthal, processed workspace
+#
+#     """
+#     # Sanity check
+#     assert raw_ws, 'Raw workspace cannot be None'
+#
+#     # Process raw workspace
+#     output_workspace = str(raw_ws)
+#     processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
+#                                                           dark_current, flux, mask,
+#                                                           solid_angle, sensitivity_workspace,
+#                                                           sample_thickness, absolute_scale,
+#                                                           output_workspace, output_suffix)
+#
+#     # Optionally delete raw workspace
+#     if delete_raw:
+#         if isinstance(raw_ws, tuple):
+#             raw_ws = raw_ws[0]
+#         assert str(raw_ws) != str(processed_ws), 'Raw workspace and processed workspace have same name'
+#         raw_ws.delete()
+#
+#     # No subpixel binning supported
+#     # convert to Q: Q1D and Q2D
+#     iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
+#     iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
+#     # split to frames
+#     iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in, verbose=True)
+#     iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
+#
+#     return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
 
-    Parameters
-    ----------
-    raw_ws:
-        raw event workspace and monitor workspace to process from
-    transmission: ~tuple
-        transmission workspace, transmission value
-    theta_dependent_transmission:
-        blabla
-    dark_current:
-        blabla
-    flux: ~tuple
-        flux method, flux run
-    mask: ~tuple
-        mask workspace, mask panel, mask BTP
-    solid_angle: bool
-        flag to do solid angle correction
-    sensitivity_workspace:
-        sensitivities workspace
-    sample_thickness: float
-        sample thickness in mm
-    absolute_scale: float
-        scale factor to intensities
-    output_suffix: float
-        suffix for output workspace
-    delete_raw: bool
-        flag to delete raw workspace
 
-    Returns
-    -------
-    ~tuple
-        list of IQmod, list of IQazimuthal, processed workspace
-
-    """
-    # Sanity check
-    assert raw_ws, 'Raw workspace cannot be None'
-
-    # Process raw workspace
-    output_workspace = str(raw_ws)
-    processed_ws = process_workspace_single_configuration(raw_ws, transmission, theta_dependent_transmission,
-                                                          dark_current, flux, mask,
-                                                          solid_angle, sensitivity_workspace,
-                                                          sample_thickness, absolute_scale,
-                                                          output_workspace, output_suffix)
-    print(f'[DEBUG Q-RANGE]From {raw_ws} -> {processed_ws}:')
-
-    # Optionally delete raw workspace
-    if delete_raw:
-        if isinstance(raw_ws, tuple):
-            raw_ws = raw_ws[0]
-        assert str(raw_ws) != str(processed_ws), 'Raw workspace and processed workspace have same name'
-        raw_ws.delete()
-
-    # No subpixel binning supported
-    # convert to Q: Q1D and Q2D
-    iq1d_main_in = convert_to_q(processed_ws, mode='scalar')
-    iq2d_main_in = convert_to_q(processed_ws, mode='azimuthal')
-    # split to frames
-    iq1d_main_in_fr = split_by_frame(processed_ws, iq1d_main_in, verbose=True)
-    iq2d_main_in_fr = split_by_frame(processed_ws, iq2d_main_in, verbose=True)
-
-    return iq1d_main_in_fr, iq2d_main_in_fr, processed_ws
-
-
-def process_workspace_single_configuration(ws_raw,
-                                           transmission,
-                                           theta_dependent_transmission,
-                                           dark_current,
-                                           flux,
-                                           mask,
-                                           solid_angle,
-                                           sensitivity_workspace,
-                                           thickness=1.,
-                                           absolute_scale=1.,
-                                           output_workspace=None,
-                                           output_suffix=''):
-    """This function provides quasi-full data processing for a single experimental configuration,
-    starting from workspaces (no data loading is happening inside this function)
-
-    This is a simplified version of eqsans.api.process_single_configuration().
-    The major difference is that
-    1. this method does not assume input workspace is a sample run
-    2. this method does not remove background
-    3. this method tends to use a more concise list of input parameters
-
-    Parameters
-    ----------
-    ws_raw: namedtuple
-        (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
-        raw data histogram workspace and monitor
-    sample_trans_ws:  ~mantid.dataobjects.Workspace2D
-        optional histogram workspace for sample transmission (already prepared)
-    sample_trans_value: float
-        optional value for sample transmission
-    bkg_ws_raw: ~mantid.dataobjects.Workspace2D
-        optional raw histogram workspace for background
-    bkg_trans_ws: ~mantid.dataobjects.Workspace2D
-        optional histogram workspace for background transmission
-    bkg_trans_value: float
-        optional value for background transmission
-    theta_deppendent_transmission: bool
-        flag to apply angle dependent transmission
-    dark_current: ~mantid.dataobjects.Workspace2D
-        dark current workspace
-    flux_method: str
-        normalization by time or monitor
-    mask_ws: ~mantid.dataobjects.Workspace2D
-        user defined mask
-    mask_panel: str
-        mask fron or back panel
-    mask_btp: dict
-        optional bank, tube, pixel to mask
-    solid_angle: bool
-        flag to apply solid angle
-    sensitivity_workspace: ~mantid.dataobjects.Workspace2D
-        workspace containing sensitivity
-    output_workspace: str
-        output workspace name
-    output_suffix:str
-        suffix for output workspace
-    thickness: float
-        sample thickness (cm)
-    absolute_scale_method: str
-        method to do absolute scaling (standard or direct_beam)
-    empty_beam_ws: ~mantid.dataobjects.Workspace2D
-        empty beam workspace for absolute scaling
-    beam_radius: float, None
-        beam radius for absolute scaling
-    absolute_scale: float
-        absolute scaling value for standard method
-    keep_processed_workspaces: bool
-        flag to keep the processed background workspace
-
-    Returns
-    -------
-    ~mantid.dataobjects.Workspace2D
-        Reference to the processed workspace
-    """
-    # Default output workspace name
-    if not output_workspace:
-        output_workspace = f'{str(ws_raw)}_single_config_{output_suffix}'
-
-    # Process input function parameters
-    flux_method, flux_value = flux
-    mask_ws, mask_panel, mask_btp = mask
-
-    # Prepare data workspace with dark current, flux, mask, solid angle and sensitivities
-    # create a common configuration for prepare data
-    prepare_data_conf = {'dark_current': dark_current,
-                         'flux_method': flux_method,
-                         'flux': flux_value,
-                         'mask_ws': mask_ws,
-                         'mask_panel': mask_panel,
-                         'mask_btp': mask_btp,
-                         'solid_angle': solid_angle,
-                         'sensitivity_workspace': sensitivity_workspace}
-    raw_ws = prepare_data_workspaces(ws_raw,
-                                     output_workspace=output_workspace,
-                                     **prepare_data_conf)
-
-    # Apply transmission to the sample
-    sample_trans_ws, sample_trans_value = transmission
-    print(f'tpe of transmission: {type(transmission)}')
-    if sample_trans_ws or sample_trans_value:
-        print(f'sample trans ws : {sample_trans_ws}\n\t\ttype = {type(sample_trans_ws)}')
-        print(f'sample trans val: {sample_trans_value}\n\t\ttype = {type(sample_trans_value)}')
-        if sample_trans_ws:
-            RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
-                             WorkspaceToMatch=raw_ws,
-                             OutputWorkspace=sample_trans_ws)
-        raw_ws = apply_transmission_correction(raw_ws,
-                                               trans_workspace=sample_trans_ws,
-                                               trans_value=sample_trans_value,
-                                               theta_dependent=theta_dependent_transmission,
-                                               output_workspace=output_workspace)
-
-    # finalize with absolute scale and thickness
-    # TODO FIXME @changwoo - normalization of sample thickness shall be applied to sample/background before or after
-    # inelastic/incoherence correction????
-    # Mathematically it does not mastter
-    raw_ws = normalize_by_thickness(raw_ws, thickness)
-    # absolute scale
-    raw_ws *= absolute_scale
-
-    return raw_ws
+# def process_workspace_single_configuration(ws_raw,
+#                                            transmission,
+#                                            theta_dependent_transmission,
+#                                            dark_current,
+#                                            flux,
+#                                            mask,
+#                                            solid_angle,
+#                                            sensitivity_workspace,
+#                                            thickness=1.,
+#                                            absolute_scale=1.,
+#                                            output_workspace=None,
+#                                            output_suffix=''):
+#     """This function provides quasi-full data processing for a single experimental configuration,
+#     starting from workspaces (no data loading is happening inside this function)
+#
+#     This is a simplified version of eqsans.api.process_single_configuration().
+#     The major difference is that
+#     1. this method does not assume input workspace is a sample run
+#     2. this method does not remove background
+#     3. this method tends to use a more concise list of input parameters
+#
+#     Parameters
+#     ----------
+#     ws_raw: namedtuple
+#         (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
+#         raw data histogram workspace and monitor
+#     sample_trans_ws:  ~mantid.dataobjects.Workspace2D
+#         optional histogram workspace for sample transmission (already prepared)
+#     sample_trans_value: float
+#         optional value for sample transmission
+#     bkg_ws_raw: ~mantid.dataobjects.Workspace2D
+#         optional raw histogram workspace for background
+#     bkg_trans_ws: ~mantid.dataobjects.Workspace2D
+#         optional histogram workspace for background transmission
+#     bkg_trans_value: float
+#         optional value for background transmission
+#     theta_deppendent_transmission: bool
+#         flag to apply angle dependent transmission
+#     dark_current: ~mantid.dataobjects.Workspace2D
+#         dark current workspace
+#     flux_method: str
+#         normalization by time or monitor
+#     mask_ws: ~mantid.dataobjects.Workspace2D
+#         user defined mask
+#     mask_panel: str
+#         mask fron or back panel
+#     mask_btp: dict
+#         optional bank, tube, pixel to mask
+#     solid_angle: bool
+#         flag to apply solid angle
+#     sensitivity_workspace: ~mantid.dataobjects.Workspace2D
+#         workspace containing sensitivity
+#     output_workspace: str
+#         output workspace name
+#     output_suffix:str
+#         suffix for output workspace
+#     thickness: float
+#         sample thickness (cm)
+#     absolute_scale_method: str
+#         method to do absolute scaling (standard or direct_beam)
+#     empty_beam_ws: ~mantid.dataobjects.Workspace2D
+#         empty beam workspace for absolute scaling
+#     beam_radius: float, None
+#         beam radius for absolute scaling
+#     absolute_scale: float
+#         absolute scaling value for standard method
+#     keep_processed_workspaces: bool
+#         flag to keep the processed background workspace
+#
+#     Returns
+#     -------
+#     ~mantid.dataobjects.Workspace2D
+#         Reference to the processed workspace
+#     """
+#     # Default output workspace name
+#     if not output_workspace:
+#         output_workspace = f'{str(ws_raw)}_single_config_{output_suffix}'
+#
+#     # Process input function parameters
+#     flux_method, flux_value = flux
+#     mask_ws, mask_panel, mask_btp = mask
+#
+#     # Prepare data workspace with dark current, flux, mask, solid angle and sensitivities
+#     # create a common configuration for prepare data
+#     prepare_data_conf = {'dark_current': dark_current,
+#                          'flux_method': flux_method,
+#                          'flux': flux_value,
+#                          'mask_ws': mask_ws,
+#                          'mask_panel': mask_panel,
+#                          'mask_btp': mask_btp,
+#                          'solid_angle': solid_angle,
+#                          'sensitivity_workspace': sensitivity_workspace}
+#     raw_ws = prepare_data_workspaces(ws_raw,
+#                                      output_workspace=output_workspace,
+#                                      **prepare_data_conf)
+#
+#     # Apply transmission to the sample
+#     sample_trans_ws, sample_trans_value = transmission
+#     print(f'tpe of transmission: {type(transmission)}')
+#     if sample_trans_ws or sample_trans_value:
+#         print(f'sample trans ws : {sample_trans_ws}\n\t\ttype = {type(sample_trans_ws)}')
+#         print(f'sample trans val: {sample_trans_value}\n\t\ttype = {type(sample_trans_value)}')
+#         if sample_trans_ws:
+#             RebinToWorkspace(WorkspaceToRebin=sample_trans_ws,
+#                              WorkspaceToMatch=raw_ws,
+#                              OutputWorkspace=sample_trans_ws)
+#         raw_ws = apply_transmission_correction(raw_ws,
+#                                                trans_workspace=sample_trans_ws,
+#                                                trans_value=sample_trans_value,
+#                                                theta_dependent=theta_dependent_transmission,
+#                                                output_workspace=output_workspace)
+#
+#     # finalize with absolute scale and thickness
+#     # TODO FIXME @changwoo - normalization of sample thickness shall be applied to sample/background before or after
+#     # inelastic/incoherence correction????
+#     # Mathematically it does not mastter
+#     raw_ws = normalize_by_thickness(raw_ws, thickness)
+#     # absolute scale
+#     raw_ws *= absolute_scale
+#
+#     return raw_ws
 
 
 def prepare_data_workspaces(data: namedtuple,
@@ -404,58 +403,3 @@ def process_transmission(transmission_ws, empty_trans_ws, transmission_radius, s
         calculated_trans_ws = None
 
     return calculated_trans_ws, processed_transmission_dict, raw_transmission_dict
-
-
-def process_elastic_reference_data(elastic_ref_setup, transmission_radius, sensitivity_ws, flux):
-    """Process elastic reference run from raw workspaces to I of Q1D and Q2D split to frames
-
-    Workflow
-    1. Process ref sample transmission
-    2. Process ref background transmission
-    3. Process (single configuration) ref sample run
-    4. Process (single configuration) ref background run
-    5. Ref sample run convert to Q and split frame
-    6. Ref background run convert to Q and split frame
-
-    Requires:
-      - dark current
-      - mask
-      - sensitivities
-      - empty beam
-      - empty beam radius
-
-    Parameters
-    ----------
-    elastic_ref_setup: ElasticReferenceRunSetup
-        elastic scattering correction reference setup
-
-    Returns
-    -------
-    ElasticReferenceRunSetup
-
-
-    """
-    sample_transmission = elastic_ref_setup.ref_transmission_ws
-    empty_trans_ws = elastic_ref_setup.empty_trans_ws
-
-    sample_cal_trans_ws, _, _ = process_transmission(sample_transmission, empty_trans_ws,
-                                                     transmission_radius, sensitivity_ws,
-                                                     flux.method, flux.data, 'elastic_reference',
-                                                     'elastic_reference', None, None)
-    # process raw.
-    assert sample_cal_trans_ws == 1, 'IMPLEMENTATION TO BE CONTINUED ... '
-
-    # # process transmission if there is any
-    # if sample_transmission.data is not None and empty_trans_ws is not None:
-    #     sample_trans_ws_name = f'{prefix}_sample_trans'
-    #     sample_trans_ws_processed = prepare_data_workspaces(loaded_ws.sample_transmission,
-    #                                                         flux_method=flux_method,
-    #                                                         flux=flux,
-    #                                                         solid_angle=False,
-    #                                                         sensitivity_workspace=loaded_ws.sensitivity,
-    #                                                         output_workspace=sample_trans_ws_name)
-    #     # calculate transmission with fit function (default) Formula=a*x+b'
-    #     trans_ws = calculate_transmission(sample_trans_ws_processed, empty_trans_ws,
-    #                                       radius=transmission_radius, radius_unit="mm")
-
-    return elastic_ref_setup

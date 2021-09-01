@@ -539,7 +539,6 @@ def reduce_single_configuration(loaded_ws: namedtuple,
     else:
         # parse JSON for correction setup
         incoherence_correction_setup = parse_correction_config(reduction_input)
-        print(f'[DEBUG LOG] incoherence_correction: {incoherence_correction_setup}')
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {'Monitor': 'monitor', 'Total charge': 'proton charge', 'Time': 'time'}
@@ -858,7 +857,6 @@ def bin_i_with_correction(iq1d_in_frames, iq2d_in_frames, wl_frame, weighted_err
         # Bin elastic reference run
         if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
-            print(f'DEBUG:  {incoherence_correction_setup.elastic_reference.run_number}')
             iq2d_elastic_wl, iq1d_elastic_wl = bin_all(iq2d_elastic_ref_fr[wl_frame], iq1d_elastic_ref_fr[wl_frame],
                                                        num_x_bins, num_y_bins, n1dbins=num_q1d_bins,
                                                        n1dbins_per_decade=num_q1d_bins_per_decade,
@@ -1088,7 +1086,7 @@ def set_beam_center(center, prefix, instrument_name, ipts, filenames, reduction_
         beam_center_type = 'calculated'
     else:
         # use default EQSANS center
-        # FIXME - it is better to have these hard code value defined out side of this method
+        # TODO - it is better to have these hard code value defined out side of this method
         center_x = 0.025239
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")

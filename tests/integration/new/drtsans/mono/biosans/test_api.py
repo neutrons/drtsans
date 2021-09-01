@@ -220,6 +220,7 @@ def test_reduce_single_configuration_slice_transmission_true():
             "darkMainFileName": "CG3_8331.nxs.h5",
             "darkWingFileName": "CG3_8331.nxs.h5",
             "normalization": "Monitor",
+            "normalizationResortToTime": False,
             "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8367m7p0_bsSVP.nxs",
             "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8369w1p4_bsSVP.nxs",
             "useSolidAngleCorrection": True,

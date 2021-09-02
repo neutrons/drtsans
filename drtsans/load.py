@@ -18,15 +18,20 @@ __all__ = ['load_events', 'sum_data', 'load_and_split', 'move_instrument']
 
 
 def __monitor_counts(filename, monitor_name='monitor1'):
-    '''Get the total number of counts in a single monitor
+    r"""Get the total number of counts in a single monitor
 
     Parameters
     ----------
     filename: str
-        Absolute path to file to be read
+        Absolute path to the HDF5 file to be read
     monitor_name: str
         Name of the monitor to determine the total counts of
-    '''
+
+    Raises
+    ------
+    RuntimeError
+        The HDF5 file does not contain a monitor entry
+    """
     counts = 0  # default value is zero
     with h5py.File(filename, 'r') as handle:
         if monitor_name not in handle['entry']:
@@ -129,8 +134,11 @@ def load_events(run, data_dir=None, output_workspace=None, overwrite_instrument=
             # use archive search
             filename = str(abspath(filename))
 
-        # create new log with the monitor counts
-        SampleLogs(output_workspace).insert('monitor', __monitor_counts(filename))
+        # create new log with the monitor counts if monitor counts exists
+        try:
+            SampleLogs(output_workspace).insert('monitor', __monitor_counts(filename))
+        except RuntimeError as e:
+            logger.warning(str(e))  # log a warning that monitor info not found in filename
 
     # move instrument components - sample position must happen first
 

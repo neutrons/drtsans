@@ -60,6 +60,44 @@ dockerbuild:
     paths:
     - scripts/sans-backend-run.sh
 
+docker-update-test:
+  stage: test
+  retry: 1
+  dependencies:
+    - dockerbuild
+  before_script:
+    - sudo yum install -y nfs-utils
+    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /HFIR/CG2
+    - sudo mkdir -p /HFIR/CG3
+    - sudo bash scripts/instruments-mount.sh
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - time docker pull $CONTAINER_URL
+    - time bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-sans-demo
+
+docker-no-update-test:
+  stage: test
+  retry: 1
+  dependencies:
+    - dockerbuild
+  before_script:
+    - sudo yum install -y nfs-utils
+    - sudo mkdir -p /SNS/EQSANS
+    - sudo mkdir -p /HFIR/CG2
+    - sudo mkdir -p /HFIR/CG3
+    - sudo bash scripts/instruments-mount.sh
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - time docker pull $CONTAINER_URL
+    - time bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
+    - sudo chown -R gitlab-runner .
+  tags:
+    - scse-sans-demo
+
 docs-feature:
   stage: test
   retry: 1

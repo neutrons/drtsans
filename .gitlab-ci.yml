@@ -285,7 +285,7 @@ analysis-update:
       else
         CONDA_ENV="sans"
       fi    
-    - curl -X POST -F token=$DEVOPS_TRIGGER -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=$CONDA_ENV $DEVOPS_PROJECT
+    - curl -X POST -F token=$DEVOPS_TRIGGER -F ref=main -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=$CONDA_ENV $DEVOPS_PROJECT
   tags:
     - scse-mantid-builder
   only:

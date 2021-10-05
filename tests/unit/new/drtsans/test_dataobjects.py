@@ -103,8 +103,8 @@ class TestIQmod():
         assert_wksp_equal(wksp, iqmod)
 
 
-def test_save_load_iqmod():
-    """Test save and load I(Q) to and from ASCII
+def test_save_load_iqmod_Panda():
+    """Test save and load I(Q) to and from ASCII with Panda
 
     Returns
     -------
@@ -135,6 +135,38 @@ def test_save_load_iqmod():
     assert line0.strip() == "# NANs have been skipped"
     column_names = line1.split()
     assert column_names == ['mod_q', 'intensity', 'error']
+
+def test_save_load_iqmod_mantid_SaveLoadAscii():
+    """Test save and load I(Q) to and from ASCII
+
+    Returns
+    -------
+
+    """
+    import numpy as np
+    # Test on IQmod with Q, I, dI, dQ
+    iq = IQmod([1, 2, 3, 3.5], [4, 5, 6, 0], [7, 8, 9, 0], [1.1, 1.2, 1.3, 1.4])
+    filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
+    #  Save
+    save_iqmod(iq, filename, header_type='LoadAscii')
+    # Load
+    iq_other = load_iqmod(filename, header_type='LoadAscii')
+
+    testing.assert_allclose(iq, iq_other)
+
+    # Check column order
+    iq_file = open(filename, 'r')
+    line0 = iq_file.readline()
+    print('Line 0: ' + line0)
+    line1 = iq_file.readline()
+    print('Line 1: ' + line1)
+    iq_file.close()
+
+    # Clean
+    os.remove(filename)
+
+    assert line0.strip() == "# I(Q)"
+    assert line1 == "#Q (1/A)        I (1/cm)        dI (1/cm)       dQ (1/A)\n"
 
 
 def test_verify_same_bins():

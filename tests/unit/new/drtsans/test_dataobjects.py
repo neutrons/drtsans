@@ -136,6 +136,7 @@ def test_save_load_iqmod_Panda():
     column_names = line1.split()
     assert column_names == ['mod_q', 'intensity', 'error']
 
+
 def test_save_load_iqmod_mantid_SaveLoadAscii():
     """Test save and load I(Q) to and from ASCII
 
@@ -143,7 +144,6 @@ def test_save_load_iqmod_mantid_SaveLoadAscii():
     -------
 
     """
-    import numpy as np
     # Test on IQmod with Q, I, dI, dQ
     iq = IQmod([1, 2, 3, 3.5], [4, 5, 6, 0], [7, 8, 9, 0], [1.1, 1.2, 1.3, 1.4])
     filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
@@ -157,9 +157,7 @@ def test_save_load_iqmod_mantid_SaveLoadAscii():
     # Check column order
     iq_file = open(filename, 'r')
     line0 = iq_file.readline()
-    print('Line 0: ' + line0)
     line1 = iq_file.readline()
-    print('Line 1: ' + line1)
     iq_file.close()
 
     # Clean

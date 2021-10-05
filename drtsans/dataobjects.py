@@ -1,6 +1,3 @@
-from mantid.simpleapi import SaveAscii, LoadAscii
-
-
 from collections import namedtuple
 from collections.abc import Iterable
 import h5py
@@ -479,7 +476,7 @@ def load_iqmod(file, sep=' ', header_type='Panda'):
         num_cols = len(csv_data[0])
         assert num_cols == 4, 'Incompatible number of colums: {} should be 4'.format(num_cols)
 
-        return IQmod(csv_data[:,1], csv_data[:,2], csv_data[:,0], csv_data[:,3])
+        return IQmod(csv_data[:, 1], csv_data[:, 2], csv_data[:, 0], csv_data[:, 3])
     else:
         return IQmod.read_csv(file, sep=sep)
 

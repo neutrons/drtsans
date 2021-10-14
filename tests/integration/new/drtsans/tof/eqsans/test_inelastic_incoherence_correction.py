@@ -4,6 +4,7 @@ from jsonschema.exceptions import ValidationError
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (load_all_files, reduce_single_configuration)  # noqa E402
 from drtsans.dataobjects import _Testing
+from drtsans.settings import amend_config
 import json
 import tempfile
 from typing import Tuple, Dict
@@ -12,7 +13,7 @@ from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
 
 @pytest.mark.skipif(not os.path.exists('/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5'),
                     reason='Required test data not available')
-def test_parse_json():
+def test_parse_json(reference_dir):
     """Test the JSON to dictionary
     """
     elastic_reference_run = "124680"
@@ -76,7 +77,8 @@ def test_parse_json():
     }
 
     # Validate
-    input_config = reduction_parameters(reduction_input)
+    with amend_config(data_dir=reference_dir.new.eqsans):
+        input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
     assert input_config['configuration'].get('fitInelasticIncoh')

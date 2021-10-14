@@ -103,8 +103,8 @@ class TestIQmod():
         assert_wksp_equal(wksp, iqmod)
 
 
-def test_save_load_iqmod_Panda():
-    """Test save and load I(Q) to and from ASCII with Panda
+def test_save_load_iqmod_pandas():
+    """Test save and load I(Q) to and from ASCII with pandas
 
     Returns
     -------
@@ -137,7 +137,7 @@ def test_save_load_iqmod_Panda():
     assert column_names == ['mod_q', 'intensity', 'error']
 
 
-def test_save_load_iqmod_mantid_SaveLoadAscii():
+def test_save_load_iqmod_mantid_mantid_ascii():
     """Test save and load I(Q) to and from ASCII
 
     Returns
@@ -148,9 +148,9 @@ def test_save_load_iqmod_mantid_SaveLoadAscii():
     iq = IQmod([1, 2, 3, 3.5], [4, 5, 6, 0], [7, 8, 9, 0], [1.1, 1.2, 1.3, 1.4])
     filename = tempfile.NamedTemporaryFile('wb', suffix='.dat').name
     #  Save
-    save_iqmod(iq, filename, header_type='LoadAscii')
+    save_iqmod(iq, filename, header_type='MantidAscii')
     # Load
-    iq_other = load_iqmod(filename, header_type='LoadAscii')
+    iq_other = load_iqmod(filename, header_type='MantidAscii')
 
     testing.assert_allclose(iq, iq_other)
 

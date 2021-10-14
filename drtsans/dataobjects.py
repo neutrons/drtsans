@@ -19,6 +19,9 @@ class DataType(Enum):
     IQ_AZIMUTHAL = 'IQazimuthal'
     IQ_CRYSTAL = 'IQcrystal'
 
+class HeaderType(Enum):
+    MANTID_ASCII = 'MantidAscii'
+    PANDAS = 'Pandas'
 
 def getDataType(obj):
     try:
@@ -435,7 +438,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
                      mode=mode_nan)
 
 
-def load_iqmod(file, sep=' ', header_type='Panda'):
+def load_iqmod(file, sep=' ', header_type=HeaderType.PANDAS.value):
     r"""
     Load an intensity profile into a ~drtsans.dataobjects.IQmod object.
 
@@ -471,7 +474,7 @@ def load_iqmod(file, sep=' ', header_type='Panda'):
     -------
     ~drtsans.dataobjects.IQmod
     """
-    if header_type == 'LoadAscii':
+    if header_type == HeaderType.MANTID_ASCII.value:
         csv_data = np.genfromtxt(file, comments='#', dtype=np.float64, skip_header=2)
         num_cols = len(csv_data[0])
         assert num_cols == 4, 'Incompatible number of colums: {} should be 4'.format(num_cols)
@@ -481,7 +484,7 @@ def load_iqmod(file, sep=' ', header_type='Panda'):
         return IQmod.read_csv(file, sep=sep)
 
 
-def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True, header_type='Panda'):
+def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True, header_type=HeaderType.PANDAS.value):
     r"""
     Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
@@ -503,7 +506,7 @@ def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True, header_typ
     skip_nan: bool
         If true, any data point where intensity is NAN will not be written to file
     """
-    if header_type == "LoadAscii":
+    if header_type == HeaderType.MANTID_ASCII.value:
         from drtsans.save_ascii import save_ascii_binned_1D
         save_ascii_binned_1D(file, "I(Q)", iq)
     else:

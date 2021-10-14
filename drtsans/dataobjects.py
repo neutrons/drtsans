@@ -19,9 +19,11 @@ class DataType(Enum):
     IQ_AZIMUTHAL = 'IQazimuthal'
     IQ_CRYSTAL = 'IQcrystal'
 
+
 class HeaderType(Enum):
     MANTID_ASCII = 'MantidAscii'
     PANDAS = 'Pandas'
+
 
 def getDataType(obj):
     try:

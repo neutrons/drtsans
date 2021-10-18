@@ -20,6 +20,11 @@ class DataType(Enum):
     IQ_CRYSTAL = 'IQcrystal'
 
 
+class HeaderType(Enum):
+    MANTID_ASCII = 'MantidAscii'
+    PANDAS = 'Pandas'
+
+
 def getDataType(obj):
     try:
         return DataType(obj.id())
@@ -419,7 +424,6 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
             i_q_mod_cols.append('delta_mod_q')
         if 'wavelength' in frame.keys():
             i_q_mod_cols.append('wavelength')
-
         mode_nan = 'w'  # write mode for csv file. If we add a header first, it will be 'a'
         # delete NANs if requested
         if skip_nan:
@@ -436,7 +440,7 @@ class IQmod(namedtuple('IQmod', 'intensity error mod_q delta_mod_q wavelength'))
                      mode=mode_nan)
 
 
-def load_iqmod(file, sep=' '):
+def load_iqmod(file, sep=' ', header_type=HeaderType.PANDAS.value):
     r"""
     Load an intensity profile into a ~drtsans.dataobjects.IQmod object.
 
@@ -472,10 +476,17 @@ def load_iqmod(file, sep=' '):
     -------
     ~drtsans.dataobjects.IQmod
     """
-    return IQmod.read_csv(file, sep=sep)
+    if header_type == HeaderType.MANTID_ASCII.value:
+        csv_data = np.genfromtxt(file, comments='#', dtype=np.float64, skip_header=2)
+        num_cols = len(csv_data[0])
+        assert num_cols == 4, 'Incompatible number of colums: {} should be 4'.format(num_cols)
+
+        return IQmod(csv_data[:, 1], csv_data[:, 2], csv_data[:, 0], csv_data[:, 3])
+    else:
+        return IQmod.read_csv(file, sep=sep)
 
 
-def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True):
+def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True, header_type=HeaderType.PANDAS.value):
     r"""
     Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
@@ -497,7 +508,11 @@ def save_iqmod(iq, file, sep=' ', float_format='%.6E', skip_nan=True):
     skip_nan: bool
         If true, any data point where intensity is NAN will not be written to file
     """
-    iq.to_csv(file, sep=sep, float_format=float_format, skip_nan=skip_nan)
+    if header_type == HeaderType.MANTID_ASCII.value:
+        from drtsans.save_ascii import save_ascii_binned_1D
+        save_ascii_binned_1D(file, "I(Q)", iq)
+    else:
+        iq.to_csv(file, sep=sep, float_format=float_format, skip_nan=skip_nan)
 
 
 class IQazimuthal(namedtuple('IQazimuthal', 'intensity error qx qy delta_qx delta_qy wavelength')):

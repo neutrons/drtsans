@@ -5,6 +5,7 @@ drt-sans
 Data Reduction Toolkit for Small Angle Neutron Scattering
 
 This packages is a collection of functionality for reducing SANS data developed in collaboration with the instrument scientists at the High Flux Isotope Reactor (HFIR) and Spallation Neutron Source (SNS) at Oak Ridge National Laboratory.
+
 While much of the functionality is generic, this implementation is aimed at reducing data from BIOSANS, EQSANS, and GPSANS.
 As appropriate, this work is an abstraction layer on top of the mantid project.
 
@@ -14,7 +15,7 @@ As appropriate, this work is an abstraction layer on top of the mantid project.
 Usage from provided front-ends
 ------------------------------
 
-For end users go to `next version <http://shaman.ornl.gov/>`_ or
+For end users go to
 `QA version <http://scse-ui.ornl.gov:8080/>`_
 
 Use `jupyter <https://jupyter.sns.gov/>`_ to have a play with the code.
@@ -66,141 +67,3 @@ You must download the wrapper script from the above link as the build process mo
 
 -----------------------------------------------
 Set-up for development in a virtual environment
------------------------------------------------
-
-This is the instructions for a person who is developing *both*
-drt-sans and mantid in tandem. It assumes that you are using a virtual
-environment and have a local build of mantid. As one caveat, for this
-method, mantid must be build against the same version of python being
-used in the virtual environment
-
-1. Checkout the code.
-
-.. code-block:: shell
-
-   $ git clone git@code.ornl.gov:sns-hfir-scse/sans/sans-backend.git
-   $ cd sans-backend
-
-
-2. Create the virtual environment and activate it. The
-   ``--system-site-packages`` argument lets it use things installed on
-   the system as a whole for compiling mantid
-
-.. code-block:: shell
-
-   $ virtualenv -p $(which python3) --system-site-packages .venv
-   $ source .venv/bin/activate
-
-3. Add the built version of mantid to the python path in the virtual
-   environment
-
-.. code-block:: shell
-
-   $ python ~/build/mantid/bin/AddPythonPath.py
-
-4. Install the requirements for running the code
-
-.. code-block:: shell
-
-   $ pip install -r requirements.txt -r requirements_dev.txt
-
-5. Install the code in ``develop`` mode.
-
-.. code-block:: shell
-
-   $ python setup.py develop
-
-6. Try it out. Start ``python`` and try
-
-.. code-block:: python
-
-   import mantid
-   import drtsans
-
-Verify you can run the unit tests:
-
-.. code-block:: shell
-
-   $ python -m pytest tests/unit/new/
-
-7. Be done. Deactivate the virtual environment using
-
-.. code-block:: shell
-
-   $ deactivate
-
-As an alternative, you can use `direnv <https://direnv.net>`_ to do a
-fair amount of the work. Unfortunately, it doesn't currently handle
-``--system-site-packages`` correctly so you'll have to work around
-it. Create the virtual environment using
-
-.. code-block:: shell
-
-   $ virtualenv -p $(which python3) --system-site-packages .direnv/python-$(python3 -c "import platform as p;print(p.python_version())")
-
-Then you create a file ``.envrc`` in your source directory
-
-.. code-block:: shell
-
-   $ echo "layout python3" > .envrc
-
-Finally, tell direnv that you want it to work in this directory
-
-.. code-block:: shell
-
-   $ direnv allow
-
-Then follow steps 3-6 from above. After this, the virtual environment
-with load when you enter the source tree, and unload when you leave.
-
------------------
-Running the tests
------------------
-.. _running_tests:
-
-The tests for this project are all written using `pytest <https://docs.pytest.org/en/latest>`_.
-The `build pipeline <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/.gitlab-ci.yml>`_ currently `runs the unit tests and integration tests <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/test_job.sh>`_ separately using
-
-.. code-block:: shell
-
-   $ python -m pytest tests/unit/new/
-   $ python -m pytest tests/integration/new/
-
-This is one of the ways `pytest allows for selecting tests <https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests>`_.
-Specifying a directory or file will run all tests within that directory (recursively) or file.
-Specifying a regular expression using ``-k`` will select all tests that match the regular expression independent of where they are defined
-
-.. code-block:: shell
-
-   $ python -m pytest -k test_samplelogs
-
-To run an individual test within an individual file add ``::`` to the filename to specify the test
-
-.. code-block:: shell
-
-   $ python -m pytest tests/unit/new/drtsans/tof/eqsans/test_beam_finder.py::test_center_detector
-
-
---------------------------
-Building the documentation
---------------------------
-.. _building_docs:
-
-The site can be build directly using
-
-.. code-block:: shell
-
-   $ sphinx-build -b html docs/ build/sphinx/html
-
-or
-
-.. code-block:: shell
-
-   $ python setup.py build_sphinx
-
-------------
-Contributing
-------------
-
-Contributing is done through merge requests of code that you have the permission to add.
-See `CONTRIBUTING.rst <CONTRIBUTING.rst>`_ for more information.

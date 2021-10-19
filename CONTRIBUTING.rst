@@ -2,6 +2,7 @@ Guide to Contributing
 =====================
 
 Contributions to this project are welcome. All contributors agree to the following:
+- It is assumed that the contributor is an ORNL employee and belongs to the development team.  Thus the following instructions are specific to ORNL development team's process.
 - You have permission and any required rights to submit your contribution.
 - Your contribution is provided under the license of this project and may be redistributed as such.
 - All contributions to this project are public.
@@ -13,7 +14,25 @@ Getting access to the main project
 Direct commit access to the project is currently restricted to core developers.
 All other contributions should be done through pull requests.
 
+
+Development procedure
+---------------------
+
+1. A developer is assigned with a task during neutron status meeting and changes the task's status to **In Progress**.
+2. The developer creates a branch off *next* and completes the task in this branch.
+3. The developer creates a merge request (MR) off *next*.
+4. The developer asks for another developer as a reviewer to review the MR.  An MR can only be approved and merged by the reviewer.
+5. The developer changes the task’s status to **Complete** and closes the associated issue.
+
+
 Contacting the Team
 -------------------
-The best mechanism for contacting the team is to "open a ticket".
-Otherwise, please email us at, Peter Peterson, at petersonpf &lt;at> ornl DOT gov, Jay Jay Billings, billingsjj &lt;at> ornl DOT gov
+The best mechanism for a user to request a change is to contact the SANS CIS.
+Please email `Yingrui Shang`_ with your request.
+
+.. _Yingrui Shang: shangy@ornl.gov
+
+A change needs to be in the form of a:
+
+- Story for any enhancement request
+- Defect for any bug fix request.

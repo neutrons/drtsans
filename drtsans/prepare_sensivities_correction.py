@@ -312,11 +312,8 @@ class PrepareSensitivityCorrection(object):
             ~list
 
             """
-            if isinstance(run_s, int):
-                # an integer as run number
-                run_list = [run_s]
-            elif isinstance(run_s, str) and os.path.exists(run_s):
-                # a string as a file name
+            if isinstance(run_s, (int, str)):
+                # an integer or string as run number
                 run_list = [run_s]
             else:
                 # a sequence, tuple or list

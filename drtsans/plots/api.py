@@ -176,7 +176,10 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
                      symmetric_wedges: bool = True,
                      mask_alpha=0.6,
                      imshow_kwargs: Dict = {}, **kwargs):
-    '''Save a plot representative of the supplied workspace
+    '''Save a plot of I(Qx, Qy).
+    If qmin is specified, all I(Q) with Q less than qmin will be masked in output plot.
+    If qmax is specified, all I(Q) with Q greater than qmax will be masked in output plot.
+    If wedges are specified, all I(Q) out side of wedges will be masked in output plot.
 
     Parameters
     ----------
@@ -259,6 +262,8 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
     # Determine whether intensity matrix shall be inverted or not
     qx2d = workspace.qx
     qy2d = workspace.qy
+    # set up the flag to transpose ROI if I(Qx, Qy) is to be tranposed
+    transpose_flag = False
     if qx2d.shape[0] > 1 and np.sum(qx2d[0] == qx2d[1]) == qx2d.shape[1]:
         # I(Qx, Qy) is of same order as meshgrid(Qx, Qy)
         # Qx have identical among rows:
@@ -269,13 +274,17 @@ def plot_IQazimuthal(workspace, filename, backend='d3',
     else:
         # I(Qx, Qy) is tranposed to meshgrid(Qx, Qy)
         intensity = workspace.intensity.T
+        transpose_flag = True
 
     pcm = ax.imshow(intensity, extent=(qxmin, qxmax, qymin, qymax),
                     origin='lower', aspect='auto', **imshow_kwargs)
 
     # add calculated region of interest
     if roi is not None:
-        roi = np.ma.masked_where(roi, roi.astype(int))  # This is a fix.transpose()
+        roi = np.ma.masked_where(roi, roi.astype(int))
+        # transpose ROI
+        if transpose_flag:
+            roi = roi.T
         ax.imshow(roi, alpha=mask_alpha, extent=(qxmin, qxmax, qymin, qymax),
                   cmap='gray', vmax=roi.max(),
                   interpolation='none',

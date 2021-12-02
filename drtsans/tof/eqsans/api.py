@@ -743,7 +743,7 @@ def reduce_single_configuration(loaded_ws: namedtuple,
                                                                  incoherence_correction_setup,
                                                                  iq1d_elastic_ref_frames,
                                                                  iq2d_elastic_ref_frames,
-                                                                 raw_name, output_dir)
+                                                                 raw_name, output_dir, outputFilename)
 
             _inside_detectordata[fr_log_label] = {'iq': iq1d_main_out, 'iqxqy': iq2d_main_out}
 

@@ -170,7 +170,7 @@ def bin_i_with_correction(iq1d_in_frames, iq2d_in_frames, wl_frame, weighted_err
                           user_qmin, user_qmax, num_x_bins, num_y_bins, num_q1d_bins, num_q1d_bins_per_decade,
                           decade_on_center, bin1d_type, log_binning, annular_bin, wedges, symmetric_wedges,
                           incoherence_correction_setup, iq1d_elastic_ref_fr, iq2d_elastic_ref_fr,
-                          raw_name, output_dir):
+                          raw_name, output_dir, output_filename=""):
     """ Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction
     """
 
@@ -247,13 +247,15 @@ def bin_i_with_correction(iq1d_in_frames, iq2d_in_frames, wl_frame, weighted_err
         corrected_iq1d = do_inelastic_incoherence_correction_q1d(iq1d_main_wl[0],
                                                                  incoherence_correction_setup,
                                                                  b_file_prefix,
-                                                                 output_dir)
+                                                                 output_dir,
+                                                                 output_filename)
 
         # 2D correction
         corrected_iq2d = do_inelastic_incoherence_correction_q2d(iq2d_main_wl,
                                                                  incoherence_correction_setup,
                                                                  b_file_prefix,
-                                                                 output_dir)
+                                                                 output_dir,
+                                                                 output_filename)
 
         # Be finite
         finite_iq1d = corrected_iq1d.be_finite()

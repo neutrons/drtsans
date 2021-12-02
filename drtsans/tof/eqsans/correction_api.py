@@ -215,7 +215,7 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
                                             correction_setup: CorrectionConfiguration,
                                             prefix: str,
                                             output_dir: str,
-                                            output_filename: str="") -> IQmod:
+                                            output_filename: str = "") -> IQmod:
     """Do inelastic incoherence correction on 1D data (Q1d)
 
     Parameters
@@ -252,7 +252,7 @@ def do_inelastic_incoherence_correction_q2d(iq2d: IQazimuthal,
                                             correction_setup: CorrectionConfiguration,
                                             prefix: Union[int, str],
                                             output_dir: str,
-                                            output_filename: str="") -> IQazimuthal:
+                                            output_filename: str = "") -> IQazimuthal:
     # type check
     assert isinstance(iq2d, IQazimuthal), f'iq2d must be IQazimuthal but not {type(iq2d)}'
 

@@ -77,7 +77,7 @@ docker-update-test:
     - time bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
-    - scse-sans-demo
+    - scse-mantid-builder    #scse-sans-demo
 
 docker-no-update-test:
   stage: test
@@ -96,7 +96,7 @@ docker-no-update-test:
     - time bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
   tags:
-    - scse-sans-demo
+    - scse-mantid-builder   #scse-sans-demo
 
 docs-feature:
   stage: test

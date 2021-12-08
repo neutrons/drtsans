@@ -214,7 +214,8 @@ NormFactor = namedtuple('NormFactor', 'k k_error p s')
 def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
                                             correction_setup: CorrectionConfiguration,
                                             prefix: str,
-                                            output_dir: str) -> IQmod:
+                                            output_dir: str,
+                                            output_filename: str = "") -> IQmod:
     """Do inelastic incoherence correction on 1D data (Q1d)
 
     Parameters
@@ -227,6 +228,8 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
         prefix for b factor file
     output_dir: str
         output directory for b1d(lambda)
+    output_filename: str
+        output filename parsed from input configuration file (JSON)
 
     Returns
     -------
@@ -240,7 +243,7 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
     corrected = correct_incoherence_inelastic_1d(iq1d, correction_setup.select_min_incoherence)
 
     # save file
-    save_b_factor(corrected, os.path.join(output_dir, f'b1d_{prefix}.dat'))
+    save_b_factor(corrected, os.path.join(output_dir, f'{output_filename}_inelastic_b1d_{prefix}.dat'))
 
     return corrected.iq1d
 
@@ -248,7 +251,8 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
 def do_inelastic_incoherence_correction_q2d(iq2d: IQazimuthal,
                                             correction_setup: CorrectionConfiguration,
                                             prefix: Union[int, str],
-                                            output_dir: str) -> IQazimuthal:
+                                            output_dir: str,
+                                            output_filename: str = "") -> IQazimuthal:
     # type check
     assert isinstance(iq2d, IQazimuthal), f'iq2d must be IQazimuthal but not {type(iq2d)}'
 
@@ -256,7 +260,7 @@ def do_inelastic_incoherence_correction_q2d(iq2d: IQazimuthal,
     corrected = correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence)
 
     # save file
-    save_b_factor(corrected, os.path.join(output_dir, f'b2d_{prefix}.dat'))
+    save_b_factor(corrected, os.path.join(output_dir, f'{output_filename}_inelastic_b2d_{prefix}.dat'))
 
     return corrected.iq2d
 

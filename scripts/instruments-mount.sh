@@ -31,7 +31,7 @@ add_sns_mount () {
 
 add_hfir_mount () {
   INSTRUMENT=$1
-  add_instrument_mount "hfir-storage.ornl.gov:/volumes/datapool/instruments" "/HFIR" ${INSTRUMENT}
+  add_instrument_mount "snsdata.ornl.gov:/stornext/snfs1/instruments-hfir" "/HFIR" ${INSTRUMENT}
 }
 
 # add mounts
